@@ -479,7 +479,7 @@ classdef GNSS_Station < handle
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX   this.getChalmersString();
             this(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');            
-            this(1).log.addMessage(this(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and a request BLQ file'));
+            this(1).log.addMessage(this(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
             this(1).log.addMessage(this(1).log.indent('using ocean tide model FES2004'));
             this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));            
             this(1).log.addMessage(this(1).log.indent('Use the following string for the staion locations:'));

@@ -194,17 +194,17 @@ classdef Go_Slave < Com_Interface
             while stay_alive
                 this.revive();
                 this.sendMsg(this.MSG_BORN, sprintf('Helo! My name is "%s"', this.id));
-                this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKACK Parallel_Manager.ID], true); % WAIT ACK MESSAGE
-                this.deleteMsg();
+                this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKACK Parallel_Manager.ID], true, false); % WAIT ACK MESSAGE
                 this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
-                msg = this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true); % WAIT WORK MESSAGE
+                msg = this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true, true); % WAIT WORK MESSAGE
+                this.deleteMsg();
                 try
                     if ~(isnumeric(msg))
                         this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
                         
                         % Creating worker
                         core = Core.getInstance(); % Init Core
-                        this.waitMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
+                        this.waitMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                         tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
                         core.state = tmp.state; % load the state
                         core.gc.cur_settings = tmp.state; % load the state
@@ -214,7 +214,7 @@ classdef Go_Slave < Com_Interface
                         core.met_list = tmp.met_list; % load the meteorological list of files
                         this.log.addMarkedMessage('State updated');
                         clear tmp;
-                        this.waitMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID]); % WAIT WORK MESSAGE
+                        this.waitMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
                         clear Core_Sky Atmosphere Meteo_Network;
                         tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
                         core.sky  = tmp.sky;  % load the state
@@ -225,7 +225,7 @@ classdef Go_Slave < Com_Interface
                         this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
                         
                         % Waiting work
-                        this.waitMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false); % WAIT ACK MESSAGE
+                        this.waitMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
                         
                         active_ps = true;
                         while active_ps

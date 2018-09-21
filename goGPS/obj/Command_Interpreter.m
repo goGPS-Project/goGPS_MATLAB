@@ -77,7 +77,10 @@ classdef Command_Interpreter < handle
         CMD_SHOW        % Display plots and images
         CMD_EXPORT      % Export results
         CMD_PUSHOUT     % push results in output
-                
+            
+        CMD_PINIT       % parallel request slaves
+        CMD_PKILL       % parallel kill slaves
+        
         KEY_FOR         % For each session keyword
         KEY_PAR         % For each target (parallel) keyword
         KEY_ENDFOR      % For marker end
@@ -88,6 +91,8 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
+        
+        PAR_SLAVE     % number of parallel slaves to request
         
         PAR_S_ALL       % show all plots
         PAR_S_DA        % Data availability
@@ -113,7 +118,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT'};
         VALID_CMD = {};
         CMD_ID = [];
         KEY_ID = [];
@@ -211,7 +216,15 @@ classdef Command_Interpreter < handle
             this.PAR_SYNC.limits = [];
             this.PAR_SYNC.accepted_values = [];
             
+            this.PAR_SLAVE.name = '(MANDATORY) Number of slaves';
+            this.PAR_SLAVE.descr = '-n=<num_slaves>    minimum number of parallel slaves to request';
+            this.PAR_SLAVE.par = '(N)|(-n\=)';
+            this.PAR_SLAVE.class = 'double';
+            this.PAR_SLAVE.limits = [1 1000];
+            this.PAR_SLAVE.accepted_values = [];
+
             % Show plots
+            
             this.PAR_S_ALL.name = 'Show all the plots';
             this.PAR_S_ALL.descr = 'SHOWALL';
             this.PAR_S_ALL.par = '(ALL)|(all)';
@@ -380,6 +393,16 @@ classdef Command_Interpreter < handle
             this.CMD_PUSHOUT.rec = 'T';
             this.CMD_PUSHOUT.par = [];
 
+            this.CMD_PINIT.name = {'PINIT', 'pinit'};
+            this.CMD_PINIT.descr = 'Parallel init => r n slaves';
+            this.CMD_PINIT.rec = '';
+            this.CMD_PINIT.par = [this.PAR_SLAVE];
+
+            this.CMD_PKILL.name = {'PKILL', 'pkill'};
+            this.CMD_PKILL.descr = 'Parallel kill all the slaves';
+            this.CMD_PKILL.rec = '';
+            this.CMD_PKILL.par = [];
+
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
             this.KEY_FOR.rec = '';
@@ -438,7 +461,7 @@ classdef Command_Interpreter < handle
             str = sprintf('%s--------------------------------------------------------------------------------\n', str);
             for c = 1 : numel(this.CMD_LIST)
                 cmd = this.(sprintf('CMD_%s', this.CMD_LIST{c}));
-                str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10-numel(cmd.name{1})) * ' ', cmd.descr);
+                str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10 - numel(cmd.name{1})) * ' ', cmd.descr);
                 if ~isempty(cmd.rec)
                     str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory receivers:');
                     if numel(cmd.rec) > 1
@@ -450,7 +473,7 @@ classdef Command_Interpreter < handle
                 end
                 
                 if ~isempty(cmd.par)
-                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
+                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Parameters:');
                     for p = 1 : numel(cmd.par)
                         str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
                     end
@@ -523,6 +546,17 @@ classdef Command_Interpreter < handle
                 '\n ENDFOR', ...
                 '\n SHOW T* MAP', ...
                 '\n SHOW T* ENUBSL', ...
+                '\n\n# Parallel PPP with 3 slaves\n# killing workers at the end\n# of processing', ...
+                '\n\n PINIT -n=3' ...
+                '\n FOR S*' ...
+                '\n    PAR T*' ...
+                '\n       LOAD T$ @30s -s=G', ...
+                '\n       PREPRO T$', ...
+                '\n       PPP T$', ...
+                '\n    ENDPAR' ...                
+                '\n ENDFOR', ...
+                '\n PKILL', ...
+                '\n SHOW T* ZTD', ...
                 '\n\n# PPP + SEID processing', ...
                 '\n# 4 reference stations \n# + one L1 target', ...
                 '\n# @30 seconds rate GPS', ...
@@ -573,7 +607,7 @@ classdef Command_Interpreter < handle
                 
                 % Init parallel controller when a parallel section is found
                 switch tok{1}
-                    case this.KEY_PAR.name, this.runParInit();
+                    case this.KEY_PAR.name, this.core.activateParallelWorkers();
                 end
                 
                 n_workers = 0;
@@ -616,6 +650,10 @@ classdef Command_Interpreter < handle
                     end
                     
                     switch upper(tok{1})
+                        case this.CMD_PINIT.name                % PINIT
+                            this.runParInit(tok(2:end));
+                        case this.CMD_PKILL.name                % PKILL
+                            this.runParKill(tok(2:end));
                         case this.CMD_LOAD.name                 % LOAD
                             this.runLoad(rec, tok(2:end));
                         case this.CMD_EMPTY.name                % EMPTY
@@ -656,10 +694,10 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                 end
             end
-            if toc(t0) > 1
-                this.log.simpleSeparator();
-                this.log.addMarkedMessage(sprintf('Core execution done in %.3f seconds', toc(t0)));
-                this.log.simpleSeparator();
+            if (toc(t0) > 1) && (numel(cmd_list) > 1)
+                this.log.addMessage(this.log.indent('------------------------------------------------'));
+                this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
+                this.log.addMessage(this.log.indent('------------------------------------------------'));
             end
         end
     end
@@ -668,6 +706,24 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
     methods (Access = public)    
+        
+        function runParInit(this, tok)
+            % Load the RINEX file into the object
+            %
+            % SYNTAX
+            %   this.runParInit(tok)
+            
+            [n_slaves, found] = this.getNumericPar(tok, this.PAR_SLAVE.par);
+            Parallel_Manager.requestSlaves(round(n_slaves));
+        end
+        
+        function runParKill(this, tok)
+            % Load the RINEX file into the object
+            %
+            % SYNTAX
+            %   this.runParKill(tok)
+            Parallel_Manager.killAll();
+        end
         
         function runLoad(this, rec, tok)
             % Load the RINEX file into the object
@@ -1237,14 +1293,6 @@ classdef Command_Interpreter < handle
                     end
                 end
             end
-        end
-
-        function runParInit(this)
-            % Init parallel workers
-            %
-            % SYNTAX
-            %   this.runParInit()
-            this.core.initParallelWorkers();
         end
         
     end

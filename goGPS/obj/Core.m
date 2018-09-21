@@ -445,7 +445,7 @@ classdef Core < handle
             this.log.setColorMode(c_mode);
         end        
         
-        function initParallelWorkers(this)
+        function activateParallelWorkers(this)
             this.gom = Parallel_Manager.getInstance;
             this.gom.activateWorkers();
         end

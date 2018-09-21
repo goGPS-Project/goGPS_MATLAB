@@ -56,7 +56,7 @@ classdef Com_Interface < handle
     end
 
     properties
-        COM_DIR = './commands';
+        COM_DIR = './com';
     end    
 
     methods  (Abstract)
