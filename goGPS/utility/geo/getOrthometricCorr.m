@@ -14,7 +14,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %   geoid   = regular map in geocentric coordinates <default = EGM08 0.5x0.5 deg>
 %
 % OUTPUT:
-%   N       = geoid ondulation
+%   N       = geoid ondulation [m]
 %
 % DESCRIPTION:
 %   Get the geoid ondulation (orthometric correction)
