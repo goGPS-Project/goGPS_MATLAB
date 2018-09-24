@@ -6495,6 +6495,163 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function getDataStatistics(this)
+            %% CODE
+            [pr, id_pr] = this.getPseudoRanges();
+            id_pr = find(id_pr);
+            prs = this.getSyntPrObs();
+            pr_diff = zero2nan(pr) - zero2nan(prs);
+            %figure; plot(pr_diff,'.');
+            %title('Pr) observations - synth')
+            %dockAllFigures;
+            
+            % remove phases clock
+            dt_pr = cumsum(median(Core_Utils.diffAndPred(zero2nan(pr)-zero2nan(prs)), 2, 'omitnan'));
+            
+            id = (1 : numel(dt_pr))';
+            dt_pr_drift = Core_Utils.interp1LS(id, dt_pr, 3, id);
+            %ckfh = figure; plot(dt_pr); hold on; plot(dt_pr_drift); 
+            %title('Pr) clock from observations')
+            dt_pr = dt_pr - dt_pr_drift;
+            %hold on; plot(dt_pr, 'k');
+            %legend('clock', 'drifting', 'final clock');
+
+            pr_diff = bsxfun(@minus, pr_diff, dt_pr);
+            %figure; plot(pr_diff,'.');
+            %title('Pr) observations - synth (no clock)')
+            %dockAllFigures;
+            
+            % remove outliers and CS
+            id_ko = flagExpand(abs(Core_Utils.diffAndPred(pr_diff,1)) > 0.10 | abs(Core_Utils.diffAndPred(pr_diff,2)) > 0.05, 1);
+            pr_diff(id_ko) = nan;
+            
+            % statistics
+            sensor_pr = Core_Utils.diffAndPred(pr_diff,2);
+            
+            % PHASES
+            [ph, wl, id_ph] = this.getPhases();
+            id_ph = find(id_ph);
+            phs = this.getSyntPhases();
+            ph_diff = zero2nan(ph) - zero2nan(phs);
+            %figure; plot(ph_diff,'.');
+            %title('Ph) observations - synth')
+            %dockAllFigures;
+            
+            % remove phases clock
+            dt_ph = cumsum(median(Core_Utils.diffAndPred(zero2nan(ph)-zero2nan(phs)), 2, 'omitnan'));
+            
+            id = (1 : numel(dt_ph))';
+            dt_ph_drift = Core_Utils.interp1LS(id, dt_ph, 5, id);
+            %figure(ckfh); plot(dt_ph); hold on; plot(dt_ph_drift);
+            %title('Ph) clock from observations')
+            dt_ph = dt_ph - dt_ph_drift;
+            %hold on; plot(dt_ph, 'b');
+            %legend('pr clock', 'pr drifting', 'pr final clock', 'ph clock', 'ph drifting', 'ph final clock');
+            
+            ph_diff = bsxfun(@minus, ph_diff, dt_ph);
+            %figure; plot(ph_diff,'.');
+            %title('Ph) observations - synth (no clock)')
+            %dockAllFigures;
+            
+            % remove outliers and CS
+            id_ko = flagExpand(abs(Core_Utils.diffAndPred(ph_diff,1)) > 0.10 | abs(Core_Utils.diffAndPred(ph_diff,2)) > 0.05, 1);
+            ph_diff(id_ko) = nan;
+            
+            % statistics
+            sensor_ph = Core_Utils.diffAndPred(ph_diff,2);
+            %%
+            % for each constellations
+            fprintf('\n-------------------------------------------\n')
+            fprintf(' Statistics on observations - synthesised:\n')
+            fprintf('-------------------------------------------\n')
+            sensor_pr0 = pr_diff;
+            sensor_ph0 = ph_diff;
+            for sys_c = unique(this.system)
+                id_ok = this.system(id_ph) == sys_c;
+                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr0(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph0(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+            end
+            
+            fprintf('\nfirst temporal derivate:\n')
+            sensor_pr1 = Core_Utils.diffAndPred(pr_diff,1);
+            sensor_ph1 = Core_Utils.diffAndPred(ph_diff,1);
+            for sys_c = unique(this.system)
+                id_ok = this.system(id_ph) == sys_c;
+                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+            end
+            
+            fprintf('\nsecond temporal derivate:\n')
+            sensor_pr2 = Core_Utils.diffAndPred(pr_diff,2);
+            sensor_ph2 = Core_Utils.diffAndPred(ph_diff,1);
+            for sys_c = unique(this.system)
+                id_ok = this.system(id_ph) == sys_c;
+                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr2(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph2(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+            end
+            
+            %%  
+            std_ph_prn = [];
+            std_pr_prn = [];
+            mean_ph_prn = [];
+            mean_pr_prn = [];
+            min_ph_prn = [];
+            min_pr_prn = [];
+            max_ph_prn = [];
+            max_pr_prn = [];
+            s = 0;
+            fprintf('       |  PR                                |  PH                               |\n');
+            fprintf('       |------------------------------------------------------------------------|\n');
+            fprintf('       |   mean  |  std   |  min   |  max   |  mean  |  std   |  min   |  max   |\n');
+            fprintf('       |------------------------------------------------------------------------|\n');
+            for sys_c = unique(this.system)
+                s = s + 1;
+                figure; 
+                id_sys = find(this.system(id_ph) == sys_c);
+                prn  = this.prn(id_ph(id_sys));
+                for p = unique(prn)'
+                    id_prn = find(prn == p);
+                    band = str2num(this.obs_code(id_ph(id_sys(id_prn)), 2));
+                    for b = unique(band)'
+                        id_band = find(band == b);
+                        id_band = id_band(1);
+                        id_obs = id_sys(id_prn(id_band));
+                        std_ph_prn(prn(id_prn(id_band)), b, s) = min(zero2nan(std(sensor_ph2(:, id_obs),'omitnan'))) * 1e3;
+                        std_pr_prn(prn(id_prn(id_band)), b, s) = min(zero2nan(std(sensor_pr2(:, id_obs),'omitnan'))) * 1e3;
+                        mean_ph_prn(prn(id_prn(id_band)), b, s) = mean(zero2nan(mean(sensor_ph0(:, id_obs),'omitnan'))) * 1e3;
+                        mean_pr_prn(prn(id_prn(id_band)), b, s) = mean(zero2nan(mean(sensor_pr0(:, id_obs),'omitnan'))) * 1e3;
+                        min_ph_prn(prn(id_prn(id_band)), b, s) = min(min(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
+                        min_pr_prn(prn(id_prn(id_band)), b, s) = min(min(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
+                        max_ph_prn(prn(id_prn(id_band)), b, s) = max(max(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
+                        max_pr_prn(prn(id_prn(id_band)), b, s) = max(max(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
+                        plot(prn(id_prn(id_band)), std_pr_prn(prn(id_prn(id_band)), b, s), '.', 'MarkerSize', 30, 'Color', Core_UI.getColor(b, 9)); hold on;
+                        plot(prn(id_prn(id_band)), std_ph_prn(prn(id_prn(id_band)), b, s), 'o', 'MarkerSize', 10, 'LineWidth', 3, 'Color', Core_UI.getColor(b, 9)); hold on;                        
+                        obs_code = this.obs_code(id_ph(id_sys(id_prn)), :);
+                        fprintf(' %c %s | %6.2f |  %6.2f |  %6.2f |  %6.2f |  %6.2f |  %6.2f |  %6.2f |  %6.2f |\n', ...
+                            sys_c(1), obs_code(id_band(1),:), ...
+                            mean_pr_prn(prn(id_prn(id_band)), b, s), ...
+                            std_pr_prn(prn(id_prn(id_band)), b, s), ...
+                            min_pr_prn(prn(id_prn(id_band)), b, s), ...
+                            max_pr_prn(prn(id_prn(id_band)), b, s), ...
+                            mean_ph_prn(prn(id_prn(id_band)), b, s), ...
+                            std_ph_prn(prn(id_prn(id_band)), b, s), ...
+                            min_ph_prn(prn(id_prn(id_band)), b, s), ...
+                            max_ph_prn(prn(id_prn(id_band)), b, s));
+                    end
+                end
+                %ylim([0 50]);
+                h = ylabel('std (mm)'); h.FontWeight = 'bold';
+                h = xlabel('PRN'); h.FontWeight = 'bold';
+                ax = gca(); ax.XTick = unique(prn);
+                
+                grid on;
+                title(['Constellation ' sys_c]);
+            end
+            dockAllFigures
+            
+            
+            %%
+            
+            %%          
+        end
+        
         function preProcessing(this, sys_c)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
