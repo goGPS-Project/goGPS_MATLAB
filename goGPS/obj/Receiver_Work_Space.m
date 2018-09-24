@@ -1464,8 +1464,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Compute the other useful status array of the receiver object
                 if ~isempty(this.obs)
                     this.updateStatus();
-                end
-                this.active_ids = true(this.getNumObservables, 1);
+                end                
                 
                 % remove empty observables
                 this.remObs(~this.active_ids);
