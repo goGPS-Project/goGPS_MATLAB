@@ -5,7 +5,7 @@ classdef Core_Utils < handle
     
     methods (Static)
         function diff_data = diffAndPred(data, n_order, t_ref)
-            % compute diff predicting epoch 0
+            % compute diff predicting epoch 0 of each arc
             % using interp 1 pchip method
             %
             % SYNTAX
@@ -23,6 +23,18 @@ classdef Core_Utils < handle
                 id_ok = ~isnan(tmp);
                 if sum(id_ok) > 2
                     data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
+                    % interpolate the "left" of the first element of an arc
+                    % because diff "eat" the first value
+                    lim = getOutliers(id_ok);
+                    lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
+                    for l = 1 : size(lim_short, 1)
+                        data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
+                    end
+                    lim = lim(lim(:,2) - lim(:,1) > 2 & lim(:,1) > 1, :);
+                    for l = 1 : size(lim, 1)
+                        id_data = lim(l, 1) : lim(l, 2);
+                        data(lim(l, 1), s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1, 'pchip', 'extrap');
+                    end
                 end
             end
             diff_data = diff(data, n_order);
