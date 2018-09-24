@@ -3725,21 +3725,25 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  get syntetic observation for code or phase
             obs_type = {'code', 'phase'};
             this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1})));
-            idx_obs = [];
             if nargin < 3
                 sys_c = this.cc.sys_c;
             end
             
-            for s = sys_c
-                if phase
-                    idx_obs = [idx_obs; this.getObsIdx('L', s)];
-                else
-                    idx_obs = [idx_obs; this.getObsIdx('C', s)];
+            if phase
+                idx_obs = this.getObsIdx('L');
+            else
+                idx_obs = this.getObsIdx('C');
+            end            
+            sys = this.system(idx_obs);
+            
+            for i = numel(sys) : -1 : 1
+                if ~ismember(sys(i), sys_c)
+                    sys(i) = [];
+                    idx_obs(i) = [];
                 end
             end
             
             synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
-            sys = this.system(idx_obs);
             go_id = this.go_id(idx_obs);
             u_sat = unique(go_id);
             %this.updateAllAvailIndex();
@@ -6104,7 +6108,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
+            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Global_Configuration.V_LIGHT;
             bad_track = abs(sensor) > 1e4;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
