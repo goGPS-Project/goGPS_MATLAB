@@ -148,6 +148,22 @@ classdef GNSS_Station < handle
             end
         end
         
+        function id = getStationId(rec_list, marker_name)
+            % Given a marker_name get the sequencial id of a station
+            %
+            % SYNTAX
+            %   id = findStationId(this, marker_name)
+            marker4ch_list = '';
+            for r = 1 : numel(rec_list)
+                try
+                    marker4ch_list(r, :) = char(rec_list(r).getMarkerName4Ch);
+                catch
+                    % the name is shorter or missing => ignore
+                end
+            end
+            id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
+        end
+        
         function req_rec = get(rec_list, marker_name)
             % Get the receivers with a certain Marker name
             % case unsensitive

@@ -1086,7 +1086,7 @@ classdef Core < handle
             cur_session = this.state.getCurSession;
         end
         
-        function id = findStationId(this, marker_name)
+        function id = getStationId(this, marker_name)
             % Given a marker_name get the sequencial id of a station
             %
             % SYNTAX
@@ -1100,7 +1100,7 @@ classdef Core < handle
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
-        end            
+        end
     end
     
     methods
