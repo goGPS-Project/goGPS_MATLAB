@@ -573,7 +573,7 @@ end
             box_g = uix.VBox('Parent', box, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observations', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observation', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
             Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [170 -3 5 -1 25]);
             Core_UI.insertEmpty(box_g);
@@ -743,7 +743,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou', 'C_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou',  'C_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end}.Enable = 'off';
@@ -765,9 +765,9 @@ end
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) R1', 'GLO_R1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) R2', 'GLO_R2', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L3) R5', 'GLO_R5', @this.onCheckBoxCCChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) G1', 'GLO_G1', @this.onCheckBoxCCChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) G2', 'GLO_G2', @this.onCheckBoxCCChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L3) G3', 'GLO_G3', @this.onCheckBoxCCChange);
             
             n_b_gal = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
@@ -786,7 +786,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L5) L5', 'QZS_L5', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L6) L6', 'QZS_L6', @this.onCheckBoxCCChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L6) L6', 'QZS_LEX6', @this.onCheckBoxCCChange);
             
             n_b_bei = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
