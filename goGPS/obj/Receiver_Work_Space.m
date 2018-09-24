@@ -4441,6 +4441,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
+            
+            id_ko = find(~this.active_ids); 
+            if ~isempty(id_ko)
+                [prn_ko, id_sort] = sort(this.prn(id_ko));
+                system_ko = this.system(id_ko(id_sort));
+                obs_code_ko = this.obs_code(id_ko(id_sort),:);
+                
+                this.log.addWarning('No group delay found for some satellite / obs code')
+                for s = unique(prn_ko)'
+                    id = find(prn_ko == s);
+                    this.log.addMessage(this.log.indent(sprintf(' - sat %c%02d missing group delay for obs code:%s', system_ko(id(1)), s, sprintf(' %c%c%c', obs_code_ko(id,: )'))));
+                end
+                
+                this.log.addWarning('Enabling those observables without applying group delay\nSystematic biases might be present in the pseudo-ranges');
+                    
+                % remove empty observables
+                %this.remObs(id_ko);
+                this.active_ids(id_ko) = true;
+            end
         end
         
         %--------------------------------------------------------
