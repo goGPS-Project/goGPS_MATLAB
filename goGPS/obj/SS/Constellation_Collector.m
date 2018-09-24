@@ -199,9 +199,10 @@ classdef Constellation_Collector < Settings_Interface
                 this.n_sys = numel(this.num_id);
                 this.sys_name = this.SYS_NAME(this.num_id);
             else
-                this.log.addError('No satellite system selected -> Enabling GPS');
-                ss = false(this.N_SYS_TOT,1); ss(1) = true;
-                this.init(ss);
+                this.log.addWarning('No satellite system selected!\nPay attention to what you are doing, something may not work');
+                %this.log.addError('No satellite system selected -> Enabling GPS');
+                %ss = false(this.N_SYS_TOT,1); ss(1) = true;
+                %this.init(ss);
             end
         end
     end
