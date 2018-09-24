@@ -541,10 +541,14 @@ classdef Core_Utils < handle
             file_list = [];
             for d = 1 : numel(dir_list)
                 file_name_len = numel(dir_list{d});
+                rin3_start = regexp(dir_list{d}, '\_R\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
                 if (file_name_len == 14) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[0-9]{2}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
                     file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}${QQ}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
                     %file_list = [file_list; dir_list{d}(1:4)];
-                end                    
+                elseif (file_name_len == 38) && ~isempty(rin3_start)
+                    %file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}${HH}${QQ}' dir_list{d}(rin3_start + 14 : end)]]; %#ok<AGROW>
+                    file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]]; %#ok<AGROW>
+                end
             end
             station_list = {};
             if size(file_list, 2) > 1
@@ -555,14 +559,16 @@ classdef Core_Utils < handle
                 end
             end
             
-            % search for station files STAT${DOY}${S}${QQ}.${YY}
+            % search for station files STAT${DOY}${S}.${YY}
             file_list = [];
             for d = 1 : numel(dir_list)
                 file_name_len = numel(dir_list{d});
                 if (file_name_len == 12) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
                     file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
                     %file_list = [file_list; dir_list{d}(1:4)];
-                end                    
+                elseif (file_name_len == 38) && ~isempty(rin3_start)
+                    file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]]; %#ok<AGROW>
+                end
             end
             if size(file_list, 2) > 1
                 station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
