@@ -1195,6 +1195,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             poss_out_idx = abs(sensor_ph) > 0.5;
             this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
             
+            % Remove short arcs
+            this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | flagShrink(flagExpand(this.sat.outlier_idx_ph, max(1, this.state.getMinArc)), max(1, this.state.getMinArc));
+            
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
         end
