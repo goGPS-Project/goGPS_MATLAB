@@ -165,7 +165,6 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        
         function desync = getDesync(this)
             desync = this.desync;
         end        
@@ -537,7 +536,7 @@ classdef Receiver_Output < Receiver_Commons
                 xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
-        end   
+        end
         
         function showOutliersAndCycleSlip(this, sys_c_list)
             % Plot the outliers found
@@ -585,7 +584,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-            function showOutliersAndCycleSlip_p(this, sys_c_list)
+        function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
             
@@ -620,7 +619,6 @@ classdef Receiver_Output < Receiver_Commons
             end
             
         end
-        
         
     end
 end

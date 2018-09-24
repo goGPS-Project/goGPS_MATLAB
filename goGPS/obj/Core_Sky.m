@@ -1748,7 +1748,7 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: interpolate sun and moon positions
-            if isempty(this.X_moon) | isempty(this.X_sun)
+            if isempty(this.X_moon) || isempty(this.X_sun)
                 this.tabulateSunMoonPos();
             end
             
