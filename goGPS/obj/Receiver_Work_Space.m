@@ -4521,7 +4521,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Upadte azimute elevation into.sat
             % SYNTAX
             %   this.updateAzimuthElevation(<sat>)
-            
+            this.updateAllAvailIndex();
             if nargin < 2
                 for i = unique(this.go_id)'
                     if sum(this.go_id == i) > 0
@@ -6067,6 +6067,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeStaticPositioning(this.id_sync, 15);
+%                 %----- NEXUS DEBUG
+%                 this.adjustPrAmbiguity();
+%                 this.codeStaticPositioning(this.id_sync, 15);
+                %------
                 this.remBadTracking();
                 
                 this.updateAllTOT();
@@ -6127,8 +6131,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Global_Configuration.V_LIGHT;
-            bad_track = abs(sensor) > 1e4;
+            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
+            bad_track = abs(sensor) > 1e5;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
             %ph(bad_track) = 0;
@@ -6510,6 +6514,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
+                
                 this.remUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
                 [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync();

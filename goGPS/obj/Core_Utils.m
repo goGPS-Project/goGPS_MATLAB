@@ -899,6 +899,13 @@ classdef Core_Utils < handle
             
         end
         
+        function A = remBFromA(A,B)
+            % reomve the lement of B from A
+            for i = 1 : length(B)
+                A(A==B(i)) = [];
+            end
+        end
+        
         function createEmptyProject(base_dir, prj_name)
             % create empty config file
             %
