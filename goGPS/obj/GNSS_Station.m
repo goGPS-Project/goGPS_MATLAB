@@ -848,8 +848,7 @@ classdef GNSS_Station < handle
             bsl_ids = [serialize(tril(r1, -1)) serialize(tril(r2, -1))];
             bsl_ids = bsl_ids(bsl_ids(:, 1) > 0 & bsl_ids(:, 2) > 0, :);
         end
-    end
-    
+    end    
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -866,6 +865,17 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showObsStats(sta_list)
+            % Show statistics about the observations stored in the object
+            %
+            % SYNTAX
+            %   this.showObsStats()
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showObsStats();
+            end
+        end
+         
         function showPositionENU(sta_list, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
