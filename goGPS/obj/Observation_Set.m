@@ -475,7 +475,7 @@ classdef Observation_Set < handle
                         id_rm(j-1, i) = true;
                     end
                 end
-                if cs(j, i) && cs(j-1, i)
+                if cs(j, i) & cs(j-1, i)
                     id_rm(j, i) = true;
                 end
                 % remove arcs less than desidered
