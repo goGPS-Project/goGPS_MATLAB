@@ -1235,8 +1235,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             %             to_short_idx(poss_slip_idx) = false;
             %             poss_out_idx(to_short_idx) = true;
             
-            n_out = sum(poss_out_idx(:));
             this.sat.outlier_idx_ph = ((this.sat.outlier_idx_ph | poss_out_idx) & ~(poss_slip_idx));
+            n_out = sum(this.sat.outlier_idx_ph(:));
             % Remove short arcs
             this.sat.outlier_idx_ph = sparse(this.sat.outlier_idx_ph | flagShrink(flagExpand(this.sat.outlier_idx_ph, max(1, this.state.getMinArc)), max(1, this.state.getMinArc)));
 
@@ -1251,8 +1251,23 @@ classdef Receiver_Work_Space < Receiver_Commons
             % poss_out_idx = abs(sensor_ph) > 0.5;
             % this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
                         
-            this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
+            %this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
+            % %%
+            % sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
+            % sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph0, 2, 'omitnan'));
+            % %sensor_ph = ph - synt_ph;
+            % 
+            % figure; plot(sensor_ph);
+            % tmp = sensor_ph;
+            % tmp(~this.sat.outlier_idx_ph) = nan;
+            % hold on; plot(tmp, '.k', 'MarkerSize', 10);
+            % tmp = sensor_ph;
+            % tmp(~poss_slip_idx) = nan;
+            % hold on; plot(tmp, 'og', 'MarkerSize', 10);
+            % xlabel('epoch');
+            % ylabel('phase rate [mm/e]');
+            % %%
         end
         
         function cycleSlipPPPres(this)
