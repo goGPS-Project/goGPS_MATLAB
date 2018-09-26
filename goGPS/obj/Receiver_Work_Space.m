@@ -1046,12 +1046,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % mark all as outlier and interpolate
             % get observed values
-            this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
-            this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             [ph, wl, id_ph_l] = this.getPhases;
+            this.sat.outlier_idx_ph = false(size(ph));
+            this.sat.cycle_slip_idx_ph = false(size(ph));
             
-            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate'));
-            % first time derivate
+            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
+            % first time derivative
             synt_ph = this.getSyntPhases;
             %%
             sensor_ph0 = Core_Utils.diffAndPred(ph - synt_ph);
@@ -1069,7 +1069,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for i = 1 : numel(bad_id)
                 % analize current arc
                 sensor_tmp = sensor_ph(:, bad_id(i));
-                % jump greater than 0.2 m (second derivate)
+                % jump greater than 0.2 m (second derivative)
                 tmp_out = abs(Core_Utils.diffAndPred(sensor_tmp)) > 0.2;
                 sensor_tmp(tmp_out) = nan;
                 % split the arc in continuous parts
@@ -1115,11 +1115,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             std_sensor = mean(movstd(tmp(:),900));
             %%
             % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
-            % use as a sensor the time second derivate
+            % use as a sensor the time second derivative
             if std_sensor > ol_thr
                 this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
                 der = 2; % use second
-                % try with second time derivate
+                % try with second time derivative
                 sensor_ph = Core_Utils.diffAndPred(ph - synt_ph, der);
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
                 % divide for wavelength
@@ -1143,7 +1143,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Cycle slip detection
             %----------------------------
             
-            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate'));
+            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivative'));
             % join the nan
             sensor_ph_cs = nan(size(sensor_ph));
             for o = 1 : size(ph2, 2)
@@ -1261,10 +1261,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             % figure; plot(sensor_ph);
             % tmp = sensor_ph;
             % tmp(~this.sat.outlier_idx_ph) = nan;
-            % hold on; plot(tmp, '.k', 'MarkerSize', 10);
+            % hold on; plot(tmp, '.', 'MarkerSize', 10, 'Color', [1 0.4 0]);
             % tmp = sensor_ph;
             % tmp(~poss_slip_idx) = nan;
-            % hold on; plot(tmp, 'og', 'MarkerSize', 10);
+            % hold on; plot(tmp, '.k', 'MarkerSize', 10);
             % xlabel('epoch');
             % ylabel('phase rate [mm/e]');
             % %%
@@ -7915,7 +7915,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr0(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph0(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
-            fprintf('\nfirst temporal derivate:\n')
+            fprintf('\nfirst temporal derivative:\n')
             sensor_pr1 = Core_Utils.diffAndPred(pr_diff,1);
             sensor_ph1 = Core_Utils.diffAndPred(ph_diff,1);
             for sys_c = unique(this.system)
@@ -7923,7 +7923,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 fprintf('%c) std = %.2f mm/e - std = %.2f mm/e\n', sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
-            fprintf('\nsecond temporal derivate:\n')
+            fprintf('\nsecond temporal derivative:\n')
             sensor_pr2 = Core_Utils.diffAndPred(pr_diff,2);
             sensor_ph2 = Core_Utils.diffAndPred(ph_diff,2);
             for sys_c = unique(this.system)
