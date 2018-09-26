@@ -4,6 +4,12 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
+        function exportCurFig(out_path)
+            % EXAMPLE
+            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
+            fh = gcf; fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
+        end
+        
         function diff_data = diffAndPred(data, n_order, t_ref)
             % compute diff predicting epoch 0 of each arc
             % using interp 1 pchip method
