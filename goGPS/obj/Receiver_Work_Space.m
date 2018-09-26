@@ -3061,12 +3061,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SEE ALSO: setPhases getPseudoRanges setPseudoRanges
             
             id_ph = this.obs_code(:, 1) == 'L';
-            if (nargin == 2)
+            if (nargin == 2) && ~isempty(sys_c)
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
             if not(isempty(this.sat.outlier_idx_ph))
-                ph(this.sat.outlier_idx_ph(:,(this.system(id_ph) == sys_c)')') = nan;
+                if (nargin == 2) && ~isempty(sys_c)               
+                    ph(this.sat.outlier_idx_ph(:,(this.system(id_ph) == sys_c)')') = nan;
+                else
+                    ph(this.sat.outlier_idx_ph') = nan;
+                end
             end
             wl = this.wl(id_ph);
             
