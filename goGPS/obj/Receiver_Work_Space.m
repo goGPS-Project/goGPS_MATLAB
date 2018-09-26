@@ -7905,7 +7905,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor_ph1 = Core_Utils.diffAndPred(ph_diff,1);
             for sys_c = unique(this.system)
                 id_ok = this.system(id_ph) == sys_c;
-                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+                fprintf('%c) std = %.2f mm/e - std = %.2f mm/e\n', sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
             fprintf('\nsecond temporal derivate:\n')
@@ -7913,7 +7913,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor_ph2 = Core_Utils.diffAndPred(ph_diff,2);
             for sys_c = unique(this.system)
                 id_ok = this.system(id_ph) == sys_c;
-                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr2(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph2(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+                fprintf('%c) std = %.2f mm/e^2 - std = %.2f mm/e^2\n', sys_c, mean(std(sensor_pr2(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph2(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
             %%
@@ -7977,7 +7977,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ax = gca(); ax.XTick = unique(prn);
                 
                 grid on;
-                title([this.cc.getSysExtName(sys_c) ' observations - synthesised (second temporale derivative)']);
+                title([this.cc.getSysExtName(sys_c) ' observations - synthesised (second temporal derivative)']);
                 fh = gcf; fh.Name = sprintf('%d %s) %c obs-synth', fh.Number, this.parent.getMarkerName4Ch, sys_c); fh.NumberTitle = 'off';
                 
                 for b = 1 : size(mean_pr_prn, 2)
@@ -7999,22 +7999,24 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             %%
             c = categorical(sys_full_name);
-            figure; clf; ax = gca; hold on
-            ax.ColorOrder = Core_UI.getColor(1:9,9);
-            bar(c, std_stat(:,:,1)); title([this.parent.getMarkerName ' )  pseudo-ranges - synthesised (second temporale derivative)']);
-            legend('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'Location', 'NorthEastOutside');
-            grid on
-            ylabel('STD [mm]')
-            fh = gcf; fh.Name = sprintf('%d %s) PR stat obs-synth', fh.Number, this.parent.getMarkerName4Ch); fh.NumberTitle = 'off';
-            
-            figure; clf; ax = gca; hold on
-            ax.ColorOrder = Core_UI.getColor(1:9,9);
-            bar(c, std_stat(:,:,2)); title([this.parent.getMarkerName ' )  phases - synthesised (second temporale derivative)']);
-            legend('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'Location', 'NorthEastOutside');
-            grid on
-            ylabel('STD [mm]')
-            fh = gcf; fh.Name = sprintf('%d %s) PH stat obs-synth', fh.Number, this.parent.getMarkerName4Ch); fh.NumberTitle = 'off';
-            dockAllFigures
+            if numel(c) > 1
+                figure; clf; ax = gca; hold on
+                ax.ColorOrder = Core_UI.getColor(1:9,9);
+                bar(c, std_stat(:,:,1)); title([this.parent.getMarkerName4Ch ' )  pseudo-ranges - synthesised (second temporal derivative)']);
+                legend('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'Location', 'NorthEastOutside');
+                grid on
+                ylabel('STD [mm/e^2]')
+                fh = gcf; fh.Name = sprintf('%d %s) PR stat obs-synth', fh.Number, this.parent.getMarkerName4Ch); fh.NumberTitle = 'off';
+                
+                figure; clf; ax = gca; hold on
+                ax.ColorOrder = Core_UI.getColor(1:9,9);
+                bar(c, std_stat(:,:,2)); title([this.parent.getMarkerName4Ch ' )  phases - synthesised (second temporal derivative)']);
+                legend('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'Location', 'NorthEastOutside');
+                grid on
+                ylabel('STD [mm/e^2]')
+                fh = gcf; fh.Name = sprintf('%d %s) PH stat obs-synth', fh.Number, this.parent.getMarkerName4Ch); fh.NumberTitle = 'off';
+                dockAllFigures
+            end
             
             %%
         end
