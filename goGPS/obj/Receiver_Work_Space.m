@@ -107,7 +107,6 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         ph_idx             % idx of outlier and cycle slip in obs
         
-        
         if_amb;            % temporary varibale to test PPP ambiguity fixing
     end
     % ==================================================================================================================================================
@@ -1054,15 +1053,61 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate'));
             % first time derivate
             synt_ph = this.getSyntPhases;
-            sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
+            %%
+            sensor_ph0 = Core_Utils.diffAndPred(ph - synt_ph);
             
             % subtract median (clock error)
 
             % subtract median (clock error)
             %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelength
-            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+           
+            % first rough out detection ------------------------------------------------------------------
+            % This mean should be less than 10cm, otherwise the satellite have some very bad observations
+            arc_mean = abs(mean(sensor_ph,'omitnan'));
+            bad_id = find(arc_mean > max(0.001, median(movstd(arc_mean,5), 'omitnan')));
+            for i = 1 : numel(bad_id)
+                % analize current arc
+                sensor_tmp = sensor_ph(:, bad_id(i));
+                % jump greater than 0.2 m (second derivate)
+                tmp_out = abs(Core_Utils.diffAndPred(sensor_tmp)) > 0.2;
+                sensor_tmp(tmp_out) = nan;
+                % split the arc in continuous parts
+                lim = getOutliers(~isnan(sensor_tmp));               
+                for l = 1 : size(lim, 1)
+                    % if the arc have a median that is too big (> 0.2m) consider it all as outliers
+                    if abs(median(sensor_tmp(lim(l,1) : lim(l,2)))) > 0.2
+                        tmp_out(lim(l,1) : lim(l,2)) = true;
+                    end
+                end
+                % if the sensor is greater than 1m consider the observation as outlier
+                tmp_out = tmp_out | abs(sensor_tmp) > 1;
+                this.sat.outlier_idx_ph(tmp_out, bad_id(i)) = true;
+                sensor_ph0(tmp_out, bad_id(i)) = nan;
+            end
+            
+            % recompute dt and sensor_ph
+            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+            
+            % --------------------------------------------------------------------------------------------
+            % detection on arc edges
+            % flag out for more than 4 cm are bad phases, 
+            % expand them but consider outliers only what is out for more than 2 cm
+            tmp_out = flagExpand(abs(sensor_ph) > 0.02, 8) & (abs(sensor_ph) > 0.01); % expand for a max of 8 epochs
+            % keep only flags at the beginnig (10 epochs) of arcs (do not split arcs)
+            tmp_out = tmp_out & flagExpand(isnan(sensor_ph), 10);
+            
+            % mark short arcs as outliers
+            tmp_out = tmp_out | flagShrink(flagExpand(tmp_out, this.state.getMinArc), this.state.getMinArc);
+            
+            % save the outliers
+            this.sat.outlier_idx_ph(tmp_out) = true;
+            sensor_ph0(tmp_out) = nan;
+
+            % recompute dt and sensor_ph
+            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+
+            % --------------------------------------------------------------------------------------------
             
             % test sensor variance
             tmp = sensor_ph(~isnan(sensor_ph));
@@ -1087,6 +1132,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             % take them off
             ph2 = ph;
             ph2(poss_out_idx) = nan;
+            ph2(this.sat.outlier_idx_ph) = nan;
+            
+            sensor_ph0(poss_out_idx) = nan;
+            if der > 1
+                sensor_ph0 = Core_Utils.diffAndPred(sensor_ph0, der - 1);
+            end
             
             %----------------------------
             % Cycle slip detection
@@ -1095,18 +1146,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate'));
             % join the nan
             sensor_ph_cs = nan(size(sensor_ph));
-            for o = 1 : size(ph2,2)
-                tmp_ph = ph2(:,o);
+            for o = 1 : size(ph2, 2)
+                tmp_ph = ph2(:, o);
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
                 if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx,o) = Core_Utils.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
+                    sensor_ph_cs(ph_idx, o) = Core_Utils.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
                 end
             end
             
             % subtract median
             %sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, getNrstZero(sensor_ph_cs')');
-            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph0, 2, 'omitnan'));
             % divide for wavelength
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
             
@@ -1159,13 +1210,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             %                 idx_gi = this.go_id(id_ph_l) == go_id;
             %                 poss_slip_idx(abs(m_omw(:,o)) > 0.5,idx_gi) = 1;
             %             end
-            %-------------------------------------------------------
-            % SAFE CHOICE: if there is an hole put a cycle slip
+            
+            %--------------------------------------------------------
+            % SAFE CHOICE: if there is an hole (bigger than 5 epochs)
+            %              put a cycle slip
             %--------------------------------------------------------
             for o = 1 : size(ph2,2)
                 tmp_ph = ph2(:,o);
-                ph_idx = isnan(tmp_ph);
-                c_idx = [false ;diff(ph_idx) == -1];
+                ph_idx = flagExpand(flagShrink(isnan(tmp_ph),5),5);
+                c_idx = [false ; diff(ph_idx) == -1];
                 poss_slip_idx(c_idx,o) = 1;
             end
             
@@ -1183,21 +1236,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             %             poss_out_idx(to_short_idx) = true;
             
             n_out = sum(poss_out_idx(:));
-            this.sat.outlier_idx_ph = sparse(poss_out_idx);
+            this.sat.outlier_idx_ph = ((this.sat.outlier_idx_ph | poss_out_idx) & ~(poss_slip_idx));
+            % Remove short arcs
+            this.sat.outlier_idx_ph = sparse(this.sat.outlier_idx_ph | flagShrink(flagExpand(this.sat.outlier_idx_ph, max(1, this.state.getMinArc)), max(1, this.state.getMinArc)));
+
             this.sat.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
             
-            % Outlier detection for some reason is not working properly -> reperform outlier detection
-            sensor_ph = Core_Utils.diffAndPred(this.getPhases - this.getSyntPhases, 2);
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelength
-            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > 0.5;
-            this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
-            
-            % Remove short arcs
-            this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | flagShrink(flagExpand(this.sat.outlier_idx_ph, max(1, this.state.getMinArc)), max(1, this.state.getMinArc));
-            
+            % % Outlier detection for some reason is not working properly -> reperform outlier detection
+            % sensor_ph = Core_Utils.diffAndPred(this.getPhases - this.getSyntPhases, 2);
+            % sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % % divide for wavelength
+            % sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            % % outlier when they exceed 0.5 cycle
+            % poss_out_idx = abs(sensor_ph) > 0.5;
+            % this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
+                        
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
         end
