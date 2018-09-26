@@ -3066,7 +3066,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             ph = this.obs(id_ph, :);
             if not(isempty(this.sat.outlier_idx_ph))
-                ph(this.sat.outlier_idx_ph') = nan;
+                ph(this.sat.outlier_idx_ph(:,(this.system(id_ph) == sys_c)')') = nan;
             end
             wl = this.wl(id_ph);
             
