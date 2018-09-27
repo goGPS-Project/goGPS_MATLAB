@@ -3611,7 +3611,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             iono_pref = iono_pref(is_present,:);
-            [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+            if isempty(iono_pref)
+                obs_set = Observation_Set();
+            else
+                obs_set = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+            end
         end
         
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
