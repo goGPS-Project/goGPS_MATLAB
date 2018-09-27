@@ -1058,6 +1058,50 @@ classdef GNSS_Station < handle
             end
         end
         
+        function f_handle = showQuality_p(sta_list, type, flag_smooth)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX f_handles = this.plotSNR(sys_c)
+            
+            % SNRs
+            if nargin < 2
+                type = 'snr';
+            end
+            
+            f_handle = [];
+            
+            for r = 1 : numel(sta_list)
+                if ~sta_list(r).out.isEmpty
+                    rec = sta_list(r).out;
+                    [quality, az, el] = rec.getQuality();
+                else
+                    rec = sta_list(r).work;
+                    [quality, az, el] = rec.getQuality(type);
+                end
+                
+                
+                if nargin > 2 && flag_smooth
+                    quality = Receiver_Commons.smoothSatData([],[],zero2nan(quality), [], 'spline', 900 / this.getRate, 10); % smoothing Quality => to be improved
+                end
+                
+                f = figure; f.Name = sprintf('%03d: %s', f.Number, upper(type)); f.NumberTitle = 'off';
+                f_handle(r) = f;
+                id_ok = (~isnan(quality));
+                polarScatter(serialize(az(id_ok)) / 180 * pi, serialize(90 - el(id_ok)) / 180 * pi, 45, serialize(quality(id_ok)), 'filled');
+                colormap(jet);  cax = caxis();
+                switch type
+                    case 'snr'
+                        caxis([min(cax(1), 10), max(cax(2), 55)]);
+                        setColorMap([10 55], 0.9);
+                end
+                colorbar();
+                h = title(sprintf('%s - receiver %s', upper(type), sta_list(r).getMarkerName4Ch()), 'interpreter', 'none');
+                h.FontWeight = 'bold'; h.Units = 'pixels';
+                h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                
+            end
+        end
+        
+        
         function showResiduals(sta_list)
             % Plot Satellite Residuals
             %
