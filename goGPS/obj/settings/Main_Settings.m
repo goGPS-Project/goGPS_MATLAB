@@ -199,7 +199,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 6: re-weight Tukey
                                                         % 7: simple snooping
                                                         % 8: smart snooping
-        
+                                                        
+        FLAG_AMB_PASS = false;
         FLAG_AMB_FIX = false;                           % try to fix ambiguity
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
          
@@ -530,6 +531,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         flag_amb_fix = Main_Settings.FLAG_AMB_FIX;        
         
+        flag_amb_pass = Main_Settings.FLAG_AMB_PASS; 
+        
         % Flag for enabling the usage of iono-free combination
         iono_management  = Main_Settings.IONO_MANAGEMENT;
         flag_solid_earth = Main_Settings.FLAG_SOLID_EARTH;
@@ -757,6 +760,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.reweight_mode = state.getData('reweight_mode');
                 this.flag_amb_fix = state.getData('flag_amb_fix');
+                this.flag_amb_pass = state.getData('flag_amb_pass');
                 
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
@@ -896,6 +900,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.w_mode = state.w_mode;
                 this.reweight_mode = state.reweight_mode;
                 this.flag_amb_fix = state.flag_amb_fix;
+                this.flag_amb_pass = state.flag_amb_pass;
                 
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
@@ -1067,6 +1072,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
             str = [str sprintf(' Using rewight/snooping: %s\n\n', this.REWEIGHT_SMODE{this.reweight_mode})];
             str = [str sprintf(' Enable ambiguity fixing:                          %d\n\n', this.flag_amb_fix)];
+            str = [str sprintf(' Pass ambiguity         :                          %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
             str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
@@ -1456,6 +1462,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str_cell = Ini_Manager.toIniStringComment('Enable ambiguity fixing', str_cell);
             str_cell = Ini_Manager.toIniString('flag_amb_fix', this.flag_amb_fix, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_amb_pass', this.flag_amb_pass, str_cell);
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Enable corrections', str_cell);
@@ -2123,6 +2130,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('reweight_mode',[1 numel(this.REWEIGHT_SMODE)]);
             
             this.checkLogicalField('flag_amb_fix');
+            this.checkLogicalField('flag_amb_pass');
             
             this.checkLogicalField('flag_smooth_tropo_out');
             [buf_lft, buf_rgt] = this.getBuffer();

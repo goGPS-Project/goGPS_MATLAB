@@ -74,6 +74,9 @@ classdef Network < handle
         
         function reset(this)
             % clear the object keeping only its id and apriori info and the receivers
+             %
+            % SYNTAX:
+            %    this.reset()
             this.common_time = [];
             this.rec_time_indexes = [];
             this.coo = [];
@@ -86,6 +89,9 @@ classdef Network < handle
             this.pos_indexs_tc = [];
             this.idx_ref = [];
         end
+        
+       
+        
         function adjust(this, idx_ref, coo_rate)
             %  adjust the gnss network
             %
@@ -109,6 +115,9 @@ classdef Network < handle
                     idx_ref(idx_ref == e) = [];
                 end
                 ls = Least_Squares_Manipulator(this.rec_list(1).cc);
+                if this.state.flag_amb_pass && this.state.getCurSession > 1
+                    ls.apriori_info = this.apriori_info;
+                end
                 [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
                 n_time = this.common_time.length;
                 n_rec = length(this.rec_list); 
@@ -119,7 +128,11 @@ classdef Network < handle
                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                 end
-                [x, res] = ls.solve;
+                
+                [x, res, s02, Cxx] = ls.solve;
+                %[x, res] = ls.solve;
+                
+                
                 s0 = mean(abs(res(res~=0)));
                 this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
                 if s0 < 0.01
@@ -139,6 +152,45 @@ classdef Network < handle
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
+                
+                % pass ambiguity
+                if this.state.flag_amb_pass
+                   
+                    max_ep = max(ls.epoch);
+                    id_amb = find(x(:,2) == ls.PAR_AMB);
+                    this.apriori_info.amb_value = [];
+                    this.apriori_info.freqs = [];
+                    this.apriori_info.goids = [];
+                    this.apriori_info.epoch = [];
+                    this.apriori_info.receiver = [];
+                    this.apriori_info.fixed = [];
+                    this.apriori_info.Cambamb = [];
+                    keep_id = [];
+                    nnf = 1;
+                    for i =1:length(id_amb)
+                        a = id_amb(i);
+                        a_idx = ls.A_idx_mix(:,ls.param_class == ls.PAR_AMB) == a;
+                        ep_amb = ls.epoch(a_idx);
+                        is_fixed = abs(fracFNI(x(a,1))) < eps(x(a,1));
+                        if sum(ep_amb == max_ep) > 0  && (is_fixed || Cxx(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
+                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x(a,1)];
+                            sat = ls.sat(a_idx);
+                            this.apriori_info.goids = [this.apriori_info.goids; sat(1)];
+                            this.apriori_info.epoch = this.common_time.last;
+                            this.apriori_info.receiver = [this.apriori_info.receiver; x(a,3)];
+                            this.apriori_info.fixed = [this.apriori_info.fixed; is_fixed ];
+                            if ~this.apriori_info.fixed(end)
+                                keep_id = [keep_id nnf];
+                            end
+                        end
+                        if ~is_fixed
+                            nnf = nnf +1;
+                        end
+                    end
+                    this.apriori_info.Cambamb = Cxx(keep_id,keep_id);
+                end
+                
+                % additional coordinate rate
                 if this.state.flag_coo_rate
                     [sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
                     st_time = sss_lim.first;

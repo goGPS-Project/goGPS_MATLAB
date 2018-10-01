@@ -66,6 +66,7 @@ classdef Least_Squares_Manipulator < handle
     properties
         A_ep         % Stacked epoch-wise design matrices [n_obs x n_param_per_epoch]
         A_idx        % index of the paramter [n_obs x n_param_per_epoch]
+        A_idx_mix    % inded of the paramter for multi receiver session [n_obs x n_param_per_epoch]
         amb_idx      % index of the columns per satellite
         go_id_amb    % go ids of the amb idx
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
@@ -110,6 +111,8 @@ classdef Least_Squares_Manipulator < handle
         sat_jmp_idx         % satelite jmp index
         
         pos_indexs_tc = {}  % to whivh index of the sampled time the progessive index correspond
+        
+        apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
     end
     
     properties (Access = private)
@@ -628,6 +631,33 @@ classdef Least_Squares_Manipulator < handle
                     obs_set_list(i).obs(:, idx_ph) = obs_set_list(i).obs(:, idx_ph) .* repmat(obs_set_list(i).wl(idx_ph)', size(obs_set_list(i).obs,1),1);
                 end
                 obs_set_list(i).sanitizeEmpty();
+                
+                if this.state.flag_amb_pass && this.state.getCurSession > 1
+                    % remove the left buffer it is necessary only to determine if a cycle slip ha occured in the first useful epoch
+                    [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
+                    idx_rm = obs_set_list(i).time < limc.first;
+                    obs_set_list(i).remEpochs(idx_rm);
+                    % remove the first epoch
+                    obs_set_list(i).sanitizeEmpty();
+                    if ~isempty(this.apriori_info)
+                        if obs_set_list(i).time.length > 0
+                            for s = 1:length(obs_set_list(i).go_id)
+                                if obs_set_list(i).cycle_slip(1,s) % if there is a ccle slip remove the stored ambigutiy
+                                    idx_apr_info = this.apriori_info.goids == obs_set_list(i).go_id(s) & this.apriori_info.receiver == i;
+                                    if sum(idx_apr_info) > 0
+                                        this.removeAprInfo(idx_apr_info);
+                                    end
+                                    
+                                end
+                            end
+                        else
+                            idx_apr_info = this.apriori_info.receiver == i;
+                            if sum(idx_apr_info) > 0
+                                this.removeAprInfo(idx_apr_info);
+                            end
+                        end
+                    end
+                end
             end
             
            
@@ -743,7 +773,15 @@ classdef Least_Squares_Manipulator < handle
             this.receiver_id = r;
             this.sat_jmp_idx = sat_jmp_idx;
             
-            this.network_solution = true;            
+            this.network_solution = true;   
+            
+            
+            % remove ambiguity fixed previously
+            if this.state.flag_amb_pass
+                for i = 1 : n_rec
+                end
+            end
+            
         end
         
         function changePosIdx(this, r_id, pos_idx)
@@ -1262,6 +1300,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             if is_network
+               
                 n_obs = size(this.A_idx,1);
                 % create the part of the normal that considers common parameters
                 
@@ -1320,6 +1359,7 @@ classdef Least_Squares_Manipulator < handle
                     N_stack_idx(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p))= this.A_idx(i, :);
                 end
                 n_par = max(max(this.A_idx));
+                 x_tot = zeros(n_par,1);
                 line_idx = repmat([1:n_common]',1,size(N_stack_comm,2));
                 idx_full = N_stack_idx~=0;
                 Nreccom = sparse(line_idx(idx_full), N_stack_idx(idx_full), N_stack_comm(idx_full), n_common,n_par);
@@ -1349,7 +1389,6 @@ classdef Least_Squares_Manipulator < handle
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
                 idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_isb; idx_rec_t; idx_rec_tn; idx_rec_te];
                 % 3 ) remove one clock per epoch for the minim receiver available
-                % NOTE: VERY SLOW impemplementation, first candiadte for a speed up once all is stable
                 clk_idx = this.param_class == this.PAR_REC_CLK;
                 n_epochs = length(unique(this.epoch));
                 idx_clk_to_rm = true(n_epochs,1);
@@ -1365,49 +1404,61 @@ classdef Least_Squares_Manipulator < handle
                 end
                 
                 idx_amb_rm = [];
+                prev_info = ~isempty(this.apriori_info);
                 % 4)remove one ambiguity per satellite form the firs receiver
-                for i = 1 :length(u_sat)
-                    jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
-                    if ~this.sat_jmp_idx(1,u_sat(i))
-                        jmp_idx = [1; jmp_idx];
+                if true
+                    for i = 1 :length(u_sat)
+                        jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
+                        if ~this.sat_jmp_idx(1,u_sat(i))
+                            if ~prev_info
+                                jmp_idx = [1; jmp_idx];
+                            end
+                        end
+                        for j = 1: length(jmp_idx(:))
+                            idx_amb_rec = [];
+                            d = 1;
+                            jmp = jmp_idx(j);
+                            jmp2 = jmp_idx(min(j+1, length(jmp_idx)));
+                            if jmp == jmp2
+                                jmp2 = Inf;
+                            end
+                            %                         while isempty(idx_amb_rec) && d <= n_rec
+                            %                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+                            %                            d = d + 1;
+                            %                         end
+                            idx_amb_rec = this.A_idx(this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                            if ~isempty(idx_amb_rec)
+                                idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                            end
+                            idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                        end
                     end
-                    for j = 1: length(jmp_idx(:))
-                        idx_amb_rec = [];
-                        d = 1;
-                        jmp = jmp_idx(j);
-                        jmp2 = jmp_idx(min(j+1, length(jmp_idx)));
-                        if jmp == jmp2
-                            jmp2 = Inf;
+                    %                 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
+                    %                 first recievr does not have clocks any more so no rank defricency
+                    for i = 2 : n_rec
+                        jmps = this.amb_set_jmp{i}';
+                        if ~prev_info
+                            jmps = [1 jmps];
                         end
-%                         while isempty(idx_amb_rec) && d <= n_rec
-%                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
-%                            d = d + 1;
-%                         end
-                        idx_amb_rec = this.A_idx(this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
-                        if ~isempty(idx_amb_rec)
-                            
-                            idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                        for j = 1 : length(jmps)
+                            jmp = jmps(j);
+                            jmp2 = jmps(min(j+1,length(jmps)));
+                            if jmp == jmp2
+                                jmp2 = Inf;
+                            end
+                            idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
+                            g = 1;
+                            %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+                            %                             g = g +1;
+                            %                         end
+                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                            if ~isempty(idx_amb_rec)
+                                
+                                idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                            end
+                            idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                         end
-                        idx_amb_rm = [idx_amb_rm; idx_amb_rec];
-                    end
-                end
-                % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
-                % first recievr does not have clocks any more so no rank defricency
-                for i = 1 : n_rec
-                    jmps = [1 this.amb_set_jmp{i}'];
-                    for j = 1 : length(jmps)
-                        jmp = jmps(j);
-                        jmp2 = jmps(min(j+1,length(jmps)));
-                        if jmp == jmp2
-                            jmp2 = Inf;
-                        end
-                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
-                        g = 1;
-%                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
-%                             g = g +1;
-%                         end
-                        idx_amb_rec = mode(idx_amb_rec);%(g);
-                        idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
                 end
                 idx_rm = [idx_rm ; idx_amb_rm];
@@ -1415,7 +1466,48 @@ classdef Least_Squares_Manipulator < handle
                 N(idx_rm, :) = [];
                 N(:, idx_rm) = [];
                 B(idx_rm) = [];
-                
+                if prev_info && this.state.getCurSession > 1%%% introduce the previous amniguity
+                    par_ids = zeros(size(this.apriori_info.amb_value));
+                    valid_float = false(size(this.apriori_info.amb_value));
+                    for i = 1:(length(this.apriori_info.amb_value))
+                        % determine the mapping to new freq
+                        r_id = this.apriori_info.receiver(i);
+                        s_id = this.apriori_info.goids(i);
+                        idx_ambs = this.receiver_id == r_id & this.sat == s_id;
+                        if sum(this.epoch(idx_ambs) == 1) > 0 % if there is the ambiguity
+                            par_id = this.A_idx(find(idx_ambs,1,'first'),this.param_class == this.PAR_AMB);
+                            par_ids(i) = par_id;
+                            if this.apriori_info.fixed(i)
+                                % put the amniguity in the result
+                                x_tot(par_id) = this.apriori_info.amb_value(i);
+                                % remove paramter from the normal matrix
+                                par_id2 = par_id - sum(idx_rm < par_id);
+                                Ni = N(par_id2,:);
+                                B = B -( Ni*this.apriori_info.amb_value(i))';
+                                N(par_id2,:) = [];
+                                N(:,par_id2) = [];
+                                B(par_id2) = [];
+                                % ------
+                                idx_rm = [idx_rm; par_id]; 
+                            else
+                                valid_float(i) = true;
+                            end
+                        end
+                        
+                    end
+                    % add the float with their vcv
+                    par_ids_float = par_ids(valid_float);
+                    if length(par_ids_float) > 0
+                        for i = 1 : length(par_ids_float) % remove removed id
+                            par_ids_float(i) = par_ids_float(i) - sum(idx_rm < par_ids_float(i));
+                        end
+                        idx_v_f = valid_float(this.apriori_info.fixed == 0);
+                        Cambamb = this.apriori_info.Cambamb(idx_v_f,idx_v_f);
+                        Napri = inv(Cambamb);
+                        B(par_ids_float) = B(par_ids_float) + Napri* this.apriori_info.amb_value(valid_float);
+                        N(par_ids_float,par_ids_float) = N(par_ids_float,par_ids_float) + Napri;
+                    end
+                end
             end
             if ~isempty(this.G)
                 if ~is_network
@@ -1427,40 +1519,21 @@ classdef Least_Squares_Manipulator < handle
                 B = [B; this.D];
             end
             
-            if nargout > 3
-                %inverse by partitioning, taken from:
-                % Mikhail, Edward M., and Friedrich E. Ackermann. "Observations and least squares." (1976). pp 447
-                %{
-                Ncc = sparse(Ncc);
-                Nce = sparse(Nce);
-                invNcc = (Ncc)^(-1);
-                invNee = (Nee)^(-1);
-                a22ia21 = invNee * Nce;
-                invN11 = (Ncc - (Nce') * a22ia21)^(-1);
-                invN12 = -invN11 * (a22ia21');
-                invN21 = invN12';
-                invN22 = invNee - a22ia21 * invN12;
-                Cxx = [[invN11; invN21], [invN12; invN22]];
-                %}
-                Cxx = inv(N);
-                x = Cxx * B;
-                
-            else
-                x = N \ B;
-                if is_network
-                    x_tot = zeros(n_par,1);
-                    idx_est = true(n_par,1);
-                    idx_est(idx_rm) = false;
-                    x_tot(idx_est) = x;
-                    x = x_tot;
-                end
-                %[x, flag] =  pcg(N,B,1e-9, 10000);
+
+            x = N \ B;
+            if is_network
+                idx_est = true(n_par,1);
+                idx_est(idx_rm) = false;
+                x_tot(idx_est) = x;
+                x = x_tot;
             end
+                %[x, flag] =  pcg(N,B,1e-9, 10000);
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
                 idx_p = A2N_idx_tot(this.A_idx(:, c));
                 x_class(idx_p) = this.param_class(c);
             end
+            cxx_comp = false;
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0) 
                 % IMPORTANT NOTE:
                 % This part on ambiguity fixing use a simple integer rounding, this is done mainly for two reason:
@@ -1496,13 +1569,13 @@ classdef Least_Squares_Manipulator < handle
                     
                     idx_amb = find(x_class == 5);
                     % get thc cxx of the ambiguities
-                    n_amb  = length(idx_amb);
-                    b_eye = zeros(length(B),n_amb);
-                    idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
-                    b_eye(idx) = 1;
-                    b_eye = sparse(b_eye);
-                    Cxx_amb = N\b_eye;
-                    Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+%                     n_amb  = length(idx_amb);
+%                     b_eye = zeros(length(B),n_amb);
+%                     idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+%                     b_eye(idx) = 1;
+%                     b_eye = sparse(b_eye);
+%                     Cxx_amb = N\b_eye;
+%                     Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
                     
                     idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
                     
@@ -1576,13 +1649,7 @@ classdef Least_Squares_Manipulator < handle
                         
                         xe = x(idx_est);
                         amb = xe(idx_amb_par,1);
-                        % getting tht VCV matrix for the ambiuities
-%                         b_eye = zeros(length(B),n_amb);
-%                         idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
-%                         b_eye(idx) = 1;
-%                         b_eye = sparse(b_eye);
-%                         Cxx_amb = N\b_eye;
-%                         Cxx_amb = Cxx_amb(idx_amb_par,:);
+                        
                         %end
                         n_ep_amb = zeros(size(amb));
                         for i = 1 : n_amb
@@ -1606,6 +1673,7 @@ classdef Least_Squares_Manipulator < handle
                             if idx_fix(i)
                                 b_if_fix = (amb_fix(i));
                                 B = B - Ni* ( b_if_fix);
+                                n_amb = n_amb -1;
                             end
                         end
                         
@@ -1618,6 +1686,7 @@ classdef Least_Squares_Manipulator < handle
                         xf = zeros(size(idx_nf));
                         
                         xf(idx_nf) = N \ B;
+                        
                         xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
                         
                         x(idx_est) = xf;
@@ -1626,9 +1695,20 @@ classdef Least_Squares_Manipulator < handle
                         idx_est = find(idx_est);
                         idx_est(~idx_nf) = [];
                         idx_est = num2LogIdx(idx_est,n_p);
-                        
+                        if nargout > 3 && f == (nf_loop -1)
+                            % getting tht VCV matrix for the ambiuities
+                            b_eye = zeros(length(B),n_amb);
+                            idx_t_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                            idx = sub2ind(size(b_eye),idx_t_amb_par,[1:n_amb]');
+                            b_eye(idx) = 1;
+                            b_eye = sparse(b_eye);
+                            Cxx = N\b_eye;
+                            Cxx = Cxx(idx_t_amb_par,:);
+                            cxx_comp = true;
+                        end
                         f = f +1;
                     end
+                    
                     this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',n_amb_fix,n_amb_ini)));
                     this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',n_obs_fix/n_obs_tot*100)));
                 end
@@ -1638,13 +1718,21 @@ classdef Least_Squares_Manipulator < handle
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
                 res = this.getResiduals(x_res);
                 s0 = mean(abs(res(res~=0)));
-                if nargout > 3
-                    Cxx = s0 * Cxx;
+                if nargout > 3 && ~cxx_comp
+                    % getting tht VCV matrix for the ambiuities
+                    idx_amb_par = find(x_class == this.PAR_AMB);
+                    b_eye = zeros(length(B),n_amb);
+                    idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
+                    b_eye(idx) = 1;
+                    b_eye = sparse(b_eye);
+                    Cxx_amb = N\b_eye;
+                    Cxx_amb = Cxx_amb(idx_amb_par,:);
                 end
             end
             x = [x, x_class];
             % restore old Idx
             if is_network
+                this.A_idx_mix = this.A_idx;
                 this.A_idx = A_idx_not_mix;
                 x_rec = ones(size(x,1),1);
                 id_rec = find(diff(x_class) < 0);
@@ -1727,6 +1815,22 @@ classdef Least_Squares_Manipulator < handle
             this.A_idx(rd_idx) = this.A_idx(rd_idx) - 1;
             this.obs(o_idx) = this.obs(o_idx) + amb_value * wl;
             
+        end
+        
+         function removeAprInfo(this,idx)
+            % remove ambigutiy form apriori info
+            %
+            % SYNTAX:
+            %    this.removeAprInfo(idx)
+            this.apriori_info.amb_value(idx) = [];
+            %this.apriori_info.freqs(idx) = [];
+            this.apriori_info.goids(idx) = [];
+            this.apriori_info.receiver(idx) = [];
+            idx_f = idx(~this.apriori_info.fixed);
+            this.apriori_info.Cambamb(idx_f,:) = [];
+            this.apriori_info.Cambamb(:,idx_f) = [];
+            this.apriori_info.fixed(idx) = [];
+                        
         end
     end
     
