@@ -4803,6 +4803,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function reset2AprioriTropo(this)
+            % reset the ztd to the apriori values
+            %
+            % SYNTAX: this.reset2AprioriTropo()
+            
+            this.zwd(:) = 0;
+            this.updateErrTropo();
+            
+        end
+        
         
         function updateAmbIdx(this)
             % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation and save them into this.sat.amb_idx
