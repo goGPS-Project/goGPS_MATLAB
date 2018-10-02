@@ -941,6 +941,7 @@ classdef Atmosphere < handle
             t_mfpp = zeros(size(el));
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
+                if sum(idx_sat > 0)
                 t_time= gps_time(t);
                 [stec, pp, mfpp, k] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
                     A = 80.6;
@@ -965,6 +966,7 @@ classdef Atmosphere < handle
                     hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax1 .* ni .* stec.^2;% Eq (1g) (15) (14) in [1]
                     bending_coeff(t,idx_sat)    =  A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax2 .* stec;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
+                end
             end
         end
     end
