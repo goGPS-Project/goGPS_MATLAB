@@ -1366,6 +1366,11 @@ classdef Receiver_Commons < handle
                         if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
                             [tropo{r}] = sta_list(r).getAprZwd();
                         end
+                        
+                    case 'gn'
+                        [tropo{r}] = sta_list(r).getGradient();
+                    case 'ge'
+                        [~,tropo{r}] = sta_list(r).getGradient();
                     case 'pwv'
                         [tropo{r}] = sta_list(r).getPwv();
                     case 'zhd'
@@ -1463,6 +1468,22 @@ classdef Receiver_Commons < handle
                 new_fig = true;
             end
             this.showTropoPar('ZTD', new_fig)
+        end
+        
+        
+        function showGn(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('GN', new_fig)
+        end
+        
+        
+        function showGe(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('GE', new_fig)
         end
         
         function slant_td = getSlantTD(this)
@@ -1758,6 +1779,7 @@ classdef Receiver_Commons < handle
                     pt0 = max(p_time_start, round(sta_list(r).time.first.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
                     pt1 = min(p_time_stop, round(sta_list(r).time.last.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
                     pr = lcm(round(p_rate * 1e6), round(sta_list(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = round(pt0*1e6)/1e6;
                     pt0 = ceil(pt0 / pr) * pr;
                     pt1 = floor(pt1 / pr) * pr;
                     

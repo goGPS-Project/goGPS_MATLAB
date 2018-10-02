@@ -271,19 +271,19 @@ classdef Network < handle
                             this.coo(i,:) = nan2zero(this.coo(i,:));
                         end
                         clk = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                        this.clock(~isnan(this.rec_time_indexes(:,i)),i) = zero2nan(nan2zero(this.clock(~isnan(this.rec_time_indexes(:,i)),i)) + clk);
+                        this.clock(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.clock(~isnan(this.rec_time_indexes(:,i)),i)) + clk;
                         
                         if this.state.flag_tropo
                             ztd = x(x(:,2) == Least_Squares_Manipulator.PAR_TROPO & idx_rec,1);
-                            this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = zero2nan(nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd);
+                            this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd;
                         end
                         
                         if this.state.flag_tropo_gradient
                             gn = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                            this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = zero2nan(nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn);
+                            this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn;
                             
                             ge = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                            this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = zero2nan(nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge);
+                            this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge;
                         end
                     end
         end

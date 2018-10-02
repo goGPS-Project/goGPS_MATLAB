@@ -102,6 +102,8 @@ classdef Core_SEID < handle
                         phase_gf(r).merge(ref(r).getGeometryFree('L1','L2',sys));
                         code_gf(r).merge(ref(r).getGeometryFree('C1','C2',sys));
                     end
+                    phase_gf(r).obs(phase_gf(r).cycle_slip > 0) = 0;
+                    phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, [], 300 / phase_gf(r).time.getRate); 
                     
                     %[phase_gf(r).obs, phase_gf(r).sigma] = Receiver.smoothCodeWithPhase(zero2nan(code_gf(r).obs), code_gf(r).sigma, code_gf(r).go_id, ...
                     %zero2nan(phase_gf(r).obs), phase_gf(r).sigma, phase_gf(r).go_id, phase_gf(r).cycle_slip);
@@ -199,9 +201,18 @@ classdef Core_SEID < handle
                     end
                     
                     % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                    
+                    trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
+                    inan = isnan(trg_ph_gf);
+
+                    %% experimental 
+%                     for i = trg(t).go_id(id_ph)
+%                         trg_ph_gf(:,i) = simpleFill1D(trg_ph_gf(:,i),isnan(trg_ph_gf(:,i)),'linear');
+%                     end
                     trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
                     inan = isnan(trg_ph_gf);
                     trg_ph_gf = cumsum(nan2zero(trg_ph_gf));
+                    
                     trg_ph_gf(inan) = nan;
                     
                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
@@ -451,12 +462,14 @@ classdef Core_SEID < handle
                     % very simple interpolation by spherical distance
                     data_q = nan(size(lat_q));
                     id_ok = ~isnan(data_in) & ~isnan(lat_in) & ~isnan(lon_in);
-                    ep_ok = find(sum(id_ok, 2) == size(lat_in, 2)); % require all the stations to interpolate ionosphere
+                    %ep_ok = find(sum(id_ok, 2) == size(lat_in, 2)); % require all the stations to interpolate ionosphere
+                    ep_ok = find(sum(id_ok, 2) > 0); % require all the stations to interpolate ionosphere
                     for i = ep_ok'
                         d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
                         w = (1 ./ (d(id_ok(i,:)) + eps))';
                         data_q(i) = (data_in(i, id_ok(i,:)) * w) ./ sum(w);
                     end
+
             end
         end
         

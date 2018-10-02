@@ -602,6 +602,10 @@ classdef GNSS_Station < handle
                         if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
                             [tropo{r}] = sta_list(r).out.getAprZwd();
                         end
+                      case 'gn'
+                        [tropo{r}] = sta_list(r).out.getGradient();
+                    case 'ge'
+                        [~,tropo{r}] = sta_list(r).out.getGradient();
                     case 'pwv'
                         [tropo{r}] = sta_list(r).out.getPwv();
                     case 'zhd'
@@ -1220,6 +1224,23 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             this.showTropoPar('ZTD', new_fig)
+        end
+        
+         
+        
+        function showGn(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('GN', new_fig)
+        end
+        
+        
+        function showGe(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('GE', new_fig)
         end
         
         function showZtdVsHeight(sta_list)
