@@ -3092,7 +3092,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Get all the observation codes stored into the receiver
             %
             % SYNTAX
-            %   obs_code = thisgetAvailableObsCode(flag, sys_c);
+            %   obs_code = this.getAvailableObsCode(flag, sys_c);
             
             if nargin < 3 || isempty(sys_c) 
                 lid = (1 : numel(this.system))';
@@ -3123,12 +3123,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             sys_c = unique(this.system(:))';
         end
         
-        function [ph, wl, id_ph] = getPhases(this, sys_c)
+        function [ph, wl, id_ph] = getPhases(this, sys_c, freq_c)
             % get the phases observations in meter (not cycles)
-            % SYNTAX [ph, wl, id_ph] = this.getPhases(<sys_c>)
+            % SYNTAX [ph, wl, id_ph] = this.getPhases(<sys_c>, <freq_c>)
             % SEE ALSO: setPhases getPseudoRanges setPseudoRanges
             
-            id_ph = this.obs_code(:, 1) == 'L';
+            if nargin > 2
+                id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
+            else
+                id_ph = this.obs_code(:, 1) == 'L';
+            end
+            
             if (nargin == 2) && ~isempty(sys_c)
                 id_ph = id_ph & (this.system == sys_c)';
             end
@@ -3173,7 +3178,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function [snr, id_snr] = getSNR(this, sys_c, freq_c)
             % get the SNR of the observations
-            % SYNTAX [dop, id_dop] = this.getSNR(<sys_c>)
+            %
+            % SYNTAX 
+            %   [snr, id_snr] = this.getSNR(<sys_c>)
             if isempty(this.obs_code)
                 snr = [];
                 id_snr = [];
@@ -6852,13 +6859,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 end
                                 pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                 
-                                
                                 ls = Least_Squares_Manipulator(this.cc);
                                 id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
                                 ls.Astack2Nstack();
                                 
                                 time = this.time.getSubSet(id_sync_in);
-                                
                                 
                                 rate = time.getRate();
                                 
@@ -6869,13 +6874,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                                 end
                                 this.log.addMessage(this.log.indent('Solving the system'));
-                                 [x, res, s0]  = ls.solve();
-                                % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-%                                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-%                                 ls.Astack2Nstack();
-%                                 [x] = ls.solve();
-                                
-                                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+                                [x, res, s0]  = ls.solve();
                                 
                                 coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
                                 time_coo = this.out_start_time.getCopy;

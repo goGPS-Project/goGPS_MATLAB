@@ -1082,7 +1082,6 @@ classdef GNSS_Station < handle
                     [quality, az, el] = rec.getQuality(type);
                 end
                 
-                
                 if nargin > 2 && flag_smooth
                     quality = Receiver_Commons.smoothSatData([],[],zero2nan(quality), [], 'spline', 900 / this.getRate, 10); % smoothing Quality => to be improved
                 end
