@@ -573,6 +573,7 @@ classdef Core < handle
                 t1 = tic;
                 if cmd_line <= numel(sss_list)
                     sessions = sss_list{cmd_line};
+                    this.net = [];
                     for s = sessions
                         if s ~= last_sss
                             this.prepareSession(s)

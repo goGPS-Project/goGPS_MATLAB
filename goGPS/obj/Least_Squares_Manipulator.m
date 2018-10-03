@@ -1407,10 +1407,11 @@ classdef Least_Squares_Manipulator < handle
                 prev_info = ~isempty(this.apriori_info);
                 % 4)remove one ambiguity per satellite form the firs receiver
                 if true
+                    %n_jmp_sat 
                     for i = 1 :length(u_sat)
                         jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
                         if ~this.sat_jmp_idx(1,u_sat(i))
-                            if ~prev_info
+                            if ~prev_info || sum(u_sat(i) == this.apriori_info.goids) == 0
                                 jmp_idx = [1; jmp_idx];
                             end
                         end
@@ -1476,21 +1477,23 @@ classdef Least_Squares_Manipulator < handle
                         idx_ambs = this.receiver_id == r_id & this.sat == s_id;
                         if sum(this.epoch(idx_ambs) == 1) > 0 % if there is the ambiguity
                             par_id = this.A_idx(find(idx_ambs,1,'first'),this.param_class == this.PAR_AMB);
-                            par_ids(i) = par_id;
-                            if this.apriori_info.fixed(i)
-                                % put the amniguity in the result
-                                x_tot(par_id) = this.apriori_info.amb_value(i);
-                                % remove paramter from the normal matrix
-                                par_id2 = par_id - sum(idx_rm < par_id);
-                                Ni = N(par_id2,:);
-                                B = B -( Ni*this.apriori_info.amb_value(i))';
-                                N(par_id2,:) = [];
-                                N(:,par_id2) = [];
-                                B(par_id2) = [];
-                                % ------
-                                idx_rm = [idx_rm; par_id]; 
-                            else
-                                valid_float(i) = true;
+                            if sum(par_id == idx_rm) ==0
+                                par_ids(i) = par_id;
+                                if this.apriori_info.fixed(i)
+                                    % put the amniguity in the result
+                                    x_tot(par_id) = this.apriori_info.amb_value(i);
+                                    % remove paramter from the normal matrix
+                                    par_id2 = par_id - sum(idx_rm < par_id);
+                                    Ni = N(par_id2,:);
+                                    B = B -( Ni*this.apriori_info.amb_value(i))';
+                                    N(par_id2,:) = [];
+                                    N(:,par_id2) = [];
+                                    B(par_id2) = [];
+                                    % ------
+                                    idx_rm = [idx_rm; par_id];
+                                else
+                                    valid_float(i) = true;
+                                end
                             end
                         end
                         
@@ -1716,18 +1719,24 @@ classdef Least_Squares_Manipulator < handle
             if nargout > 1
                 x_res = zeros(size(x));
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
-                res = this.getResiduals(x_res);
-                s0 = mean(abs(res(res~=0)));
-                if nargout > 3 && ~cxx_comp
-                    % getting tht VCV matrix for the ambiuities
-                    idx_amb_par = find(x_class == this.PAR_AMB);
-                    b_eye = zeros(length(B),n_amb);
-                    idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
-                    b_eye(idx) = 1;
-                    b_eye = sparse(b_eye);
-                    Cxx_amb = N\b_eye;
-                    Cxx_amb = Cxx_amb(idx_amb_par,:);
+                if sum(isnan(x_res)) ==0
+                    res = this.getResiduals(x_res);
+                    s0 = mean(abs(res(res~=0)));
+                    if nargout > 3 && ~cxx_comp
+                        % getting tht VCV matrix for the ambiuities
+                        idx_amb_par = find(x_class == this.PAR_AMB);
+                        b_eye = zeros(length(B),n_amb);
+                        idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
+                        b_eye(idx) = 1;
+                        b_eye = sparse(b_eye);
+                        Cxx_amb = N\b_eye;
+                        Cxx_amb = Cxx_amb(idx_amb_par,:);
+                    end
+                else
+                    res = [];
+                    s0 = Inf;
                 end
+                
             end
             x = [x, x_class];
             % restore old Idx
