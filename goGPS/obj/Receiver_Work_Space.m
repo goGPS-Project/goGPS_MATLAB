@@ -3197,6 +3197,194 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function [snr_bt, snr_code] = getTrackingSNR(this)
+            % Get one single "mean" SNR per tracking/band
+            % Defined as a polynomial of degree 2 in sin(el) space
+            % Estimated in [0 : 90] degree
+            %
+            % SYNTAX
+            %   [snr_bt, snr_code] = this.getTrackingSNR();
+            %
+            % EXAMPLE
+            %   [snr_bt, snr_code] = rec(1).work.getTrackingSNR();
+            %   figure; clf; a=gca; a.ColorOrder = Core_UI.getColor(1 : size(snr_bt,2), size(snr_bt,2)); hold on; plot(0 : 90, snr_bt); legend(snr_code); setAllLinesWidth(2);
+            
+            i = 0;
+            snr_bt = [];
+            snr_code = '';
+            for sys_c = unique(this.system)
+                [snr, id_snr] = this.getSNR(sys_c);
+                id_snr = find(id_snr);
+                
+                el = this.sat.el;
+                % Fix ambiguity for the same frequency
+                % close all
+                go_id_snr = this.go_id(id_snr);
+                % calibrate snr
+                for b = unique(this.obs_code(id_snr, 2))'
+                    idb = find(this.obs_code(id_snr, 2) == b);
+                    for t = unique(this.obs_code(id_snr(idb), 3))'
+                        i = i + 1;
+                        idbt = find(this.obs_code(id_snr(idb), 3) == t);
+                        elbt = el(:,this.go_id(id_snr(idb(idbt))));
+                        snr_bt_all = snr(:, idb(idbt));
+                        id_ok = ~isnan(zero2nan(snr_bt_all));
+                        snr_bt(:, i) = Core_Utils.interp1LS([sind(elbt(id_ok)); 2-sind(elbt(id_ok))], [snr_bt_all(id_ok); snr_bt_all(id_ok)], 2, sind(0 : 90));
+                        %figure; plot(elbt, zero2nan(ssnr(:, idb(idbt))), '.');
+                        %hold on; plot(0:90, snr_bt, 'k.-', 'LineWidth', 2);
+                        snr_code(i, :) = [sys_c ' ' b t];
+                    end
+                end
+            end
+        end
+        
+        function [trk_ph_shift, trk_code] = repairPhases(this)
+            % Get one single "mean" SNR per tracking/band
+            % Defined as a polynomial of degree 2 in sin(el) space
+            % Estimated in [0 : 90] degree
+            %
+            % SYNTAX
+            %   [trk_ph_shift, trk_code] = this.repairPhases();
+            %
+            % EXAMPLE
+            %   [trk_ph_shift, trk_code] = rec(5).work.repairPhases();
+            
+            i = 0;
+            trk_ph_shift = [];
+            trk_code = '';
+            
+            % getting diff phases minus synthesised (minus empirically estimated dt)
+            % this is used as a sensor to determine which tracking is slipping
+            [~, ph_red, id_ph_red] = this.getReducedPhases();
+            
+            % system by system
+            for sys_c = unique(this.system)
+                
+                % find all the phases of the current SS
+                obs_code = this.getAvailableObsCode('L??', sys_c);
+                bands = unique(obs_code(:,2))'; % get all the bands in the current SS
+                
+                % for each band
+                for b_ch = bands
+                    
+                    % find all the phases with the current band
+                    id_ph = this.findObservableByFlag(['L' b_ch '?'], sys_c);
+                    obs_code = this.getAvailableObsCode(['L' b_ch '?'], sys_c); 
+                    
+                    % get the prn to be used as index of a 3D matrix containing phases
+                    [~, prn] = this.getSysPrn(this.go_id(id_ph));
+                    trackings = unique(obs_code(:,3))';
+                    
+                    % with one tracking the phase shift cannot be estimated
+                    if numel(trackings) > 0
+                        i = i + 1; trk_ph_shift(i) = 0;
+                        trk_code(i, :) = [sys_c ' ' b_ch trackings(1)];
+                        
+                        % store phases in a 3D matrix n_obs x n_sat x tracking mode
+                        tmp_ph = nan(size(this.obs, 2), max(prn), numel(trackings));
+                        tmp_ph_red = nan(size(this.obs, 2), max(prn), numel(trackings));
+                        tmp_ph_dred = nan(size(this.obs, 2), max(prn), numel(trackings));
+                        t = 0;
+                        for t_ch = trackings
+                            t = t + 1;
+                            id_ph_trk{t} = this.findObservableByFlag(['L' b_ch t_ch], sys_c);                            
+                            [~, prn] = this.getSysPrn(this.go_id(id_ph_trk{t}));
+                            % original phase
+                            tmp_ph(:, prn, t) = zero2nan(this.obs(id_ph_trk{t}, :)');
+                            
+                            % reduced phase
+                            [~, id_red] = ismember(id_ph_trk{t}, id_ph_red);
+                            tmp_ph_red(:, prn, t) = bsxfun(@rdivide, zero2nan(ph_red(:, id_red)), this.wl(id_ph_trk{t})');
+                            tmp_ph_dred(:, prn, t) = Core_Utils.diffAndPred(tmp_ph_red(:, prn, t));
+                            % find repairable cycle slips
+                            %prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);                            
+                        end
+                    end
+                    
+                    for t = 2 : numel(trackings)
+                        ph_diff = diff(zero2nan(tmp_ph(:, :, [1 t])),1,3);
+                        % find repairable cycle slips
+                        sensor = Core_Utils.diffAndPred(ph_diff);
+                        id_cs = abs(sensor) > 0.3;
+                        
+                        % possible cycle slip value
+                        cs_val = round(sensor(id_cs));
+                        
+                        % figure; plot(sensor); hold on; plot(mod(find(id_cs), size(id_cs,1)), sensor(id_cs), 'og', 'MarkerSize', 10, 'LineWidth' , 3);
+                        % ax = []; ax(1) = gca;
+                        % for tf = 1 : numel(trackings)
+                        %     tmp = Core_Utils.diffAndPred(tmp_ph_red(:,:,tf)); figure; plot(tmp); hold on; plot(mod(find(id_cs), size(id_cs,1)), tmp(id_cs), 'og', 'MarkerSize', 10, 'LineWidth' , 3);
+                        %     ax(t+1) = gca;
+                        % end
+                        % linkaxes(ax, 'x');
+                        clear sensor
+                        
+                        % Detect whose tracking is jumping
+                        if any(id_cs(:))
+                            for m = [1 t]
+                                % Trying to repear the CS from this single difference observable could be risky
+                                % but at the moment seems to always work
+                                % whenever we find some cases when CS is no more detected
+                                % remember to continue the investigation
+                                tmp_sensor = tmp_ph_dred(:,:,m); 
+                                id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
+                                id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs)));
+                                
+                                % try to repair
+                                prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);
+                                
+                                % correct tmp data
+                                tmp_sensor = cumsum(id_cs_t(:, prn));
+                                tmp_ph_red(:, prn, m) = tmp_ph_red(:, prn, m) - tmp_sensor;
+                                tmp_ph_dred(:, prn, m) = Core_Utils.diffAndPred(tmp_ph_red(:, prn, m));
+                                tmp_ph(:, prn, m) = tmp_ph(:, prn, m) - tmp_sensor;
+                                
+                                [~, id_obs] = ismember(prn, this.prn(id_ph_trk{m}));
+                                this.obs(id_ph_trk{m}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{m}(id_obs), :)) - tmp_sensor');
+                            end
+                        end
+                        
+                        clear id_cs_t tmp id_cs
+                        
+                        if std(serialize(ph_diff - floor(ph_diff)), 'omitnan') < 0.1
+                            ph_shift = median(serialize(ph_diff - floor(ph_diff)), 'omitnan');
+                        else
+                            ph_shift = median(serialize(ph_diff - floor(ph_diff - 1)), 'omitnan');
+                        end
+                        ph_shift = mod(round(ph_shift / 0.125) * 0.125, 1);
+                        i = i + 1; trk_ph_shift(i) = ph_shift; % round to a quater of cycle (can it be totally float?)
+                        trk_code(i, :) = [sys_c ' ' b_ch trackings(t)];
+                        
+                        % Correct the observations to compensate for the bias
+                        this.obs(id_ph_trk{t}, :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}, :)) - ph_shift);
+                    end
+                    
+                    for t = 1 : numel(trackings)
+                        % try single tracking repair
+                        % trying to repear the CS from this single difference observable could be risky
+                        % but at the moment seems to always work
+                        % whenever we find some cases when CS is no more detected
+                        % remember to continue the investigation
+                        tmp_sensor = tmp_ph_dred(:,:,t);
+                        id_cs = abs(tmp_sensor) > 0.7;
+                        if any(id_cs(:))
+                            id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
+                            id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs)));
+                            
+                            % try to repair
+                            prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);
+                            
+                            % correct tmp data
+                            tmp_sensor = cumsum(id_cs_t(:, prn));
+                            
+                            [~, id_obs] = ismember(prn, this.prn(id_ph_trk{t}));
+                            this.obs(id_ph_trk{t}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}(id_obs), :)) - tmp_sensor');
+                        end
+                    end
+                end
+            end
+        end
+        
         function [quality] = getQuality(this, type)
             % get a quality index of the satellite data
             % type could be:
@@ -3863,6 +4051,29 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
+        end
+        
+        function [dt_ph, ph_diff, id_ph] = getReducedPhases(this)
+            % Get the empirical clock from phases
+            % Eventually return also the reduced phases
+            % (reduced by synth + dt)
+            %
+            % SYNTAX
+            %   [dt_ph, ph_diff, id_ph] = this.getReducedPhases()
+            
+            [ph, wl, id_ph] = this.getPhases();
+            
+            id_ph = find(id_ph);
+            phs = this.getSyntPhases();
+                        
+            % do I trust PPP clock?
+            tmp = Core_Utils.diffAndPred(zero2nan(ph) - zero2nan(phs));
+            dt_ph = cumsum(median(tmp, 2, 'omitnan'));
+            id = (1 : numel(dt_ph))';
+            dt_ph_drift = Core_Utils.interp1LS(id, dt_ph, 5, id);
+            dt_ph = dt_ph - dt_ph_drift;
+            
+            ph_diff = zero2nan(ph) - zero2nan(phs) - dt_ph; 
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -6673,6 +6884,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.applyAtmLoad();
                     this.applyHOI();
                     
+                    this.repairPhases();
+                    
                     this.remOutlierMarkCycleSlip();
                     this.pp_status = true;
                 end
@@ -7727,7 +7940,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 decl_n = (serialize(90 - this.sat.el(this.id_sync(:), this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
-                m = serialize(~isnan(zero2nan(this.obs(ph_id, this.id_sync(:)))'));
+                m = serialize(~isnan(zero2nan(this.obs(ph_id, this.id_sync(:)))')); m(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 plot(x(m), y(m), '.', 'Color', [0.4 0.4 0.4]); % sat in vew
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];

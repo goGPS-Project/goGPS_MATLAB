@@ -61,6 +61,7 @@ classdef Least_Squares_Manipulator < handle
         PAR_PCO_Y = 11;
         PAR_PCO_Z = 12;
         PAR_SAT_CLK = 13;
+        CLASS_NAME = {'X', 'Y', 'Z', 'ISB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'PCO_X', 'PCO_Y', 'PCO_Z', 'SAT_CLK'};
     end
     
     properties
@@ -311,7 +312,7 @@ classdef Least_Squares_Manipulator < handle
             
             %remove too shortArc
             
-            % Compute the number of ambiguities that must be computed
+            % Compute the number of ambiguities that must be estimated
             cycle_slip = obs_set.cycle_slip;
             min_arc = this.state.getMinArc;
             if phase_present && min_arc > 1
