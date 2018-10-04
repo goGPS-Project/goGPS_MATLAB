@@ -1676,6 +1676,30 @@ classdef GPS_Time < Exportable & handle
             sec = double(sec_i) + sec_f;
             
         end 
+        
+        function [gps_time_min] = min(gps_time_one, gps_time_two)
+            % get the minimux of two gps time
+            % SYNTAX:
+            %     [gps_time_min] = min(gps_time_one, gps_time_two)
+            diff = gps_time_two.first - gps_time_one.first;
+            if diff < 0
+                gps_time_min = gps_time_two.first;
+            else
+                gps_time_min = gps_time_one.first;
+            end
+        end
+        
+        function [gps_time_max] = max(gps_time_one, gps_time_two)
+            % get the maximum of two gps time
+            % SYNTAX:
+            %     [gps_time_min] = min(gps_time_one, gps_time_two)
+            diff = gps_time_two.first - gps_time_one.first;
+            if diff > 0
+                gps_time_max = gps_time_two.first;
+            else
+                gps_time_max = gps_time_one.first;
+            end
+        end
     end
     
     % =========================================================================

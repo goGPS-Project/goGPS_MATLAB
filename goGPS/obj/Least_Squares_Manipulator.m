@@ -1406,6 +1406,23 @@ classdef Least_Squares_Manipulator < handle
                 
                 idx_amb_rm = [];
                 prev_info = ~isempty(this.apriori_info);
+                % remove the ambiguity that are not connected
+                if prev_info && this.state.getCurSession > 1%%% introduce the previous amniguity
+                    conn_amb  = false(size(this.apriori_info.amb_value));
+                    for i = 1:(length(this.apriori_info.amb_value))
+                        % determine the mapping to new freq
+                        r_id = this.apriori_info.receiver(i);
+                        s_id = this.apriori_info.goids(i);
+                        idx_ambs = this.receiver_id == r_id & this.sat == s_id;
+                        if sum(this.epoch(idx_ambs) == 1) > 0
+                            conn_amb(i) = true;
+                        end
+                    end
+                    this.removeAprInfo(~conn_amb);
+                end
+                
+                
+                
                 % 4)remove one ambiguity per satellite form the firs receiver
                 if true
                     %n_jmp_sat 
