@@ -973,7 +973,7 @@ classdef Least_Squares_Manipulator < handle
                 % ----------- Abiguity ------------------
                 if phase_present
                     prog_p_col = prog_p_col + 1;
-                    A(lines_stream, prog_p_col) = obs_set.wl(s);
+                    A(lines_stream, prog_p_col) = obs_set.wl(s)*this.state.getCycleSlipThr();
                     A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------

@@ -1037,7 +1037,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMarkedMessage('Cleaning observations');
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
-            cs_thr = 0.5; % CYCLE SLIP THR
+            cs_thr = 0.7*this.state.getCycleSlipThr(); % CYCLE SLIP THR
             sa_thr = this.state.getMinArc();  % short arc threshold
             
             %----------------------------
@@ -1061,6 +1061,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % subtract median (clock error)
             %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+            sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
            
             % first rough out detection ------------------------------------------------------------------
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
@@ -1088,6 +1090,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % recompute dt and sensor_ph
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+            sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             
             % --------------------------------------------------------------------------------------------
             % detection on arc edges
@@ -1122,6 +1126,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % try with second time derivative
                 sensor_ph = Core_Utils.diffAndPred(ph - synt_ph, der);
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
                 % divide for wavelength
                 sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             else
@@ -1158,6 +1164,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % subtract median
             %sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, getNrstZero(sensor_ph_cs')');
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph0, 2, 'omitnan'));
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs2, movmean(median(movmedian(sensor_ph_cs2,5),2,'omitnan'),5));
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs2, median(sensor_ph_cs2,'omitnan'));
             % divide for wavelength
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
             
@@ -3258,7 +3266,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % getting diff phases minus synthesised (minus empirically estimated dt)
             % this is used as a sensor to determine which tracking is slipping
             [~, ph_red, id_ph_red] = this.getReducedPhases();
-            
+            %ph_red = bsxfun(@minus,ph_red,movmedian(ph_red))
             % system by system
             for sys_c = unique(this.system)
                 
@@ -3368,10 +3376,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % whenever we find some cases when CS is no more detected
                         % remember to continue the investigation
                         tmp_sensor = tmp_ph_dred(:,:,t);
-                        id_cs = abs(tmp_sensor) > 0.7;
+                        tmp_sensor = bsxfun(@minus, tmp_sensor, movmean(median(movmedian(tmp_sensor,5),2,'omitnan'),5));
+                        tmp_sensor = bsxfun(@minus, tmp_sensor, median(tmp_sensor,'omitnan'));
+                        id_cs = abs(tmp_sensor) > 0.7 * this.state.getCycleSlipThr;
                         if any(id_cs(:))
                             id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
-                            id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs)));
+                            id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs) / this.state.getCycleSlipThr)) * this.state.getCycleSlipThr;
                             
                             % try to repair
                             prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);

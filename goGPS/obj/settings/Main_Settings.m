@@ -56,7 +56,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % Real constant
     properties(Constant, Access = 'private')
         % PRE PROCESSING
-        CS_THR_PRE_PRO = 1;                             % Cycle slip threshold (pre-processing) [cycles]
+        CS_THR_PRE_PRO = 0.5;                             % Cycle slip threshold (pre-processing) [cycles]
     end
     
     properties (Constant, Access = 'public')
@@ -2549,6 +2549,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %    erp_path = this.getErpPath()
             erp_file = this.erp_name;
+        end
+        
+        function cs_thr = getCycleSlipThr(this)
+            % get cycle slip threshold
+            %
+            % SYNTAX
+            %    cs_thr = this.getCycleSlipThr()
+            cs_thr = this.CS_THR_PRE_PRO;
         end
 
         function dcb_file = getDcbFile(this)
