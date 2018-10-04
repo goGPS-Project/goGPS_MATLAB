@@ -184,6 +184,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
+        FLAG_REPAIR = true;                             % Flag for enabling cycle slip repair
         W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
@@ -518,6 +519,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
 
+        % Flag for enabling cycle slip restoration
+        flag_repair = Main_Settings.FLAG_REPAIR;
+
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Main_Settings.W_MODE;
         %  - weights = 0: same weight for all the observations
@@ -751,11 +755,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % ADV DATA SELECTION
                 this.flag_outlier = state.getData('flag_outlier');
+                
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
 
                 % PROCESSING PARAMETERS
+                this.flag_repair = state.getData('flag_repair');
                 this.w_mode = state.getData('w_mode');
                 
                 this.reweight_mode = state.getData('reweight_mode');
@@ -897,6 +903,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
 
                 % PROCESSING PARAMETERS
+                this.flag_repair = state.flag_repair;                
                 this.w_mode = state.w_mode;
                 this.reweight_mode = state.reweight_mode;
                 this.flag_amb_fix = state.flag_amb_fix;
@@ -1069,6 +1076,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
+            str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
             str = [str sprintf(' Using rewight/snooping: %s\n\n', this.REWEIGHT_SMODE{this.reweight_mode})];
             str = [str sprintf(' Enable ambiguity fixing:                          %d\n\n', this.flag_amb_fix)];
@@ -1446,6 +1454,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % PROCESSING PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable cycle slip repair (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_repair', this.flag_repair, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
             for i = 1 : numel(this.W_SMODE)
@@ -1482,6 +1493,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_hoi', this.flag_hoi, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable receiver pcv corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable a-priori ', str_cell);
             str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
@@ -2126,6 +2138,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
 
             % PROCESSING PARAMETERS
+            this.checkLogicalField('flag_repair');
+            
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             this.checkNumericField('reweight_mode',[1 numel(this.REWEIGHT_SMODE)]);
             
@@ -3700,6 +3714,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             flag = this.flag_outlier;
         end
 
+        function flag = isRepairOn(this)
+            % Get the status of cycle slip repair
+            %
+            % SYNTAX
+            %   flag = this.isRepairOn()
+            flag = this.flag_repair;
+        end
+        
         function flag = isBlockForceStabilizationOn(this)
             % Get the status of outlier rejection OF UNSTABLE ARCS
             % SYNTAX

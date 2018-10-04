@@ -3249,6 +3249,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % EXAMPLE
             %   [trk_ph_shift, trk_code] = rec(5).work.repairPhases();
             
+            this.log.addMarkedMessage('Applying cycle slip restore');
+
             i = 0;
             trk_ph_shift = [];
             trk_code = '';
@@ -4557,7 +4559,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function applyPhaseShift(this)
             if this.ph_shift_status == 0
-                this.log.addMarkedMessage('Applying phase shoft');
+                this.log.addMarkedMessage('Applying phase shift');
                 this.phaseShift(1);
                 this.ph_shift_status = 1; %applied
             end
@@ -4565,7 +4567,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function removePhaseShift(this)
             if this.ph_shift_status == 1
-                this.log.addMarkedMessage('Removing phase shoft');
+                this.log.addMarkedMessage('Removing phase shift');
                 this.phaseShift(-1);
                 this.ph_shift_status = 0; %applied
             end
@@ -6884,7 +6886,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.applyAtmLoad();
                     this.applyHOI();
                     
-                    this.repairPhases();
+                    if this.state.isRepairOn()
+                        this.repairPhases();
+                    end
                     
                     this.remOutlierMarkCycleSlip();
                     this.pp_status = true;
