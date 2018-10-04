@@ -4073,7 +4073,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             dt_ph_drift = Core_Utils.interp1LS(id, dt_ph, 5, id);
             dt_ph = dt_ph - dt_ph_drift;
             
-            ph_diff = zero2nan(ph) - zero2nan(phs) - dt_ph; 
+            ph_diff = bsxfun(@minus,zero2nan(ph) - zero2nan(phs),dt_ph); 
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)

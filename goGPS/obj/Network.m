@@ -115,15 +115,26 @@ classdef Network < handle
                     idx_ref(idx_ref == e) = [];
                 end
                 ls = Least_Squares_Manipulator(this.rec_list(1).cc);
-               
-                [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
                 
-                 if this.state.flag_amb_pass && this.state.getCurSession > 1 && ~isempty(this.apriori_info)
-                     t_dist = this.common_time.first - this.apriori_info.epoch;
-                     if t_dist > -0.02 && t_dist <= (this.common_time.getRate + 0.02)
+                if this.state.flag_amb_pass && this.state.getCurSession > 1 && ~isempty(this.apriori_info)
+                    f_time = GPS_Time.now();
+                    f_time.addSeconds(1e9);
+                    rate = 0;
+                    for i = 1 : length(this.rec_list)
+                        [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
+                         idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
+                        f_time = min(this.rec_list(i).work.time.getEpoch(idx_fv), f_time);
+                        rate = max(rate,this.rec_list(i).work.time.getRate);
+                    end
+                     t_dist = f_time - this.apriori_info.epoch;
+                     if t_dist > -0.02 && t_dist <= (rate + 0.02)
                     ls.apriori_info = this.apriori_info;
                      end
                 end
+               
+                [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
+                
+                 
                 n_time = this.common_time.length;
                 n_rec = length(this.rec_list); 
                 if this.state.flag_tropo
