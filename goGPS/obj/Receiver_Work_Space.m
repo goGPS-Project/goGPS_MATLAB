@@ -3375,8 +3375,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % but at the moment seems to always work
                         % whenever we find some cases when CS is no more detected
                         % remember to continue the investigation
-                        tmp_sensor = tmp_ph_dred(:,:,t);
-                        tmp_sensor = bsxfun(@minus, tmp_sensor, movmean(median(movmedian(tmp_sensor,5),2,'omitnan'),5));
+                        tmp_sensor = tmp_ph_dred(:,:,t) - median(serialize(tmp_ph_dred(:,:,t)), 'omitnan');
                         tmp_sensor = bsxfun(@minus, tmp_sensor, median(tmp_sensor,'omitnan'));
                         id_cs = abs(tmp_sensor) > 0.7 * this.state.getCycleSlipThr;
                         if any(id_cs(:))
@@ -4065,7 +4064,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [dt_ph, ph_diff, id_ph] = getReducedPhases(this)
+        function [dt_ph, ph_diff, id_ph] = getReducedPhases(this, mode)
             % Get the empirical clock from phases
             % Eventually return also the reduced phases
             % (reduced by synth + dt)
@@ -4073,19 +4072,36 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   [dt_ph, ph_diff, id_ph] = this.getReducedPhases()
             
+            if nargin < 2 || ~isempty(mode)
+                mode = 'rmSlow';
+            end
+            
             [ph, wl, id_ph] = this.getPhases();
             
             id_ph = find(id_ph);
             phs = this.getSyntPhases();
-                        
+            
             % do I trust PPP clock?
             tmp = Core_Utils.diffAndPred(zero2nan(ph) - zero2nan(phs));
-            dt_ph = cumsum(median(tmp, 2, 'omitnan'));
-            id = (1 : numel(dt_ph))';
-            dt_ph_drift = Core_Utils.interp1LS(id, dt_ph, 5, id);
-            dt_ph = dt_ph - dt_ph_drift;
+            bias = median(tmp, 'omitnan');
+            tmp = bsxfun(@minus, tmp, bias);
+            dt_ph = median(tmp, 2, 'omitnan');
             
-            ph_diff = bsxfun(@minus,zero2nan(ph) - zero2nan(phs),dt_ph); 
+            switch mode
+                case 'rmSlow'
+                    % remove slow effects
+                    id = (1 : numel(dt_ph))';
+                    ph_diff = bsxfun(@minus, zero2nan(ph) - zero2nan(phs), cumsum(zero2nan(dt_ph)));
+                    tmp = Core_Utils.diffAndPred(ph_diff);
+                    
+                    %slow effects
+                    dt_lf = splinerMat([], median(movmedian(tmp,5),2,'omitnan'), 3600 / this.getRate);
+                    dt_ph = zero2nan(dt_ph + dt_lf - mean(zero2nan(dt_ph + dt_lf), 'omitnan'));
+            end
+            
+            dt_ph = cumsum(nan2zero(dt_ph) - mean(dt_ph, 'omitnan') + mean(bias, 'omitnan'));
+            dt_ph = dt_ph - mean(dt_ph, 'omitnan') + mean(serialize(diff(zero2nan(ph) - zero2nan(phs))), 'omitnan');
+            ph_diff = bsxfun(@minus, zero2nan(ph) - zero2nan(phs), dt_ph);
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
