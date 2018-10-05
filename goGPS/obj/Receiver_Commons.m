@@ -235,7 +235,7 @@ classdef Receiver_Commons < handle
         function [rate] = getRate(this)
             % SYNTAX
             %   rate = this.getRate();
-            rate = this.getTime.getRate;
+            rate = this.time.getRate;
         end
                 
         function dt = getTotalDt(this)

@@ -1220,12 +1220,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             %             end
             
             %--------------------------------------------------------
-            % SAFE CHOICE: if there is an hole (bigger than 5 epochs)
+            % SAFE CHOICE: if there is an hole 
             %              put a cycle slip
             %--------------------------------------------------------
             for o = 1 : size(ph2,2)
                 tmp_ph = ph2(:,o);
-                ph_idx = flagExpand(flagShrink(isnan(tmp_ph),5),5);
+                % Remember that you lost more than 2 hour to find out why a cycle slip was not detected correctly
+                % ph_idx = flagExpand(flagShrink(isnan(tmp_ph),5),5); % (bigger than 5 epochs) => not marking a CS could be very very VERY bad
+                ph_idx  = isnan(tmp_ph);
                 c_idx = [false ; diff(ph_idx) == -1];
                 poss_slip_idx(c_idx,o) = 1;
             end
@@ -3258,7 +3260,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   [trk_ph_shift, trk_code] = rec(5).work.repairPhases();
             
             this.log.addMarkedMessage('Applying cycle slip restore');
+            
+            %cs_thr = this.state.getCycleSlipThr;
+            cs_size = 1;   % try to repair only full cycle slips (do not manage half cycle)
+            cs_thr = 0.1;  % accept only correction with 90% of certainty
 
+            
             i = 0;
             trk_ph_shift = [];
             trk_code = '';
@@ -3336,21 +3343,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 % but at the moment seems to always work
                                 % whenever we find some cases when CS is no more detected
                                 % remember to continue the investigation
-                                tmp_sensor = tmp_ph_dred(:,:,m); 
+                                sensor = tmp_ph_dred(:,:,m); 
                                 id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
-                                id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs)));
+                                id_cs_t(id_cs) = round(nan2zero(sensor(id_cs)));
                                 
                                 % try to repair
                                 prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);
                                 
                                 % correct tmp data
-                                tmp_sensor = cumsum(id_cs_t(:, prn));
-                                tmp_ph_red(:, prn, m) = tmp_ph_red(:, prn, m) - tmp_sensor;
+                                sensor = cumsum(id_cs_t(:, prn));
+                                tmp_ph_red(:, prn, m) = tmp_ph_red(:, prn, m) - sensor;
                                 tmp_ph_dred(:, prn, m) = Core_Utils.diffAndPred(tmp_ph_red(:, prn, m));
-                                tmp_ph(:, prn, m) = tmp_ph(:, prn, m) - tmp_sensor;
+                                tmp_ph(:, prn, m) = tmp_ph(:, prn, m) - sensor;
                                 
                                 [~, id_obs] = ismember(prn, this.prn(id_ph_trk{m}));
-                                this.obs(id_ph_trk{m}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{m}(id_obs), :)) - tmp_sensor');
+                                this.obs(id_ph_trk{m}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{m}(id_obs), :)) - sensor');
                             end
                         end
                         
@@ -3375,21 +3382,37 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % but at the moment seems to always work
                         % whenever we find some cases when CS is no more detected
                         % remember to continue the investigation
-                        tmp_sensor = tmp_ph_dred(:,:,t) - median(serialize(tmp_ph_dred(:,:,t)), 'omitnan');
-                        tmp_sensor = bsxfun(@minus, tmp_sensor, median(tmp_sensor,'omitnan'));
-                        id_cs = abs(tmp_sensor) > 0.7 * this.state.getCycleSlipThr;
+                        sensor = tmp_ph_dred(:,:,t) - median(serialize(tmp_ph_dred(:,:,t)), 'omitnan');
+                        sensor = bsxfun(@minus, sensor, median(sensor,'omitnan'));
+                        
+                        % further remove slow rates by satellite (clock drifting)
+                        sensor_red = sensor - movmean(movmedian(sensor, 11), 17,'omitnan'); % ultra reduced data (requires longer arcs)
+                        sensor(~isnan(sensor_red)) = sensor_red(~isnan(sensor_red));
+                                               
+                        % Mark as jump any CS > 0.45 cycles / dependent on cycle slip thr
+                        id_cs = abs(sensor) > max(0.45, 0.7 * cs_size);
+                        
+                        % do not repair CS at the beginning of an arc (not safe)
+                        id_cs(id_cs((abs(id_cs) > 0) & ~flagShift(abs(sensor) > 0, 1))) = 0;
                         if any(id_cs(:))
-                            id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
-                            id_cs_t(id_cs) = round(nan2zero(tmp_sensor(id_cs) / this.state.getCycleSlipThr)) * this.state.getCycleSlipThr;
-                            
-                            % try to repair
-                            prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);
-                            
-                            % correct tmp data
-                            tmp_sensor = cumsum(id_cs_t(:, prn));
-                            
-                            [~, id_obs] = ismember(prn, this.prn(id_ph_trk{t}));
-                            this.obs(id_ph_trk{t}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}(id_obs), :)) - tmp_sensor');
+                            poss_fix = round(nan2zero(sensor(id_cs) / cs_size)) * cs_size;
+                            % Keep only fixes that are sure at 85%
+                            id_ok = abs(sensor(id_cs) - poss_fix) < (cs_thr * cs_size);
+                            if any(id_ok)
+                                id_cs(id_cs) = id_cs(id_cs) & id_ok;
+                                
+                                id_cs_t = sparse([], [], [], size(id_cs, 1), size(id_cs, 2));
+                                id_cs_t(id_cs) = poss_fix(id_ok);
+                                
+                                % try to repair
+                                prn = unique(floor((find(id_cs_t) - 1) / size(id_cs_t, 1)) + 1);
+                                
+                                % correct tmp data
+                                sensor(:, prn) = sensor(:, prn) - id_cs_t(:, prn);
+                                
+                                [~, id_obs] = ismember(prn, this.prn(id_ph_trk{t}));
+                                this.obs(id_ph_trk{t}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}(id_obs), :)) - cumsum(nan2zero(id_cs_t(:, prn)))');
+                            end
                         end
                     end
                 end
@@ -3451,10 +3474,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                 iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
                 iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
-            if nargin > 2
+            if nargin > 2 && ~isempty(system)
                 lid = lid & (this.system == system)';
             end
-            if nargin > 3
+            if nargin > 3 && ~isempty(prn)
                 lid = lid & (this.prn == prn);
             end
             
@@ -4067,7 +4090,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 'rmSlow'
                     % remove slow effects
                     id = (1 : numel(dt_ph))';
-                    ph_diff = bsxfun(@minus, zero2nan(ph) - zero2nan(phs), cumsum(zero2nan(dt_ph)));
+                    ph_diff = bsxfun(@minus, zero2nan(ph) - zero2nan(phs), cumsum(nan2zero(dt_ph)));
                     tmp = Core_Utils.diffAndPred(ph_diff);
                     
                     %slow effects

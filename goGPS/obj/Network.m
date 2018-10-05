@@ -122,21 +122,21 @@ classdef Network < handle
                     rate = 0;
                     for i = 1 : length(this.rec_list)
                         [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
-                         idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
+                        idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
                         f_time = min(this.rec_list(i).work.time.getEpoch(idx_fv), f_time);
                         rate = max(rate,this.rec_list(i).work.time.getRate);
                     end
-                     t_dist = f_time - this.apriori_info.epoch;
-                     if t_dist > -0.02 && t_dist <= (rate + 0.02)
-                    ls.apriori_info = this.apriori_info;
-                     end
+                    t_dist = f_time - this.apriori_info.epoch;
+                    if t_dist > -0.02 && t_dist <= (rate + 0.02)
+                        ls.apriori_info = this.apriori_info;
+                    end
                 end
-               
+                
                 [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
                 
-                 
+                
                 n_time = this.common_time.length;
-                n_rec = length(this.rec_list); 
+                n_rec = length(this.rec_list);
                 if this.state.flag_tropo
                     ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
                 end
@@ -151,7 +151,7 @@ classdef Network < handle
                 
                 s0 = mean(abs(res(res~=0)));
                 this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
-                if s0 < 0.01
+                if s0 < 0.02
                     % intilaize array for results
                     this.initOut(ls);
                     this.addAdjValues(x);
@@ -229,7 +229,7 @@ classdef Network < handle
                             this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
                             % intilaize array for results
                             this.initOut(ls);
-                            if s0 < 0.01
+                            if s0 < 0.02
                                 this.addAdjValues(x);
                                 this.changeReferenceFrame(idx_ref);
                                 for k = 1 : n_rec
