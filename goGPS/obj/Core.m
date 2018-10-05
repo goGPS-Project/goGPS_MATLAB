@@ -731,6 +731,11 @@ classdef Core < handle
             end
             
             err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);
+            if state.isHOI
+                err_code.hoi   = state.checkDirErr('igrf_dir', 'International Geomagnetic reference dir', flag_verbose);
+            else
+                err_code.hoi   = state.checkDir('igrf_dir', 'International Geomagnetic reference dir', flag_verbose);
+            end
             err_code.eph   = state.checkDir('eph_dir', 'Ephemerides dir', flag_verbose);
             err_code.clk   = state.checkDir('clk_dir', 'Clock Offset dir', flag_verbose);
             err_code.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir', flag_verbose);
@@ -781,7 +786,8 @@ classdef Core < handle
                 err_code.obs + ...
                 (err_code.obs_f < 0) + ...
                 (err_code.ocean < 0) + ...
-                err_code.atx;
+                err_code.atx + ...
+                err_code.hoi * state.isHOI;
         end
     end
     
