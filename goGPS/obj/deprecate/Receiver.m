@@ -1332,40 +1332,40 @@ classdef Receiver < Exportable
                 % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
                 
                 % GPS C1 -> C1C
-                idx = this.getObsIdx('C1 ','G');
+                idx = this.findObservableByFlag('C1 ','G');
                 this.obs_code(idx,:) = repmat('C1C',length(idx),1);
                 % GPS C2 -> C2C
-                idx = this.getObsIdx('C2 ','G');
+                idx = this.findObservableByFlag('C2 ','G');
                 this.obs_code(idx,:) = repmat('C2C',length(idx),1);
                 % GPS L1 -> L1C
-                idx = this.getObsIdx('L1 ','G');
+                idx = this.findObservableByFlag('L1 ','G');
                 this.obs_code(idx,:) = repmat('L1C',length(idx),1);
                 % GPS L2 -> L2W
-                idx = this.getObsIdx('L2 ','G');
+                idx = this.findObservableByFlag('L2 ','G');
                 this.obs_code(idx,:) = repmat('L2W',length(idx),1);
                 % GPS C5 -> C5I
-                idx = this.getObsIdx('C5 ','G');
+                idx = this.findObservableByFlag('C5 ','G');
                 this.obs_code(idx,:) = repmat('C5I',length(idx),1);
                 % GPS L5 -> L5I
-                idx = this.getObsIdx('L5 ','G');
+                idx = this.findObservableByFlag('L5 ','G');
                 this.obs_code(idx,:) = repmat('L5I',length(idx),1);
                 % GPS P1 -> C1W
-                idx = this.getObsIdx('P1 ','G');
+                idx = this.findObservableByFlag('P1 ','G');
                 this.obs_code(idx,:) = repmat('C1W',length(idx),1);
                 % GPS P2 -> C2W
-                idx = this.getObsIdx('P2 ','G');
+                idx = this.findObservableByFlag('P2 ','G');
                 this.obs_code(idx,:) = repmat('C2W',length(idx),1);
                 % GLONASS C1 -> C1C
-                idx = this.getObsIdx('C1 ','R');
+                idx = this.findObservableByFlag('C1 ','R');
                 this.obs_code(idx,:) = repmat('C1C',length(idx),1);
                 % GLONASS C2 -> C2C
-                idx = this.getObsIdx('C2 ','R');
+                idx = this.findObservableByFlag('C2 ','R');
                 this.obs_code(idx,:) = repmat('C2C',length(idx),1);
                 % GLONASS P1 -> C1P
-                idx = this.getObsIdx('P1 ','R');
+                idx = this.findObservableByFlag('P1 ','R');
                 this.obs_code(idx,:) = repmat('C1P',length(idx),1);
                 % GLONASS P2 -> C2P
-                idx = this.getObsIdx('P2 ','R');
+                idx = this.findObservableByFlag('P2 ','R');
                 this.obs_code(idx,:) = repmat('C2P',length(idx),1);
                 % other flags to be investiagated
                 
@@ -2686,7 +2686,7 @@ classdef Receiver < Exportable
             for i = 1 : this.getMaxSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
                 if not(isempty(cur_sat_id))
-                    sat_idx = this.getObsIdx('C',cur_sat_id);
+                    sat_idx = this.findObservableByFlag('C',cur_sat_id);
                     sat_idx = sat_idx(this.active_ids(sat_idx));
                     if ~isempty(sat_idx)
                         % get epoch for which iono free is possible
@@ -3318,22 +3318,22 @@ classdef Receiver < Exportable
         
         function [obs, idx] = getObs(this, flag, system, prn)
             % get observation and index corresponfing to the flag
-            % SYNTAX this.getObsIdx(flag, <system>)
+            % SYNTAX this.findObservableByFlag(flag, <system>)
             if nargin > 3
-                idx = this.getObsIdx(flag, system, prn);
+                idx = this.findObservableByFlag(flag, system, prn);
             elseif nargin > 2
-                idx = this.getObsIdx(flag, system);
+                idx = this.findObservableByFlag(flag, system);
             else
-                idx = this.getObsIdx(flag);
+                idx = this.findObservableByFlag(flag);
             end
             obs = zero2nan(this.obs(idx,:));
         end
         
-        function [idx] = getObsIdx(this, flag, system, prn)
+        function [idx] = findObservableByFlag(this, flag, system, prn)
             % get observation index corresponfing to the flag
-            % SYNTAX this.getObsIdx(flag, <system>)
-            %        this.getObsIdx(flag, <system>, <prn>)
-            %        this.getObsIdx(flag, <go_id>)
+            % SYNTAX this.findObservableByFlag(flag, <system>)
+            %        this.findObservableByFlag(flag, <system>, <prn>)
+            %        this.findObservableByFlag(flag, <go_id>)
             go_id_imp = false;
             idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
             if nargin > 2
@@ -3371,7 +3371,7 @@ classdef Receiver < Exportable
         function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
             % channel according to the definition in GPS_SS, GLONASS_SS, ...
-            % SYNTAX this.getObsIdx(flag, <system>)
+            % SYNTAX this.findObservableByFlag(flag, <system>)
             obs = [];
             idx = [];
             snr = [];
@@ -3379,7 +3379,7 @@ classdef Receiver < Exportable
             if length(flag)==3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
                 idx = idx & (this.system == system)';
-                %this.legger.addWarning(['Unnecessary Call obs_type already determined, use getObsIdx instead'])
+                %this.legger.addWarning(['Unnecessary Call obs_type already determined, use findObservableByFlag instead'])
                 [obs,idx] = this.getObs(flag, system);
             elseif length(flag) >= 2
                 flags = zeros(size(this.obs_code,1),3);
@@ -3772,9 +3772,9 @@ classdef Receiver < Exportable
             
             for s = sys_c
                 if phase
-                    idx_obs = [idx_obs; this.getObsIdx('L', s)];
+                    idx_obs = [idx_obs; this.findObservableByFlag('L', s)];
                 else
-                    idx_obs = [idx_obs; this.getObsIdx('C', s)];
+                    idx_obs = [idx_obs; this.findObservableByFlag('C', s)];
                 end
             end
             
@@ -4707,7 +4707,7 @@ classdef Receiver < Exportable
                 sys  = this.sat.cs.group_delays_flags(i,1);
                 code = this.sat.cs.group_delays_flags(i,2:4);
                 f_num = str2double(code(2));
-                idx = this.getObsIdx(code, sys);
+                idx = this.findObservableByFlag(code, sys);
                 if sum(this.sat.cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
                         for s = 1 : size(this.sat.cs.group_delays,1)
@@ -4717,7 +4717,7 @@ classdef Receiver < Exportable
                                 this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.sat.cs.group_delays(s,i);
                             elseif ~this.cc.isRefFrequency(sys, f_num)
                                 this.active_ids(idx) = false;
-                                idx = this.getObsIdx(['C' code(2:end)], sys);
+                                idx = this.findObservableByFlag(['C' code(2:end)], sys);
                                 this.active_ids(sat_idx) = sgn < 0;
                             end
                         end
@@ -4725,7 +4725,7 @@ classdef Receiver < Exportable
                 else
                     % mark as bad obs frequencies that are nor reference frequencies or that have no correction
                     if ~this.cc.isRefFrequency(sys, f_num)
-                        idx = this.getObsIdx(['C' code(2:end)], sys);
+                        idx = this.findObservableByFlag(['C' code(2:end)], sys);
                         this.active_ids(idx) = sgn < 0;
                     end
                 end
@@ -6503,7 +6503,7 @@ classdef Receiver < Exportable
             flag = [];
             for i = unique(this.go_id)'
                 
-                sat_idx = this.getObsIdx('C',i);
+                sat_idx = this.findObservableByFlag('C',i);
                 sat_idx = sat_idx(this.active_ids(sat_idx));
                 if ~isempty(sat_idx)
                     % get epoch for which iono free is possible
@@ -6583,8 +6583,8 @@ classdef Receiver < Exportable
                         % combine the two frequencies
                         for k = 1 : size(f_obs_code,1)
                             for y = 1 : size(s_obs_code,1)
-                                inv_wl1 = 1/this.wl(this.getObsIdx(f_obs_code(k,:),i));
-                                inv_wl2 = 1/this.wl(this.getObsIdx(s_obs_code(y,:),i));
+                                inv_wl1 = 1/this.wl(this.findObservableByFlag(f_obs_code(k,:),i));
+                                inv_wl2 = 1/this.wl(this.findObservableByFlag(s_obs_code(y,:),i));
                                 %                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
                                 %                                     keyboard
                                 %                                 end

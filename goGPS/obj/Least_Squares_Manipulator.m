@@ -114,6 +114,8 @@ classdef Least_Squares_Manipulator < handle
         pos_indexs_tc = {}  % to whivh index of the sampled time the progessive index correspond
         
         apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
+        x_float
+        Cxx_amb
     end
     
     properties (Access = private)
@@ -1540,21 +1542,40 @@ classdef Least_Squares_Manipulator < handle
                 B = [B; this.D];
             end
             
-
+            
             x = N \ B;
-            if is_network
-                idx_est = true(n_par,1);
-                idx_est(idx_rm) = false;
-                x_tot(idx_est) = x;
-                x = x_tot;
-            end
-                %[x, flag] =  pcg(N,B,1e-9, 10000);
+            
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
                 idx_p = A2N_idx_tot(this.A_idx(:, c));
                 x_class(idx_p) = this.param_class(c);
             end
+            if is_network
+                idx_est = true(n_par,1);
+                idx_est(idx_rm) = false;
+                x_tot(idx_est) = x;
+                x = x_tot;
+                
+                idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                n_amb = length(idx_amb_par);
+            end
+                %[x, flag] =  pcg(N,B,1e-9, 10000);
+                
+           
+            
             cxx_comp = false;
+            if is_network && this.state.flag_amb_pass
+                % getting tht VCV matrix for the ambiuities
+                %idx_amb_par = find(x_class == this.PAR_AMB);
+                this.x_float = x;
+                b_eye = zeros(length(B),n_amb);
+                idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
+                b_eye(idx) = 1;
+                b_eye = sparse(b_eye);
+                Cxx = N\b_eye;
+                Cxx = Cxx(idx_amb_par,:);
+                this.Cxx_amb = Cxx;
+            end
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0) 
                 % IMPORTANT NOTE:
                 % This part on ambiguity fixing use a simple integer rounding, this is done mainly for two reason:
@@ -1663,10 +1684,10 @@ classdef Least_Squares_Manipulator < handle
                     f = 0;
                     nf_loop = 2;
                     while f < nf_loop
-                        idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                        
                         idx_est2idx = 1:size(x,1); % index to convert from the actual estimated varibles to the tototal one
                         idx_est2idx = idx_est2idx(idx_est);
-                        n_amb = length(idx_amb_par);
+                       
                         
                         xe = x(idx_est);
                         amb = xe(idx_amb_par,1);
@@ -1684,7 +1705,7 @@ classdef Least_Squares_Manipulator < handle
                             n_obs_fix = 0;
                         end
                         
-                        idx_fix = abs(fracFNI(amb)) < 0.15;
+                        idx_fix = abs(fracFNI(amb)) < 0.15 & n_ep_amb > 20;
                         n_amb_fix = n_amb_fix + sum(idx_fix); % update the record of fixed ambiguities
                         n_obs_fix = n_obs_fix + sum(n_ep_amb(idx_fix)); % update the record of fixed ambiguities
                         amb_fix = round(amb);
@@ -1740,16 +1761,7 @@ classdef Least_Squares_Manipulator < handle
                 if sum(isnan(x_res)) ==0
                     res = this.getResiduals(x_res);
                     s0 = mean(abs(res(res~=0)));
-                    if nargout > 3 && ~cxx_comp
-                        % getting tht VCV matrix for the ambiuities
-                        idx_amb_par = find(x_class == this.PAR_AMB);
-                        b_eye = zeros(length(B),n_amb);
-                        idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
-                        b_eye(idx) = 1;
-                        b_eye = sparse(b_eye);
-                        Cxx_amb = N\b_eye;
-                        Cxx_amb = Cxx_amb(idx_amb_par,:);
-                    end
+                    
                 else
                     res = [];
                     s0 = Inf;

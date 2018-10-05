@@ -174,6 +174,7 @@ classdef Network < handle
                    if s0 < 0.01
                     max_ep = max(ls.epoch);
                     id_amb = find(x(:,2) == ls.PAR_AMB);
+                    x_float = ls.x_float;
                     this.apriori_info.amb_value = [];
                     this.apriori_info.freqs = [];
                     this.apriori_info.goids = [];
@@ -187,9 +188,9 @@ classdef Network < handle
                         a = id_amb(i);
                         a_idx = ls.A_idx_mix(:,ls.param_class == ls.PAR_AMB) == a;
                         ep_amb = ls.epoch(a_idx);
-                        is_fixed = abs(fracFNI(x(a,1))) < eps(x(a,1));
-                        if sum(ep_amb == max_ep) > 0  && (is_fixed || Cxx(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
-                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x(a,1)];
+                        is_fixed = abs(fracFNI(x_float(a,1))) < eps(x_float(a,1));
+                        if sum(ep_amb == max_ep) > 0  && (is_fixed || ls.Cxx_amb(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
+                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x_float(a,1)];
                             sat = ls.sat(a_idx);
                             this.apriori_info.goids = [this.apriori_info.goids; sat(1)];
                             this.apriori_info.epoch = this.common_time.last;
@@ -203,7 +204,7 @@ classdef Network < handle
                             nnf = nnf +1;
                         end
                     end
-                    this.apriori_info.Cambamb = Cxx(keep_id,keep_id);
+                    this.apriori_info.Cambamb = ls.Cxx_amb(keep_id,keep_id);
                    end
                 end
                 
