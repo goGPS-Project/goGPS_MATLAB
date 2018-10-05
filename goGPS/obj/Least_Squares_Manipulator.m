@@ -645,7 +645,7 @@ classdef Least_Squares_Manipulator < handle
                     if ~isempty(this.apriori_info)
                         if obs_set_list(i).time.length > 0
                             for s = 1:length(obs_set_list(i).go_id)
-                                if obs_set_list(i).cycle_slip(1,s) % if there is a ccle slip remove the stored ambigutiy
+                                if obs_set_list(i).cycle_slip(1,s) % if there is a cycle slip remove the stored ambigutiy
                                     idx_apr_info = this.apriori_info.goids == obs_set_list(i).go_id(s) & this.apriori_info.receiver == i;
                                     if sum(idx_apr_info) > 0
                                         this.removeAprInfo(idx_apr_info);
@@ -662,9 +662,6 @@ classdef Least_Squares_Manipulator < handle
                     end
                 end
             end
-            
-           
-            
             
             % Sync obs_sets
             sanitized = false;
