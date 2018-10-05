@@ -1,13 +1,13 @@
 % SYNTAX:
-%    flag = flagShrink(flag, expand_size)
+%    flag = flagShift(flag, shift_size)
 %
 % DESCRIPTION:
-%    shrink the flag array
+%    shift down the flag array
 %    if flag is a matrix this flagging expansion will work column by column
 %
 % INPUT:
 %   flag          [n_obs x n_arrays]
-%   expand_size   n_epochs with flags to activate at the border of a flagged interval
+%   shift_size    n_epochs with flags shift down (negative values are accepted)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -40,11 +40,11 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function flag = flagShrink(flag, expand_size)
+function flag = flagShift(flag, shift_size)
     % compute a moving window median to filter the data in input
-    
-    for c = 1 : size(flag, 2)
-        flag(:, c) = ~conv(single(~flag(:, c)), ones(2 * expand_size + 1, 1)', 'same') > 0;
+    if shift_size > 0
+        flag = [zeros(shift_size, size(flag, 2)); flag((shift_size + 1) : end, :)];
+    else
+        flag = [flag(1 : (end + shift_size), :); zeros(-shift_size, size(flag, 2));];
     end
-    flag([1:expand_size (end - expand_size + 1) : end], :) = 0;
 end
