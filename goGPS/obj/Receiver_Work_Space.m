@@ -412,6 +412,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.importAntModel();
             end
+            if this.state.flag_amb_pass
+                [ph, wl, id_ph] = this.getPhases();
+                for i =1 : length(id_ph)
+                    amb_off = this.getLastRepair(this.go_id(id_ph(i)),this.obs_code(id_ph(i),2:3));
+                    if ~isempty(amb_off) && amb_off ~= 0
+                        ph(i,:) = ph(i,:) - amb_off*wl(i);
+                    end
+                end
+                this.setPhases(ph, wl, id_ph);
+            end
             rf = Core.getReferenceFrame();
             coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
             if ~isempty(coo)
@@ -2533,6 +2543,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 desync = this.desync(this.id_sync);
             end
+        end
+        
+        function amb_mat = getAmbMat(this)
+            % gte the ambiguity matrix
+            %
+            % SYNTAX:
+            % amb_mat = this.getAmbMat()
+           if ~isempty(this.sat.amb_mat)
+                ph = this.getPhases();
+                this.sat.amb_mat = zeros(size(this.sat.amb_mat));
+           end
+          amb_mat = this.sat.amb_mat;
+           
         end
         
         function time = getTime(this)

@@ -190,8 +190,9 @@ classdef Network < handle
                         ep_amb = ls.epoch(a_idx);
                         is_fixed = abs(fracFNI(x_float(a,1))) < eps(x_float(a,1));
                         if sum(ep_amb == max_ep) > 0  && (is_fixed || ls.Cxx_amb(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
-                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x_float(a,1)];
                             sat = ls.sat(a_idx);
+                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x_float(a,1)];
+                            
                             this.apriori_info.goids = [this.apriori_info.goids; sat(1)];
                             this.apriori_info.epoch = this.common_time.last;
                             this.apriori_info.receiver = [this.apriori_info.receiver; x(a,3)];
