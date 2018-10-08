@@ -56,7 +56,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % Real constant
     properties(Constant, Access = 'private')
         % PRE PROCESSING
-        CS_THR_PRE_PRO = 0.5;                             % Cycle slip threshold (pre-processing) [cycles]
+        CS_THR_PRE_PRO = 1;                             % Cycle slip threshold (pre-processing) [cycles]
     end
     
     properties (Constant, Access = 'public')
