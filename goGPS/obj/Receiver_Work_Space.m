@@ -662,6 +662,40 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.remEpochs(bad_epochs)
         end
         
+        function keepBestTracking(this)
+            % kepp only the best avalliable tracking per frequency
+            %
+            % SYNTAX:
+            % this.keepBestTracking()
+            id_2_rm = []; % id to be removed
+            for s = 1 : this.getMaxSat()
+                os_idx = this.go_id == s;
+                fs = unique(this.obs_code(os_idx,2))';
+                for f = fs
+                    f_lid = this.obs_code(:,2) == f & os_idx;
+                    f_idx = find(f_lid);
+                    if length(f_idx) > 1
+                        trks = this.obs_code(f_idx,3);
+                        trks_pos = zeros(size(trks)); % position in traking preferences
+                        sys_c = this.system(f_idx(1));
+                        ssystem = this.cc.getSys(sys_c);
+                        for t = 1 : length(trks)
+                            trk = trks(t);
+                            trks_pos(t) = find(ssystem.CODE_RIN3_ATTRIB{ssystem.CODE_RIN3_2BAND == f} == trk);
+                        end  
+                        best_trk =  min(trks_pos); %best traking
+                        for t = 1 : length(trks)
+                            if best_trk ~=  trks_pos(t)
+                                id_2_rm = [id_2_rm ; find(this.obs_code(:,3) == trks(t) & f_lid)];
+                            end
+                        end  
+                        
+                    end
+                end
+            end
+            this.remObs(id_2_rm);
+        end
+        
         function keep(this, rate, sys_list)
             % keep epochs at a certain rate for a certain constellation
             %
@@ -5445,8 +5479,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             %ref: http://202.127.29.4/cddisa/data_base/IERS/Convensions/Convension_2003/SUBROUTINES/ARG.f
             tidal_waves = [1.40519E-4, 2.0,-2.0, 0.0, 0.00; ... % M2  - semidiurnal
                 1.45444E-4, 0.0, 0.0, 0.0, 0.00; ... % S2  - semidiurnal
-                1.37880E-4, 2.0,-3.0, 1.0, 0.00; ... % N2  - semidiurnal
-                1.45842E-4, 2.0, 0.0, 0.0, 0.00; ... % K2  - semidiurnal
+                1.37880E-4, 2.0,-3.0, 1.0, 0.00; ... % N2  - semidiurnal 
+                1.45842E-4, 2.0, 0.0, 0.0, 0.00; ... % K2  - semidiurnal 
                 0.72921E-4, 1.0, 0.0, 0.0, 0.25; ... % K1  - diurnal
                 0.67598E-4, 1.0,-2.0, 0.0,-0.25; ... % O1  - diurnal
                 0.72523E-4,-1.0, 0.0, 0.0,-0.25; ... % P1  - diurnal
