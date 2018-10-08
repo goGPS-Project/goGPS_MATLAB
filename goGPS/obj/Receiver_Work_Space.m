@@ -145,7 +145,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             'amb_val',          [], ...    % Value of the fixed ambiguity
             'amb_mat',          [], ...    % Full ambiguity matrix
             'amb',              [], ...
-            'last_repair',      [] ...     % last integer ambiguity repair per go_id size: [#go_id x 1]
+            'last_repair',      [] ...     % last integer ambiguity repair per go_id size: [#n_observables x 1], 
+            ...                            % for easyness of use it is larger than necessary it could be [#n_phases x 1]
+            ...                            % it could be changed in the future
             )
     end
     % ==================================================================================================================================================
@@ -3161,19 +3163,26 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
         
-        function last_repair = getLastRepair(this, go_id)
+        function last_repair = getLastRepair(this, go_id, band_tracking)
             % Get the last integer (or half cycle) ambiguity repair applyied to the satellite
             %
             % SYNTAX
-            %   last_repair = this.getLastRepair(<go_id>)            
+            %   last_repair = this.getLastRepair(go_id, <band_tracking>)
+            %
+            % EXAMPLE 
+            %   last_repair = work.getLastRepair(go_id, '2W')
             if isempty(this.sat.last_repair)
-                if nargin == 2
-                    last_repair = zeros(numel(go_id), 1);
-                else
-                    last_repair = zeros(max(go_id), 1); % init last_repair
-                end
+                last_repair = zeros(numel(go_id), 1);
             else
-                last_repair = this.sat.last_repair(go_id);
+                if nargin > 2 && ~isempty(band_tracking)
+                    obs_code = ['L' band_tracking];
+                else
+                    obs_code = 'L??';
+                end
+                
+                [sys_c, prn] = this.getSysPrn(go_id);
+                id_obs = this.findObservableByFlag(obs_code, sys_c, prn);
+                last_repair = this.sat.last_repair(id_obs);
             end
         end
         
@@ -3277,12 +3286,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   [trk_ph_shift, trk_code] = rec(5).work.repairPhases();
             
             this.log.addMarkedMessage('Applying cycle slip restore');
-            this.sat.last_repair = zeros(max(this.go_id), 1); % init last_repair
+            this.sat.last_repair = zeros(size(this.obs, 1), 1); % init last_repair
             
             cs_size = this.state.getCycleSlipThr;
             %cs_size = 1;   % try to repair only full cycle slips (do not manage half cycle)
             cs_thr = 0.06;  % accept only correction with 94% of certainty
-
             
             i = 0;
             trk_ph_shift = [];
@@ -3465,20 +3473,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs, idx] = getObs(this, flag, system, prn)
+        function [obs, idx] = getObs(this, flag, sys_c, prn)
             % get observation and index corresponfing to the flag
             % SYNTAX this.findObservableByFlag(flag, <system>)
             if nargin > 3
-                idx = this.findObservableByFlag(flag, system, prn);
+                idx = this.findObservableByFlag(flag, sys_c, prn);
             elseif nargin > 2
-                idx = this.findObservableByFlag(flag, system);
+                idx = this.findObservableByFlag(flag, sys_c);
             else
                 idx = this.findObservableByFlag(flag);
             end
             obs = zero2nan(this.obs(idx,:));
         end
                 
-        function id = findObservableByFlag(this, flag, system, prn)
+        function id = findObservableByFlag(this, flag, sys_c, prn)
             % Search the id (aka row) of the obs with a certain flag
             % Supporting wildcard "?"
             %
@@ -3494,8 +3502,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                 iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
                 iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
-            if nargin > 2 && ~isempty(system)
-                lid = lid & (this.system == system)';
+            if nargin > 2 && ~isempty(sys_c)
+                lid = lid & (this.system == sys_c)';
             end
             if nargin > 3 && ~isempty(prn)
                 lid = lid & (this.prn == prn);
