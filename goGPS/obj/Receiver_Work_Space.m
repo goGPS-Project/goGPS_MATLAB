@@ -142,9 +142,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             'res',              [], ...    % residual per staellite
             'amb_idx',          [], ...    % idex of the ambiguity for each epoch of the pahse measurement
             'is_amb_fixed',     [], ...    % for each index of amb_idx tell is the ambiguity is fixed
-            'amb_val',          [], ...    % Value of the fixed amngituiy
-            'amb_mat',          [], ...
-            'amb',              [] ...
+            'amb_val',          [], ...    % Value of the fixed ambiguity
+            'amb_mat',          [], ...    % Full ambiguity matrix
+            'amb',              [], ...
+            'last_repair',      [] ...     % last integer ambiguity repair per go_id size: [#go_id x 1]
             )
     end
     % ==================================================================================================================================================
@@ -3160,6 +3161,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
         
+        function last_repair = getLastRepair(this, go_id)
+            % Get the last integer (or half cycle) ambiguity repair applyied to the satellite
+            %
+            % SYNTAX
+            %   last_repair = this.getLastRepair(<go_id>)            
+            if isempty(this.sat.last_repair)
+                if nargin == 2
+                    last_repair = zeros(numel(go_id), 1);
+                else
+                    last_repair = zeros(max(go_id), 1); % init last_repair
+                end
+            else
+                last_repair = this.sat.last_repair(go_id);
+            end
+        end
+        
         function [pr, id_pr] = getPseudoRanges(this, sys_c)
             % get the pseudo ranges observations in meter (not cycles)
             % SYNTAX [pr, id_pr] = this.getPseudoRanges(<sys_c>)
@@ -3260,10 +3277,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   [trk_ph_shift, trk_code] = rec(5).work.repairPhases();
             
             this.log.addMarkedMessage('Applying cycle slip restore');
+            this.sat.last_repair = zeros(max(this.go_id), 1); % init last_repair
             
-            %cs_thr = this.state.getCycleSlipThr;
-            cs_size = 1;   % try to repair only full cycle slips (do not manage half cycle)
-            cs_thr = 0.1;  % accept only correction with 90% of certainty
+            cs_size = this.state.getCycleSlipThr;
+            %cs_size = 1;   % try to repair only full cycle slips (do not manage half cycle)
+            cs_thr = 0.06;  % accept only correction with 94% of certainty
 
             
             i = 0;
@@ -3386,8 +3404,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sensor = bsxfun(@minus, sensor, median(sensor,'omitnan'));
                         
                         % further remove slow rates by satellite (clock drifting)
-                        sensor_red = sensor - movmean(movmedian(sensor, 11), 17,'omitnan'); % ultra reduced data (requires longer arcs)
-                        sensor(~isnan(sensor_red)) = sensor_red(~isnan(sensor_red));
+                        %sensor_red = sensor - movmean(movmedian(sensor, 11), 17,'omitnan'); % ultra reduced data (requires longer arcs)
+                        %sensor(~isnan(sensor_red)) = sensor_red(~isnan(sensor_red));
                                                
                         % Mark as jump any CS > 0.45 cycles / dependent on cycle slip thr
                         id_cs = abs(sensor) > max(0.45, 0.7 * cs_size);
@@ -3396,8 +3414,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         id_cs(id_cs((abs(id_cs) > 0) & ~flagShift(abs(sensor) > 0, 1))) = 0;
                         if any(id_cs(:))
                             poss_fix = round(nan2zero(sensor(id_cs) / cs_size)) * cs_size;
-                            % Keep only fixes that are sure at 85%
-                            id_ok = abs(sensor(id_cs) - poss_fix) < (cs_thr * cs_size);
+                            % Keep only fixes that are sure at 95%
+                            id_ok = ((sensor(id_cs) - poss_fix) / cs_size) < cs_thr;
                             if any(id_ok)
                                 id_cs(id_cs) = id_cs(id_cs) & id_ok;
                                 
@@ -3411,7 +3429,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 sensor(:, prn) = sensor(:, prn) - id_cs_t(:, prn);
                                 
                                 [~, id_obs] = ismember(prn, this.prn(id_ph_trk{t}));
-                                this.obs(id_ph_trk{t}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}(id_obs), :)) - cumsum(nan2zero(id_cs_t(:, prn)))');
+                                tmp_repair = cumsum(nan2zero(id_cs_t(:, prn)));
+                                this.sat.last_repair(id_ph_trk{t}(id_obs)) = tmp_repair(end, :);
+                                this.obs(id_ph_trk{t}(id_obs), :) = nan2zero(zero2nan(this.obs(id_ph_trk{t}(id_obs), :)) - tmp_repair');
                             end
                         end
                     end
