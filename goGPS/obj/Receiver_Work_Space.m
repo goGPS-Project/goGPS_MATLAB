@@ -617,36 +617,39 @@ classdef Receiver_Work_Space < Receiver_Commons
             % try to remove observables from other precomputed properties of the object in sat
             
             if ~isempty(this.sat.avail_index)
-                this.sat.avail_index(:, go_out) = [];
+                this.sat.avail_index(:, go_out) = false;
             end
             
             if ~isempty(this.sat.err_tropo)
-                this.sat.err_tropo(:, go_out) = [];
+                this.sat.err_tropo(:, go_out) = 0;
             end
             if ~isempty(this.sat.err_iono)
-                this.sat.err_iono(:, go_out) = [];
+                this.sat.err_iono(:, go_out) = 0;
             end
             if ~isempty(this.sat.solid_earth_corr)
-                this.sat.solid_earth_corr(:, go_out) = [];
+                this.sat.solid_earth_corr(:, go_out) = 0;
             end
             if ~isempty(this.sat.tot)
-                this.sat.tot(:, go_out) = [];
+                this.sat.tot(:, go_out) = 0;
             end
             if ~isempty(this.sat.az)
-                this.sat.az(:, go_out) = [];
+                this.sat.az(:, go_out) = 0;
             end
             if ~isempty(this.sat.el)
-                this.sat.el(:, go_out) = [];
+                this.sat.el(:, go_out) = 0;
             end
             if ~isempty(this.sat.res)
-                this.sat.res(:, go_out) = [];
+                this.sat.res(:, go_out) = 0;
             end
             if ~isempty(this.sat.slant_td)
-                this.sat.slant_td(:, go_out) = [];
+                this.sat.slant_td(:, go_out) = 0;
             end
             try
                 if ~isempty(this.sat.amb)
-                    this.sat.amb(:, go_out) = [];
+                    this.sat.amb(:, go_out) = 0;
+                end
+                if ~isempty(this.sat.amb_mat)
+                    this.sat.amb_mat(:, go_out) = 0;
                 end
             catch
             end
