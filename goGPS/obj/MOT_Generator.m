@@ -1,7 +1,7 @@
 classdef MOT_Generator < handle
     properties(Constant)
-        %speeds = [ 15 5.490165*1e-1 4.106863*1e-2 4.641878*1e-3 2.206413*1e-3 1.96125*1e-6]; % [1/msh] https://www.uaf.edu/files/sfos/Kowalik/tide_book.pdf pag 29
         NTIDES = 342;
+        % Doodson numbers for the 342 tides
         doods_mot = [2, 0, 0, 0, 0, 0;   2, 2,-2, 0, 0, 0;   2,-1, 0, 1, 0, 0;  ...
             2, 2, 0, 0, 0, 0;   2, 2, 0, 0, 1, 0;   2, 0, 0, 0,-1, 0; ...
             2,-1, 2,-1, 0, 0;   2,-2, 2, 0, 0, 0;   2, 1, 0,-1, 0, 0; ...
@@ -116,13 +116,9 @@ classdef MOT_Generator < handle
             0, 4, 0,-2, 2, 0;   0, 1,-2,-1,-1, 0;   0, 2,-1, 0, 0,-1; ...
             0, 4,-4, 2, 0, 0;   0, 2, 1, 0, 1,-1;   0, 3,-2,-1, 1, 0; ...
             0, 4,-3, 0, 1, 1;   0, 2, 0, 0, 3, 0;   0, 6,-4, 0, 0, 0]
-        
+        % id of the 11 pricipal tides
         id_11_principal = [1 2 3 4 110 111 112 113 264 265 266];
-        doods_principal = [2, 0, 0, 0, 0, 0;   2, 2,-2, 0, 0, 0;   2,-1, 0, 1, 0, 0; ...
-            2, 2, 0, 0, 0, 0;   1, 1, 0, 0, 0, 0;   1,-1, 0, 0, 0, 0; ...
-            1, 1,-2, 0, 0, 0;   1,-2, 0, 1, 0, 0;   0, 2, 0, 0, 0, 0; ...
-            0, 1, 0,-1, 0, 0;   0, 0, 2, 0, 0, 0];
-        
+        % 342 tides amplitude
         tamp = [.632208, .294107, .121046, .079915, .023818,-.023589, .022994, ...
             .019333,-.017871, .017192, .016018, .004671,-.004662,-.004519, ...
             .004470, .004467, .002589,-.002455,-.002172, .001972, .001947, ...
@@ -172,17 +168,6 @@ classdef MOT_Generator < handle
             -.000095,-.000095,-.000091,-.000090,-.000081,-.000079,-.000079, ...
             .000077,-.000073, .000069,-.000067,-.000066, .000065, .000064, ...
             -.000062, .000060, .000059,-.000056, .000055,-.000051];
-        %         [2 -2 2 0 0 0; ...
-        %                            2  0 0 0 0 0; ...
-        %                            2 -3 2 1 0 0; ...
-        %                            1  0 1 0 0 0; ...
-        %                            1 -2 1 0 0 0; ...
-        %                            1  0 -1 0 0 0; ...
-        %                            1 -3 1 1 0 0; ...
-        %                            0 2 0 0 0 0; ...
-        %                            0 1 0 -1 0 0; ...
-        %                            0 0 2 0 0 0: ...
-        %             ];
     end
     methods (Access = private)
         function this = MOT_Generator()
@@ -212,6 +197,10 @@ classdef MOT_Generator < handle
     methods
         
         function [freq] = getDoodsonFr(this, dod_num, gps_time)
+            % get the frequency of the tides based on its doodson number
+            %
+            % SYNTAX:
+            %   [freq] = this.getDoodsonFr(dod_num, gps_time)
             JD = gps_time.getJD;
             T = (JD - 2451545)/36525; % century from JD 2000.0
             %  Find frequencies of Delauney variables (in cycles/day), and from these
@@ -237,6 +226,10 @@ classdef MOT_Generator < handle
             
         end
         function [phase] = getDoodsonPh(this, dod_num, gps_time)
+            % get the phase of the tides based on its doodson number
+            %
+            % SYNTAX:
+            %   [freq] = this.getDoodsonPh(dod_num, gps_time)
             JD = gps_time.getJD;
             T = (JD - 2451545)/36525; % century from JD 2000.0
             [~,~,sod] = gps_time.getDOY; %fractiona part of the day <_ check might be not true
@@ -269,6 +262,10 @@ classdef MOT_Generator < handle
         end
         
         function phs_out = getDoodsonPhs(this, gps_time)
+            % get all phases
+            %
+            % SYNTAX:
+            %     phs_out = this.getDoodsonPhs(gps_time)
             phs_out = zeros(this.NTIDES,gps_time.length);
             for t = 1 : this.NTIDES
                 phs_out(t,:) = this.getDoodsonPh(this.doods_mot(t,:), gps_time);
@@ -324,6 +321,11 @@ classdef MOT_Generator < handle
         end
         
         function [disp] = computeDisplacement(this, amp_in, ph_in, gps_time)
+            % given amp and phase of the 11 major tides compute the
+            % displacement using all 342 tides
+            %
+            % SYNTAX:
+            %      [disp] = this.computeDisplacement(amp_in, ph_in, gps_time)
             disp = zeros(gps_time.length, 3);
             %[~,~,sod] = gps_time.getDOY;
             sod = gps_time - gps_time.first;
