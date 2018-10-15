@@ -57,6 +57,7 @@ classdef GNSS_Station < handle
         
         
         work % handle to receiver Work Space
+        old_work % handle to the old Work Space
         out % handle to receiver outputs
         
         cc
