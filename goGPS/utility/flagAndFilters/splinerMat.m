@@ -70,6 +70,9 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     x(inan) = [];
     y(inan) = [];
     
+    [x, id] = sort(x);
+    y = y(id);
+    
     if ((nargin == 3) || (regFactor == 0))
         if (size(y,2) == 2)
             [ySplined, xSpline, sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
@@ -219,7 +222,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
     sPar = [];
     if (usedObs < size(N,2))
         fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
-        R = sparse(eye(size(N,2))*1e-9);
+        R = speye(size(N,2), size(N,2))*1e-9;
         sPar = (N+R)\TN;
     else
         sPar = N\TN;
@@ -285,7 +288,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
             if (nSkip < 4)
                 if (nSkip == 1)
                     A2 = A((skips(curSpline)+1):i-first_obs,:);
-                    iQ = sparse(diag(1./yvar(first_obs+skips(curSpline):i-1)));
+                    iQ = sparse(diag(1./yvar(first_obs + skips(curSpline):i-1)));
                     N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) =   sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*iQ*A2);
 
                     % Computing TN
@@ -548,12 +551,12 @@ function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
     sPar = [];
     if (size(N,2)>2)
         %fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
-        R = sparse(eye(size(N,2))-diag(ones(size(N,2)-1,1),1)-diag(ones(size(N,2)-1,1),-1) + diag([0; ones(size(N,2)-2,1); 0]))*regFactor;
+        R = (speye(size(N,2), size(N,2)) - spdiags(ones(size(N,2), 1), 1, size(N,2), size(N,2)) - spdiags(ones(size(N,2), 1), -1, size(N,2), size(N,2)) + spdiags([0; ones(size(N,2) - 2, 1); 0], 0, size(N,2), size(N,2))) * regFactor;
         sPar = (N+R)\TN;
     else
         if (usedObs < size(N,2))
             %fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
-            R = sparse(eye(size(N,2))*regFactor);
+            R = speye(size(N,2)) * regFactor;
             sPar = (N+R)\TN;
         else
             sPar = N\TN;
