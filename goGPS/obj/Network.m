@@ -134,7 +134,6 @@ classdef Network < handle
                 
                 [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
                 
-                
                 n_time = this.common_time.length;
                 n_rec = length(this.rec_list);
                 if this.state.flag_tropo

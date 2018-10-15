@@ -105,13 +105,13 @@ classdef Least_Squares_Manipulator < handle
         wl_amb              % wide-lane ambuiguity
         wl_fixed            % is wide-lane fixed
         
-        amb_set_jmp         % cell conatinin for each receiver the jmps on all ambiguity
+        amb_set_jmp         % cell containing for each receiver the jmps on all ambiguity
         
         network_solution = false;
         
-        sat_jmp_idx         % satelite jmp index
+        sat_jmp_idx         % satellite jmp index
         
-        pos_indexs_tc = {}  % to whivh index of the sampled time the progessive index correspond
+        pos_indexs_tc = {}  % to which index of the sampled time the progessive index correspond
         
         apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
         x_float
@@ -728,7 +728,7 @@ classdef Least_Squares_Manipulator < handle
             st_time = sss_lim.first;
             
             for i = 1 : n_rec
-                % get the poitiong idx
+                % get the position idx
                 if ~isempty(coo_rate) && i~=1 % first receiver do not need any sub rate since is the reference
                     [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
                     this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
@@ -1557,9 +1557,7 @@ classdef Least_Squares_Manipulator < handle
                 n_amb = length(idx_amb_par);
             end
                 %[x, flag] =  pcg(N,B,1e-9, 10000);
-                
-           
-            
+                           
             cxx_comp = false;
             if is_network && this.state.flag_amb_pass
                 % getting tht VCV matrix for the ambiuities
@@ -1631,7 +1629,6 @@ classdef Least_Squares_Manipulator < handle
                         end
                     end
                     
-                    
                     B(idx_amb(idx_fix)) = [];
                     B(end) = 0;
                     N(idx_amb(idx_fix),:) = [];
@@ -1677,81 +1674,61 @@ classdef Least_Squares_Manipulator < handle
                     x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
                     this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
                     this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
-                else
-                    f = 0;
-                    nf_loop = 2;
-                    while f < nf_loop
+                else                    
+                    % Ambiguity fixing
+                    
+                    % Get ambiguity array
+                    
+                    xe = x(idx_est);
+                    amb = xe(idx_amb_par, 1);                    
+                    
+                    % Getting tht VCV matrix for the ambiguities
+                    b_eye = zeros(length(B), n_amb);
+                    idx_t_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                    idx = sub2ind(size(b_eye),idx_t_amb_par, [1:n_amb]');
+                    b_eye(idx) = 1;
+                    b_eye = sparse(b_eye);
+                    C_amb_amb = N \ b_eye;
+                    C_amb_amb = C_amb_amb(idx_t_amb_par, :);
+                    Cxx = C_amb_amb;
+                    
+                    % ILS shrinking, method 1
+                    iar_method = 1;
+                    p0 = 0.001;
+                    mu = [];
+                    [amb_fixed, sq_norm, ps, C_z_z, Z] = LAMBDA(amb, full(C_amb_amb), iar_method, 'P0', p0, 'mu', mu);
+        
+                    mu = ratioinv(p0, 1 - ps, length(amb_fixed));
+                    ratio = sq_norm(1) / sq_norm(2);
+                    
+                    if ratio <= mu
+                        % FIXED!!!!
+                        amb_fix = amb_fixed(:, 1);
                         
-                        idx_est2idx = 1:size(x,1); % index to convert from the actual estimated varibles to the tototal one
-                        idx_est2idx = idx_est2idx(idx_est);
-                       
-                        
-                        xe = x(idx_est);
-                        amb = xe(idx_amb_par,1);
-                        
-                        %end
-                        n_ep_amb = zeros(size(amb));
                         for i = 1 : n_amb
-                            n_ep_amb(i) = sum(this.A_idx(:,4) == idx_est2idx(idx_amb_par(i)));
+                            Ni = N(:, idx_amb_par(i));
+                            B = B - Ni * amb_fix(i);
                         end
                         
-                        if f == 0 % keep record of fixed ambiguities to show statistics at the end
-                            n_amb_ini = n_amb;
-                            n_obs_tot = sum(n_ep_amb);
-                            n_amb_fix = 0;
-                            n_obs_fix = 0;
-                        end
+                        % remove fixed ambiguity from B and N 
+                        B(idx_amb_par) = [];
+                        N(idx_amb_par, :) = [];
+                        N(:, idx_amb_par) = [];
                         
-                        idx_fix = abs(fracFNI(amb)) < 0.15 & n_ep_amb > 20;
-                        n_amb_fix = n_amb_fix + sum(idx_fix); % update the record of fixed ambiguities
-                        n_obs_fix = n_obs_fix + sum(n_ep_amb(idx_fix)); % update the record of fixed ambiguities
-                        amb_fix = round(amb);
-                        
-                        for i = 1 : length(idx_fix)
-                            Ni = N(:,idx_amb_par(i));
-                            if idx_fix(i)
-                                b_if_fix = (amb_fix(i));
-                                B = B - Ni* ( b_if_fix);
-                                n_amb = n_amb -1;
-                            end
-                        end
-                        
-                        B(idx_amb_par(idx_fix)) = [];
-                        N(idx_amb_par(idx_fix),:) = [];
-                        N(:,idx_amb_par(idx_fix)) = [];
-                        
+                        % recompute the solution
                         idx_nf = true(sum(idx_est,1),1);
-                        idx_nf(idx_amb_par(idx_fix)) = false;
+                        idx_nf(idx_amb_par) = false;
                         xf = zeros(size(idx_nf));
                         
-                        xf(idx_nf) = N \ B;
-                        
-                        xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
-                        
+                        xf(idx_nf) = N \ B;                        
+                        xf(~idx_nf) = amb_fix;                        
                         x(idx_est) = xf;
-                        % chenge the index of estaimted values
-                        n_p = length(idx_est);
-                        idx_est = find(idx_est);
-                        idx_est(~idx_nf) = [];
-                        idx_est = num2LogIdx(idx_est,n_p);
-                        if nargout > 3 && f == (nf_loop -1)
-                            % getting tht VCV matrix for the ambiuities
-                            b_eye = zeros(length(B),n_amb);
-                            idx_t_amb_par = find(x_class(idx_est) == this.PAR_AMB);
-                            idx = sub2ind(size(b_eye),idx_t_amb_par,[1:n_amb]');
-                            b_eye(idx) = 1;
-                            b_eye = sparse(b_eye);
-                            Cxx = N\b_eye;
-                            Cxx = Cxx(idx_t_amb_par,:);
-                            cxx_comp = true;
-                        end
-                        f = f +1;
+                    else
+                        this.log.addWarning('The ambiguities cannot be fixed!!!');
                     end
-                    
-                    this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',n_amb_fix,n_amb_ini)));
-                    this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',n_obs_fix/n_obs_tot*100)));
                 end
             end
+            
             if nargout > 1
                 x_res = zeros(size(x));
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
