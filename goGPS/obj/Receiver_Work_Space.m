@@ -6577,7 +6577,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.setPseudoRanges(pr, id_pr);
         end
         
-        function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
+        function [dpos, s0] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
             ls = Least_Squares_Manipulator(this.cc);
             if nargin < 2
                 if ~isempty(this.id_sync)
@@ -6594,14 +6594,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             ls.setUpCodeSatic( this, id_sync, cut_off);
             ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+            [x, res, s0] = ls.solve();
             
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
             for i = 1 : num_reweight
                 ls.reweightHuber();
                 ls.Astack2Nstack();
-                [x, res, s02] = ls.solve();
+                [x, res, s0] = ls.solve();
             end
             
             dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
@@ -6624,7 +6624,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
-            this.s0_ip = s02;
+            this.s0_ip = s0;
         end
         
         function [dpos, s0] = codeDynamicPositioning(this, id_sync, cut_off)
@@ -6728,14 +6728,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
-                [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ))
-                this.s02_ip = s02;
+                [~, s0] = this.codeDynamicPositioning(this.id_sync, 15);
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
+                this.s0_ip = s0;
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
                 this.updateAllTOT();
-                [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
+                [~, s0] = this.codeDynamicPositioning(this.id_sync, 15);
             end
         end
         
