@@ -135,8 +135,8 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
     N = sparse(nSplines,nSplines);
     TN = zeros(nSplines, 1);
 
-    curSpline = 1;          % first spline whose domain intersect the observation
-    %tau = 0;                % normalized distance between the observation and the center of the curSpline
+    cur_spline = 1;          % first spline whose domain intersect the observation
+    %tau = 0;                % normalized distance between the observation and the center of the cur_spline
     i = 1;                  % index of the first observation
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
@@ -146,7 +146,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
     skips(1) = 0;
     while (i <= nObs)
         % Compute the distance between the current observation and the current spline
-        tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+        tau = round((x(i)-xSpline(cur_spline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
             A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
@@ -154,21 +154,21 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
             nSkip = 0;
             i = i+1;
         else
-            curLocalSpline = curSpline-first_spline+1;
-            skips(curSpline+1) = i-first_obs;
+            curLocalSpline = cur_spline-first_spline+1;
+            skips(cur_spline+1) = i-first_obs;
             % This block of the A matrix is completed
             % Computing N
             nSkip = nSkip +1;
             if (nSkip < 4)
                 if (nSkip == 1)
-                    A2 = A((skips(curSpline)+1):i-first_obs,:);
-                    iQ = sparse(diag(1./yvar(first_obs+skips(curSpline):i-1)));
+                    A2 = A((skips(cur_spline)+1):i-first_obs,:);
+                    iQ = sparse(diag(1./yvar(first_obs+skips(cur_spline):i-1)));
                     N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) = sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*iQ*A2);
 
                     % Computing TN
-                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * iQ * y(first_obs+skips(curSpline):i-1);
+                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * iQ * y(first_obs+skips(cur_spline):i-1);
                 end
-                curSpline = curSpline +1;
+                cur_spline = cur_spline +1;
             else
                 % If I skip more than 3 times the spline solutions are independent,
                 % I can start solving my filtering for the first i points
@@ -183,39 +183,39 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
                 end
                 sWeights = [sWeights; sPar];
 
-                for s = first_spline:curSpline-3
+                for s = first_spline:cur_spline-3
                     ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
                 end
 
                 % find the next spline whose domain intersect the next observation
-                tau = (x(i)-xSpline(curSpline))/dxs;
+                tau = (x(i)-xSpline(cur_spline))/dxs;
                 while (tau > 2)
-                    curSpline = curSpline+1;
-                    tau = (x(i)-xSpline(curSpline))/dxs;
+                    cur_spline = cur_spline+1;
+                    tau = (x(i)-xSpline(cur_spline))/dxs;
                     if (tau > 2),
-                        sWeights(curSpline) = nan;
+                        sWeights(cur_spline) = nan;
                     end
                 end
-                first_spline = curSpline;
+                first_spline = cur_spline;
                 first_obs = i;
-                skips(curSpline) = 0;
+                skips(cur_spline) = 0;
 
                 A = zeros(nObs-i, 4);
-                N = sparse(nSplines-curSpline+1, nSplines-curSpline+1);
-                TN = zeros(nSplines-curSpline+1,1);
+                N = sparse(nSplines-cur_spline+1, nSplines-cur_spline+1);
+                TN = zeros(nSplines-cur_spline+1,1);
                 usedObs = 0;
             end
         end
     end
 
-    skips(curSpline+1) = i-first_obs;
+    skips(cur_spline+1) = i-first_obs;
     if (nSkip == 0)
-        A2 = A(skips(curSpline)+1:i-first_obs,:);
-        iQ = sparse(diag(1./yvar(first_obs+skips(curSpline):i-1)));
-        N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) = sparse(N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) + A2'*iQ*A2);
+        A2 = A(skips(cur_spline)+1:i-first_obs,:);
+        iQ = sparse(diag(1./yvar(first_obs+skips(cur_spline):i-1)));
+        N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) = sparse(N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2'*iQ*A2);
 
         % Computing TN
-        TN(curSpline-first_spline+1:curSpline+3-first_spline+1) = TN(curSpline-first_spline+1:curSpline+3-first_spline+1) + A2' * iQ * y(first_obs+skips(curSpline):i-1);
+        TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) = TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2' * iQ * y(first_obs+skips(cur_spline):i-1);
     end
 
     % find the interpolation for the last subset of observations
@@ -229,7 +229,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
     end
     sWeights = [sWeights; sPar];
 
-    for s = first_spline:curSpline
+    for s = first_spline:cur_spline
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
@@ -237,7 +237,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
 end
 
 % Regularization + variances
-function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
+function [ySplined, xSpline, sWeights] = spliner_v51R(x, y, yvar, dxs, regFactor)
     xSpline = [];
     nObs = length(x);
 
@@ -261,8 +261,8 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     N = sparse(nSplines,nSplines);
     TN = zeros(nSplines, 1);
 
-    curSpline = 1;          % first spline whose domain intersect the observation
-    tau = 0;                % normalized distance between the observation and the center of the curSpline
+    cur_spline = 1;          % first spline whose domain intersect the observation
+    tau = 0;                % normalized distance between the observation and the center of the cur_spline
     i = 1;                  % index of the first observation
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
@@ -272,7 +272,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     skips(1) = 0;
     while (i <= nObs)
         % Compute the distance between the current observation and the current spline
-        tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+        tau = round((x(i)-xSpline(cur_spline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
             A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
@@ -280,42 +280,42 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
             nSkip = 0;
             i = i+1;
         else
-            curLocalSpline = curSpline-first_spline+1;
-            skips(curSpline+1) = i-first_obs;
+            curLocalSpline = cur_spline-first_spline+1;
+            skips(cur_spline+1) = i-first_obs;
             % This block of the A matrix is completed
             % Computing N
             nSkip = nSkip +1;
             if (nSkip < 4)
                 if (nSkip == 1)
-                    A2 = A((skips(curSpline)+1):i-first_obs,:);
-                    iQ = sparse(diag(1./yvar(first_obs + skips(curSpline):i-1)));
+                    A2 = A((skips(cur_spline)+1):i-first_obs,:);
+                    iQ = sparse(diag(1./yvar(first_obs + skips(cur_spline):i-1)));
                     N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) =   sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*iQ*A2);
 
                     % Computing TN
-                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * iQ * y(first_obs+skips(curSpline):i-1);
+                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * iQ * y(first_obs+skips(cur_spline):i-1);
                 end
-                curSpline = curSpline +1;
+                cur_spline = cur_spline +1;
             else
                 % find the next spline whose domain intersect the next observation
-                tau = (x(i)-xSpline(curSpline))/dxs;
+                tau = (x(i)-xSpline(cur_spline))/dxs;
                 while (tau > 2)
-                    curSpline = curSpline+1;
-                    tau = (x(i)-xSpline(curSpline))/dxs;
+                    cur_spline = cur_spline+1;
+                    tau = (x(i)-xSpline(cur_spline))/dxs;
                 end
-                skips(curSpline) = skips(curSpline-1);
+                skips(cur_spline) = skips(cur_spline-1);
                 usedObs = -1e10;
             end
         end
     end
 
-    skips(curSpline+1) = i-first_obs;
+    skips(cur_spline+1) = i-first_obs;
     if (nSkip == 0)
-        A2 = A(skips(curSpline)+1:i-first_obs,:);
-        iQ = sparse(diag(1./yvar(first_obs+skips(curSpline):i-1)));
-        N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) = sparse(N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) + A2'*iQ*A2);
+        A2 = A(skips(cur_spline)+1:i-first_obs,:);
+        iQ = sparse(diag(1./yvar(first_obs+skips(cur_spline):i-1)));
+        N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) = sparse(N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2'*iQ*A2);
 
         % Computing TN
-        TN(curSpline-first_spline+1:curSpline+3-first_spline+1) = TN(curSpline-first_spline+1:curSpline+3-first_spline+1) + A2' * iQ * y(first_obs+skips(curSpline):i-1);
+        TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) = TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2' * iQ * y(first_obs+skips(cur_spline):i-1);
     end
 
     % find the interpolation for the last subset of observations
@@ -336,7 +336,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     end
     sWeights = [sWeights; sPar];
 
-    for s = first_spline:curSpline
+    for s = first_spline:cur_spline
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
@@ -344,7 +344,7 @@ function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
 end
 
 % No Regularization - no variances
-function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
+function [ySplined, xSpline, s_weights] = spliner_v5(x,y,dxs)
     xSpline = [];
     nObs = length(x);
 
@@ -356,7 +356,7 @@ function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
 
     % compute spline centers
     xSpline = zeros(nSplines,1);
-    sWeights = [];
+    s_weights = [];
     sCenter = x(1) - (((nSplines-3)*dxs-xspan)/2) - dxs;
     for i = 1:nSplines
         xSpline(i) = sCenter+(i-1)*dxs;
@@ -368,39 +368,39 @@ function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
     N = sparse(nSplines, nSplines);
     TN = zeros(nSplines, 1);
 
-    curSpline = 1;          % first spline whose domain intersect the observation
-    tau = 0;                % normalized distance between the observation and the center of the curSpline
+    cur_spline = 1;          % first spline whose domain intersect the observation
+    tau = 0;                % normalized distance between the observation and the center of the cur_spline
     i = 1;                  % index of the first observation
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
-    nSkip = 0;              % number of spline to "skip" because ain't intersecting an observation
+    n_skip = 0;              % number of spline to "skip" because ain't intersecting an observation
     usedObs = 0;            % number of observation used in building the N matrix
     ySplined = zeros(length(y),1);           % output
     skips(1) = 0;
     while (i <= nObs)
         % Compute the distance between the current observation and the current spline
-        tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+        tau = round((x(i)-xSpline(cur_spline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
             A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
             usedObs = usedObs+1;
-            nSkip = 0;
+            n_skip = 0;
             i = i+1;
         else
-            curLocalSpline = curSpline-first_spline+1;
-            skips(curSpline+1) = i-first_obs;
+            curLocalSpline = cur_spline-first_spline+1;
+            skips(cur_spline+1) = i-first_obs;
             % This block of the A matrix is completed
             % Computing N
-            nSkip = nSkip +1;
-            if (nSkip < 4)
-                if (nSkip == 1)
-                    A2 = A((skips(curSpline)+1):i-first_obs,:);
+            n_skip = n_skip +1;
+            if (n_skip < 4)
+                if (n_skip == 1)
+                    A2 = A((skips(cur_spline)+1):i-first_obs,:);
                     N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) =   sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*A2);
 
                     % Computing TN
-                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * y(first_obs+skips(curSpline):i-1);
+                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * y(first_obs+skips(cur_spline):i-1);
                 end
-                curSpline = curSpline +1;
+                cur_spline = cur_spline +1;
             else
                 % If I skip more than 3 times the spline solutions are independent,
                 % I can start solving my filtering for the first i points
@@ -412,40 +412,41 @@ function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
                 else
                     sPar = (N(1:curLocalSpline,1:curLocalSpline))\TN(1:curLocalSpline);
                 end
-                sWeights = [sWeights; sPar];
+                s_weights = [s_weights; sPar];
 
-                for s = first_spline:curSpline-3
+                for s = first_spline:cur_spline-3
                     ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
                 end
 
                 % find the next spline whose domain intersect the next observation
-                tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+                tau = round((x(i)-xSpline(cur_spline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
                 while (tau > 2)
-                    curSpline = curSpline+1;
-                    tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+                    cur_spline = cur_spline+1;
+                    tau = round((x(i)-xSpline(cur_spline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
                     if (tau > 2)
-                        sWeights(curSpline) = nan;
+                        s_weights(cur_spline) = nan;
                     end
                 end
-                first_spline = curSpline;
+                first_spline = cur_spline;
                 first_obs = i;
-                skips(curSpline) = 0;
+                skips(cur_spline) = 0;
 
                 A = zeros(nObs-i, 4);
-                N = sparse(nSplines-curSpline+1,nSplines-curSpline+1);
-                TN = zeros(nSplines-curSpline+1,1);
+                N = sparse(nSplines-cur_spline+1,nSplines-cur_spline+1);
+                TN = zeros(nSplines-cur_spline+1,1);
                 usedObs = 0;
             end
         end
     end
 
-    skips(curSpline+1) = i-first_obs;
-    if (nSkip == 0)
-        A2 = A((skips(curSpline)+1):i-first_obs,:);
-        N(curSpline:curSpline+3,curSpline:curSpline+3) =   sparse(N(curSpline:curSpline+3,curSpline:curSpline+3) + A2'*A2);
-        
+    skips(cur_spline+1) = i-first_obs;
+    if (n_skip == 0)
+        last_spline = cur_spline+3;
+        A2 = A((skips(cur_spline)+1):i-first_obs,:);
+        N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) = sparse(N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2'*A2);
+
         % Computing TN
-        TN(curSpline:curSpline+3) = TN(curSpline:curSpline+3) + A2' * y(first_obs+skips(curSpline):i-1);
+        TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) = TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2' * y(first_obs+skips(cur_spline):i-1);
     end
 
     % find the interpolation for the last subset of observations
@@ -456,9 +457,9 @@ function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
     else
         sPar = N\TN;
     end
-    sWeights = [sWeights; sPar];
+    s_weights = [s_weights; sPar];
 
-    for s = first_spline:curSpline
+    for s = first_spline:cur_spline
         if (skips(s) == 0 && s > 1)
             skips(s) = skips(s-1);
         end
@@ -492,8 +493,8 @@ function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
     N = sparse(nSplines,nSplines);
     TN = zeros(nSplines, 1);
 
-    curSpline = 1;          % first spline whose domain intersect the observation
-    tau = 0;                % normalized distance between the observation and the center of the curSpline
+    cur_spline = 1;          % first spline whose domain intersect the observation
+    tau = 0;                % normalized distance between the observation and the center of the cur_spline
     i = 1;                  % index of the first observation
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
@@ -503,7 +504,7 @@ function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
     skips(1) = 0;
     while (i <= nObs)
         % Compute the distance between the current observation and the current spline
-        tau = round((x(i) - xSpline(curSpline))/dxs * 1e13) / 1e13; % 1e13 rounding necessary to avoid numerical problems
+        tau = round((x(i) - xSpline(cur_spline))/dxs * 1e13) / 1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
             A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
@@ -511,40 +512,40 @@ function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
             nSkip = 0;
             i = i+1;
         else
-            curLocalSpline = curSpline-first_spline+1;
-            skips(curSpline+1) = i-first_obs;
+            curLocalSpline = cur_spline-first_spline+1;
+            skips(cur_spline+1) = i-first_obs;
             % This block of the A matrix is completed
             % Computing N
             nSkip = nSkip +1;
             if (nSkip < 4)
                 if (nSkip == 1)
-                    A2 = A((skips(curSpline)+1):i-first_obs,:);
+                    A2 = A((skips(cur_spline)+1):i-first_obs,:);
                     N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) =   sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*A2);
 
                     % Computing TN
-                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * y(first_obs+skips(curSpline):i-1);
+                    TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * y(first_obs+skips(cur_spline):i-1);
                 end
-                curSpline = curSpline +1;
+                cur_spline = cur_spline +1;
             else
                 % find the next spline whose domain intersect the next observation
-                tau = (x(i)-xSpline(curSpline))/dxs;
+                tau = (x(i)-xSpline(cur_spline))/dxs;
                 while (tau > 2)
-                    curSpline = curSpline+1;
-                    tau = (x(i)-xSpline(curSpline))/dxs;
+                    cur_spline = cur_spline+1;
+                    tau = (x(i)-xSpline(cur_spline))/dxs;
                 end
-                skips(curSpline) = skips(curSpline-1);
+                skips(cur_spline) = skips(cur_spline-1);
                 usedObs = -1e10;
             end
         end
     end
 
-    skips(curSpline+1) = i-first_obs;
+    skips(cur_spline+1) = i-first_obs;
     if (nSkip == 0)
-        A2 = A(skips(curSpline)+1:i-first_obs,:);
-        N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) = N(curSpline-first_spline+1:curSpline+3-first_spline+1,curSpline-first_spline+1:curSpline+3-first_spline+1) + A2'*A2;
+        A2 = A(skips(cur_spline)+1:i-first_obs,:);
+        N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) = N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2'*A2;
 
         % Computing TN
-        TN(curSpline-first_spline+1:curSpline+3-first_spline+1) = TN(curSpline-first_spline+1:curSpline+3-first_spline+1) + A2' * y(first_obs+skips(curSpline):i-1);
+        TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) = TN(cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2' * y(first_obs+skips(cur_spline):i-1);
     end
 
     % find the interpolation for the last subset of observations
@@ -564,7 +565,7 @@ function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
     end
     sWeights = [sWeights; sPar];
 
-    for s = first_spline:curSpline
+    for s = first_spline:cur_spline
         if (skips(s) == 0 && s > 1)
             skips(s) = skips(s-1);
         end
