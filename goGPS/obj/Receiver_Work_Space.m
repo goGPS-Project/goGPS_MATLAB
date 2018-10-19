@@ -3575,7 +3575,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % remove common oscillations
             id_ok = mod(find(~isnan(flattened_data)) - 1, size(flattened_data, 1));
             [~, ~, ~, tmp_spline] = splinerMat(id_ok, flattened_data(~isnan(flattened_data)), 300 / rate, 1e-3, (1 : size(flattened_data, 1))');
-            flattened_data = flattened_data - tmp_spline;
+            flattened_data = bsxfun(@minus,flattened_data,tmp_spline);
             
             if cs_size > 0
                 flattened_data = flattened_data + data_jmp;
