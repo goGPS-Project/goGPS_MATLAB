@@ -1,7 +1,7 @@
 %   CLASS GNSS_Station
 % =========================================================================
 %
-% 
+%
 %   Class to store receiver data (observations, and characteristics)
 %
 % EXAMPLE
@@ -93,10 +93,10 @@ classdef GNSS_Station < handle
         
         function importRinexLegacy(this,rinex_file_name, rate)
             if ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
-                this.work.rinex_file_name = rinex_file_name;                
+                this.work.rinex_file_name = rinex_file_name;
             else
                 this.work.rinex_file_name = '';
-            end 
+            end
             this.work.load(rate);
             this.work.out_start_time = this.work.time.first;
             this.work.out_stop_time = this.work.time.last;
@@ -129,8 +129,181 @@ classdef GNSS_Station < handle
         function resetOut(this)
             this.out = Receiver_Output(this.cc, this);
         end
+        
+        function netPrePro(rec_list)
+            % Perform multi-receiver pre-processing
+            %  - outlier detection, 
+            %  - realignment of "old" phases for ambiguity passing + repair
+            %
+            % SYNTAX
+            %   rec_list.netProPro()
+            
+            realign_ph = true;
+            out_det = true;
+            
+            show_fig = false;
+            % Prepare data in a unique structure
+            
+            work_list = [rec_list(~rec_list.isEmptyWork_mr).work];
+            if numel(work_list) > 1 && (show_fig || out_det)
+                
+                
+                [~, id_rsync] = Receiver_Commons.getSyncTimeExpanded(work_list);
+                id_rsync(any(isnan(zero2nan(id_rsync)')), :) = [];
+                
+                n_epochs = size(id_rsync, 1);
+                n_rec = numel(work_list);
+                
+                clear dt_red ph_red id_ph_red
+                for r = 1 : n_rec
+                    [dt_red{r}, ph_red{r}, id_ph_red{r}] = work_list(r).getReducedPhases();
+                    work_list(r).keepBestTracking();
+                    dt_red{r} = dt_red{r}(id_rsync(:, r), :);
+                    ph_red{r} = bsxfun(@rdivide, ph_red{r}(id_rsync(:, r), :), work_list(r).wl(id_ph_red{r})');
+                end
+                
+                % Get all SS present in the receivers
+                all_ss = unique([work_list.system]);
+                for sys_c = all_ss
+                    n_obs = 0;
+                    prn_list = [];
+                    bands = '';
+                    % Each phase will be added
+                    for r = 1 : n_rec
+                        obs_code = work_list(r).getAvailableObsCode('L', sys_c);
+                        bands = [bands; obs_code(:,2:3)];
+                        n_obs = n_obs + size(obs_code, 1);
+                        prn_list = unique([prn_list; work_list(r).prn(work_list(r).findObservableByFlag('L', sys_c))]);
+                    end
+                    n_sat = numel(prn_list);
+                    tracking = unique(bands(:,2));
+                    bands = unique(bands(:,1));
+                    n_bands = numel(bands);
+                    
+                    all_ph_red = zeros(n_epochs, n_sat * n_bands, n_rec);
+                    all_dph_red = nan(n_rec, n_epochs, n_sat * n_bands);
+                    all_ph = zeros(n_epochs, n_sat, n_sat * n_bands);
+                    for r = 1 : n_rec
+                        id = work_list(r).findObservableByFlag('L', sys_c);
+                        [id_ok, ~, id_red] = intersect(id, id_ph_red{r});
+                        [~, ~, p_list] = intersect(work_list(r).prn(id_ok), prn_list);
+                        [~, ~, b_list] = intersect(work_list(r).obs_code(id_ok, 2), bands);
+                        
+                        sid = p_list + numel(prn_list) * (b_list - 1);
+                        all_ph(:, sid, r) = bsxfun(@minus, bsxfun(@times, zero2nan(work_list(r).obs(id_ok, id_rsync(:, r))'), sid'), detrend(dt_red{r}));
+                        all_ph_red(:, sid, r) = zero2nan(ph_red{r}(:, id_red));
+                        tmp = Core_Utils.diffAndPred(all_ph_red(:, sid, r));
+                        tmp = bsxfun(@minus, tmp, strongMean(tmp));
+                        all_dph_red(r, :, sid) = zero2nan(permute(tmp, [3 1 2]));
+                    end
+                    
+                    if show_fig || out_det
+                        % Estimate common term from data
+                        ct = squeeze(median(all_dph_red, 1, 'omitnan'));
+                        ct(sum(~isnan(zero2nan(all_dph_red))) <= 1) = 0;
+                        
+                        id_even = squeeze(sum(~isnan(zero2nan(all_dph_red))) == 2);
+                        if any(id_even(:))
+                            % find the observation that is closer to zero
+                            [tmp, id] = min(abs(zero2nan(all_dph_red)));
+                            tmp_min = all_dph_red(id(:) + 2*(0 : (numel(ct) -1))');
+                            
+                            % when I have 2 observations choose the observation closer to zero
+                            ct(id_even) = tmp_min(id_even);
+                        end
+                        ct = nan2zero(ct);
+                    end
+                    
+                    if out_det
+                        for r = 1 : n_rec
+                            id = work_list(r).findObservableByFlag('L', sys_c);
+                            [id_ok, ~, id_red] = intersect(id, id_ph_red{r});
+                            [~, ~, p_list] = intersect(work_list(r).prn(id_ok), prn_list);
+                            [~, ~, b_list] = intersect(work_list(r).obs_code(id_ok, 2), bands);
+                            
+                            sid = p_list + numel(prn_list) * (b_list - 1);
+                            
+                            sensor = (squeeze(all_dph_red(r,:,sid)) - ct(:, sid)) > 0.1;
+                            
+                            % V0
+                            % id_ph = work_list(r).findObservableByFlag('L', sys_c);
+                            % for b = b_list'
+                            %     for p = 1: numel(p_list)
+                            %         sid = p + numel(prn_list) * (b - 1);
+                            %
+                            %         id_obs = work_list(r).findObservableByFlag(['L' bands(b)], sys_c, prn_list(p_list(p)));
+                            %         [~, ~, ido] = intersect(id_obs, id_ph);
+                            %         work_list(r).sat.outlier_idx_ph(id_rsync(:,r), ido) = work_list(r).sat.outlier_idx_ph(id_rsync(:,r), ido) | ;
+                            %     end
+                            % end
+                            
+                            % V1 (improve V0)
+                            id_ko = false(size(work_list(r).sat.outlier_idx_ph));
+                            id_ko(id_rsync(:,r),:) = sensor;
+                            work_list(r).addOutliers(id_ko, true);
+                        end
+                    end
+                end
+                
+                % Realign phases with the past
+                % (useful when work_list(r).state.flag_amb_pass)
+                if realign_ph
+                    for r = 1 : n_rec
+                        if work_list(r).state.flag_amb_pass && ~isempty(work_list(r).parent.old_work) && ~work_list(r).parent.old_work.isEmpty
+                            t_new = round(work_list(r).parent.work.time.getRefTime(work_list(r).parent.old_work.time.first.getMatlabTime) * 1e7) / 1e7;
+                            t_old = round(work_list(r).parent.old_work.time.getRefTime(work_list(r).parent.old_work.time.first.getMatlabTime) * 1e7) / 1e7;
+                            [~, id_new, id_old] = intersect(t_new, t_old);
+                            
+                            if ~isempty(id_new)
+                                [ph, wl, lid_ph] = work_list(r).getPhases();
+                                tmp = ph - work_list(r).getSyntPhases;
+                                id_ph = find(lid_ph);
+                                for i = 1 : length(id_ph)
+                                    [amb_off, old_ph, old_synt] = work_list(r).parent.old_work.getLastRepair(work_list(r).go_id(id_ph(i)), work_list(r).obs_code(id_ph(i),2:3));
+                                    if ~isempty(old_ph)
+                                        ph_diff = (tmp(id_new, i) / wl(i) - (old_ph(id_old) - old_synt(id_old)));
+                                        amb_off_emp = median(round(ph_diff / work_list(r).state.getCycleSlipThr()), 'omitnan') * work_list(r).state.getCycleSlipThr;
+                                        if ~isempty(amb_off_emp) && amb_off_emp ~= 0
+                                            ph(:,i) = ph(:,i) - amb_off_emp * wl(i);
+                                        end
+                                    end
+                                end
+                                work_list(r).setPhases(ph, wl, lid_ph);
+                            end
+                        end
+                    end
+                end
+                
+                % plots
+                if show_fig
+                    for sys_c = all_ss
+                        
+                        for r = 1 : n_rec
+                            figure; plot(squeeze(all_dph_red(r,:,:)) - ct); title(sprintf('Receiver %d diff', r));
+                            figure; clf;
+                            [tmp, tmp_trend, tmp_jmp] = work_list(r).flattenPhases(squeeze(all_ph_red(:, :, r)) - cumsum(ct));
+                            plot(all_ph_red(:, :, r) - tmp_trend + tmp_jmp - repmat(strongMean(all_ph_red(:, :, r) - tmp_trend + tmp_jmp), size(tmp_trend, 1), 1));
+                            title(sprintf('Receiver (Possible Repair) %d full', r));
+                            dockAllFigures;
+                            figure; clf;
+                            plot(all_ph_red(:, :, r) - tmp_trend - repmat(strongMean(all_ph_red(:, :, r) - tmp_trend), size(tmp_trend, 1), 1));
+                            title(sprintf('Receiver %d full', r));
+                            dockAllFigures;
+                            try
+                                ww = work_list(r).parent.old_work; ph_red = ww.getPhases() - ww.getSyntPhases(); figure; plot(ww.time.getMatlabTime, ph_red ./ ww.wl(1), '.-k')
+                                ww = work_list(r); ph_red = ww.getPhases() - ww.getSyntPhases(); hold on; plot(ww.time.getMatlabTime, ph_red ./ ww.wl(1))
+                            catch
+                            end
+                            dockAllFigures;
+                        end
+                    end
+                end
+            end
+        end
+        
+        
     end
-     % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %% METHODS GETTER - TIME
     % ==================================================================================================================================================
     
@@ -170,14 +343,14 @@ classdef GNSS_Station < handle
             % case unsensitive
             %
             % SYNTAX
-            %   req_rec = rec_list.get(marker_name) 
+            %   req_rec = rec_list.get(marker_name)
             req_rec = [];
             for r = 1 : size(rec_list,2)
                 rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
                 if strcmpi(rec(1).getMarkerName, marker_name)
                     req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
                 end
-            end                
+            end
         end
         
         function marker_name = getMarkerName(this)
@@ -192,11 +365,11 @@ classdef GNSS_Station < handle
         end
         
         function marker_name = getMarkerName4Ch(this)
-            % Get the Marker name as specified in the file name 
+            % Get the Marker name as specified in the file name
             % (first four characters)
             %
             % SYNTAX
-            %   marker_name = getMarkerName(this)     
+            %   marker_name = getMarkerName(this)
             if ~isempty(this.work.rinex_file_name)
                 marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
             else
@@ -263,7 +436,7 @@ classdef GNSS_Station < handle
             for r = 1 : numel(sta_list)
                 is_empty(r) =  sta_list(r).out.isEmpty();
             end
-        end        
+        end
         
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
@@ -272,7 +445,7 @@ classdef GNSS_Station < handle
             %   is_empty = this.isEmpty();
             
             is_empty =  this.work.isEmpty() && this.out.isEmpty();
-
+            
         end
         
         function time = getTime(this)
@@ -317,9 +490,9 @@ classdef GNSS_Station < handle
         function n_sat = getMaxNumSat(sta_list, sys_c)
             % get the number of maximum theoretical satellites stored in the object
             %
-            % SYNTAX 
+            % SYNTAX
             %   n_sat = getMaxNumSat(<sys_c>)
-                  
+            
             n_sat = zeros(numel(sta_list),1);
             for r = 1 : size(sta_list, 2)
                 rec(r) = sta_list(r);
@@ -396,12 +569,12 @@ classdef GNSS_Station < handle
             time_lim_small.append(tmp_small);
             time_lim_large.append(tmp_large);
         end
-         
+        
         function [rate] = getRate(this)
             % SYNTAX
             %   rate = this.getRate();
             rate = this.out.getTime.getRate;
-            if isnan(rate)            
+            if isnan(rate)
                 rate = this.work.getTime.getRate;
             end
         end
@@ -468,7 +641,7 @@ classdef GNSS_Station < handle
                 enu(~isnan(id_rec), :, r) = enu_rec(id_rec(~isnan(id_rec)), :);
             end
         end
-    
+        
         function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
             %
@@ -513,24 +686,24 @@ classdef GNSS_Station < handle
                 end
             end
         end
-             
+        
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX   this.getChalmersString();
-            this(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');            
+            this(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');
             this(1).log.addMessage(this(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
             this(1).log.addMessage(this(1).log.indent('using ocean tide model FES2004'));
-            this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));            
+            this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));
             this(1).log.addMessage(this(1).log.indent('Use the following string for the staion locations:'));
             this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
-
+            
             for r = 1 : size(this, 2)
                 rec = this(~this(:,r).isEmpty, r);
                 if ~isempty(rec)
                     xyz = rec.out.getMedianPosXYZ();
                     if isempty(xyz)
                         xyz = rec.work.getMedianPosXYZ();
-                    end                        
+                    end
                     this(1).log.addMessage([char(8) sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3))]);
                 end
             end
@@ -557,11 +730,11 @@ classdef GNSS_Station < handle
                 ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(~isnan(id_rec));
             end
         end
-                
+        
         function [ztd_res, p_time, ztd_height] = getReducedZtd_mr(sta_list)
             % MultiRec: works on an array of receivers
-            % Reduce the ZTD of all the stations removing the 
-            % component dependent with the altitude 
+            % Reduce the ZTD of all the stations removing the
+            % component dependent with the altitude
             %
             % SYNTAX
             %  [ztd_res, p_time, ztd_height] = sta_list.getReducedZtd_mr()
@@ -569,7 +742,7 @@ classdef GNSS_Station < handle
             med_ztd = median(sta_list.getZtd_mr, 'omitnan')';
             degree = 5;
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
-
+            
             ztd_height = Core_Utils.interp1LS(h_o, med_ztd, degree);
             [ztd, p_time] = sta_list.getZtd_mr();
             ztd_res = bsxfun(@minus, ztd', ztd_height)';
@@ -605,7 +778,7 @@ classdef GNSS_Station < handle
                 id_rec = id_sync{1}(:,r);
                 zwd(~isnan(id_rec),r) = sta_list(r).out.zwd(id_rec(~isnan(id_rec)));
             end
-        end  
+        end
         
         function [tropo, time] = getTropoPar(sta_list, par_name)
             % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
@@ -625,7 +798,7 @@ classdef GNSS_Station < handle
                         if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
                             [tropo{r}] = sta_list(r).out.getAprZwd();
                         end
-                      case 'gn'
+                    case 'gn'
                         [tropo{r}] = sta_list(r).out.getGradient();
                     case 'ge'
                         [~,tropo{r}] = sta_list(r).out.getGradient();
@@ -875,7 +1048,7 @@ classdef GNSS_Station < handle
             bsl_ids = [serialize(tril(r1, -1)) serialize(tril(r2, -1))];
             bsl_ids = bsl_ids(bsl_ids(:, 1) > 0 & bsl_ids(:, 2) > 0, :);
         end
-    end    
+    end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -902,7 +1075,7 @@ classdef GNSS_Station < handle
                 sta_list(s).work.showObsStats();
             end
         end
-         
+        
         function showPositionENU(sta_list, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
@@ -1009,7 +1182,7 @@ classdef GNSS_Station < handle
         function showScatteredMap(lat, lon, s_time, data) % todo
             
         end
-            
+        
         function showMapZwd(this, new_fig, epoch)
             if nargin < 2 || isempty(new_fig)
                 new_fig = true;
@@ -1029,7 +1202,7 @@ classdef GNSS_Station < handle
             if nargin < 3
                 epoch = 1 : s_time.length();
             end
-                        
+            
             coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
             
@@ -1049,7 +1222,7 @@ classdef GNSS_Station < handle
             
             xlim(lon_lim);
             ylim(lat_lim);
-                        
+            
             if new_fig
                 if FTP_Downloader.checkNet
                     plot_google_map('alpha', 0.95, 'MapType', 'satellite');
@@ -1060,7 +1233,7 @@ classdef GNSS_Station < handle
             th = title(sprintf('Receiver %s', s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
             
             drawnow
-            if numel(epoch) > 1                
+            if numel(epoch) > 1
                 for e = 2 : 10 : numel(epoch)
                     if any(res_tropo(epoch(e),:))
                         th.String = sprintf('Receiver %s', s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
@@ -1074,14 +1247,14 @@ classdef GNSS_Station < handle
         function showDt(this)
             % Plot Clock error
             %
-            % SYNTAX 
+            % SYNTAX
             %   sta_list.plotDt
             
             for r = 1 : size(this, 2)
                 rec = this(r);
                 if ~isempty(rec)
                     rec.out.showDt();
-                end                
+                end
             end
         end
         
@@ -1131,7 +1304,7 @@ classdef GNSS_Station < handle
         function showResiduals(sta_list)
             % Plot Satellite Residuals
             %
-            % SYNTAX 
+            % SYNTAX
             %   sta_list.showResiduals
             
             for r = 1 : size(sta_list, 2)
@@ -1142,10 +1315,10 @@ classdef GNSS_Station < handle
                     else
                         rec.work.showResiduals();
                     end
-                end                
+                end
             end
         end
-                
+        
         function showZtdSlant(sta_list, time_start, time_stop)
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);
@@ -1186,7 +1359,7 @@ classdef GNSS_Station < handle
             else
                 if nargin < 3
                     new_fig = true;
-                end                                
+                end
                 
                 if isempty(tropo)
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
@@ -1248,7 +1421,7 @@ classdef GNSS_Station < handle
             this.showTropoPar('ZTD', new_fig)
         end
         
-         
+        
         
         function showGn(this, new_fig)
             if nargin == 1
@@ -1267,27 +1440,27 @@ classdef GNSS_Station < handle
         
         function showZtdVsHeight(sta_list)
             % Show Median ZTD of n_receivers vs Hortometric height
-            % 
+            %
             % SYNTAX
             %   sta_list.showZtdVsHeight();
-            figure; 
+            figure;
             med_ztd = median(sta_list.getZtd_mr * 1e2, 'omitnan')';
-            subplot(2,1,1); 
+            subplot(2,1,1);
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
             plot(h_o, med_ztd, '.', 'MarkerSize', 20); hold on;
             ylabel('Median ZTD [cm]');
             xlabel('Elevation [m]');
             title('ZTD vs Height')
-
+            
             degree = 5;
             y_out = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
             plot(sort(h_o), Core_Utils.interp1LS(h_o, med_ztd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
-            subplot(2,1,2); 
+            subplot(2,1,2);
             plot(h_o, med_ztd - y_out, '.', 'MarkerSize', 20);
-
+            
             ylabel('residual [cm]');
             xlabel('Elevation [m]');
-            title('reduced ZTD vs Height')            
+            title('reduced ZTD vs Height')
             
             sta_strange = find(abs(med_ztd - y_out) > 8);
             if ~isempty(sta_strange)
@@ -1306,10 +1479,10 @@ classdef GNSS_Station < handle
         end
         
         function showMedianTropoPar(this, par_name, new_fig)
-            % one function to rule them all            
+            % one function to rule them all
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2)
-                rec_ok(r) = any(~isnan(this(:,r).out.getZtd)); 
+                rec_ok(r) = any(~isnan(this(:,r).out.getZtd));
             end
             rec_list = this(:, rec_ok);
             
@@ -1327,7 +1500,7 @@ classdef GNSS_Station < handle
                 case 'zhd'
                     [tropo] = rec_list(1).out.getAprZhd();
             end
-                    
+            
             if ~iscell(tropo)
                 tropo = {tropo};
             end
@@ -1381,7 +1554,7 @@ classdef GNSS_Station < handle
                 h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
-
+        
         function showMedianZhd(this, new_fig)
             if nargin == 1
                 new_fig = true;
@@ -1409,7 +1582,7 @@ classdef GNSS_Station < handle
             end
             this.showMedianTropoPar('PWV', new_fig)
         end
-                
+        
         function showZtdSlantRes_p(this, time_start, time_stop)
             for r = 1 : size(this, 2)
                 if isempty(this(r).out.ztd) || ~any(this(r).out.sat.slant_td(:))
@@ -1419,14 +1592,14 @@ classdef GNSS_Station < handle
                 end
             end
         end
- 
+        
         function showBaselineENU(sta_list, baseline_ids, plot_relative_variation, one_plot)
             % Function to plot baseline between 2 or more stations
             %
             % INPUT:
             %   sta_list                 list of GNSS_Station objects
             %   baseline_ids             n_baseline x 2 - couple of id in sta_list to be used
-            %   plot_relative_variation  show full baseline dimension / variation wrt the median value 
+            %   plot_relative_variation  show full baseline dimension / variation wrt the median value
             %   one_plot                 use subplots (E, N, U) or a single plot
             %
             % SYNTAX
@@ -1471,27 +1644,28 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                         if plot_relative_variation
                             h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('East [m]'); h.FontWeight = 'bold';
                         end
                         grid on;
-                        h = title(sprintf('Baseline %s - %s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        
                         if ~one_plot, subplot(3,1,2); end
                         plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                         if plot_relative_variation
                             h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('North [m]'); h.FontWeight = 'bold';
                         end
-
+                        
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
@@ -1499,7 +1673,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else
@@ -1512,7 +1686,7 @@ classdef GNSS_Station < handle
                                 h = ylabel('ENU [mm]'); h.FontWeight = 'bold';
                             else
                                 h = ylabel('ENU [m]'); h.FontWeight = 'bold';
-                            end                            
+                            end
                             legend({'East', 'North', 'Up'}, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                             
                         else
@@ -1527,5 +1701,5 @@ classdef GNSS_Station < handle
                 
             end
         end
-    end 
+    end
 end

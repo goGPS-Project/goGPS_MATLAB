@@ -960,6 +960,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPPP(rec, tok)
+            rec.netPrePro();
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
@@ -979,6 +980,7 @@ classdef Command_Interpreter < handle
                     end
                 end
             end
+            %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
 
         function runCodePP(this, rec, tok)
@@ -1125,7 +1127,7 @@ classdef Command_Interpreter < handle
             else
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
-                    rec(r).work.updateRemOutlierMarkCycleSlip();
+                    rec(r).work.updateDetectOutlierMarkCycleSlip();
                 end
             end
         end

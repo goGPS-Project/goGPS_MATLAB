@@ -269,7 +269,7 @@ classdef Core_SEID < handle
                     %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                     
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
-                    trg(t).updateRemOutlierMarkCycleSlip();
+                    trg(t).updateDetectOutlierMarkCycleSlip();
                 end
                 
                 log.addMarkedMessage('Syncing times, computing reference time');
@@ -413,7 +413,7 @@ classdef Core_SEID < handle
                     trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
                     
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
-                    trg(t).updateRemOutlierMarkCycleSlip();
+                    trg(t).updateDetectOutlierMarkCycleSlip();
                 end       
                 log.addMarkedMessage('Syncing times, computing reference time');
             end            

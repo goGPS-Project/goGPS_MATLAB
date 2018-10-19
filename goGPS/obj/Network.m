@@ -70,11 +70,11 @@ classdef Network < handle
             this.rec_list = rec_list;
             this.state = Core.getState;
             this.log = Core.getLogger();
-        end  
+        end
         
         function reset(this)
             % clear the object keeping only its id and apriori info and the receivers
-             %
+            %
             % SYNTAX:
             %    this.reset()
             this.common_time = [];
@@ -89,8 +89,6 @@ classdef Network < handle
             this.pos_indexs_tc = [];
             this.idx_ref = [];
         end
-        
-       
         
         function adjust(this, idx_ref, coo_rate)
             %  adjust the gnss network
@@ -107,49 +105,107 @@ classdef Network < handle
                 idx_ref = 1 : numel(this);
             end
             this.idx_ref = idx_ref;
-            is_empty_recs = this.rec_list.isEmpty_mr;
+            is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
                 if ~isempty(e)
                     this.rec_list(e) = [];
                     idx_ref(idx_ref == e) = [];
                 end
-                ls = Least_Squares_Manipulator(this.rec_list(1).cc);
                 
-                if this.state.flag_amb_pass && this.state.getCurSession > 1 && ~isempty(this.apriori_info)
-                    f_time = GPS_Time.now();
-                    f_time.addSeconds(1e9);
-                    rate = 0;
-                    for i = 1 : length(this.rec_list)
-                        [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
-                        idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
-                        f_time = min(this.rec_list(i).work.time.getEpoch(idx_fv), f_time);
-                        rate = max(rate,this.rec_list(i).work.time.getRate);
+                if this.state.getReweight() == 1
+                    n_clean = 0;
+                else
+                    this.log.addMessage(this.log.indent('Network reweight perform only a simple outlier detection on the residuals'), 2);
+                    n_clean = 3;
+                end
+                
+                while n_clean >= 0
+                    ls = LS_Manipulator(this.rec_list(1).cc);
+                    
+                    if this.state.flag_amb_pass && this.state.getCurSession > 1 && ~isempty(this.apriori_info)
+                        f_time = GPS_Time.now();
+                        f_time.addSeconds(1e9);
+                        rate = 0;
+                        for i = 1 : length(this.rec_list)
+                            [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
+                            idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
+                            f_time = min(this.rec_list(i).work.time.getEpoch(idx_fv), f_time);
+                            rate = max(rate,this.rec_list(i).work.time.getRate);
+                        end
+                        t_dist = f_time - this.apriori_info.epoch;
+                        if t_dist > -0.02 && t_dist <= (rate + 0.02)
+                            ls.apriori_info = this.apriori_info;
+                        end
                     end
-                    t_dist = f_time - this.apriori_info.epoch;
-                    if t_dist > -0.02 && t_dist <= (rate + 0.02)
-                        ls.apriori_info = this.apriori_info;
+                    
+                    [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
+                    if isempty(this.rec_time_indexes)
+                        return
+                    else
+                        n_time = this.common_time.length;
+                        n_rec = length(this.rec_list);
+                        if this.state.flag_tropo
+                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
+                        end
+                        if this.state.flag_tropo_gradient
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
+                        end
+                        [x, res, s0, Cxx] = ls.solve;
+                        %[x, res] = ls.solve;
+                        %res = res(any(res(:,:,2)'), :, :);
+                        
+                        %s0 = mean(abs(res(res~=0)));
+                        this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
+                        %figure; plot(res(:,:,2)); ylim([-0.05 0.05]); dockAllFigures;
+                        if s0 < 0.0026 && all(abs(res(:)) < this.state.pp_max_phase_err_thr)
+                            % I can be satisfied
+                            n_clean = -1;
+                        end
+                        if n_clean > 0
+                            for r = 1 : length(this.rec_list)
+                                tmp_work = this.rec_list(r).work;
+                                
+                                % Index of receiver obs present in res
+                                id_sync_res = round((round(tmp_work.time.getRefTime(this.common_time.first.getMatlabTime) * 1e5) * 1e-5 /  this.common_time.getRate) + 1);
+                                id_sync_rec = (1 : numel(id_sync_res))';
+                                id_ok = id_sync_res > 0 & id_sync_res <= size(res,1);
+                                id_sync_res = id_sync_res(id_ok);
+                                id_sync_rec = id_sync_rec(id_ok);
+                                
+                                go_id = tmp_work.go_id(this.rec_list(r).work.findObservableByFlag('L'));
+                                
+                                res_rec = zeros(size(tmp_work.sat.outlier_idx_ph));
+                                res_rec(id_sync_rec, :) = res(id_sync_res, go_id, r);
+                                                                
+                                if s0 > 1
+                                    % The solution is really bad, something bad happened
+                                    % Extreme experiment to recover a valid positioning
+                                    id_ko = abs(mean(zero2nan(res_rec), 'omitnan')) > 1;
+                                    id_ko = sparse(repmat(id_ko, size(res_rec, 1), 1));
+                                else
+                                    id_ko = sparse(tmp_work.search4outliers(res_rec, n_clean+1));
+                                    % At the first loop start filtering bad satellites
+                                    if n_clean > 1
+                                        bad_sat = std(res_rec, 'omitnan') > max(0.01, perc(noNaN(std(res_rec, 'omitnan')), 0.9)) | max(abs(res_rec)) > 0.15;
+                                        if any(bad_sat) && any(any(id_ko(:, bad_sat)))
+                                            id_ko(:, ~bad_sat) = false;
+                                        end
+                                    end
+                                end
+                                if any(id_ko(:))
+                                    tmp_work.addOutliers(id_ko, true);
+                                else
+                                    % no need to iterate
+                                    n_clean = -1;
+                                end
+                            end
+                        end
+                        n_clean = n_clean - 1;
                     end
                 end
                 
-                [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
-                
-                n_time = this.common_time.length;
-                n_rec = length(this.rec_list);
-                if this.state.flag_tropo
-                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
-                end
-                if this.state.flag_tropo_gradient
-                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
-                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
-                end
-                
-                [x, res, s02, Cxx] = ls.solve;
-                %[x, res] = ls.solve;
-                
-                
-                s0 = mean(abs(res(res~=0)));
-                this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
                 if s0 < 0.02
                     % intilaize array for results
                     this.initOut(ls);
@@ -170,42 +226,42 @@ classdef Network < handle
                 
                 % pass ambiguity
                 if this.state.flag_amb_pass
-                   if s0 < 0.01
-                    max_ep = max(ls.epoch);
-                    id_amb = find(x(:,2) == ls.PAR_AMB);
-                    x_float = ls.x_float;
-                    this.apriori_info.amb_value = [];
-                    this.apriori_info.freqs = [];
-                    this.apriori_info.goids = [];
-                    this.apriori_info.epoch = [];
-                    this.apriori_info.receiver = [];
-                    this.apriori_info.fixed = [];
-                    this.apriori_info.Cambamb = [];
-                    keep_id = [];
-                    nnf = 1;
-                    for i =1:length(id_amb)
-                        a = id_amb(i);
-                        a_idx = ls.A_idx_mix(:,ls.param_class == ls.PAR_AMB) == a;
-                        ep_amb = ls.epoch(a_idx);
-                        is_fixed = abs(fracFNI(x_float(a,1))) < eps(x_float(a,1));
-                        if sum(ep_amb == max_ep) > 0  && (is_fixed || ls.Cxx_amb(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
-                            sat = ls.sat(a_idx);
-                            this.apriori_info.amb_value = [this.apriori_info.amb_value; x_float(a,1)];
-                            
-                            this.apriori_info.goids = [this.apriori_info.goids; sat(1)];
-                            this.apriori_info.epoch = this.common_time.last;
-                            this.apriori_info.receiver = [this.apriori_info.receiver; x(a,3)];
-                            this.apriori_info.fixed = [this.apriori_info.fixed; is_fixed ];
-                            if ~this.apriori_info.fixed(end)
-                                keep_id = [keep_id nnf];
+                    if s0 < 0.01
+                        max_ep = max(ls.epoch);
+                        id_amb = find(x(:,2) == ls.PAR_AMB);
+                        x_float = ls.x_float;
+                        this.apriori_info.amb_value = [];
+                        this.apriori_info.freqs = [];
+                        this.apriori_info.goids = [];
+                        this.apriori_info.epoch = [];
+                        this.apriori_info.receiver = [];
+                        this.apriori_info.fixed = [];
+                        this.apriori_info.Cambamb = [];
+                        keep_id = [];
+                        nnf = 1;
+                        for i =1:length(id_amb)
+                            a = id_amb(i);
+                            a_idx = ls.A_idx_mix(:,ls.param_class == ls.PAR_AMB) == a;
+                            ep_amb = ls.epoch(a_idx);
+                            is_fixed = abs(fracFNI(x_float(a,1))) < eps(x_float(a,1));
+                            if sum(ep_amb == max_ep) > 0  && (is_fixed || ls.Cxx_amb(nnf,nnf) > 0)% if ambugity belongs to alst epochs and values of the vcv matrix is acceptble
+                                sat = ls.sat(a_idx);
+                                this.apriori_info.amb_value = [this.apriori_info.amb_value; x_float(a,1)];
+                                
+                                this.apriori_info.goids = [this.apriori_info.goids; sat(1)];
+                                this.apriori_info.epoch = this.common_time.last;
+                                this.apriori_info.receiver = [this.apriori_info.receiver; x(a,3)];
+                                this.apriori_info.fixed = [this.apriori_info.fixed; is_fixed ];
+                                if ~this.apriori_info.fixed(end)
+                                    keep_id = [keep_id nnf];
+                                end
+                            end
+                            if ~is_fixed
+                                nnf = nnf +1;
                             end
                         end
-                        if ~is_fixed
-                            nnf = nnf +1;
-                        end
+                        this.apriori_info.Cambamb = ls.Cxx_amb(keep_id,keep_id);
                     end
-                    this.apriori_info.Cambamb = ls.Cxx_amb(keep_id,keep_id);
-                   end
                 end
                 
                 % additional coordinate rate
@@ -217,7 +273,7 @@ classdef Network < handle
                             this.coo_rate = this.state.coo_rates(i);
                             ls.pos_indexs_tc = {};
                             for j = 2 : n_rec
-                                [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(this.common_time.getEpoch(~isnan(this.rec_time_indexes(:,j))), st_time, this.state.coo_rates(i));
+                                [pos_idx_nh, pos_idx_tc] = LS_Manipulator.getPosIdx(this.common_time.getEpoch(~isnan(this.rec_time_indexes(:,j))), st_time, this.state.coo_rates(i));
                                 ls.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                                 r2c = ~isnan(this.rec_time_indexes(:,j));
                                 pos_idx = zeros(n_time,1);
@@ -255,6 +311,7 @@ classdef Network < handle
             end
             
         end
+        
         function initOut(this,ls)
             n_time = this.common_time.length;
             n_rec = length(this.rec_list);
@@ -266,92 +323,95 @@ classdef Network < handle
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
         end
+        
         function addAdjValues(this, x)
             n_rec = length(this.rec_list);
             % --- fill the correction values in the network
-                    for i = 1 : n_rec
-                        % if all value in the receiver are set to nan initilaize them to zero
-                        if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
-                            this.rec_list(i).work.ztd(:) = 0;
-                            this.rec_list(i).work.tge(:) = 0;
-                            this.rec_list(i).work.tgn(:) = 0;
-                        end
-                        % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
-                        idx_rec = x(:,3) == i;
-                        if i > 1 % coordiantes are always zero on first receiver
-                            coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
-                            if ~isempty(this.pos_indexs_tc)
-                            this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
-                            else
-                                 this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
-                            end
-                        else
-                            this.coo(i,:) = nan2zero(this.coo(i,:));
-                        end
-                        clk = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                        this.clock(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.clock(~isnan(this.rec_time_indexes(:,i)),i)) + clk;
-                        
-                        if this.state.flag_tropo
-                            ztd = x(x(:,2) == Least_Squares_Manipulator.PAR_TROPO & idx_rec,1);
-                            this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd;
-                        end
-                        
-                        if this.state.flag_tropo_gradient
-                            gn = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                            this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn;
-                            
-                            ge = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
-                            this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge;
-                        end
+            for i = 1 : n_rec
+                % if all value in the receiver are set to nan initilaize them to zero
+                if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
+                    this.rec_list(i).work.ztd(:) = 0;
+                    this.rec_list(i).work.tge(:) = 0;
+                    this.rec_list(i).work.tgn(:) = 0;
+                end
+                % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
+                idx_rec = x(:,3) == i;
+                if i > 1 % coordiantes are always zero on first receiver
+                    coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
+                    if ~isempty(this.pos_indexs_tc)
+                        this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
+                    else
+                        this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
                     end
+                else
+                    this.coo(i,:) = nan2zero(this.coo(i,:));
+                end
+                clk = x(x(:,2) == LS_Manipulator.PAR_REC_CLK & idx_rec,1);
+                this.clock(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.clock(~isnan(this.rec_time_indexes(:,i)),i)) + clk;
+                
+                if this.state.flag_tropo
+                    ztd = x(x(:,2) == LS_Manipulator.PAR_TROPO & idx_rec,1);
+                    this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd;
+                end
+                
+                if this.state.flag_tropo_gradient
+                    gn = x(x(:,2) == LS_Manipulator.PAR_REC_CLK & idx_rec,1);
+                    this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn;
+                    
+                    ge = x(x(:,2) == LS_Manipulator.PAR_REC_CLK & idx_rec,1);
+                    this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge;
+                end
+            end
         end
+        
         function changeReferenceFrame(this, idx_ref)
             n_rec = length(this.rec_list);
             n_time = this.common_time.length;
             % ALL OF THIS MAKES NO SENSE TO ME (Andrea). Now it should ;) (Giulio)
-                    %--- transform the result in the desired free network
-                    
-                    if ~isnan(idx_ref(1)) && ~(length(idx_ref) == 1 && idx_ref == 1)
-                        
-                        S = zeros(n_rec);
-                        S(:, idx_ref) = - 1 / numel(idx_ref);
-                        S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure
-                        % it is the paramter itself  the mean of the reference paramter
-                        % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
-                        
-                        % Applying the S transform I obtain the corrections with respect to the reference
-                        for i = 1 : size(this.coo,3)
-                            this.coo(:,1,i) = S * this.coo(:,1,i);
-                            this.coo(:,2,i) = S * this.coo(:,2,i);
-                            this.coo(:,3,i) = S * this.coo(:,3,i);
-                        end
-                        
-                        % apply the S transform to the epochwise parameters
-                        for i = 1 : n_time
-                            id_present = ~isnan(this.clock(i,:));
-                            idx_ref_t = intersect(idx_ref, find(id_present));
-                            if isempty(idx_ref_t)
-                                S = nan;
-                            else
-                                n_rec_t = sum(id_present);
-                                S = zeros(n_rec_t);
-                                S(:,idx_ref) = - 1 / numel(idx_ref_t);
-                                S = S + eye(n_rec_t);
-                            end
-                            % clock
-                            this.clock(i,:) = (S*this.clock(i,:)')';
-                            % ztd
-                            if this.state.flag_tropo
-                                this.ztd(i,:) = (S*this.ztd(i,:)')';
-                            end
-                            % gradients
-                            if this.state.flag_tropo_gradient
-                                this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
-                                this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
-                            end
-                        end
+            %--- transform the result in the desired free network
+            
+            if ~isnan(idx_ref(1)) && ~(length(idx_ref) == 1 && idx_ref == 1)
+                
+                S = zeros(n_rec);
+                S(:, idx_ref) = - 1 / numel(idx_ref);
+                S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure
+                % it is the paramter itself  the mean of the reference paramter
+                % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
+                
+                % Applying the S transform I obtain the corrections with respect to the reference
+                for i = 1 : size(this.coo,3)
+                    this.coo(:,1,i) = S * this.coo(:,1,i);
+                    this.coo(:,2,i) = S * this.coo(:,2,i);
+                    this.coo(:,3,i) = S * this.coo(:,3,i);
+                end
+                
+                % apply the S transform to the epochwise parameters
+                for i = 1 : n_time
+                    id_present = ~isnan(this.clock(i,:));
+                    idx_ref_t = intersect(idx_ref, find(id_present));
+                    if isempty(idx_ref_t)
+                        S = nan;
+                    else
+                        n_rec_t = sum(id_present);
+                        S = zeros(n_rec_t);
+                        S(:,idx_ref) = - 1 / numel(idx_ref_t);
+                        S = S + eye(n_rec_t);
                     end
+                    % clock
+                    this.clock(i,:) = (S*this.clock(i,:)')';
+                    % ztd
+                    if this.state.flag_tropo
+                        this.ztd(i,:) = (S*this.ztd(i,:)')';
+                    end
+                    % gradients
+                    if this.state.flag_tropo_gradient
+                        this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
+                        this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
+                    end
+                end
+            end
         end
+        
         function addAprValues(this)
             n_rec = length(this.rec_list);
             % --- add the apriori values
@@ -386,7 +446,8 @@ classdef Network < handle
                     this.ztd_ge(idx_pos,i) = this.ztd_ge(idx_pos,i) + ge_rec(idx_is);
                 end
             end
-        end     
+        end
+        
         function pushBackInReceiver(this, s0, res)
             n_rec = length(this.rec_list);
             
@@ -414,9 +475,10 @@ classdef Network < handle
                 this.rec_list(i).work.s0 = s0;
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
-                this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);                
+                this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
             end
         end
+        
         function pushBackSubCooInReceiver(this, time, rate)
             n_rec = length(this.rec_list);
             

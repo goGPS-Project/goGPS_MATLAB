@@ -56,7 +56,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % Real constant
     properties(Constant, Access = 'private')
         % PRE PROCESSING
-        CS_THR_PRE_PRO = 1;                             % Cycle slip threshold (pre-processing) [cycles]
+        CS_THR_PRE_PRO = 0.5;                             % Cycle slip threshold (pre-processing) [cycles]
     end
     
     properties (Constant, Access = 'public')
@@ -184,7 +184,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
-        FLAG_REPAIR = true;                             % Flag for enabling cycle slip repair
+        FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
         W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
@@ -3462,6 +3462,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   err_thr = this.getMaxPhaseErrThr()
             err_thr = this.pp_max_phase_err_thr;
+        end
+        
+        function reweight_mode = getReweight(this)
+            % Get the reweight method to use
+            %
+            % SYNTAX
+            %   err_thr = this.getReweight()
+            reweight_mode = this.reweight_mode;
         end
         
         function is_dwn = isAutomaticDownload(this)

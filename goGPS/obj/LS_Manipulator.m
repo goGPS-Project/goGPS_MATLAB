@@ -1,11 +1,11 @@
-%   CLASS Least_Square_Manipulator
+%   CLASS LS_Manipulator
 % =========================================================================
 %
 % DESCRIPTION
 %   Manipulate least squares system
 %
 % EXAMPLE
-%   LSM = Least_Square_Manipulator();
+%   LSM = LS_Manipulator();
 %
 % SEE ALSO
 %   - Least_Square
@@ -41,7 +41,7 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-classdef Least_Squares_Manipulator < handle
+classdef LS_Manipulator < handle
     
     % ==================================================================================================================================================
     %% Parameter columns id (order)
@@ -132,7 +132,7 @@ classdef Least_Squares_Manipulator < handle
     end
     
     methods
-        function this = Least_Squares_Manipulator(cc)
+        function this = LS_Manipulator(cc)
             % Creator Brahma
             this.init();
             if nargin > 0
@@ -663,6 +663,13 @@ classdef Least_Squares_Manipulator < handle
                 end
             end
             
+            if numel(obs_set_list.obs) == 0
+                this.log.addError('Network solution failed: no observations are flagged for usage');
+                common_time = [];
+                id_sync = [];
+                return
+            end
+            
             % Sync obs_sets
             sanitized = false;
             while ~sanitized
@@ -730,7 +737,7 @@ classdef Least_Squares_Manipulator < handle
             for i = 1 : n_rec
                 % get the position idx
                 if ~isempty(coo_rate) && i~=1 % first receiver do not need any sub rate since is the reference
-                    [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
+                    [pos_idx_nh, pos_idx_tc] = LS_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
                     this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                 else
                     pos_idx_nh = [];
@@ -1690,38 +1697,35 @@ classdef Least_Squares_Manipulator < handle
                     b_eye = sparse(b_eye);
                     C_amb_amb = N \ b_eye;
                     C_amb_amb = C_amb_amb(idx_t_amb_par, :);
+                    C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
                     
                     % ILS shrinking, method 1
-                    iar_method = 1;
-                    p0 = 0.001;
-                    mu = [];
-                    [amb_fixed, sq_norm, ps, C_z_z, Z] = LAMBDA(amb, full(C_amb_amb), iar_method, 'P0', p0, 'mu', mu);
-        
-                    mu = ratioinv(p0, 1 - ps, length(amb_fixed));
-                    ratio = sq_norm(1) / sq_norm(2);
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, 'lambda', 1);
                     
-                    if ratio <= mu
+                    if is_fixed
                         % FIXED!!!!
                         amb_fix = amb_fixed(:, 1);
                         
                         for i = 1 : n_amb
                             Ni = N(:, idx_amb_par(i));
-                            B = B - Ni * amb_fix(i);
+                            if l_fixed(i)
+                                B = B - Ni * amb_fix(i);
+                            end
                         end
                         
                         % remove fixed ambiguity from B and N 
-                        B(idx_amb_par) = [];
-                        N(idx_amb_par, :) = [];
-                        N(:, idx_amb_par) = [];
+                        B(idx_amb_par(l_fixed(:,1))) = [];
+                        N(idx_amb_par(l_fixed(:,1)), :) = [];
+                        N(:, idx_amb_par(l_fixed(:,1))) = [];
                         
                         % recompute the solution
                         idx_nf = true(sum(idx_est,1),1);
-                        idx_nf(idx_amb_par) = false;
+                        idx_nf(idx_amb_par(l_fixed(:,1))) = false;
                         xf = zeros(size(idx_nf));
                         
                         xf(idx_nf) = N \ B;                        
-                        xf(~idx_nf) = amb_fix;                        
+                        xf(~idx_nf) = amb_fix(l_fixed(:,1));                        
                         x(idx_est) = xf;
                     else
                         this.log.addWarning('The ambiguities cannot be fixed!!!');
@@ -1734,8 +1738,7 @@ classdef Least_Squares_Manipulator < handle
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
                 if sum(isnan(x_res)) ==0
                     res = this.getResiduals(x_res);
-                    s0 = mean(abs(res(res~=0)));
-                    
+                    s0 = mean(abs(res(res~=0)));                    
                 else
                     res = [];
                     s0 = Inf;

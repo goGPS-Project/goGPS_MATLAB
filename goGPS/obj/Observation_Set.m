@@ -417,7 +417,7 @@ classdef Observation_Set < handle
         end
         
         function arc_jmp_mat = getArcJmpMat(this, id_comm)
-            % gte a matrix of the dimension of observation set that has true value if the ambiguity is jumping and flase value if the ambiguity is not jumping
+            % get a matrix of the dimension of observation set that has true value if the ambiguity is jumping and false value if the ambiguity is not jumping
             %
             % SYNTAX:
             % arc_jmp_mat = this.getArcJmpMat(<id_comm>)
@@ -480,9 +480,11 @@ classdef Observation_Set < handle
                 end
                 % remove arcs less than desidered
                 [lim] = getOutliers(this.obs(:, i)~=0 & ~this.cycle_slip(:, i));
-                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1)); 
-                for s = 1 : numel(single_arcs) 
-                    id_rm(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = true; 
+                if ~isempty(lim)
+                    single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
+                    for s = 1 : numel(single_arcs)
+                        id_rm(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = true;
+                    end
                 end
 
             end

@@ -6326,7 +6326,7 @@ classdef Receiver < Exportable
         end
         
         function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
-            ls = Least_Squares_Manipulator();
+            ls = LS_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
@@ -6377,7 +6377,7 @@ classdef Receiver < Exportable
             end
         end
         function [dpos, s02] = codeDynamicPositioning(this, id_sync, cut_off)
-            ls = Least_Squares_Manipulator();
+            ls = LS_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
@@ -6792,7 +6792,7 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                ls = Least_Squares_Manipulator();
+                ls = LS_Manipulator();
                 id_sync = ls.setUpPPP(this, id_sync);
                 ls.Astack2Nstack();
                 
@@ -6957,7 +6957,7 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                ls = Least_Squares_Manipulator();
+                ls = LS_Manipulator();
                 id_sync = ls.setUpPPP(this, id_sync, this.state.getCutOff, true);
                 ls.Astack2Nstack();
                 
