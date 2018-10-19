@@ -421,11 +421,16 @@ classdef Constellation_Collector < Settings_Interface
             %
             % SYNTAX:
             %  go_ids = this.getGoIds(sys_c)
-            if this.active_list(this.SYS_C == sys_c)
-                go_ids = this.getSys(sys_c).go_ids;
-            else
-                go_ids = [];
+            if nargin < 2
+                sys_c = this.SYS_C(this.active_list);
             end
+             go_ids = [];
+             for i =1 :length(sys_c)
+                 
+                 if this.active_list(this.SYS_C == sys_c(i))
+                     go_ids = [go_ids this.getSys(sys_c(i)).go_ids];
+                 end
+             end
         end
 
     end

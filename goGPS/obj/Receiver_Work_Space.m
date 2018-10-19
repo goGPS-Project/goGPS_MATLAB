@@ -2630,7 +2630,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         function xyz = getAPrioriPos(this)
             % return apriori position
             %
-            % SYNTAX
+            % SYNTAX:
             %   xyz = this.getAPrioriPos()
             xyz = this.xyz_approx;
             xyz = median(xyz, 1);
@@ -2642,6 +2642,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         % frequencies
         
         function is_mf = isMultiFreq(this)
+            % check if receiver has multiple frequencies
+            %
+            % SYNTAX:
+            %     is_mf = isMultiFreq(this)
             is_mf = false;
             for i = 1 : this.parent.cc.getMaxNumSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
@@ -3552,6 +3556,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   id = this.findObservableByFlag(flag, <system>, <prn>)
+            %   id = this.findObservableByFlag(flag, <go_id>)
             %
             % EXAMPLE
             %   id = this.findObservableByFlag('L1C');
@@ -3562,11 +3567,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                 iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
                 iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
-            if nargin > 2 && ~isempty(sys_c)
-                lid = lid & (this.system == sys_c)';
-            end
-            if nargin > 3 && ~isempty(prn)
-                lid = lid & (this.prn == prn);
+            if nargin == 3 && isnumeric(sys_c) % its a goid !!
+                lid = lid & (this.go_id == sys_c);
+            else
+                if nargin > 2 && ~isempty(sys_c)
+                    lid = lid & (this.system == sys_c)';
+                end
+                if nargin > 3 && ~isempty(prn)
+                    lid = lid & (this.prn == prn);
+                end
             end
             
             id = find(lid);

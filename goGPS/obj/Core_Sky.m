@@ -598,6 +598,7 @@ classdef Core_Sky < handle
                 this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
                 
                 txt = fread(f_sp3,'*char')';
+                version = txt(2);
                 fclose(f_sp3);
                 
                 % get new line separators
@@ -685,10 +686,19 @@ classdef Core_Sky < handle
                 date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.8f'));
                 % import it as a GPS_Time obj
                 sp3_times = GPS_Time(date, [], true);
+                if version == 'a'
+                    go_ids_s = this.cc.getGoIds();
+                    go_ids_s = reshape(sprintf('%2d',go_ids_s),2,length(go_ids_s))';
+                    
+                end
                 ant_ids = this.cc.getAntennaId;
                 for i = 1 : length(ant_ids)
                     ant_id = ant_ids{i};
-                    sat_line = find(txt(lim(:,1)) == 'P' & txt(lim(:,1)+1) == ant_id(1) & txt(lim(:,1)+2) == ant_id(2)& txt(lim(:,1)+3) == ant_id(3));
+                     if version == 'a'
+                         sat_line = find(txt(lim(:,1)) == 'P'  & txt(lim(:,1)+2) == go_ids_s(i,1)& txt(lim(:,1)+3) == go_ids_s(i,2));
+                     else
+                         sat_line = find(txt(lim(:,1)) == 'P' & txt(lim(:,1)+1) == ant_id(1) & txt(lim(:,1)+2) == ant_id(2)& txt(lim(:,1)+3) == ant_id(3));
+                     end
                     if ~isempty((sat_line))
                         c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
                         this.coord(c_ep_idx,i,:) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,41) + repmat(5:45, length(sat_line), 1))','%f %f %f'))*1e3;
