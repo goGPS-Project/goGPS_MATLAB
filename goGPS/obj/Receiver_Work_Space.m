@@ -1074,6 +1074,35 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function addOutliers(this, id_ko, remove_short_arcs)
+            if nargin < 3
+                remove_short_arcs = false;
+            end
+            [ph, wl, id_ph] = this.getPhases();
+            ph = zero2nan(this.obs(id_ph, this.id_sync)');
+            % Adding outliers
+            if size(id_ko, 2) > size(this.sat.outlier_idx_ph, 2)
+                id_ko = id_ko(:, this.go_id(id_ph));
+            end
+            this.sat.outlier_idx_ph(:,:) = (this.sat.outlier_idx_ph(:,:) | id_ko) & ~isnan(ph);
+            if remove_short_arcs
+                this.sat.outlier_idx_ph = flagMergeArcs(this.sat.outlier_idx_ph | isnan(ph), this.state.getMinArc) & ~isnan(ph); % mark short arcs
+            end
+            % Move cycle slips
+            tmp = this.sat.outlier_idx_ph | isnan(ph);
+            invalid_cs = this.sat.cycle_slip_idx_ph & tmp;
+            for s = 1 : numel(unique(this.go_id(id_ph)))
+                id_cs_ko = find(invalid_cs(:,s));
+                for k = 1 : numel(id_cs_ko)
+                    this.sat.cycle_slip_idx_ph(id_cs_ko(k), s) = false;
+                    new_cs = id_cs_ko(k) + find(~tmp(id_cs_ko(k) : end, s), 1, 'first') -1;
+                    if ~isempty(new_cs)
+                        this.sat.cycle_slip_idx_ph(new_cs, s) = true;
+                    end
+                end
+            end            
+        end
+        
         function updateRemOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
