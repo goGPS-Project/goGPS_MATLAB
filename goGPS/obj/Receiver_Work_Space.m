@@ -1632,21 +1632,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % remove empty observables
                 this.remObs(~this.active_ids);
                 % remove empty sets very useful when reading RINEX 2
-                % multiconstellations files
-                this.remObs(not(any(this.obs')));
-                % remove unselected obsevartions
-                u_sys_c = unique(this.system);
-                for i = 1 : length(u_sys_c)
-                    sys_c = u_sys_c(i);
-                    ss = this.cc.getSys(sys_c);
-                    active_band = ss.CODE_RIN3_2BAND(~ss.flag_f);
-                    for j = 1 : length(active_band)
-                        idx = this.findObservableByFlag(['?' active_band(j) '?'] ,sys_c);
-                        this.remObs(idx);
+                % multi-constellations files
+                if ~isempty(this.obs)
+                    this.remObs(not(any(this.obs')));
+                    % remove unselected observations
+                    u_sys_c = unique(this.system);
+                    for i = 1 : length(u_sys_c)
+                        sys_c = u_sys_c(i);
+                        ss = this.cc.getSys(sys_c);
+                        active_band = ss.CODE_RIN3_2BAND(~ss.flag_f);
+                        for j = 1 : length(active_band)
+                            idx = this.findObservableByFlag(['?' active_band(j) '?'] ,sys_c);
+                            this.remObs(idx);
+                        end
                     end
-                    
                 end
-                
                 this.setActiveSys(this.getAvailableSys);
             end
         end
@@ -3824,23 +3824,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   id = this.findObservableByFlag('L1C');
             %   id = this.findObservableByFlag('?2C');
             
-            flag = [flag '?' * char(ones(1, 3 - size(flag, 1)))];
-            
-            lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
-                iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
-                iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
-            if nargin == 3 && isnumeric(sys_c) % its a goid !!
-                lid = lid & (this.go_id == sys_c);
+            if isempty(this.obs_code)
+                id = [];
             else
-                if nargin > 2 && ~isempty(sys_c)
-                    lid = lid & (this.system == sys_c)';
+                flag = [flag '?' * char(ones(1, 3 - size(flag, 2)))];
+                
+                lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
+                    iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
+                    iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
+                if nargin == 3 && isnumeric(sys_c) % its a goid !!
+                    lid = lid & (this.go_id == sys_c);
+                else
+                    if nargin > 2 && ~isempty(sys_c)
+                        lid = lid & (this.system == sys_c)';
+                    end
+                    if nargin > 3 && ~isempty(prn)
+                        lid = lid & (this.prn == prn);
+                    end
                 end
-                if nargin > 3 && ~isempty(prn)
-                    lid = lid & (this.prn == prn);
-                end
+                
+                id = find(lid);
             end
-            
-            id = find(lid);
         end
         
         function obs_set = getPrefObsSetCh(this, flag, system)
