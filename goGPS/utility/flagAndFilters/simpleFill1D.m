@@ -6,7 +6,10 @@ function [data] = simpleFill1D(data, flags, method)
 %
 % DESCRIPTION:
 %    fill flagged data with a simple interpolation using MATLAB
-%    interp1 'linear', 'pchip' (default), 'extrap'
+%    interp1 'linear', 'pchip' (default), 'extrap', 'last'
+%
+%   'last' is not a standard interpolation method, it uses the last
+%   valid epoch of an arc to fill all the consecutive nan values
 %
 % NOTE: data can be a matrix, the operation is executed column by column
 %
@@ -56,13 +59,27 @@ function [data] = simpleFill1D(data, flags, method)
     if nargin == 2
         method = 'pchip';
     end
-    t = 1 : size(data, 1);
-    for r = 1 : size(data, 2)
-        if any(~isnan(data(:, r))) && any(~isnan(flags(:, r))) && any(~flags(:, r))
-            jmp = find(flags(:, r));
-            flags(:, r) = flags(:, r) | isnan(data(:, r));
-            if sum(~flags(:, r)) > 1
-                data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method, 'extrap');
+
+    if strcmp(method, 'last')
+        for s = 1 : size(data, 2)
+            lim = getOutliers(flags(:,s));
+            % if the data starts with nan do nothing
+            if ~isempty(lim) && lim(1) == 1
+                lim(1, :) = [];
+            end
+            for l = 1 : size(lim, 1)
+                data(lim(l,1) : lim(l,2), s) = data(lim(l,1) - 1, s);
+            end
+        end
+    else
+        t = 1 : size(data, 1);
+        for r = 1 : size(data, 2)
+            if any(~isnan(data(:, r))) && any(~isnan(flags(:, r))) && any(~flags(:, r))
+                jmp = find(flags(:, r));
+                flags(:, r) = flags(:, r) | isnan(data(:, r));
+                if sum(~flags(:, r)) > 1
+                    data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method, 'extrap');
+                end
             end
         end
     end
