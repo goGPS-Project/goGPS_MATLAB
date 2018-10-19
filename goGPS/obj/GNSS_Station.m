@@ -232,6 +232,28 @@ classdef GNSS_Station < handle
             end
         end
         
+        function is_empty = isEmptyWork_mr(sta_list)
+            % Return if the object work does not cantains any observation
+            %
+            % SYNTAX
+            %   is_empty = this.isEmptyWork_mr();
+            is_empty =  zeros(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                is_empty(r) =  sta_list(r).work.isEmpty();
+            end
+        end
+        
+        function is_empty = isEmptyOut_mr(sta_list)
+            % Return if the object out does not cantains any observation
+            %
+            % SYNTAX
+            %   is_empty = this.isEmptyOut_mr();
+            is_empty =  zeros(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                is_empty(r) =  sta_list(r).out.isEmpty();
+            end
+        end
+        
         function is_empty = isOutEmpty_mr(sta_list)
             % Return if the object (out) does not cantains any observation
             %
