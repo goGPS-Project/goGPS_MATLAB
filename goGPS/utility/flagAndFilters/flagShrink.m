@@ -1,5 +1,5 @@
 % SYNTAX:
-%    flag = flagShrink(flag, expand_size)
+%    flag = flagShrink(flag, expand_size, <omit_borders = false>)
 %
 % DESCRIPTION:
 %    shrink the flag array
@@ -8,6 +8,7 @@
 % INPUT:
 %   flag          [n_obs x n_arrays]
 %   expand_size   n_epochs with flags to activate at the border of a flagged interval
+%   omit_borders  when true do not shrink flags at the beginning or end of the matrix
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -40,11 +41,16 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function flag = flagShrink(flag, expand_size)
-    % compute a moving window median to filter the data in input
-    
+function flag = flagShrink(flag, expand_size, omit_borders)    
+    if nargin < 3
+        omit_borders = false;
+    end
     for c = 1 : size(flag, 2)
         flag(:, c) = ~conv(single(~flag(:, c)), ones(2 * expand_size + 1, 1)', 'same') > 0;
     end
-    flag([1:expand_size (end - expand_size + 1) : end], :) = 0;
+    if omit_borders
+        % do nothing
+    else
+        flag([1:expand_size (end - expand_size + 1) : end], :) = 0;
+    end
 end
