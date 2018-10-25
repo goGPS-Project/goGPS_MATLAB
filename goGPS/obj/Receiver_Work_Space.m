@@ -1142,13 +1142,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             % subtract median (clock error)
             %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             
             % first rough out detection ------------------------------------------------------------------
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
             arc_mean = abs(mean(sensor_ph0,'omitnan'));
-            bad_id = find(arc_mean > max(0.001, median(movstd(sensor_ph0,5), 'omitnan')));
+            bad_id = find(arc_mean > max(0.001, median(movstd(sensor_ph0, 5), 'omitnan')));
             for i = 1 : numel(bad_id)
                 % analize current arc
                 sensor_tmp = sensor_ph(:, bad_id(i));
@@ -1171,7 +1171,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % recompute dt and sensor_ph
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             
             % --------------------------------------------------------------------------------------------
@@ -1211,7 +1211,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 der = 1; % use first
             end
             
-            sensor_ph = bsxfun(@minus, sensor_ph, movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
