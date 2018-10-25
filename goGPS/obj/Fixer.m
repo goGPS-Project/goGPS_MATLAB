@@ -92,6 +92,7 @@ classdef Fixer < handle
             amb_ok = (abs(diag(C_amb_amb)) < 1); % fix only valid ambiguities
             switch approach
                 case {'lambda'}
+                    try
                     [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), iar_method, 'P0', this.p0, 'mu', this.mu);
                     
                     mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
@@ -104,6 +105,14 @@ classdef Fixer < handle
                         is_fixed = is_fixed + ~all(amb_ok);
                     end
                     l_fixed   = rem(amb_fixed,1) < 1e-5;
+                    catch
+                        log = Logger.getInstance();
+                        log.addError('LAMBDA fixing crashed, keeping float solution');
+                        % Keep it float
+                        amb_fixed = amb_float;
+                        is_fixed = 0;
+                        l_fixed = false(size(amb_float));
+                    end
             end
         end
     end
