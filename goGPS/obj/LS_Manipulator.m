@@ -1579,12 +1579,6 @@ classdef LS_Manipulator < handle
                 this.Cxx_amb = Cxx;
             end
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0) 
-                % IMPORTANT NOTE:
-                % This part on ambiguity fixing use a simple integer rounding, this is done mainly for two reason:
-                % 1) For long observing time  it seem sufficient in most of the cases
-                % 2) The VCV of the ambiguity derived from several hours joint multi epoch adjustmnet seem far too optimistic (well known fact). 
-                %    This to our understending might cause problem in the usage of more sofisticated search method in ambiguity space such as the LAMBDA method.
-                % A better understanding is required
                 if ~is_network
                     amb = x(x_class == 5,1);
                     amb_wl_fixed = false(size(amb));
