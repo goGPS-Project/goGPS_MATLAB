@@ -52,10 +52,10 @@ function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
     end
     
     if nargin < 4
-        n_sigma = 3;
+        n_sigma = 2;
     end
 
-    % rempve the median
+    % remove the median
     sensor = data;
     smean = zeros(1, size(data, 2));
     for c = 1 : size(data, 2)
@@ -79,7 +79,7 @@ function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
                 id_ok = ~id_ko(:, c);
             end
             
-            id_ok = abs(sensor(:, c)) < n_sigma * std(sensor(:, c), 'omitnan');
+            id_ok = abs(sensor(:, c)) < n_sigma * std(sensor(id_ok, c), 'omitnan');
             if any(id_ok)
                 smean(c) = mean(data(id_ok, c), 'omitnan');
             else
