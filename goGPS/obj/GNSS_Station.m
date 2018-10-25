@@ -193,7 +193,7 @@ classdef GNSS_Station < handle
                         all_ph(:, sid, r) = bsxfun(@minus, bsxfun(@times, zero2nan(work_list(r).obs(id_ok, id_rsync(:, r))'), sid'), detrend(dt_red{r}));
                         all_ph_red(:, sid, r) = zero2nan(ph_red{r}(:, id_red));
                         tmp = Core_Utils.diffAndPred(all_ph_red(:, sid, r));
-                        tmp = bsxfun(@minus, tmp, strongMean(tmp));
+                        tmp = bsxfun(@minus, tmp, strongMean(tmp,0.95, 0.95, 2));
                         all_dph_red(r, :, sid) = zero2nan(permute(tmp, [3 1 2]));
                     end
                     
