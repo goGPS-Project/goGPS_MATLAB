@@ -402,8 +402,12 @@ classdef Receiver_Output < Receiver_Commons
                 this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
                 this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
                 
-                this.s0_ip    = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
-                this.s0       = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
+                this.quality_info.s0_ip     = Core_Utils.injectData(this.quality_info.s0_ip, rec_work.quality_info.s0_ip, idx1, idx2, [data_len, 1]);
+                this.quality_info.s0        = Core_Utils.injectData(this.quality_info.s0, rec_work.quality_info.s0, idx1, idx2, [data_len, 1]);
+                this.quality_info.n_epochs  = Core_Utils.injectData(this.quality_info.n_epochs, rec_work.quality_info.n_epochs, idx1, idx2, [data_len, 1]);
+                this.quality_info.n_obs     = Core_Utils.injectData(this.quality_info.n_obs, rec_work.quality_info.n_obs, idx1, idx2, [data_len, 1]);
+                this.quality_info.n_sat     = Core_Utils.injectData(this.quality_info.n_sat, rec_work.quality_info.n_sat, idx1, idx2, [data_len, 1]);
+                this.quality_info.n_sat_max = Core_Utils.injectData(this.quality_info.n_sat_max, rec_work.quality_info.n_sat_max, idx1, idx2, [data_len, 1]);
                 
                 % reset the old  complete id_sync
                 rec_work.id_sync = id_sync_old;

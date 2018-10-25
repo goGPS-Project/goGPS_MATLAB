@@ -91,12 +91,13 @@ classdef Network < handle
         end
         
         function adjust(this, idx_ref, coo_rate)
-            %  adjust the gnss network
+            % Adjust the GNSS network
             %
-            % SYNATAX;
-            %    this. adjustNetwork(idx_ref)
-            % INPUT:
+            % INPUT
             %     idx_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
+            %
+            % SYNATAX
+            %    this. adjustNetwork(idx_ref)
             if nargin < 3
                 coo_rate = [];
             end
@@ -156,6 +157,7 @@ classdef Network < handle
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
                         
+                        % cleaning -----------------------------------------------------------------------------------------------------------------------------
                         %s0 = mean(abs(res(res~=0)));
                         this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
                         %figure; plot(res(:,:,2)); ylim([-0.05 0.05]); dockAllFigures;
@@ -164,6 +166,7 @@ classdef Network < handle
                             n_clean = -1;
                         end
                         if n_clean > 0
+                            out_found = 0;
                             for r = 1 : length(this.rec_list)
                                 tmp_work = this.rec_list(r).work;
                                 
@@ -192,17 +195,21 @@ classdef Network < handle
                                         if any(bad_sat) && any(any(id_ko(:, bad_sat)))
                                             id_ko(:, ~bad_sat) = false;
                                         end
-                                    end
+                                    end                                    
                                 end
                                 if any(id_ko(:))
                                     tmp_work.addOutliers(id_ko, true);
-                                else
-                                    % no need to iterate
-                                    n_clean = -1;
-                                end
+                                    out_found = out_found + 1;
+                                end    
+                            end
+                            if out_found == 0
+                                % no need to iterate
+                                n_clean = -1;
                             end
                         end
                         n_clean = n_clean - 1;
+                        % end of cleaning ----------------------------------------------------------------------------------------------------------------------
+
                     end
                 end
                 
@@ -219,7 +226,7 @@ classdef Network < handle
                             coo_old(i,:) =  this.rec_list(i).work.xyz;
                         end
                     end
-                    this.pushBackInReceiver(s0, res);
+                    this.pushBackInReceiver(s0, res, ls);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -448,7 +455,7 @@ classdef Network < handle
             end
         end
         
-        function pushBackInReceiver(this, s0, res)
+        function pushBackInReceiver(this, s0, res, ls)
             n_rec = length(this.rec_list);
             
             % --- push back the results in the receivers
@@ -472,7 +479,12 @@ classdef Network < handle
                     this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
                 end
                 % sigma of the session
-                this.rec_list(i).work.s0 = s0;
+                this.rec_list(i).work.quality_info.s0 = s0;
+                this.rec_list(i).work.quality_info.n_epochs = ls.n_epochs(i);
+                this.rec_list(i).work.quality_info.n_obs = size(ls.epoch, 1);
+                this.rec_list(i).work.quality_info.n_sat = length(unique(ls.sat));
+                this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), max(ls.epoch)));
+
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
                 this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);

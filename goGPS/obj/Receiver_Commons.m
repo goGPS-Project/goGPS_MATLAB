@@ -105,6 +105,7 @@ classdef Receiver_Commons < handle
     % ==================================================================================================================================================
     
     properties
+        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
         s0_ip
         s0
         hdop
@@ -148,8 +149,8 @@ classdef Receiver_Commons < handle
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.s0_ip =  [];
-            this.s0 =  [];
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
+
             this.hdop =  [];
             this.vdop =  [];
             this.tdop =  [];
@@ -589,7 +590,7 @@ classdef Receiver_Commons < handle
                 param_to_export = [ 1 1 1 0 0 0 0 0];
             end
             for r = 1 : numel(this)
-                if max(this(r).s0) < 0.10
+                if max(this(r).quality_info.s0) < 0.10
                     %try
                         rec = this(r);
                         if ~isempty(rec.getZtd)
@@ -642,7 +643,7 @@ classdef Receiver_Commons < handle
 %                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
 %                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).s0)));
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                 end
             end
         end
@@ -661,7 +662,7 @@ classdef Receiver_Commons < handle
             %   this.exportTropoMat
             
             for r = 1 : numel(this)
-                if max(this(r).s0) < 0.10
+                if max(this(r).quality_info.s0) < 0.10
                     try
                         this(r).updateCoordinates;
                         time = this(r).getTime();
@@ -683,7 +684,7 @@ classdef Receiver_Commons < handle
                         this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).s0)));
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                 end
             end
         end
@@ -892,8 +893,8 @@ classdef Receiver_Commons < handle
                     f = figure; f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
                     color_order = handle(gca).ColorOrder;
                     
-                    s0 = rec.s0;
-                    s0_ip = rec.s0_ip;
+                    s0 = rec.quality_info.s0;
+                    s0_ip = rec.quality_info.s0_ip;
                     
                     t = rec.getPositionTime().getMatlabTime;
                     

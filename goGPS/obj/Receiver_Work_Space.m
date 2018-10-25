@@ -349,15 +349,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
             
-            this.s0_ip =  [];
-            this.s0 =  [];
-            this.hdop =  [];
-            this.vdop =  [];
-            this.tdop =  [];
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
             
             this.a_fix = [];
             this.s_rate = [];
-            
             
             this.apr_zhd  = [];
             this.zwd  = [];
@@ -2427,11 +2422,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 fprintf(' ----------------------------------------------------------\n')
                 this.log.addMessage(' Processing statistics:');
-                if not(isempty(this.s0_ip) || this.s0_ip == 0)
-                    this.log.addMessage(sprintf('     sigma0 code positioning = %+16.4f m', this.s0_ip));
+                if not(isempty(this.quality_info.s0_ip) || this.quality_info.s0_ip == 0)
+                    this.log.addMessage(sprintf('     sigma0 code positioning = %+16.4f m', this.quality_info.s0_ip));
                 end
-                if not(isempty(this.s0) || this.s0 == 0)
-                    this.log.addMessage(sprintf('     sigma0 PPP positioning  = %+16.4f m', this.s0));
+                if not(isempty(this.quality_info.s0) || this.quality_info.s0 == 0)
+                    this.log.addMessage(sprintf('     sigma0 PPP positioning  = %+16.4f m', this.quality_info.s0));
                 end
                 fprintf(' ----------------------------------------------------------\n')
             end
@@ -4442,12 +4437,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             id_ph = find(id_ph);
             phs = this.getSyntPhases();
             
+            % First approach, trust the derivate
             % do I trust PPP clock?
-            tmp = Core_Utils.diffAndPred(zero2nan(ph) - zero2nan(phs));
-            bias = median(tmp, 'omitnan');
-            tmp = bsxfun(@minus, tmp, bias);
+            tmp = Core_Utils.diffAndPred(strongDeTrend(zero2nan(ph) - zero2nan(phs)));
+            % removing bias is dangerous when computed with arcs with different lengths
+            %bias = median(tmp, 'omitnan');
+            %tmp = bsxfun(@minus, tmp, bias);
             dt_ph = strongMean(tmp', 1, 0.95, 2)';
-            
+                       
             switch mode
                 case 'rmSlow'
                     % remove slow effects
@@ -4456,11 +4453,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     tmp = Core_Utils.diffAndPred(ph_diff);
                     
                     %slow effects
-                    dt_lf = splinerMat([], median(movmedian(tmp,5),2,'omitnan'), 3600 / this.getRate);
+                    [~, ~, ~, dt_lf] = splinerMat([], median(movmedian(tmp,5),2,'omitnan'), 3600 / this.getRate, 0.001, 0 : (size(tmp,1) - 1));
                     dt_ph = zero2nan(dt_ph + dt_lf - mean(zero2nan(dt_ph + dt_lf), 'omitnan'));
             end
             
-            dt_ph = cumsum(nan2zero(dt_ph) - mean(dt_ph, 'omitnan') + mean(bias, 'omitnan'));
+            %dt_ph = cumsum(nan2zero(dt_ph) - mean(dt_ph, 'omitnan') + mean(bias, 'omitnan'));
+            dt_ph = cumsum(nan2zero(dt_ph) - mean(dt_ph, 'omitnan'));
             dt_ph = dt_ph - mean(dt_ph, 'omitnan') + mean(serialize(diff(zero2nan(ph) - zero2nan(phs))), 'omitnan');
             ph_diff = bsxfun(@minus, zero2nan(ph) - zero2nan(phs), dt_ph);
         end
@@ -6897,7 +6895,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
-            this.s0_ip = s0;
+            this.quality_info.s0_ip = s0;
+            this.quality_info.n_epochs = ls.n_epochs;
+            this.quality_info.n_obs = size(ls.epoch, 1);
+            this.quality_info.n_sat = length(unique(ls.sat));
+            this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs)); 
         end
         
         function [dpos, s0] = codeDynamicPositioning(this, id_sync, cut_off)
@@ -6947,7 +6949,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function s02 = initDynamicPositioning(this)
+        function s0 = initDynamicPositioning(this)
             % SYNTAX
             %   this.StaticPositioning(obs, prn, sys, flag)
             %
@@ -7003,7 +7005,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Final estimation'))
                 [~, s0] = this.codeDynamicPositioning(this.id_sync, 15);
                 this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
-                this.s0_ip = s0;
+                this.quality_info.s0_ip = s0;
+                this.quality_info.n_epochs = ls.n_epochs;
+                this.quality_info.n_obs = size(ls.epoch, 1);
+                this.quality_info.n_sat = length(unique(ls.sat));
+                this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
@@ -7308,7 +7314,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if this.isEmpty()
                 this.log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
-                if ~isempty(this.s0_ip) && (this.s0_ip < Inf)
+                if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
                     this.log.addError('Pre-Processing is required to compute a PPP solution');
                 else
                     this.log.addError('Pre-Processing failed: skipping PPP solution');
@@ -7410,7 +7416,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
                 this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx;
                 this.if_amb = amb; % to test ambiguity fixing
-                this.s0 = s0;
+                this.quality_info.s0 = s0;
+                this.quality_info.n_epochs = ls.n_epochs;
+                this.quality_info.n_obs = size(ls.epoch, 1);
+                this.quality_info.n_sat = length(unique(ls.sat));
+                this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
+
                 if s0 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                 end
@@ -7529,7 +7540,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if this.isEmpty()
                 this.log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
-                if (this.s02_ip < Inf)
+                if (this.quality_info.s0_ip < Inf)
                     this.log.addError('Pre-Processing is required to compute a PPP solution');
                 else
                     this.log.addError('Pre-Processing failed: skipping PPP solution');
@@ -7582,7 +7593,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
-                [x, res, s02] = ls.solve();
+                [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
                 % enable)
                 % ls.reweightHuber();
