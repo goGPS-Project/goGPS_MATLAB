@@ -106,11 +106,6 @@ classdef Receiver_Commons < handle
     
     properties
         quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
-        s0_ip
-        s0
-        hdop
-        vdop
-        tdop
         a_fix
         s_rate
     end
@@ -151,10 +146,6 @@ classdef Receiver_Commons < handle
             
             this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
 
-            this.hdop =  [];
-            this.vdop =  [];
-            this.tdop =  [];
-            
             this.a_fix = [];
             this.s_rate = [];
             
