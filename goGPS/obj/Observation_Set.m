@@ -284,7 +284,7 @@ classdef Observation_Set < handle
             if nargin < 2
                 idx = 1:length(this.wl);
             end
-            obs_cy = this.obs(:,idx) .* repmat(this.wl(idx),size(this.obs,1),1);
+            obs_cy = this.obs(:,idx) ./ repmat(this.wl(idx),size(this.obs,1),1);
         end
         
         function [p_time, id_sync] = getSyncTimeExpanded(obs_set_list, p_rate)
