@@ -44,6 +44,7 @@ classdef Network < handle
     properties
         rec_list
         state
+        cc
         net_id           % id of the receiver in core, this uniquely identify the network
         
         common_time      % gps_time
@@ -69,6 +70,7 @@ classdef Network < handle
             this.net_id = net_id;
             this.rec_list = rec_list;
             this.state = Core.getState;
+            this.cc = this.state.cc;
             this.log = Core.getLogger();
         end
         
@@ -553,5 +555,6 @@ classdef Network < handle
             end
             fclose(fid);
         end
+        
     end
 end
