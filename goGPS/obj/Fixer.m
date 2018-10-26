@@ -20,7 +20,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:                    Andrea Gatti
-%  On the basis of the work of:   Andrea Nardo
+%  On the basis of the work of:   Andrea Nardo, 
 %  Contributors:                  Eugenio Realini and Hendy F. Suhandri
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -104,7 +104,7 @@ classdef Fixer < handle
                     if is_fixed
                         is_fixed = is_fixed + ~all(amb_ok);
                     end
-                    l_fixed   = rem(amb_fixed,1) < 1e-5;
+                    l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
                     catch
                         log = Logger.getInstance();
                         log.addError('LAMBDA fixing crashed, keeping float solution');

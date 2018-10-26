@@ -1137,7 +1137,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % subtract median (clock error)
             %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'),2,'omitnan'),5, 'omitnan')));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             
             % first rough out detection ------------------------------------------------------------------
@@ -1166,7 +1166,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % recompute dt and sensor_ph
             sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             
             % --------------------------------------------------------------------------------------------
@@ -1206,7 +1206,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 der = 1; % use first
             end
             
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph,5),2,'omitnan'),5)));
+            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -1242,7 +1242,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % subtract median
-            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, movmean(median(movmedian(sensor_ph_cs,5),2,'omitnan'),5));
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, nan2zero(movmean(median(movmedian(sensor_ph_cs, 5, 'omitnan'), 2, 'omitnan'), 5, 'omitnan')));
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs2, median(sensor_ph_cs2,'omitnan'));
             % divide for wavelength
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
@@ -3395,7 +3395,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             n_sat = size(res, 2);
-            tmp_ko = (abs(Core_Utils.diffAndPred(movmedian(nan2zero(mean(abs(zero2nan(res * 1e3)), 2, 'omitnan')), 7))) > 0.6);
+            tmp_ko = (abs(Core_Utils.diffAndPred(nan2zero(movmedian(mean(abs(zero2nan(res * 1e3)), 2, 'omitnan'), 7, 'omitnan')))) > 0.6);
 
             sensor = zero2nan(res * 1e3);
             
@@ -3420,9 +3420,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 flagged_data = this.flagArcOutliers(sensor, std_sensor(1), std_sensor(2));
             end
-            
+                        
             if level < 3
-                flagged_data = this.flagArcOutliers(sensor, this.state.pp_max_phase_err_thr * 1e3, this.state.pp_max_phase_err_thr * 1e3 * 0.8);
+                % check for bad std
+                % mark sat above a 2 std level (if the std level is greater than 8mm
+                id_ko = std(sensor, 1, 2, 'omitnan') > 6;
+                id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), 2*std(sensor,1,2,'omitnan'));
+
+                % mark outliers out of thr level
+                flagged_data = id_ko | this.flagArcOutliers(sensor, this.state.pp_max_phase_err_thr * 1e3, this.state.pp_max_phase_err_thr * 1e3 * 0.8);
+                flagged_data = flagMergeArcs(flagged_data | isnan(sensor), this.state.getMinArc) & ~isnan(sensor); % mark short arcs close to bad observations
 
                 % remove drifting
                 tmp_ko = find(tmp_ko);
