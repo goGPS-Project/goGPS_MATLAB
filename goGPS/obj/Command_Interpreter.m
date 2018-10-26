@@ -960,8 +960,8 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPPP(rec, tok)
-            rec.netPrePro();
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            rec(id_trg).netPrePro();
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else

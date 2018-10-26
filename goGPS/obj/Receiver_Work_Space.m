@@ -349,7 +349,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
             
             this.a_fix = [];
             this.s_rate = [];
@@ -674,6 +674,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     f_idx = find(f_lid);
                     if length(f_idx) > 1
                         trks = this.obs_code(f_idx,3);
+                        trks = unique(trks);
                         trks_pos = zeros(size(trks)); % position in tracking preferences
                         sys_c = this.system(f_idx(1));
                         ssystem = this.cc.getSys(sys_c);
@@ -691,6 +692,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
+            % delete only bad tracking that are not SNR or Doppler with empty mode
+            id_2_rm = setdiff(id_2_rm, find((this.obs_code(:,1) == 'S' | this.obs_code(:,1) == 'D') & this.obs_code(:, 3) == ' '));
             this.remObs(id_2_rm);
         end
         
@@ -6907,6 +6910,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.quality_info.n_obs = size(ls.epoch, 1);
             this.quality_info.n_sat = length(unique(ls.sat));
             this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs)); 
+            this.quality_info.fixing_ratio = 0; 
         end
         
         function [dpos, s0] = codeDynamicPositioning(this, id_sync, cut_off)
@@ -7017,6 +7021,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_obs = size(ls.epoch, 1);
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
+                this.quality_info.fixing_ratio = 0; 
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
@@ -7389,7 +7394,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         case 8, ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
                     end
                     ls.Astack2Nstack();
-                    [x, res, s0] = ls.solve();
+                    [x, res, s0, l_fixed] = ls.solve();
                 end
                 this.id_sync = id_sync;
                 
@@ -7428,6 +7433,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_obs = size(ls.epoch, 1);
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
+                this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed); 
 
                 if s0 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))

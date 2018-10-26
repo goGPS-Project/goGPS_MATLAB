@@ -153,7 +153,7 @@ classdef Network < handle
                             ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                             ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                         end
-                        [x, res, s0, Cxx] = ls.solve;
+                        [x, res, s0, Cxx, l_fixed] = ls.solve;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
                         
@@ -229,7 +229,7 @@ classdef Network < handle
                             coo_old(i,:) =  this.rec_list(i).work.xyz;
                         end
                     end
-                    this.pushBackInReceiver(s0, res, ls);
+                    this.pushBackInReceiver(s0, res, ls, l_fixed);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -458,7 +458,7 @@ classdef Network < handle
             end
         end
         
-        function pushBackInReceiver(this, s0, res, ls)
+        function pushBackInReceiver(this, s0, res, ls, l_fixed)
             n_rec = length(this.rec_list);
             
             % --- push back the results in the receivers
@@ -487,7 +487,8 @@ classdef Network < handle
                 this.rec_list(i).work.quality_info.n_obs = size(ls.epoch, 1);
                 this.rec_list(i).work.quality_info.n_sat = length(unique(ls.sat));
                 this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), max(ls.epoch)));
-
+                this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100; 
+                
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
                 this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);

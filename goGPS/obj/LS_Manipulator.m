@@ -1171,7 +1171,9 @@ classdef LS_Manipulator < handle
         end
         
         %------------------------------------------------------------------------
-        function [x, res, s0, Cxx] = solve(this)
+        function [x, res, s0, Cxx, l_fixed] = solve(this)
+            l_fixed = 0;
+            
             % if N_ep if empty call A
             if isempty(this.N_ep)
                 this.Astack2Nstack();

@@ -408,6 +408,7 @@ classdef Receiver_Output < Receiver_Commons
                 this.quality_info.n_obs     = Core_Utils.injectData(this.quality_info.n_obs, rec_work.quality_info.n_obs, idx1, idx2, [data_len, 1]);
                 this.quality_info.n_sat     = Core_Utils.injectData(this.quality_info.n_sat, rec_work.quality_info.n_sat, idx1, idx2, [data_len, 1]);
                 this.quality_info.n_sat_max = Core_Utils.injectData(this.quality_info.n_sat_max, rec_work.quality_info.n_sat_max, idx1, idx2, [data_len, 1]);
+                this.quality_info.fixing_ratio = Core_Utils.injectData(this.quality_info.fixing_ratio, rec_work.quality_info.fixing_ratio, idx1, idx2, [data_len, 1]);
                 
                 % reset the old  complete id_sync
                 rec_work.id_sync = id_sync_old;
@@ -474,7 +475,7 @@ classdef Receiver_Output < Receiver_Commons
                     else
                         is_empty_coo = false;
                     end
-                    for i = 1:length(rec_work.add_coo);
+                    for i = 1:length(rec_work.add_coo)
                         if is_empty_coo
                             this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
                             this.add_coo(i).rate = rec_work.add_coo(i).rate;

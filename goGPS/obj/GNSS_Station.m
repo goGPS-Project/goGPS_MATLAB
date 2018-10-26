@@ -156,8 +156,8 @@ classdef GNSS_Station < handle
                 
                 clear dt_red ph_red id_ph_red
                 for r = 1 : n_rec
-                    [dt_red{r}, ph_red{r}, id_ph_red{r}] = work_list(r).getReducedPhases();
                     work_list(r).keepBestTracking();
+                    [dt_red{r}, ph_red{r}, id_ph_red{r}] = work_list(r).getReducedPhases();
                     dt_red{r} = dt_red{r}(id_rsync(:, r), :);
                     ph_red{r} = bsxfun(@rdivide, ph_red{r}(id_rsync(:, r), :), work_list(r).wl(id_ph_red{r})');
                 end
