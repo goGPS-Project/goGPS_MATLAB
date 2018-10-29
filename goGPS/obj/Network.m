@@ -58,7 +58,7 @@ classdef Network < handle
         amb              % {n_rec} recievers ambiguity
         log
         pos_indexs_tc       % index for subpositions
-        idx_ref
+        id_ref
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
     end
@@ -93,32 +93,39 @@ classdef Network < handle
             this.ztd_ge = [];
             this.amb = [];
             this.pos_indexs_tc = [];
-            this.idx_ref = [];
+            this.id_ref = [];
         end
         
-        function adjust(this, idx_ref, coo_rate)
+        function adjust(this, id_ref, coo_rate)
             % Adjust the GNSS network
             %
             % INPUT
-            %     idx_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
+            %     id_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
             %
             % SYNATAX
-            %    this. adjustNetwork(idx_ref)
+            %    this. adjustNetwork(id_ref)
             if nargin < 3
                 coo_rate = [];
             end
             % set up the the network adjustment
-            if nargin < 2 || any(isnan(idx_ref))
-                idx_ref = 1 : numel(this);
+            if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
+                lid_ref = true(size(this.net_id));
+            else
+                % convert to logical
+                lid_ref = false(numel(this.rec_list),1);
+                [~, id_ref] = intersect(this.net_id, id_ref);
+                lid_ref(id_ref) = true;
             end
-            this.idx_ref = idx_ref;
+
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
                 if ~isempty(e)
                     this.rec_list(e) = [];
-                    idx_ref(idx_ref == e) = [];
+                    lid_ref(e) = [];
                 end
+                id_ref = find(lid_ref);
+                this.id_ref = id_ref;
                 
                 if this.state.getReweight() == 1
                     n_clean = 0;
@@ -126,7 +133,7 @@ classdef Network < handle
                     this.log.addMessage(this.log.indent('Network reweight perform only a simple outlier detection on the residuals'), 2);
                     n_clean = 3;
                 end
-                
+
                 while n_clean >= 0
                     ls = LS_Manipulator(this.rec_list(1).cc);
                     
@@ -226,7 +233,7 @@ classdef Network < handle
                     % intilaize array for results
                     this.initOut(ls);
                     this.addAdjValues(x);
-                    this.changeReferenceFrame(idx_ref);
+                    this.changeReferenceFrame(id_ref);
                     this.addAprValues();
                     if this.state.flag_coo_rate
                         % save old apriori values to be used later
@@ -303,7 +310,7 @@ classdef Network < handle
                             this.initOut(ls);
                             if s0 < 0.02
                                 this.addAdjValues(x);
-                                this.changeReferenceFrame(idx_ref);
+                                this.changeReferenceFrame(id_ref);
                                 for k = 1 : n_rec
                                     % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
                                     n_coo_set = size(this.coo,3);
@@ -380,16 +387,16 @@ classdef Network < handle
             end
         end
         
-        function changeReferenceFrame(this, idx_ref)
-            n_rec = length(this.rec_list);
+        function changeReferenceFrame(this, id_ref)
+            n_rec = length(this.rec_list); 
             n_time = this.common_time.length;
             % ALL OF THIS MAKES NO SENSE TO ME (Andrea). Now it should ;) (Giulio)
             %--- transform the result in the desired free network
             
-            if ~isnan(idx_ref(1)) && ~(length(idx_ref) == 1 && idx_ref == 1)
+            if ~isnan(id_ref(1)) && ~(length(id_ref) == 1 && id_ref == 1)
                 
                 S = zeros(n_rec);
-                S(:, idx_ref) = - 1 / numel(idx_ref);
+                S(:, id_ref) = - 1 / numel(id_ref);
                 S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure
                 % it is the paramter itself  the mean of the reference paramter
                 % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
@@ -404,13 +411,13 @@ classdef Network < handle
                 % apply the S transform to the epochwise parameters
                 for i = 1 : n_time
                     id_present = ~isnan(this.clock(i,:));
-                    idx_ref_t = intersect(idx_ref, find(id_present));
-                    if isempty(idx_ref_t)
+                    id_ref_t = intersect(id_ref, find(id_present));
+                    if isempty(id_ref_t)
                         S = nan;
                     else
                         n_rec_t = sum(id_present);
                         S = zeros(n_rec_t);
-                        S(:,idx_ref) = - 1 / numel(idx_ref_t);
+                        S(:,id_ref) = - 1 / numel(id_ref_t);
                         S = S + eye(n_rec_t);
                     end
                     % clock
@@ -555,7 +562,7 @@ classdef Network < handle
             fprintf(fid,'NUM  STATION NAME           X (M)          Y (M)          Z (M)     FLAG\n\n');
             n_rec = length(this.rec_list);
             for i = 1 : n_rec
-                fprintf(fid,sprintf('%3d  %s              %13.5f  %13.5f  %13.5f    %s\n', i, upper(this.rec_list(i).getMarkerName4Ch), coo(i,:), iif(sum(this.idx_ref == i) > 0, 'F', 'P')));
+                fprintf(fid,sprintf('%3d  %s              %13.5f  %13.5f  %13.5f    %s\n', i, upper(this.rec_list(i).getMarkerName4Ch), coo(i,:), iif(sum(this.id_ref == i) > 0, 'F', 'P')));
             end
             fclose(fid);
         end

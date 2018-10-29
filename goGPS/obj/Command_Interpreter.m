@@ -970,7 +970,10 @@ classdef Command_Interpreter < handle
                 if ~found_ref
                     id_ref = id_trg; % Use all the receiver as mean reference
                 end
-                [~, id_ref] = intersect(id_trg, id_ref);
+                [id_ref] = intersect(id_trg, id_ref);
+                if isempty(id_ref)
+                    this.log.addWarning('No reference have been found, using the mean of the receiver for the computation');
+                end
                 net = this.core.getNetwork(id_trg, rec);
                 net.reset();
                 net.adjust(id_ref); 
