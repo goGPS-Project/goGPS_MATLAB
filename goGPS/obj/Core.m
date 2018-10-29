@@ -1083,9 +1083,9 @@ classdef Core < handle
             end
             % if not found
             if isempty(this.net)
-                this.net = Network(rec_list, rid);
+                this.net = Network(rec_list(rid), rid);
             else
-                this.net(end+1) = Network(rec_list, rid);
+                this.net(end+1) = Network(rec_list(rid), rid);
             end
             net = this.net(end);
         end
