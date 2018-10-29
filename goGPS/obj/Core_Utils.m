@@ -912,6 +912,96 @@ classdef Core_Utils < handle
             end
         end
         
+        function fb = estimateFracBias(obs_cy, cycle_slip)
+            % estimate the common factional bias to all the obesravtions
+            %
+            % SYNTAX:
+            %    fb = Network.estimateFracBias(obs_cy, cycle_slip)
+            amb_idx = Core_Utils.getAmbIdx(cycle_slip, obs_cy);
+            frac_cy = obs_cy;
+            n_arcs = max(amb_idx(:,end));
+            frac_b = zeros(n_arcs,1);
+            num_ep = zeros(n_arcs,1);
+            frac_b_mat = nan(size(obs_cy));
+            for i = 1 : n_arcs
+                idx_amb = amb_idx == i;
+                amb = floor(median(obs_cy(idx_amb),'omitnan'));%floor(strongMean(obs_cy(idx_amb),1, 0.95,2.5));
+                frac_cy(idx_amb) = frac_cy(idx_amb) - amb;
+                frac_b(i) = median(frac_cy(idx_amb),'omitnan'); %strongMean(frac_cy(idx_amb),1, 0.95,2.5);
+                num_ep(i) = sum(sum(idx_amb));
+                frac_b_mat(idx_amb) = frac_b(i);
+            end
+            frac_b_mat = frac_b_mat+0*obs_cy;
+            
+        end
+        
+        function fr_cy = circularMean(cycle, obs_weigth)
+            % estimate the mean for data over 0 -1
+            %
+            % SYNTAX:
+            %     fr_cy = Core_Utils.circularMean(cycle)
+            
+            % elimnate the nan
+            if nargin < 2
+                obs_weigth = ones(size(cycle));
+            end
+            idx_nan = isnan(cycle);
+            cycle(idx_nan) = [];
+            obs_weigth(idx_nan) = [];
+            cycle = cycle*2*pi;
+            % compute the unit vectors, take the mean and recompute the
+            % average
+            
+            unit = [cos(cycle) sin(cycle)];
+            obs_weigth = obs_weigth./ sum(obs_weigth);
+            mean_vec = [mean(unit(:,1) .* obs_weigth) mean(unit(:,2) .* obs_weigth)];
+            fr_cy = atan2(mean_vec(1), mean_vec(2))/(2*pi);
+            
+            
+        end
+        
+        function fr_cy = circularModedRobustMean(cycle)
+            % estimate a roubust mean mean for data over 0 -1 
+            %
+            % SYNTAX:
+            %     fr_cy = Core_Utils.circularModedRobustMean(cycle)
+            
+            % elimnate the nan
+            cycle(isnan(cycle)) = [];
+            mode_cy = mode(cycle);
+             
+            % center around the mode and then take the string(robust) mean
+            idx_inf = (cycle - mode_cy) < -0.5;
+            idx_sup = (cycle - mode_cy) > 0.5;
+            cycle(idx_inf) = cycle(idx_inf) +0.5;
+            cycle(idx_sup) = cycle(idx_sup) -0.5;
+            
+            fr_cy = strongMean(cycle,1,0.95,2.5);
+            
+        end
+        
+        function amb_idx = getAmbIdx(cycle_slip , obs)
+            % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation
+            %
+            % SYNTAX:
+            % this.getAmbIdx()
+            
+            amb_idx = ones(size(cycle_slip));
+            n_epochs = size(amb_idx,1);
+            n_stream = size(amb_idx,2);
+            for s = 1:n_stream
+                if s > 1
+                    amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
+                end
+                cs = find(cycle_slip(:, s) > 0)';
+                for c = cs
+                    amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
+                end
+            end
+            amb_idx = zero2nan(amb_idx .* (obs ~= 0));
+            amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
+        end
+        
         function createEmptyProject(base_dir, prj_name)
             % create empty config file
             %

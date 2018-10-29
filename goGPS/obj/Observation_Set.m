@@ -288,6 +288,25 @@ classdef Observation_Set < handle
             obs_cy = this.obs(:,idx) ./ repmat(this.wl(idx), size(this.obs,1),1);
         end
         
+        function amb_mat = getRoundedAmb(this, idx)
+            % Get the rounded cycle
+            %
+            % SYNTAX:
+            % obs_cy = this.getObsCy(<idx>)
+            if nargin < 2
+                idx = 1:length(this.wl);
+            end
+            obs_cy = this.getObsCy(idx);
+            amb_idx = this.getAmbIdx();
+            
+            amb_mat = nan(size(obs_cy));
+            for i = 1 : max(amb_idx(:,end))
+                idx_amb = amb_idx == i;
+                amb = round(mean(obs_cy(idx_amb),'omitnan'));
+                amb_mat(idx_amb) = amb;
+            end
+        end
+        
         function [p_time, id_sync] = getSyncTimeExpanded(obs_set_list, p_rate)
             % Get the common time among all the observation_sets
             %
@@ -412,20 +431,7 @@ classdef Observation_Set < handle
             % SYNTAX:
             % this.getAmbIdx()
             
-            amb_idx = ones(size(this.cycle_slip));
-            n_epochs = size(amb_idx,1);
-            n_stream = size(amb_idx,2);
-            for s = 1:n_stream
-                if s > 1
-                    amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
-                end
-                cs = find(this.cycle_slip(:, s) > 0)';
-                for c = cs
-                    amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
-                end
-            end
-            amb_idx = zero2nan(amb_idx .* (this.obs ~= 0));
-            amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
+            amb_idx = Core_Utils.getAmbIdx(this.cycle_slip, this.obs);
         end
         
         function arc_jmp_mat = getArcJmpMat(this, id_comm)
