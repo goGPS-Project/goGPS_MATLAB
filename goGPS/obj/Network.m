@@ -69,6 +69,10 @@ classdef Network < handle
             end
             this.net_id = net_id;
             this.rec_list = rec_list;
+            this.init();
+        end
+        
+        function init(this)
             this.state = Core.getState;
             this.cc = this.state.cc;
             this.log = Core.getLogger();
@@ -77,7 +81,7 @@ classdef Network < handle
         function reset(this)
             % clear the object keeping only its id and apriori info and the receivers
             %
-            % SYNTAX:
+            % SYNTAX
             %    this.reset()
             this.common_time = [];
             this.rec_time_indexes = [];
