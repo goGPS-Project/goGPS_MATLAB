@@ -471,7 +471,126 @@ classdef Network < handle
             end
         end
         
-        function pushBackInReceiver(this, s0, res, ls, l_fixed)
+        function estimateWB(this)
+            % estimate widelane satellite bias e and widelane receiver bias
+            % for a network
+            % NOTE: 
+            %    the bias willd dpend on what code bias have been applied
+            %    to observations so if code biases are changed 
+            % 
+            % SYNTAX: 
+            %      this.estimateWB()
+            
+            % firstly we define which widelane we seek to fix: once one
+            % independet set of widelane has been fixed all widelane can be
+            % fixed
+            % for all constallation we seek to fix the widelana and
+            % extrawidelane in the case of galileo and qzss are to be studied
+            % NOTE: frequency order specified in [const]_SS class
+            wide_laneM = {};
+            wide_laneM{1} = [ 1 -1 0; %% GPS
+                0  1 -1;];
+            wide_laneM{2} = [ 1 -1 0; %% GLONASS
+                0  1 -1;];
+            wide_laneM{3} = [ 1 -1  0  0 0; %% GALILEO
+                      0  1 0  0 -1;
+                      0  1  -1 0 0;
+                      0  0  1 -1 0; ] ;
+            wide_laneM{5} = [ 1 -1 0; %% BEIDOU
+                0  1 -1;];
+            wide_laneM{4} = [1 -1  0  0; % QZSS
+                     0  1 -1  0;
+                     0  0  1 -1] ;
+            
+            wide_laneM{6} = [1 -1]; %% IRNSS
+            wide_laneM{7} = [1-1]; %% SBAS
+            n_r = length(this.rec_list);
+            for sys_c = this.cc.getAvailableSys
+                sys_idx = this.cc.SYS_C == sys_c;
+                WM = wide_laneM{sys_idx}; %% get the right widelane matrix
+                n_sat = this.cc.getNumSat(sys_c);
+                for w = 1 : size(WM,2)
+                    sys_SS = this.cc.getSys(sys_c);
+                    b1 = sys_SS.CODE_RIN3_2BAND(WM(w,:) == 1);
+                    b2 = sys_SS.CODE_RIN3_2BAND(WM(w,:) == -1);
+                    has_frs = false(n_r,1);
+                    coderin3attr1 = sys_SS.CODE_RIN3_ATTRIB{WM(w,:) == 1};
+                    coderin3attr2 = sys_SS.CODE_RIN3_ATTRIB{WM(w,:) == -1};
+                    b1code_aval = false(n_r,n_sat, length(coderin3attr1));
+                    b2code_aval = false(n_r,n_sat, length(coderin3attr2));
+                    for r = 1 : n_r
+                        % check wether both frequency are available 
+                        rec = this.rec_list(r).work;
+                        has_fr = sum(strLineMatch(rec.obs_code(:,1:2),['L' b1])) > 0 & sum(strLineMatch(rec.obs_code(:,1:2),['L' b2])) & sum(strLineMatch(rec.obs_code(:,1:2),['C' b1]))& sum(strLineMatch(rec.obs_code(:,1:2),['C' b2]));
+                        has_frs(r) = has_fr;
+                        if has_fr
+                            % get all code for each reciever for each
+                            % satellite for both frequency ordered by best noise (NOTE: there is
+                            % a repeptiton here since frequency are checked
+                            % multiple times, once everything works it is
+                            % going to be inporved)
+                            for s = 1:n_sat
+                                idx_s = rec.obs_code(:,1) == 'C' & rec.prn == s & rec.system' == sys_c;
+                                idx_sb1 = idx_s & rec.obs_code(:,2) == b1;
+                                idx_sb2 = idx_s & rec.obs_code(:,2) == b2;
+                                track_code_b1 = rec.obs_code(idx_sb1,3);
+                                track_code_b2 = rec.obs_code(idx_sb2,3);
+                                for t = 1 : length(track_code_b1)
+                                    b1code_aval(r,s,coderin3attr1 == track_code_b1(t)) = true;
+                                end
+                                for t = 1 : length(track_code_b2)
+                                    b2code_aval(r,s,coderin3attr2 == track_code_b2(t)) = true;
+                                end
+                            end
+                        end
+                    end
+                    % remove satellites and receiver that doe not have the
+                    % frequency
+                    full_rec_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,2) > 0; 
+                    full_sat_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,1) > 0; 
+                    b1code_aval(~full_rec_lid,:,:) = [];
+                    b2code_aval(~full_rec_lid,:,:) = [];
+                    b1code_aval(:,~full_sat_lid,:) = [];
+                    b2code_aval(:,~full_sat_lid,:) = [];
+                    % remove code that are not observed by more than one
+                    % receiver
+                    nt2cb1 = sum(sum(squeeze(sum(b1code_aval,1)>1)),1)> 0; 
+                    nt2cb2 = sum(sum(squeeze(sum(b2code_aval,1)>1)),1)> 0; 
+                    b1code_aval(:,:,~nt2cb1) = [];
+                    b2code_aval(:,:,~nt2cb2) = [];
+                    % Now set up the least squares system
+                    
+                    
+                    % now we have to align all the codes so when we average
+                    % them we do not have different bias
+                    
+                      
+                        % if the best code for different receiver is not
+                        % the same check wether the differential code
+                        % bias can be estimated from the other receiver
+                        
+                        % if they can be estimated apply the bias 
+                        
+                        % solve the widelane cycle slip
+                        
+                        % the esttimate the fractional bias 
+                        
+                        % we are all very happy
+                        end
+                        
+                    for r = 1 : length(this.rec_list)
+                        % get the phase widelane
+                        this.rec_list(r).getLin
+                    end
+                end
+        end
+        
+      
+            
+  
+       
+        
+        function pushBackInReceiver(this, s0, res)
             n_rec = length(this.rec_list);
             
             % --- push back the results in the receivers

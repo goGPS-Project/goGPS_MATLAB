@@ -7438,7 +7438,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_obs = size(ls.epoch, 1);
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
-                this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed); 
+                if this.state.flag_amb_fix
+                    this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
+                end
 
                 if s0 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
