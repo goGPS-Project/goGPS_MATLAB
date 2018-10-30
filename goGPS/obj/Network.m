@@ -117,6 +117,7 @@ classdef Network < handle
                 lid_ref(id_ref) = true;
             end
 
+            l_fixed = 0; % nothing is fixed
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
@@ -584,13 +585,22 @@ classdef Network < handle
                     end
                 end
         end
-        
-      
+         
+        function pushBackInReceiver(this, s0, res, ls, l_fixed)
+            % Save in work the results computed by the network object
+            %
+            % INPUT 
+            %   s0          sigma of the solution
+            %   res         all the residuals
+            %   ls          Least Squares solver object
+            %   l_fixed     array of flag for the fixed ambiguities
+            %
+            % SYNTAX           
+            %    this = pushBackInReceiver(s0, res, l_fixed)
             
-  
-       
-        
-        function pushBackInReceiver(this, s0, res)
+            if nargin < 5
+                l_fixed = 0;
+            end
             n_rec = length(this.rec_list);
             
             % --- push back the results in the receivers
