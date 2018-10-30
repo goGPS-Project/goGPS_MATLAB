@@ -674,14 +674,21 @@ classdef LS_Manipulator < handle
             sanitized = false;
             while ~sanitized
                 % remove short arcs and remove "empty" satellites
+                [~, id_sync] = obs_set_list.getSyncTimeExpanded();
+                id_ko = sum(~isnan(id_sync),2) < 2;
                 for r = 1 : n_rec
+                    lid_ko_rec = false(obs_set_list(r).time.length, 1);
+                    lid_ko_rec(noNaN(id_sync(id_ko, r))) = true;
+                    obs_set_list(r).remEpochs(lid_ko_rec);
                     obs_set_list(r).remShortArc(max(this.state.getMinArc, 1));
                     obs_set_list(r).sanitizeEmpty();
                 end
+                
                 [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
+                
                 % remove satellites arcs seen only by one receiver and sigle epochs arcs
                 common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
-                
+                                
                 id_rm = sum(~isnan(common_obs_mat),3) == 1;
                 valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
                 for i = 1 : size(id_rm,2)
@@ -780,15 +787,7 @@ classdef LS_Manipulator < handle
             this.receiver_id = r;
             this.sat_jmp_idx = sat_jmp_idx;
             
-            this.network_solution = true;   
-            
-            
-            % remove ambiguity fixed previously
-            if this.state.flag_amb_pass
-                for i = 1 : n_rec
-                end
-            end
-            
+            this.network_solution = true;
         end
         
         function changePosIdx(this, r_id, pos_idx)
