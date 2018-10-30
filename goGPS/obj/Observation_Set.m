@@ -195,34 +195,34 @@ classdef Observation_Set < handle
             this.remEmptyColumns();
         end
         
-        function remEpochs(this, idx_rem)
+        function remEpochs(this, lid_rem)
             % Remove obseravtions at desidered epoch
             %
             % SYNTAX
             %     this.remEpochs(idx)
             %
             
-            if sum(idx_rem) > 0
-                this.obs(idx_rem,:) = [];
+            if sum(lid_rem) > 0
+                this.obs(lid_rem,:) = [];
                 if ~isempty(this.el)
-                    this.el(idx_rem,:) = [];
+                    this.el(lid_rem,:) = [];
                 end
                 if ~isempty(this.az)
-                    this.az(idx_rem,:) = [];
+                    this.az(lid_rem,:) = [];
                 end
-                this.snr(idx_rem,:) = [];
+                this.snr(lid_rem,:) = [];
                 
-                lim = getOutliers(idx_rem);
-                if lim(end) == numel(idx_rem)
+                lim = getOutliers(lid_rem);
+                if lim(end) == numel(lid_rem)
                     lim(end,:) = [];
                 end
                 lim(:,2) = lim(:,2) + 1;
                 for l = 1 : size(lim, 1)
                     this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
                 end
-                this.cycle_slip(idx_rem,:) = [];
+                this.cycle_slip(lid_rem,:) = [];
                                 
-                this.time = this.time.getSubSet(~idx_rem);
+                this.time = this.time.getSubSet(~lid_rem);
             end
         end
         

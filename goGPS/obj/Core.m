@@ -445,9 +445,16 @@ classdef Core < handle
             this.log.setColorMode(c_mode);
         end        
         
-        function activateParallelWorkers(this)
+        function activateParallelWorkers(this, id_rec2pass)
+            % Call the activation of the receivers
+            %
+            % INPUT
+            %   id_rec2pass     id of the work receiver to broadcast to the receivers
+            %
+            % SYNTAX
+            %   this.activateParallelWorkers(id_rec2pass)
             this.gom = Parallel_Manager.getInstance;
-            this.gom.activateWorkers();
+            this.gom.activateWorkers(id_rec2pass);
         end
     end
     

@@ -412,7 +412,7 @@ classdef Command_Interpreter < handle
             this.KEY_PAR.name = {'PAR', 'par'};
             this.KEY_PAR.descr = ['Parallel section start (run on targets)' new_line 'use T$ as target in this section'];
             this.KEY_PAR.rec = '';
-            this.KEY_PAR.key = 'T';
+            this.KEY_PAR.key = 'TP';
             this.KEY_PAR.par = [];
 
             this.KEY_ENDFOR.name = {'ENDFOR', 'END_FOR', 'end_for'};
@@ -607,7 +607,12 @@ classdef Command_Interpreter < handle
                 
                 % Init parallel controller when a parallel section is found
                 switch tok{1}
-                    case this.KEY_PAR.name, this.core.activateParallelWorkers();
+                    case this.KEY_PAR.name 
+                        [id_pass, found] = this.getMatchingRec(rec, tok, 'P');
+                        if ~found
+                            id_pass = [];
+                        end
+                        this.core.activateParallelWorkers(id_pass);
                 end
                 
                 n_workers = 0;

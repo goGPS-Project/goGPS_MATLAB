@@ -105,7 +105,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         % FLAGS ------------------------------
         
-        ph_idx             % idx of outlier and cycle slip in obs
+        ph_idx             % idx of outlier and cycle slip in obs, 
+                           % corresponding index in .obs of the columns of outlier and cs in .sat
         
         if_amb;            % temporary varibale to test PPP ambiguity fixing
     end
@@ -186,11 +187,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.cc = this.state.cc;
             end
             this.rec_settings = Receiver_Settings();
-            this.initHandles();
             this.reset();
         end
         
         function reset(this)
+            this.initHandles();
+            
             this.reset@Receiver_Commons();
             this.resetObs();
             this.initR2S(); % restore handle to core_sky singleton
@@ -283,6 +285,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function resetWorkSpace(this,append)
+            this.initHandles();
             if nargin < 2
                 append = false;
             end
@@ -454,6 +457,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.appendRinex(rin_list.getFileName(i),time_start, time_stop, rate)
             end
+            if ~this.isEmpty
+                this.setActiveSys(this.getAvailableSys);
+            end
         end
         
         function appendRinex(this, rinex_file_name, time_start, time_stop, rate)
@@ -596,12 +602,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             id_out = [];
             for i = 1 : numel(id_obs)
-                id_out = [id_out, find(this.ph_idx == id_obs(i))];                 %#ok<AGROW>
+                id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
             end
-            tmp = false(max(this.ph_idx), 1);
-            tmp(this.ph_idx) = true;
-            tmp(id_out) = false;
-            this.ph_idx = find(tmp);
+            if ~isempty(this.ph_idx)
+                tmp = false(max(this.ph_idx), 1);
+                tmp(this.ph_idx) = true;
+                tmp(id_out) = false;
+                tmp(id_obs) = [];
+                this.ph_idx = find(tmp);
+            end
             
             % try to remove observables from other precomputed properties of the object
             if ~isempty(this.synt_ph)
@@ -671,35 +680,66 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             %   this.keepBestTracking()
             id_2_rm = []; % id to be removed
+            obs_code = this.getAvailableObsCode();
             for s = 1 : this.getMaxSat()
                 os_idx = this.go_id == s;
-                fs = unique(this.obs_code(os_idx,2))';
-                for f = fs
+                freq = unique(this.obs_code(os_idx,2))';
+                for f = freq
                     f_lid = this.obs_code(:,2) == f & os_idx;
-                    f_idx = find(f_lid);
-                    if length(f_idx) > 1
-                        trks = this.obs_code(f_idx,3);
+                    f_id = find(f_lid);
+                    
+                    pr_id = this.obs_code(f_id,1) == 'C';
+                    ph_id = this.obs_code(f_id,1) == 'L';
+                    dp_id = this.obs_code(f_id,1) == 'D';
+                    snr_id = this.obs_code(f_id,1) == 'S';
+                    
+                    % CODE ----------------------------------------------------------------------------------------------
+                    if sum(pr_id) > 1
+                        % I have more tracking for the current freq of the current sat
+                        trks = this.obs_code(f_id(pr_id), 3);
                         trks = unique(trks);
                         trks_pos = zeros(size(trks)); % position in tracking preferences
-                        sys_c = this.system(f_idx(1));
+                        sys_c = this.system(f_id(1));
                         ssystem = this.cc.getSys(sys_c);
                         for t = 1 : length(trks)
                             trk = trks(t);
                             trks_pos(t) = find(ssystem.CODE_RIN3_ATTRIB{ssystem.CODE_RIN3_2BAND == f} == trk);
-                        end  
-                        best_trk =  min(trks_pos); % best tracking
-                        for t = 1 : length(trks)
-                            if best_trk ~=  trks_pos(t)
-                                id_2_rm = [id_2_rm ; find(this.obs_code(:,3) == trks(t) & f_lid)];
-                            end
                         end
-                        
+                        best_trk =  min(trks_pos); % best tracking
+                        best_trk_pr = trks(best_trk);
+                    else
+                        best_trk_pr = this.obs_code(f_id(pr_id), 3);
                     end
+                    
+                    % PHASE ---------------------------------------------------------------------------------------------
+                    if sum(ph_id) > 1
+                        % I have more tracking for the current freq of the current sat
+                        trks = this.obs_code(f_id(ph_id), 3);
+                        trks = unique(trks);
+                        trks_pos = zeros(size(trks)); % position in tracking preferences
+                        sys_c = this.system(f_id(1));
+                        ssystem = this.cc.getSys(sys_c);
+                        for t = 1 : length(trks)
+                            trk = trks(t);
+                            trks_pos(t) = find(ssystem.CODE_RIN3_ATTRIB{ssystem.CODE_RIN3_2BAND == f} == trk);
+                        end
+                        best_trk =  min(trks_pos); % best tracking
+                        best_trk_ph = trks(best_trk);
+                    else
+                        best_trk_ph = this.obs_code(f_id(ph_id), 3);
+                    end
+                    
+                    % find obs to be removed ----------------------------------------------------------------------------
+                    id_2_rm = [id_2_rm; find((this.obs_code(:,1) == 'C' & this.obs_code(:,3) ~= best_trk_pr & f_lid) ...
+                        | (this.obs_code(:,1) == 'L' & this.obs_code(:,3) ~= best_trk_ph & f_lid) ...
+                        | ((this.obs_code(:,1) == 'S' | this.obs_code(:,1) == 'D') & (this.obs_code(:, 3) ~= best_trk_pr & this.obs_code(:, 3) ~= best_trk_ph & this.obs_code(:, 3) ~= ' ') & f_lid))];
                 end
             end
             % delete only bad tracking that are not SNR or Doppler with empty mode
             id_2_rm = setdiff(id_2_rm, find((this.obs_code(:,1) == 'S' | this.obs_code(:,1) == 'D') & this.obs_code(:, 3) == ' '));
-            this.remObs(id_2_rm);
+            if ~isempty(id_2_rm)
+                this.remObs(id_2_rm);
+            end
         end
         
         function keep(this, rate, sys_list)
@@ -1130,7 +1170,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % mark all as outlier and interpolate
             % get observed values
-            [ph, wl, id_ph_l] = this.getPhases;
+            [ph, wl, lid_ph] = this.getPhases;
             this.sat.outlier_idx_ph = false(size(ph));
             this.sat.cycle_slip_idx_ph = false(size(ph));
             
@@ -1286,7 +1326,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
-            this.ph_idx = find(id_ph_l);
+            this.ph_idx = find(lid_ph);
             %-------------------------------------------------------
             % MELBOURNE WUBBENA based cycle slip detection
             %--------------------------------------------------------
@@ -1650,7 +1690,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
-                this.setActiveSys(this.getAvailableSys);
             end
         end
         
@@ -2084,7 +2123,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system = [];
                 this.f_id = [];
                 this.wl = [];
-                ss_id = find(this.cc.active_list);
+                ss_id = find(this.cc.getActive);
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
@@ -3938,10 +3977,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 flags = zeros(length(prn)*n_opt,3);
                 for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on different lines)
-                    sat_idx = sys_idx & this.prn==prn(s);
+                    sat_idx = sys_idx & this.prn == prn(s);
                     
                     tmp_obs = zeros(n_opt,n_epochs);
-                    take_idx = ones(1,n_epochs)>0;
+                    take_idx = ones(1,n_epochs) > 0;
                     for i = 1 : n_opt
                         c_idx = idxes(:, i) & sat_idx;
                         snr_idx = (strLineMatch(this.obs_code, ['S' complete_flags(i,2:3)]) | strLineMatch(this.obs_code, ['S' complete_flags(i,2) ' '])  ) & sat_idx;
@@ -3952,7 +3991,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             else
                                 snr((s-1)*n_opt+i,take_idx) = 1;
                             end
-                            if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L'% take off outlier
+                            if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L' % take off outlier
                                 ph_idx = this.ph_idx == find(c_idx);
                                 obs((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
                                 snr((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
@@ -7386,7 +7425,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
-                [x, res, s0] = ls.solve();
+                [x, res, s0, ~, l_fixed] = ls.solve();
                 % REWEIGHT ON RESIDUALS
                 if this.state.reweight_mode > 1
                     switch this.state.reweight_mode
@@ -7399,7 +7438,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         case 8, ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
                     end
                     ls.Astack2Nstack();
-                    [x, res, s0, l_fixed] = ls.solve();
+                    [x, res, s0, ~, l_fixed] = ls.solve();
                 end
                 this.id_sync = id_sync;
                 
