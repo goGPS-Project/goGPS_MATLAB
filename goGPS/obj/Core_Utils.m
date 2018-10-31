@@ -912,7 +912,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function fb = estimateFracBias(obs_cy, cycle_slip)
+        function [fb, frac_b_mat]= estimateFracBias(obs_cy, cycle_slip)
             % estimate the common factional bias to all the obesravtions
             %
             % SYNTAX:
@@ -925,14 +925,23 @@ classdef Core_Utils < handle
             frac_b_mat = nan(size(obs_cy));
             for i = 1 : n_arcs
                 idx_amb = amb_idx == i;
-                amb = floor(median(obs_cy(idx_amb),'omitnan'));%floor(strongMean(obs_cy(idx_amb),1, 0.95,2.5));
+                amb = round(median(obs_cy(idx_amb),'omitnan'));%floor(strongMean(obs_cy(idx_amb),1, 0.95,2.5));
                 frac_cy(idx_amb) = frac_cy(idx_amb) - amb;
                 frac_b(i) = median(frac_cy(idx_amb),'omitnan'); %strongMean(frac_cy(idx_amb),1, 0.95,2.5);
                 num_ep(i) = sum(sum(idx_amb));
                 frac_b_mat(idx_amb) = frac_b(i);
             end
             frac_b_mat = frac_b_mat+0*obs_cy;
-            
+            fb = Core_Utils.circularModedRobustMean(frac_b_mat(:));
+            frac_cy = nan(size(obs_cy));
+            frac_b_mat = nan(size(obs_cy));
+            for i = 1 : n_arcs
+                idx_amb = amb_idx == i;
+                amb = round(median(obs_cy(idx_amb) - fb,'omitnan'));%floor(strongMean(obs_cy(idx_amb),1, 0.95,2.5));
+                frac_cy(idx_amb) = obs_cy(idx_amb) - amb - fb;
+                frac_b_mat(idx_amb) = amb;
+            end
+            fb = fb + strongMean(frac_cy(:),1, 0.90,2.5);
         end
         
         function fr_cy = circularMean(cycle, obs_weigth)
