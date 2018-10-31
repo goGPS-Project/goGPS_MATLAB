@@ -1084,6 +1084,8 @@ classdef Core < handle
             end
             for i = 1: length(this.net)
                 if Core_Utils.permutedEqual(this.net(i).net_id,rid)
+                    % Update rec_list
+                    this.net(i).rec_list = rec_list(this.net(i).net_id); 
                     net = this.net(i);
                     return
                 end

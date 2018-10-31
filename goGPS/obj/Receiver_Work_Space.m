@@ -3451,7 +3451,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             very_ko = sensor >= max(50, perc(abs(sensor(abs(nan2zero(sensor)) > 50)), 0.9));
             if nargin < 4
-                if sum(very_ko(:)) == 0 || level < 2
+                if sum(very_ko(:)) == 0 || level < 3
                    std_sensor = [5 2.5] .* max(3, median(std(sensor, 'omitnan'), 'omitnan'));
                 end
             else

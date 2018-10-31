@@ -194,6 +194,7 @@ classdef GNSS_Station < handle
                         all_ph_red(:, sid, r) = zero2nan(ph_red{r}(:, id_red));
                         tmp = Core_Utils.diffAndPred(all_ph_red(:, sid, r));
                         tmp = bsxfun(@minus, tmp, strongMean(tmp,0.95, 0.95, 2));
+                        tmp(work_list(r).sat.outlier_idx_ph(id_rsync(:, r),:) | work_list(r).sat.cycle_slip_idx_ph(id_rsync(:, r),:)) = nan;
                         all_dph_red(r, :, sid) = zero2nan(permute(tmp, [3 1 2]));
                     end
                     
@@ -223,7 +224,7 @@ classdef GNSS_Station < handle
                             
                             sid = p_list + numel(prn_list) * (b_list - 1);
                             
-                            sensor = (squeeze(all_dph_red(r,:,sid)) - ct(:, sid)) > 0.1;
+                            sensor = abs((squeeze(all_dph_red(r,:,sid)) - ct(:, sid))  .* (abs(ct(:, sid)) > 0)) > 0.1;
                             
                             % V0
                             % id_ph = work_list(r).findObservableByFlag('L', sys_c);
@@ -1612,11 +1613,11 @@ classdef GNSS_Station < handle
             if (nargin < 3) || isempty(plot_relative_variation)
                 plot_relative_variation = true;
             end
-            
-            % remove empty receivers
-            sta_list = sta_list(~sta_list.isEmpty_mr);
-            
+                        
             if nargin < 2 || isempty(baseline_ids)
+                % remove empty receivers
+                sta_list = sta_list(~sta_list.isEmpty_mr);
+                
                 n_rec = numel(sta_list);
                 baseline_ids = GNSS_Station.getBaselineId(n_rec);
             end

@@ -238,6 +238,7 @@ classdef Go_Slave < Com_Interface
                         if ~isempty(msg) && ~isnumeric(msg)
                             % I received a rec_list to load
                             rec_pass = load(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
+                            this.log.addMarkedMessage('Passed receiver have been read');
                         end
                         this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
                         this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
