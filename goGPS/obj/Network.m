@@ -687,4 +687,67 @@ classdef Network < handle
         end
         
     end
+    methods (Static)
+        function [rec_wb, sat_wb, wl_amb_mat, go_ids] = estimateWideLaneAndBias(mel_wub_cell)
+            % estiamet the wodelanes and their biases
+            %
+            % SYNTAX:
+            %    [rec_wb, sat_wb, wl_amb_mat] = Network.estimateWideLaneAndBias(mel_wub_cell)
+            
+            % get the common sat idx
+            go_ids = [];
+            n_rec = length(mel_wub_cell);
+            for r = 1 : n_rec
+                go_ids = [go_ids mel_wub_cell(r).go_id];
+            end
+            [occurreces, go_ids ]=hist(go_ids,unique(go_ids));
+            go_ids(occurreces <2) = [];
+            % estimate the widelane satelite bias form the first available
+            % receiver
+            n_sat =  length(go_ids);
+            sat_wb = nan(1,n_sat);
+            sat_wb_r_id = zeros(1, n_sat); % using which receiver the bias has been calculated 
+            for s = 1 : length(go_ids)
+                go_id = go_ids(s);
+                found = false;
+                r = 1;
+                while ~found && r <= n_rec
+                    idx_s = mel_wub_cell(r).go_id == go_id;
+                    if sum(idx_s) >0
+                        found = true;
+                         sat_wb(s) = Core_Utils.estimateFracBias(mel_wub_cell(r).getObsCy(find(idx_s)), mel_wub_cell(r).cycle_slip(:,idx_s));
+                         sat_wb_r_id(s) = r;
+                    end
+                    r = r +1;
+                end
+            end
+            rec_wb = zeros(1, n_rec);
+            for r = 1 : n_rec
+                % eliminate the satellites that has been used to compute
+                % the satellite bias
+                to_eliminate_sat = sat_wb_r_id == r;
+                [~,rec_gi_idx] = intersect(mel_wub_cell(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
+                if ~isempty(rec_gi_idx)  
+                     rec_wb(r) = Core_Utils.estimateFracBias(mel_wub_cell(r).getObsCy(rec_gi_idx) - repmat(sat_wb(~to_eliminate_sat),mel_wub_cell(r).time.length,1), mel_wub_cell(r).cycle_slip(:,rec_gi_idx));
+                     % update the satellite bias knpwing the receiver one 
+                     if sum(to_eliminate_sat) > 0
+                         for s = find(to_eliminate_sat)
+                             go_id = go_ids(s);
+                             idx_s = mel_wub_cell(r).go_id == go_id;
+                             sat_wb(s) = sat_wb(s) - rec_wb(r);
+                         end
+                     end
+                end
+            end
+            wl_amb_mat = {};
+            % final estamiation of the widelane
+            for r = 1 : n_rec
+                cy = mel_wub_cell(r).getObsCy;
+                 [~,rec_gi_idx] = intersect(go_ids, mel_wub_cell(r).go_id ); %idx of the go id in the obervation set
+                cy = zero2nan(cy) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_cell(r).time.length,1);
+                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_cell(r).cycle_slip);
+            end
+        end
+        
+    end
 end
