@@ -615,7 +615,7 @@ classdef Command_Interpreter < handle
                 this.log.newLine();
                 this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
                 t1 = tic;
-                this.log.starSeparator();
+                this.log.simpleSeparator([], [0.4 0.4 0.4]);
                 
                 % Init parallel controller when a parallel section is found
                 switch tok{1}
@@ -712,9 +712,9 @@ classdef Command_Interpreter < handle
                 end
             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
-                this.log.addMessage(this.log.indent('------------------------------------------------'));
+                this.log.addMessage(this.log.indent('--------------------------------------------------'));
                 this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
-                this.log.addMessage(this.log.indent('------------------------------------------------'));
+                this.log.addMessage(this.log.indent('--------------------------------------------------'));
             end
         end
     end

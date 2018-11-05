@@ -147,7 +147,6 @@ classdef GNSS_Station < handle
             work_list = [rec_list(~rec_list.isEmptyWork_mr).work];
             if numel(work_list) > 1 && (show_fig || out_det)
                 
-                
                 [~, id_rsync] = Receiver_Commons.getSyncTimeExpanded(work_list);
                 id_rsync(any(isnan(zero2nan(id_rsync)')), :) = [];
                 
@@ -337,6 +336,25 @@ classdef GNSS_Station < handle
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
+        end
+        
+        function printStationList(rec_list)
+            % Given a marker_name get the sequencial id of a station
+            %
+            % SYNTAX
+            %   id = findStationId(this, marker_name)
+            log = Logger.getInstance();
+            if numel(rec_list) > 0
+                log.addMessage('List of available stations:');
+                for r = 1 : numel(rec_list)
+                    try
+                        log.addMessage(sprintf('%4d) %s', r, char(rec_list(r).getMarkerName)));
+                        marker4ch_list
+                    catch
+                        % the name is shorter or missing => ignore
+                    end
+                end
+            end
         end
         
         function req_rec = get(rec_list, marker_name)

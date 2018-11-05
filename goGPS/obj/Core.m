@@ -604,7 +604,7 @@ classdef Core < handle
                     end
                     
                     this.log.newLine;
-                    this.log.simpleSeparator();
+                    this.log.simpleSeparator([], 'Green');
                     if ~isempty(sessions)
                         this.log.addMessage(sprintf('End of session loop from %d to %d in %.3f seconds', sessions(1), sessions(end), toc(t1)));
                     end

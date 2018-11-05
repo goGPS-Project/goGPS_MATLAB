@@ -3442,17 +3442,23 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             n_sat = size(res, 2);
+            % median value above 6 cm
             tmp_ko = (abs(Core_Utils.diffAndPred(nan2zero(movmedian(mean(abs(zero2nan(res * 1e3)), 2, 'omitnan'), 7, 'omitnan')))) > 0.6);
 
-            sensor = zero2nan(res * 1e3);
-            
+            % remove possible local biases due to bad satellites
+            sensor = zero2nan(res * 1e3);            
             starting_bias = nan2zero(median((sensor(1:find(tmp_ko, 1, 'first'), :)), 'omitnan'));
-            tmp_jmp = cumsum(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat))) .* ~isnan(zero2nan(sensor)) + repmat(starting_bias, size(sensor, 1), 1);
+            tmp_jmp = cumsum(nan2zero(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat)))) .* ~isnan(zero2nan(sensor)) + repmat(starting_bias, size(sensor, 1), 1);
             
-            very_ko = sensor >= max(50, perc(abs(sensor(abs(nan2zero(sensor)) > 50)), 0.9));
             if nargin < 4
-                if sum(very_ko(:)) == 0 || level < 3
-                   std_sensor = [5 2.5] .* max(3, median(std(sensor, 'omitnan'), 'omitnan'));
+                % flag outliers above 5cm
+                very_ko = sensor >= max(50, perc(abs(sensor(abs(nan2zero(sensor)) > 50)), 0.9));
+                if sum(very_ko(:)) == 0
+                    std_sensor = [5 2.5] .* max(3, median(std(sensor, 'omitnan'), 'omitnan'));
+                else
+                    tmp = sensor;
+                    tmp(very_ko) = nan;
+                    std_sensor = [5 2.5] .* max(3, median(std(tmp, 'omitnan'), 'omitnan'));
                 end
             else
                 very_ko = 0;
@@ -3462,6 +3468,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     std_sensor = thr(1:2);
                 end
             end
+            % Find outlier and follow the arc
             if sum(very_ko(:)) > 0 && level >= 2
                 flagged_data = very_ko;
             else
@@ -3471,7 +3478,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if level < 3
                 % check for bad std
                 % mark sat above a 2 std level (if the std level is greater than 8mm
-                id_ko = std(sensor, 1, 2, 'omitnan') > 6;
+                id_ko = std(sensor, 1, 2, 'omitnan') > 6 & abs(sensor) > 10;
                 id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), 2*std(sensor,1,2,'omitnan'));
 
                 % mark outliers out of thr level
@@ -3499,8 +3506,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             tmp_jmp(id, s) = iif(abs(med_tmp) > abs(cur_tmp), cur_tmp, med_tmp);
                         end
                     end
-                end
-                
+                end                
                 sensor = sensor - tmp_jmp;
                 
                 % remove slow movements

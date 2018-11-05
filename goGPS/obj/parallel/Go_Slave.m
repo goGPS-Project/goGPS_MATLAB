@@ -279,11 +279,13 @@ classdef Go_Slave < Com_Interface
                                     cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(rec_id));
                                 end
                                 core.exec(cmd_file.cmd_list);
+                                rec(rec_id).work.state.cmd_list = cmd_file.cmd_list;
                                 
                                 % Export work
                                 rec = core.rec(rec_id);
                                 rec.out = []; % do not want to save out
                                 save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
+                                pause(0.1); % be sure that the file is saved correctly
                                 clear rec;
                                 core.rec = []; % empty space
                                 this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));

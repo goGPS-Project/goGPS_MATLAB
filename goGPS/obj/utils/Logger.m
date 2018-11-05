@@ -51,6 +51,8 @@ classdef Logger < handle
         STD_OUT        = 1;     % Output: text only   (first bit set)
         STD_FILE       = 2;     % Output: file only   (second bit set)    
         STD_OUT_N_FILE = 3;     % Output: file + text (first and second bit set)
+        
+        ORANGE = [1 0.65 0];
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
@@ -316,14 +318,19 @@ classdef Logger < handle
             end
         end
 
-        function simpleSeparator(this, verbosity_level)
+        function simpleSeparator(this, verbosity_level, color)
             % Send a message through the standard interface
-            if (nargin < 2)
+            if (nargin < 2) || isempty(verbosity_level)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
                 if this.isScreenOut % Screen
-                    fprintf('--------------------------------------------------------------------------\n');
+                    if this.color_mode && ~(nargin < 3 || isempty(color))
+                        cprintf(color, '  --------------------------------------------------------------------------');
+                        cprintf('text', '\n');
+                    else
+                        fprintf('--------------------------------------------------------------------------\n');
+                    end
                 end
                 if this.isFileOut % File
                     fprintf(this.getOutFId, '  ----------------------------------------------------------------------\n');
@@ -332,21 +339,27 @@ classdef Logger < handle
             end
         end
         
-        function starSeparator(this, verbosity_level)
+        function starSeparator(this, verbosity_level, color)
             % Send a message through the standard interface
-            if (nargin < 2)
+            if (nargin < 2) || isempty(verbosity_level)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
-            end
+            end            
+            
             if (verbosity_level <= this.verbosity)
                 if this.isScreenOut % Screen
-                    fprintf('  **********************************************************************\n');
+                    if this.color_mode && ~(nargin < 3 || isempty(color))
+                        cprintf(color, '  **********************************************************************');
+                        cprintf('text', '\n');
+                    else
+                        fprintf('  **********************************************************************\n');
+                    end
                 end
                 if this.isFileOut % File
                     fprintf(this.getOutFId, '  **********************************************************************\n');
                 end
             end
         end
-        
+                
         function smallSeparator(this, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 2)
@@ -552,7 +565,7 @@ classdef Logger < handle
             
             if this.isScreenOut % Screen
                 if (color_mode)
-                    cprintf([1 0.65 0], 'Warning: ');
+                    cprintf(Logger.ORANGE, 'Warning: ');
                     cprintf('text', [text '\n']);
                 else
                     fprintf(['WARNING: ' text '\n']);
@@ -598,7 +611,7 @@ classdef Logger < handle
                     cprintf('blue',' [ ');
                     switch (status)
                         case 0, cprintf('Green','ok');
-                        case 1, cprintf([1 0.65 0],'WW');
+                        case 1, cprintf(Logger.ORANGE,'WW');
                         case 2, cprintf([0.5 0.5 0.5],'--');
                         otherwise, cprintf('Red','!!');
                     end

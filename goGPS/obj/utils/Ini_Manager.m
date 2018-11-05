@@ -413,7 +413,7 @@ classdef Ini_Manager < handle
         end
 
         % Get the list of keys present in the file ------------------------
-        function keyList = getKeys(this, section)
+        function key_list = getKeys(this, section)
             % Get the list of the keys available
             if (nargin == 1)
                 section = 0;
@@ -424,12 +424,12 @@ classdef Ini_Manager < handle
                 this.readFile();
             end
 
-            keyList = {};
+            key_list = {};
             l = 1;
             if (section == 0)
                 for s = 1:length(this.section)
-                    for p = 1:length(this.section{s}.key)
-                        keyList{l} = this.section{s}.key{p}.name; %#ok<AGROW>
+                    for p = 1 : length(this.section{s}.key)
+                        key_list{l} = this.section{s}.key{p}.name; %#ok<AGROW>
                         l = l+1;
                     end
                 end
@@ -438,7 +438,7 @@ classdef Ini_Manager < handle
                 while ((s<=length(this.section)) && (s ~= 0))
                     if (strcmp(this.section{s}.name,section))
                         for p = 1:length(this.section{s}.key)
-                            keyList{l} = this.section{s}.key{p}.name; %#ok<AGROW>
+                            key_list{l} = this.section{s}.key{p}.name; %#ok<AGROW>
                             l = l+1;
                         end
                         s = 0;      % Stop searching

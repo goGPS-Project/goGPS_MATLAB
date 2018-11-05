@@ -171,7 +171,7 @@ classdef Coordinates < Exportable & handle
         end
                 
         function [east, north, up, utm_zone] = getENU(this)
-            % Get Coordinates as ENUs coordinates
+            % Get Coordinates as UTM ENUs coordinates
             %
             % OUTPUT
             %   east     = east Coordinates  [m]
@@ -238,6 +238,20 @@ classdef Coordinates < Exportable & handle
             
             [lat, lon] = this.getGeodetic();
             ondu = this.getOrthometricCorrFromLatLon(lat, lon);
+        end
+        
+        function loc = getLocal(this, ref_pos)
+            % Get Coordinates as Local coordinates with respect to ref_pos
+            %
+            % OUTPUT
+            %   loc     = xyz local coordinates
+            %
+            % SYNTAX 
+            %   loc = this.getLocal(ref_pos)
+           
+            xyz_ref = ref_pos.getXYZ;
+            baseline = ref_pos.getXYZ - this.getXYZ;
+            loc = Coordinates.cart2loca(xyz_ref, baseline);
         end
         
         function status = isEmpty(this)
@@ -323,7 +337,7 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods (Access = 'public')
-         function fh = showCoordinatesENU(coo_list, one_plot, time)
+        function fh = showCoordinatesENU(coo_list, one_plot, time)
             % Plot East North Up coordinates
             %
             % SYNTAX 
@@ -761,6 +775,27 @@ classdef Coordinates < Exportable & handle
                 east = [];
             end
         end
+        
+        function [loc,  rot_mat] = cart2loca(xyz_ref, xyz_baseline)
+            % cart2loca: from geocentric cartesian baselines (DX) to local coordinates in X0
+            %
+            % SYNTAX
+            %   [loc,  rot_mat] = Coordinates.cart2loca(xyz_ref, baseline)
+            [lat, lon] = Coordinates.cart2geod(xyz_ref);
+            rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)];
+            loc = (rot_mat * xyz_baseline')';
+        end
+        
+        function [xyz_baseline, rot_mat] = loca2cart(xyz_ref, loc)
+            % loca2cart: from local coordinates in X0 to geocentric cartesian baselines (DX)
+            %
+            % SYNTAX
+            %   [baseline, rot_mat] = Coordinates.loca2cart(xyz_ref, loca)
+            [lat, lon] = Coordinates.cart2geod(xyz_ref);
+            rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)]';
+            xyz_baseline = (rot_mat * loc)';
+        end
+
     end
     
     % =========================================================================
