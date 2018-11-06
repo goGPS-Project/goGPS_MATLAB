@@ -69,6 +69,8 @@ classdef GUI_Main < handle
         ini_path    % ini path text box
         check_boxes % List of chgoGPS
         pop_ups     % List of drop down menu
+        rpop_up     % resources pup-up
+        j_rrini     % ini resources file
         edit_texts  % List of editable text
         edit_texts_array % list of editable text array
         ceckboxes
@@ -918,6 +920,61 @@ end
             
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', 'Remote Resources ini file - not editable from GUI', ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0 * ones(3, 1), ...
+                'FontName', 'arial', ...
+                'FontSize', Core_UI.getFontSize(10), ...
+                'FontWeight', 'bold');
+            
+            uicontrol('Parent', tab_bv, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', this.state.getRemoteSourceFile, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0.3 * ones(3, 1), ...
+                'FontName', 'arial', ...
+                'FontSize', Core_UI.getFontSize(8));
+            %try
+                r_man = Remote_Resource_Manager.getInstance(this.state.getRemoteSourceFile());
+                [~, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterList, 'preferred_center', @this.onResourcesPopUpChange);                
+            %catch
+            %    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+            %end
+            
+
+            this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
+            codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            this.j_rrini.setContentType(codeType);
+            try
+                str = r_man.centerToString(this.state.preferred_center{1});
+                str = strrep(['% ' str], char(10), [char(10) '% ']);
+            catch
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+            end
+            
+            this.j_rrini.setText(str);
+            this.j_rrini.setEditable(0)
+            % Create the ScrollPanel containing the widget
+            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(this.j_rrini);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
+            
+            tab_bv.Heights = [20 15 25 -1];
+            this.uip.tab_rr = tab;
+            
+        end
+        
+        function insertOldRemoteResource(this, container)
+            tab = uix.Grid('Parent', container);
+            
+            tab_bv = uix.VBox( 'Parent', tab, ...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', tab_bv, ...
+                'Style', 'Text', ...
                 'String', 'Remote Resources ini file - not editable from GUI', ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
@@ -1267,6 +1324,12 @@ end
             this.updateINI();
         end
         
+        function onResourcesPopUpChange(this, caller, event)
+            this.state.setProperty(caller.UserData, caller.String(caller.Value));
+            this.updateINI();
+            this.updateResourcePopUpsState();
+        end
+        
         function onEditChange(this, caller, event)
             prop = this.state.getProperty(caller.UserData);
             if ~isnumeric(prop)
@@ -1429,6 +1492,31 @@ end
             end
         end
         
+        function updateResourcePopUpsState(this)
+            r_man = Remote_Resource_Manager.getInstance();
+            center_list = r_man.getCenterList();
+            cur_center = this.state.getProperty(this.rpop_up.UserData);
+            value = [];
+            for c = 1 : numel(center_list)
+                if strcmp(center_list{c}, cur_center)
+                    value = c;
+                end
+            end
+            
+            if ~isempty(value)
+                this.rpop_up.Value = value;
+                
+                try
+                    str = r_man.centerToString(this.state.preferred_center{1});
+                    str = strrep(['% ' str], char(10), [char(10) '% ']);
+                catch
+                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                end
+                
+                this.j_rrini.setText(str);
+            end
+        end
+        
         function onSessionSummaryCheck(this, caller, event)
             this.updateSessionSummary()
         end
@@ -1552,6 +1640,7 @@ end
                 this.updateEditFromState();
                 this.updateEditArraysFromState();
                 this.updatePopUpsState();
+                this.updateResourcePopUpsState();
             end
         end
         

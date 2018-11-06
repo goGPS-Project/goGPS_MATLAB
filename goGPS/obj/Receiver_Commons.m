@@ -131,6 +131,7 @@ classdef Receiver_Commons < handle
         function initHandles(this)
             this.log = Core.getLogger();
             this.state = Core.getState();
+            this.cc = this.state.getConstellationCollector;
             this.rf = Core.getReferenceFrame();
             this.w_bar = Go_Wait_Bar.getInstance();
         end

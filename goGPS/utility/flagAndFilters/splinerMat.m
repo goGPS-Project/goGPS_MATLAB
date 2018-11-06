@@ -72,36 +72,45 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     
     [x, id] = sort(x);
     y = y(id);
-    
-    if ((nargin == 3) || (regFactor == 0))
-        if (size(y,2) == 2)
-            [ySplined, xSpline, sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
+    if ~isempty(y)
+        if ((nargin == 3) || (regFactor == 0))
+            if (size(y,2) == 2)
+                [ySplined, xSpline, sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
+            else
+                [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs);
+            end
         else
-            [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs);
+            if (size(y,2) == 2)
+                [ySplined, xSpline, sWeights] = spliner_v51R(x,y(:,1),y(:,2),dxs, regFactor);
+            else
+                [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor);
+            end
         end
     else
-        if (size(y,2) == 2)
-            [ySplined, xSpline, sWeights] = spliner_v51R(x,y(:,1),y(:,2),dxs, regFactor);
-        else
-            [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor);
-        end
+        ySplined = y;
+        xSpline = [];
+        sWeights = [];
     end
 
     % Interpolation => using spline to predict in different coordinates
     % (not present in the C version)
     if (nargin == 5)
-        mask = (isnan(sWeights));
-        if (length(mask) > 2)
-            mask = mask | [mask(2:end); 0] | [0; mask(1:end-1)];
-        end
-        sWeights = interp1(xSpline(~mask),sWeights(~mask),xSpline);
-        if (size(x_ext,1)==1)
-            x_ext = x_ext';
-        end
-        ySplined_ext = zeros(size(x_ext,1),1);
-        for s = 1:length(xSpline)
-            tau = round((x_ext-repmat(xSpline(s),length(x_ext),1))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
-            ySplined_ext = ySplined_ext + sWeights(s)*cubicSpline(tau);
+        if ~isempty(xSpline)
+            mask = (isnan(sWeights));
+            if (length(mask) > 2)
+                mask = mask | [mask(2:end); 0] | [0; mask(1:end-1)];
+            end
+            sWeights = interp1(xSpline(~mask),sWeights(~mask),xSpline);
+            if (size(x_ext,1)==1)
+                x_ext = x_ext';
+            end
+            ySplined_ext = zeros(size(x_ext,1),1);
+            for s = 1:length(xSpline)
+                tau = round((x_ext-repmat(xSpline(s),length(x_ext),1))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+                ySplined_ext = ySplined_ext + sWeights(s)*cubicSpline(tau);
+            end
+        else
+            ySplined_ext = nan(numel(x_ext),1);
         end
     else
         ySplined_ext = ySplined;

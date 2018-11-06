@@ -62,6 +62,7 @@ classdef Parallel_Manager < Com_Interface
         BRD_STATE = 'BRD_STATE_'
         BRD_SKY = 'BRD_SKY_'
         BRD_CMD = 'BRD_CMD_'
+        BRD_REC = 'BRD_REC_'
     end
     
     properties (GetAccess = private, SetAccess = private)
@@ -274,7 +275,7 @@ classdef Parallel_Manager < Com_Interface
             end
         end
         
-        function n_workers = activateWorkers(this)
+        function n_workers = activateWorkers(this, id_rec2pass)
             % Get the available workers,
             % Activate them by sending state and core_sky objects
             %
@@ -332,6 +333,9 @@ classdef Parallel_Manager < Com_Interface
             if n_workers == 0
                 this.log.addError('I need slaves! Please create some slaves!\nsee Parallel_Manager.createWorkers(n);');
             else
+                if ~isempty(id_rec2pass)
+                    this.sendReceiver(id_rec2pass);
+                end
                 this.sendState();
                 this.sendSkyData();
                 n_workers = this.waitForWorkerAck(n_workers);
@@ -527,6 +531,21 @@ classdef Parallel_Manager < Com_Interface
             this.sendMsg(this.BRD_SKY, 'Broadcast core sky');
         end
         
+        function sendReceiver(this, rec_num)
+            % Send a receiver to the slave
+            %
+            % SYNTAX
+            %   this.sendReceiver(rec_num)
+            %
+            
+            % Save state on file
+            rec_list = Core.getRecList();
+            rec_work = [rec_list(rec_num).work]; %#ok<NASGU>
+            save(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
+            this.sendMsg(this.BRD_REC, 'Broadcast receiver');
+        end
+
+        
         function n_workers = waitForWorkerAck(this, n_slaves)
             % Wait for the workers to load the state and core sky
             %
@@ -584,6 +603,9 @@ classdef Parallel_Manager < Com_Interface
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                        if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
+                            this.log.addWarning(sprintf('Strangely big residuals for job %d\n', job_id));
+                        end
                         if core.rec(job_id).out.isEmpty
                             % import all
                             tmp.rec.out = core.rec(job_id).out;
@@ -601,8 +623,8 @@ classdef Parallel_Manager < Com_Interface
                             core.rec(job_id).work.parent = core.rec(job_id);
                         end
                         %core.rec(job_id).work.pushResult();
-                        delete(fullfile(this.getComDir(), job_file(1).name));
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
+                        delete(fullfile(this.getComDir(), job_file(1).name));
                         completed_job = [completed_job; job_id]; %#ok<AGROW>
                         worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
                     end

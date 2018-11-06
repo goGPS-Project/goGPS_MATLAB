@@ -117,6 +117,7 @@ classdef Network < handle
                 lid_ref(id_ref) = true;
             end
 
+            l_fixed = 0; % nothing is fixed
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
@@ -177,11 +178,11 @@ classdef Network < handle
                         if s0 < 0.0025 && ... % low sigma0 of the computation
                            all(abs(res(:)) < this.state.pp_max_phase_err_thr) && ...  % no residuals above thr level
                            all(std(zero2nan(reshape(permute(res(:,:,:),[1 3 2]), size(res,1) * size(res,3), size(res,2))),1,2,'omitnan') < 9e-3) % low dispersion of the residuals
-                                
+                            
                             % I can be satisfied
                             n_clean = -1;
                         end
-                         if n_clean > 0
+                        if n_clean > 0
                             out_found = 0;
                             for r = 1 : length(this.rec_list)
                                 tmp_work = this.rec_list(r).work;
@@ -197,7 +198,7 @@ classdef Network < handle
                                 
                                 res_rec = zeros(size(tmp_work.sat.outlier_idx_ph));
                                 res_rec(id_sync_rec, :) = res(id_sync_res, go_id, r);
-                                                                
+                                
                                 if s0 > 1
                                     % The solution is really bad, something bad happened
                                     % Extreme experiment to recover a valid positioning
@@ -211,12 +212,12 @@ classdef Network < handle
                                         if any(bad_sat) && any(any(id_ko(:, bad_sat)))
                                             id_ko(:, ~bad_sat) = false;
                                         end
-                                    end                                    
+                                    end
                                 end
                                 if any(id_ko(:))
                                     tmp_work.addOutliers(id_ko, true);
                                     out_found = out_found + 1;
-                                end    
+                                end
                             end
                             if out_found == 0
                                 % no need to iterate
@@ -225,12 +226,12 @@ classdef Network < handle
                         end
                         n_clean = n_clean - 1;
                         % end of cleaning ----------------------------------------------------------------------------------------------------------------------
-
+                        
                     end
                 end
                 
                 if s0 < 0.02
-                    % intilaize array for results
+                    % initialize array for results
                     this.initOut(ls);
                     this.addAdjValues(x);
                     this.changeReferenceFrame(id_ref);
@@ -584,13 +585,22 @@ classdef Network < handle
                     end
                 end
         end
-        
-      
+         
+        function pushBackInReceiver(this, s0, res, ls, l_fixed)
+            % Save in work the results computed by the network object
+            %
+            % INPUT 
+            %   s0          sigma of the solution
+            %   res         all the residuals
+            %   ls          Least Squares solver object
+            %   l_fixed     array of flag for the fixed ambiguities
+            %
+            % SYNTAX           
+            %    this = pushBackInReceiver(s0, res, l_fixed)
             
-  
-       
-        
-        function pushBackInReceiver(this, s0, res)
+            if nargin < 5
+                l_fixed = 0;
+            end
             n_rec = length(this.rec_list);
             
             % --- push back the results in the receivers

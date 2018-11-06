@@ -445,9 +445,16 @@ classdef Core < handle
             this.log.setColorMode(c_mode);
         end        
         
-        function activateParallelWorkers(this)
+        function activateParallelWorkers(this, id_rec2pass)
+            % Call the activation of the receivers
+            %
+            % INPUT
+            %   id_rec2pass     id of the work receiver to broadcast to the receivers
+            %
+            % SYNTAX
+            %   this.activateParallelWorkers(id_rec2pass)
             this.gom = Parallel_Manager.getInstance;
-            this.gom.activateWorkers();
+            this.gom.activateWorkers(id_rec2pass);
         end
     end
     
@@ -597,7 +604,7 @@ classdef Core < handle
                     end
                     
                     this.log.newLine;
-                    this.log.simpleSeparator();
+                    this.log.simpleSeparator([], 'Green');
                     if ~isempty(sessions)
                         this.log.addMessage(sprintf('End of session loop from %d to %d in %.3f seconds', sessions(1), sessions(end), toc(t1)));
                     end
@@ -1077,6 +1084,8 @@ classdef Core < handle
             end
             for i = 1: length(this.net)
                 if Core_Utils.permutedEqual(this.net(i).net_id,rid)
+                    % Update rec_list
+                    this.net(i).rec_list = rec_list(this.net(i).net_id); 
                     net = this.net(i);
                     return
                 end

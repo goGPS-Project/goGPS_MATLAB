@@ -147,7 +147,6 @@ classdef GNSS_Station < handle
             work_list = [rec_list(~rec_list.isEmptyWork_mr).work];
             if numel(work_list) > 1 && (show_fig || out_det)
                 
-                
                 [~, id_rsync] = Receiver_Commons.getSyncTimeExpanded(work_list);
                 id_rsync(any(isnan(zero2nan(id_rsync)')), :) = [];
                 
@@ -182,18 +181,19 @@ classdef GNSS_Station < handle
                     
                     all_ph_red = zeros(n_epochs, n_sat * n_bands, n_rec);
                     all_dph_red = nan(n_rec, n_epochs, n_sat * n_bands);
-                    all_ph = zeros(n_epochs, n_sat, n_sat * n_bands);
+                    all_ph = zeros(n_epochs, n_sat * n_bands, n_rec);
                     for r = 1 : n_rec
                         id = work_list(r).findObservableByFlag('L', sys_c);
                         [id_ok, ~, id_red] = intersect(id, id_ph_red{r});
                         [~, ~, p_list] = intersect(work_list(r).prn(id_ok), prn_list);
                         [~, ~, b_list] = intersect(work_list(r).obs_code(id_ok, 2), bands);
                         
-                        sid = p_list + numel(prn_list) * (b_list - 1);
+                        sid = repmat(p_list, n_bands,1 ) + serialize(repmat(numel(prn_list) * (b_list - 1)', numel(p_list), 1));
                         all_ph(:, sid, r) = bsxfun(@minus, bsxfun(@times, zero2nan(work_list(r).obs(id_ok, id_rsync(:, r))'), sid'), detrend(dt_red{r}));
                         all_ph_red(:, sid, r) = zero2nan(ph_red{r}(:, id_red));
                         tmp = Core_Utils.diffAndPred(all_ph_red(:, sid, r));
                         tmp = bsxfun(@minus, tmp, strongMean(tmp,0.95, 0.95, 2));
+                        tmp(work_list(r).sat.outlier_idx_ph(id_rsync(:, r),:) | work_list(r).sat.cycle_slip_idx_ph(id_rsync(:, r),:)) = nan;
                         all_dph_red(r, :, sid) = zero2nan(permute(tmp, [3 1 2]));
                     end
                     
@@ -223,7 +223,7 @@ classdef GNSS_Station < handle
                             
                             sid = p_list + numel(prn_list) * (b_list - 1);
                             
-                            sensor = (squeeze(all_dph_red(r,:,sid)) - ct(:, sid)) > 0.1;
+                            sensor = abs((squeeze(all_dph_red(r,:,sid)) - ct(:, sid))  .* (abs(ct(:, sid)) > 0)) > 0.1;
                             
                             % V0
                             % id_ph = work_list(r).findObservableByFlag('L', sys_c);
@@ -336,6 +336,25 @@ classdef GNSS_Station < handle
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
+        end
+        
+        function printStationList(rec_list)
+            % Given a marker_name get the sequencial id of a station
+            %
+            % SYNTAX
+            %   id = findStationId(this, marker_name)
+            log = Logger.getInstance();
+            if numel(rec_list) > 0
+                log.addMessage('List of available stations:');
+                for r = 1 : numel(rec_list)
+                    try
+                        log.addMessage(sprintf('%4d) %s', r, char(rec_list(r).getMarkerName)));
+                        marker4ch_list
+                    catch
+                        % the name is shorter or missing => ignore
+                    end
+                end
+            end
         end
         
         function req_rec = get(rec_list, marker_name)
@@ -1612,11 +1631,11 @@ classdef GNSS_Station < handle
             if (nargin < 3) || isempty(plot_relative_variation)
                 plot_relative_variation = true;
             end
-            
-            % remove empty receivers
-            sta_list = sta_list(~sta_list.isEmpty_mr);
-            
+                        
             if nargin < 2 || isempty(baseline_ids)
+                % remove empty receivers
+                sta_list = sta_list(~sta_list.isEmpty_mr);
+                
                 n_rec = numel(sta_list);
                 baseline_ids = GNSS_Station.getBaselineId(n_rec);
             end

@@ -121,21 +121,22 @@ classdef Remote_Resource_Manager < Ini_Manager
 
             if isempty(unique_instance_resource_manager__)
                 if ini_is_present
-                    this = Remote_Resource_Manager(ini_settings_file);
+                    this = Remote_Resource_Manager(resources_file);
                 else
                     this = Remote_Resource_Manager();
                 end
                 unique_instance_resource_manager__ = this;
             else
                 if ini_is_present
-                    this = unique_instance_resource_manager__;
-                    this.ini.importIniFile(resources_file);
+                    this = Remote_Resource_Manager(resources_file);
+                    unique_instance_resource_manager__ = this;
                 else
                     this = unique_instance_resource_manager__;
                 end
             end
         end
     end
+    
     methods        
         function [ip, port] = getServerIp(this, name)
             % Return the ip of a server given the server name
@@ -210,7 +211,152 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
     end
     
-    methods ( Access = private)
+    % Specific file query methods
+    methods 
+        function [center, center_ss] = getCenterList(this)
+            % Get the list of available centers and the supported constellations
+            %
+            % SYNTAX
+            %   [center, center_ss] = this.getCenterList()
+            tmp = this.getData('CENTER', 'available');
+            n_center = numel(tmp);
+            center = cell(n_center, 1);
+            center_ss = cell(n_center, 1);
+            for c = 1 : n_center
+                center(c) = regexp(tmp{c}, '(?<=@).*', 'match');
+                center_ss(c) = regexp(tmp{c}, '.*(?=@)', 'match');
+            end            
+        end
+        
+        function [descr] = centerToString(this, center)
+            % Get the center description
+            %
+            % SYNTAX
+            %   descr = this.centerToString(center)
+            descr = sprintf('Center: "%s" - %s\n\nAvailable resources:\n', center, this.getData(['c_' center], 'description'));
+            
+            % get resource_list
+            key = this.getKeys(['c_' center]);
+            for k = 1 : numel(key)
+                if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
+                    descr = sprintf('%s%s', descr, this.resourceTreeToString(center, key{k}));
+                end                
+            end
+        end
+        
+        function [flag_frub] = getOrbitType(this, center)
+            % Get the orbit type availability
+            %
+            % SYNTAX
+            %   [flag_frub] = this.getOrbitType(center)            
+            flag_frub(1) = ~isempty(this.getData(['c_' center], 'final'));
+            flag_frub(2) = ~isempty(this.getData(['c_' center], 'rapid'));
+            flag_frub(3) = ~isempty(this.getData(['c_' center], 'ultra'));
+            flag_frub(4) = ~isempty(this.getData(['c_' center], 'broadcast'));
+        end
+        
+        function [flag_fp1p2b] = getIonoType(this, center)
+            % Get the iono type availability
+            %
+            % SYNTAX
+            %   [flag_frub] = this.getIonoType(center)            
+            flag_fp1p2b(1) = ~isempty(this.getData(['c_' center], 'iono_final'));
+            flag_fp1p2b(2) = ~isempty(this.getData(['c_' center], 'iono_predicted1'));
+            flag_fp1p2b(3) = ~isempty(this.getData(['c_' center], 'iono_predicted2'));
+            flag_fp1p2b(4) = ~isempty(this.getData(['c_' center], 'iono_broadcast'));
+        end
+        
+        function [tree_str] = resourceTreeToString(this, center, resource_type)
+            % Parse a resource tree
+            %
+            % SYNTAX
+            %   [tree_str] = this.resourceTreeToString(center, resource_type)
+            tmp = this.getData(['c_' center], resource_type);
+            tree = this.parseLogicTree(tmp);
+            if iscell(tree)
+                clear tmp
+                tmp.f1 = tree;
+                tree = tmp;
+            end
+            tree_str = sprintf(' - %s\n', resource_type);
+            if ~isempty(tree)
+                tree_str = sprintf('%s%s', tree_str, this.treeToString(tree, 4));
+            end
+        end
+        
+        function remote_path = resourceToString(this, resource)
+            if strcmp(resource, 'null')
+                remote_path = 'none';
+            else
+                try
+                    file_name = this.getData(['f_', resource], 'filename');
+                    location = this.getData(['f_', resource], 'location');
+                    if iscell(location)
+                        location = location{1};
+                    end
+                    if isempty(location)
+                        location = '';
+                        server = cell(2,1);
+                    else
+                        location = this.getData('LOCATION', location);
+                        % remove the server
+                        server = regexp(location, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
+                        if isempty(server)
+                            server = cell(2,1);
+                        else
+                            location = regexp(location, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match');
+                        end
+                        server = this.getData('SERVER', server{1});
+                    end
+                    % The protocol could be improved woth more values
+                    if iscell(server) && numel(server) == 2
+                        switch server{2}
+                            case '21'
+                                protocol = 'ftp://';
+                            otherwise
+                                protocol = 'http://';
+                        end
+                    else
+                        protocol = '';
+                    end
+                    remote_path = [protocol server{1} ':' server{2} location{1} file_name];
+                catch
+                    remote_path = sprintf('corrupted resource "%s" -> check resource file', resource);
+                end
+            end
+        end
+        
+        function tree_str = treeToString(this, tree, indentation_lev)
+            % Parse a resource tree
+            %
+            % SYNTAX
+            %   [tree_str] = this.treeToString(tree, indentation_lev)
+            if nargin == 1
+                indentation_lev = 0;
+            end
+            str_padding = char(32*ones(1, indentation_lev + 1));
+            tree_str = '';
+            tree_names = fieldnames(tree);
+            for b = 1 : numel(tree_names)
+                if this.isNode(tree_names(b))
+                    % is a node
+                    tree_str = sprintf('%s%s|- %s\n%s', tree_str, str_padding, upper(tree_names{b}), this.treeToString(tree.(tree_names{b}), indentation_lev + 4));
+                else
+                    % is a leaf
+                    if iscell(tree.(tree_names{b}))
+                        % tree_str = sprintf('%s%s|- %s\n', tree_str, str_padding, tree.(tree_names{b}){1});
+                        tree_str = sprintf('%s%s|- %s\n', tree_str, str_padding, this.resourceToString(tree.(tree_names{b}){1}));
+                    elseif isstruct(tree.(tree_names{b}))
+                        tree_str = sprintf('%s%s', tree_str, this.treeToString(tree.(tree_names{b}), indentation_lev));                        
+                    else
+                        % NON VALID
+                    end
+                end
+            end
+        end
+    end
+    
+    methods ( Access = public)
         function file_structure = parseLogicTree(this, str)
             % Description parse the logic structure found in
             % remote_resource.ini to get the file structure descripbed in
@@ -319,6 +465,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
         end
     end
+    
     methods (Static)
         function writeDefault(this)
             % Write the deafut remote resource ini file if it is not found 
@@ -329,5 +476,15 @@ classdef Remote_Resource_Manager < Ini_Manager
             fprintf(fid, Remote_Resource_Manager.DEFAULT_RESOURCE_TXT);
             fclose(fid);
         end
+        
+        function is_node = isNode(tree_el)
+            % Local usage return if a node of node_tree is an "and" or an "or"
+            if numel(tree_el) == 1 && iscell(tree_el) && ~isempty(regexp(tree_el{1}, '(and)*|(or)*'))
+                is_node = true;
+            else
+                is_node = false;
+            end
+        end
+        
     end
 end
