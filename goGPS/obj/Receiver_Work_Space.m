@@ -2280,7 +2280,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sbs_line = d_line(txt(lim(d_line,1)) == 'S');
                 % Activate only the constellation that are present in the receiver
                 %this.cc.setActive([isempty(gps_line) isempty(glo_line) isempty(gal_line) isempty(qzs_line) isempty(bds_line) isempty(irn_line) isempty(sbs_line)]);
-                
+                all_const_line = [gps_line; glo_line; gal_line; qzs_line; bds_line; irn_line; sbs_line];
+                first_line_space  = txt(lim(all_const_line,1)+1)' == ' ';
+                txt(repmat(lim(all_const_line(first_line_space),1), 1, 2)+1) = '0';
                 gps_prn = unique(sscanf(txt(repmat(lim(gps_line,1), 1, 2) + repmat(1 : 2, numel(gps_line), 1))', '%2d'));
                 glo_prn = unique(sscanf(txt(repmat(lim(glo_line,1), 1, 2) + repmat(1 : 2, numel(glo_line), 1))', '%2d'));
                 gal_prn = unique(sscanf(txt(repmat(lim(gal_line,1), 1, 2) + repmat(1 : 2, numel(gal_line), 1))', '%2d'));
