@@ -2551,22 +2551,22 @@ classdef Core_Sky < handle
                     %step 1
                     pos1 = pos;
                     vel1 = vel;
-                    [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
+                    [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, orbital_p.ELL.A, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 2
                     pos2 = pos + pos1_dot*ii(s)/2;
                     vel2 = vel + vel1_dot*ii(s)/2;
-                    [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
+                    [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, orbital_p.ELL.A, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 3
                     pos3 = pos + pos2_dot*ii(s)/2;
                     vel3 = vel + vel2_dot*ii(s)/2;
-                    [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
+                    [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, acc, orbital_p.ELL.A, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 4
                     pos4 = pos + pos3_dot*ii(s);
                     vel4 = vel + vel3_dot*ii(s);
-                    [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
+                    [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, acc, orbital_p.ELL.A, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %final position and velocity
                     pos = pos + (pos1_dot + 2*pos2_dot + 2*pos3_dot + pos4_dot)*ii(s)/6;
