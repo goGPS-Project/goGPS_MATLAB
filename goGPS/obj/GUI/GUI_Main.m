@@ -981,16 +981,17 @@ end
             
             this.ripref = {};
             this.ripref{1} = Core_UI.insertCheckBoxLight(box_ipref, 'Final', 'iono1', @this.onResourcesPrefChange);
-            this.ripref{2} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted (1)', 'iono2', @this.onResourcesPrefChange);
-            this.ripref{3} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted (2)', 'iono3', @this.onResourcesPrefChange);
+            this.ripref{2} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted 1 day', 'iono2', @this.onResourcesPrefChange);
+            this.ripref{3} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted 2 days', 'iono3', @this.onResourcesPrefChange);
             this.ripref{4} = Core_UI.insertCheckBoxLight(box_ipref, 'Broadcast', 'iono4', @this.onResourcesPrefChange);
             box_ipref.Widths = [250 -1 -1 -1 -1];
             
             % Resource tree
+            Core_UI.insertEmpty(tab_bv);
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', 'Resource tree', ...
+                'String', 'Resource tree: when a center have missing resources (e.g. iono, vmf, ...) default values are used', ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'ForegroundColor', Core_UI.BLACK, ...
                 'FontSize', Core_UI.getFontSize(9));
@@ -1011,7 +1012,7 @@ end
             % Inject edit box with the Java Scroll Pane into the main_window
             javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
             
-            tab_bv.Heights = [18 15 5 20 18 18 18 18 -1];
+            tab_bv.Heights = [18 15 5 20 18 18 18 18 18 -1];
             this.uip.tab_rr = tab;
             
         end

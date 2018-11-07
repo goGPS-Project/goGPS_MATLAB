@@ -434,7 +434,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.remObs(id_obs);
         end
         
-        
         function importRinexFileList(this, rin_list, time_start, time_stop, rate)
             % imprt a list of rinex files
             %
@@ -8002,6 +8001,33 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(keep_idx)
                     id_sync(~keep_idx)  = [];
                     this.id_sync = id_sync;
+                end
+            end
+        end
+        
+        function exportMat(this)
+            % Export the receiver into a MATLAB file
+            %
+            % SYNTAX
+            %   this.exportMat
+            
+            for r = 1 : numel(this)
+                try
+                    % Get time span of the receiver
+                    time = this(r).getTime().getEpoch([1 this(r).getTime().length()]);
+                    time.toUtc();
+                    
+                    fname = fullfile(this(r).state.getOutDir(), sprintf('work_%s-session%03d-%s-%s-rec%04d%s', this(r).parent.marker_name, this(r).state.getCurSession, this(r).state.getSessionsStart.toString('yyyymmdd_HHMMSS'), this(r).state.getSessionsStop.toString('yyyymmdd_HHMMSS'), r, '.mat'));
+                    
+                    rec = this(r).parent;
+                    tmp_out = rec.out; % back-up current out
+                    rec.out = Receiver_Output(this(r).cc, this.parent);
+                    save(fname, 'rec');
+                    rec.out = tmp_out;
+                    
+                    rec.log.addStatusOk(sprintf('Receiver workspace %s: %s', rec.getMarkerName4Ch, fname));
+                catch ex
+                    this(r).log.addError(sprintf('Saving receiver workspace %s in matlab format failed: %s', this(r).parent.getMarkerName4Ch, ex.message));
                 end
             end
         end

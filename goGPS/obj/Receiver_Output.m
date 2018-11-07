@@ -77,7 +77,7 @@ classdef Receiver_Output < Receiver_Commons
     
     methods
         function this = Receiver_Output(cc, parent)
-            if nargin < 2
+            if nargin < 2 || isempty(cc)
                 cc = Constellation_Collector('G');
             end
             this.cc = cc;

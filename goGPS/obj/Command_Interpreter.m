@@ -111,8 +111,9 @@ classdef Command_Interpreter < handle
         PAR_S_PWV       % PWV
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
-        PAR_E_TROPO_SNX % Tropo paramters sinex format
-        PAR_E_TROPO_MAT % Tropo paramters mat format
+        PAR_E_REC_MAT   % Receiver export parameter matlab format
+        PAR_E_TROPO_SNX % Tropo export paramter sinex format
+        PAR_E_TROPO_MAT % Tropo export paramter mat format
         PAR_E_COO_CRD   % Coordinates in bernese crd format
 
         PAR_S_SAVE      % flage for saving                
@@ -238,7 +239,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_ENU.par = '(ENU)|(enu)';
 
             this.PAR_S_ENUBSL.name = 'ENU baseline';
-            this.PAR_S_ENUBSL.descr = 'ENU              East Nord Up baseline';
+            this.PAR_S_ENUBSL.descr = 'ENUBSL           East Nord Up baseline';
             this.PAR_S_ENUBSL.par = '(ENUBSL)|(enu_base)';
 
             this.PAR_S_XYZ.name = 'XYZ positions';
@@ -293,13 +294,18 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.descr = 'RES_STD          Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
 
+            this.PAR_E_REC_MAT.name = 'Receiver Matlab format';
+            this.PAR_E_REC_MAT.descr = 'REC_MAT          Receiver object as .mat file';
+            this.PAR_E_REC_MAT.par = '(rec_mat)|(REC_MAT)';
+            this.PAR_E_REC_MAT.accepted_values = {};
+
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
-            this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters SINEX file';
+            this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters as SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
             this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
             this.PAR_E_TROPO_MAT.name = 'TROPO Matlab format';
-            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab .mat file';
+            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
@@ -386,7 +392,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export_results', 'export_results'};
             this.CMD_EXPORT.descr = 'Export results';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
+            this.CMD_EXPORT.par = [this.PAR_E_REC_MAT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = 'Push results in output';
@@ -1299,14 +1305,18 @@ classdef Command_Interpreter < handle
                                         end
                                     end
                                     rec(r).out.exportTropoSINEX(export_par);
-                                elseif ~isempty(regexp(tok{t}, ['^*\( \)*$'], 'once'))
+                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                     rec(r).out.exportTropoMat();
+                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
+                                    rec(r).exportMat();
                                 end
                             else % run in single session mode (work)
                                 if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
                                     rec(r).work.exportTropoSINEX();
                                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                     rec(r).work.exportTropoMat();
+                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
+                                    rec(r).work.exportMat();
                                 end
                             end
 %                         catch ex

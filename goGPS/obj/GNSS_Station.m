@@ -74,7 +74,7 @@ classdef GNSS_Station < handle
         slant_filter_win = 0;
     end
     % ==================================================================================================================================================
-    %% METHODS INIT - CLEAN - RESET - REM -IMPORT
+    %% METHODS INIT - CLEAN - RESET - REM - IMPORT - EXPORT
     % ==================================================================================================================================================
     methods
         function this = GNSS_Station(cc, static)
@@ -301,7 +301,32 @@ classdef GNSS_Station < handle
             end
         end
         
-        
+        function exportMat(this)
+            % Export the receiver into a MATLAB file
+            %
+            % SYNTAX
+            %   this.exportMat
+            
+            for r = 1 : numel(this)
+                try
+                    % Get time span of the receiver
+                    time = this(r).getTime().getEpoch([1 this(r).getTime().length()]);
+                    time.toUtc();
+                    
+                    fname = fullfile(this(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', this(r).marker_name, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
+                    
+                    rec = this(r);
+                    tmp_work = rec.work; % back-up current out
+                    rec.work = Receiver_Work_Space(this(r).cc, rec);
+                    save(fname, 'rec');
+                    rec.work = tmp_work;
+                    
+                    rec.log.addStatusOk(sprintf('Receiver %s: %s', rec.getMarkerName4Ch, fname));
+                catch ex
+                    this(r).log.addError(sprintf('saving Receiver %s in matlab format failed: %s', this(r).getMarkerName4Ch, ex.message));
+                end
+            end
+        end
     end
     % ==================================================================================================================================================
     %% METHODS GETTER - TIME
@@ -1383,6 +1408,7 @@ classdef GNSS_Station < handle
                 if isempty(tropo)
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
                 else
+                    tlim = [inf -inf];
                     if new_fig
                         f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
@@ -1398,6 +1424,9 @@ classdef GNSS_Station < handle
                             plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
+                        tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
+                        tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
+                        xlim(tlim);
                     end
                     
                     outm = [old_legend, outm];
@@ -1409,8 +1438,6 @@ classdef GNSS_Station < handle
                         icons(i).MarkerSize = 16;
                     end
                     
-                    %ylim(yl);
-                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                     h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
                     grid on;
@@ -1438,17 +1465,14 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             this.showTropoPar('ZTD', new_fig)
-        end
-        
-        
+        end                
         
         function showGn(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
             this.showTropoPar('GN', new_fig)
-        end
-        
+        end        
         
         function showGe(this, new_fig)
             if nargin == 1
