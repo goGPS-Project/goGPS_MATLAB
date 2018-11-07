@@ -237,14 +237,14 @@ classdef Settings_Interface < Exportable
                 is_existing = true;
                 checked_val = default_val;
             else
-                if check_existence > 1
+                if check_existence > 1 || ~empty_is_valid
                     if iscell(checked_val)
-                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
+                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, Ini_Manager.strCell2Str(checked_val)));
                     else
-                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
+                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, checked_val));
                     end
                 else
-                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', field_val, field_name));
+                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', iif(isempty(field_val), '<empty>', field_val), field_name));
                 end
             end
         end

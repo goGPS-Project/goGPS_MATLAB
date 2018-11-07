@@ -326,14 +326,14 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.isScreenOut % Screen
                     if this.color_mode && ~(nargin < 3 || isempty(color))
-                        cprintf(color, '  --------------------------------------------------------------------------');
+                        cprintf(color, '----------------------------------------------------------------------------');
                         cprintf('text', '\n');
                     else
                         fprintf('--------------------------------------------------------------------------\n');
                     end
                 end
                 if this.isFileOut % File
-                    fprintf(this.getOutFId, '  ----------------------------------------------------------------------\n');
+                    fprintf(this.getOutFId, '------------------------------------------------------------------------\n');
                 end
                 
             end

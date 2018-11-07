@@ -604,7 +604,7 @@ classdef Parallel_Manager < Com_Interface
                         job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
                         if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
-                            this.log.addWarning(sprintf('Strangely big residuals for job %d\n', job_id));
+                            this.log.addWarning(sprintf('s0 = %.3f of the residuals for job %d', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id));
                         end
                         if core.rec(job_id).out.isEmpty
                             % import all

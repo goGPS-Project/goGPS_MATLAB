@@ -137,7 +137,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_DOWNLOAD = true;
         
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
-        PREFERRED_CENTER = {'default'}
+        SELECTED_CENTER = {'default'}
         PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
 
         % SATELLITES
@@ -397,7 +397,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         preferred_eph = Main_Settings.PREFERRED_EPH;         % kind of orbits to prefer
         preferred_iono = Main_Settings.PREFERRED_IONO;
-        preferred_center = Main_Settings.PREFERRED_CENTER;
+        selected_center = Main_Settings.SELECTED_CENTER;
 
         %------------------------------------------------------------------
         % SATELLITES
@@ -714,10 +714,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % COMPUTATION CENTERS
                 this.flag_download = state.getData('flag_download');
                 
-                this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
-                this.preferred_iono = fnp.checkPath(state.getData('preferred_iono'));
-                this.preferred_center = fnp.checkPath(state.getData('preferred_center'));
-
+                this.preferred_eph = state.getData('preferred_eph');
+                this.preferred_iono = state.getData('preferred_iono');
+                this.selected_center = state.getData('selected_center');
+                if isempty(this.selected_center)
+                    % try the old name:
+                    this.selected_center = state.getData('preferred_center');
+                end
+                
                 % SATELLITES
                 this.eph_dir    = fnp.getFullDirPath(state.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir')), this.prj_home));
                 this.clk_dir    = fnp.getFullDirPath(state.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir')), this.prj_home));
@@ -861,7 +865,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.preferred_eph = state.preferred_eph;
                 this.preferred_iono = state.preferred_iono;
-                this.preferred_center = state.preferred_center;
+                this.selected_center = state.selected_center;
 
                 % SATELLITES
                 this.eph_dir     = state.eph_dir;
@@ -1030,7 +1034,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Try to download the missing resources:            %d\n\n', this.flag_download)];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
-            str = [str sprintf(' Preferred center:                                 %s\n\n', strCell2Str(this.preferred_center))];
+            str = [str sprintf(' Selected center:                                 %s\n\n', strCell2Str(this.selected_center))];
             
             str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
@@ -1294,8 +1298,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Preferred ionospheric type,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_IONO)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_iono', this.preferred_iono, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred center type (e.g. default, igs_glo, igs_gps, code, code_mgex, gfz, jaxa', str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_center', this.preferred_center, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('SELECTED computational center (e.g. default, igs_glo, igs_gps, code, code_mgex, gfz, jaxa', str_cell);
+            str_cell = Ini_Manager.toIniString('selected_center', this.selected_center, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1888,7 +1892,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_iono', EMPTY_IS_NOT_VALID);
-            this.checkCellStringField('preferred_center', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('selected_center', EMPTY_IS_NOT_VALID);
 
             this.checkStringField('sss_id_list', EMPTY_IS_NOT_VALID);
             this.checkStringField('sss_id_start', EMPTY_IS_NOT_VALID);
@@ -2340,16 +2344,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end       
         
         function remote_center = getRemoteCenter(this)
-            %get remote center
+            % Get selected remote center
             %
             % SYNTAX
             %   remote_center = getRemoteCenter(this)
-            remote_center = this.preferred_center;
-            if ~iscell(remote_center)
-                remote_center = {remote_center};
+            remote_center = this.selected_center;
+            if iscell(remote_center)
+                remote_center = remote_center{1};
             end
         end
-
+        
         function preferred_eph = getPreferredEph(this)
             % get preferred ephemeris
             %
@@ -2360,7 +2364,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 preferred_eph = {preferred_eph};
             end
         end
-
+        
         function dir = getFileDir(this, filename)
             % get file dir
             %
@@ -2378,7 +2382,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif instr(lower(ext),'.clk')
                 dir = this.getNavClkDir();
             elseif strcmpi(ext,'.CRX')
-
+                
             elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
                 dir = this.getIonoDir();
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.BSX')) || (strcmpi(ext,'.BIA'))
@@ -2388,9 +2392,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif strcmpi(ext,'.apl')
                 dir = this.getAtmLoadDir();
             elseif instr(name,'VMFG') && instr(ext,'.H')
-                 dir = this.getVMFDir();
+                dir = this.getVMFDir();
             end
-
+            
         end
 
         function base_rinex_dir = getRinexBaseDir(this)
@@ -3324,7 +3328,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
         
-        function  setCurSession(this, cur_session)
+        function setCurSession(this, cur_session)
             % Get the id of the current session
             %
             % SYNTAX
@@ -3338,6 +3342,38 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.setAutomaticDownload(flag)
             this.flag_download = flag;
+        end
+        
+        function setPreferredOrbit(this, flag)
+            % Set the preferred orbit sequence:
+            %   1 final
+            %   2 rapid
+            %   3 ultra rapid
+            %   4 broadcast
+            %
+            % INPUT
+            %   flag is a logical array with 4 values (see above)
+            %
+            % SYNTAX
+            %   this.setPreferredOrbit(flag)
+            eph = {'final', 'rapid', 'ultra', 'broadcast'};
+            this.preferred_eph = eph(flag);
+        end
+ 
+        function setPreferredIono(this, flag)
+            % Set the preferred iono sequence:
+            %   1 final
+            %   2 predicted 1
+            %   3 predicted 2
+            %   4 broadcast
+            %
+            % INPUT
+            %   flag is a logical array with 4 values (see above)
+            %
+            % SYNTAX
+            %   this.setPreferredIono(flag)
+            iono = {'final', 'predicted1', 'predicted2', 'broadcast'};
+            this.preferred_iono = iono(flag);
         end
  
         function setPrjHome(this, prj_home)
@@ -3751,6 +3787,52 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   flag = this.isBlockOneArc()
             flag = this.block_one_arc;
+        end
+        
+        function flag = getPreferredOrbit(this)
+            % Set the preferred orbit sequence:
+            %   1 final
+            %   2 rapid
+            %   3 ultra rapid
+            %   4 broadcast
+            %
+            % OUPUT
+            %   flag is a logical array with 4 values (see above)
+            %
+            % SYNTAX
+            %   flag = this.getPreferredOrbit()
+            flag = false(4,1);
+            for i = 1 : numel(this.preferred_eph)
+                switch this.preferred_eph{i}
+                    case 'final', flag(1) = true;
+                    case 'rapid', flag(2) = true;
+                    case 'ultra', flag(3) = true;
+                    case 'broadcast', flag(4) = true;
+                end
+            end            
+        end
+ 
+        function flag = getPreferredIono(this)
+            % Set the preferred iono sequence:
+            %   1 final
+            %   2 predicted 1
+            %   3 predicted 2
+            %   4 broadcast
+            %
+            % OUTPUT
+            %   flag is a logical array with 4 values (see above)
+            %
+            % SYNTAX
+            %   flag = this.getPreferredIono()
+            flag = false(4,1);
+            for i = 1 : numel(this.preferred_iono)
+                switch this.preferred_iono{i}
+                    case 'final', flag(1) = true;
+                    case 'predicted1', flag(2) = true;
+                    case 'predicted2', flag(3) = true;
+                    case 'broadcast', flag(4) = true;
+                end
+            end
         end
     end
     

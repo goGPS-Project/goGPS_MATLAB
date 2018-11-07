@@ -69,7 +69,9 @@ classdef GUI_Main < handle
         ini_path    % ini path text box
         check_boxes % List of chgoGPS
         pop_ups     % List of drop down menu
-        rpop_up     % resources pup-up
+        rpop_up     % Remote resources pup-up
+        ropref      % Remote Orbit Preferences
+        ripref      % Remote Iono preferences
         j_rrini     % ini resources file
         edit_texts  % List of editable text
         edit_texts_array % list of editable text array
@@ -921,34 +923,82 @@ end
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', 'Remote Resources ini file - not editable from GUI', ...
+                'String', 'Remote Resources ini file contains download locations - not editable from GUI', ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
-                'ForegroundColor', 0 * ones(3, 1), ...
-                'FontName', 'arial', ...
+                'ForegroundColor', Core_UI.BLACK, ...
                 'FontSize', Core_UI.getFontSize(10), ...
                 'FontWeight', 'bold');
             
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', this.state.getRemoteSourceFile, ...
+                'String', ['File path: ' this.state.getRemoteSourceFile], ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
-                'FontName', 'arial', ...
-                'FontSize', Core_UI.getFontSize(8));
-            %try
-                r_man = Remote_Resource_Manager.getInstance(this.state.getRemoteSourceFile());
-                [~, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterList, 'preferred_center', @this.onResourcesPopUpChange);                
-            %catch
-            %    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
-            %end
+                'FontSize', Core_UI.getFontSize(7.5));
             
+            Core_UI.insertHBarLight(tab_bv);
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tab_bv, 'Allow automatic download of missing resources', 'flag_download', @this.onCheckBoxChange);
 
+            try
+                r_man = Remote_Resource_Manager.getInstance(this.state.getRemoteSourceFile());
+                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterList, 'selected_center', @this.onResourcesPopUpChange);                
+            catch
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+            end
+            
+            box_opref = uix.HBox( 'Parent', tab_bv, ...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', box_opref, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', 'Center orbit type preference', ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'FontSize', Core_UI.getFontSize(9));
+          
+            this.ropref = {};
+            this.ropref{1} = Core_UI.insertCheckBoxLight(box_opref, 'Final', 'orbit1', @this.onResourcesPrefChange);
+            this.ropref{2} = Core_UI.insertCheckBoxLight(box_opref, 'Rapid', 'orbit2', @this.onResourcesPrefChange);
+            this.ropref{3} = Core_UI.insertCheckBoxLight(box_opref, 'Ultra rapid', 'orbit3', @this.onResourcesPrefChange);
+            this.ropref{4} = Core_UI.insertCheckBoxLight(box_opref, 'Broadcast', 'orbit4', @this.onResourcesPrefChange);
+            box_opref.Widths = [250 -1 -1 -1 -1];
+            
+            box_ipref = uix.HBox( 'Parent', tab_bv, ...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', box_ipref, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', 'Center iono type preference', ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'FontSize', Core_UI.getFontSize(9));
+            
+            this.ripref = {};
+            this.ripref{1} = Core_UI.insertCheckBoxLight(box_ipref, 'Final', 'iono1', @this.onResourcesPrefChange);
+            this.ripref{2} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted (1)', 'iono2', @this.onResourcesPrefChange);
+            this.ripref{3} = Core_UI.insertCheckBoxLight(box_ipref, 'Predicted (2)', 'iono3', @this.onResourcesPrefChange);
+            this.ripref{4} = Core_UI.insertCheckBoxLight(box_ipref, 'Broadcast', 'iono4', @this.onResourcesPrefChange);
+            box_ipref.Widths = [250 -1 -1 -1 -1];
+            
+            % Resource tree
+            uicontrol('Parent', tab_bv, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', 'Resource tree', ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'FontSize', Core_UI.getFontSize(9));
             this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             this.j_rrini.setContentType(codeType);
             try
-                str = r_man.centerToString(this.state.preferred_center{1});
+                str = r_man.centerToString(this.state.getRemoteCenter);
                 str = strrep(['% ' str], char(10), [char(10) '% ']);
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
@@ -961,7 +1011,7 @@ end
             % Inject edit box with the Java Scroll Pane into the main_window
             javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
             
-            tab_bv.Heights = [20 15 25 -1];
+            tab_bv.Heights = [18 15 5 20 18 18 18 18 -1];
             this.uip.tab_rr = tab;
             
         end
@@ -1326,6 +1376,54 @@ end
         
         function onResourcesPopUpChange(this, caller, event)
             this.state.setProperty(caller.UserData, caller.String(caller.Value));
+            
+            % Set resources preferences
+            r_man = Remote_Resource_Manager.getInstance();
+            
+            % Update Iono Preferences
+            available_iono = r_man.getIonoType(this.state.getRemoteCenter());
+            flag_preferred_iono = true(4,1);
+            for i = 1 : 4
+                this.ripref{i}.Enable = iif(available_iono(i), 'on', 'off');
+                flag_preferred_iono(i) = available_iono(i) && logical(this.ripref{i}.Value);
+            end
+            this.state.setPreferredIono(flag_preferred_iono)
+            
+            % Update Orbit Preferences
+            available_orbit = r_man.getOrbitType(this.state.getRemoteCenter());
+            flag_preferred_orbit = true(4,1);
+            for i = 1 : 4
+                this.ropref{i}.Enable = iif(available_orbit(i), 'on', 'off');
+                flag_preferred_orbit(i) = available_orbit(i) && logical(this.ropref{i}.Value);
+            end
+            this.state.setPreferredOrbit(flag_preferred_orbit)
+            
+            this.updateINI();
+            this.updateResourcePopUpsState();
+        end
+        
+        function onResourcesPrefChange(this, caller, event)
+            % Set resources preferences          
+            r_man = Remote_Resource_Manager.getInstance();
+
+            if strcmp(caller.UserData(1:4), 'iono')
+                % Update Iono Preferences
+                available_iono = r_man.getIonoType(this.state.getRemoteCenter());
+                flag_preferred_iono = true(4,1);
+                for i = 1 : 4
+                    flag_preferred_iono(i) = available_iono(i) && logical(this.ripref{i}.Value);
+                end
+                this.state.setPreferredIono(flag_preferred_iono)
+            else
+                % Update Orbit Preferences
+                available_orbit = r_man.getOrbitType(this.state.getRemoteCenter());
+                flag_preferred_orbit = true(4,1);
+                for i = 1 : 4
+                    flag_preferred_orbit(i) = available_orbit(i) && logical(this.ropref{i}.Value);
+                end
+                this.state.setPreferredOrbit(flag_preferred_orbit)
+            end
+                                    
             this.updateINI();
             this.updateResourcePopUpsState();
         end
@@ -1493,27 +1591,57 @@ end
         end
         
         function updateResourcePopUpsState(this)
+            % Getting current remote resource manager
             r_man = Remote_Resource_Manager.getInstance();
-            center_list = r_man.getCenterList();
+            
+            % read current center
+            [center_list, center_ss] = r_man.getCenterList();
             cur_center = this.state.getProperty(this.rpop_up.UserData);
-            value = [];
-            for c = 1 : numel(center_list)
-                if strcmp(center_list{c}, cur_center)
-                    value = c;
-                end
+            if isempty(cur_center)
+                cur_center = {'default'};
+            end
+            value = 1;
+            while (value < numel(center_list)) && ~strcmp(center_list{value}, cur_center)
+                value = value + 1;
             end
             
+            % display resources tree of the current center
             if ~isempty(value)
-                this.rpop_up.Value = value;
-                
+                this.rpop_up.Value = value;                
                 try
-                    str = r_man.centerToString(this.state.preferred_center{1});
+                    str = r_man.centerToString(this.state.getRemoteCenter());
                     str = strrep(['% ' str], char(10), [char(10) '% ']);
                 catch
                     str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
                 end
-                
                 this.j_rrini.setText(str);
+            end
+            
+            % Update constellation Available for the center
+            this.rpop_up.Parent.Children(2).String = sprintf('Center supporting constellations: "%s"', center_ss{value}); 
+            
+            % Update Orbit Preferences
+            available_orbit = r_man.getOrbitType(cur_center{1});
+            for i = 1 : 4
+                this.ropref{i}.Enable = iif(available_orbit(i), 'on', 'off');
+            end
+            flag_preferred_orbit = this.state.getPreferredOrbit();
+            for i = 1 : 4
+                if available_orbit(i)
+                    this.ropref{i}.Value = this.ropref{i}.Value | flag_preferred_orbit(i);
+                end
+            end
+            
+            % Update Iono Preferences
+            available_iono = r_man.getIonoType(cur_center{1});
+            for i = 1 : 4
+                this.ripref{i}.Enable = iif(available_iono(i), 'on', 'off');
+            end
+            flag_preferred_iono = this.state.getPreferredIono();            
+            for i = 1 : 4
+                if available_iono(i)
+                    this.ripref{i}.Value = this.ripref{i}.Value | flag_preferred_iono(i);
+                end
             end
         end
         

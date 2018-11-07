@@ -729,6 +729,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                         best_trk_ph = this.obs_code(f_id(ph_id), 3);
                     end
                     
+                    % If no trasking is not found no data is available
+                    if isempty(best_trk_ph) 
+                       best_trk_ph = '*';
+                    end
+                    if isempty(best_trk_pr) 
+                       best_trk_pr = '*';
+                    end
+                    
                     % find obs to be removed ----------------------------------------------------------------------------
                     id_2_rm = [id_2_rm; find((this.obs_code(:,1) == 'C' & this.obs_code(:,3) ~= best_trk_pr & f_lid) ...
                         | (this.obs_code(:,1) == 'L' & this.obs_code(:,3) ~= best_trk_ph & f_lid) ...

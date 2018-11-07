@@ -129,8 +129,7 @@ classdef Core_UI < handle
     % ==================================================================================================================================================
     properties
         main        % Handle of the main
-    end
-    
+    end    
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
@@ -809,7 +808,7 @@ classdef Core_UI < handle
             bar = uix.Panel( 'Parent', bar_v, ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
             Core_UI.insertEmpty(bar_v, Core_UI.LIGHT_GRAY_BG);
-            bar_v.Heights = [-1 1 -1];
+            bar_v.Heights = [-1 2 -1];
         end
         
         function insertVBarLight(container)
@@ -1295,8 +1294,7 @@ classdef Core_UI < handle
             box_handle.Widths = [widths(1) repmat(widths(2:3), 1, num_boxes) widths(4)];
             box_handle.Heights = 23;
         end
-    end
-    
+    end    
         %% METHODS INSERT
     % ==================================================================================================================================================
     methods (Static)

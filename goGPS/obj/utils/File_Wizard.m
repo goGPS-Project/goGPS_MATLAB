@@ -473,9 +473,9 @@ classdef File_Wizard < handle
                     %centername = centername{1};
                     sys_c = split{1};
                     if length(intersect(this.sys_c,sys_c)) == length(this.sys_c)
-                        if strcmp(split{2}, center_name{1})
+                        if strcmp(split{2}, center_name)
                             is_ok = true;
-                            this.center_name = center_name{1};
+                            this.center_name = center_name;
                         end
                     end
                 end

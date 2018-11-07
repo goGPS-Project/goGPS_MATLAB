@@ -264,6 +264,14 @@ classdef Remote_Resource_Manager < Ini_Manager
             flag_fp1p2b(2) = ~isempty(this.getData(['c_' center], 'iono_predicted1'));
             flag_fp1p2b(3) = ~isempty(this.getData(['c_' center], 'iono_predicted2'));
             flag_fp1p2b(4) = ~isempty(this.getData(['c_' center], 'iono_broadcast'));
+            
+            if ~any(flag_fp1p2b)
+                % Switch to default center
+                flag_fp1p2b(1) = ~isempty(this.getData(['c_default'], 'iono_final'));
+                flag_fp1p2b(2) = ~isempty(this.getData(['c_default'], 'iono_predicted1'));
+                flag_fp1p2b(3) = ~isempty(this.getData(['c_default'], 'iono_predicted2'));
+                flag_fp1p2b(4) = ~isempty(this.getData(['c_default'], 'iono_broadcast'));
+            end
         end
         
         function [tree_str] = resourceTreeToString(this, center, resource_type)
