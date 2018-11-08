@@ -607,6 +607,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tmp = false(max(this.ph_idx), 1);
                 tmp(this.ph_idx) = true;
                 tmp(id_out) = false;
+                id_obs = id_obs(id_obs < length(tmp));
                 tmp(id_obs) = [];
                 this.ph_idx = find(tmp);
             end
