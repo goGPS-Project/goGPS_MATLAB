@@ -1587,7 +1587,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % open RINEX observation file
                 fid = fopen(file_name,'r');
                 txt = fread(fid,'*char')';
-                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                txt = txt(txt ~= 13); ; % remove carriage return - I hate you Bill!
                 fclose(fid);
                 
                 % get new line separators
