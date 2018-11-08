@@ -590,8 +590,8 @@ classdef Receiver_Commons < handle
                 param_to_export = [ 1 1 1 0 0 0 0 0];
             end
             for r = 1 : numel(this)
-                if max(this(r).quality_info.s0) < 0.10
-                    %try
+                if min(this(r).quality_info.s0) < 0.10 % If there is at least one good session export the data
+                    try
                         rec = this(r);
                         if ~isempty(rec.getZtd)
                             [year, doy] = rec.time.first.getDOY();
@@ -639,9 +639,9 @@ classdef Receiver_Commons < handle
                             snx_wrt.close()
                             rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
                         end
-%                     catch ex
-%                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
-%                     end
+                    catch ex
+                        rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
+                    end
                 else
                     this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                 end
