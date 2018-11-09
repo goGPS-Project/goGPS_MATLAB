@@ -506,11 +506,13 @@ classdef Network < handle
             wide_laneM{6} = [1 -1]; %% IRNSS
             wide_laneM{7} = [1-1]; %% SBAS
             n_r = length(this.rec_list);
-            for sys_c = this.cc.getAvailableSys
+            sys_cs = this.cc.getAvailableSys
+            sys_cs(sys_cs == 'R') = []; %gloNASS excluded fro now from ambiguty fixing
+            for sys_c = sys_cs
                 sys_idx = this.cc.SYS_C == sys_c;
                 WM = wide_laneM{sys_idx}; %% get the right widelane matrix
                 n_sat = this.cc.getNumSat(sys_c);
-                for w = 1 : size(WM,2)
+                for w = 1 %: size(WM,2)
                     sys_SS = this.cc.getSys(sys_c);
                     b1 = sys_SS.CODE_RIN3_2BAND(WM(w,:) == 1);
                     b2 = sys_SS.CODE_RIN3_2BAND(WM(w,:) == -1);
@@ -557,32 +559,53 @@ classdef Network < handle
                     % receiver
                     nt2cb1 = sum(sum(squeeze(sum(b1code_aval,1)>1)),1)> 0; 
                     nt2cb2 = sum(sum(squeeze(sum(b2code_aval,1)>1)),1)> 0; 
+                    selected_code_1 = find(nt2cb1, 1, 'first'); % best code avaliable to more than two receiver
+                    selected_code_2 = find(nt2cb2, 1, 'first'); % best code avaliable to more than two receiver
+                    track_1 = coderin3attr1(selected_code_1);
+                    track_2 = coderin3attr2(selected_code_2);
+                    this.log.addMessage(this.log.indent(sprintf('Estimationg %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,8)));
                     b1code_aval(:,:,~nt2cb1) = [];
                     b2code_aval(:,:,~nt2cb2) = [];
-                    % Now set up the least squares system
+                    rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
+                    rec_with_no_cod2 = sum(b2code_aval(:,:,1),2) == 0;
+                    rec_excluded = rec_with_no_cod1 | rec_with_no_cod2;
+                    if sum(rec_excluded) > 0
+                        for r = find(rec_excluded)
+                            log_str = sprintf('Receiver %s excluded from widelane fixing because does not have:', this.rec_list(r).getMarkerName4Ch);
+                            if rec_with_no_cod1(r)
+                                log_str = [log_str sprintf(' code %s on band %s', track_1,b1)];
+                            end
+                            
+                            if rec_with_no_cod1(r) & rec_with_no_cod2(r)
+                                log_str = [log_str ','];
+                            end
+                            
+                            if rec_with_no_cod2(r)
+                                log_str = [log_str sprintf(' code %s on band %s', track_2,b2)];
+                            end
+                            this.log.addMessage(this.log.indent(log_str));
+                        end
+                    end
+                    %% get the melbourne wubbena combination for the selected combination
+                    mel_wubs = [];
+                    i = 1;
+                    for r = find(~rec_excluded)'
+                        fun1 = @(wl1,wl2) 1;
+                        fun2 = @(wl1,wl2) -1;
+                        [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 track_1],['L' b2 track_2], sys_c); %widelane phase
+                        [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1 track_1],['C'  b2 track_2], sys_c); %narrowlane code
+                        [mw] =  this.rec_list(r).work.getTwoFreqComb(ph_wl, pr_nl, fun1, fun2);
+                        mel_wubs = [mel_wubs mw];
+                        i = i + 1;
+                    end
                     
-                    
-                    % now we have to align all the codes so when we average
-                    % them we do not have different bias
-                    
-                      
-                        % if the best code for different receiver is not
-                        % the same check wether the differential code
-                        % bias can be estimated from the other receiver
-                        
-                        % if they can be estimated apply the bias 
-                        
-                        % solve the widelane cycle slip
-                        
-                        % the esttimate the fractional bias 
+                    [rec_wb, sat_wb, wl_amb_mat, go_ids] = this.estimateWideLaneAndBias(mel_wubs)
                         
                         % we are all very happy
-                        end
+                end
                         
-                    for r = 1 : length(this.rec_list)
-                        % get the phase widelane
-                        this.rec_list(r).getLin
-                    end
+                  
+                        
                 end
         end
          
@@ -698,7 +721,7 @@ classdef Network < handle
         
     end
     methods (Static)
-        function [rec_wb, sat_wb, wl_amb_mat, go_ids] = estimateWideLaneAndBias(mel_wub_cell)
+        function [rec_wb, sat_wb, wl_amb_mat, go_ids] = estimateWideLaneAndBias(mel_wub_mat)
             % estiamet the wodelanes and their biases
             %
             % SYNTAX:
@@ -706,9 +729,9 @@ classdef Network < handle
             
             % get the common sat idx
             go_ids = [];
-            n_rec = length(mel_wub_cell);
+            n_rec = length(mel_wub_mat);
             for r = 1 : n_rec
-                go_ids = [go_ids mel_wub_cell(r).go_id];
+                go_ids = [go_ids mel_wub_mat(r).go_id];
             end
             [occurreces, go_ids ]=hist(go_ids,unique(go_ids));
             go_ids(occurreces <2) = [];
@@ -722,10 +745,10 @@ classdef Network < handle
                 found = false;
                 r = 1;
                 while ~found && r <= n_rec
-                    idx_s = mel_wub_cell(r).go_id == go_id;
+                    idx_s = mel_wub_mat(r).go_id == go_id;
                     if sum(idx_s) >0
                         found = true;
-                         sat_wb(s) = Core_Utils.estimateFracBias(mel_wub_cell(r).getObsCy(find(idx_s)), mel_wub_cell(r).cycle_slip(:,idx_s));
+                         sat_wb(s) = Core_Utils.estimateFracBias(mel_wub_mat(r).getObsCy(find(idx_s)), mel_wub_mat(r).cycle_slip(:,idx_s));
                          sat_wb_r_id(s) = r;
                     end
                     r = r +1;
@@ -736,14 +759,14 @@ classdef Network < handle
                 % eliminate the satellites that has been used to compute
                 % the satellite bias
                 to_eliminate_sat = sat_wb_r_id == r;
-                [~,rec_gi_idx] = intersect(mel_wub_cell(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
+                [~,rec_gi_idx] = intersect(mel_wub_mat(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
                 if ~isempty(rec_gi_idx)  
-                     rec_wb(r) = Core_Utils.estimateFracBias(mel_wub_cell(r).getObsCy(rec_gi_idx) - repmat(sat_wb(~to_eliminate_sat),mel_wub_cell(r).time.length,1), mel_wub_cell(r).cycle_slip(:,rec_gi_idx));
+                     rec_wb(r) = Core_Utils.estimateFracBias(mel_wub_mat(r).getObsCy(rec_gi_idx) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
                      % update the satellite bias knpwing the receiver one 
                      if sum(to_eliminate_sat) > 0
                          for s = find(to_eliminate_sat)
                              go_id = go_ids(s);
-                             idx_s = mel_wub_cell(r).go_id == go_id;
+                             idx_s = mel_wub_mat(r).go_id == go_id;
                              sat_wb(s) = sat_wb(s) - rec_wb(r);
                          end
                      end
@@ -752,11 +775,12 @@ classdef Network < handle
             wl_amb_mat = {};
             % final estamiation of the widelane
             for r = 1 : n_rec
-                cy = mel_wub_cell(r).getObsCy;
-                 [~,rec_gi_idx] = intersect(go_ids, mel_wub_cell(r).go_id ); %idx of the go id in the obervation set
-                cy = zero2nan(cy) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_cell(r).time.length,1);
-                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_cell(r).cycle_slip);
+                cy = mel_wub_mat(r).getObsCy;
+                 [~,rec_gi_idx] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
+                cy = zero2nan(cy) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
+                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip);
             end
+            % OPTIONAL ->refine the bias estimation with a LS adjustemtn
         end
         
     end

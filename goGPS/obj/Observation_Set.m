@@ -434,6 +434,17 @@ classdef Observation_Set < handle
             amb_idx = Core_Utils.getAmbIdx(this.cycle_slip, this.obs);
         end
         
+        function n_obs = getNumObs(this)
+            % get totoal number of observations
+            %
+            % SYNTAX:
+            %  this.getNumObs()
+            n_obs = 0;
+            for r = 1 : length(this)
+                n_obs = n_obs + sum(sum(this.obs~=0 & ~isnan(this.ob))); 
+            end
+        end
+        
         function arc_jmp_mat = getArcJmpMat(this, id_comm)
             % get a matrix of the dimension of observation set that has true value if the ambiguity is jumping and false value if the ambiguity is not jumping
             %
