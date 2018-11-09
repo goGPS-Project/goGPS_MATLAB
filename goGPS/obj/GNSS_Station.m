@@ -755,11 +755,13 @@ classdef GNSS_Station < handle
             this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
         end
         
-        function [ztd, p_time, id_sync] = getZtd_mr(sta_list)
+        function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
             %  [ztd, p_time, id_sync] = this.getZtd_mr()
+            %  [ztd, p_time, id_sync, tge, tgn] = this.getZtd_mr()
+            
             [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
             
             id_ok = any(~isnan(id_sync),2);
@@ -773,8 +775,19 @@ classdef GNSS_Station < handle
                 id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.ztd));
                 ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(~isnan(id_rec));
             end
+            
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.ztd));
+                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(~isnan(id_rec));
+                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(~isnan(id_rec));
+                end
+            end
         end
-        
+                
         function [ztd_res, p_time, ztd_height] = getReducedZtd_mr(sta_list)
             % MultiRec: works on an array of receivers
             % Reduce the ZTD of all the stations removing the
@@ -811,19 +824,39 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [zwd, p_time] = getZwd_mr(sta_list)
+        function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
             % MultiRec: works on an array of receivers
+            %
             % SYNTAX
-            %  [zwd, p_time, id_sync] = sta_list.getZwd_mr()
-            [p_time, id_sync] = GNSS_Station.getSyncTimeTR(sta_list);
+            %  [zwd, p_time, id_sync] = this.getZwd_mr()
+            %  [zwd, p_time, id_sync, tge, tgn] = this.getZwd_mr()
+            
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
+            
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+            
             n_rec = numel(sta_list);
-            zwd = nan(size(id_sync{1}));
+            zwd = nan(size(id_sync));
             for r = 1 : n_rec
-                id_rec = id_sync{1}(:,r);
-                zwd(~isnan(id_rec),r) = sta_list(r).out.zwd(id_rec(~isnan(id_rec)));
+                id_rec = id_sync(:,r);
+                id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.zwd));
+                zwd(~isnan(id_rec), r) = sta_list(r).out.zwd(~isnan(id_rec));
+            end
+            
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.zwd));
+                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(~isnan(id_rec));
+                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(~isnan(id_rec));
+                end
             end
         end
-        
+
         function [tropo, time] = getTropoPar(sta_list, par_name)
             % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
             %
@@ -1221,7 +1254,16 @@ classdef GNSS_Station < handle
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-        end % ==> ask Andrea? Andrea say: "what?"
+        end      
+        
+        function showCMLRadarMapAniRec(sta_list)
+            try
+                cml = CML();
+                cml.showRadarMapAniRec(sta_list);
+            catch
+                sta_list(1).log.addError('You need GReD utilities to have this features');
+            end
+        end
         
         function showScatteredMap(lat, lon, s_time, data) % todo
             
@@ -1343,8 +1385,7 @@ classdef GNSS_Station < handle
                 
             end
         end
-        
-        
+                
         function showResiduals(sta_list)
             % Plot Satellite Residuals
             %

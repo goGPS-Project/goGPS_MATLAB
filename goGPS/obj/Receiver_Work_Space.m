@@ -1132,7 +1132,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 remove_short_arcs = false;
             end
             [ph, wl, id_ph] = this.getPhases();
-            ph = zero2nan(this.obs(id_ph, this.id_sync)');
+            ph = zero2nan(this.obs(id_ph, :)');
             % Adding outliers
             if size(id_ko, 2) > size(this.sat.outlier_idx_ph, 2)
                 id_ko = id_ko(:, this.go_id(id_ph));

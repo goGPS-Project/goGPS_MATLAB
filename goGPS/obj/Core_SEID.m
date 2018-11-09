@@ -135,21 +135,21 @@ classdef Core_SEID < handle
                     for r = 1 : numel(ref)
                         ph_gf(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));
                         % Import CS and outliers from receivers
-                        %                     for s = 1 : numel(ref(r).ph_idx)
-                        %                         %ph_gf(find(ref(r).outlier_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                        %                         %ph_gf(find(ref(r).cycle_slip_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                        %
-                        %                         % fill small gaps
-                        %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
-                        %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
-                        %                         idx = false(size(ph_gf, 1), 1);
-                        %                         for l = 1 : size(lim, 1)
-                        %                             idx(lim(l, 1) : lim(l, 2)) = true;
-                        %                         end
-                        %                         if sum(idx) > 0
-                        %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
-                        %                         end
-                        %                     end
+                        for s = 1 : numel(ref(r).ph_idx)
+                            ph_gf(find(ref(r).sat.outlier_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            ph_gf(find(ref(r).sat.cycle_slip_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            %
+                            %                         % fill small gaps
+                            %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
+                            %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
+                            %                         idx = false(size(ph_gf, 1), 1);
+                            %                         for l = 1 : size(lim, 1)
+                            %                             idx(lim(l, 1) : lim(l, 2)) = true;
+                            %                         end
+                            %                         if sum(idx) > 0
+                            %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
+                            %                         end
+                        end
                         pr_gf(:, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_sync{t}(:,r), :));
                     end
                     ph_gf_diff = diff(ph_gf);

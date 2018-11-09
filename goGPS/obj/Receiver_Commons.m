@@ -1801,16 +1801,16 @@ classdef Receiver_Commons < handle
         end
         
         function data_s = smoothSatData(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
-            if nargin < 5
+            if nargin < 4
                 cs_mat = [];
             end
-            if nargin < 7 || isempty(spline_base)
+            if nargin < 6 || isempty(spline_base)
                 spline_base = 10; % 5 min
             end
-            if nargin < 6 || isempty(method)
+            if nargin < 5 || isempty(method)
                 method = 'spline';
             end
-            if nargin < 8 || isempty(max_gap)
+            if nargin < 7 || isempty(max_gap)
                 max_gap = 0;
             end
             if strcmp(method,'spline')

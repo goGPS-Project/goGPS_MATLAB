@@ -627,7 +627,7 @@ classdef Core < handle
                 level = zeros(size(cmd_list,1), 1);
             end
             this.cmd.exec(this.rec, cmd_list, level);
-        end
+        end                    
     end
     
     %% CHECK VALIDITY METHODS
@@ -1074,7 +1074,7 @@ classdef Core < handle
             time_lim_large.append(tmp_large);
         end
         
-           function net = getNetwork(this, rid, rec_list)
+        function net = getNetwork(this, rid, rec_list)
             % get a network based on the receiver id, 'if is not present crate a new one
             %
             % SYNTAX:
@@ -1149,8 +1149,14 @@ classdef Core < handle
         end
     end
 
-    methods % Public Access (Legacy support)
-        
+    methods (Static) % Public Access (Legacy support)
+        function initGeoid()
+            % Perform init geoid
+            %
+            % SYNTAX Core.initGeoid();
+            gs = Global_Configuration.getInstance;
+            gs.initGeoid();
+        end        
     end
 
 end
