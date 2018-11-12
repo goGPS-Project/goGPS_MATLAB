@@ -56,6 +56,7 @@ classdef Core_UI < handle
         BLUE = [0 0 1];
         RED  = [1 0 0];
         GREEN = [0 1 0];
+        LBLUE = [0 163 222]/255;
         
         COLOR_ORDER = [ ...
             0     0.447 0.741;

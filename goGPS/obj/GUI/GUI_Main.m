@@ -1679,6 +1679,10 @@ end
             new = GUI_New_Project(this);
         end
         
+        function about(this, caller, event)
+            % Create a new project            
+            new = GUI_About(this);
+        end
         function loadState(this, caller, event)
             % Load state settings
             
@@ -1922,6 +1926,10 @@ end
     
     methods
         function addGoMenu(this)
+            this.menu.goGPS = uimenu(this.w_main, 'Label', 'goGPS');
+            uimenu(this.menu.goGPS, ...
+                'Label', 'About', ...
+                'Callback', @this.about);            
             this.menu.project = uimenu(this.w_main, 'Label', 'Project');
             uimenu(this.menu.project, ...
                 'Label', 'New', ...
