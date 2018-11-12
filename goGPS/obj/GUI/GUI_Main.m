@@ -988,13 +988,36 @@ end
             
             % Resource tree
             Core_UI.insertEmpty(tab_bv);
-            uicontrol('Parent', tab_bv, ...
+            bottom_box = uix.VBox( 'Parent', tab_bv, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            rr_box = uix.VBox( 'Parent', bottom_box, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+
+            uicontrol('Parent', rr_box, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', 'Resource tree: when a center have missing resources (e.g. iono, vmf, ...) default values are used', ...
+                'String', 'Resource tree inspector:', ... %  when a center have missing resources (e.g. iono, vmf, ...) default values are used
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'ForegroundColor', Core_UI.BLACK, ...
-                'FontSize', Core_UI.getFontSize(9));
+                'FontSize', Core_UI.getFontSize(8));
+             
+            Core_UI.insertEmpty(bottom_box);
+            
+            dir_box = uix.VBox( 'Parent', bottom_box, ...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            bottom_box.Heights = [-1 5 -1];
+                         
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [100 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_dir', @this.onEditChange, [100 -1 25]);
+
             this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             this.j_rrini.setContentType(codeType);
@@ -1010,9 +1033,9 @@ end
             % Create the ScrollPanel containing the widget
             j_scroll_rri = com.mathworks.mwswing.MJScrollPane(this.j_rrini);
             % Inject edit box with the Java Scroll Pane into the main_window
-            javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
-            
-            tab_bv.Heights = [18 15 5 20 18 18 18 18 18 -1];
+            javacomponent(j_scroll_rri, [1 1 1 1], rr_box);
+            rr_box. Heights = [18 -1];
+            tab_bv.Heights = [18 15 5 20 18 18 18 5 -1];
             this.uip.tab_rr = tab;
             
         end

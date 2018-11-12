@@ -169,7 +169,7 @@ classdef GUI_About < handle
             % Disclaimer Panel -----------------------------------------------------------------------------------------------
             Core_UI.insertEmpty(right_tvb, logo_GUI_About.BG_COLOR)
             txt = this.insertText(right_tvb, {['This release is loosely based on the original goGPS software, most of the code has '...
-                'been rewritten for better performances, automation, flexibility, with the primary goal of quasi static processing. ' ...
+                'been rewritten for better performances, automation, flexibility, but with the primary goal of quasi static processing. ' ...
                 'Legacy version can still be found at:'], ...
                 'https://github.com/goGPS-Project/goGPS_MATLAB/tree/legacy'}, 7, [], 'left');
             txt.BackgroundColor = logo_GUI_About.BG_COLOR;
@@ -258,7 +258,7 @@ classdef GUI_About < handle
             
             this.insertBoldText(credits_new, 'Acknoledgments', 8);
             this.insertText(credits_new, {'This release have been founded by', 'GReD srl (www.g-red.eu)'}, 7);
-            txt = this.insertText(credits_new, {'I dedicate my work on this software to my father: Tiziano Gatti, ', 'who taught me, among countless things, the importance of putting passion in everything you choose to do. I will never forget you,'}, 7, [], 'right'); txt.FontAngle = 'italic';
+            txt = this.insertText(credits_new, {'I dedicate my work on this software to my father, Tiziano Gatti, ', 'who taught me, among countless things, the importance of putting passion in everything you choose to do. I will never forget you,'}, 7, [], 'right'); txt.FontAngle = 'italic';
             txt = this.insertText(credits_new, {'Andrea Gatti'}, 7, [20 183 242]/255, 'right'); txt.FontAngle = 'italic';
             
             credits_new.Heights = [22 5 18 14*2 5 18 14*5 5 18 -1 14*3 28];
