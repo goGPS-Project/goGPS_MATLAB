@@ -1015,7 +1015,7 @@ end
             [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [100 -1 25]);
             [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [100 -1 25]);
             [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [100 -1 25]);
 
             this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
