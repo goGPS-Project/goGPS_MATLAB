@@ -7360,6 +7360,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     this.detectOutlierMarkCycleSlip();
+                    this.coarseAmbEstimation();
                     this.pp_status = true;
                 end
             end
@@ -7723,6 +7724,24 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function coarseAmbEstimation(this)
+           % coarse estimation of the ambiguity
+           %
+           % SYNTAX:
+           % this.coarseAmbEstimation()
+           
+           [ph, wl, id_ph] = this.getPhases();
+           synt_ph = this.getSyntPhases;
+           ph_diff = ph - synt_ph;
+           amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_idx_ph, zero2nan(ph));
+           max_amb = max(max(amb_idx));
+           for a = 1 : max_amb
+               idx_amb = amb_idx == a;
+               ph(idx_amb) = nan2zero(zero2nan(ph(idx_amb)) + round(median(ph_diff(idx_amb),'omitnan')));
+           end
+           this.setPhases( ph, wl, id_ph);
+        end
+        
+        function coarseAmbEstimationOld(this)
             % estimate coarse ambiguities
             %%% experimental now just for GPS L1 L2
             
