@@ -89,11 +89,13 @@ classdef Fixer < handle
             is_fixed = 0;
             l_fixed = false(size(amb_float));
             
-            amb_ok = (abs(diag(C_amb_amb)) < 1); % fix only valid ambiguities
+            amb_ok = (abs(diag(C_amb_amb)) < 1); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
             switch approach
                 case {'lambda'}
                     try
                     [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), iar_method, 'P0', this.p0, 'mu', this.mu);
+                    %[tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(50 * C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
+                     %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
                     
                     mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
                     ratio = sq_norm(1) / sq_norm(2);
