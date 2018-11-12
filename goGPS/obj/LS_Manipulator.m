@@ -600,7 +600,7 @@ classdef LS_Manipulator < handle
             end
         end
         
-        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list, coo_rate)
+        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list, coo_rate, wl_struct)
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
             %
             % OUTPUT:
@@ -613,16 +613,27 @@ classdef LS_Manipulator < handle
             %--- for each receiver get one observation set
             for i = 1 : n_rec
                 obs_set_list(i) = Observation_Set();
-                if work_list(i).isMultiFreq() && ~work_list(i).state.isIonoExtModel %% case multi frequency
+                if ~isempty(wl_struct)%% case multi frequency
                     for sys_c = rec_list(i).work.cc.sys_c
                         if this.state.isIonoFree
-                            obs_set_list(i).merge(work_list(i).getPrefIonoFree('L', sys_c));
+                            temp_o_set = work_list(i).getPrefIonoFree('L', sys_c);
                         else
-                            obs_set_list(i).merge(work_list(i).getSmoothIonoFreeAvg('L', sys_c));
-                            obs_set_list(i).iono_free = true;
-                            obs_set_list(i).sigma = obs_set_list(i).sigma * 1.5;
+                            temp_o_set = work_list(i).getSmoothIonoFreeAvg('L', sys_c);
+                            temp_o_set.iono_free = true;
+                            temp_o_set.sigma = obs_set_list(i).sigma * 1.5;
+                        end
+                        if this.state.flag_amb_fix
+                        f_vec = this.cc.getSys(sys_c).F_VEC;
+                        l_vec = this.cc.getSys(sys_c).L_VEC;
+                        rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 3]);
+                        id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1));
+                        id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
+                        temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));
+                        temp_o_set.wl = ones(size(temp_o_set.wl))*Global_Configuration.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as nnarrow lane
+                        obs_set_list(i).merge(temp_o_set);
                         end
                     end
+                        
                 else
                     for sys_c = work_list(i).cc.sys_c
                         f = work_list(i).getFreqs(sys_c);
@@ -1563,6 +1574,12 @@ classdef LS_Manipulator < handle
                 
                 idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
                 n_amb = length(idx_amb_par);
+                x_rec = ones(size(x,1),1);
+                id_rec = find(diff(x_class) < 0);
+                for i = 1 : length(id_rec)
+                    idx = id_rec(i)+1;
+                    x_rec(idx:end) = i+1;
+                end
             end
                 %[x, flag] =  pcg(N,B,1e-9, 10000);
                            
@@ -1683,6 +1700,16 @@ classdef LS_Manipulator < handle
                     
                     xe = x(idx_est);
                     amb = xe(idx_amb_par, 1);                    
+                    amb_rec = x_rec(idx_est);
+                    amb_rec = amb_rec(idx_amb_par);
+                    n_ep_amb = zeros(size(amb));
+                    idx_amb_par_tot = find(idx_est); idx_amb_par_tot = idx_amb_par_tot(idx_amb_par);% <- amb indices in the A matrix
+                    for i = 1 : n_amb
+                        idx = this.A_idx(:,4)== idx_amb_par_tot(i);
+                        n_ep_amb(i) = sum(idx);
+          
+                        
+                    end
                     
                     % Getting tht VCV matrix for the ambiguities
                     b_eye = zeros(length(B), n_amb);
@@ -1694,6 +1721,20 @@ classdef LS_Manipulator < handle
                     C_amb_amb = C_amb_amb(idx_t_amb_par, :);
                     C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
+                    if ~isempty(this.wl_amb)
+                    % estimate narrowlanes phase delays and remove them
+                    % from abiguity vector and from observations
+                    for r = 1 : n_rec
+                        id_amb_r = amb_rec == r;
+                        if sum(id_amb_r) > 0
+                            weigth = min(n_ep_amb(id_amb_r),100)./100;
+                            weigth = weigth./sum(weigth);
+                            [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+                            amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+                        end
+                    end
+                    end
+                    
                     
                     % ILS shrinking, method 1
                     [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, 'lambda', 1);
@@ -1745,12 +1786,6 @@ classdef LS_Manipulator < handle
             if is_network
                 this.A_idx_mix = this.A_idx;
                 this.A_idx = A_idx_not_mix;
-                x_rec = ones(size(x,1),1);
-                id_rec = find(diff(x_class) < 0);
-                for i = 1 : length(id_rec)
-                    idx = id_rec(i)+1;
-                    x_rec(idx:end) = i+1;
-                end
                 x = [x, x_rec];
             end
         end

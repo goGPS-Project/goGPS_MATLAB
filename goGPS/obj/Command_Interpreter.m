@@ -91,6 +91,7 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
+        PAR_IONO    % Paramter to estimate ionosphere
         
         PAR_SLAVE     % number of parallel slaves to request
         
@@ -223,6 +224,13 @@ classdef Command_Interpreter < handle
             this.PAR_SLAVE.class = 'double';
             this.PAR_SLAVE.limits = [1 1000];
             this.PAR_SLAVE.accepted_values = [];
+            
+            this.PAR_IONO.name = 'Reduce for ionosphere delay';
+            this.PAR_IONO.descr = 'I reduce for ionosphere delay';
+            this.PAR_IONO.par = '(-iono)|(-Iono)|(-IONO)';
+            this.PAR_IONO.class = '';
+            this.PAR_IONO.limits = [];
+            this.PAR_IONO.accepted_values = [];
 
             % Show plots
             
@@ -357,7 +365,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
@@ -999,7 +1007,18 @@ classdef Command_Interpreter < handle
                 end
                 net = this.core.getNetwork(id_trg, rec);
                 net.reset();
-                net.adjust(id_ref); 
+                iono_reduce = false;
+                coo_rate = [];
+                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
+                if found
+                    coo_rate = rate;
+                end
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_IONO.par ')*$'], 'once'))
+                       iono_reduce = true;
+                    end
+                end
+                net.adjust(id_ref, coo_rate, iono_reduce); 
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();

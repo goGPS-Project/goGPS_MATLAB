@@ -59,6 +59,8 @@ classdef Network < handle
         log
         pos_indexs_tc       % index for subpositions
         id_ref
+        wl_mats          % widelane matrices
+        wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
     end
@@ -94,19 +96,43 @@ classdef Network < handle
             this.amb = [];
             this.pos_indexs_tc = [];
             this.id_ref = [];
+            this.wl_mats  = [];
+            this.wl_comb_codes = [];
         end
         
-        function adjust(this, id_ref, coo_rate)
+        function adjust(this, id_ref, coo_rate, reduce_iono)
             % Adjust the GNSS network
             %
             % INPUT
-            %     id_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
+            %     id_ref : [1,n_rec]  receivers numeric index to be choosen as reference, their value mean will be set to zero
+            %   coo_rate : rate of the solution
+            %reduce_iono : reduce for ionospheric delay
             %
             % SYNATAX
-            %    this. adjustNetwork(id_ref)
+            %    this. adjustNetwork(id_ref, <coo_rate>, <reduce_iono>)
             if nargin < 3
                 coo_rate = [];
             end
+            if nargin < 4
+                reduce_iono = false;
+            end
+            % if iono reduction is requested take off single frequency
+            % receiver
+            if reduce_iono
+                r = 1;
+               while (r <= length(this.rec_list))
+                    if ~this.rec_list(r).work.isMultiFreq
+                       this.log.addWarning(sprintf('Receiver %s is not multi frequency, removing it from network processing.',this.rec_list(r).getMarkerName4Ch));
+                       this.rec_list(r) = [];
+                       id_ref(id_ref == r) = [];
+                       id_ref(id_ref > r) = id_ref(id_ref > r) -1;
+                       
+                    else
+                        r = r +1;
+                    end
+                end
+            end
+            
             % set up the the network adjustment
             if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
                 lid_ref = true(size(this.net_id));
@@ -153,8 +179,18 @@ classdef Network < handle
                             ls.apriori_info = this.apriori_info;
                         end
                     end
-                    
-                    [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
+                    wl_struct = [];
+                    if reduce_iono
+                        if this.state.flag_amb_fix
+                            this.estimateWB();
+                            ls.wl_amb = this.wl_mats;
+                        end
+                        wl_struct = struct();
+                        wl_struct.amb_mats = this.wl_mats;
+                        wl_struct.combination_codes = this.wl_comb_codes;
+                    end
+                   
+                    [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct);
                     if isempty(this.rec_time_indexes)
                         return
                     else
@@ -506,8 +542,15 @@ classdef Network < handle
             wide_laneM{6} = [1 -1]; %% IRNSS
             wide_laneM{7} = [1-1]; %% SBAS
             n_r = length(this.rec_list);
-            sys_cs = this.cc.getAvailableSys
+            sys_cs = this.cc.getAvailableSys;
             sys_cs(sys_cs == 'R') = []; %gloNASS excluded fro now from ambiguty fixing
+            n_sat_tot = this.cc.getMaxNumSat();
+            % intilaize a matrix to store the widelanes
+            this.wl_mats = {};
+            for r = 1 : n_r
+                this.wl_mats{r} = nan(this.rec_list(r).work.length,n_sat_tot);
+            end
+            
             for sys_c = sys_cs
                 sys_idx = this.cc.SYS_C == sys_c;
                 WM = wide_laneM{sys_idx}; %% get the right widelane matrix
@@ -563,7 +606,8 @@ classdef Network < handle
                     selected_code_2 = find(nt2cb2, 1, 'first'); % best code avaliable to more than two receiver
                     track_1 = coderin3attr1(selected_code_1);
                     track_2 = coderin3attr2(selected_code_2);
-                    this.log.addMessage(this.log.indent(sprintf('Estimationg %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,8)));
+                    this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,8)));
+                    this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),num2str(b2)]];
                     b1code_aval(:,:,~nt2cb1) = [];
                     b2code_aval(:,:,~nt2cb2) = [];
                     rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
@@ -599,9 +643,12 @@ classdef Network < handle
                         i = i + 1;
                     end
                     
-                    [rec_wb, sat_wb, wl_amb_mat, go_ids] = this.estimateWideLaneAndBias(mel_wubs)
-                        
-                        % we are all very happy
+                    [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
+                    for r = 1 :n_r
+                        this.wl_mats{r}(:,mel_wubs(r).go_id) = wl_mats{r};
+                    end
+                    % CONSIDER TO DO: save staellite wb to be used by other
+                    % recieivers
                 end
                         
                   
