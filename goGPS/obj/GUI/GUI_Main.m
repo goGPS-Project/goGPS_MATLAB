@@ -448,8 +448,7 @@ end
             % --------------------------------------------------------
             
             prj_box = Core_UI.insertPanelLight(tab, 'Project');
-            [~, this.edit_texts{end+1}] = Core_UI.insertDirBox(prj_box, 'Project home directory', 'prj_home', @this.onEditChange, [200 -1 25]);
-            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
+            [~, this.edit_texts{end+1}] = Core_UI.insertDirBox(prj_box, 'Project home directory', 'prj_home', @this.onEditChange, [160 -1 25]);
             
             % --------------------------------------------------------
             
@@ -1007,7 +1006,7 @@ end
             dir_box = uix.VBox( 'Parent', bottom_box, ...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            bottom_box.Heights = [-1 5 -1];
+            bottom_box.Heights = [-1 5 180];
                          
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [100 -3 5 -1 25]);
             [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [100 -1 25]);
