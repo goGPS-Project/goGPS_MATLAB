@@ -953,6 +953,35 @@ classdef GNSS_Station < handle
     end
     
     % ==================================================================================================================================================
+    %% TESTER
+    % ==================================================================================================================================================
+    methods (Access = public)
+        function id_ko = checkZtd_mr(rec, verbose)
+            if nargin < 2
+                verbose = true;
+            end
+            
+            ztd = rec.getZtd_mr();
+            med_ztd = median(ztd * 1e2, 'omitnan')';
+            [lat, lon, h_e, h_o] = rec.getMedianPosGeodetic();
+            
+            log = Logger.getInstance();
+            
+            degree = 2;
+            h_component = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
+            ztd_diff = abs(med_ztd - h_component);
+            id_ko = find(ztd_diff > 8);
+            
+            if not(isempty(id_ko)) && verbose
+                log.addMessage('Strange stations detected');
+                for s = 1 : numel(id_ko)
+                    log.addMessage(sprintf(' - %s out for: %.2f cm wrt global behaviour', rec(id_ko(s)).getMarkerName, ztd_diff(id_ko(s))));
+                end
+            end
+        end
+    end
+    
+    % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -978,10 +1007,12 @@ classdef GNSS_Station < handle
                     p_rate = 1e-6;
                     
                     for r = 1 : numel(rec)
-                        if use_pos_time
-                            p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time_pos.getRate * 1e6)) * 1e-6; % enable this line to sync rates
-                        else
-                            p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                        if (rec(r).out.time.length) > 2
+                            if use_pos_time
+                                p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time_pos.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                            else
+                                p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                            end
                         end
                     end
                 end
@@ -1613,13 +1644,25 @@ classdef GNSS_Station < handle
                         end
                         [~, ~, ~, h_o] = rec(1).out.getPosGeodetic();
                         if new_fig
-                            plot(h_o, median(tropo,'omitnan'), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
+                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
-                            plot(h_o, median(tropo,'omitnan'), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
+                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
+                        h_ortho(r) = h_o; 
+                        med_tropo(r) = median(tropo,'omitnan');
+                    else
+                        h_ortho(r) = nan;
+                        med_tropo(r) = nan;
                     end
                 end
+                
+                h_ortho(med_tropo == 0) = nan;
+                med_tropo = zero2nan(med_tropo);
+                degree = 2;
+                h_grid = min(noNaN(h_ortho)) :  min(10, diff(minMax(noNaN(h_ortho)))/100) : max(noNaN(h_ortho));
+                h_component = Core_Utils.interp1LS(noNaN(h_ortho), noNaN(med_tropo), degree, h_grid);
+                plot(h_grid, h_component, '-k', 'LineWidth', 2);
                 
                 outm = [old_legend, outm];
                 [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
