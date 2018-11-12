@@ -30,7 +30,7 @@ function goGPS_LS_DD_code(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, s
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 4 - nightly
+%    |___/                    v 0.999.0 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

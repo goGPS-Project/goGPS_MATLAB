@@ -25,7 +25,7 @@ function [flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = v_code0(ha
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 4 - nightly
+%    |___/                    v 0.999.0 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

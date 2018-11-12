@@ -32,7 +32,7 @@ function goGPS_LS_DD_code_phase_MR(time_rx, multi_ant_rf, XM, pr1_R, pr1_M, pr2_
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 4 - nightly
+%    |___/                    v 0.999.0 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

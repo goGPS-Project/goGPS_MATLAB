@@ -25,7 +25,7 @@ function rtplot_matlab_cov_stopGOstop (t, pos_R, pos_M, covpos_R, P1, P2, origin
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 4 - nightly
+%    |___/                    v 0.999.0 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

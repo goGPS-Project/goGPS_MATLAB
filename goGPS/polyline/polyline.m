@@ -29,7 +29,7 @@ function polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, .
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 4 - nightly
+%    |___/                    v 0.999.0 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
