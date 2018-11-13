@@ -2711,6 +2711,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             xyz = this.getAPrioriPos();
         end
         
+        function [lon, lat, h_ell] = getGeodCoord(this)
+            % return geodetic coordinate of the reciever
+            %
+            % SYNTAX
+            %   [lon, lat, h] = this.getGeodCoord()
+            if isempty(this.lat) ||  isempty(this.lat) ||  isempty(this.h_ellips) 
+                this.updateCoordinates();
+            end
+            lon = this.lon;
+            lat = this.lat;
+            h_ell = this.h_ellips;
+        end
+        
         function xyz = getAPrioriPos(this)
             % return apriori position
             %
@@ -7736,7 +7749,8 @@ classdef Receiver_Work_Space < Receiver_Commons
            max_amb = max(max(amb_idx));
            for a = 1 : max_amb
                idx_amb = amb_idx == a;
-               ph(idx_amb) = nan2zero(zero2nan(ph(idx_amb)) + round(median(ph_diff(idx_amb),'omitnan')));
+               wla = wl(sum(idx_amb)>0);
+               ph(idx_amb) = nan2zero(zero2nan(ph(idx_amb)) - round(median(ph_diff(idx_amb)./wla,'omitnan'))*wla);
            end
            this.setPhases( ph, wl, id_ph);
         end

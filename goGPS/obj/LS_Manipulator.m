@@ -116,6 +116,8 @@ classdef LS_Manipulator < handle
         apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
         x_float
         Cxx_amb
+        
+        is_tropo_decorrel % are tropo paramter decorrelated enough
     end
     
     properties (Access = private)
@@ -630,8 +632,9 @@ classdef LS_Manipulator < handle
                         id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
                         temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));
                         temp_o_set.wl = ones(size(temp_o_set.wl))*Global_Configuration.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as nnarrow lane
-                        obs_set_list(i).merge(temp_o_set);
+                        
                         end
+                        obs_set_list(i).merge(temp_o_set);
                     end
                         
                 else
@@ -1406,7 +1409,10 @@ classdef LS_Manipulator < handle
                 idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
                 idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
-                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_isb; idx_rec_t; idx_rec_tn; idx_rec_te];
+                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_isb;];%
+                if ~this.is_tropo_decorrel
+                    idx_rm = [idx_rm ; idx_rec_t; idx_rec_tn; idx_rec_te];
+                end
                 % 3 ) remove one clock per epoch for the minim receiver available
                 clk_idx = this.param_class == this.PAR_REC_CLK;
                 n_epochs = length(unique(this.epoch));
@@ -1722,17 +1728,17 @@ classdef LS_Manipulator < handle
                     C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
                     if ~isempty(this.wl_amb)
-                    % estimate narrowlanes phase delays and remove them
-                    % from abiguity vector and from observations
-                    for r = 1 : n_rec
-                        id_amb_r = amb_rec == r;
-                        if sum(id_amb_r) > 0
-                            weigth = min(n_ep_amb(id_amb_r),100)./100;
-                            weigth = weigth./sum(weigth);
-                            [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-                            amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+                        % estimate narrowlanes phase delays and remove them
+                        % from abiguity vector and from observations
+                        for r = 1 : n_rec
+                            id_amb_r = amb_rec == r;
+                            if sum(id_amb_r) > 0
+                                weigth = min(n_ep_amb(id_amb_r),100)./100;
+                                weigth = weigth./sum(weigth);
+                                [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+                                amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+                            end
                         end
-                    end
                     end
                     
                     

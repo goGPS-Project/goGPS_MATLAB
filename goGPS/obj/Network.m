@@ -63,6 +63,7 @@ classdef Network < handle
         wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
+        is_tropo_decorrel % are station apart enough to estimate differents tropo?
     end
     methods
         function this = Network(rec_list, net_id)
@@ -191,6 +192,23 @@ classdef Network < handle
                     end
                    
                     [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct);
+                    
+                    % check wether tropo does decorrelate
+                    n_rec = length(this.rec_list);
+                    distance_M = zeros(n_rec,n_rec);
+                    for  r1 = 1 : n_rec
+                        [lon1, lat1] = this.rec_list(r1).work.getGeodCoord();
+                        for r2 = r1 : n_rec
+                             [lon2, lat2] = this.rec_list(r2).work.getGeodCoord();
+                            distance_M(r1,r2) = sphericalDistance(lat1, lon1, lat2, lon2);
+                        end
+                    end
+                    max_dist = max(max(distance_M));
+                    if max_dist > 80/(6371*2*pi)/pi*180 % ~80 km
+                        this.is_tropo_decorrel = true;
+                    else
+                         this.is_tropo_decorrel = false;
+                    end
                     if isempty(this.rec_time_indexes)
                         return
                     else
@@ -203,6 +221,7 @@ classdef Network < handle
                             ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                             ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                         end
+                        ls.is_tropo_decorrel = this.is_tropo_decorrel;
                         [x, res, s0, Cxx, l_fixed] = ls.solve;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
@@ -460,13 +479,15 @@ classdef Network < handle
                     % clock
                     this.clock(i,:) = (S*this.clock(i,:)')';
                     % ztd
-                    if this.state.flag_tropo
-                        this.ztd(i,:) = (S*this.ztd(i,:)')';
-                    end
-                    % gradients
-                    if this.state.flag_tropo_gradient
-                        this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
-                        this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
+                    if ~this.is_tropo_decorrel
+                        if this.state.flag_tropo
+                            this.ztd(i,:) = (S*this.ztd(i,:)')';
+                        end
+                        % gradients
+                        if this.state.flag_tropo_gradient
+                            this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
+                            this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
+                        end
                     end
                 end
             end
@@ -606,7 +627,7 @@ classdef Network < handle
                     selected_code_2 = find(nt2cb2, 1, 'first'); % best code avaliable to more than two receiver
                     track_1 = coderin3attr1(selected_code_1);
                     track_2 = coderin3attr2(selected_code_2);
-                    this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,8)));
+                    this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
                     this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),num2str(b2)]];
                     b1code_aval(:,:,~nt2cb1) = [];
                     b2code_aval(:,:,~nt2cb2) = [];
@@ -645,7 +666,7 @@ classdef Network < handle
                     
                     [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
                     for r = 1 :n_r
-                        this.wl_mats{r}(:,mel_wubs(r).go_id) = wl_mats{r};
+                        this.wl_mats{r}(:,go_ids) = wl_mats{r};
                     end
                     % CONSIDER TO DO: save staellite wb to be used by other
                     % recieivers
@@ -795,7 +816,7 @@ classdef Network < handle
                     idx_s = mel_wub_mat(r).go_id == go_id;
                     if sum(idx_s) >0
                         found = true;
-                         sat_wb(s) = Core_Utils.estimateFracBias(mel_wub_mat(r).getObsCy(find(idx_s)), mel_wub_mat(r).cycle_slip(:,idx_s));
+                         sat_wb(s) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(find(idx_s))), mel_wub_mat(r).cycle_slip(:,idx_s));
                          sat_wb_r_id(s) = r;
                     end
                     r = r +1;
@@ -808,7 +829,7 @@ classdef Network < handle
                 to_eliminate_sat = sat_wb_r_id == r;
                 [~,rec_gi_idx] = intersect(mel_wub_mat(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
                 if ~isempty(rec_gi_idx)  
-                     rec_wb(r) = Core_Utils.estimateFracBias(mel_wub_mat(r).getObsCy(rec_gi_idx) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
+                     rec_wb(r) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(rec_gi_idx)) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
                      % update the satellite bias knpwing the receiver one 
                      if sum(to_eliminate_sat) > 0
                          for s = find(to_eliminate_sat)
@@ -823,9 +844,9 @@ classdef Network < handle
             % final estamiation of the widelane
             for r = 1 : n_rec
                 cy = mel_wub_mat(r).getObsCy;
-                 [~,rec_gi_idx] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
-                cy = zero2nan(cy) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
-                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip);
+                 [~,rec_gi_idx, goids_idx2] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
+                cy = zero2nan(cy(:,goids_idx2)) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
+                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
             end
             % OPTIONAL ->refine the bias estimation with a LS adjustemtn
         end
