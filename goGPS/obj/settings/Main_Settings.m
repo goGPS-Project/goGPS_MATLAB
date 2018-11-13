@@ -235,6 +235,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         MAPPING_FUNCTION = 1                            % Mapping function to be used
                                                         % 1 : GMF
                                                         % 2 : VMF gridded
+                                                        % 3 : Niell
                                                         % ADV ATMOSPHERE
         METEO_DATA = 2;                                 % Meteo data to be used
                                                         % 1: standard atmopshere
@@ -300,12 +301,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
-            '2: Vienna Mapping Function gridded'}
+            '2: Vienna Mapping Function gridded'
+            }
         ZD_LABEL =  {'Saastamoinen from meteo data','VMF gridded zenith delays'}
         % id to string of mappig functions
         MF_SMODE = {'1: Global Mapping Function', ...
-            '2: Vienna Mapping Function gridded'}
-        MF_LABEL = {'GMF','VMF gridded'}
+            '2: Vienna Mapping Function gridded', ...
+            '3: Niell Mapping Function'}
+        MF_LABEL = {'GMF','VMF gridded','Niell'}
         % id to string of meteo dtata
         MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
@@ -3021,7 +3024,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folderåß
+                % Search broadcast orbits in the ephemerides folderï¿½ï¿½
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));

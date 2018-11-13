@@ -3047,7 +3047,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if numel(id_sync) > 0
                         for s = 1 : numel(this)
                             if ~isempty(this(s))
-                                if this.state.mapping_function == 2
+                                if this(s).state.mapping_function == 3
+                                    [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
+                                elseif this.state.mapping_function == 2
                                     [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
                                 elseif this.state.mapping_function == 1
                                     [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
