@@ -991,13 +991,13 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPPP(rec, tok)
-            if false
-            rec.netPrePro();
-            end
+%             if true
+%                 rec.netPrePro();
+%             end
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-            if false
-            rec(id_trg).netPrePro();
-            end
+%             if true
+%                 rec(id_trg).netPrePro();
+%             end
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
