@@ -926,7 +926,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -996,7 +996,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1115,7 +1115,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ï¿½C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1729,6 +1729,66 @@ classdef Atmosphere < handle
                 
             end
         end
+         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
+            %angles in radians!!
+            %code based on:
+            %    [3] Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
+            %
+            % SYNTAX
+            %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
+            lat_p = [ 15 30 45 60 75]/180*pi;
+            ah_coef_lat = [1.2769934e-3 1.2683230e-3 1.2465397e-3 1.2196049e-3 1.2045996e-3];
+            bh_coef_lat = [2.9153695e-3 2.9152299e-3 2.9288445e-3 2.9022565e-3 2.9024912e-3];
+            ch_coef_lat = [62.610505e-3 62.837393e-3 63.721774e-3 63.824265e-3 64.258455e-3];
+            
+            ah_coef_amp_lat = [0.0 1.2709626e-5 2.6523662e-5 3.4000452e-5 4.1202191e-5];
+            bh_coef_amp_lat = [0.0 2.1414979e-5 3.0160779e-5 7.2562722e-5 11.723375e-5];
+            ch_coef_amp_lat = [0.0 9.0128400e-5 4.3497037e-5 84.795348e-5 170.37206e-5];
+            
+            aw_coef_lat = [5.8021897e-4 5.6794847e-4 5.8118019e-4 5.9727542e-4 6.1641693e-4];
+            bw_coef_lat = [1.4275268e-3 1.5138625e-3 1.4572752e-3 1.5007428e-3 1.7599082e-3];
+            cw_coef_lat = [4.3472961e-2 4.6729510e-2 4.3908931e-2 4.4626982e-2 5.4736038e-2];
+            
+            [~,~,idx_lat1] = histcounts(lat,[0 lat_p 90]);
+            if idx_lat1 == 1
+                ll = 1;
+                idx_lat2 = idx_lat1;
+            elseif idx_lat1 == 5
+                ll = 1;
+                idx_lat2 = idx_lat1;
+            else
+                idx_lat2 = idx_lat1 + 1;
+                ll = (lat - lat_p(idx_lat1))/( lat_p(idx_lat2) -  lat_p(idx_lat1));
+            end
+            ah_coef = ah_coef_lat(idx_lat1)*ll + (1-ll)*ah_coef_lat(idx_lat2);
+            bh_coef = bh_coef_lat(idx_lat1)*ll + (1-ll)*bh_coef_lat(idx_lat2);
+            ch_coef = ch_coef_lat(idx_lat1)*ll + (1-ll)*ch_coef_lat(idx_lat2);
+            
+            ah_coef_amp = ah_coef_amp_lat(idx_lat1)*ll + (1-ll)*ah_coef_amp_lat(idx_lat2);
+            bh_coef_amp = bh_coef_amp_lat(idx_lat1)*ll + (1-ll)*bh_coef_amp_lat(idx_lat2);
+            ch_coef_amp = ch_coef_amp_lat(idx_lat1)*ll + (1-ll)*ch_coef_amp_lat(idx_lat2);
+            
+            aw = aw_coef_lat(idx_lat1)*ll + (1-ll)*aw_coef_lat(idx_lat2);
+            bw = bw_coef_lat(idx_lat1)*ll + (1-ll)*bw_coef_lat(idx_lat2);
+            cw = cw_coef_lat(idx_lat1)*ll + (1-ll)*cw_coef_lat(idx_lat2);
+            
+            [~,doy] = time.getDOY;
+            period = (doy -28 ) / 365.25 * 2 *pi;
+            
+            ah = ah_coef + ah_coef_amp * cos(period);
+            bh = bh_coef + bh_coef_amp * cos(period);
+            ch = ch_coef + ch_coef_amp * cos(period);
+            
+            aw = aw*ones(size(ah));
+            bw = bw*ones(size(bh));
+            cw = cw*ones(size(ch));
+            n_sat = size(el,2);
+            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,n_sat),repmat(bh,1,n_sat),repmat(ch,1,n_sat),el);
+            [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,n_sat),repmat(bw,1,n_sat),repmat(cw,1,n_sat),el);
+            
+            [h_h_coorection] = this.hydrostaticMFHeigthCorrection(h_ell,el);
+            gmfh = gmfh + h_h_coorection;            
+         end
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1816,7 +1876,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45ï¿½ lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end

@@ -1727,19 +1727,19 @@ classdef LS_Manipulator < handle
                     C_amb_amb = C_amb_amb(idx_t_amb_par, :);
                     C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
-                    if ~isempty(this.wl_amb)
-                        % estimate narrowlanes phase delays and remove them
-                        % from abiguity vector and from observations
-                        for r = 1 : n_rec
-                            id_amb_r = amb_rec == r;
-                            if sum(id_amb_r) > 0
-                                weigth = min(n_ep_amb(id_amb_r),100)./100;
-                                weigth = weigth./sum(weigth);
-                                [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-                                amb(id_amb_r) = amb(id_amb_r) - frac_bias;
-                            end
-                        end
-                    end
+%                     if ~isempty(this.wl_amb)
+%                         % estimate narrowlanes phase delays and remove them
+%                         % from abiguity vector and from observations
+%                         for r = 1 : n_rec
+%                             id_amb_r = amb_rec == r;
+%                             if sum(id_amb_r) > 0
+%                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
+%                                 weigth = weigth./sum(weigth);
+%                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+%                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+%                             end
+%                         end
+%                     end
                     
                     
                     % ILS shrinking, method 1
