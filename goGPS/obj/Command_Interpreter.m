@@ -77,6 +77,7 @@ classdef Command_Interpreter < handle
         CMD_SHOW        % Display plots and images
         CMD_EXPORT      % Export results
         CMD_PUSHOUT     % push results in output
+        CMD_REMSAT      % remove satellites from receivers
             
         CMD_PINIT       % parallel request slaves
         CMD_PKILL       % parallel kill slaves
@@ -120,7 +121,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT','REMSAT'};
         VALID_CMD = {};
         CMD_ID = [];
         KEY_ID = [];
@@ -416,6 +417,12 @@ classdef Command_Interpreter < handle
             this.CMD_PKILL.descr = 'Parallel kill all the slaves';
             this.CMD_PKILL.rec = '';
             this.CMD_PKILL.par = [];
+            
+            
+            this.CMD_REMSAT.name = {'REMSAT', 'remsat'};
+            this.CMD_REMSAT.descr = 'Remove satellites';
+            this.CMD_REMSAT.rec = '';
+            this.CMD_REMSAT.par = [];
 
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
@@ -699,6 +706,8 @@ classdef Command_Interpreter < handle
                             this.runCodePP(rec, tok(2:end));
                         case this.CMD_PPP.name                  % PPP
                             this.runPPP(rec, tok(2:end));
+                        case this.CMD_REMSAT.name               % REM SAt
+                            this.runPPP(rec, tok(2:end));
                         case this.CMD_NET.name                  % NET
                             this.runNet(rec, tok(2:end));
                         case this.CMD_SEID.name                 % SEID
@@ -981,6 +990,32 @@ classdef Command_Interpreter < handle
                 end
             end
         end
+        
+         function runRemSat(this, rec, tok)
+            % Remove satelites from receivers
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runRemSat(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                [sys_list, sys_found] = this.getConstellation(tok);
+                for r = id_trg
+                    for s = 2:length(tok)
+                        sysc = tok{s}(1);
+                        prn = tok{s}(2:3);
+                        rec(r).work.remSat(sysc,prn);
+                    end
+                end
+            end
+        end
+        
+        
 
         function runNet(this, rec, tok)
             % Execute Network undifferenced solution
