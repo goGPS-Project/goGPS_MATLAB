@@ -416,12 +416,13 @@ classdef Command_Interpreter < handle
             this.CMD_PKILL.name = {'PKILL', 'pkill'};
             this.CMD_PKILL.descr = 'Parallel kill all the slaves';
             this.CMD_PKILL.rec = '';
-            this.CMD_PKILL.par = [];
             
+            this.CMD_PKILL.par = [];
             
             this.CMD_REMSAT.name = {'REMSAT', 'remsat'};
             this.CMD_REMSAT.descr = 'Remove satellites';
-            this.CMD_REMSAT.rec = '';
+            this.CMD_REMSAT.rec = 'T';
+            this.CMD_REMSAT.key = 'S';
             this.CMD_REMSAT.par = [];
 
             this.KEY_FOR.name = {'FOR', 'for'};
@@ -707,7 +708,7 @@ classdef Command_Interpreter < handle
                         case this.CMD_PPP.name                  % PPP
                             this.runPPP(rec, tok(2:end));
                         case this.CMD_REMSAT.name               % REM SAt
-                            this.runPPP(rec, tok(2:end));
+                            this.runRemSat(rec, tok(2:end));
                         case this.CMD_NET.name                  % NET
                             this.runNet(rec, tok(2:end));
                         case this.CMD_SEID.name                 % SEID
@@ -1004,11 +1005,12 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
-                [sys_list, sys_found] = this.getConstellation(tok);
+                s_idx = 2;
                 for r = id_trg
-                    for s = 2:length(tok)
-                        sysc = tok{s}(1);
-                        prn = tok{s}(2:3);
+                    sats = strsplit(tok{s_idx},',');
+                    for s = 1:length(sats)
+                        sysc = sats{s}(1);
+                        prn = str2num(sats{s}(2:3));
                         rec(r).work.remSat(sysc,prn);
                     end
                 end

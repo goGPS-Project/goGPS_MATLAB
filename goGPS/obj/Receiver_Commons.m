@@ -1101,7 +1101,7 @@ classdef Receiver_Commons < handle
                             single_sat(s).Visible = 'off';
                         end
                     end
-                    linkaxes([ax_sat(id_ok), ax_all]);
+                    linkaxes([ ax_all,ax_sat(id_ok)]);
                     drawnow
                 end
             end

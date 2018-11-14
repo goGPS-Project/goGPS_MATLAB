@@ -80,6 +80,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         obs            % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
         synt_ph;       % syntetic phases
         
+        dop_kin        % dop matrix inberse of the normal builded for a sigle epoch [ x y z dt tropo]
+        dop_tdt        % dop matrix inberse of the normal builded for a sigle epoch [dt tropo]
+        
+        
         % CORRECTIONS ------------------------------
         
         rin_obs_code   % list of types per constellation
@@ -109,6 +113,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                            % corresponding index in .obs of the columns of outlier and cs in .sat
         
         if_amb;            % temporary varibale to test PPP ambiguity fixing
+        
+        
+        
     end
     % ==================================================================================================================================================
     %% PROPERTIES POSITION
@@ -4995,6 +5002,98 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt(:)  = 0;%zeros(size(this.dt_pr));
         end
         
+        function [dop] = computeKinDop(this)
+            % compute the diluiton of precison for the 3 coordinate and 
+            % SYNTAX
+            %   [dop] = computeDop(this)
+            %
+            % INPUT
+            %
+            % OUTPUT
+            dop_kin = zeros(5,5,this.length);
+            [XS_loc] = this.getXSLoc();
+            [mf] = this.getSlantMF();
+            this.updateCoordinates();
+            phi = this.lat;
+            lam = this.lon;
+
+            %rotation matrix from global to local reference system
+            R = [-sin(lam) cos(lam) 0;
+                -sin(phi)*cos(lam) -sin(phi)*sin(lam) cos(phi);
+                +cos(phi)*cos(lam) +cos(phi)*sin(lam) sin(phi)];
+
+            for i = 1 : this.length
+                idx_s = mf(i,:) ~= 0 & ~isnan(XS_loc(i,:,1));
+                e =  rowNormalize(permute(XS_loc(i,idx_s,:),[2 3 1]));
+                t =  mf(i,idx_s)';
+                A = [e ones(sum(idx_s),1) t];
+                dop_kin(:,:,i) = inv(A'*A);
+                % rotate to go enu
+                dop_kin(1:3,1:3) = R*dop_kin(1:3,1:3)*R';
+            end
+            this.dop_kin = dop_kin;
+        end
+        
+        function [dop] = computeTropoClockDop(this)
+            % compute the diluiton of precison for tropo and clock only
+            % SYNTAX
+            %   [dop] = computeDop(this)
+            %
+            % INPUT
+            %
+            % OUTPUT
+            dop_tdt = zeros(2,2,this.length);
+            [XS_loc] = this.getXSLoc();
+            [mf] = this.getSlantMF();
+            this.updateCoordinates();
+            for i = 1 : this.length
+                idx_s = mf(i,:) ~= 0 & ~isnan(XS_loc(i,:,1));
+                t =  mf(i,idx_s)';
+                A = [ones(sum(idx_s),1) t];
+                dop_tdt(:,:,i) = inv(A'*A);
+            end
+            this.dop_tdt = dop_tdt;
+        end
+        
+        function [dop] = getDopDiag(this, par_idx)
+            % get diagona element in the diagonal matrix
+            % SYNTAX
+            %   [dop] = getDopDiag(this, par_idx)
+            %
+            % INPUT
+            %     par_idx: 1 = x, 2 = y, 3 = z, 4 = t, 5 = ztd
+            %
+            % OUTPUT
+            if isempty(this.dop)
+                this.computeDop();
+            end
+            dop = this.dop_kin(:,par_idx,par_idx);
+            if numel(par_idx) == 1 || sum(par_idx) == 1
+                dop = permute(dop,[3 2 1]);
+            end
+        end
+        
+         function [dop] = getDopClkTropoDiag(this, par_idx)
+            % get diagona element in the diagonal matrix
+            % SYNTAX
+            %   [dop] = getDopDiag(this, par_idx)
+            %
+            % INPUT
+            %     par_idx: 1 = t, 2 = ztd
+            %
+            % OUTPUT
+            if isempty(this.dop)
+                this.computeDop();
+            end
+            dop = this.dop_tdt(:,par_idx,par_idx);
+            if numel(par_idx) == 1 || sum(par_idx) == 1
+                dop = permute(dop,[3 2 1]);
+            end
+        end
+        
+        
+        
+        
         function correctPhJump(this)
             % remove huge jumps in phase
             %
@@ -5801,6 +5900,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.ol_delay_status = 0; %not applied
             end
         end
+        
+        
         
         function [ocean_load_corr] = computeOceanLoading(this, sat) % WARNING: to be tested
             
