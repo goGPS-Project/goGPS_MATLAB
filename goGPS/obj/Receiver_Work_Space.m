@@ -3482,7 +3482,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % remove possible local biases due to bad satellites
             sensor = zero2nan(res * 1e3);            
             starting_bias = nan2zero(median((sensor(1:find(tmp_ko, 1, 'first'), :)), 'omitnan'));
-            tmp_jmp = cumsum(nan2zero(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat)))) .* ~isnan(zero2nan(sensor)) + repmat(starting_bias, size(sensor, 1), 1);
+            tmp_jmp = cumsum(nan2zero(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat)))) .* ~isnan(zero2nan(sensor)) + repmat(starting_bias, size(sensor, 1), iif(numel(starting_bias) == 1, size(sensor, 2), 1));
             
             if nargin < 4
                 % flag outliers above 5cm
@@ -3512,8 +3512,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             if level < 3
                 % check for bad std
                 % mark sat above a 2 std level (if the std level is greater than 8mm
-                id_ko = std(sensor, 1, 2, 'omitnan') > 6 & abs(sensor) > 10;
-                id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), 2*std(sensor,1,2,'omitnan'));
+                id_ko = repmat(std(sensor, 1, 2, 'omitnan'),1, n_sat) > 6 & abs(sensor) > 10;
+                id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), repmat(2*std(sensor,1,2,'omitnan'),1, n_sat));
 
                 % mark outliers out of thr level
                 flagged_data = id_ko | this.flagArcOutliers(sensor, this.state.pp_max_phase_err_thr * 1e3, this.state.pp_max_phase_err_thr * 1e3 * 0.8);
