@@ -121,13 +121,13 @@ classdef Network < handle
             % receiver
             if reduce_iono
                 r = 1;
-               while (r <= length(this.rec_list))
+                while (r <= length(this.rec_list))
                     if ~this.rec_list(r).work.isMultiFreq
-                       this.log.addWarning(sprintf('Receiver %s is not multi frequency, removing it from network processing.',this.rec_list(r).getMarkerName4Ch));
-                       this.rec_list(r) = [];
-                       id_ref(id_ref == r) = [];
-                       id_ref(id_ref > r) = id_ref(id_ref > r) -1;
-                       
+                        this.log.addWarning(sprintf('Receiver %s is not multi frequency, removing it from network processing.',this.rec_list(r).getMarkerName4Ch));
+                        this.rec_list(r) = [];
+                        id_ref(id_ref == r) = [];
+                        id_ref(id_ref > r) = id_ref(id_ref > r) -1;
+                        
                     else
                         r = r +1;
                     end
@@ -143,7 +143,7 @@ classdef Network < handle
                 [~, id_ref] = intersect(this.net_id, id_ref);
                 lid_ref(id_ref) = true;
             end
-
+            
             l_fixed = 0; % nothing is fixed
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
@@ -161,7 +161,7 @@ classdef Network < handle
                     this.log.addMessage(this.log.indent('Network reweight perform only a simple outlier detection on the residuals'), 2);
                     n_clean = 3;
                 end
-
+                
                 while n_clean >= 0
                     ls = LS_Manipulator(this.rec_list(1).cc);
                     
@@ -190,7 +190,7 @@ classdef Network < handle
                         wl_struct.amb_mats = this.wl_mats;
                         wl_struct.combination_codes = this.wl_comb_codes;
                     end
-                   
+                    
                     [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct);
                     
                     % check wether tropo does decorrelate
@@ -199,7 +199,7 @@ classdef Network < handle
                     for  r1 = 1 : n_rec
                         [lon1, lat1] = this.rec_list(r1).work.getGeodCoord();
                         for r2 = r1 : n_rec
-                             [lon2, lat2] = this.rec_list(r2).work.getGeodCoord();
+                            [lon2, lat2] = this.rec_list(r2).work.getGeodCoord();
                             distance_M(r1,r2) = sphericalDistance(lat1, lon1, lat2, lon2);
                         end
                     end
@@ -207,7 +207,7 @@ classdef Network < handle
                     if max_dist > 80/(6371*2*pi)/pi*180 % ~80 km
                         this.is_tropo_decorrel = true;
                     else
-                         this.is_tropo_decorrel = false;
+                        this.is_tropo_decorrel = false;
                     end
                     if isempty(this.rec_time_indexes)
                         return
@@ -231,8 +231,8 @@ classdef Network < handle
                         this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f', s0)));
                         %figure; plot(res(:,:,2)); ylim([-0.05 0.05]); dockAllFigures;
                         if s0 < 0.0025 && ... % low sigma0 of the computation
-                           all(abs(res(:)) < this.state.pp_max_phase_err_thr) && ...  % no residuals above thr level
-                           all(std(zero2nan(reshape(permute(res(:,:,:),[1 3 2]), size(res,1) * size(res,3), size(res,2))),1,2,'omitnan') < 9e-3) % low dispersion of the residuals
+                                all(abs(res(:)) < this.state.pp_max_phase_err_thr) && ...  % no residuals above thr level
+                                all(std(zero2nan(reshape(permute(res(:,:,:),[1 3 2]), size(res,1) * size(res,3), size(res,2))),1,2,'omitnan') < 9e-3) % low dispersion of the residuals
                             
                             % I can be satisfied
                             n_clean = -1;
@@ -444,7 +444,7 @@ classdef Network < handle
         end
         
         function changeReferenceFrame(this, id_ref)
-            n_rec = length(this.rec_list); 
+            n_rec = length(this.rec_list);
             n_time = this.common_time.length;
             % ALL OF THIS MAKES NO SENSE TO ME (Andrea). Now it should ;) (Giulio)
             %--- transform the result in the desired free network
@@ -532,11 +532,11 @@ classdef Network < handle
         function estimateWB(this)
             % estimate widelane satellite bias e and widelane receiver bias
             % for a network
-            % NOTE: 
+            % NOTE:
             %    the bias willd dpend on what code bias have been applied
-            %    to observations so if code biases are changed 
-            % 
-            % SYNTAX: 
+            %    to observations so if code biases are changed
+            %
+            % SYNTAX:
             %      this.estimateWB()
             
             % firstly we define which widelane we seek to fix: once one
@@ -551,14 +551,14 @@ classdef Network < handle
             wide_laneM{2} = [ 1 -1 0; %% GLONASS
                 0  1 -1;];
             wide_laneM{3} = [ 1 -1  0  0 0; %% GALILEO
-                      0  1 0  0 -1;
-                      0  1  -1 0 0;
-                      0  0  1 -1 0; ] ;
+                0  1 0  0 -1;
+                0  1  -1 0 0;
+                0  0  1 -1 0; ] ;
             wide_laneM{5} = [ 1 -1 0; %% BEIDOU
                 0  1 -1;];
             wide_laneM{4} = [1 -1  0  0; % QZSS
-                     0  1 -1  0;
-                     0  0  1 -1] ;
+                0  1 -1  0;
+                0  0  1 -1] ;
             
             wide_laneM{6} = [1 -1]; %% IRNSS
             wide_laneM{7} = [1-1]; %% SBAS
@@ -586,7 +586,7 @@ classdef Network < handle
                     b1code_aval = false(n_r,n_sat, length(coderin3attr1));
                     b2code_aval = false(n_r,n_sat, length(coderin3attr2));
                     for r = 1 : n_r
-                        % check wether both frequency are available 
+                        % check wether both frequency are available
                         rec = this.rec_list(r).work;
                         has_fr = sum(strLineMatch(rec.obs_code(:,1:2),['L' b1])) > 0 & sum(strLineMatch(rec.obs_code(:,1:2),['L' b2])) & sum(strLineMatch(rec.obs_code(:,1:2),['C' b1]))& sum(strLineMatch(rec.obs_code(:,1:2),['C' b2]));
                         has_frs(r) = has_fr;
@@ -613,80 +613,84 @@ classdef Network < handle
                     end
                     % remove satellites and receiver that doe not have the
                     % frequency
-                    full_rec_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,2) > 0; 
-                    full_sat_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,1) > 0; 
+                    full_rec_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,2) > 0;
+                    full_sat_lid = sum(sum(b1code_aval,3)> 0 & sum(b2code_aval,3)>0,1) > 0;
                     b1code_aval(~full_rec_lid,:,:) = [];
                     b2code_aval(~full_rec_lid,:,:) = [];
                     b1code_aval(:,~full_sat_lid,:) = [];
                     b2code_aval(:,~full_sat_lid,:) = [];
                     % remove code that are not observed by more than one
                     % receiver
-                    nt2cb1 = sum(sum(squeeze(sum(b1code_aval,1)>1)),1)> 0; 
-                    nt2cb2 = sum(sum(squeeze(sum(b2code_aval,1)>1)),1)> 0; 
+                    nt2cb1 = sum(sum(squeeze(sum(b1code_aval,1)>1)),1)> 0;
+                    nt2cb2 = sum(sum(squeeze(sum(b2code_aval,1)>1)),1)> 0;
                     selected_code_1 = find(nt2cb1, 1, 'first'); % best code avaliable to more than two receiver
                     selected_code_2 = find(nt2cb2, 1, 'first'); % best code avaliable to more than two receiver
                     track_1 = coderin3attr1(selected_code_1);
                     track_2 = coderin3attr2(selected_code_2);
-                    this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
-                    this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),num2str(b2)]];
-                    b1code_aval(:,:,~nt2cb1) = [];
-                    b2code_aval(:,:,~nt2cb2) = [];
-                    rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
-                    rec_with_no_cod2 = sum(b2code_aval(:,:,1),2) == 0;
-                    rec_excluded = rec_with_no_cod1 | rec_with_no_cod2;
-                    if sum(rec_excluded) > 0
-                        for r = find(rec_excluded)
-                            log_str = sprintf('Receiver %s excluded from widelane fixing because does not have:', this.rec_list(r).getMarkerName4Ch);
-                            if rec_with_no_cod1(r)
-                                log_str = [log_str sprintf(' code %s on band %s', track_1,b1)];
+                    if sum(nt2cb1) == 0 ||  sum(nt2cb1) == 0
+                        this.log.addWarning(sprintf('No common code on the ferequency %s and freqeuncy %s for system %s',b1,b2,sys_c));
+                    else
+                        this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
+                        this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),num2str(b2)]];
+                        b1code_aval(:,:,~nt2cb1) = [];
+                        b2code_aval(:,:,~nt2cb2) = [];
+                        rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
+                        rec_with_no_cod2 = sum(b2code_aval(:,:,1),2) == 0;
+                        rec_excluded = rec_with_no_cod1 | rec_with_no_cod2;
+                        if sum(rec_excluded) > 0
+                            for r = find(rec_excluded)
+                                log_str = sprintf('Receiver %s excluded from widelane fixing because does not have:', this.rec_list(r).getMarkerName4Ch);
+                                if rec_with_no_cod1(r)
+                                    log_str = [log_str sprintf(' code %s on band %s', track_1,b1)];
+                                end
+                                
+                                if rec_with_no_cod1(r) & rec_with_no_cod2(r)
+                                    log_str = [log_str ','];
+                                end
+                                
+                                if rec_with_no_cod2(r)
+                                    log_str = [log_str sprintf(' code %s on band %s', track_2,b2)];
+                                end
+                                this.log.addMessage(this.log.indent(log_str));
                             end
-                            
-                            if rec_with_no_cod1(r) & rec_with_no_cod2(r)
-                                log_str = [log_str ','];
-                            end
-                            
-                            if rec_with_no_cod2(r)
-                                log_str = [log_str sprintf(' code %s on band %s', track_2,b2)];
-                            end
-                            this.log.addMessage(this.log.indent(log_str));
                         end
-                    end
-                    %% get the melbourne wubbena combination for the selected combination
-                    mel_wubs = [];
-                    i = 1;
-                    for r = find(~rec_excluded)'
-                        fun1 = @(wl1,wl2) 1;
-                        fun2 = @(wl1,wl2) -1;
-                        [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 track_1],['L' b2 track_2], sys_c); %widelane phase
-                        [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1 track_1],['C'  b2 track_2], sys_c); %narrowlane code
-                        [mw] =  this.rec_list(r).work.getTwoFreqComb(ph_wl, pr_nl, fun1, fun2);
-                        mel_wubs = [mel_wubs mw];
-                        i = i + 1;
-                    end
-                    
-                    [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
-                    for r = 1 :n_r
-                        this.wl_mats{r}(:,go_ids) = wl_mats{r};
+                        %% get the melbourne wubbena combination for the selected combination
+                        mel_wubs = [];
+                        i = 1;
+                        for r = find(~rec_excluded)'
+                            fun1 = @(wl1,wl2) 1;
+                            fun2 = @(wl1,wl2) -1;
+                            [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 track_1],['L' b2 track_2], sys_c); %widelane phase
+                            [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1 track_1],['C'  b2 track_2], sys_c); %narrowlane code
+                            [mw] =  this.rec_list(r).work.getTwoFreqComb(ph_wl, pr_nl, fun1, fun2);
+                            mel_wubs = [mel_wubs mw];
+                            i = i + 1;
+                        end
+                        
+                        [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
+                        for r = 1 :n_r
+                            this.wl_mats{r}(:,go_ids) = wl_mats{r};
+                        end
                     end
                     % CONSIDER TO DO: save staellite wb to be used by other
                     % recieivers
                 end
-                        
-                  
-                        
-                end
+                
+                
+                
+            end
         end
-         
+        
         function pushBackInReceiver(this, s0, res, ls, l_fixed)
             % Save in work the results computed by the network object
             %
-            % INPUT 
+            % INPUT
             %   s0          sigma of the solution
             %   res         all the residuals
             %   ls          Least Squares solver object
             %   l_fixed     array of flag for the fixed ambiguities
             %
-            % SYNTAX           
+            % SYNTAX
             %    this = pushBackInReceiver(s0, res, l_fixed)
             
             if nargin < 5
@@ -720,7 +724,7 @@ classdef Network < handle
                 this.rec_list(i).work.quality_info.n_obs = size(ls.epoch, 1);
                 this.rec_list(i).work.quality_info.n_sat = length(unique(ls.sat));
                 this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), max(ls.epoch)));
-                this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100; 
+                this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100;
                 
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
@@ -807,7 +811,7 @@ classdef Network < handle
             % receiver
             n_sat =  length(go_ids);
             sat_wb = nan(1,n_sat);
-            sat_wb_r_id = zeros(1, n_sat); % using which receiver the bias has been calculated 
+            sat_wb_r_id = zeros(1, n_sat); % using which receiver the bias has been calculated
             for s = 1 : length(go_ids)
                 go_id = go_ids(s);
                 found = false;
@@ -816,8 +820,8 @@ classdef Network < handle
                     idx_s = mel_wub_mat(r).go_id == go_id;
                     if sum(idx_s) >0
                         found = true;
-                         sat_wb(s) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(find(idx_s))), mel_wub_mat(r).cycle_slip(:,idx_s));
-                         sat_wb_r_id(s) = r;
+                        sat_wb(s) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(find(idx_s))), mel_wub_mat(r).cycle_slip(:,idx_s));
+                        sat_wb_r_id(s) = r;
                     end
                     r = r +1;
                 end
@@ -828,23 +832,23 @@ classdef Network < handle
                 % the satellite bias
                 to_eliminate_sat = sat_wb_r_id == r;
                 [~,rec_gi_idx] = intersect(mel_wub_mat(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
-                if ~isempty(rec_gi_idx)  
-                     rec_wb(r) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(rec_gi_idx)) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
-                     % update the satellite bias knpwing the receiver one 
-                     if sum(to_eliminate_sat) > 0
-                         for s = find(to_eliminate_sat)
-                             go_id = go_ids(s);
-                             idx_s = mel_wub_mat(r).go_id == go_id;
-                             sat_wb(s) = sat_wb(s) - rec_wb(r);
-                         end
-                     end
+                if ~isempty(rec_gi_idx)
+                    rec_wb(r) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(rec_gi_idx)) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
+                    % update the satellite bias knpwing the receiver one
+                    if sum(to_eliminate_sat) > 0
+                        for s = find(to_eliminate_sat)
+                            go_id = go_ids(s);
+                            idx_s = mel_wub_mat(r).go_id == go_id;
+                            sat_wb(s) = sat_wb(s) - rec_wb(r);
+                        end
+                    end
                 end
             end
             wl_amb_mat = {};
             % final estamiation of the widelane
             for r = 1 : n_rec
                 cy = mel_wub_mat(r).getObsCy;
-                 [~,rec_gi_idx, goids_idx2] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
+                [~,rec_gi_idx, goids_idx2] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
                 cy = zero2nan(cy(:,goids_idx2)) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
                 [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
             end

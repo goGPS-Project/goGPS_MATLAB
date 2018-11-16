@@ -881,6 +881,8 @@ classdef GNSS_Station < handle
                         [tropo{r}] = sta_list(r).out.getPwv();
                     case 'zhd'
                         [tropo{r}] = sta_list(r).out.getAprZhd();
+                    case 'nsat'
+                        [tropo{r}] = sta_list(r).out.getNSat();
                 end
             end
             
@@ -896,6 +898,14 @@ classdef GNSS_Station < handle
             % SYNTAX
             %  [tropo, p_time] = sta_list.getZtd()
             [tropo, time] = sta_list.getTropoPar('ztd');
+        end
+        
+        function [tropo, time] = getNumSat(sta_list)
+            % Get Nu, sta
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getNumSat()
+            [tropo, time] = sta_list.getTropoPar('nsat');
         end
         
         function [tropo, time] = getZwd(sta_list)
@@ -1449,7 +1459,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showTropoPar(sta_list, par_name, new_fig)
+        function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
             % one function to rule them all
             
             [tropo, t] = sta_list.getTropoPar(par_name);
@@ -1475,6 +1485,10 @@ classdef GNSS_Station < handle
                     new_fig = true;
                 end
                 
+                if nargin < 4
+                    sub_plot_nsat = false;
+                end
+                
                 if isempty(tropo)
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
                 else
@@ -1486,10 +1500,13 @@ classdef GNSS_Station < handle
                         l = legend;
                         old_legend = get(l,'String');
                     end
+                    if sub_plot_nsat
+                        subplot(3,1,1:2);
+                    end
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
                             plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2); hold on;
                         end
@@ -1500,7 +1517,11 @@ classdef GNSS_Station < handle
                     end
                     
                     outm = [old_legend, outm];
+                    if ~sub_plot_nsat
                     [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                    else
+                         [~, icons] = legend(outm, 'Location', 'SouthWest', 'interpreter', 'none');
+                    end
                     n_entry = numel(outm);
                     icons = icons(n_entry + 2 : 2 : end);
                     
@@ -1512,6 +1533,23 @@ classdef GNSS_Station < handle
                     h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    if sub_plot_nsat
+                        subplot(3,1,3);
+                        for r = 1 : numel(sta_list)
+                        rec = sta_list(r);
+                        if new_fig
+                            
+                            plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                        end
+                        outm{r} = rec(1).getMarkerName();
+                        tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
+                        tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
+                        xlim(tlim);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        h = ylabel(['# sat']); h.FontWeight = 'bold';
+                        grid on;
+                    end
                 end
             end
         end
@@ -1521,6 +1559,13 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             this.showTropoPar('ZHD', new_fig)
+        end
+        
+        function showNSat(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('nsat', new_fig)
         end
         
         function showZwd(this, new_fig)

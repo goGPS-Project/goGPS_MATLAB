@@ -548,8 +548,8 @@ classdef Constellation_Collector < Settings_Interface
             
             this.glo.enable(active_list(this.ID_GLONASS));
             this.gal.enable(active_list(this.ID_GALILEO));
-            this.qzs.enable(active_list(this.ID_BEIDOU));
-            this.bds.enable(active_list(this.ID_QZSS));
+            this.qzs.enable(active_list(this.ID_QZSS));
+            this.bds.enable(active_list(this.ID_BEIDOU));
             this.irn.enable(active_list(this.ID_IRNSS));
             this.sbs.enable(active_list(this.ID_SBAS));
             this.gps.enable(active_list(this.ID_GPS));

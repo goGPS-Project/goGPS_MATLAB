@@ -108,6 +108,7 @@ classdef Receiver_Commons < handle
         quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
         a_fix
         s_rate
+        n_sat_ep
     end
     
     % ==================================================================================================================================================
@@ -449,6 +450,18 @@ classdef Receiver_Commons < handle
                 apr_zhd = nan(size(this.getIdSync));
             else
                 apr_zhd = this.apr_zhd(this.getIdSync);
+            end
+        end
+        
+        function n_sat = getNSat(this)
+            % get num sta per epoch
+            %
+            % SYNTAX
+            %   zhd = this.getNSat()
+            if max(this.getIdSync) > numel(this.n_sat_ep)
+                n_sat = nan(size(this.getIdSync));
+            else
+                n_sat = this.n_sat_ep(this.getIdSync);
             end
         end
         
@@ -1376,6 +1389,8 @@ classdef Receiver_Commons < handle
                         [tropo{r}] = sta_list(r).getPwv();
                     case 'zhd'
                         [tropo{r}] = sta_list(r).getAprZhd();
+                    case 'nsat'
+                        [tropo{r}] = sta_list(r).getNSat();
                 end
             end
             
@@ -1516,6 +1531,14 @@ classdef Receiver_Commons < handle
             end
             this.showTropoPar('PWV', new_fig)
         end
+        
+        function showNSat(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('nsat', new_fig)
+        end
+        
         
         function showMedianTropoPar(this, par_name, new_fig)
             % one function to rule them all

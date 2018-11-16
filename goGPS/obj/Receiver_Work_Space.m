@@ -333,6 +333,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.id_sync = [];
             this.n_sat = [];
+            this.n_sat_ep = [];
             
             this.enu = [];
             this.lat = [];
@@ -4811,7 +4812,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
             if isempty(this.dt_ip) || ~any(this.dt_ip)
-                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT - this.dt(:, 1));  %<---- check dt with all the new dts field
             else
                 this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT);  %<---- check dt with all the new dts field
             end
@@ -5089,7 +5090,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if numel(par_idx) == 1 || sum(par_idx) == 1
                 dop = permute(dop,[3 2 1]);
             end
-        end
+         end
         
         
         
@@ -6958,12 +6959,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
-                [~, s0] = this.codeStaticPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
-                
+                corr = 2000;
+                while max(corr > 0.1)
+                [corr, s0] = this.codeStaticPositioning(this.id_sync, 15);
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
                 this.updateAllTOT();
+                end
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
+                
+                
             end
         end
         
@@ -7579,6 +7584,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.sat.res = zeros(this.length, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
                 
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 
@@ -7693,7 +7699,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 time_coo = this.out_start_time.getCopy;
                                 time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
                                 sub_coo = struct();
-                                sub_coo.coo = Coordinates.fromXYZ(coo);
+                                sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
                                 sub_coo.time = time_coo.getCopy();
                                 sub_coo.rate = this.state.coo_rates(i);
                                 if isempty(this.add_coo)
@@ -8674,7 +8680,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function showDataAvailability(this, sys_c)
+        function showDataAvailability(this, sys_c, band)
             % Plot all the satellite seen by the system
             % SYNTAX this.plotDataAvailability(sys_c)
             
@@ -8701,13 +8707,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 for prn = this.cc.prn(this.cc.system == ss)'
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :),1));
+                    if nargin > 2
+                        band_id = this.obs_code(:,2) == this.cc.getSys(ss).CODE_RIN3_2BAND(band);
+                    else
+                        band_id = true(size(this.prn ));
+                    end
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & band_id, :),1));
                     plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
                     hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :),1));
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C' & band_id, :),1));
                     plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
                     hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
                     plot(id_ok, prn * ones(size(id_ok)), '.');
                 end
                 prn_ss = unique(this.prn(this.system == ss));

@@ -319,9 +319,10 @@ classdef Receiver_Output < Receiver_Commons
                 if ~basic_export
                     % Inject times
                     if this.state.flag_out_dt
-                        this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
-                        this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
-                        this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+                        this.dt       = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+                        this.desync   = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
+                        this.dt_ip    = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+                        this.n_sat_ep = Core_Utils.injectData(this.n_sat_ep, rec_work.getNSat(), idx1, idx2);
                     end
                     if this.state.flag_out_apr_tropo
                         this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
