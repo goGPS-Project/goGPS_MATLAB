@@ -475,12 +475,12 @@ classdef Core < handle
     %% METHODS RUN
     % ==================================================================================================================================================
     methods
-        function prepareSession(this, session_number)
+        function is_empty = prepareSession(this, session_number)
             % Check the time-limits for the files in the session
             % Init the Sky and Meteo object
             %
             % SYNTAX
-            %   this.prepareSession(session_number)
+            %   is_empty = this.prepareSession(session_number)
             
             this.state.setCurSession(session_number);
             session = session_number;
@@ -507,45 +507,51 @@ classdef Core < handle
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
             
-            this.log.addMessage(sprintf('Begin %s', out_limits.first.toString()));
-            this.log.addMessage(sprintf('End   %s', out_limits.last.toString()));
-            this.log.simpleSeparator();
-
-            for r = 1 : this.state.getRecCount()
-                this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
-                if (numel(rec) < r) || rec(r).isEmpty
-                    rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0); %#ok<AGROW>
-                else
-                    buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
-                    if buf == 0
-                        rec(r).work.resetWorkSpace();
-                        rec(r).old_work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
-                    else
-                        % keep the old work
-                        rec(r).old_work = rec(r).work;
-                        rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
-                        % reset the new work
-                        rec(r).work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
-                    end
-                end
-            end
-            if numel(rec) > 0
-                this.log.newLine();
-                this.rec = rec;
-                % Init Meteo and Sky objects
-                this.initSkySession(time_lim_large);
-                this.log.newLine();
-                if this.state.isMet()
-                    this.initMeteoNetwork(time_lim_large);
-                end
+            if out_limits.length < 2
+                is_empty = true;
+                this.log.addMessage(sprintf('No valid receivers are present for session %d', session));
+            else
+                is_empty = false;
+                this.log.addMessage(sprintf('Begin %s', out_limits.first.toString()));
+                this.log.addMessage(sprintf('End   %s', out_limits.last.toString()));
                 this.log.simpleSeparator();
                 
-                % init atmo object
-                if this.state.isVMF()                    
-                    this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
+                for r = 1 : this.state.getRecCount()
+                    this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
+                    if (numel(rec) < r) || rec(r).isEmpty
+                        rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0); %#ok<AGROW>
+                    else
+                        buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
+                        if buf == 0
+                            rec(r).work.resetWorkSpace();
+                            rec(r).old_work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                        else
+                            % keep the old work
+                            rec(r).old_work = rec(r).work;
+                            rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
+                            % reset the new work
+                            rec(r).work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                        end
+                    end
                 end
-                if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
-                    this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                if numel(rec) > 0
+                    this.log.newLine();
+                    this.rec = rec;
+                    % Init Meteo and Sky objects
+                    this.initSkySession(time_lim_large);
+                    this.log.newLine();
+                    if this.state.isMet()
+                        this.initMeteoNetwork(time_lim_large);
+                    end
+                    this.log.simpleSeparator();
+                    
+                    % init atmo object
+                    if this.state.isVMF()
+                        this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
+                    end
+                    if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
+                        this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                    end
                 end
             end
         end  
@@ -588,18 +594,20 @@ classdef Core < handle
                     this.net = [];
                     for s = sessions
                         if s ~= last_sss
-                            this.prepareSession(s)
+                            is_empty = this.prepareSession(s);
                         end
                         last_sss = s;
-                        this.exec(cmd_list(execution_block == eb), sss_level(execution_block == eb));
-                        cmd_line = find(execution_block == eb, 1, 'last') + 1;
-                        
-                        % to eventually reset the Out
-                        % for r = 1 : numel(this.rec)
-                        %     this.rec(r).resetOut();
-                        % end
-                        for i = 1 : length(this.rec)
-                            this.rec(i).work.pushResult();
+                        if ~is_empty
+                            this.exec(cmd_list(execution_block == eb), sss_level(execution_block == eb));
+                            cmd_line = find(execution_block == eb, 1, 'last') + 1;
+                            
+                            % to eventually reset the Out
+                            % for r = 1 : numel(this.rec)
+                            %     this.rec(r).resetOut();
+                            % end
+                            for i = 1 : length(this.rec)
+                                this.rec(i).work.pushResult();
+                            end
                         end
                     end
                     
