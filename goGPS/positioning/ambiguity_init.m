@@ -48,7 +48,7 @@ function [N_stim_slip, N_stim_born, var_N_slip, var_N_born] = ambiguity_init(XR_
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.999.0 - nightly
+%    |___/                    v 0.9999.1 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

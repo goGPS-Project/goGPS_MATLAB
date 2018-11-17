@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.999.0 - nightly
+%    |___/                    v 0.9999.1 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '0.999.0 - nightly';
+        GO_GPS_VERSION = '0.9999.1 - nightly';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
