@@ -191,7 +191,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  - weights = 3: weight based on satellite elevation (exp)
                                                 
         
-        REWEIGHT_MODE = 1                               % PPP re-weight / snooping
+        PPP_REWEIGHT_MODE = 1                           % PPP re-weight / snooping
                                                         % 1: none
                                                         % 2: re-weight Huber
                                                         % 3: re-weight Huber (no threshold)
@@ -201,8 +201,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 7: simple snooping
                                                         % 8: smart snooping
                                                         
-        FLAG_AMB_PASS = false;
-        FLAG_AMB_FIX = false;                           % try to fix ambiguity
+        NET_REWEIGHT_MODE = 1                           % NET re-weight / snooping
+                                                        % 1: none
+                                                        % 2: simple 4 loops
+                                                        
+                                                        
+        FLAG_AMB_PASS = false;                          % try to pass ambiguities to the next session
+        FLAG_PPP_AMB_FIX = false;                       % try to fix ambiguity
+        FLAG_NET_AMB_FIX = false;                       % try to fix ambiguity
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
          
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
@@ -282,7 +288,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       'IONEX'}
                   
         % id to string of reweight/snooping mode
-        REWEIGHT_SMODE = {'1: none', ...
+        PPP_REWEIGHT_SMODE = {'1: none', ...
                       '2: re-weight Huber', ...
                       '3: re-weight Huber (no threshold)', ...
                       '4: re-weight Danish', ...
@@ -290,7 +296,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       '6: re-weight Tukey', ...
                       '7: simple snooping', ...
                       '8: smart snooping'}
-        REWEIGHT_LABEL = {'none', ...
+        NET_REWEIGHT_SMODE = {'1: none', ...
+                      '2: simple 4 loops'}
+        PPP_REWEIGHT_LABEL = {'none', ...
                       're-weight Huber', ...
                       're-weight Huber (no threshold)', ...
                       're-weight Danish', ...
@@ -298,6 +306,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       're-weight Tukey', ...
                       'simple snooping', ...
                       'smart snooping'}
+        NET_REWEIGHT_LABEL = {'none', ...
+                      'simple 4 loops'}
 
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
@@ -534,9 +544,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %  - weights = 4: weight based on satellite elevation (exp)
 
         % PPP re-weight / snooping
-        reweight_mode = Main_Settings.REWEIGHT_MODE;
+        ppp_reweight_mode = Main_Settings.PPP_REWEIGHT_MODE;
+        net_reweight_mode = Main_Settings.NET_REWEIGHT_MODE;
         
-        flag_amb_fix = Main_Settings.FLAG_AMB_FIX;        
+        flag_ppp_amb_fix = Main_Settings.FLAG_PPP_AMB_FIX;        
+        flag_net_amb_fix = Main_Settings.FLAG_NET_AMB_FIX;        
         
         flag_amb_pass = Main_Settings.FLAG_AMB_PASS; 
         
@@ -771,8 +783,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_repair = state.getData('flag_repair');
                 this.w_mode = state.getData('w_mode');
                 
-                this.reweight_mode = state.getData('reweight_mode');
-                this.flag_amb_fix = state.getData('flag_amb_fix');
+                this.ppp_reweight_mode = state.getData('ppp_reweight_mode');
+                this.net_reweight_mode = state.getData('net_reweight_mode');
+                this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');
+                this.flag_net_amb_fix = state.getData('flag_net_amb_fix');
                 this.flag_amb_pass = state.getData('flag_amb_pass');
                 
                 this.flag_solid_earth = state.getData('flag_solid_earth');
@@ -912,8 +926,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.flag_repair;                
                 this.w_mode = state.w_mode;
-                this.reweight_mode = state.reweight_mode;
-                this.flag_amb_fix = state.flag_amb_fix;
+                this.ppp_reweight_mode = state.ppp_reweight_mode;
+                this.net_reweight_mode = state.net_reweight_mode;
+                this.flag_ppp_amb_fix = state.flag_ppp_amb_fix;
+                this.flag_net_amb_fix = state.flag_net_amb_fix;
                 this.flag_amb_pass = state.flag_amb_pass;
                 
                 this.flag_solid_earth = state.flag_solid_earth;
@@ -1085,9 +1101,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
-            str = [str sprintf(' Using rewight/snooping: %s\n\n', this.REWEIGHT_SMODE{this.reweight_mode})];
-            str = [str sprintf(' Enable ambiguity fixing:                          %d\n\n', this.flag_amb_fix)];
-            str = [str sprintf(' Pass ambiguity         :                          %d\n', this.flag_amb_pass)];
+            str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
+            str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];
+            str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
+            str = [str sprintf(' NET Enable ambiguity fixing:                      %d\n\n', this.flag_net_fix)];
+            str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
             str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
@@ -1471,15 +1489,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
-            str_cell = Ini_Manager.toIniStringComment('Processing using reweight/snooping mode:', str_cell);
-            str_cell = Ini_Manager.toIniString('reweight_mode', this.reweight_mode, str_cell);
-            for i = 1 : numel(this.REWEIGHT_SMODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.REWEIGHT_SMODE{i}), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('PPP processing using reweight/snooping mode:', str_cell);
+            str_cell = Ini_Manager.toIniString('ppp_reweight_mode', this.ppp_reweight_mode, str_cell);
+            for i = 1 : numel(this.PPP_REWEIGHT_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.PPP_REWEIGHT_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('PPP enable ambiguity fixing', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ppp_amb_fix', this.flag_ppp_amb_fix, str_cell);
 
+            str_cell = Ini_Manager.toIniStringComment('NET processing using reweight/snooping mode:', str_cell);
+            str_cell = Ini_Manager.toIniString('net_reweight_mode', this.net_reweight_mode, str_cell);
+            for i = 1 : numel(this.NET_REWEIGHT_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.NET_REWEIGHT_SMODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable ambiguity fixing', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_amb_fix', this.flag_amb_fix, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_net_amb_fix', this.flag_net_amb_fix, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniString('flag_amb_pass', this.flag_amb_pass, str_cell);
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
@@ -2148,9 +2175,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_repair');
             
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
-            this.checkNumericField('reweight_mode',[1 numel(this.REWEIGHT_SMODE)]);
+            this.checkNumericField('ppp_reweight_mode',[1 numel(this.PPP_REWEIGHT_SMODE)]);
+            this.checkNumericField('net_reweight_mode',[1 numel(this.NET_REWEIGHT_SMODE)]);
             
-            this.checkLogicalField('flag_amb_fix');
+            this.checkLogicalField('flag_ppp_amb_fix');
+            this.checkLogicalField('flag_net_amb_fix');
             this.checkLogicalField('flag_amb_pass');
             
             this.checkLogicalField('flag_smooth_tropo_out');
@@ -3503,12 +3532,36 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             err_thr = this.pp_max_phase_err_thr;
         end
         
-        function reweight_mode = getReweight(this)
-            % Get the reweight method to use
+        function reweight_mode = getReweightPPP(this)
+            % Get the reweight method to use for PPP
             %
             % SYNTAX
             %   err_thr = this.getReweight()
-            reweight_mode = this.reweight_mode;
+            reweight_mode = this.ppp_reweight_mode;
+        end
+        
+        function reweight_mode = getReweightNET(this)
+            % Get the reweight method to use for NET
+            %
+            % SYNTAX
+            %   err_thr = this.getReweight()
+            reweight_mode = this.net_reweight_mode;
+        end
+        
+        function amb_fix = getAmbFixPPP(this)
+            % Get the amb fixing flag for PPP
+            %
+            % SYNTAX
+            %   amb_fix = this.getAmbFixPPP(this)
+            amb_fix = this.flag_ppp_amb_fix;
+        end
+        
+        function amb_fix = getAmbFixNET(this)
+            % Get the amb fixing flag for NET
+            %
+            % SYNTAX
+            %   amb_fix = this.getAmbFixNET()
+            amb_fix = this.flag_net_amb_fix;
         end
         
         function is_dwn = isAutomaticDownload(this)

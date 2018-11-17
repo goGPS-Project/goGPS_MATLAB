@@ -208,7 +208,7 @@ classdef LS_Manipulator < handle
             
             % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
-            flag_amb_fix = this.state.flag_amb_fix;
+            flag_amb_fix = this.state.getAmbFixPPP();
             if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
@@ -624,7 +624,7 @@ classdef LS_Manipulator < handle
                             temp_o_set.iono_free = true;
                             temp_o_set.sigma = obs_set_list(i).sigma * 1.5;
                         end
-                        if this.state.flag_amb_fix
+                        if this.state.getAmbFixNET
                         f_vec = this.cc.getSys(sys_c).F_VEC;
                         l_vec = this.cc.getSys(sys_c).L_VEC;
                         rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 3]);
@@ -1602,8 +1602,8 @@ classdef LS_Manipulator < handle
                 Cxx = Cxx(idx_amb_par,:);
                 this.Cxx_amb = Cxx;
             end
-            if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0) 
-                if ~is_network
+            if ~is_network
+                if (this.state.getAmbFixPPP && ~isempty(x(x_class == 5,1)))
                     amb = x(x_class == 5,1);
                     amb_wl_fixed = false(size(amb));
                     amb_n1 = nan(size(amb));
@@ -1631,13 +1631,13 @@ classdef LS_Manipulator < handle
                     
                     idx_amb = find(x_class == 5);
                     % get thc cxx of the ambiguities
-%                     n_amb  = length(idx_amb);
-%                     b_eye = zeros(length(B),n_amb);
-%                     idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
-%                     b_eye(idx) = 1;
-%                     b_eye = sparse(b_eye);
-%                     Cxx_amb = N\b_eye;
-%                     Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+                    %                     n_amb  = length(idx_amb);
+                    %                     b_eye = zeros(length(B),n_amb);
+                    %                     idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+                    %                     b_eye(idx) = 1;
+                    %                     b_eye = sparse(b_eye);
+                    %                     Cxx_amb = N\b_eye;
+                    %                     Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
                     
                     idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
                     
@@ -1699,13 +1699,16 @@ classdef LS_Manipulator < handle
                     x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
                     this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
                     this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
-                else                    
+                end
+            else
+                if (this.state.getAmbFixNET && ~isempty(x(x_class == 5,1)))
+                    
                     % Ambiguity fixing
                     
                     % Get ambiguity array
                     
                     xe = x(idx_est);
-                    amb = xe(idx_amb_par, 1);                    
+                    amb = xe(idx_amb_par, 1);
                     amb_rec = x_rec(idx_est);
                     amb_rec = amb_rec(idx_amb_par);
                     n_ep_amb = zeros(size(amb));
@@ -1713,7 +1716,7 @@ classdef LS_Manipulator < handle
                     for i = 1 : n_amb
                         idx = this.A_idx(:,4)== idx_amb_par_tot(i);
                         n_ep_amb(i) = sum(idx);
-          
+                        
                         
                     end
                     
@@ -1727,19 +1730,19 @@ classdef LS_Manipulator < handle
                     C_amb_amb = C_amb_amb(idx_t_amb_par, :);
                     C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
-%                     if ~isempty(this.wl_amb)
-%                         % estimate narrowlanes phase delays and remove them
-%                         % from abiguity vector and from observations
-%                         for r = 1 : n_rec
-%                             id_amb_r = amb_rec == r;
-%                             if sum(id_amb_r) > 0
-%                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
-%                                 weigth = weigth./sum(weigth);
-%                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-%                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
-%                             end
-%                         end
-%                     end
+                    %                     if ~isempty(this.wl_amb)
+                    %                         % estimate narrowlanes phase delays and remove them
+                    %                         % from abiguity vector and from observations
+                    %                         for r = 1 : n_rec
+                    %                             id_amb_r = amb_rec == r;
+                    %                             if sum(id_amb_r) > 0
+                    %                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
+                    %                                 weigth = weigth./sum(weigth);
+                    %                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+                    %                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+                    %                             end
+                    %                         end
+                    %                     end
                     
                     
                     % ILS shrinking, method 1
@@ -1756,7 +1759,7 @@ classdef LS_Manipulator < handle
                             end
                         end
                         
-                        % remove fixed ambiguity from B and N 
+                        % remove fixed ambiguity from B and N
                         B(idx_amb_par(l_fixed(:,1))) = [];
                         N(idx_amb_par(l_fixed(:,1)), :) = [];
                         N(:, idx_amb_par(l_fixed(:,1))) = [];
@@ -1766,8 +1769,8 @@ classdef LS_Manipulator < handle
                         idx_nf(idx_amb_par(l_fixed(:,1))) = false;
                         xf = zeros(size(idx_nf));
                         
-                        xf(idx_nf) = N \ B;                        
-                        xf(~idx_nf) = amb_fix(l_fixed(:,1));                        
+                        xf(idx_nf) = N \ B;
+                        xf(~idx_nf) = amb_fix(l_fixed(:,1));
                         x(idx_est) = xf;
                     else
                         this.log.addWarning('The ambiguities cannot be fixed!!!');

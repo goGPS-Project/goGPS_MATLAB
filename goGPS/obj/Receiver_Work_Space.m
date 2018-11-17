@@ -7531,7 +7531,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                if this.state.flag_amb_fix
+                if this.state.getAmbFixPPP()
                     this.coarseAmbEstimation();
                 end
                 ls = LS_Manipulator(this.cc);
@@ -7567,8 +7567,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0, ~, l_fixed] = ls.solve();
                 % REWEIGHT ON RESIDUALS
-                if this.state.reweight_mode > 1
-                    switch this.state.reweight_mode
+                if this.state.getReweightPPP > 1
+                    switch this.state.getReweightPPP()
                         case 2, ls.reweightHuber;
                         case 3, ls.reweightHubNoThr;
                         case 4, ls.reweightDanish;
@@ -7618,7 +7618,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_obs = size(ls.epoch, 1);
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
-                if this.state.flag_amb_fix
+                if this.state.getAmbFixPPP
                     this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
                 end
 

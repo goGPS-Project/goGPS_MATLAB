@@ -647,6 +647,31 @@ classdef GNSS_Station < handle
             end
         end
         
+        function [xyz, p_time] = getPosXYZ_mr(sta_list)
+            % return the positions computed for the receiver
+            % multi_rec mode (synced)
+            %
+            % OUTPUT
+            %   xyz     XYZ coordinates
+            %
+            % SYNTAX
+            %   xyz = this.getPosENU()
+         
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list, [], true);
+            
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+            
+            n_rec = numel(sta_list);
+            xyz = nan(size(id_sync, 1), 3, n_rec);
+            for r = 1 : n_rec
+                xyz_rec = sta_list(r).out.getPosXYZ();
+                id_rec = id_sync(:,r);
+                xyz(~isnan(id_rec), :, r) = xyz_rec(id_rec(~isnan(id_rec)), :);
+            end
+        end
+        
         function enu = getPosENU(sta_list)
             % return the positions computed for the receiver
             %
@@ -819,6 +844,28 @@ classdef GNSS_Station < handle
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
                 pwv(~isnan(id_rec), r) = sta_list(r).out.pwv(id_rec(~isnan(id_rec)));
+            end
+        end
+        
+        function [di, p_time, id_sync] = getSlantDispersionIndex_mr(sta_list)
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [zwd, p_time, id_sync] = this.getZwd_mr()
+            %  [zwd, p_time, id_sync, tge, tgn] = this.getZwd_mr()
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
+                       
+            % Supposing all the station with the same constellation
+            di = zeros(size(id_sync, 1), numel(sta_list));
+            for r = 1 : numel(sta_list)
+                try                
+                    sztd = sta_list(r).out.getSlantZTD(sta_list(r).slant_filter_win);
+                    sztd = bsxfun(@minus, sztd, sta_list(r).out.ztd(id_sync(~isnan(id_sync(:, r)), r)));
+                    di_tmp = 1e3 * sqrt(movmean(var(sztd', 'omitnan'), 1800 / sta_list(r).out.time.getRate, 'omitnan'));
+                    di(~isnan(id_sync(:, r)), r) = di_tmp(id_sync(~isnan(id_sync(:, r)), r));
+                catch
+                    % missing station or invalid dataset
+                end
             end
         end
         
@@ -1303,11 +1350,7 @@ classdef GNSS_Station < handle
                 sta_list(1).log.addError('You need GReD utilities to have this features');
             end
         end
-        
-        function showScatteredMap(lat, lon, s_time, data) % todo
-            
-        end
-        
+               
         function showMapZwd(this, new_fig, epoch)
             if nargin < 2 || isempty(new_fig)
                 new_fig = true;

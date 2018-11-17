@@ -1,11 +1,12 @@
-%   CLASS Core_UI
+%   CLASS GUI_Main
 % =========================================================================
 %
 % DESCRIPTION
 %   class to manages the user interface of goGPS
 %
 % EXAMPLE
-%   ui = Core_UI.getInstance();
+%   ui = GUI_Main.getInstance();
+%   ui.openGUI();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Core_UI
 
@@ -679,12 +680,12 @@ end
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [200 5 23 -1];
+            opt_l.Heights = [240 5 23 -1];
             opt_tll.Heights = 200;
-            opt_tlr.Heights = [70, 5, 125];
+            opt_tlr.Heights = [120, 5, 115];
             
-            opt_tlh.Widths = [190 5 -1];
-            opt_h.Widths = [-1 5 170];
+            opt_tlh.Widths = [195 5 -1];
+            opt_h.Widths = [-1 5 190];
             
             % --------------------------------------------------------
             
@@ -710,15 +711,19 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
-            set( opt_v, 'Heights', [23 23 23 23] );
+            set( opt_v, 'Heights', [22 22 22 22] );
         end
         
         function proc_opt = insertProcessingOptions(this, container)
              proc_opt = Core_UI.insertPanelLight(container, 'Options');
              opt_grid = uix.VBox('Parent', proc_opt,...
                  'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'Snooping / Reweight', this.state.REWEIGHT_LABEL, 'reweight_mode', @this.onPopUpChange);
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Try to fix Ambiguity', 'flag_amb_fix', @this.onCheckBoxChange);
+             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
+            Core_UI.insertEmpty(opt_grid);            
+             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'NET Try to fix Ambiguity', 'flag_net_amb_fix', @this.onCheckBoxChange);
+             opt_grid.Heights = [22 22 5 22 22];
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -845,8 +850,8 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange);           
-            Core_UI.insertEmpty(opt_container);
-            opt_container.Heights = [260 -1];
+            %Core_UI.insertEmpty(opt_container);
+            %opt_container.Heights = [260 -1];
         end
         
         function ppp_panel = insertPPPOptions(this, container)

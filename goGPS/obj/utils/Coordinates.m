@@ -169,9 +169,12 @@ classdef Coordinates < Exportable & handle
             [lat, lon] = this.getGeodetic();
             [east, north, utm_zone] = this.geod2plan(lat, lon);
         end
-                
-        function [east, north, up, utm_zone] = getENU(this)
+                       
+        function [east, north, up, utm_zone] = getENU(this, theta)
             % Get Coordinates as UTM ENUs coordinates
+            %
+            % INPUT
+            %   theta   planar rotation angle [degree -360:360]
             %
             % OUTPUT
             %   east     = east Coordinates  [m]
@@ -180,16 +183,23 @@ classdef Coordinates < Exportable & handle
             %   utm_zone = UTM zone          [4char]
             %
             % SYNTAX 
-            %   [east, north, up, utm_zone] = this.getENU();
-            %   [enu, utm_zone] = this.getENU();
+            %   [east, north, up, utm_zone] = this.getENU(<theta>);
+            %   [enu, utm_zone] = this.getENU(<theta>);
             
             [lat, lon, up] = this.getGeodetic();
             [east, north, utm_zone] = this.geod2plan(lat, lon);
-            if nargin < 3
+            
+            if nargin == 2 && ~isempty(theta)
+                tmp = [east(:) north(:)] * [cosd(theta) sind(theta); -sind(theta) cosd(theta)];
+                east = tmp(:,1);
+                north = tmp(:,2)';
+            end            
+            if nargout < 3
                 east = [east(:) north(:) up(:)];
                 north = utm_zone;
-            end
+            end            
         end
+        
         
         function [lat, lon, h_ellips, h_ortho] = getGeodetic(this)
             % Get Coordinates as Geodetic coordinates
@@ -794,8 +804,7 @@ classdef Coordinates < Exportable & handle
             [lat, lon] = Coordinates.cart2geod(xyz_ref);
             rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)]';
             xyz_baseline = (rot_mat * loc)';
-        end
-
+        end                
     end
     
     % =========================================================================

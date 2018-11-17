@@ -732,7 +732,7 @@ classdef Atmosphere < handle
             % get the index of the elements of the vmf to be used in the trilinear interpolation
             %
             % SYNTAX
-            %    [ it, st, ilons, ilone, slon, ilat, slat] = his.tgetVMFIndex(gps_time, lat, lon)
+            %    [ it, st, ilons, ilone, slon, ilat, slat] = this.tgetVMFIndex(gps_time, lat, lon)
             [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         

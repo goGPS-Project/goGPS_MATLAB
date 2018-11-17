@@ -1162,8 +1162,8 @@ classdef Core < handle
             % Perform init geoid
             %
             % SYNTAX Core.initGeoid();
-            gs = Global_Configuration.getInstance;
-            gs.initGeoid();
+            core = Core.getCurrentCore;            
+            core.gc.initGeoid();
         end        
     end
 

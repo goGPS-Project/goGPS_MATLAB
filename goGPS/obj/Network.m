@@ -155,7 +155,7 @@ classdef Network < handle
                 id_ref = find(lid_ref);
                 this.id_ref = id_ref;
                 
-                if this.state.getReweight() == 1
+                if this.state.getReweightNET() == 1
                     n_clean = 0;
                 else
                     this.log.addMessage(this.log.indent('Network reweight perform only a simple outlier detection on the residuals'), 2);
@@ -182,7 +182,7 @@ classdef Network < handle
                     end
                     wl_struct = [];
                     if reduce_iono
-                        if this.state.flag_amb_fix
+                        if this.state.getAmbFix_NET()
                             this.estimateWB();
                             ls.wl_amb = this.wl_mats;
                         end

@@ -646,7 +646,7 @@ classdef Receiver_Commons < handle
                             if param_to_export(8)
                                 data = [data H];
                             end
-                            snx_wrt.writeTropoSolutionStation(rec.parent.marker_name, rec.time.getSubSet(rec.getIdSync), data, [],param_to_export)
+                            snx_wrt.writeTropoSolutionStation(rec.parent.marker_name, rec.time.getEpoch(rec.getIdSync), data, [], param_to_export)
                             snx_wrt.writeTropoSolutionEnd()
                             snx_wrt.writeTroSinexEnd();
                             snx_wrt.close()
@@ -1122,12 +1122,11 @@ classdef Receiver_Commons < handle
         end
         
         function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
-            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
+            sztd = this.getSlantZTD(this.parent.slant_filter_win);
+            if isempty(this.ztd) || ~any(sztd(:))
                 this.log.addWarning('ZTD and slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
-                
-                sztd = this.getSlantZTD(this.parent.slant_filter_win);
+                f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';                
                 
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1141,7 +1140,7 @@ classdef Receiver_Commons < handle
                     time_stop = size(sztd,1);
                 end
                 
-                if isempty(this.id_sync(:))
+                if isempty(core.rec(1).out.getIdSync)
                     this.id_sync(:, 1) = 1 : this.time.length();
                 end
                 id_ok = this.id_sync(this.id_sync(:) > time_start & this.id_sync(:) < time_stop);

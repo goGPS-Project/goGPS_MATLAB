@@ -237,14 +237,24 @@ classdef Settings_Interface < Exportable
                 is_existing = true;
                 checked_val = default_val;
             else
-                if check_existence > 1 || ~empty_is_valid
-                    if iscell(checked_val)
-                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, Ini_Manager.strCell2Str(checked_val)));
+                if check_existence
+                    if exist(default_val, 'file')
+                        checked_val = default_val;
                     else
-                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, checked_val));
+                        checked_val = field_val;
                     end
-                else
-                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', iif(isempty(field_val), '<empty>', field_val), field_name));
+                end
+
+                if ~strcmp(checked_val, field_val)
+                    if check_existence > 1 || ~empty_is_valid
+                        if iscell(checked_val)
+                            this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, Ini_Manager.strCell2Str(checked_val)));
+                        else
+                            this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, checked_val));
+                        end
+                    else
+                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', iif(isempty(field_val), '<empty>', field_val), field_name));
+                    end
                 end
             end
         end
