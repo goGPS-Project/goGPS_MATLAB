@@ -170,7 +170,8 @@ classdef Core_UI < handle
                 fprintf('\n');
                 fprintf('--------------------------------------------------------------------------\n');
             end
-            this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
+            %this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
+            this.log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
             fprintf('--------------------------------------------------------------------------\n\n');
         end
         
