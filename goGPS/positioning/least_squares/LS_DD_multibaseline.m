@@ -65,7 +65,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.9999.1 - nightly
+%    |___/                    v 1.0 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

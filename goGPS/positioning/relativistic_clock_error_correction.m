@@ -22,7 +22,7 @@ function [corr] = relativistic_clock_error_correction(time, Eph, SP3, XS, VS)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.9999.1 - nightly
+%    |___/                    v 1.0 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

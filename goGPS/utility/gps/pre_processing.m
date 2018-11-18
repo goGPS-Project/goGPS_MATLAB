@@ -60,7 +60,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.9999.1 - nightly
+%    |___/                    v 1.0 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

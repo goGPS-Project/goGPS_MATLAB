@@ -25,7 +25,7 @@ function goGPS_LS_SA_code_MR(time_rx, pr1_R, pr2_R, snr_R, Eph, SP3, iono, sbas,
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.9999.1 - nightly
+%    |___/                    v 1.0 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
