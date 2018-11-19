@@ -1751,14 +1751,16 @@ classdef Atmosphere < handle
             bw_coef_lat = [1.4275268e-3 1.5138625e-3 1.4572752e-3 1.5007428e-3 1.7599082e-3];
             cw_coef_lat = [4.3472961e-2 4.6729510e-2 4.3908931e-2 4.4626982e-2 5.4736038e-2];
             
-            [~,~,idx_lat1] = histcounts(lat,[0 lat_p 90]);
+            [~,~,idx_lat1] = histcounts(lat,[0 lat_p pi/2]);
             if idx_lat1 == 1
                 ll = 1;
                 idx_lat2 = idx_lat1;
-            elseif idx_lat1 == 5
+            elseif idx_lat1 == 6
                 ll = 1;
+                idx_lat1 = idx_lat1-1;
                 idx_lat2 = idx_lat1;
             else
+                idx_lat1 = idx_lat1-1;
                 idx_lat2 = idx_lat1 + 1;
                 ll = (lat - lat_p(idx_lat1))/( lat_p(idx_lat2) -  lat_p(idx_lat1));
             end
