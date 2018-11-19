@@ -1194,8 +1194,14 @@ end
             check_rec = uicontrol( 'Parent', h_title, ...
                 'String', 'Check', ...
                 'Callback', @this.updateAndCheckRecList);
+            
+            Core_UI.insertEmpty(h_title, Core_UI.DARK_GRAY_BG);
+            
+            plot_rec = uicontrol( 'Parent', h_title, ...
+                'String', 'Plot', ...
+                'Callback', @this.updateAndPlotRecList);
 
-            h_title.Widths = [100 -1 60];
+            h_title.Widths = [95 -1 50  -1 40];
             
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
             Core_UI.insertHBarDark(this.info_g);
@@ -1697,6 +1703,58 @@ end
                 str = 'No receivers found';
             end
             this.log.addMessage('File availability checked');
+            this.rec_list.String = str;
+        end
+        
+        function updateAndPlotRecList(this, caller, event)
+            % Get file name list
+            state = Global_Configuration.getCurrentSettings;
+            state.updateObsFileName;
+            n_rec = state.getRecCount;
+            rec_path = state.getRecPath;
+            str = '';
+            fr = {};
+            sta_name = {};
+            for r = 1 : n_rec
+                name = File_Name_Processor.getFileName(rec_path{r}{1});
+                sta_name{end+1} = name(1:4);
+                fr{r} = File_Rinex(rec_path{r}, 100);
+                name = File_Name_Processor.getFileName(rec_path{r}{1});
+            end
+            
+            sss_strt = this.state.getSessionsStartExt;
+            sss_stop = this.state.getSessionsStopExt;
+            for year = sss_strt.getDOY : sss_stop.getDOY
+                y_strt = GPS_Time([year 1 1 0 0 0]);
+                y_stop = GPS_Time([year+1 1 1 0 0 0]);
+                weeks = (y_strt.getGpsWeek: y_stop.getGpsWeek)';
+                week_time = GPS_Time.fromWeekDow(weeks,uint32(zeros(size(weeks))));
+                week_time = week_time.getMatlabTime();
+                months_time = datenum([year*ones(12,1) (1:12)' ones(12,1)]);
+                
+                y_strt = y_strt.getMatlabTime();
+                y_stop = y_stop.getMatlabTime();
+                f = figure; f.Name = sprintf('%03d: Rinex File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
+                  line([week_time week_time], [0 n_rec+1],'Color',[0.8 0.8 0.8],'LineStyle',':');
+                for r = 1 : n_rec
+                    central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
+                    central_time = central_time(central_time >= y_strt & central_time <= y_stop);
+                    line([y_strt y_stop], [r r],'Color',[0.4 0.4 0.4],'LineStyle',':');
+                    plot(central_time, r * ones(size(central_time)),'.');
+                end
+              
+                xlim([max(sss_strt.getMatlabTime,y_strt) min(sss_stop.getMatlabTime,y_stop)]);
+                ylim([0 n_rec + 1]);
+                h = ylabel('STATION'); h.FontWeight = 'bold';
+                ax = gca(); ax.YTick = 1:n_rec;
+                ax.YTickLabel = sta_name;
+                set(ax,'XGrid','on')
+                title(sprintf('Rinex data avaliability %d',year));
+                
+                ax.XTick = months_time;
+                datetick('x','dd/mm/yyyy','keepticks');
+            end
+            this.log.addMessage('File availability plotted');
             this.rec_list.String = str;
         end
         
