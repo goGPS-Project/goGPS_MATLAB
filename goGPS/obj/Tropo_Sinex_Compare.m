@@ -146,7 +146,11 @@ classdef Tropo_Sinex_Compare < handle
             end
         end
         
-        function plotComparison(this)
+        function plotDifference(this)
+            % print the difference between the results
+            %
+            % SYNTAX 
+            %   this.plotComparison()
             sta1 = fieldnames(this.results.r1);
             sta2 = fieldnames(this.results.r2);
             for s1 = 1 : length(sta1)
@@ -206,6 +210,59 @@ classdef Tropo_Sinex_Compare < handle
                         %                     hist(diffint);
                         stdd = nan_std(diffint);
                         ylim([-4*stdd 4*stdd])
+                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                        title('North gradient')
+                    end
+                end
+            end
+            
+        end
+        
+        function plotComparison(this)
+            % print the difference between the results
+            %
+            % SYNTAX 
+            %   this.plotComparison()
+            sta1 = fieldnames(this.results.r1);
+            sta2 = fieldnames(this.results.r2);
+            for s1 = 1 : length(sta1)
+                for s2 = 1 : length(sta2)
+                    if strcmpi(sta1{s1},sta2{s2})
+                        data1 = this.results.r1.(sta1{s1});
+                        data2 = this.results.r2.(sta2{s2});
+                        f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
+                        % plot ZTD series
+                        subplot(3,1,1)
+                        plot(data1.time.getMatlabTime,data1.ztd,'.','Color','b');
+                        hold on;
+                        plot(data2.time.getMatlabTime,data2.ztd,'r');
+                        setTimeTicks(5,'yyyy/mm/dd');
+                    
+                        
+                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                        title('ZTD')
+                        % plot ge series
+                        subplot(3,1,2)
+                        plot(data1.time.getMatlabTime,data1.tge,'.','Color','b');
+                        hold on;
+                        plot(data2.time.getMatlabTime,data2.tge,'r');
+                        %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'aggregate');
+                        %                     plot(data2.time.getMatlabTime,diffagg,'r');
+                        setTimeTicks(5,'yyyy/mm/dd');
+                        %                     subplot(3,4,11)
+                        %                     hist(diffint);
+                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                        title('East gradient')
+                        % plot gn series
+                        subplot(3,1,3)
+                        plot(data1.time.getMatlabTime,data1.tgn,'.','Color','b');
+                        hold on;
+                        plot(data2.time.getMatlabTime,data2.tgn,'r');
+                        %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'aggregate');
+                        %                     plot(data2.time.getMatlabTime,diffagg,'r');
+                        setTimeTicks(5,'yyyy/mm/dd');
+                        %                     subplot(3,4,12)
+                        %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                         title('North gradient')
                     end
