@@ -175,8 +175,8 @@ classdef SINEX_Writer < handle
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.1f',stds(:,i)),5,n_ep)'];
                     end
-                elseif strfind(vals_flag{i},'TG')
-                    vals_mat = [ vals_mat reshape(sprintf('%8.3f',vals(:,i)),8,n_ep)'];
+                elseif strfind(vals_flag{i},'TG')                    
+                    vals_mat = [ vals_mat reshape(sprintf('%8.3f', max(-999,min(999,vals(:,i)))),8,n_ep)'];
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.3f',stds(:,i)),5,n_ep)'];
                     end
