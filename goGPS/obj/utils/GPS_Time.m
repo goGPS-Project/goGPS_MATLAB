@@ -1493,7 +1493,7 @@ classdef GPS_Time < Exportable & handle
                 case 1 % I'm in UNIX TIME
                     prec = eps(this.unix_time_f);
                 case 2 % I'm in REF TIME
-                    prec = eps(this.time_diff);
+                    prec = 0;
             end
         end
     end

@@ -57,7 +57,7 @@ for i = 1:length(st_idxes)
     end
            
 end
-for s = 1: length(sta_4char)
+for s = 1: size(sta_4char,1)
     c_sta_4char = sta_4char(s,:);
     idx_sta  = strLineMatch(sta_4char_trp,c_sta_4char);
     if sum(idx_sta) > 0
