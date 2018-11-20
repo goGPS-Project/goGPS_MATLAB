@@ -1707,6 +1707,11 @@ end
         end
         
         function updateAndPlotRecList(this, caller, event)
+            % Update file name list and plot daily availability of the files
+            %
+            % SYNTAX:
+            %   this.updateAndPlotRecList
+            
             % Get file name list
             state = Global_Configuration.getCurrentSettings;
             state.updateObsFileName;
@@ -1734,13 +1739,14 @@ end
                 
                 y_strt = y_strt.getMatlabTime();
                 y_stop = y_stop.getMatlabTime();
-                f = figure; f.Name = sprintf('%03d: Rinex File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
+                f = figure; f.Name = sprintf('%03d: Daily RINEX File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
                   line([week_time week_time], [0 n_rec+1],'Color',[0.8 0.8 0.8],'LineStyle',':');
                 for r = 1 : n_rec
                     central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
                     central_time = central_time(central_time >= y_strt & central_time <= y_stop);
-                    line([y_strt y_stop], [r r],'Color',[0.4 0.4 0.4],'LineStyle',':');
-                    plot(central_time, r * ones(size(central_time)),'.');
+                    line([y_strt y_stop], [r r],'Color',[0.4 0.4 0.4],'LineStyle',':', 'LineWidth', 1);
+                    plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 15, 'Color', Core_UI.getColor(r, n_rec));
+                    plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 2);
                 end
               
                 xlim([max(sss_strt.getMatlabTime, y_strt) min(sss_stop.getMatlabTime, y_stop)]);

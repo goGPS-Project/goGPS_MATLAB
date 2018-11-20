@@ -1896,14 +1896,14 @@ classdef GPS_Time < Exportable & handle
         end
         
         function gps_mean = getMeanTime(gps_time1, gps_time2)
-            % given two gps time with the same number of epochs, retun the
+            % Given two gps time with the same number of epochs, retun the
             % mean time between each epochs
             %
             % SYNTAX
             %    gps_mean = GPS_time.getCentralTime(gps_time1, gps_time2)
             gps_diff = gps_time2 - gps_time1;
             gps_mean = gps_time1.getCopy;
-            gps_mean = gps_mean.addSeconds(gps_diff);
+            gps_mean = gps_mean.addSeconds(gps_diff/2);
         end
     end
     
