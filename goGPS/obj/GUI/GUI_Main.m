@@ -1743,7 +1743,7 @@ end
                     plot(central_time, r * ones(size(central_time)),'.');
                 end
               
-                xlim([max(sss_strt.getMatlabTime,y_strt) min(sss_stop.getMatlabTime,y_stop)]);
+                xlim([max(sss_strt.getMatlabTime, y_strt) min(sss_stop.getMatlabTime, y_stop)]);
                 ylim([0 n_rec + 1]);
                 h = ylabel('STATION'); h.FontWeight = 'bold';
                 ax = gca(); ax.YTick = 1:n_rec;
@@ -1752,7 +1752,8 @@ end
                 title(sprintf('Rinex data avaliability %d',year));
                 
                 ax.XTick = months_time;
-                datetick('x','dd/mm/yyyy','keepticks');
+                datetick('x','dd/mm/yyyy HH','keepticks');
+                xtickangle(45);
             end
             this.log.addMessage('File availability plotted');
             this.rec_list.String = str;
