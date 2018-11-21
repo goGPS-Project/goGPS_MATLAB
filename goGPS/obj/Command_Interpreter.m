@@ -799,9 +799,15 @@ classdef Command_Interpreter < handle
                         rec(r).work.loaded_session = this.core.getCurSession();
                     else
                         [session_limits, out_limits] = state.getSessionLimits(cur_session);
-                        rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate);
-                        rec(r).work.loaded_session = cur_session;
-                        rec(r).work.setOutLimits(out_limits.first, out_limits.last);
+                        rin_list_check = this.core.rin_list(r).getCopy();
+                        rin_list_check.keepFiles(out_limits.first,out_limits.last);
+                        if out_limits.length < 2 || ~rin_list_check.isValid
+                            this.log.addMessage(sprintf('No valid receivers %s are present for session %d', rec(r).getMarkerName4Ch, cur_session));
+                        else
+                            rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate);
+                            rec(r).work.loaded_session = cur_session;
+                            rec(r).work.setOutLimits(out_limits.first, out_limits.last);
+                        end
                     end
                 end
             end
