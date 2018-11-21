@@ -1746,7 +1746,9 @@ end
                     central_time = central_time(central_time >= y_strt & central_time <= y_stop);
                     line([y_strt y_stop], [r r],'Color',[0.4 0.4 0.4],'LineStyle',':', 'LineWidth', 1);
                     plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 15, 'Color', Core_UI.getColor(r, n_rec));
-                    plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 2);
+                    if ~isempty(fr{r}.first_epoch) && ~isempty(fr{r}.last_epoch)
+                        plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 2);
+                    end
                 end
               
                 xlim([max(sss_strt.getMatlabTime, y_strt) min(sss_stop.getMatlabTime, y_stop)]);
