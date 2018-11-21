@@ -1140,10 +1140,11 @@ classdef Receiver_Commons < handle
                     time_stop = size(sztd,1);
                 end
                 
-                if isempty(core.rec(1).out.getIdSync)
-                    this.id_sync(:, 1) = 1 : this.time.length();
+                id_sync = serialize(this(1).getIdSync);
+                if isempty(id_sync)
+                    id_sync(:, 1) = (1 : this.time.length())';
                 end
-                id_ok = this.id_sync(this.id_sync(:) > time_start & this.id_sync(:) < time_stop);
+                id_ok = id_sync(id_sync(:) > time_start & id_sync(:) < time_stop);
                 t = this.time.getEpoch(id_ok).getMatlabTime;
                 sztd = sztd(id_ok, :);
                 
@@ -1195,8 +1196,8 @@ classdef Receiver_Commons < handle
                 subplot(3,1,3);
                 for i = 2 : 2 : numel(id_ok)
                     % Move scattered points
-                    az = (mod(this.sat.az(this.id_sync(i, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
-                    el = (90 - this.sat.el(this.id_sync(i, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+                    az = (mod(this.sat.az(id_sync(i, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+                    el = (90 - this.sat.el(id_sync(i, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
                     decl_n = el/(pi/2);
                     x = sin(az) .* decl_n;
                     y = cos(az) .* decl_n;
