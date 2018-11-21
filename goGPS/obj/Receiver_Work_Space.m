@@ -6960,8 +6960,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
                 corr = 2000;
-                while max(corr > 0.1)
-                [corr, s0] = this.codeStaticPositioning(this.id_sync, 15);
+                while max(abs(corr)) > 0.1
+                [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off);
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
                 this.updateAllTOT();
