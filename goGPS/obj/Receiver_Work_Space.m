@@ -6950,7 +6950,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.updateErrIono();
                 end
                 this.log.addMessage(this.log.indent('Improving estimation'))
-                this.codeStaticPositioning(this.id_sync, 15);
+                this.codeStaticPositioning(this.id_sync, this.state.cut_off);
                 %                 %----- NEXUS DEBUG
                 %                 this.adjustPrAmbiguity();
                 %                 this.codeStaticPositioning(this.id_sync, 15);
