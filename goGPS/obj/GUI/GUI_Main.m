@@ -1759,7 +1759,7 @@ end
                 
                 ax.XTick = months_time;
                 datetick('x','dd/mm/yyyy HH','keepticks');
-                xtickangle(45);
+                ax.XTickLabelRotation = 45;
             end
             this.log.addMessage('File availability plotted');
             this.rec_list.String = str;
