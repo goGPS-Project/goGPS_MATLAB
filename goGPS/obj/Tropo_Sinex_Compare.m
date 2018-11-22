@@ -146,7 +146,7 @@ classdef Tropo_Sinex_Compare < handle
             end
         end
         
-        function plotDifference(this)
+        function plotDifference(this,mode)
             % print the difference between the results
             %
             % SYNTAX 
@@ -160,58 +160,111 @@ classdef Tropo_Sinex_Compare < handle
                         data2 = this.results.r2.(sta2{s2});
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
                         % plot ZTD series
-                        subplot(3,1,1)
-                        diffint = timeSeriesComparison(data2.time.getMatlabTime,data2.ztd,data1.time.getMatlabTime,data1.ztd,'interpolate');
+                        subplot(3,4,1:3)
+                        diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'interpolate');
                         plot(data1.time.getMatlabTime,diffint,'.','Color','b');
                         hold on;
-                        %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.ztd,data1.time.getMatlabTime,data1.ztd,'aggregate');
-                        edges = (data1.time.first.getMatlabTime-eps()) : 1:(data1.time.last.getMatlabTime+1);
-                        Y = discretize(data1.time.getMatlabTime,edges,'IncludedEdge','right');
-                        avg_data = accumarray(Y,diffint,[],@mean);
-                        plot(edges(1:end-1)+1/(24*8),avg_data,'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        %                     subplot(3,4,10)
-                        %                     hist(diffint);
+                        [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
+                        plot(data2.time.getMatlabTime,diffagg,'Color','r');
                         stdd = nan_std(diffint);
                         ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                        setTimeTicks(5,'yyyy/mm/dd');
                         title('ZTD')
-                        % plot ge series
-                        subplot(3,1,2)
-                        diffint = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'interpolate');
-                        plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                        hold on;
-                        edges = (data1.time.first.getMatlabTime-eps()) : 1:(data1.time.last.getMatlabTime+1);
-                        Y = discretize(data1.time.getMatlabTime,edges,'IncludedEdge','right');
-                        avg_data = accumarray(Y,diffint,[],@mean);
-                        plot(edges(1:end-1)+1/(24*8),avg_data,'r');
-                        %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'aggregate');
-                        %                     plot(data2.time.getMatlabTime,diffagg,'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        %                     subplot(3,4,11)
-                        %                     hist(diffint);
-                        stdd = nan_std(diffint);
-                        ylim([-4*stdd 4*stdd])
-                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('East gradient')
-                        % plot gn series
-                        subplot(3,1,[3])
-                        diffint = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'interpolate');
-                        plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                        hold on;
-                        edges = (data1.time.first.getMatlabTime-eps()) : 1:(data1.time.last.getMatlabTime+1);
-                        Y = discretize(data1.time.getMatlabTime,edges,'IncludedEdge','right');
-                        avg_data = accumarray(Y,diffint,[],@mean);
-                        plot(edges(1:end-1)+1/(24*8),avg_data,'r');
-                        %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'aggregate');
-                        %                     plot(data2.time.getMatlabTime,diffagg,'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        %                     subplot(3,4,12)
-                        %                     hist(diffint);
-                        stdd = nan_std(diffint);
-                        ylim([-4*stdd 4*stdd])
-                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('North gradient')
+                        subplot(3,4,4)
+                        hist(noNaN(diffagg),30)
+                        rms = mean(abs(noNaN(diffagg)*1e3));
+                        bias = mean(noNaN(diffagg)*1e3);
+                        title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
+                        xlabel('Aggregated differences');
+                        ylabel('#');
+                        
+                        if mode == 1
+                            subplot(3,4,5:7)
+                            diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
+                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                            hold on;
+                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                            stdd = nan_std(diffint);
+                            ylim([-4*stdd 4*stdd])
+                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                            setTimeTicks(5,'yyyy/mm/dd');
+                            title('East gradient')
+                            subplot(3,4,8)
+                            hist(noNaN(diffagg),30)
+                            rms = mean(abs(noNaN(diffagg)*1e3));
+                            bias = mean(noNaN(diffagg)*1e3);
+                            title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
+                            xlabel('Aggregated differences');
+                            ylabel('#');
+                            % plot gn series
+                            subplot(3,4,9:11)
+                            diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
+                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                            hold on;
+                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                            stdd = nan_std(diffint);
+                            ylim([-4*stdd 4*stdd])
+                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                            setTimeTicks(5,'yyyy/mm/dd');
+                            title('North gradient')
+                            subplot(3,4,12)
+                            hist(noNaN(diffagg),30)
+                            rms = mean(abs(noNaN(diffagg)*1e3));
+                            bias = mean(noNaN(diffagg)*1e3);
+                            title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
+                            xlabel('Aggregated differences');
+                            ylabel('#');
+                        else
+                            % POLAR COORDINATES
+                            subplot(3,4,5:7)
+                            diffintE = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
+                            [diffaggE] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                            diffintN = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
+                            [diffaggN] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                            subplot(3,4,5:7)
+                            diffint = sqrt(diffintE.^2 + diffintN.^2);
+                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                            hold on;
+                            diffagg = sqrt(diffaggE.^2 + diffaggN.^2);
+                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                            stdd = nan_std(diffint);
+                            ylim([0 7*stdd])
+                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                            setTimeTicks(5,'yyyy/mm/dd');
+                            title('Gradient magnitude')
+                            subplot(3,4,8)
+                            hist(noNaN(diffagg),30)
+                            rms = mean(abs(noNaN(diffagg)*1e3));
+                            bias = mean(noNaN(diffagg)*1e3);
+                            title(sprintf('RMS: %0.2f mm',rms))
+                            xlabel('Aggregated differences');
+                            ylabel('#');
+                            % plot gn series
+                            subplot(3,4,9:11)
+                            diffint = atan2(diffintE, diffintN)/pi*180; diffint(abs(diffint) > 180) = sign(diffint(abs(diffint) > 180)).*(360 - abs(diffint(abs(diffint) > 180)));
+                            
+                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                            hold on;
+                            diffagg = atan2(diffaggE, diffaggN)/pi*180; diffagg(abs(diffagg) > 180) = sign(diffagg(abs(diffagg) > 180)).*(360 - abs(diffagg(abs(diffagg) > 180)));
+                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                            stdd = nan_std(diffint);
+                            ylim([-180 180])
+                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                            setTimeTicks(5,'yyyy/mm/dd');
+                            title('Gradient Azimuth')
+                            magn = sqrt(data2.tge.^2 + data2.tgn.^2);
+                            diffagg = diffagg(magn > 3*1e-3);
+                            subplot(3,4,12)
+                            hist(noNaN(diffagg),30)
+                            rms = mean(abs(noNaN(diffagg)));
+                            bias = mean(noNaN(diffagg));
+                            title(sprintf('Bias: %0.2f degree RMS: %0.2f degree',bias,rms))
+                            xlabel('Aggregated differences');
+                            ylabel('#');
+                        end
                     end
                 end
             end
@@ -233,9 +286,9 @@ classdef Tropo_Sinex_Compare < handle
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
                         % plot ZTD series
                         subplot(3,1,1)
-                        plot(data1.time.getMatlabTime,data1.ztd,'.','Color','b');
+                        plot(data1.time.getMatlabTime,zero2nan(data1.ztd),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,data2.ztd,'r');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.ztd),'r');
                         setTimeTicks(5,'yyyy/mm/dd');
                     
                         
@@ -243,9 +296,9 @@ classdef Tropo_Sinex_Compare < handle
                         title('ZTD')
                         % plot ge series
                         subplot(3,1,2)
-                        plot(data1.time.getMatlabTime,data1.tge,'.','Color','b');
+                        plot(data1.time.getMatlabTime,zero2nan(data1.tge),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,data2.tge,'r');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.tge),'r');
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
                         setTimeTicks(5,'yyyy/mm/dd');
@@ -255,9 +308,9 @@ classdef Tropo_Sinex_Compare < handle
                         title('East gradient')
                         % plot gn series
                         subplot(3,1,3)
-                        plot(data1.time.getMatlabTime,data1.tgn,'.','Color','b');
+                        plot(data1.time.getMatlabTime,zero2nan(data1.tgn),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,data2.tgn,'r');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.tgn),'r');
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
                         setTimeTicks(5,'yyyy/mm/dd');

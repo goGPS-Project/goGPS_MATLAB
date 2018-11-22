@@ -54,7 +54,7 @@ classdef SINEX_Writer < handle
         ACKNOWLEDGMENTS = 'International GNSS Service (IGS)';
         
         TROPO_HEADER = '*SITE EPOCH_______ TROTOT STDEV  TGNTOT  STDEV  TGETOT  STDEV';
-        SINEX_MAPPING_FLAGS = {'WET GMF','WET GRID VMF'};
+        SINEX_MAPPING_FLAGS = {'WET GMF','WET GRID VMF',' WET NIELL'};
         SUPPORTED_PARAMETERS = {'TROTOT','TGNTOT','TGETOT','TROWET','PWV','PRESS','TEMDRY','HUMREL'};
     end
     properties
