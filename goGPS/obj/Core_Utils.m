@@ -1085,5 +1085,35 @@ classdef Core_Utils < handle
             state.save(config_path);
             Global_Configuration.getCurrentSettings.import(state);
         end
+        
+        function y = fillNan1D(y,x)
+            % fill the nan into the y
+            %
+            % SYNTAX
+            % y = Core_Utils.fillNan1D(y,<x>)
+            
+            if nargin < x
+                x = 1: length(y);
+            end
+            idx_nan = isnan(y);
+            int_data = interp1(x(~idx_nan),y(~idx_nan),x(idx_nan));
+            y(idx_nan) = int_data;
+        end
+        
+        function [Amp,Phase,f] = compute_spectrum(y,smpl_rate)
+            % compute the spectrum with fft
+            %
+            % SYNTAX:
+            %  [Amp,Phase,f] = Core_Utils.compute_spectrum(y,smpl_rate);
+            Y = fft(y);
+            
+            L = length(y);
+            Fs = 1 /smpl_rate;
+            f = Fs*(0:(L/2))/L;
+            Y = Y(1:(L/2 +1));
+            Amp = abs(Y/L)*2;
+            Phase = angle(Y);
+            
+        end
     end
 end
