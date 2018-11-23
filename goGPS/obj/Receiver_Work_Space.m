@@ -615,12 +615,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
             end
             if ~isempty(this.ph_idx)
-                tmp = false(max(this.ph_idx), 1);
-                tmp(this.ph_idx) = true;
-                tmp(id_out) = false;
-                id_obs = id_obs(id_obs < length(tmp));
-                tmp(id_obs) = [];
-                this.ph_idx = find(tmp);
+%                 tmp = false(max(this.ph_idx), 1);
+%                 tmp(this.ph_idx) = true;
+%                 tmp(id_out) = false;
+%                 id_obs = id_obs(id_obs < length(tmp));
+%                 tmp(id_obs) = [];
+                this.ph_idx = find(this.obs_code(1,:) == 'L');
             end
             
             % try to remove observables from other precomputed properties of the object
@@ -969,7 +969,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         function remEmptyObs(this)
             % remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
-            this.remObs(empty_sat);
+            this.remObs(find(empty_sat));
         end
         
         function remBad(this)
@@ -4038,9 +4038,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L' % take off outlier
                                 ph_idx = this.ph_idx == find(c_idx);
+                                if sum(ph_idx) > 0
                                 obs((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
                                 snr((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
                                 cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_idx_ph(:,ph_idx)';
+                                end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
                         end
