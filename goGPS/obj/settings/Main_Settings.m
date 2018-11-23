@@ -252,6 +252,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
+        STD_CLOCK = 1e30;                              % Std of clock variations [m/h]
         
         % OUT DATA flags => what shall I store in rec.out?
         
@@ -597,6 +598,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Std of tropospheric delay [m / h]
         std_tropo = Main_Settings.STD_TROPO;
         std_tropo_gradient = Main_Settings.STD_TROPO;
+        std_clock = Main_Settings.STD_CLOCK;
         
         %------------------------------------------------------------------
         % OUTPUT TO KEEP
@@ -816,6 +818,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
+                this.std_clock   = state.getData('std_clock');
                 
                 % OUTPUT TO KEEP                
                 this.flag_out_dt = state.getData('flag_out_dt');                % Dt
@@ -960,6 +963,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
+                this.std_clock = state.std_clock;
                 
                 % OUTPUT TO KEEP
                 this.flag_out_dt = state.flag_out_dt;                % PWV
@@ -1134,6 +1138,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
             %str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
+            str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
             str = this.toString@Command_Settings(str);
             
             str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
@@ -1585,6 +1590,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('std_clock', this.std_clock, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % OUT TO KEEP
@@ -2221,6 +2228,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('std_tropo',[1e-12 1e50]);
             % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
+            this.checkNumericField('std_clock',[1e-12 1e50]);
+            
             
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');
@@ -3053,7 +3062,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folderÿÿ
+                % Search broadcast orbits in the ephemerides folderï¿½ï¿½
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));

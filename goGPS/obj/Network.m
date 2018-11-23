@@ -214,6 +214,7 @@ classdef Network < handle
                     else
                         n_time = this.common_time.length;
                         n_rec = length(this.rec_list);
+                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_clock)^2 / 3600 * ls.rate );
                         if this.state.flag_tropo
                             ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
                         end
