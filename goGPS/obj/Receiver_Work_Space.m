@@ -594,6 +594,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   this.remObs(id_obs)
+            if islogical(id_obs)
+                id_obs = find(id_obs);
+            end
             this.obs(id_obs,:) = [];
             this.obs_code(id_obs, :) = [];
             this.active_ids(id_obs) = [];
@@ -4014,11 +4017,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 snr = zeros(size(obs));
                 if flag(1) == 'L'
                     cycle_slips = sparse(size(obs,1),size(obs,2));
-                    ph_idx_tot = find(this.obs_code(:,1) == 'L');
                 end
                 
                 flags = zeros(length(prn)*n_opt,3);
-               
+                
                 for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on different lines)
                     sat_idx = sys_idx & this.prn == prn(s);
                     
@@ -4035,7 +4037,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 snr((s-1)*n_opt+i,take_idx) = 1;
                             end
                             if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L' % take off outlier
-                                ph_idx = ph_idx_tot == find(c_idx);
+                                ph_idx = this.ph_idx == find(c_idx);
                                 obs((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
                                 snr((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
                                 cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_idx_ph(:,ph_idx)';
