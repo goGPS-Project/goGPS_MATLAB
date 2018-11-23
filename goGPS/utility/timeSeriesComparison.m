@@ -28,7 +28,12 @@ if strcmp(mode,'aggregate')
     ztds = zero2nan(data2(~idx));
     avg_data = accumarray(Y,ztds,[],@nan_mean);
     avg_data_time = edges(1:end-1) + (edges(2:end) - edges(1:end-1))/2;
-    [LIA,LocB] = ismembertol(avg_data_time, t1, 1e-9);
+    if length(avg_data_time) > max(Y)
+    avg_data_time(max(Y)+1:end) = [];
+    end
+    avg_data_time = avg_data_time(avg_data~=0);
+    avg_data = avg_data(avg_data~=0);
+    [LIA,LocB] = ismembertol(avg_data_time, t1,1e-7);
     diff_data = nan(size(data1));
     diff_data(LocB(LocB~=0)) = zero2nan(avg_data(LIA)) - zero2nan(data1(LocB(LocB~=0)));
     

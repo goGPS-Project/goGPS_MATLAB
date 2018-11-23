@@ -151,6 +151,9 @@ classdef Tropo_Sinex_Compare < handle
             %
             % SYNTAX 
             %   this.plotComparison()
+            if nargin < 2
+                mode = 1;
+            end
             sta1 = fieldnames(this.results.r1);
             sta2 = fieldnames(this.results.r2);
             for s1 = 1 : length(sta1)

@@ -2052,7 +2052,7 @@ classdef Atmosphere < handle
             T = T + 273.15;
             
             %height correction
-            H = H * exp(-0.0006396 * h);
+            %H = H * exp(-0.0006396 * h);
             % Convert humidity
             H = H./100;
             
@@ -2083,6 +2083,7 @@ classdef Atmosphere < handle
             
             %ZHD (Saastamoinen model)
             ZHD = 0.0022768 * P(:) .* (1 + 0.00266 * cosd(2*lat(:)) + 0.00000028 * h(:));
+            %ZHD = 0.0022767 * P(:) ./ (1 - 0.00266 * cosd(2*lat(:)) - 0.00000028 * h(:));
         end
         
     end

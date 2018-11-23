@@ -3133,7 +3133,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         for i = 1 : l
                             [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(min(l, numel(this.lat)))/180*pi, this.lon(min(l, numel(this.lat)))/180*pi, this.h_ellips(min(l, numel(this.lat))), this.h_ellips(min(l, numel(this.lat))) - this.h_ortho(min(l, numel(this.lat))));
                         end
-                        H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
+                        H = atmo.STD_HUMI* exp(-0.0006396*this.h_ortho);
                     end
                 case 3 % local meteo data
                     atmo = Core.getAtmosphere();
