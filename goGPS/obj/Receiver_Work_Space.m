@@ -7617,7 +7617,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
-                this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx;
+                this.sat.amb_idx(id_sync,ls.go_id_amb(ls.phase_idx)) = ls.amb_idx;
                 this.if_amb = amb; % to test ambiguity fixing
                 this.quality_info.s0 = s0;
                 this.quality_info.n_epochs = ls.n_epochs;

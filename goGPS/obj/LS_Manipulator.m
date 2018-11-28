@@ -70,6 +70,7 @@ classdef LS_Manipulator < handle
         A_idx_mix    % inded of the paramter for multi receiver session [n_obs x n_param_per_epoch]
         amb_idx      % index of the columns per satellite
         go_id_amb    % go ids of the amb idx
+        phase_idx       % index of the phase measurements
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
         N_ep         % Stacked epoch-wise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         G            % hard constraints (Lagrange multiplier)
@@ -260,11 +261,13 @@ classdef LS_Manipulator < handle
                 [~, ~, ph_idx] = rec.getPhases();
                 obs_code_ph = rec.obs_code(ph_idx,:);
                 go_id_ph = rec.go_id(ph_idx);
-                for s = 1 : length(obs_set.go_id);
-                    g = obs_set.go_id(s);
-                    obs_code1 = obs_set.obs_code(s,2:4);
+                ph_idx = find(obs_set.obs_code(:,2) == 'L');
+                o_ph_goi = obs_set.go_id(ph_idx);
+                for s = 1 : length(o_ph_goi);
+                    g = o_ph_goi(s);
+                    obs_code1 = obs_set.obs_code(ph_idx(s),2:4);
                     if dual_freq
-                        obs_code2 = obs_set.obs_code(s,5:7);
+                        obs_code2 = obs_set.obs_code(ph_idx(s),5:7);
                     else
                         obs_code2 = '   ';
                     end
@@ -455,7 +458,8 @@ classdef LS_Manipulator < handle
                 mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
-            
+            phase_s = find(obs_set.wl ~=  -1);
+            this.phase_idx = phase_s;
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
@@ -517,12 +521,18 @@ classdef LS_Manipulator < handle
                 % ----------- Abiguity ------------------
                 if phase_present
                     prog_p_col = prog_p_col + 1;
-                    if not(flag_amb_fix)
-                        A(lines_stream, prog_p_col) = 1;%obs_set.wl(s);
+                    if sum(phase_s == s) > 0
+                        
+                        if not(flag_amb_fix)
+                            A(lines_stream, prog_p_col) = 1;%obs_set.wl(s);
+                        else
+                            A(lines_stream, prog_p_col) = 1;
+                        end
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, phase_s == s);
                     else
-                        A(lines_stream, prog_p_col) = 1;
+                         A_idx(lines_stream, prog_p_col) = 0;
+                         A(lines_stream, prog_p_col) = 0;
                     end
-                    A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
                 prog_p_col = prog_p_col + 1;
@@ -1082,7 +1092,9 @@ classdef LS_Manipulator < handle
             if any(isnan(x))
                 this.log.addError('Some parameters are NaN!');
             end
-            res_l = this.y - sum(this.A_ep .* reshape(x(this.A_idx), size(this.A_idx,1), size(this.A_idx,2)),2);
+            aidx_temp = this.A_idx;
+            aidx_temp(aidx_temp == 0) = 1;
+            res_l = this.y - sum(this.A_ep .* reshape(x(aidx_temp), size(this.A_idx,1), size(this.A_idx,2)),2);
             
             this.res = res_l;
             res_l(this.rw == 0) = 0;
@@ -1573,7 +1585,8 @@ classdef LS_Manipulator < handle
             
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
-                idx_p = A2N_idx_tot(this.A_idx(:, c));
+                idx_pars = this.A_idx(:, c);                
+                idx_p = A2N_idx_tot(idx_pars(idx_pars~=0));
                 x_class(idx_p) = this.param_class(c);
             end
             if is_network

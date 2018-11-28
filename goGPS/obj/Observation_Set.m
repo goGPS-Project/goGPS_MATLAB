@@ -430,8 +430,7 @@ classdef Observation_Set < handle
             %
             % SYNTAX:
             % this.getAmbIdx()
-            
-            amb_idx = Core_Utils.getAmbIdx(this.cycle_slip, this.obs);
+            amb_idx = Core_Utils.getAmbIdx(this.cycle_slip(:,this.wl ~= -1), this.obs(:,this.wl ~= -1));
         end
         
         function n_obs = getNumObs(this)
