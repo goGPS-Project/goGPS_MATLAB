@@ -1645,7 +1645,7 @@ classdef LS_Manipulator < handle
                      % ILS shrinking, method 1
                     [amb_fixed(~idx_constarined,:), is_fixed, l_fixed(~idx_constarined,:)] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
                     
-                    if true
+                    if is_fixed
                         % FIXED!!!!
                         idx_est = true(size(x,1),1);
                         amb_fix = amb_fixed(:, 1);
