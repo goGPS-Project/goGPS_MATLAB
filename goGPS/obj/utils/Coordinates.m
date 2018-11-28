@@ -786,14 +786,18 @@ classdef Coordinates < Exportable & handle
             end
         end
         
-        function [loc,  rot_mat] = cart2loca(xyz_ref, xyz_baseline)
+        function [loc,  rot_mat] = cart2local(xyz_ref, xyz_baseline)
             % cart2loca: from geocentric cartesian baselines (DX) to local coordinates in X0
             %
             % SYNTAX
-            %   [loc,  rot_mat] = Coordinates.cart2loca(xyz_ref, baseline)
+            %   [loc,  rot_mat] = Coordinates.cart2local(xyz_ref, baseline)
             [lat, lon] = Coordinates.cart2geod(xyz_ref);
             rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)];
             loc = (rot_mat * xyz_baseline')';
+        end
+        
+        function [loc,  rot_mat] = cart2loca(xyz_ref, xyz_baseline)
+            [loc,  rot_mat] = Coordinates.cart2local(xyz_ref, xyz_baseline); % maybe the function was used with the wrong name
         end
         
         function [xyz_baseline, rot_mat] = loca2cart(xyz_ref, loc)

@@ -6452,7 +6452,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 [pco, pco_idx] = this.getPCO(f,sys(1));
                                 if ~isempty(pco)
                                     
-                                    pco_delays = neu_los * pco;
+                                    pco_delays = neu_los * (pco + [fliplr(this.parent.ant_delta_en) this.parent.ant_delta_h]');
                                     pcv_delays = pco_delays - this.getPCV(pco_idx, el, az);
                                     for o = find(obs_idx_f)'
                                         pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~= 0; % find which correction to apply
@@ -7451,7 +7451,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % Add a model correction for time desync -> observations are now referred to nominal time  #14
                     this.shiftToNominal();
                     
-                    this.updateAllTOT();
+                    this.updateAllTOT(true);
                     this.correctPhJump();
                     
                     % apply various corrections

@@ -116,6 +116,7 @@ classdef FTP_Downloader < handle
                     sf.jobject.enterLocalPassiveMode();
                 catch
                     this.ftp_server = [];
+                    this.log.addWarning(['Could not connect to: ' this.addr]);
                 end
             end
         end

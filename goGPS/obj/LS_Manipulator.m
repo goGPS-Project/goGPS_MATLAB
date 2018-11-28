@@ -561,12 +561,16 @@ classdef LS_Manipulator < handle
                 % setting the first clock of each connected set of arc to 0
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 clock_const = zeros(1,n_clocks);
-                clock_const([1]) = 1;
-                G = [zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const];
+                amb_const = zeros(1,n_amb);
+                amb_const(1) = 1;
+                G = [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
                 for i = 1: length(system_jmp)
                     clock_const = zeros(1,n_clocks);
-                    clock_const(system_jmp(i)+1) = 1;
-                    G = [G ;[zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const]];
+                    %clock_const(system_jmp(i)+1) = 1;
+                    amb_const = zeros(1,n_amb);
+                    amb_idx_const = noNaN(amb_idx(system_jmp(i)+1,:));
+                    amb_const(amb_idx_const(1)) = 1;
+                    G = [G ;[zeros(1, n_coo + n_iob + n_apc) amb_const    clock_const]];
                 end
                 %                 end
                 if tropo
@@ -1624,81 +1628,53 @@ classdef LS_Manipulator < handle
                     
                     weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
                     weight = weight / sum(weight);
-                    [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
                     
-                    amb_n1_fix = round(amb_n1 - wl_frac);
-                    frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac;
                     
                     idx_amb = find(x_class == 5);
                     % get thc cxx of the ambiguities
-                    %                     n_amb  = length(idx_amb);
-                    %                     b_eye = zeros(length(B),n_amb);
-                    %                     idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
-                    %                     b_eye(idx) = 1;
-                    %                     b_eye = sparse(b_eye);
-                    %                     Cxx_amb = N\b_eye;
-                    %                     Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+                    n_amb  = length(idx_amb);
+                    b_eye = zeros(length(B),n_amb);
+                    idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+                    b_eye(idx) = 1;
+                    b_eye = sparse(b_eye);
+                    Cxx_amb = N\b_eye;
+                    Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+                    idx_constarined = abs(amb_n1) < 1e-5;
+                    l_fixed = false(size(amb_n1,1),2);
+                    amb_fixed = zeros(size(amb_n1,1),2);
+                     % ILS shrinking, method 1
+                    [amb_fixed(~idx_constarined,:), is_fixed, l_fixed(~idx_constarined,:)] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
                     
-                    idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
-                    
-                    idxFix2idxFlo = 1 : length(x);
-                    idxFlo2idxFix = nan(length(x),1);
-                    A_fixed = false(size(this.A_idx(:,4)));
-                    
-                    for i = 1 : length(idx_fix)
-                        Ni = N(:,idx_amb(i));
-                        if idx_fix(i)
-                            b_if_fix = 0.1070 * (amb_n1_fix(i));
-                            B = B - Ni* ( b_if_fix);
-                            A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
+                    if true
+                        % FIXED!!!!
+                        idx_est = true(size(x,1),1);
+                        amb_fix = amb_fixed(:, 1);
+                        
+                        for i = 1 : n_amb
+                            Ni = N(:, idx_amb(i));
+                            if l_fixed(i)
+                                B = B - Ni * amb_fix(i)*0.1070;
+                            end
                         end
+                        
+                        % remove fixed ambiguity from B and N
+                        B(idx_amb(l_fixed(:,1))) = [];
+                        N(idx_amb(l_fixed(:,1)), :) = [];
+                        N(:, idx_amb(l_fixed(:,1))) = [];
+                        
+                        % recompute the solution
+                        idx_nf = true(sum(idx_est,1),1);
+                        idx_nf(idx_amb(l_fixed(:,1))) = false;
+                        xf = zeros(size(idx_nf));
+                        
+                        xf(idx_nf) = N \ B;
+                        xf(~idx_nf) = amb_fix(l_fixed(:,1));
+                        
+                        x(idx_est) = x;
+                    else
+                        this.log.addWarning('The ambiguities cannot be fixed!!!');
                     end
                     
-                    B(idx_amb(idx_fix)) = [];
-                    B(end) = 0;
-                    N(idx_amb(idx_fix),:) = [];
-                    N(:,idx_amb(idx_fix)) = [];
-                    idxFix2idxFlo(idx_amb(idx_fix)) = [];
-                    idxFlo2idxFix(idx_amb(idx_fix)) = 0;
-                    idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
-                    xf = N \ B;
-                    % ---------------- try to fix again
-                    new_idx_amb = idxFlo2idxFix(idx_amb);
-                    new_idx_amb(new_idx_amb == 0) = [];
-                    amb_n1 = xf(new_idx_amb)/0.1070;
-                    weight = min(n_ep_wl(~idx_fix),100); % <- downweight too short arc
-                    weight = weight / sum(weight);
-                    [~, wl_frac] = Core_Utils.getFracBias(amb_n1,weight);
-                    amb_n1_fix(~idx_fix) = round(amb_n1 - wl_frac);
-                    frac_part_n1(~idx_fix) = amb_n1 - amb_n1_fix(~idx_fix) - wl_frac;
-                    idx_fix_old = idx_fix;
-                    idx_fix(~idx_fix) = abs(frac_part_n1(~idx_fix)) < 0.20 & n_ep_wl(~idx_fix) > 30; % fixing criteria (very rough)
-                    new_fix_idx = idx_fix(~idx_fix_old);
-                    new2old_idx_fix = find(~idx_fix_old);
-                    for i = 1 : length(new_fix_idx)
-                        Ni = N(:,new_idx_amb(i));
-                        if new_fix_idx(i)
-                            b_if_fix = 0.1070 * (amb_n1_fix(new2old_idx_fix(i)));
-                            B = B - Ni* ( b_if_fix);
-                            A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(new2old_idx_fix(i));
-                        end
-                    end
-                    B(idx_amb(new_fix_idx)) = [];
-                    B(end) = 0;
-                    N(idx_amb(new_fix_idx),:) = [];
-                    N(:,idx_amb(new_fix_idx)) = [];
-                    idxFix2idxFlo = 1 : length(x);
-                    idxFlo2idxFix = nan(length(x),1);
-                    idxFix2idxFlo(idx_amb(idx_fix)) = [];
-                    idxFlo2idxFix(idx_amb(idx_fix)) = 0;
-                    idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
-                    %-------------------------------------------------------------
-                    xf = N \ B;
-                    x_old = x;
-                    x(idxFix2idxFlo) = xf;
-                    x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
-                    this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
-                    this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
                 end
             else
                 if (this.state.getAmbFixNET && ~isempty(x(x_class == 5,1)))
