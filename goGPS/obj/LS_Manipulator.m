@@ -1873,6 +1873,8 @@ classdef LS_Manipulator < handle
             % SYNTAX:
             %   this.remObs(idx_obs)
             param_to_el = unique(this.A_idx(idx_obs,:));
+            inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
+            amb_to_el = unique(this.amb_idx(inearInd));
             epoch_to_el = unique(this.epoch(idx_obs));
             %remove lien from the design matrix
             this.A_idx(idx_obs,:) = [];
@@ -1885,6 +1887,7 @@ classdef LS_Manipulator < handle
             this.rw(idx_obs) = [];
             this.res(idx_obs) = [];
             this.y(idx_obs) = [];
+            this.amb_idx(inearInd) = nan;
             
             param_actual = unique(this.A_idx);
             %change paramter indexes
@@ -1896,6 +1899,7 @@ classdef LS_Manipulator < handle
                     param_actual(param_actual > param_to_el(i)) = param_actual(param_actual > param_to_el(i)) -1;
                     this.G(:,param_to_el(i) -el_count) = [];
                     el_count = el_count + 1;
+                    param_to_el = param_to_el -1;
                 end
             end
             el_count = 0;
@@ -1906,10 +1910,24 @@ classdef LS_Manipulator < handle
                     idx_maj = this.system_split > epoch_to_el(i);
                     this.system_split(idx_maj) = this.system_split(idx_maj) - 1;
                     this.true_epoch(epoch_to_el(i) - el_count) = [];
+                    this.amb_idx(epoch_to_el(i) - el_count,:) = [];
                     el_count = el_count + 1;
+                    epoch_to_el = epoch_to_el -1;
                 end
             end
             this.n_epochs = length(unique(this.epoch));
+            amb_actual = unique(this.amb_idx);
+            %change paramter indexes
+            el_count = 0;
+            for i = 1: length(amb_to_el)
+                if sum(amb_to_el(i) == amb_actual) ==0
+                    idx_maj = this.amb_idx > amb_to_el(i);
+                    this.amb_idx(idx_maj) = this.amb_idx(idx_maj) - 1;
+                    amb_actual(amb_actual > amb_to_el(i)) = amb_actual(amb_actual > amb_to_el(i)) -1;
+                    el_count = el_count + 1;
+                    amb_to_el = amb_to_el -1;
+                end
+            end
         end
         
          function removeAprInfo(this,idx)
