@@ -601,8 +601,13 @@ classdef Parallel_Manager < Com_Interface
                         worker_id = regexp(slave_list(j).name, [ Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
                         % get the result stored into jobXXXX_WORKER_YYYY.mat
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
-                        job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
-                        tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                        if isempty(job_file)
+                            tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
+                            tmp.work.flag_currupted = true;
+                        else
+                            job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
+                            tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                        end
                         if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
                             this.log.addWarning(sprintf('s0 = %.3f of the residuals for job %d', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id));
                         end
@@ -622,7 +627,10 @@ classdef Parallel_Manager < Com_Interface
                             core.rec(job_id).work = tmp.rec.work;
                             core.rec(job_id).work.parent = core.rec(job_id);
                         end
-                        %core.rec(job_id).work.pushResult();
+                        if core.rec(job_id).work.flag_currupted
+                            this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
+                        end
+                        % core.rec(job_id).work.pushResult();
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
                         delete(fullfile(this.getComDir(), job_file(1).name));
                         completed_job = [completed_job; job_id]; %#ok<AGROW>

@@ -114,8 +114,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         if_amb;            % temporary varibale to test PPP ambiguity fixing
         
-        
-        
+        flag_currupted = false;
     end
     % ==================================================================================================================================================
     %% PROPERTIES POSITION

@@ -5,7 +5,7 @@
 %   Slave controller for parallel goGPS computation
 %
 % EXAMPLE
-%   gom = Go_Slave
+%   gos = Go_Slave
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Go_Slave
 
@@ -294,7 +294,32 @@ classdef Go_Slave < Com_Interface
                         clear cmd_file rec_pass;
                     end
                 catch ex
+                    % Export work
+                    try
+                        rec = core.rec(rec_id);
+                    catch
+                        % I'm going to create an empty rec if something
+                        % goes wrong
+                    end
+                    try
+                        if isempty(rec)
+                            rec = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0);
+                        end
+                        rec.out = []; % do not want to save out
+                        rec.work.flag_currupted = true;
+                        save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
+                        pause(0.1); % be sure that the file is saved correctly
+                        clear rec;
+                        core.rec = []; % empty space
+                    catch
+                        % try to send the receiver, if something goes bad,
+                        % the master with deal with it
+                    end
+                    clear rec;
+                    core.rec = []; % empty space
+                    
                     % If something bad happen during work restart
+                    this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                     this.log.addError(sprintf('Something bad happen: %s\n', ex.message));
                     msg = this.RESTART;
                 end
