@@ -399,10 +399,18 @@ classdef Tropo_Sinex_Compare < handle
                         data1 = this.results.r1.(sta1{s1});
                         data2 = this.results.r2.(sta2{s2});
                         xyz_ref = median(data2.xyz,1);
-                        enu1 = Coordinates.cart2local(xyz_ref, data1.xyz - repmat(xyz_ref, size(data1.xyz,1),1) ) - repmat(data1.delta_enu,size( data1.xyz,1),1);
-                        enu2 = Coordinates.cart2local(xyz_ref, data2.xyz  - repmat(xyz_ref, size(data2.xyz,1),1));
+                        if mode == 1
+                            enu1 = Coordinates.cart2local(xyz_ref, data1.xyz - repmat(xyz_ref, size(data1.xyz,1),1) );% - repmat(data1.delta_enu,size( data1.xyz,1),1);
+                            enu2 = Coordinates.cart2local(xyz_ref, data2.xyz  - repmat(xyz_ref, size(data2.xyz,1),1));
+                        else
+                            enu1 = data1.xyz;
+                            enu2 = data2.xyz;
+                        end
                         [LIA,LocB] = ismembertol(data1.coord_time.getMatlabTime,data2.coord_time.getMatlabTime,1/24, 'DataScale', 1);
-                        diff_enu = enu1(LIA,:) - enu2(LocB,:);
+                        diff_enu = enu1(LIA,:) - enu2(LocB(LocB~=0),:);
+                        disp(sprintf('%s : %.4f %.4f %.4f , %.4f ',sta1{s1}, mean(diff_enu,1) ,sqrt(sum(mean(diff_enu,1).^2))))
+                        
+                        
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
                         % plot ZTD series
                         subplot(3,4,1:3)
@@ -412,7 +420,11 @@ classdef Tropo_Sinex_Compare < handle
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                         setTimeTicks(5,'yyyy/mm/dd');
-                        title('East')
+                        if mode == 1
+                            title('East')
+                        else
+                            title('X')
+                        end
                         subplot(3,4,4)
                         hist(noNaN(diffagg),30)
                         rms = mean(abs(noNaN(diffagg)*1e3));
@@ -423,13 +435,17 @@ classdef Tropo_Sinex_Compare < handle
                         
                         subplot(3,4,5:7)
                         diffagg = diff_enu(:,2);
-                        plot(data1.coord_time.getMatlabTime,diffagg,'.','Color','b');
+                        plot(data1.coord_time.getEpoch(LIA).getMatlabTime,diffagg,'.','Color','b');
                         stdd = nan_std(diffagg);
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                         setTimeTicks(5,'yyyy/mm/dd');
                         setTimeTicks(5,'yyyy/mm/dd');
-                        title('North')
+                        if mode == 1
+                            title('North')
+                        else
+                            title('Y')
+                        end
                         subplot(3,4,8)
                         hist(noNaN(diffagg),30)
                         rms = mean(abs(noNaN(diffagg)*1e3));
@@ -440,13 +456,17 @@ classdef Tropo_Sinex_Compare < handle
                         % plot gn series
                         subplot(3,4,9:11)
                         diffagg = diff_enu(:,3);
-                        plot(data1.coord_time.getMatlabTime,diffagg,'.','Color','b');
+                        plot(data1.coord_time.getEpoch(LIA).getMatlabTime,diffagg,'.','Color','b');
                         stdd = nan_std(diffagg);
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                         setTimeTicks(5,'yyyy/mm/dd');
                         setTimeTicks(5,'yyyy/mm/dd');
-                        title('Up')
+                        if mode == 1
+                            title('Up')
+                        else
+                            title('Z')
+                        end
                         subplot(3,4,12)
                         hist(noNaN(diffagg),30)
                         rms = mean(abs(noNaN(diffagg)*1e3));
