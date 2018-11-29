@@ -579,8 +579,8 @@ classdef LS_Manipulator < handle
                     clock_const = zeros(1,n_clocks);
                     %clock_const(system_jmp(i)+1) = 1;
                     amb_const = zeros(1,n_amb);
-                    amb_idx_const = noNaN(amb_idx((system_jmp(i)+1):system_jmp(i+1),:));
-                    amb_const(amb_idx_const(1)) = 1;
+                    amb_idx_const = unique(noNaN(amb_idx((system_jmp(i)+1):system_jmp(i+1),:)));
+                    amb_const(amb_idx_const) = 1;
                     G = [G ;[zeros(1, n_coo + n_iob + n_apc) amb_const    clock_const]];
                 end
                 %                 end
@@ -1897,34 +1897,29 @@ classdef LS_Manipulator < handle
                     idx_maj = this.A_idx > param_to_el(i);
                     this.A_idx(idx_maj) = this.A_idx(idx_maj) - 1;
                     param_actual(param_actual > param_to_el(i)) = param_actual(param_actual > param_to_el(i)) -1;
-                    this.G(:,param_to_el(i) -el_count) = [];
-                    el_count = el_count + 1;
+                    this.G(:,param_to_el(i)) = [];;
                     param_to_el = param_to_el -1;
                 end
             end
-            el_count = 0;
             for i = 1: length(epoch_to_el)
                 if sum(epoch_to_el(i) == this.epoch) ==0
                     idx_maj = this.epoch > epoch_to_el(i);
                     this.epoch(idx_maj) = this.epoch(idx_maj) - 1;
                     idx_maj = this.system_split > epoch_to_el(i);
                     this.system_split(idx_maj) = this.system_split(idx_maj) - 1;
-                    this.true_epoch(epoch_to_el(i) - el_count) = [];
+                    this.true_epoch(epoch_to_el(i)) = [];
                     this.amb_idx(epoch_to_el(i) - el_count,:) = [];
-                    el_count = el_count + 1;
                     epoch_to_el = epoch_to_el -1;
                 end
             end
             this.n_epochs = length(unique(this.epoch));
             amb_actual = unique(this.amb_idx);
             %change paramter indexes
-            el_count = 0;
             for i = 1: length(amb_to_el)
                 if sum(amb_to_el(i) == amb_actual) ==0
                     idx_maj = this.amb_idx > amb_to_el(i);
                     this.amb_idx(idx_maj) = this.amb_idx(idx_maj) - 1;
                     amb_actual(amb_actual > amb_to_el(i)) = amb_actual(amb_actual > amb_to_el(i)) -1;
-                    el_count = el_count + 1;
                     amb_to_el = amb_to_el -1;
                 end
             end

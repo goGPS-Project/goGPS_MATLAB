@@ -33,7 +33,7 @@ if strcmp(mode,'aggregate')
     end
     avg_data_time = avg_data_time(avg_data~=0);
     avg_data = avg_data(avg_data~=0);
-    [LIA,LocB] = ismembertol(avg_data_time, t1,1e-7);
+    [LIA,LocB] = ismembertol(avg_data_time, t1,1e-8);
     diff_data = nan(size(data1));
     diff_data(LocB(LocB~=0)) = zero2nan(avg_data(LIA)) - zero2nan(data1(LocB(LocB~=0)));
     

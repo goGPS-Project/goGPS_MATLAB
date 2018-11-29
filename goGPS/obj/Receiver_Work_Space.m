@@ -7553,26 +7553,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 pos_idx = [];
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx);
                 ls.Astack2Nstack();
-                
                 time = this.time.getSubSet(id_sync);
-                
-                if isempty(this.zwd) || all(isnan(this.zwd))
-                    this.zwd = zeros(this.time.length(), 1);
-                end
-                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
-                    this.apr_zhd = zeros(this.time.length(),1);
-                end
-                if isempty(this.ztd) || all(isnan(this.ztd))
-                    this.ztd = zeros(this.time.length(),1);
-                end
-                
-                n_sat = size(this.sat.el,2);
-                if isempty(this.sat.slant_td)
-                    this.sat.slant_td = zeros(this.time.length(), n_sat);
-                end
-                
-                rate = time.getRate();
-                
+                 rate = time.getRate();
                 %ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                 if this.state.flag_tropo_gradient
@@ -7595,6 +7577,28 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.Astack2Nstack();
                     [x, res, s0, ~, l_fixed] = ls.solve();
                 end
+                id_sync = ls.true_epoch;
+                
+                
+                
+                
+                if isempty(this.zwd) || all(isnan(this.zwd))
+                    this.zwd = zeros(this.time.length(), 1);
+                end
+                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
+                    this.apr_zhd = zeros(this.time.length(),1);
+                end
+                if isempty(this.ztd) || all(isnan(this.ztd))
+                    this.ztd = zeros(this.time.length(),1);
+                end
+                
+                n_sat = size(this.sat.el,2);
+                if isempty(this.sat.slant_td)
+                    this.sat.slant_td = zeros(this.time.length(), n_sat);
+                end
+                
+               
+                
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
