@@ -125,26 +125,26 @@ classdef Tropo_Sinex_Compare < handle
             for s = 1:length(recs)
                 sta = recs(s).getMarkerName4Ch;
                 if ~strcmpi(sta,'unkn')
-                data = recs(s).out;
-                if isfield(this.results.(['r' num2str(result_n)]), sta)
-                    
-                    [this.results.(['r' num2str(result_n)]).(sta).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).time.injectBatch(data.time);
-                    this.results.(['r' num2str(result_n)]).(sta).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).ztd, data.ztd , idx1, idx2);
-                    this.results.(['r' num2str(result_n)]).(sta).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tgn, data.tgn, idx1, idx2);
-                    this.results.(['r' num2str(result_n)]).(sta).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tge, data.tge, idx1, idx2);
-                    
-                    [this.results.(['r' num2str(result_n)]).(sta).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).coord_time.injectBatch(data.time_pos);
-                    this.results.(['r' num2str(result_n)]).(sta).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).xyz, data.xyz, idx1, idx2);
-                else
-                    this.results.(['r' num2str(result_n)]).(sta) = struct();
-                    this.results.(['r' num2str(result_n)]).(sta).xyz = data.xyz;
-                    this.results.(['r' num2str(result_n)]).(sta).coord_time = data.time_pos;
-                    this.results.(['r' num2str(result_n)]).(sta).time = data.time;
-                    this.results.(['r' num2str(result_n)]).(sta).ztd = data.ztd;
-                    this.results.(['r' num2str(result_n)]).(sta).tgn = data.tgn;
-                    this.results.(['r' num2str(result_n)]).(sta).tge = data.tge;
-                    this.results.(['r' num2str(result_n)]).(sta).delta_enu = [data.parent.ant_delta_en data.parent.ant_delta_h];
-                end
+                    data = recs(s).out;
+                    if isfield(this.results.(['r' num2str(result_n)]), sta)
+                        
+                        [this.results.(['r' num2str(result_n)]).(sta).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).time.injectBatch(data.time);
+                        this.results.(['r' num2str(result_n)]).(sta).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).ztd, data.ztd , idx1, idx2);
+                        this.results.(['r' num2str(result_n)]).(sta).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tgn, data.tgn, idx1, idx2);
+                        this.results.(['r' num2str(result_n)]).(sta).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tge, data.tge, idx1, idx2);
+                        
+                        [this.results.(['r' num2str(result_n)]).(sta).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).coord_time.injectBatch(data.time_pos);
+                        this.results.(['r' num2str(result_n)]).(sta).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).xyz, data.xyz, idx1, idx2);
+                    else
+                        this.results.(['r' num2str(result_n)]).(sta) = struct();
+                        this.results.(['r' num2str(result_n)]).(sta).xyz = data.xyz;
+                        this.results.(['r' num2str(result_n)]).(sta).coord_time = data.time_pos;
+                        this.results.(['r' num2str(result_n)]).(sta).time = data.time;
+                        this.results.(['r' num2str(result_n)]).(sta).ztd = data.ztd;
+                        this.results.(['r' num2str(result_n)]).(sta).tgn = data.tgn;
+                        this.results.(['r' num2str(result_n)]).(sta).tge = data.tge;
+                        this.results.(['r' num2str(result_n)]).(sta).delta_enu = [data.parent.ant_delta_en data.parent.ant_delta_h];
+                    end
                 end
             end
         end
@@ -168,108 +168,110 @@ classdef Tropo_Sinex_Compare < handle
                         % plot ZTD series
                         subplot(3,4,1:3)
                         diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'interpolate');
-                        plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                        hold on;
-                        [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
-                        plot(data2.time.getMatlabTime,diffagg,'Color','r');
-                        stdd = nan_std(diffint);
-                        ylim([-4*stdd 4*stdd])
-                        xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        title('ZTD')
-                        subplot(3,4,4)
-                        hist(noNaN(diffagg),30)
-                        rms = mean(abs(noNaN(diffagg)*1e3));
-                        bias = mean(noNaN(diffagg)*1e3);
-                        title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
-                        xlabel('Aggregated differences');
-                        ylabel('#');
-                        
-                        if mode == 1
-                            subplot(3,4,5:7)
-                            diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
+                        if any(~isnan(diffint))
                             plot(data1.time.getMatlabTime,diffint,'.','Color','b');
                             hold on;
-                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
                             plot(data2.time.getMatlabTime,diffagg,'Color','r');
                             stdd = nan_std(diffint);
                             ylim([-4*stdd 4*stdd])
                             xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                             setTimeTicks(5,'yyyy/mm/dd');
-                            title('East gradient')
-                            subplot(3,4,8)
+                            title('ZTD')
+                            subplot(3,4,4)
                             hist(noNaN(diffagg),30)
                             rms = mean(abs(noNaN(diffagg)*1e3));
                             bias = mean(noNaN(diffagg)*1e3);
                             title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
                             xlabel('Aggregated differences');
                             ylabel('#');
-                            % plot gn series
-                            subplot(3,4,9:11)
-                            diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
-                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                            hold on;
-                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
-                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
-                            stdd = nan_std(diffint);
-                            ylim([-4*stdd 4*stdd])
-                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                            setTimeTicks(5,'yyyy/mm/dd');
-                            title('North gradient')
-                            subplot(3,4,12)
-                            hist(noNaN(diffagg),30)
-                            rms = mean(abs(noNaN(diffagg)*1e3));
-                            bias = mean(noNaN(diffagg)*1e3);
-                            title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
-                            xlabel('Aggregated differences');
-                            ylabel('#');
-                        else
-                            % POLAR COORDINATES
-                            subplot(3,4,5:7)
-                            diffintE = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
-                            [diffaggE] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
-                            diffintN = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
-                            [diffaggN] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
-                            subplot(3,4,5:7)
-                            diffint = sqrt(diffintE.^2 + diffintN.^2);
-                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                            hold on;
-                            diffagg = sqrt(diffaggE.^2 + diffaggN.^2);
-                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
-                            stdd = nan_std(diffint);
-                            ylim([0 7*stdd])
-                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                            setTimeTicks(5,'yyyy/mm/dd');
-                            title('Gradient magnitude')
-                            subplot(3,4,8)
-                            hist(noNaN(diffagg),30)
-                            rms = mean(abs(noNaN(diffagg)*1e3));
-                            bias = mean(noNaN(diffagg)*1e3);
-                            title(sprintf('RMS: %0.2f mm',rms))
-                            xlabel('Aggregated differences');
-                            ylabel('#');
-                            % plot gn series
-                            subplot(3,4,9:11)
-                            diffint = atan2(diffintE, diffintN)/pi*180; diffint(abs(diffint) > 180) = sign(diffint(abs(diffint) > 180)).*(360 - abs(diffint(abs(diffint) > 180)));
                             
-                            plot(data1.time.getMatlabTime,diffint,'.','Color','b');
-                            hold on;
-                            diffagg = atan2(diffaggE, diffaggN)/pi*180; diffagg(abs(diffagg) > 180) = sign(diffagg(abs(diffagg) > 180)).*(360 - abs(diffagg(abs(diffagg) > 180)));
-                            plot(data2.time.getMatlabTime,diffagg,'Color','r');
-                            stdd = nan_std(diffint);
-                            ylim([-180 180])
-                            xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                            setTimeTicks(5,'yyyy/mm/dd');
-                            title('Gradient Azimuth')
-                            magn = sqrt(data2.tge.^2 + data2.tgn.^2);
-                            diffagg = diffagg(magn > 3*1e-3);
-                            subplot(3,4,12)
-                            hist(noNaN(diffagg),30)
-                            rms = mean(abs(noNaN(diffagg)));
-                            bias = mean(noNaN(diffagg));
-                            title(sprintf('Bias: %0.2f degree RMS: %0.2f degree',bias,rms))
-                            xlabel('Aggregated differences');
-                            ylabel('#');
+                            if mode == 1
+                                subplot(3,4,5:7)
+                                diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
+                                plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                                hold on;
+                                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                                plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                                stdd = nan_std(diffint);
+                                ylim([-4*stdd 4*stdd])
+                                xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                                setTimeTicks(5,'yyyy/mm/dd');
+                                title('East gradient')
+                                subplot(3,4,8)
+                                hist(noNaN(diffagg),30)
+                                rms = mean(abs(noNaN(diffagg)*1e3));
+                                bias = mean(noNaN(diffagg)*1e3);
+                                title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
+                                xlabel('Aggregated differences');
+                                ylabel('#');
+                                % plot gn series
+                                subplot(3,4,9:11)
+                                diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
+                                plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                                hold on;
+                                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                                plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                                stdd = nan_std(diffint);
+                                ylim([-4*stdd 4*stdd])
+                                xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                                setTimeTicks(5,'yyyy/mm/dd');
+                                title('North gradient')
+                                subplot(3,4,12)
+                                hist(noNaN(diffagg),30)
+                                rms = mean(abs(noNaN(diffagg)*1e3));
+                                bias = mean(noNaN(diffagg)*1e3);
+                                title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
+                                xlabel('Aggregated differences');
+                                ylabel('#');
+                            else
+                                % POLAR COORDINATES
+                                subplot(3,4,5:7)
+                                diffintE = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'interpolate');
+                                [diffaggE] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                                diffintN = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'interpolate');
+                                [diffaggN] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                                subplot(3,4,5:7)
+                                diffint = sqrt(diffintE.^2 + diffintN.^2);
+                                plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                                hold on;
+                                diffagg = sqrt(diffaggE.^2 + diffaggN.^2);
+                                plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                                stdd = nan_std(diffint);
+                                ylim([0 7*stdd])
+                                xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                                setTimeTicks(5,'yyyy/mm/dd');
+                                title('Gradient magnitude')
+                                subplot(3,4,8)
+                                hist(noNaN(diffagg),30)
+                                rms = mean(abs(noNaN(diffagg)*1e3));
+                                bias = mean(noNaN(diffagg)*1e3);
+                                title(sprintf('RMS: %0.2f mm',rms))
+                                xlabel('Aggregated differences');
+                                ylabel('#');
+                                % plot gn series
+                                subplot(3,4,9:11)
+                                diffint = atan2(diffintE, diffintN)/pi*180; diffint(abs(diffint) > 180) = sign(diffint(abs(diffint) > 180)).*(360 - abs(diffint(abs(diffint) > 180)));
+                                
+                                plot(data1.time.getMatlabTime,diffint,'.','Color','b');
+                                hold on;
+                                diffagg = atan2(diffaggE, diffaggN)/pi*180; diffagg(abs(diffagg) > 180) = sign(diffagg(abs(diffagg) > 180)).*(360 - abs(diffagg(abs(diffagg) > 180)));
+                                plot(data2.time.getMatlabTime,diffagg,'Color','r');
+                                stdd = nan_std(diffint);
+                                ylim([-180 180])
+                                xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
+                                setTimeTicks(5,'yyyy/mm/dd');
+                                title('Gradient Azimuth')
+                                magn = sqrt(data2.tge.^2 + data2.tgn.^2);
+                                diffagg = diffagg(magn > 3*1e-3);
+                                subplot(3,4,12)
+                                hist(noNaN(diffagg),30)
+                                rms = mean(abs(noNaN(diffagg)));
+                                bias = mean(noNaN(diffagg));
+                                title(sprintf('Bias: %0.2f degree RMS: %0.2f degree',bias,rms))
+                                xlabel('Aggregated differences');
+                                ylabel('#');
+                            end
                         end
                     end
                 end

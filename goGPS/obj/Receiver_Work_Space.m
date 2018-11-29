@@ -5842,7 +5842,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %from "conventional tide free" to "mean tide"
             radial = (-0.1206 + 0.0001*p)*p;
             north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
-            r = r + repmat([radial*c + north*b]',time.length,1);
+            r = r;% + repmat([radial*c + north*b]',time.length,1);
             
             %displacement along the receiver-satellite line-of-sight
             [XS] = this.getXSLoc();
