@@ -309,7 +309,7 @@ classdef Core_Utils < handle
                                         
                                         if ~isempty(strfind(line,'TYPE / SERIAL NO')) %#ok<*STREMP> % antenna serial number
                                             if (nargin == 2) % receiver
-                                                id_ant = strfind(replace(ant_char,' ',''),replace(line(1:20),' ',''));
+                                                id_ant = strfind(strrep(ant_char,' ',''),strrep(line(1:20),' ',''));
                                                 sat_type=[];
                                                  
                                             else
