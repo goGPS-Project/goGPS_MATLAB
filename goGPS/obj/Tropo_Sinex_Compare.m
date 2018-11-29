@@ -124,16 +124,17 @@ classdef Tropo_Sinex_Compare < handle
             this.results.(['r' num2str(result_n)]) = struct();
             for s = 1:length(recs)
                 sta = recs(s).getMarkerName4Ch;
+                if ~strcmpi(sta,'unkn')
                 data = recs(s).out;
                 if isfield(this.results.(['r' num2str(result_n)]), sta)
                     
-                    [this.results.(['r' num2str(result_n)]).(sta).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(stas{s}).time.injectBatch(data.time);
-                    this.results.(['r' num2str(result_n)]).(sta).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(stas{s}).ztd, data.ztd , idx1, idx2);
-                    this.results.(['r' num2str(result_n)]).(sta).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(stas{s}).tgn, data.tgn, idx1, idx2);
-                    this.results.(['r' num2str(result_n)]).(sta).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(stas{s}).tge, data.tge, idx1, idx2);
+                    [this.results.(['r' num2str(result_n)]).(sta).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).time.injectBatch(data.time);
+                    this.results.(['r' num2str(result_n)]).(sta).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).ztd, data.ztd , idx1, idx2);
+                    this.results.(['r' num2str(result_n)]).(sta).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tgn, data.tgn, idx1, idx2);
+                    this.results.(['r' num2str(result_n)]).(sta).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tge, data.tge, idx1, idx2);
                     
-                    [this.results.(['r' num2str(result_n)]).(sta).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(stas{s}).coord_time.injectBatch(data.time_pos);
-                    this.results.(['r' num2str(result_n)]).(sta).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(stas{s}).xyz, data.xyz, idx1, idx2);
+                    [this.results.(['r' num2str(result_n)]).(sta).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).coord_time.injectBatch(data.time_pos);
+                    this.results.(['r' num2str(result_n)]).(sta).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).xyz, data.xyz, idx1, idx2);
                 else
                     this.results.(['r' num2str(result_n)]).(sta) = struct();
                     this.results.(['r' num2str(result_n)]).(sta).xyz = data.xyz;
@@ -143,6 +144,7 @@ classdef Tropo_Sinex_Compare < handle
                     this.results.(['r' num2str(result_n)]).(sta).tgn = data.tgn;
                     this.results.(['r' num2str(result_n)]).(sta).tge = data.tge;
                     this.results.(['r' num2str(result_n)]).(sta).delta_enu = [data.parent.ant_delta_en data.parent.ant_delta_h];
+                end
                 end
             end
         end

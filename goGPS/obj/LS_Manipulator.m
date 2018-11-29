@@ -570,15 +570,16 @@ classdef LS_Manipulator < handle
                 %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                 % setting the first clock of each connected set of arc to 0
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                clock_const = zeros(1,n_clocks);
-                amb_const = zeros(1,n_amb);
-                amb_const(1) = 1;
-                G = [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
-                for i = 1: length(system_jmp)
+                system_jmp = [system_jmp; size(amb_idx,1)];
+%                 clock_const = zeros(1,n_clocks);
+%                 amb_const = zeros(1,n_amb);
+%                 amb_const(1) = 1;
+                 G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
+                for i = 1: (length(system_jmp)-1)
                     clock_const = zeros(1,n_clocks);
                     %clock_const(system_jmp(i)+1) = 1;
                     amb_const = zeros(1,n_amb);
-                    amb_idx_const = noNaN(amb_idx(system_jmp(i)+1,:));
+                    amb_idx_const = noNaN(amb_idx((system_jmp(i)+1):system_jmp(i+1),:));
                     amb_const(amb_idx_const(1)) = 1;
                     G = [G ;[zeros(1, n_coo + n_iob + n_apc) amb_const    clock_const]];
                 end
@@ -1153,6 +1154,9 @@ classdef LS_Manipulator < handle
                 idx_rw = true(size(res_n));
             end
             this.rw(idx_rw) =  wfun(res_n(idx_rw));
+            if sum(this.rw(idx_rw) < 1e-3) >0 % observation with weight less than 1e-3 are removed from the adjustment otherwise parmaters than depend only on them may suffer numerical instability
+                this.remObs(this.rw < 1e-3);
+            end
         end
         
         function reweightHuber(this)
@@ -1656,24 +1660,26 @@ classdef LS_Manipulator < handle
                     l_fixed = false(size(amb_n1,1),2);
                     amb_fixed = zeros(size(amb_n1,1),2);
                      % ILS shrinking, method 1
-                    [amb_fixed(~idx_constarined,:), is_fixed, l_fixed(~idx_constarined,:)] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
-                    
-                    if is_fixed
-                        % FIXED!!!!
-                        idx_est = true(size(x,1),1);
-                        amb_fix = amb_fixed(:, 1);
-                        
-                        for i = 1 : n_amb
-                            Ni = N(:, idx_amb(i));
-                            if l_fixed(i)
-                                B = B - Ni * amb_fix(i)*0.1070;
-                            end
-                        end
-                        
-                        % remove fixed ambiguity from B and N
-                        B(idx_amb(l_fixed(:,1))) = [];
-                        N(idx_amb(l_fixed(:,1)), :) = [];
-                        N(:, idx_amb(l_fixed(:,1))) = [];
+                     [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
+                     
+                     if is_fixed
+                         amb_fixed(~idx_constarined,:) = af;
+                         l_fixed(~idx_constarined,:) = lf;
+                         % FIXED!!!!
+                         idx_est = true(size(x,1),1);
+                         amb_fix = amb_fixed(:, 1);
+                         
+                         for i = 1 : n_amb
+                             Ni = N(:, idx_amb(i));
+                             if l_fixed(i)
+                                 B = B - Ni * amb_fix(i)*0.1070;
+                             end
+                         end
+                         
+                         % remove fixed ambiguity from B and N
+                         B(idx_amb(l_fixed(:,1))) = [];
+                         N(idx_amb(l_fixed(:,1)), :) = [];
+                         N(:, idx_amb(l_fixed(:,1))) = [];
                         
                         % recompute the solution
                         idx_nf = true(sum(idx_est,1),1);
@@ -1859,6 +1865,51 @@ classdef LS_Manipulator < handle
             this.A_idx(rd_idx) = this.A_idx(rd_idx) - 1;
             this.obs(o_idx) = this.obs(o_idx) + amb_value * wl;
             
+        end
+        
+        function remObs(this, idx_obs)
+            % remove observations from the system
+            %
+            % SYNTAX:
+            %   this.remObs(idx_obs)
+            param_to_el = unique(this.A_idx(idx_obs,:));
+            epoch_to_el = unique(this.epoch(idx_obs));
+            %remove lien from the design matrix
+            this.A_idx(idx_obs,:) = [];
+            this.A_ep(idx_obs,:) = [];
+            this.N_ep(:,:,idx_obs) = [];
+            this.variance(idx_obs) = [];
+            this.epoch(idx_obs) = [];
+            this.sat(idx_obs) = [];
+            this.receiver_id(idx_obs) = [];
+            this.rw(idx_obs) = [];
+            this.res(idx_obs) = [];
+            this.y(idx_obs) = [];
+            
+            param_actual = unique(this.A_idx);
+            %change paramter indexes
+            el_count = 0;
+            for i = 1: length(param_to_el)
+                if sum(param_to_el(i) == param_actual) ==0
+                    idx_maj = this.A_idx > param_to_el(i);
+                    this.A_idx(idx_maj) = this.A_idx(idx_maj) - 1;
+                    param_actual(param_actual > param_to_el(i)) = param_actual(param_actual > param_to_el(i)) -1;
+                    this.G(:,param_to_el(i) -el_count) = [];
+                    el_count = el_count + 1;
+                end
+            end
+            el_count = 0;
+            for i = 1: length(epoch_to_el)
+                if sum(epoch_to_el(i) == this.epoch) ==0
+                    idx_maj = this.epoch > epoch_to_el(i);
+                    this.epoch(idx_maj) = this.epoch(idx_maj) - 1;
+                    idx_maj = this.system_split > epoch_to_el(i);
+                    this.system_split(idx_maj) = this.system_split(idx_maj) - 1;
+                    this.true_epoch(epoch_to_el(i) - el_count) = [];
+                    el_count = el_count + 1;
+                end
+            end
+            this.n_epochs = length(unique(this.epoch));
         end
         
          function removeAprInfo(this,idx)

@@ -508,7 +508,7 @@ classdef Core < handle
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
-            if out_limits.length < 2 || ~rin_list_chk.isValid
+            if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list_chk.isValid)
                 is_empty = true;
                 this.log.addMessage(sprintf('No valid receivers are present for session %d', session));
             else
