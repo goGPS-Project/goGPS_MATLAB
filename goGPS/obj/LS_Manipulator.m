@@ -70,6 +70,7 @@ classdef LS_Manipulator < handle
         A_idx_mix    % inded of the paramter for multi receiver session [n_obs x n_param_per_epoch]
         amb_idx      % index of the columns per satellite
         tropo_idx    % index of tropo_par;
+        tropo_g_idx  % index of tropo gradients par
         go_id_amb    % go ids of the amb idx
         phase_idx       % index of the phase measurements
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
@@ -443,7 +444,7 @@ classdef LS_Manipulator < handle
             n_obs = sum(sum(diff_obs ~= 0));
             
             % Building Design matrix
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(~isempty(tropo_rate) & tropo) + 2 * double(tropo_g) + 2*double(isempty(tropo_rate)&tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -467,22 +468,39 @@ classdef LS_Manipulator < handle
             end
             phase_s = find(obs_set.wl ~=  -1);
             this.phase_idx = phase_s;
-            
+             islinspline = ~isempty(tropo_rate);
             if isempty(tropo_rate)
                 n_tropo = n_clocks;
+                n_tropo_g = n_clocks;
             else
-                edges = 0:tropo_rate/rec.time.getRate:rec.time.length;
+                %get_tropo_indexes
+                edges = 0:tropo_rate(1)/rec.time.getRate:rec.time.length;
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                tropo_idx = discretize(this.true_epoch,edges);
+                tropo_idx = discretize(this.true_epoch-1,edges);
                 stp = diff(tropo_idx) > 1;
                 jmp = find(stp);
                 for j = 1 : length(jmp)
                     tropo_idx(jmp(j)+1:end) = tropo_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
                 end
-                n_tropo = max(tropo_idx);
+                n_tropo = max(tropo_idx)+1;
                 this.tropo_idx = tropo_idx;
+                tropo_dt = rem(this.true_epoch-1,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
+                %get_tropo gradients _indexes
+                edges = 0:tropo_rate(2)/rec.time.getRate:rec.time.length;
+                if edges(end) ~= rec.time.length
+                    edges = [edges rec.time.length];
+                end
+                tropo_g_idx = discretize(this.true_epoch-1,edges);
+                stp = diff(tropo_g_idx) > 1;
+                jmp = find(stp);
+                for j = 1 : length(jmp)
+                    tropo_g_idx(jmp(j)+1:end) = tropo_g_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
+                end
+                n_tropo_g = max(tropo_g_idx)+1;
+                this.tropo_g_idx = tropo_g_idx;
+                tropo_g_dt = rem(this.true_epoch-1,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -564,32 +582,49 @@ classdef LS_Manipulator < handle
                 A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 % ----------- ZTD ------------------
                 if tropo
-                    prog_p_col = prog_p_col + 1;
-                    A(lines_stream, prog_p_col) = mfw_stream;
+                    
                     if isempty(tropo_rate)
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = mfw_stream;
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = mfw_stream.*(1-tropo_dt(id_ok_stream));
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream);
+                        
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = mfw_stream.*tropo_dt(id_ok_stream);
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream)+1;
                     end
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     %cotan_term = cot(el_stream) .* mfw_stream;
                     cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
-                    prog_p_col = prog_p_col + 1;
-                    A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
+                    
                     if isempty(tropo_rate)
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
-                    else
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream);
-                    end
-                    prog_p_col = prog_p_col + 1;
-                    A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
-                    if isempty(tropo_rate)
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb  + tropo_idx(id_ok_stream);
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*(1-tropo_g_dt(id_ok_stream)); % noth gradient spli
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream);
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*tropo_g_dt(id_ok_stream); % noth gradient
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream)+1;
+                        
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*(1-tropo_g_dt(id_ok_stream)); % east gradient
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream);
+                        prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*tropo_g_dt(id_ok_stream); % east gradient
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo  + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream)+1;
                     end
+    
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -621,10 +656,10 @@ classdef LS_Manipulator < handle
                 end
                 %                 end
                 if tropo
-                    G = [G zeros(size(G,1), n_tropo)];
+                    G = [G zeros(size(G,1), n_tropo + n_tropo*islinspline )];
                 end
                 if tropo_g
-                    G = [G zeros(size(G,1), 2*n_tropo)];
+                    G = [G zeros(size(G,1), 2*n_tropo_g + 2*n_tropo_g*islinspline)];
                 end
                 D = zeros(size(G,1),1);
                 this.G = G;
@@ -643,10 +678,12 @@ classdef LS_Manipulator < handle
                 if isempty(tropo_rate)
                     this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
                 else
-                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -ones(tropo_g), -ones(tropo_g)];
+                   
+                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -ones(tropo&islinspline), -ones(tropo_g), -ones(tropo_g&islinspline), -ones(tropo_g) -ones(tropo_g&islinspline),];
                 end
             end
-            this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
+            this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
+                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo),this.PAR_TROPO*ones(tropo&islinspline), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_N*ones(tropo_g&islinspline), this.PAR_TROPO_E*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g&islinspline)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');
@@ -1266,7 +1303,11 @@ classdef LS_Manipulator < handle
                 idx_constant = find(idx_constant_l);
                 idx_non_constant = find(~idx_constant_l);
                 idx_ep_wise = find(this.param_flag == 1);
-                
+                u_class = unique(this.param_class);
+                n_param_class = zeros(1,length(u_class));
+                for u = 1 : length(u_class)
+                    n_param_class(u) = max(max(this.A_idx(:,this.param_class == u_class(u)))) - min(min(this.A_idx(:,this.param_class == u_class(u)))) + 1;
+                end
                 a_idx_const =unique(A_rec(:, idx_constant_l));
                 a_idx_const(a_idx_const == 0) = [];
                 a_idx_ep_wise = unique(A_rec(:, idx_ep_wise));
@@ -1328,6 +1369,44 @@ classdef LS_Manipulator < handle
                     %fill B
                     B_rec(p_idx) = B_rec(p_idx) + A_ep' * (1 ./ variance) * rw * y;
                 end
+                % constraint over rate paramters
+                if ~isempty(this.time_regularization)
+                    cc_class = intersect(this.time_regularization(:, 1),this.param_class(idx_constant));
+                    if ~isempty(cc_class)
+                        Ncc_reg = sparse(n_constant, n_constant);
+                        diag_cc0 = zeros(n_constant,1);
+                        diag_cc1 = zeros(n_constant-1,1);
+                        idx_const_u = false(size(n_param_class));
+                        for b = 1 : length(u_class)
+                            idx_const_u(b) = unique(idx_constant_l(this.param_class == u_class(b)));
+                        end
+                        n_param_class_const_cum = cumsum(n_param_class(idx_const_u));
+                        for c = cc_class'
+                            idx_c = this.time_regularization(:, 1) == c;
+                            w = 1 ./ this.time_regularization(idx_c, 2) ;
+                            if c == this.PAR_TROPO
+                                ut = unique(this.tropo_idx);
+                                ut(end+1) = ut(end) +1;
+                                reg = diff(ut)*w;
+                            elseif (c == this.PAR_TROPO_E || c == this.PAR_TROPO_N)
+                                utg = unique(this.tropo_g_idx);
+                                utg(end+1) = utg(end) +1;
+                                reg = diff(utg)*w;
+                            end
+                            idx_bg = n_param_class_const_cum(find(u_class(idx_const_u) == c)-1)+1;
+                            idx_en = n_param_class_const_cum(u_class(idx_const_u) == c)-1;
+                            diag_cc1(idx_bg:idx_en) = -reg;
+                            reg0 = [0; reg] + [reg; 0];
+                            diag_cc0(idx_bg:(idx_en+1)) = reg0;
+                        end
+                        Ncc_reg = spdiags( diag_cc0,0,Ncc_reg);
+                        Ncc_reg = spdiags([0; diag_cc1],1,Ncc_reg);
+                        Ncc_reg = spdiags(diag_cc1,-1,Ncc_reg);
+                         Ncc = Ncc + Ncc_reg;
+                    end
+                   
+                end
+                
                 Nee = [];
                 class_ep_wise = this.param_class(idx_non_constant);
                 

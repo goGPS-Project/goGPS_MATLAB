@@ -253,6 +253,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
         STD_CLOCK = 1e30;                              % Std of clock variations [m/h]
+        SPLINE_RATE_TROPO = 0;                         % rate of spline for tropo param [s]
+        SPLINE_RATE_TROPO_GRADIENT = 0;                  % rate of spline for tropo gradeint param [s]
         
         % OUT DATA flags => what shall I store in rec.out?
         
@@ -599,6 +601,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         std_tropo = Main_Settings.STD_TROPO;
         std_tropo_gradient = Main_Settings.STD_TROPO;
         std_clock = Main_Settings.STD_CLOCK;
+        spline_rate_tropo = Main_Settings.SPLINE_RATE_TROPO;
+        spline_rate_tropo_gradient = Main_Settings.SPLINE_RATE_TROPO_GRADIENT;
         
         %------------------------------------------------------------------
         % OUTPUT TO KEEP
@@ -819,6 +823,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
                 this.std_clock   = state.getData('std_clock');
+                this.spline_rate_tropo   = state.getData('spline_rate_tropo');
+                this.spline_rate_tropo_gradient   = state.getData('spline_rate_tropo_gradient');
                 
                 % OUTPUT TO KEEP                
                 this.flag_out_dt = state.getData('flag_out_dt');                % Dt
@@ -964,6 +970,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
                 this.std_clock = state.std_clock;
+                this.spline_rate_tropo = state.spline_rate_tropo;
+                this.spline_rate_tropo_gradient = state.spline_rate_tropo_gradient;
                 
                 % OUTPUT TO KEEP
                 this.flag_out_dt = state.flag_out_dt;                % PWV
@@ -1139,6 +1147,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
+            str = [str sprintf(' Spline rate of tropospheric delay:                %g\n\n', this.spline_rate_tropo)];
+            str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n\n', this.spline_rate_tropo_gradient)];
             str = this.toString@Command_Settings(str);
             
             str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
@@ -1592,6 +1602,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_clock', this.std_clock, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropossheric delay [s] (default = %.0f)', this.SPLINE_RATE_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropossheric delay gradients [s] (default = %.0f)', this.SPLINE_RATE_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % OUT TO KEEP
@@ -2229,7 +2243,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
             this.checkNumericField('std_clock',[1e-12 1e50]);
-            
+            this.checkNumericField('spline_rate_tropo',[0 1e50]);
+            this.checkNumericField('spline_rate_tropo_gradient',[0 1e50]);
             
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');

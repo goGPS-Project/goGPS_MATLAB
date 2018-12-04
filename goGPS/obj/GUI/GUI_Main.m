@@ -911,8 +911,10 @@ end
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'clock regularization', 'std_clock', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
+             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
+              [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD gradient', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
             
-            tab.Heights = [80 5 250 5 100];
+            tab.Heights = [80 5 250 5 150];
             tab.Widths = 600;
             
             this.uip.tab_atmo = tab;

@@ -7551,22 +7551,27 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 ls = LS_Manipulator(this.cc);
                 pos_idx = [];
-%                 if this.state.tropo_rate == 0
-%                 tropo_rate = [];
-%                 else
-%                     tropo_rate = this.state.tropo_rate;
-%                 end
-                tropo_rate = 300;
+                if this.state.spline_rate_tropo == 0 || this.state.spline_rate_tropo_gradient == 0
+                    tropo_rate = [];
+                else
+                    tropo_rate = [this.state.spline_rate_tropo  this.state.spline_rate_tropo_gradient];
+                end
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx, tropo_rate);
                 ls.Astack2Nstack();
                 time = this.time.getSubSet(id_sync);
                  rate = time.getRate();
-                %ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_REC_CLK, this.state.std_clock* rate); % really small regularization
                 if isempty(tropo_rate)
                     ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                     if this.state.flag_tropo_gradient
                         ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                         ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                    end
+                else
+                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
+                    if this.state.flag_tropo_gradient
+                        ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
+                        ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
                     end
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
@@ -7665,7 +7670,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if isempty(tropo_rate)
                         this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                         else
-                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo(ls.tropo_idx);
+                            tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo(ls.tropo_idx).*(1-tropo_dt) + tropo(ls.tropo_idx+1).*tropo_dt;
                         end
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         this.pwv = nan(size(this.zwd));
@@ -7688,9 +7694,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.tgn = nan(this.time.length,1);
                         end
                         if isempty(tropo_rate)
-                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo(ls.tropo_idx);
+                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
                         else
-                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo(ls.tropo_idx);
+                            tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
+                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep))  + gntropo(ls.tropo_g_idx).*(1-tropo_dt) + gntropo(ls.tropo_g_idx+1).*tropo_dt;
                         end
                         if isempty(this.tge) || all(isnan(this.tge))
                             this.tge = nan(this.time.length,1);
@@ -7698,7 +7705,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if isempty(tropo_rate)
                             this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                         else
-                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo(ls.tropo_idx);
+                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep))   + getropo(ls.tropo_g_idx).*(1-tropo_dt) + getropo(ls.tropo_g_idx+1).*tropo_dt;
                         end
                     end
                     this.updateErrTropo();
