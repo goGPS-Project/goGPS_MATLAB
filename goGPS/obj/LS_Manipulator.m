@@ -69,6 +69,7 @@ classdef LS_Manipulator < handle
         A_idx        % index of the paramter [n_obs x n_param_per_epoch]
         A_idx_mix    % inded of the paramter for multi receiver session [n_obs x n_param_per_epoch]
         amb_idx      % index of the columns per satellite
+        tropo_idx    % index of tropo_par;
         go_id_amb    % go ids of the amb idx
         phase_idx       % index of the phase measurements
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
@@ -153,7 +154,7 @@ classdef LS_Manipulator < handle
             this.log = Core.getLogger();            
         end
         
-        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)
+        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx, tropo_idx_vec)
             % Init the object for the phase stand alone positioning
             %
             % SYNTAX
@@ -167,7 +168,10 @@ classdef LS_Manipulator < handle
             if nargin < 6
                 pos_idx = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off, '', dynamic, pos_idx);
+            if nargin < 7
+                tropo_idx_vec = [];
+            end
+            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off, '', dynamic, pos_idx,tropo_idx_vec);
         end
         
         function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
@@ -188,7 +192,7 @@ classdef LS_Manipulator < handle
             id_sync = this.setUpSA(rec, id_sync, 'C', cut_off, '', true);
         end
         
-        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec)
+        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec, tropo_rate)
             % Init the object for static positioning
             % return the id_sync of the epochs to be computed
             %
@@ -200,6 +204,9 @@ classdef LS_Manipulator < handle
             %
             % SYNTAX
             %   id_sync_out = this.setUpSA(rec, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>)
+            if nargin < 9
+                tropo_rate = [];
+            end
             if nargin < 8
                 pos_idx_vec = [];
             end
@@ -460,6 +467,23 @@ classdef LS_Manipulator < handle
             end
             phase_s = find(obs_set.wl ~=  -1);
             this.phase_idx = phase_s;
+            
+            if isempty(tropo_rate)
+                n_tropo = n_clocks;
+            else
+                edges = 0:tropo_rate/rec.time.getRate:rec.time.length;
+                if edges(end) ~= rec.time.length
+                    edges = [edges rec.time.length];
+                end
+                tropo_idx = discretize(this.true_epoch,edges);
+                stp = diff(tropo_idx) > 1;
+                jmp = find(stp);
+                for j = 1 : length(jmp)
+                    tropo_idx(jmp(j)+1:end) = tropo_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
+                end
+                n_tropo = max(tropo_idx);
+                this.tropo_idx = tropo_idx;
+            end
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
@@ -542,7 +566,11 @@ classdef LS_Manipulator < handle
                 if tropo
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = mfw_stream;
-                    A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    if isempty(tropo_rate)
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    else
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream);
+                    end
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
@@ -550,10 +578,18 @@ classdef LS_Manipulator < handle
                     cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
-                    A_idx(lines_stream, prog_p_col) = n_coo + 2 * n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    if isempty(tropo_rate)
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    else
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream);
+                    end
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
-                    A_idx(lines_stream, prog_p_col) = n_coo + 3 * n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    if isempty(tropo_rate)
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    else
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb  + tropo_idx(id_ok_stream);
+                    end
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -570,7 +606,7 @@ classdef LS_Manipulator < handle
                 %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                 % setting the first clock of each connected set of arc to 0
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                system_jmp = [system_jmp; size(amb_idx,1)];
+                system_jmp = [0; system_jmp; size(amb_idx,1)];
 %                 clock_const = zeros(1,n_clocks);
 %                 amb_const = zeros(1,n_amb);
 %                 amb_const(1) = 1;
@@ -585,10 +621,10 @@ classdef LS_Manipulator < handle
                 end
                 %                 end
                 if tropo
-                    G = [G zeros(size(G,1), n_clocks)];
+                    G = [G zeros(size(G,1), n_tropo)];
                 end
                 if tropo_g
-                    G = [G zeros(size(G,1), 2*n_clocks)];
+                    G = [G zeros(size(G,1), 2*n_tropo)];
                 end
                 D = zeros(size(G,1),1);
                 this.G = G;
@@ -604,7 +640,11 @@ classdef LS_Manipulator < handle
             if dynamic
                 this.param_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
-                this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
+                if isempty(tropo_rate)
+                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
+                else
+                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -ones(tropo_g), -ones(tropo_g)];
+                end
             end
             this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
             if phase_present

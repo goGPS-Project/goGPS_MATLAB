@@ -36,7 +36,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %--------------------------------------------------------------------------
-classdef Receiver_Commons < handle
+classdef Receiver_Commons <  matlab.mixin.Copyable
     properties (SetAccess = public, GetAccess = public)
         parent         % habdle to parent object
         
@@ -935,7 +935,7 @@ classdef Receiver_Commons < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f = Mapper();
             else
                 f = gcf;
                 hold on;
@@ -979,7 +979,7 @@ classdef Receiver_Commons < handle
                 t.Units = 'data';
             end
             
-            plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+            %plot_google_map('alpha', 0.95, 'MapType', 'satellite');
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');

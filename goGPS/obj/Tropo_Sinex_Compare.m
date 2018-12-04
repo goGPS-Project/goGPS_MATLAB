@@ -171,7 +171,8 @@ classdef Tropo_Sinex_Compare < handle
                         if any(~isnan(diffint))
                             plot(data1.time.getMatlabTime,diffint,'.','Color','b');
                             hold on;
-                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
+                            [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'spline');
+                          
                             plot(data2.time.getMatlabTime,diffagg,'Color','r');
                             stdd = nan_std(diffint);
                             ylim([-4*stdd 4*stdd])
@@ -346,40 +347,48 @@ classdef Tropo_Sinex_Compare < handle
                         data2 = this.results.r2.(sta2{s2});
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
                         xyz_ref = median(data2.xyz,1);
-                        enu1 = Coordinates.cart2local(xyz_ref, data1.xyz - repmat(xyz_ref, size(data1.xyz,1),1) ) - repmat(data1.delta_enu,size( data1.xyz,1),1);
-                        enu2 = Coordinates.cart2local(xyz_ref, data2.xyz  - repmat(xyz_ref, size(data2.xyz,1),1));
+                        enu1 = Coordinates.cart2local(xyz_ref, data1.xyz - repmat(xyz_ref, size(data1.xyz,1),1) )*1e3;
+                        enu2 = Coordinates.cart2local(xyz_ref, data2.xyz  - repmat(xyz_ref, size(data2.xyz,1),1))*1e3;
                         % plot E
                         subplot(3,1,1)
+                        [LIA,LocB] = ismembertol(data1.coord_time.getMatlabTime, data2.coord_time.getMatlabTime,1e-8);
+                        LocB= LocB(LocB ~= 0);
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,1)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,1)),'r');
                         setTimeTicks(5,'yyyy/mm/dd');
                         
-                        ylabel('m')
+                        ylabel('mm')
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('East')
+                        std1 = std(enu1(LIA,1));
+                        std2 = std(enu2(LocB,1));
+                        title(sprintf('East std1: %.2f std2: %.2f [mm]',std1,std2))
                         % plot N
                         subplot(3,1,2)
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,2)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,2)),'r');
                         setTimeTicks(5,'yyyy/mm/dd');
-                        ylabel('m')
+                        ylabel('mm')
                         %                     subplot(3,4,11)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('Nord')
+                        std1 = std(enu1(LIA,2));
+                        std2 = std(enu2(LocB,2));
+                        title(sprintf('North std1: %.2f std2: %.2f [mm]',std1,std2))
                         % plot U
                         subplot(3,1,3)
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,3)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,3)),'r');
                         setTimeTicks(5,'yyyy/mm/dd');
-                        ylabel('m')
+                        ylabel('mm')
                         %                     subplot(3,4,12)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('Up')
+                        std1 = std(enu1(LIA,3));
+                        std2 = std(enu2(LocB,3));
+                        title(sprintf('Up std1: %.2f std2: %.2f [mm]',std1,std2))
                     end
                 end
             end
@@ -434,7 +443,7 @@ classdef Tropo_Sinex_Compare < handle
                         rms = mean(abs(noNaN(diffagg)*1e3));
                         bias = mean(noNaN(diffagg)*1e3);
                         title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
-                        xlabel('Aggregated differences');
+                        xlabel('Differences');
                         ylabel('#');
                         
                         subplot(3,4,5:7)
@@ -455,7 +464,7 @@ classdef Tropo_Sinex_Compare < handle
                         rms = mean(abs(noNaN(diffagg)*1e3));
                         bias = mean(noNaN(diffagg)*1e3);
                         title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
-                        xlabel('Aggregated differences');
+                        xlabel('Differences');
                         ylabel('#');
                         % plot gn series
                         subplot(3,4,9:11)
@@ -476,7 +485,7 @@ classdef Tropo_Sinex_Compare < handle
                         rms = mean(abs(noNaN(diffagg)*1e3));
                         bias = mean(noNaN(diffagg)*1e3);
                         title(sprintf('Bias: %0.2f mm RMS: %0.2f mm',bias,rms))
-                        xlabel('Aggregated differences');
+                        xlabel('Differences');
                         ylabel('#');
                         
                     end
