@@ -276,6 +276,14 @@ classdef Observation_Set < handle
             idx = round((this.time -time_st)/rate) +1;
         end
         
+        function has_phase = hasPhase(this)
+            % tell if there are pahse measuremt
+            %
+            % SYNTAX:
+            %    has_phase = hasPhase(this)
+            has_phase = sum(this.wl ~= -1)>0;
+        end
+        
         function obs_cy = getObsCy(this, idx)
             % Get the observation in cycle
             % (Instead of meters)
