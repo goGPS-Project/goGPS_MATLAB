@@ -152,7 +152,7 @@ classdef LS_Manipulator < handle
             %   this.init();
             this.state = Core.getState();
             this.rf = Core.getReferenceFrame();
-            this.log = Core.getLogger();            
+            this.log = Core.getLogger();
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx, tropo_idx_vec)
@@ -444,7 +444,9 @@ classdef LS_Manipulator < handle
             n_obs = sum(sum(diff_obs ~= 0));
             
             % Building Design matrix
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(~isempty(tropo_rate) & tropo) + 2 * double(tropo_g) + 2*double(isempty(tropo_rate)&tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            order_tropo = this.state.spline_tropo_order;
+            order_tropo_g = this.state.spline_tropo_gradient_order;
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(~isempty(tropo_rate) & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(isempty(tropo_rate)&tropo_g)*(order_tropo_g -1); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -468,23 +470,24 @@ classdef LS_Manipulator < handle
             end
             phase_s = find(obs_set.wl ~=  -1);
             this.phase_idx = phase_s;
-             islinspline = ~isempty(tropo_rate);
+            islinspline = ~isempty(tropo_rate);
             if isempty(tropo_rate)
                 n_tropo = n_clocks;
                 n_tropo_g = n_clocks;
             else
+                
                 %get_tropo_indexes
                 edges = 0:tropo_rate(1)/rec.time.getRate:rec.time.length;
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
                 tropo_idx = discretize(this.true_epoch-1,edges);
-                stp = diff(tropo_idx) > 1;
-                jmp = find(stp);
-                for j = 1 : length(jmp)
-                    tropo_idx(jmp(j)+1:end) = tropo_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
-                end
-                n_tropo = max(tropo_idx)+1;
+                %                 stp = diff(tropo_idx) > 1;
+                %                 jmp = find(stp);
+                %                 for j = 1 : length(jmp)
+                %                     tropo_idx(jmp(j)+1:end) = tropo_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
+                %                 end
+                n_tropo = max(tropo_idx) + order_tropo;
                 this.tropo_idx = tropo_idx;
                 tropo_dt = rem(this.true_epoch-1,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
                 %get_tropo gradients _indexes
@@ -493,12 +496,12 @@ classdef LS_Manipulator < handle
                     edges = [edges rec.time.length];
                 end
                 tropo_g_idx = discretize(this.true_epoch-1,edges);
-                stp = diff(tropo_g_idx) > 1;
-                jmp = find(stp);
-                for j = 1 : length(jmp)
-                    tropo_g_idx(jmp(j)+1:end) = tropo_g_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
-                end
-                n_tropo_g = max(tropo_g_idx)+1;
+                %                 stp = diff(tropo_g_idx) > 1;
+                %                 jmp = find(stp);
+                %                 for j = 1 : length(jmp)
+                %                     tropo_g_idx(jmp(j)+1:end) = tropo_g_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
+                %                 end
+                n_tropo_g = max(tropo_g_idx) + order_tropo_g;
                 this.tropo_g_idx = tropo_g_idx;
                 tropo_g_dt = rem(this.true_epoch-1,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
@@ -572,8 +575,8 @@ classdef LS_Manipulator < handle
                         end
                         A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, phase_s == s);
                     else
-                         A_idx(lines_stream, prog_p_col) = 0;
-                         A(lines_stream, prog_p_col) = 0;
+                        A_idx(lines_stream, prog_p_col) = 0;
+                        A(lines_stream, prog_p_col) = 0;
                     end
                 end
                 % ----------- Clock ------------------
@@ -588,13 +591,12 @@ classdef LS_Manipulator < handle
                         A(lines_stream, prog_p_col) = mfw_stream;
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = mfw_stream.*(1-tropo_dt(id_ok_stream));
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream);
-                        
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = mfw_stream.*tropo_dt(id_ok_stream);
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream)+1;
+                        spline_v = Core_Utils.spline(tropo_dt(id_ok_stream),order_tropo);
+                        for o = 1 : (order_tropo + 1)
+                            prog_p_col = prog_p_col + 1;
+                            A(lines_stream, prog_p_col) = mfw_stream.*spline_v(:,o);
+                            A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + tropo_idx(id_ok_stream) + o-1;
+                        end
                     end
                 end
                 % ----------- ZTD gradients ------------------
@@ -610,21 +612,19 @@ classdef LS_Manipulator < handle
                         A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*(1-tropo_g_dt(id_ok_stream)); % noth gradient spli
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream);
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*tropo_g_dt(id_ok_stream); % noth gradient
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream)+1;
-                        
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*(1-tropo_g_dt(id_ok_stream)); % east gradient
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream);
-                        prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*tropo_g_dt(id_ok_stream); % east gradient
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo  + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream)+1;
+                        spline_v = Core_Utils.spline(tropo_g_dt(id_ok_stream),order_tropo_g);
+                        for o = 1 : (order_tropo + 1)
+                            prog_p_col = prog_p_col + 1;
+                            A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*spline_v(:,o); % noth gradient spli
+                            A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream) + o-1;
+                        end
+                        for o = 1 : (order_tropo + 1)
+                            prog_p_col = prog_p_col + 1;
+                            A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient
+                            A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
+                        end
                     end
-    
+                    
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -642,10 +642,10 @@ classdef LS_Manipulator < handle
                 % setting the first clock of each connected set of arc to 0
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 system_jmp = [0; system_jmp; size(amb_idx,1)];
-%                 clock_const = zeros(1,n_clocks);
-%                 amb_const = zeros(1,n_amb);
-%                 amb_const(1) = 1;
-                 G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
+                %                 clock_const = zeros(1,n_clocks);
+                %                 amb_const = zeros(1,n_amb);
+                %                 amb_const(1) = 1;
+                G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
                 for i = 1: (length(system_jmp)-1)
                     clock_const = zeros(1,n_clocks);
                     %clock_const(system_jmp(i)+1) = 1;
@@ -675,15 +675,17 @@ classdef LS_Manipulator < handle
             if dynamic
                 this.param_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
+                e_spline_mat_t = ones(1,double(tropo&islinspline)*order_tropo);
+                e_spline_mat_tg = ones(1,double(tropo_g&islinspline)*order_tropo_g);
                 if isempty(tropo_rate)
                     this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
                 else
-                   
-                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -ones(tropo&islinspline), -ones(tropo_g), -ones(tropo_g&islinspline), -ones(tropo_g) -ones(tropo_g&islinspline),];
+                    
+                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -e_spline_mat_t, -ones(tropo_g), -e_spline_mat_tg, -ones(tropo_g) -e_spline_mat_tg,];
                 end
             end
             this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
-                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo),this.PAR_TROPO*ones(tropo&islinspline), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_N*ones(tropo_g&islinspline), this.PAR_TROPO_E*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g&islinspline)];
+                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo),this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*ones(tropo_g), this.PAR_TROPO_E*e_spline_mat_tg];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');
@@ -717,18 +719,18 @@ classdef LS_Manipulator < handle
                             temp_o_set.sigma = obs_set_list(i).sigma * 1.5;
                         end
                         if this.state.getAmbFixNET
-                        f_vec = this.cc.getSys(sys_c).F_VEC;
-                        l_vec = this.cc.getSys(sys_c).L_VEC;
-                        rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 3]);
-                        id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1));
-                        id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
-                        temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));
-                        temp_o_set.wl = ones(size(temp_o_set.wl))*Global_Configuration.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as nnarrow lane
-                        
+                            f_vec = this.cc.getSys(sys_c).F_VEC;
+                            l_vec = this.cc.getSys(sys_c).L_VEC;
+                            rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 3]);
+                            id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1));
+                            id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
+                            temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));
+                            temp_o_set.wl = ones(size(temp_o_set.wl))*Global_Configuration.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as nnarrow lane
+                            
                         end
                         obs_set_list(i).merge(temp_o_set);
                     end
-                        
+                    
                 else
                     for sys_c = work_list(i).cc.sys_c
                         f = work_list(i).getFreqs(sys_c);
@@ -794,7 +796,7 @@ classdef LS_Manipulator < handle
                 
                 % remove satellites arcs seen only by one receiver and sigle epochs arcs
                 common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
-                                
+                
                 id_rm = sum(~isnan(common_obs_mat),3) == 1;
                 valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
                 for i = 1 : size(id_rm,2)
@@ -833,15 +835,15 @@ classdef LS_Manipulator < handle
                 n_sat = max([n_sat; obs_set_list(r).go_id(:)]);
             end
             
-             %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
+            %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx = true(size(id_sync, 1), n_sat);
             for r = 1 : n_rec
                 sat_jmp_rec = obs_set_list(r).getArcJmpMat(id_sync(:,r));
                 sat_jmp_idx(:, obs_set_list(r).go_id) = sat_jmp_idx(:, obs_set_list(r).go_id) & sat_jmp_rec;
             end
             
-         
-
+            
+            
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             [sss_lim, ~] = this.state.getSessionLimits(this.state.getCurSession());
@@ -870,7 +872,7 @@ classdef LS_Manipulator < handle
             end
             
             p_flag(p_flag == 0) = -1;
-                        
+            
             this.A_idx = Aidx;
             
             % get the number of used epochs for each receiver
@@ -909,7 +911,7 @@ classdef LS_Manipulator < handle
             this.A_idx(idx_rec, 1:3) = pos_idx_coo(this.epoch(idx_rec), :);
             this.A_idx(idx_rec, 4:end) = this.A_idx(idx_rec, 4:end) + 3*(max_idx-o_max_idx);
         end
-                        
+        
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
             % get reference observations and satellite positions
             
@@ -1012,16 +1014,16 @@ classdef LS_Manipulator < handle
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
-%             %%% DEBUG PURPOSES: removing an empirically estimated clock
-%             sensor = Core_Utils.diffAndPred(zero2nan(diff_obs));
-%             sensor = median(sensor, 2, 'omitnan'); % using median to disregard cycle-slips
-%             % rough estimation of clock, the median is not a good estimator
-%             % but for now it could stay like this
-%             clock_diff = detrend(cumsum(sensor));
-%             diff_obs = nan2zero(bsxfun(@minus, zero2nan(diff_obs), clock_diff));
-%             %%% END
+            %             %%% DEBUG PURPOSES: removing an empirically estimated clock
+            %             sensor = Core_Utils.diffAndPred(zero2nan(diff_obs));
+            %             sensor = median(sensor, 2, 'omitnan'); % using median to disregard cycle-slips
+            %             % rough estimation of clock, the median is not a good estimator
+            %             % but for now it could stay like this
+            %             clock_diff = detrend(cumsum(sensor));
+            %             diff_obs = nan2zero(bsxfun(@minus, zero2nan(diff_obs), clock_diff));
+            %             %%% END
             
-           
+            
             
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -1384,15 +1386,7 @@ classdef LS_Manipulator < handle
                         for c = cc_class'
                             idx_c = this.time_regularization(:, 1) == c;
                             w = 1 ./ this.time_regularization(idx_c, 2) ;
-                            if c == this.PAR_TROPO
-                                ut = unique(this.tropo_idx);
-                                ut(end+1) = ut(end) +1;
-                                reg = diff(ut)*w;
-                            elseif (c == this.PAR_TROPO_E || c == this.PAR_TROPO_N)
-                                utg = unique(this.tropo_g_idx);
-                                utg(end+1) = utg(end) +1;
-                                reg = diff(utg)*w;
-                            end
+                            reg = ones(n_param_class(u_class == c)-1,1)*w;
                             idx_bg = n_param_class_const_cum(find(u_class(idx_const_u) == c)-1)+1;
                             idx_en = n_param_class_const_cum(u_class(idx_const_u) == c)-1;
                             diag_cc1(idx_bg:idx_en) = -reg;
@@ -1402,9 +1396,9 @@ classdef LS_Manipulator < handle
                         Ncc_reg = spdiags( diag_cc0,0,Ncc_reg);
                         Ncc_reg = spdiags([0; diag_cc1],1,Ncc_reg);
                         Ncc_reg = spdiags(diag_cc1,-1,Ncc_reg);
-                         Ncc = Ncc + Ncc_reg;
+                        Ncc = Ncc + Ncc_reg;
                     end
-                   
+                    
                 end
                 
                 Nee = [];
@@ -1461,7 +1455,7 @@ classdef LS_Manipulator < handle
             end
             
             if is_network
-               
+                
                 n_obs = size(this.A_idx,1);
                 % create the part of the normal that considers common parameters
                 
@@ -1520,7 +1514,7 @@ classdef LS_Manipulator < handle
                     N_stack_idx(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p))= this.A_idx(i, :);
                 end
                 n_par = max(max(this.A_idx));
-                 x_tot = zeros(n_par,1);
+                x_tot = zeros(n_par,1);
                 line_idx = repmat([1:n_common]',1,size(N_stack_comm,2));
                 idx_full = N_stack_idx~=0;
                 Nreccom = sparse(line_idx(idx_full), N_stack_idx(idx_full), N_stack_comm(idx_full), n_common,n_par);
@@ -1536,7 +1530,7 @@ classdef LS_Manipulator < handle
                 N = N - rNcomm*Nreccom; % N11r = N11 - N21 * inv(N22) * N12
                 
                 B = B - rNcomm*B_comm;  % B1r = N1 - N21 * inv(N22) * B2
-                                
+                
                 % resolve the rank deficency
                 % ALL paramters has a rank deficency beacause the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
                 % 2) remove coordinates and tropo paramters of the first receiver
@@ -1558,13 +1552,13 @@ classdef LS_Manipulator < handle
                 idx_clk_to_rm = true(n_epochs,1);
                 i = 1;
                 while sum(idx_clk_to_rm) > 0
-                     idx_i_c = this.receiver_id == i;
-                     idx_rec_clk = unique(this.A_idx(idx_i_c, clk_idx)); 
-                     idx_rec_clk_ep =  unique(this.epoch(idx_i_c));
-                     idx_to_rm = idx_clk_to_rm(idx_rec_clk_ep);
-                     idx_rm = [idx_rm ; idx_rec_clk(idx_to_rm)];
-                     idx_clk_to_rm(idx_rec_clk_ep(idx_to_rm)) = false;
-                     i = i+1;
+                    idx_i_c = this.receiver_id == i;
+                    idx_rec_clk = unique(this.A_idx(idx_i_c, clk_idx));
+                    idx_rec_clk_ep =  unique(this.epoch(idx_i_c));
+                    idx_to_rm = idx_clk_to_rm(idx_rec_clk_ep);
+                    idx_rm = [idx_rm ; idx_rec_clk(idx_to_rm)];
+                    idx_clk_to_rm(idx_rec_clk_ep(idx_to_rm)) = false;
+                    i = i+1;
                 end
                 
                 idx_amb_rm = [];
@@ -1588,7 +1582,7 @@ classdef LS_Manipulator < handle
                 
                 % 4)remove one ambiguity per satellite form the firs receiver
                 if true
-                    %n_jmp_sat 
+                    %n_jmp_sat
                     for i = 1 :length(u_sat)
                         jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
                         if ~this.sat_jmp_idx(1,u_sat(i))
@@ -1708,7 +1702,7 @@ classdef LS_Manipulator < handle
             
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
-                idx_pars = this.A_idx(:, c);                
+                idx_pars = this.A_idx(:, c);
                 idx_p = A2N_idx_tot(idx_pars(idx_pars~=0));
                 x_class(idx_p) = this.param_class(c);
             end
@@ -1727,8 +1721,8 @@ classdef LS_Manipulator < handle
                     x_rec(idx:end) = i+1;
                 end
             end
-                %[x, flag] =  pcg(N,B,1e-9, 10000);
-                           
+            %[x, flag] =  pcg(N,B,1e-9, 10000);
+            
             cxx_comp = false;
             if is_network && this.state.flag_amb_pass
                 % getting tht VCV matrix for the ambiuities
@@ -1778,27 +1772,27 @@ classdef LS_Manipulator < handle
                     idx_constarined = abs(amb_n1) < 1e-5;
                     l_fixed = false(size(amb_n1,1),2);
                     amb_fixed = zeros(size(amb_n1,1),2);
-                     % ILS shrinking, method 1
-                     [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
-                     
-                     if is_fixed
-                         amb_fixed(~idx_constarined,:) = af;
-                         l_fixed(~idx_constarined,:) = lf;
-                         % FIXED!!!!
-                         idx_est = true(size(x,1),1);
-                         amb_fix = amb_fixed(:, 1);
-                         
-                         for i = 1 : n_amb
-                             Ni = N(:, idx_amb(i));
-                             if l_fixed(i)
-                                 B = B - Ni * amb_fix(i)*0.1070;
-                             end
-                         end
-                         
-                         % remove fixed ambiguity from B and N
-                         B(idx_amb(l_fixed(:,1))) = [];
-                         N(idx_amb(l_fixed(:,1)), :) = [];
-                         N(:, idx_amb(l_fixed(:,1))) = [];
+                    % ILS shrinking, method 1
+                    [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
+                    
+                    if is_fixed
+                        amb_fixed(~idx_constarined,:) = af;
+                        l_fixed(~idx_constarined,:) = lf;
+                        % FIXED!!!!
+                        idx_est = true(size(x,1),1);
+                        amb_fix = amb_fixed(:, 1);
+                        
+                        for i = 1 : n_amb
+                            Ni = N(:, idx_amb(i));
+                            if l_fixed(i)
+                                B = B - Ni * amb_fix(i)*0.1070;
+                            end
+                        end
+                        
+                        % remove fixed ambiguity from B and N
+                        B(idx_amb(l_fixed(:,1))) = [];
+                        N(idx_amb(l_fixed(:,1)), :) = [];
+                        N(:, idx_amb(l_fixed(:,1))) = [];
                         
                         % recompute the solution
                         idx_nf = true(sum(idx_est,1),1);
@@ -1897,7 +1891,7 @@ classdef LS_Manipulator < handle
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
                 if sum(isnan(x_res)) ==0
                     res = this.getResiduals(x_res);
-                    s0 = mean(abs(res(res~=0)));                    
+                    s0 = mean(abs(res(res~=0)));
                 else
                     res = [];
                     s0 = Inf;
@@ -1930,7 +1924,7 @@ classdef LS_Manipulator < handle
         
         function [A_full, col_type, epoch, A_small, col_type_small, epoch_small] = getDesignMatrix(this, max_ep)
             % Get the full Design matrix for debug purposes
-            %   
+            %
             % SYNTAX
             %   [A_full, col_type, A_small, col_type_small] = this.getDesignMatrix(max_ep)
             %
@@ -1951,7 +1945,7 @@ classdef LS_Manipulator < handle
                 epoch_small = this.epoch(id_ok);
                 col_ok = sum(abs(A_full(id_ok, :)) ~= 0);
                 col_type_small = col_type(col_ok > 0);
-                A_small = A_full(id_ok, col_ok > 0);                
+                A_small = A_full(id_ok, col_ok > 0);
             end
         end
         
@@ -2044,7 +2038,7 @@ classdef LS_Manipulator < handle
             end
         end
         
-         function removeAprInfo(this,idx)
+        function removeAprInfo(this,idx)
             % remove ambigutiy form apriori info
             %
             % SYNTAX:
@@ -2057,7 +2051,7 @@ classdef LS_Manipulator < handle
             this.apriori_info.Cambamb(idx_f,:) = [];
             this.apriori_info.Cambamb(:,idx_f) = [];
             this.apriori_info.fixed(idx) = [];
-                        
+            
         end
     end
     
@@ -2111,7 +2105,7 @@ classdef LS_Manipulator < handle
             for i = 1 : n_rec
                 [idx_is, idx_pos] = ismembertol(obs_set_lst(i).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
                 idx_pos = idx_pos(idx_pos > 0);
-
+                
                 obs_set_lst(i).keepEpochs(idx_is)
                 pos_vec = 1 : obs_set_lst(i).time.length;
                 idxes(idx_pos,i) = pos_vec;

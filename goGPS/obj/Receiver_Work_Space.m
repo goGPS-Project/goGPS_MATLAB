@@ -7555,6 +7555,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     tropo_rate = [];
                 else
                     tropo_rate = [this.state.spline_rate_tropo  this.state.spline_rate_tropo_gradient];
+                     order_tropo = this.state.spline_tropo_order;
+            order_tropo_g = this.state.spline_tropo_gradient_order;
                 end
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx, tropo_rate);
                 ls.Astack2Nstack();
@@ -7671,7 +7673,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                         else
                             tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
-                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo(ls.tropo_idx).*(1-tropo_dt) + tropo(ls.tropo_idx+1).*tropo_dt;
+                            
+                            spline_base = Core_Utils.spline(tropo_dt,order_tropo);
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base.*tropo(repmat(ls.tropo_idx,1,order_tropo+1)+repmat((0:order_tropo),numel(ls.tropo_idx),1)),2);
                         end
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         this.pwv = nan(size(this.zwd));
@@ -7697,7 +7701,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
                         else
                             tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
-                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep))  + gntropo(ls.tropo_g_idx).*(1-tropo_dt) + gntropo(ls.tropo_g_idx+1).*tropo_dt;
+                            spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
+                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
                         end
                         if isempty(this.tge) || all(isnan(this.tge))
                             this.tge = nan(this.time.length,1);
@@ -7705,7 +7710,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if isempty(tropo_rate)
                             this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                         else
-                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep))   + getropo(ls.tropo_g_idx).*(1-tropo_dt) + getropo(ls.tropo_g_idx+1).*tropo_dt;
+                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
                         end
                     end
                     this.updateErrTropo();

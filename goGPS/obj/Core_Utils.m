@@ -1115,5 +1115,57 @@ classdef Core_Utils < handle
             Phase = angle(Y);
             
         end
+        
+        function [val] = spline(t,order)
+            % Compute matrix entry for spline 
+            %
+            % INPUT
+            %   t -> 0 : 1
+            %   order -> 1,3
+            %
+            % SYNTAX:
+            %  Core_Utils.cubicSplic(t)
+            switch order
+                case 1
+                    val = Core_Utils.linearSpline(t);
+                case 2
+                    %%% tBD
+                case 3
+                    val = Core_Utils.cubicSpline(t);
+            end
+            
+        end
+        
+        function [val] = cubicSpline(t)
+            % Compute matrix entry for cubic spline 
+            %
+            % INPUT
+            %   t -> 0 : 1
+            %   order -> 1,3
+            %
+            % SYNTAX:
+            %  Core_Utils.cubicSplic(t)
+            val = zeros(numel(t),4);
+            val(:,1) = (1 - t).^3/6;
+            val(:,2) = ((2-t).^3 - 4*(1-t).^3)/6;
+            val(:,3) = ((1+t).^3 - 4*(t).^3)/6;
+            val(:,4) = (t).^3/6;
+        end
+        
+        function [val] = linearSpline(t)
+            % Compute matrix entry for linear spline
+            %
+            % INPUT
+            %   t -> 0 : 1
+            %   order -> 1,3
+            %
+            % SYNTAX:
+            %  Core_Utils.cubicSplic(t)
+            val = zeros(numel(t),2);
+            val(:,1) = 1 -t;
+            val(:,2) = t;
+        end
+
+
     end
 end
