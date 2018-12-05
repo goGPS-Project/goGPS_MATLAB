@@ -7551,30 +7551,33 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 ls = LS_Manipulator(this.cc);
                 pos_idx = [];
-                if this.state.spline_rate_tropo == 0 || this.state.spline_rate_tropo_gradient == 0
-                    tropo_rate = [];
-                else
-                    tropo_rate = [this.state.spline_rate_tropo  this.state.spline_rate_tropo_gradient];
-                     order_tropo = this.state.spline_tropo_order;
-            order_tropo_g = this.state.spline_tropo_gradient_order;
-                end
+                
+                
+                order_tropo = this.state.spline_tropo_order;
+                order_tropo_g = this.state.spline_tropo_gradient_order;
+                tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx, tropo_rate);
                 ls.Astack2Nstack();
                 time = this.time.getSubSet(id_sync);
-                 rate = time.getRate();
+                rate = time.getRate();
                 ls.setTimeRegularization(ls.PAR_REC_CLK, this.state.std_clock* rate); % really small regularization
-                if isempty(tropo_rate)
-                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-                    if this.state.flag_tropo_gradient
+                if this.state.flag_tropo
+                    if order_tropo == 0
+                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                    else
+                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
+                    end
+                end
+                if this.state.flag_tropo_gradient
+                    if order_tropo_g == 0
                         ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                         ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
-                    end
-                else
-                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
-                    if this.state.flag_tropo_gradient
+                    else
                         ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
                         ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
                     end
+                    
+                    
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0, ~, l_fixed] = ls.solve();
@@ -7593,9 +7596,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [x, res, s0, ~, l_fixed] = ls.solve();
                 end
                 id_sync = ls.true_epoch;
-                
-                
-                
                 
                 if isempty(this.zwd) || all(isnan(this.zwd))
                     this.zwd = zeros(this.time.length(), 1);
@@ -7669,8 +7669,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         zwd = this.getZwd();
                         zwd_tmp = zeros(size(this.zwd));
                         zwd_tmp(this.id_sync) = zwd;
-                        if isempty(tropo_rate)
-                        this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
+                        if order_tropo == 0
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                         else
                             tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
                             
@@ -7697,7 +7697,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if isempty(this.tgn) || all(isnan(this.tgn))
                             this.tgn = nan(this.time.length,1);
                         end
-                        if isempty(tropo_rate)
+                        if order_tropo_g == 0
                             this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
                         else
                             tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
@@ -7707,7 +7707,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if isempty(this.tge) || all(isnan(this.tge))
                             this.tge = nan(this.time.length,1);
                         end
-                        if isempty(tropo_rate)
+                        if order_tropo_g == 0
                             this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                         else
                             this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);

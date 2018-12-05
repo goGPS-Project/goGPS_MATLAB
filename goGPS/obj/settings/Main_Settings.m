@@ -255,6 +255,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         STD_CLOCK = 1e30;                              % Std of clock variations [m/h]
         SPLINE_RATE_TROPO = 0;                         % rate of spline for tropo param [s]
         SPLINE_RATE_TROPO_GRADIENT = 0;                  % rate of spline for tropo gradeint param [s]
+        SPLINE_TROPO_ORDER = 1;                         % order of the spline for the tropo
+        SPLINE_TROPO_GRADIENT_ORDER = 1;                % order of the spline for the tropo gradient
         
         % OUT DATA flags => what shall I store in rec.out?
         
@@ -331,6 +333,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     '2: smoothed geometry free re-applyed to observables',...
                     '3: external model'}
         IE_LABEL = {'Iono free','Smooth GF','External model'}
+        SPLINE_TROPO_ORDER_SMODE = {'0: none', ...
+                    '1: linear',...
+                    '3: cubic'}
+        SPLINE_TROPO_ORDER_UI2INI = [0 1 3];
+        SPLINE_TROPO_ORDER_LABEL = {'None','Linear','Cubic'}
+        SPLINE_TROPO_GRADIENT_ORDER_SMODE = {'0: none', ...
+                    '1: linear',...
+                    '3: cubic'}
+        SPLINE_TROPO_GRADIENT_ORDER_LABEL = {'None','Linear','Cubic'}
+        SPLINE_TROPO_GRADIENT_ORDER_UI2INI = [0 1 3];
     end
 
     properties (SetAccess = protected, GetAccess = protected)
@@ -603,6 +615,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         std_clock = Main_Settings.STD_CLOCK;
         spline_rate_tropo = Main_Settings.SPLINE_RATE_TROPO;
         spline_rate_tropo_gradient = Main_Settings.SPLINE_RATE_TROPO_GRADIENT;
+        spline_tropo_order = Main_Settings.SPLINE_TROPO_ORDER;
+        spline_tropo_gradient_order = Main_Settings.SPLINE_TROPO_GRADIENT_ORDER;
         
         %------------------------------------------------------------------
         % OUTPUT TO KEEP
@@ -825,6 +839,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.std_clock   = state.getData('std_clock');
                 this.spline_rate_tropo   = state.getData('spline_rate_tropo');
                 this.spline_rate_tropo_gradient   = state.getData('spline_rate_tropo_gradient');
+                this.spline_tropo_order   = state.getData('spline_tropo_order');
+                this.spline_tropo_gradient_order   = state.getData('spline_tropo_gradient_order');
                 
                 % OUTPUT TO KEEP                
                 this.flag_out_dt = state.getData('flag_out_dt');                % Dt
@@ -972,6 +988,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.std_clock = state.std_clock;
                 this.spline_rate_tropo = state.spline_rate_tropo;
                 this.spline_rate_tropo_gradient = state.spline_rate_tropo_gradient;
+                this.spline_tropo_order = state.spline_tropo_order;
+                this.spline_tropo_gradient_order = state.spline_tropo_gradient_order;
                 
                 % OUTPUT TO KEEP
                 this.flag_out_dt = state.flag_out_dt;                % PWV
@@ -1149,6 +1167,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
             str = [str sprintf(' Spline rate of tropospheric delay:                %g\n\n', this.spline_rate_tropo)];
             str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n\n', this.spline_rate_tropo_gradient)];
+            str = [str sprintf(' Spline order of tropospheric delay:               %g\n\n', this.spline_tropo_order)];
+            str = [str sprintf(' Spline order of tropospheric delay gradients:     %g\n\n', this.spline_tropo_gradient_order)];
             str = this.toString@Command_Settings(str);
             
             str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
@@ -1602,10 +1622,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_clock', this.std_clock, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropossheric delay [s] (default = %.0f)', this.SPLINE_RATE_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay [s] (default = %.0f)', this.SPLINE_RATE_TROPO), str_cell);
             str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropossheric delay gradients [s] (default = %.0f)', this.SPLINE_RATE_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_RATE_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay [s] (default = %.0f)', this.SPLINE_TROPO_ORDER), str_cell);
+            str_cell = Ini_Manager.toIniString('std_clock', this.spline_tropo_order, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_TROPO_GRADIENT_ORDER), str_cell);
+            str_cell = Ini_Manager.toIniString('std_clock', this.spline_tropo_gradient_order, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % OUT TO KEEP
@@ -2245,6 +2269,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('std_clock',[1e-12 1e50]);
             this.checkNumericField('spline_rate_tropo',[0 1e50]);
             this.checkNumericField('spline_rate_tropo_gradient',[0 1e50]);
+            this.checkNumericField('spline_tropo_order',[0 1 3]);
+            this.checkNumericField('spline_tropo_gradient_order',[0 1 3]);
             
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');

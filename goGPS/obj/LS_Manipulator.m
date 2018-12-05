@@ -446,7 +446,7 @@ classdef LS_Manipulator < handle
             % Building Design matrix
             order_tropo = this.state.spline_tropo_order;
             order_tropo_g = this.state.spline_tropo_gradient_order;
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(~isempty(tropo_rate) & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(isempty(tropo_rate)&tropo_g)*(order_tropo_g -1); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -471,9 +471,9 @@ classdef LS_Manipulator < handle
             phase_s = find(obs_set.wl ~=  -1);
             this.phase_idx = phase_s;
             islinspline = ~isempty(tropo_rate);
-            if isempty(tropo_rate)
+            if isempty(tropo_rate) || tropo_rate (1) == 0
                 n_tropo = n_clocks;
-                n_tropo_g = n_clocks;
+                
             else
                 
                 %get_tropo_indexes
@@ -490,17 +490,16 @@ classdef LS_Manipulator < handle
                 n_tropo = max(tropo_idx) + order_tropo;
                 this.tropo_idx = tropo_idx;
                 tropo_dt = rem(this.true_epoch-1,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
+            end
+            if isempty(tropo_rate) || tropo_rate(2) == 0
+                n_tropo_g = n_clocks;
+            else
                 %get_tropo gradients _indexes
                 edges = 0:tropo_rate(2)/rec.time.getRate:rec.time.length;
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
                 tropo_g_idx = discretize(this.true_epoch-1,edges);
-                %                 stp = diff(tropo_g_idx) > 1;
-                %                 jmp = find(stp);
-                %                 for j = 1 : length(jmp)
-                %                     tropo_g_idx(jmp(j)+1:end) = tropo_g_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
-                %                 end
                 n_tropo_g = max(tropo_g_idx) + order_tropo_g;
                 this.tropo_g_idx = tropo_g_idx;
                 tropo_g_dt = rem(this.true_epoch-1,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
@@ -586,7 +585,7 @@ classdef LS_Manipulator < handle
                 % ----------- ZTD ------------------
                 if tropo
                     
-                    if isempty(tropo_rate)
+                    if isempty(tropo_rate)  || tropo_rate(1) == 0
                         prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = mfw_stream;
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
@@ -604,7 +603,7 @@ classdef LS_Manipulator < handle
                     %cotan_term = cot(el_stream) .* mfw_stream;
                     cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                     
-                    if isempty(tropo_rate)
+                    if isempty(tropo_rate) || tropo_rate(2) == 0
                         prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
@@ -613,12 +612,12 @@ classdef LS_Manipulator < handle
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
                         spline_v = Core_Utils.spline(tropo_g_dt(id_ok_stream),order_tropo_g);
-                        for o = 1 : (order_tropo + 1)
+                        for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
                             A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*spline_v(:,o); % noth gradient spli
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream) + o-1;
                         end
-                        for o = 1 : (order_tropo + 1)
+                        for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
                             A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
@@ -675,17 +674,14 @@ classdef LS_Manipulator < handle
             if dynamic
                 this.param_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
-                e_spline_mat_t = ones(1,double(tropo&islinspline)*order_tropo);
-                e_spline_mat_tg = ones(1,double(tropo_g&islinspline)*order_tropo_g);
-                if isempty(tropo_rate)
-                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
-                else
-                    
-                    this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, -ones(tropo), -e_spline_mat_t, -ones(tropo_g), -e_spline_mat_tg, -ones(tropo_g) -e_spline_mat_tg,];
-                end
+                e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
+                e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
+                
+                this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
+            
             this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
-                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo),this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*ones(tropo_g), this.PAR_TROPO_E*e_spline_mat_tg];
+                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');

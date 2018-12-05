@@ -911,8 +911,10 @@ end
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'clock regularization', 'std_clock', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
-             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
-              [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD gradient', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid_adv, 'Order of the spline ZTD',this.state.SPLINE_TROPO_ORDER_LABEL ,'spline_tropo_order', @this.onPopUpChange);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid_adv, 'Order of the spline ZTD gradient',this.state.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'Linear spline rate ZTD gradient', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
             
             tab.Heights = [80 5 250 5 150];
             tab.Widths = 600;
@@ -1407,7 +1409,12 @@ end
         end
         
         function onPopUpChange(this, caller, event)
-            this.state.setProperty(caller.UserData, caller.Value);
+            if isprop(this.state,[upper(caller.UserData) '_UI2INI'])
+                value = this.state.([upper(caller.UserData) '_UI2INI'])(caller.Value);
+            else
+                value = caller.Value;
+            end
+            this.state.setProperty(caller.UserData, value);
             this.updateINI();
         end
         
@@ -1622,7 +1629,11 @@ end
             for i = 1 : length(this.pop_ups)
                 value = this.state.getProperty(this.pop_ups{i}.UserData);
                 if ~isempty(value)
-                    this.pop_ups{i}.Value = value;
+                    if  isprop(this.state,[upper(this.pop_ups{i}.UserData) '_UI2INI'])
+                        this.pop_ups{i}.Value = find(this.state.([upper(this.pop_ups{i}.UserData) '_UI2INI']) == value);
+                    else
+                        this.pop_ups{i}.Value = value;
+                    end
                 end
             end
         end
