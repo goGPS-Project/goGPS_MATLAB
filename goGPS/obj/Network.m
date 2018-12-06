@@ -61,6 +61,8 @@ classdef Network < handle
         id_ref
         wl_mats          % widelane matrices
         wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
+        tropo_idx        % index of the splien tropo
+        tropo_g_idx      % index fo the spline tropo gradient
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
@@ -214,16 +216,30 @@ classdef Network < handle
                     else
                         n_time = this.common_time.length;
                         n_rec = length(this.rec_list);
-                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_clock)^2 / 3600 * ls.rate );
+                        rate = this.common_time.getRate();
+                        ls.setTimeRegularization(ls.PAR_REC_CLK, this.state.std_clock* rate); % really small regularization
                         if this.state.flag_tropo
-                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
+                            if this.state.spline_tropo_order == 0
+                                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                            else
+                                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * this.state.spline_rate_tropo );% this.state.std_tropo / 3600 * rate  );
+                            end
                         end
                         if this.state.flag_tropo_gradient
-                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
-                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
+                            if this.state.spline_tropo_gradient_order == 0
+                                ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                                ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                            else
+                                ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * this.state.spline_rate_tropo_gradient );%this.state.std_tropo / 3600 * rate );
+                                ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 *  this.state.spline_rate_tropo_gradient);%this.state.std_tropo  / 3600 * rate );
+                            end
+                            
+                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
                         [x, res, s0, Cxx, l_fixed] = ls.solve;
+                        this.tropo_idx = ls.tropo_idx;
+                         this.tropo_g_idx = ls.tropo_g_idx;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
                         
@@ -430,16 +446,45 @@ classdef Network < handle
                 this.clock(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.clock(~isnan(this.rec_time_indexes(:,i)),i)) + clk;
                 
                 if this.state.flag_tropo
-                    ztd = x(x(:,2) == LS_Manipulator.PAR_TROPO & idx_rec,1);
-                    this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd;
+                    if this.state.spline_rate_tropo ~= 0 && this.state.spline_tropo_order > 0
+                        tropo_dt = rem(this.common_time.getRefTime - this.common_time.getRate,this.state.spline_rate_tropo)/(this.state.spline_rate_tropo);
+                        tropo_idx = ceil((this.common_time.getRefTime - this.common_time.getRate)/this.state.spline_rate_tropo_gradient+eps);
+                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
+                        tropo = x(x(:,2) == LS_Manipulator.PAR_TROPO & idx_rec,1);
+                        if max(tropo_idx) > numel(tropo) % if the receiver time was shorter than the common one
+                            tropo = [tropo; tropo(end)*ones(numel(tropo)-max(tropo_idx),1)];
+                        end
+                        ztd = sum(spline_base.*tropo(repmat(tropo_idx,1,this.state.spline_tropo_order+1)+repmat((0:this.state.spline_tropo_order),numel(tropo_idx),1)),2);
+                        this.ztd(:,i) = nan2zero(this.ztd(:,i))  + ztd;
+                    else
+                        ztd = x(x(:,2) == LS_Manipulator.PAR_TROPO & idx_rec,1);
+                        this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd(~isnan(this.rec_time_indexes(:,i)),i))  + ztd;
+                    end
                 end
                 
                 if this.state.flag_tropo_gradient
-                    gn = x(x(:,2) == LS_Manipulator.PAR_REC_CLK & idx_rec,1);
-                    this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn;
-                    
-                    ge = x(x(:,2) == LS_Manipulator.PAR_REC_CLK & idx_rec,1);
-                    this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge;
+                    if this.state.spline_rate_tropo_gradient ~= 0 && this.state.spline_tropo_gradient_order > 0
+                        tropo_dt = rem(this.common_time.getRefTime - this.common_time.getRate,this.state.spline_rate_tropo_gradient)/(this.state.spline_rate_tropo_gradient);
+                        tropo_g_idx = ceil((this.common_time.getRefTime - this.common_time.getRate)/this.state.spline_rate_tropo_gradient +eps);
+                        
+                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
+                        gntropo = x(x(:,2) == LS_Manipulator.PAR_TROPO_N & idx_rec,1);
+                        if max(tropo_g_idx) > numel(gntropo) % if the receiver time was shorter than the common one
+                            gntropo = [gntropo; gntropo(end)*ones(numel(gntropo)-max(tropo_g_idx),1)];
+                            getropo = [getropo; getropo(end)*ones(numel(getropo)-max(tropo_g_idx),1)];
+                        end
+                        gntropo = sum(spline_base.*gntropo(repmat(tropo_g_idx,1,this.state.spline_tropo_gradient_order+1)+repmat((0:this.state.spline_tropo_gradient_order),numel(tropo_g_idx),1)),2);
+                        this.ztd_gn(:,i) = nan2zero(this.ztd_gn(:,i))  + gntropo;
+                        getropo = x(x(:,2) == LS_Manipulator.PAR_TROPO_E & idx_rec,1);
+                        getropo = sum(spline_base.*getropo(repmat(tropo_g_idx,1,this.state.spline_tropo_gradient_order+1)+repmat((0:this.state.spline_tropo_gradient_order),numel(tropo_g_idx),1)),2);
+                        this.ztd_ge(:,i) = nan2zero(this.ztd_ge(:,i))  + getropo;
+                    else
+                        gn = x(x(:,2) == LS_Manipulator.PAR_TROPO_N & idx_rec,1);
+                        this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i)) + gn;
+                        
+                        ge = x(x(:,2) == LS_Manipulator.PAR_TROPO_E & idx_rec,1);
+                        this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = nan2zero(this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i)) + ge;
+                    end
                 end
             end
         end

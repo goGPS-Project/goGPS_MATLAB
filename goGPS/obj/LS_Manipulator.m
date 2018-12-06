@@ -71,6 +71,7 @@ classdef LS_Manipulator < handle
         amb_idx      % index of the columns per satellite
         tropo_idx    % index of tropo_par;
         tropo_g_idx  % index of tropo gradients par
+        tropo_time_start % index of tiem start
         go_id_amb    % go ids of the amb idx
         phase_idx       % index of the phase measurements
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
@@ -591,7 +592,7 @@ classdef LS_Manipulator < handle
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             [sss_lim, ~] = this.state.getSessionLimits(this.state.getCurSession());
             st_time = sss_lim.first;
-            
+            this.tropo_time_start = common_time.first;
             for i = 1 : n_rec
                 % get the position idx
                 if ~isempty(coo_rate) && i~=1 % first receiver do not need any sub rate since is the reference
@@ -600,7 +601,10 @@ classdef LS_Manipulator < handle
                 else
                     pos_idx_nh = [];
                 end
-                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), pos_idx_nh);
+                order_tropo = this.state.spline_tropo_order;
+                order_tropo_g = this.state.spline_tropo_gradient_order;
+                tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
+                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), pos_idx_nh, tropo_rate);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
                 r2c = find(~isnan(id_sync(:,i)));
@@ -771,15 +775,17 @@ classdef LS_Manipulator < handle
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                tropo_idx = discretize(id_sync_out-1,edges);
-                %                 stp = diff(tropo_idx) > 1;
-                %                 jmp = find(stp);
-                %                 for j = 1 : length(jmp)
-                %                     tropo_idx(jmp(j)+1:end) = tropo_idx(jmp(j)+1:end) - stp(jmp(j)) + 1;
-                %                 end
-                n_tropo = max(tropo_idx) + order_tropo;
+                if isempty(this.tropo_time_start)
+                    
+                    delta_tropo_time_sart = 0;
+                else
+                    delta_tropo_time_sart = round((rec.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
+                end
+                tropo_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
+                
                 this.tropo_idx = tropo_idx;
-                tropo_dt = rem(id_sync_out-1,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
+                n_tropo = max(tropo_idx) + order_tropo;
+                tropo_dt = rem(id_sync_out-1+delta_tropo_time_sart,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
             end
             if isempty(tropo_rate) || tropo_rate(2) == 0
                 n_tropo_g = n_clocks;
@@ -789,10 +795,18 @@ classdef LS_Manipulator < handle
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                tropo_g_idx = discretize(id_sync_out-1,edges);
-                n_tropo_g = max(tropo_g_idx) + order_tropo_g;
+                if isempty(this.tropo_time_start)
+                    
+                    
+                    delta_tropo_time_sart = 0;
+                else
+                    delta_tropo_time_sart = round((rec.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
+                end
+                tropo_g_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
                 this.tropo_g_idx = tropo_g_idx;
-                tropo_g_dt = rem(id_sync_out-1,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
+                delta_tropo_time_sart = 0;
+                n_tropo_g = max(tropo_g_idx) + order_tropo_g;
+                tropo_g_dt = rem(id_sync_out-1 + delta_tropo_time_sart,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -1329,6 +1343,7 @@ classdef LS_Manipulator < handle
             N = [];
             B = [];
             A2N_idx_tot = [];
+            x_rec = [];
             for r = u_r(:)'
                 idx_r_l = this.receiver_id == u_r(r);
                 idx_r = find(idx_r_l);
@@ -1484,6 +1499,7 @@ classdef LS_Manipulator < handle
                     A2N_idx = A2N_idx +max(A2N_idx_tot);
                 end
                 A2N_idx_tot = [A2N_idx_tot; A2N_idx];
+                x_rec = [x_rec; r*ones(size(N_rec,1),1)];
             end
             
             if is_network
@@ -1514,6 +1530,7 @@ classdef LS_Manipulator < handle
                     
                     N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                 end
+                
                 % get the oidx for the common parameters
                 common_idx = zeros(n_obs,1);
                 u_sat = unique(this.sat); % <- very lazy, once it work it has to be oprimized
@@ -1543,7 +1560,7 @@ classdef LS_Manipulator < handle
                     B_comm(idx_common) = B_comm(idx_common) + rw * (1 ./ variance) * y; % the entrace in the idx for the common parameters are all one
                     N_stack_comm(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p) )= N_stack_comm(idx_common,(r - 1) * n_s_r_p +(1 : n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
                     diag_comm(idx_common) = diag_comm(idx_common) + rw * (1 ./ variance);
-                    N_stack_idx(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p))= this.A_idx(i, :);
+                    N_stack_idx(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p))= A2N_idx_tot(this.A_idx(i, :));
                 end
                 n_par = max(max(this.A_idx));
                 x_tot = zeros(n_par,1);
@@ -1746,12 +1763,12 @@ classdef LS_Manipulator < handle
                 
                 idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
                 n_amb = length(idx_amb_par);
-                x_rec = ones(size(x,1),1);
-                id_rec = find(diff(x_class) < 0);
-                for i = 1 : length(id_rec)
-                    idx = id_rec(i)+1;
-                    x_rec(idx:end) = i+1;
-                end
+%                 x_rec = ones(size(x,1),1);
+%                 id_rec = find(diff(x_class) < 0);
+%                 for i = 1 : length(id_rec)
+%                     idx = id_rec(i)+1;
+%                     x_rec(idx:end) = i+1;
+%                 end
             end
             %[x, flag] =  pcg(N,B,1e-9, 10000);
             
