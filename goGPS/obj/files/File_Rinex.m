@@ -103,8 +103,10 @@ classdef File_Rinex < Exportable
         end
         
         function copy = getCopy(this)
-            copy = File_Rinex();
-            copy.copyFrom(this);
+            for r = numel(this):-1:1
+                copy(r) = File_Rinex();
+                copy(r).copyFrom(this(r));
+            end
         end
         
         function copyFrom(this, file_rinex)
@@ -280,10 +282,14 @@ classdef File_Rinex < Exportable
         function validity = isValid(this, file_number)
             % Get the validity of a RINEX file or the object (if the object contains a list of files, the id can be specified)
             % SYNTAX: validity = isValid(<file_number>)
-            if (nargin == 1)
-                validity = any([this.is_valid_list]);
-            else
-                validity = this.is_valid_list(file_number);
+            validity = false;
+            for r = 1 : numel(this)
+                
+                if (nargin == 1)
+                    validity = validity || any([this(r).is_valid_list]);
+                else
+                    validity = validity || this(r).is_valid_list(file_number);
+                end
             end
         end
 
@@ -292,10 +298,12 @@ classdef File_Rinex < Exportable
             %
             % SYNTAX
             % this.keepFiles(date_start, date_stop)
-            [in_bound] = Core_Utils.timeIntersect(this.first_epoch, this.last_epoch, date_start, date_stop);
-            to_keep = this.is_valid_list;
-            to_keep(to_keep) = in_bound;
-            this.keep(to_keep);
+            for r = 1 : numel(this)
+                [in_bound] = Core_Utils.timeIntersect(this(r).first_epoch, this(r).last_epoch, date_start, date_stop);
+                to_keep = this(r).is_valid_list;
+                to_keep(to_keep) = in_bound;
+                this(r).keep(to_keep);
+            end
         end
         
         function keep(this,id)
