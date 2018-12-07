@@ -255,8 +255,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
         SPLINE_RATE_TROPO = 1800;                       % rate of spline for tropo param [s]
         SPLINE_RATE_TROPO_GRADIENT = 1800;              % rate of spline for tropo gradient param [s]
-        SPLINE_TROPO_ORDER = 1;                         % order of the spline for the tropo
-        SPLINE_TROPO_GRADIENT_ORDER = 1;                % order of the spline for the tropo gradient
+        SPLINE_TROPO_ORDER = 0;                         % order of the spline for the tropo
+        SPLINE_TROPO_GRADIENT_ORDER = 0;                % order of the spline for the tropo gradient
         
         % OUT DATA flags => what shall I store in rec.out?
         
@@ -2269,8 +2269,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('std_clock',[1e-12 1e50]);
             this.checkNumericField('spline_rate_tropo',[0 1e50]);
             this.checkNumericField('spline_rate_tropo_gradient',[0 1e50]);
-            this.checkNumericField('spline_tropo_order',[0 1 3]);
-            this.checkNumericField('spline_tropo_gradient_order',[0 1 3]);
+            this.checkNumericField('spline_tropo_order',[0 3]);
+            this.checkNumericField('spline_tropo_gradient_order',[0 3]);
             
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');
