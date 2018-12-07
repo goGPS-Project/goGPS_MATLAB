@@ -633,7 +633,7 @@ classdef File_Wizard < handle
                     year  = date_f(1).*ones(size(month));
                     for y = 2 : length(year_orig)-1
                         month = [month 1 : 1 : 12];
-                        year = [year (year+y-1).*ones(1,12)];
+                        year = [year (year_orig(y)).*ones(1,12)];
                     end
                     month = [month 1 : 1 : date_l(2)];
                     year  = [year date_l(1).*ones(1,date_l(2))];

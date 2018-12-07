@@ -1165,7 +1165,36 @@ classdef Core_Utils < handle
             val(:,1) = 1 -t;
             val(:,2) = t;
         end
-
-
+         
+        function [idx, val] = hemisphereCubicSpline(n_az, n_el, az, el)
+            % give the index of the hemisphere spline idx
+            % first the equator then the first parallel then the second
+            % parallel
+            %
+            % SYNTAX:
+            %  [idx] = hemisphereSpline(n_az,n_el,az,el)
+            el_step = 90/n_el;
+            idx_el = repmat(ceil(el / el_step),1,4);
+            idx_el(:,2) = idx_el(:,2) + 1;
+            idx_el(:,3) = idx_el(:,3) + 2;
+            idx_el(:,4) = idx_el(:,4) + 3;
+            az_step = 360/n_el;
+            idx_az = repmat(ceil(az / az_step),1,4);
+            idx_az(:,2) = idx_az(:,2) + 1;
+            idx_az(:,3) = idx_az(:,3) + 2;
+            idx_az(:,4) = idx_az(:,4) + 3;
+            idx_az(idx_az > n_az) = idx_az(idx_az > n_az) - n_az; 
+            idx = idx_az + (idx_el -1).*n_el;
+            idx = [idx idx+1 idx+2 idx+3];
+            
+            t_el = rem(el/el_step);
+            t_az = rem(az/az_step);
+            val_el = Core_Utils.cubicSpline(t_el);
+            val_az = Core_Utils.cubicSpline(t_az);
+            
+            val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
+            
+            
+        end
     end
 end

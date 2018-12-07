@@ -61,7 +61,8 @@ classdef LS_Manipulator < handle
         PAR_PCO_Y = 11;
         PAR_PCO_Z = 12;
         PAR_SAT_CLK = 13;
-        CLASS_NAME = {'X', 'Y', 'Z', 'ISB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'PCO_X', 'PCO_Y', 'PCO_Z', 'SAT_CLK'};
+        PAR_ANT_MP = 14;
+        CLASS_NAME = {'X', 'Y', 'Z', 'ISB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'PCO_X', 'PCO_Y', 'PCO_Z', 'SAT_CLK', 'ANT_MP'};
     end
     
     properties
@@ -87,15 +88,6 @@ classdef LS_Manipulator < handle
         sat          % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
         param_class  % [n_param_per_epoch x 1] each paramter can be part of a class
-        %                 [   1 : x
-        %                     2 : y
-        %                     3 : z
-        %                     4 : inter channel/frequency/system biases
-        %                     5 : ambiguity
-        %                     6 : clock
-        %                     7 : tropo
-        %                     8 : tropo inclination north
-        %                     9 : tropo inclination east ]
         param_flag          % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
         time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
         mean_regularization
@@ -122,6 +114,8 @@ classdef LS_Manipulator < handle
         Cxx_amb
         
         is_tropo_decorrel % are tropo paramter decorrelated enough
+        
+        ant_mp_est = false;  % estimate antenna multipath
     end
     
     properties (Access = private)
@@ -659,6 +653,7 @@ classdef LS_Manipulator < handle
             this.A_idx(idx_rec, 4:end) = this.A_idx(idx_rec, 4:end) + 3*(max_idx-o_max_idx);
         end
         
+        
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = getObsEq(this, rec, obs_set, pos_idx_vec, tropo_rate)
             % get reference observations and satellite positions
             if nargin < 5
@@ -742,7 +737,7 @@ classdef LS_Manipulator < handle
             % Building Design matrix
             order_tropo = this.state.spline_tropo_order;
             order_tropo_g = this.state.spline_tropo_gradient_order;
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -928,6 +923,14 @@ classdef LS_Manipulator < handle
                         end
                     end
                     
+                end
+                if this.ant_mp_est
+                    prog_p_col = prog_p_col + 1;
+                    n_el = 7;
+                    n_az = 28;
+                    [idx, val] = Core_Utils.hemisphereCubicSpline(n_az,n_el,az_stream,el_stream);
+                    A(lines_stream, prog_p_col+(0:16)) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient
+                    A_idx(lines_stream, prog_p_col+(0:16)) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
                 end
                 obs_count = obs_count + n_obs_stream;
             end
