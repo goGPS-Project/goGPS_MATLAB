@@ -672,7 +672,7 @@ classdef Core_Utils < handle
             data1(idx1) = data_tosmt_lft;
             data2(idx2) = data_tosmt_rgt;
             id_start = idx1(id_start);            
-            id_ko = ((isnan(data1) & (1 : n_out)' < id_start) | (isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2));
+            %id_ko = ((isnan(data1) & (1 : n_out)' < id_start) |(isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2)); %?? should be used
             
             % Interpolate missing data
             data1(time_tot(isnan(data1)) <= min(time_1)) = data_tosmt_lft(1);
@@ -689,7 +689,7 @@ classdef Core_Utils < handle
             
             % Merge
             data = w1.*data1 + w2.*data2;
-            data(id_ko) = [];
+            %data(id_ko) = [];
             data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2(1 : length(data_rgt)))];            
         end
         

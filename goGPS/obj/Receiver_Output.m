@@ -286,7 +286,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            if ~(rec_work.isEmpty)
+            if ~(rec_work.isEmpty || rec_work.flag_currupted)
                 % set the id_sync only to time in between out times
                 basic_export = false;
                 id_sync_old = rec_work.getIdSync();

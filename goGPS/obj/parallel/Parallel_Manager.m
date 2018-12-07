@@ -357,7 +357,7 @@ classdef Parallel_Manager < Com_Interface
             this.sendCommandList(cmd_list);
             
             worker_stack = this.worker_id;
-            
+            worker2job = zeros(size(worker_stack)); % keep track of which job is assigned to which worker
             missing_job = trg_list;
             completed_job = [];
             active_jobs = 0;
@@ -371,6 +371,7 @@ classdef Parallel_Manager < Com_Interface
                     % send an order to a worker
                     msg = [worker_stack{w}, this.MSG_DO num2str(missing_job(t), '%04d') '_'];
                     this.sendMsg(msg, sprintf('"%s" process rec %d', worker_stack{w}(1 : end-1), missing_job(t)));
+                    worker2job(str2double(worker_stack{w}(8:10))) = missing_job(t);
                     active_jobs = active_jobs + 1;
                 end
                 missing_job(1 : t) = []; % remove the currently executing jobs
@@ -380,7 +381,7 @@ classdef Parallel_Manager < Com_Interface
                 pause(0.1);
                 
                 % check for complete jobs
-                [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack);
+                [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack, worker2job);
             end
             delete(fullfile(this.getComDir, 'cmd_list.mat'));
             this.sendMsg(this.MSG_RESTART, 'My slaves, your job is done!\n        > There is no time for resting!\n        > Wait for other jobs!');
@@ -573,7 +574,7 @@ classdef Parallel_Manager < Com_Interface
             this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
         end
         
-        function [active_jobs, completed_job, worker_stack] = waitCompletedJob(this, active_jobs, completed_job, worker_stack)
+        function [active_jobs, completed_job, worker_stack] = waitCompletedJob(this, active_jobs, completed_job, worker_stack, worker2job)
             % Wait for the workers for sending new jobs
             %
             % INPUT
@@ -603,6 +604,8 @@ classdef Parallel_Manager < Com_Interface
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         if isempty(job_file)
                             tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
+                            this.log.addError(sprintf('Worker %d completed its job with no results',worker_id));
+                            job_id = worker2job(str2double(worker_id));
                             tmp.work.flag_currupted = true;
                         else
                             job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
@@ -633,6 +636,7 @@ classdef Parallel_Manager < Com_Interface
                         % core.rec(job_id).work.pushResult();
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
                         delete(fullfile(this.getComDir(), job_file(1).name));
+                        this.log.addMessage(this.log.indent(sprintf('Deleting %s',fullfile(this.getComDir(), job_file(1).name))),200);
                         completed_job = [completed_job; job_id]; %#ok<AGROW>
                         worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
                     end

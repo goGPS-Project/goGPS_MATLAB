@@ -7616,7 +7616,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.id_sync = id_sync;
                 
-                this.sat.res = zeros(this.length, n_sat);
+                this.sat.res = zeros(this.time.length, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                 this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
                 

@@ -41,10 +41,10 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Go_Slave < Com_Interface        
+classdef Go_Slave < Com_Interface
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
-    properties (Constant, GetAccess = public)        
+    properties (Constant, GetAccess = public)
         SLAVE_WAIT_PREFIX = 'SLAVE_'
         SLAVE_READY_PREFIX = 'WORKER_'
         
@@ -57,10 +57,10 @@ classdef Go_Slave < Com_Interface
         RESTART = 0;
     end
     
-    properties (SetAccess = private, GetAccess = private)        
+    properties (SetAccess = private, GetAccess = private)
         rnd_id = 0;     % personal serial number of the slave
     end
-        
+    
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
@@ -77,7 +77,7 @@ classdef Go_Slave < Com_Interface
     %% METHOD DESTRUCTOR
     % ==================================================================================================================================================
     methods (Access = private)
-
+        
         function delete(this)
             % delete
         end
@@ -85,7 +85,7 @@ classdef Go_Slave < Com_Interface
     
     %% METHOD INTERFACE
     % ==================================================================================================================================================
-    methods (Static, Access = public)        
+    methods (Static, Access = public)
         function this = getInstance(com_dir, destroy_this)
             % Get the persistent instance of the class
             persistent unique_instance_gos__
@@ -94,7 +94,7 @@ classdef Go_Slave < Com_Interface
                     unique_instance_gos__.delete();
                     clear unique_instance_gos__
                 end
-            else                
+            else
                 if isempty(unique_instance_gos__)
                     if nargin < 1 || isempty(com_dir)
                         com_dir = fullfile(pwd, 'com');
@@ -115,7 +115,7 @@ classdef Go_Slave < Com_Interface
     methods (Access = public)
         function revive(this)
             % Kill the go Slave but reborn with new id
-            % 
+            %
             % SYNTAX:
             %   this.revive();
             this.die(true);
@@ -123,7 +123,7 @@ classdef Go_Slave < Com_Interface
         
         function die(this, reborn)
             % Kill the go Slave
-            % 
+            %
             % SYNTAX:
             %   this.die();
             
@@ -145,7 +145,7 @@ classdef Go_Slave < Com_Interface
         
         function msg = checkMsg(this, msg, remove_msg, check_revive, wait_until_received)
             % Wait for a specific order
-            % 
+            %
             % SYNTAX:
             %   this.live();
             if nargin < 3 || isempty(remove_msg)
@@ -153,17 +153,17 @@ classdef Go_Slave < Com_Interface
             end
             if nargin < 4 || isempty(check_revive)
                 check_revive = false;
-            end            
+            end
             if nargin < 5 || isempty(wait_until_received)
                 wait_until_received = true;
-            end            
+            end
             is_active = false;
             reset_count = 1;
             while ~is_active
                 slave_list = dir(fullfile(this.getComDir, [Parallel_Manager.MSG_KILLALL Parallel_Manager.ID]));
                 if ~isempty(slave_list)
-                   is_active = true;
-                   msg = this.EXIT; % This means exit and die
+                    is_active = true;
+                    msg = this.EXIT; % This means exit and die
                 else
                     slave_list = dir(fullfile(this.getComDir, [Parallel_Manager.MSG_RESTART Parallel_Manager.ID]));
                     if check_revive && ~isempty(slave_list)
@@ -186,16 +186,16 @@ classdef Go_Slave < Com_Interface
                                 reset_count = this.pause(0.1, reset_count);
                             end
                         end
-
+                        
                     end
                 end
             end
-            this.pause(0, -1);            
+            this.pause(0, -1);
         end
         
         function live(this)
             % Start the life of the slave
-            % 
+            %
             % SYNTAX:
             %   this.live();
             
@@ -208,46 +208,46 @@ classdef Go_Slave < Com_Interface
                 this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
                 msg = this.checkMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true, true); % WAIT WORK MESSAGE
                 this.deleteMsg();
-                try
-                    if ~(isnumeric(msg))
-                        this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
-                        
-                        % Creating worker
-                        core = Core.getInstance(); % Init Core
-                        this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
-                        tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
-                        core.state = tmp.state; % load the state
-                        core.gc.cur_settings = tmp.state; % load the state
-                        core.gc.initGeoid(tmp.geoid); % load the geoid
-                        core.cur_session = tmp.cur_session; % load the current session number
-                        core.rin_list = tmp.rin_list; % load the rinex list of files
-                        core.met_list = tmp.met_list; % load the meteorological list of files
-                        this.log.addMarkedMessage('State updated');
-                        clear tmp;
-                        this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
-                        clear Core_Sky Atmosphere Meteo_Network;
-                        tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
-                        core.sky  = tmp.sky;  % load the state
-                        core.atmo = tmp.atmo; % load the atmosphere
-                        core.mn = tmp.mn; % load the meteorological network
-                        clear tmp;
-                        this.log.addMarkedMessage('Sky updated');
-                        % Check for receiver to load
-                        msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
-                        rec_pass = [];
-                        if ~isempty(msg) && ~isnumeric(msg)
-                            % I received a rec_list to load
-                            rec_pass = load(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
-                            this.log.addMarkedMessage('Passed receiver have been read');
-                        end
-                        this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
-                        this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
-                        
-                        % Waiting work
-                        this.checkMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
-                                                                           
-                        active_ps = true;
-                        while active_ps
+                if ~(isnumeric(msg))
+                    this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
+                    
+                    % Creating worker
+                    core = Core.getInstance(); % Init Core
+                    this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
+                    tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
+                    core.state = tmp.state; % load the state
+                    core.gc.cur_settings = tmp.state; % load the state
+                    core.gc.initGeoid(tmp.geoid); % load the geoid
+                    core.cur_session = tmp.cur_session; % load the current session number
+                    core.rin_list = tmp.rin_list; % load the rinex list of files
+                    core.met_list = tmp.met_list; % load the meteorological list of files
+                    this.log.addMarkedMessage('State updated');
+                    clear tmp;
+                    this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
+                    clear Core_Sky Atmosphere Meteo_Network;
+                    tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
+                    core.sky  = tmp.sky;  % load the state
+                    core.atmo = tmp.atmo; % load the atmosphere
+                    core.mn = tmp.mn; % load the meteorological network
+                    clear tmp;
+                    this.log.addMarkedMessage('Sky updated');
+                    % Check for receiver to load
+                    msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
+                    rec_pass = [];
+                    if ~isempty(msg) && ~isnumeric(msg)
+                        % I received a rec_list to load
+                        rec_pass = load(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
+                        this.log.addMarkedMessage('Passed receiver have been read');
+                    end
+                    this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
+                    this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
+                    
+                    % Waiting work
+                    this.checkMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
+                    
+                    active_ps = true;
+                    while active_ps
+                        try
                             msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
                             if isnumeric(msg)
                                 active_ps = false;
@@ -286,42 +286,39 @@ classdef Go_Slave < Com_Interface
                                 rec.out = []; % do not want to save out
                                 save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
                                 pause(0.1); % be sure that the file is saved correctly
-                                clear rec;
                                 core.rec = []; % empty space
+                                clear rec;
                                 this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                             end
+                        catch ex
+                            % Export work
+                            try
+                                rec = core.rec(rec_id);
+                            catch
+                                % I'm going to create an empty rec if something
+                                % goes wrong
+                            end
+                            try
+                                if isempty(rec)
+                                    rec = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0);
+                                end
+                                rec.out = []; % do not want to save out
+                                rec.work.flag_currupted = true;
+                                save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
+                                pause(0.1); % be sure that the file is saved correctly
+                            catch
+                                % try to send the receiver, if something goes bad,
+                                % the master with deal with it
+                            end
+                            core.rec = []; % empty space
+                            clear rec;
+                            
+                            % If something bad happen during work restart
+                            this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
+                            this.log.addError(sprintf('Something bad happen: %s\n', ex.message));
                         end
-                        clear cmd_file rec_pass;
                     end
-                catch ex
-                    % Export work
-                    try
-                        rec = core.rec(rec_id);
-                    catch
-                        % I'm going to create an empty rec if something
-                        % goes wrong
-                    end
-                    try
-                        if isempty(rec)
-                            rec = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0);
-                        end
-                        rec.out = []; % do not want to save out
-                        rec.work.flag_currupted = true;
-                        save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
-                        pause(0.1); % be sure that the file is saved correctly
-                        clear rec;
-                        core.rec = []; % empty space
-                    catch
-                        % try to send the receiver, if something goes bad,
-                        % the master with deal with it
-                    end
-                    clear rec;
-                    core.rec = []; % empty space
-                    
-                    % If something bad happen during work restart
-                    this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
-                    this.log.addError(sprintf('Something bad happen: %s\n', ex.message));
-                    msg = this.RESTART;
+                    clear cmd_file rec_pass;
                 end
                 if isnumeric(msg)
                     switch msg
@@ -338,8 +335,8 @@ classdef Go_Slave < Com_Interface
             
             this.die();
             exit
-        end                
-    end    
+        end
+    end
     
     %% METHODS INIT
     % ==================================================================================================================================================
@@ -349,8 +346,8 @@ classdef Go_Slave < Com_Interface
             %
             % SYNTAX
             %   this.init();
-            this.initLogger();            
-        end        
+            this.initLogger();
+        end
     end
-  
+    
 end
