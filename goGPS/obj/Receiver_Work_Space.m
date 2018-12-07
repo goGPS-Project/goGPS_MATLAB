@@ -8309,6 +8309,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %    [smt, iono_mf_mat] = ionoCodePhaseSmt(pr, sigma_pr, ph, sigma_ph, amb_idx, sigma_smt)
+            inan = isnan(ph_mat) | isnan(pr_mat);
             smt = zeros(size(ph_mat));
             n_sat = size(ph_mat,2);
             n_iono = size(pr_mat,1);
@@ -8346,6 +8347,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     smt(:,s) = ph;
                 end
             end
+            smt(inan) = nan;
         end
         
         function z_iono = applyMF(obs, mf, reg_alpha)
