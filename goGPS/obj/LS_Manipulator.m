@@ -409,17 +409,18 @@ classdef LS_Manipulator < handle
                 max_amb = max(amb_par);
                 max_par = max(this.A_idx(:,end));
                 n_amb = max_amb - min_amb +1;
+                amb_idx = this.amb_idx;
                 for i = 1: (length(amb_set_jmp)-1)
                     clock_const = zeros(1,this.n_epochs);
                     %clock_const(system_jmp(i)+1) = 1;
                     amb_const = zeros(1,n_amb);
                     amb_idx_const = unique(noNaN(amb_idx((amb_set_jmp(i)+1):amb_set_jmp(i+1),:)));
                     amb_const(amb_idx_const) = 1;
-                    G = [G ;[zeros(1, min_amb-1) amb_const    clock_const]];
+                    G = [G ;[zeros(1, n_amb-1) amb_const clock_const]];
                 end
-               
-                    G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
-
+                
+                G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
+                
                 D = zeros(size(G,1),1);
                 this.G = G;
                 this.D = D;
