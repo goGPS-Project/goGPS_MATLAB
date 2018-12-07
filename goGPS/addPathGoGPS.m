@@ -56,7 +56,7 @@ function addPathGoGPS()
     end
 
     % GIT folders
-    [l1, l2] = regexp(p,'(?<=:)[^:]*git[^:]*:');
+    [l1, l2] = regexp(p,'(?<=:)[^:]*\.git[^:]*:');
 
     for l = size(l1, 2) : -1 : 1
         p(l1(l) : l2(l)) = [];

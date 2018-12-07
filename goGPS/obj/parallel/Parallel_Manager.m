@@ -213,7 +213,7 @@ classdef Parallel_Manager < Com_Interface
                 else
                     mat_exe = [matlabroot '/bin/matlab'];
                 end
-                run_cmd = [mat_exe ' -singleCompThread -nodisplay -nosplashmaxNumCompThreadsmaxNumCompThreads -r "' slave_cmd '" &'];
+                run_cmd = [mat_exe ' -singleCompThread -nodisplay -nosplash -r "' slave_cmd '" &'];
             elseif ispc
                 mat_exe = [matlabroot '/bin/matlab.exe'];
                 % In windows I need to create a bat to be able to run different matlab in background
