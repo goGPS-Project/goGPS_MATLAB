@@ -253,8 +253,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
         STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
-        SPLINE_RATE_TROPO = 1800;                       % rate of spline for tropo param [s]
-        SPLINE_RATE_TROPO_GRADIENT = 1800;              % rate of spline for tropo gradient param [s]
+        SPLINE_RATE_TROPO = 300;                        % rate of spline for tropo param [s]
+        SPLINE_RATE_TROPO_GRADIENT = 300;               % rate of spline for tropo gradient param [s]
         SPLINE_TROPO_ORDER = 0;                         % order of the spline for the tropo
         SPLINE_TROPO_GRADIENT_ORDER = 0;                % order of the spline for the tropo gradient
         
