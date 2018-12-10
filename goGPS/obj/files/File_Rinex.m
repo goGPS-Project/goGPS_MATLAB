@@ -306,6 +306,20 @@ classdef File_Rinex < Exportable
             end
         end
         
+        function has_obs = hasObsInSession(this, date_start, date_stop)
+            % has observation in the two dates
+            %
+            % SYNTAX
+            % this.keepFiles(date_start, date_stop)
+            has_obs = false(numel(this),1);
+            for r = 1 : numel(this)
+                if this(r).isValid
+                    in_bound = Core_Utils.timeIntersect(this(r).first_epoch, this(r).last_epoch, date_start, date_stop);
+                    has_obs(r) = any(in_bound);
+                end
+            end
+        end
+        
         function keep(this,id)
             % keep only element specified by id
             %

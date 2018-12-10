@@ -911,6 +911,14 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function [empty]  = isEmpty(this)
+            % return the status of emptyness of the object
+            %
+            % SYNTAX
+            %   [empty]  = isempty(this)
+            empty = this.isempty();
+        end
+        
         function [nan_list] = isnan(this)
             % return the logical NaN of the object
             %

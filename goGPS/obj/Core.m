@@ -503,12 +503,12 @@ classdef Core < handle
                     [buff_lim, out_limits] = this.state.getSessionLimits(session);
                     time_lim_large = buff_lim;
                 end
-                rin_list_chk = rin_list.getCopy();
-                rin_list_chk.keepFiles(out_limits.first,out_limits.last);
+%                 rin_list_chk = rin_list.getCopy();
+%                 rin_list_chk.keepFiles(out_limits.first,out_limits.last);
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
-            if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list_chk.isValid)
+            if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list.isValid) % && ~rin_list_chk.isValid
                 is_empty = true;
                 this.log.addMessage(sprintf('No valid receivers are present for session %d', session));
             else
