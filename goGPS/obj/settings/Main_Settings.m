@@ -1623,13 +1623,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_clock', this.std_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay [s] (default = %.0f)', this.SPLINE_RATE_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('spline_rate_tropo', this.spline_rate_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_RATE_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('std_clock', this.spline_rate_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniString('spline_rate_tropo_gradient', this.spline_rate_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay [s] (default = %.0f)', this.SPLINE_TROPO_ORDER), str_cell);
-            str_cell = Ini_Manager.toIniString('std_clock', this.spline_tropo_order, str_cell);
+            str_cell = Ini_Manager.toIniString('spline_tropo_order', this.spline_tropo_order, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_TROPO_GRADIENT_ORDER), str_cell);
-            str_cell = Ini_Manager.toIniString('std_clock', this.spline_tropo_gradient_order, str_cell);
+            str_cell = Ini_Manager.toIniString('spline_tropo_gradient_order', this.spline_tropo_gradient_order, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % OUT TO KEEP
