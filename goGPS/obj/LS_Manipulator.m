@@ -399,7 +399,8 @@ classdef LS_Manipulator < handle
                 %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                 % setting the first clock of each connected set of arc to 0
                 %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                amb_set_jmp = [0; amb_set_jmp; this.n_epochs];
+                %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                 amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
                 %                 clock_const = zeros(1,n_clocks);
                 %                 amb_const = zeros(1,n_amb);
                 %                 amb_const(1) = 1;
@@ -410,13 +411,14 @@ classdef LS_Manipulator < handle
                 max_par = max(this.A_idx(:,end));
                 n_amb = max_amb - min_amb +1;
                 amb_idx = this.amb_idx;
-                for i = 1: (length(amb_set_jmp)-1)
-                    clock_const = zeros(1,this.n_epochs);
+                clock_const = zeros(1,this.n_epochs);
+                for i = 1: (length(amb_set_jmp_bnd)-1)
                     %clock_const(system_jmp(i)+1) = 1;
                     amb_const = zeros(1,n_amb);
-                    amb_idx_const = unique(noNaN(amb_idx((amb_set_jmp(i)+1):amb_set_jmp(i+1),:)));
+                    amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
+                    amb_idx_const = mode(amb_idx_const);
                     amb_const(amb_idx_const) = 1;
-                    G = [G ;[zeros(1, n_amb-1) amb_const clock_const]];
+                    G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
                 end
                 
                 G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
@@ -426,10 +428,10 @@ classdef LS_Manipulator < handle
                 this.D = D;
             end
             if phase_present
-                system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');
-                [[1; system_jmp + 1] [system_jmp; max(ep)]]
-                this.system_split = [[1; system_jmp + 1] [system_jmp; max(ep)]];
+                [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]]
+                this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
             else
                 this.system_split = [1 max(ep)];
             end
