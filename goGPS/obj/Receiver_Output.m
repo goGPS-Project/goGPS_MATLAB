@@ -436,27 +436,28 @@ classdef Receiver_Output < Receiver_Commons
                         new_time = rec_work.getTime();
                         first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time,1,'first'));
                         clear new_time;
-                        id_start     = find(time_1 >= first_new_time, 1, 'first'); % The first id of the new session
-                        if ~isempty(id_start)
+                        id_stop     = find(time_1 >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_start     = find(time_2 >= first_new_time, 1, 'first'); % The first id of the new session
+                        if ~isempty(id_stop)
                             if this.state.flag_out_ztd
-                                this.ztd     = Core_Utils.injectSmtData(zero2nan(this.ztd), zero2nan(rec_work.getZtd()), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                                this.ztd     = Core_Utils.injectSmtData(zero2nan(this.ztd), zero2nan(rec_work.getZtd()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
                             if this.state.flag_out_zwd
-                                this.zwd     = Core_Utils.injectSmtData(zero2nan(this.zwd), zero2nan(rec_work.getZwd()), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                                this.zwd     = Core_Utils.injectSmtData(zero2nan(this.zwd), zero2nan(rec_work.getZwd()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
                             if this.state.flag_out_pwv
-                                this.pwv     = Core_Utils.injectSmtData(zero2nan(this.pwv), zero2nan(rec_work.getPwv()), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                                this.pwv     = Core_Utils.injectSmtData(zero2nan(this.pwv), zero2nan(rec_work.getPwv()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
                             if this.state.flag_out_tropo_g
                                 [gn, ge]     = rec_work.getGradient();
-                                this.tgn     = Core_Utils.injectSmtData(zero2nan(this.tgn), zero2nan(gn), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                                this.tge     = Core_Utils.injectSmtData(zero2nan(this.tge), zero2nan(ge), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                                this.tgn     = Core_Utils.injectSmtData(zero2nan(this.tgn), zero2nan(gn), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
+                                this.tge     = Core_Utils.injectSmtData(zero2nan(this.tge), zero2nan(ge), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
                             if this.state.flag_out_res
                                 res = nan(this.time.length, size(this.sat.res, 2));
                                 res_in = rec_work.getResidual();
                                 for i = 1 : size(this.sat.res,2)
-                                    res(:,i)   = Core_Utils.injectSmtData(zero2nan(this.sat.res(:,i)), zero2nan(res_in(:,i)), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                                    res(:,i)   = Core_Utils.injectSmtData(zero2nan(this.sat.res(:,i)), zero2nan(res_in(:,i)), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start, false);
                                 end
                                 this.sat.res = res;
                             end

@@ -662,7 +662,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start, interpolate)
+        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start,interpolate)
             % inject smoothed data
             % 
             % INPUT:
@@ -672,11 +672,12 @@ classdef Core_Utils < handle
             %   idx_smt2 : which data of data_rgt are to be smoothed
             %   time_1: time of the left data to be smoothed
             %   time_2: time of the right data to be smoothed
-            %   id_start: first epoch of time_1 that should not be kept
+            %   id_stop: first epoch of time_1 that should not be kept
+            %   id_start: first epoch of time_2 to keep
             %
             % SYNTAX:
             %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
-            if nargin <8
+            if nargin <9
             interpolate = true;
             end
             data_tosmt_lft = data_lft(idx_smt1);
@@ -696,7 +697,7 @@ classdef Core_Utils < handle
             data2(idx2) = data_tosmt_rgt;
             %id_start = idx1(id_start);            
             %id_ko = ((isnan(data1) & (1 : n_out)' < id_start) |(isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2)); %?? should be used -> yes beacuse time is injected deleting overlapping times
-            id_keep = [idx1(1:(id_start-1)); idx2(find(time_2 > time_1(id_start-1),1,'first'):end)];
+            id_keep = unique([idx1(1:(id_stop-1)); idx2(id_start:end)]);
             % Interpolate missing data
             if interpolate
                 is_nan = find(isnan(data1));
