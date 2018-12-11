@@ -662,51 +662,71 @@ classdef Core_Utils < handle
             end
         end
         
-        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
+        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start, interpolate)
             % inject smoothed data
+            % 
+            % INPUT:
+            %   data_lft : all data left
+            %   data_right : all data right
+            %   idx_smt1 : which data of data_lft are to be smoothed
+            %   idx_smt2 : which data of data_rgt are to be smoothed
+            %   time_1: time of the left data to be smoothed
+            %   time_2: time of the right data to be smoothed
+            %   id_start: first epoch of time_1 that should not be kept
             %
             % SYNTAX:
             %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
+            if nargin <8
+            interpolate = true;
+            end
             data_tosmt_lft = data_lft(idx_smt1);
             data_tosmt_rgt = data_rgt(idx_smt2);
             % we use mat time, is easier and we do not need extreme precision
             time_1 = time_1.getMatlabTime();
             time_2 = time_2.getMatlabTime();
-            [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 0.005/86400); % approximate at 5 ms
-            time_tot = zeros(max(max(idx1), max(idx2)), 1);
-            time_tot(idx1) = time_1;
-            time_tot(idx2) = time_2;
+            [idx1, idx2, time_tot] = Core_Utils.intersectOrderedDouble(time_1, time_2, median([diff(time_1); diff(time_2)])/4); % 1/4 the rate tolerance
+            
             mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <= empirically found
-            w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot)) / mix_len)));
+            w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot)) / mix_len))); % todo: scale to ensure [0 1]
             w1 = 1 - w2;
             n_out = size(time_tot);
             data1 = nan(n_out);
             data2 = nan(n_out);
             data1(idx1) = data_tosmt_lft;
             data2(idx2) = data_tosmt_rgt;
-            id_start = idx1(id_start);            
-            %id_ko = ((isnan(data1) & (1 : n_out)' < id_start) |(isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2)); %?? should be used
-            
+            %id_start = idx1(id_start);            
+            %id_ko = ((isnan(data1) & (1 : n_out)' < id_start) |(isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2)); %?? should be used -> yes beacuse time is injected deleting overlapping times
+            id_keep = [idx1(1:(id_start-1)); idx2(find(time_2 > time_1(id_start-1),1,'first'):end)];
             % Interpolate missing data
-            data1(time_tot(isnan(data1)) <= min(time_1)) = data_tosmt_lft(1);
-            data1(time_tot(isnan(data1)) >= max(time_1)) = data_tosmt_lft(end);
-            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0
-                data1 = simpleFill1D(data1, isnan(data1), 'linear');
+            if interpolate
+                is_nan = find(isnan(data1));
+                extr_lft = is_nan(time_tot(is_nan) <= min(time_1));
+                extr_rgh = is_nan(time_tot(is_nan) >= max(time_1));
+                data1(extr_lft) = data_tosmt_lft(1);
+                data1(extr_rgh) = data_tosmt_lft(end);
+                if any(~isnan(data_tosmt_lft)) &&  any(isnan(data1))
+                    data1 = simpleFill1D(data1, isnan(data1), 'linear');
+                end
+                is_nan = find(isnan(data2));
+                extr_lft = is_nan(time_tot(is_nan) <= min(time_2));
+                extr_rgh = is_nan(time_tot(is_nan) >= max(time_2));
+                data2(extr_lft) = data_tosmt_rgt(1);
+                data2(extr_rgh) = data_tosmt_rgt(end);
+                if any(~isnan(data_tosmt_rgt)) && any(isnan(data2))
+                    data2 = simpleFill1D(data2, isnan(data2), 'linear');
+                end
+            else
+                data1(isnan(data1)) = data2(isnan(data1));
+                data2(isnan(data2)) = data1(isnan(data2));
             end
-            
-            data2(time_tot(isnan(data2)) <= min(time_2)) = data_tosmt_rgt(1);
-            data2(time_tot(isnan(data2)) >= max(time_2)) = data_tosmt_rgt(end);
-            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0
-                data2 = simpleFill1D(data2, isnan(data2), 'linear');
-            end
-            
             % Merge
             data = w1.*data1 + w2.*data2;
             %data(id_ko) = [];
-            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2(1 : length(data_rgt)))];            
+            data = data(id_keep);
+            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];            
         end
         
-        function [idx1, idx2] = intersectOrderedDouble(double_1, double_2, threshold)
+        function [idx1, idx2, double_tot] = intersectOrderedDouble(double_1, double_2, threshold)
             % given two ordered double give the index of the two vector in the joint vector considering the threshold
             % 
             % SYNTAX
@@ -742,6 +762,9 @@ classdef Core_Utils < handle
                 idx_end = (j : l2) -l2 + tot;
                 idx2(j : l2) = idx_end;
             end
+            double_tot = zeros(max(max(idx1), max(idx2)), 1);
+            double_tot(idx1) = double_1;
+            double_tot(idx2) = double_2;
         end
         
         function [wl_cyle_out, frac_bias] = getFracBias(wl_cycle, weigth)
