@@ -7412,11 +7412,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function preProcessing(this, sys_c)
+        function preProcessing(this, sys_c, flag_apply_corrections)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
+            % Apply active corrections to the data
+            %
+            % INPUT 
+            %   sys_c                      constellation to be used as array of char e.g. 'GER'
+            %   flag_apply_corrections     flag to compute and apply active correction
+            %
             % SYNTAX
             %   this.preProcessing(sys_c);
+            if nargin < 3
+                flag_apply_corrections = true;
+            end
             
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
@@ -7439,7 +7448,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-                this.remShortArc(this.state.getMinArc); % - > small arcs are removed during the set up of the least squares system
+                this.remShortArc(this.state.getMinArc); 
                 
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
                 if (min(s02) > this.S02_IP_THR)
@@ -7463,43 +7472,46 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.updateAllTOT(true);
                     this.correctPhJump();
                     
-                    % apply various corrections
-                    this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-                    
-                    this.updateAzimuthElevation();
-                    if this.state.isAprIono || this.state.getIonoManagement == 3
-                        this.updateErrIono();
-                        this.applyIonoModel();
+                    if flag_apply_corrections
+                        % apply various corrections
+                        this.sat.cs.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                        
+                        this.updateAzimuthElevation();
+                        if this.state.isAprIono || this.state.getIonoManagement == 3
+                            this.updateErrIono();
+                            this.applyIonoModel();
+                        end
+                        
+                        %ph0 = this.getPhases();
+                        this.applyPCV();
+                        %ph1 = this.getPhases();
+                        %corr.pcv = ph1 - ph0;
+                        this.applyPoleTide();
+                        %ph2 = this.getPhases();
+                        %corr.pt = ph2 - ph1;
+                        this.applyPhaseWindUpCorr();
+                        %ph3 = this.getPhases();
+                        %corr.pwu = ph3 - ph2;
+                        this.applySolidEarthTide();
+                        %ph4 = this.getPhases();
+                        %corr.set = ph4 - ph3;
+                        this.applyShDelay();
+                        %ph5 = this.getPhases();
+                        %corr.shd = ph5 - ph4;
+                        this.applyOceanLoading();
+                        %ph6 = this.getPhases();
+                        %corr.ocl = ph6 - ph5;
+                        this.applyAtmLoad();
+                        this.applyHOI();
+                        
+                        if this.state.isRepairOn()
+                            this.repairPhases();
+                        end
+                        
+                        this.detectOutlierMarkCycleSlip();
+                        this.coarseAmbEstimation();
+                        this.pp_status = true;
                     end
-                    %ph0 = this.getPhases();
-                    this.applyPCV();
-                    %ph1 = this.getPhases();
-                    %corr.pcv = ph1 - ph0;
-                    this.applyPoleTide();
-                    %ph2 = this.getPhases();
-                    %corr.pt = ph2 - ph1;
-                    this.applyPhaseWindUpCorr();
-                    %ph3 = this.getPhases();
-                    %corr.pwu = ph3 - ph2;
-                    this.applySolidEarthTide();
-                    %ph4 = this.getPhases();
-                    %corr.set = ph4 - ph3;
-                    this.applyShDelay();
-                    %ph5 = this.getPhases();
-                    %corr.shd = ph5 - ph4;
-                    this.applyOceanLoading();
-                    %ph6 = this.getPhases();
-                    %corr.ocl = ph6 - ph5;
-                    this.applyAtmLoad();
-                    this.applyHOI();
-                    
-                    if this.state.isRepairOn()
-                        this.repairPhases();
-                    end
-                    
-                    this.detectOutlierMarkCycleSlip();
-                    this.coarseAmbEstimation();
-                    this.pp_status = true;
                 end
             end
         end
