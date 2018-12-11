@@ -509,15 +509,28 @@ classdef Core_Utils < handle
             
             idx_not_found = find(~antenna_found);            
             if ~isempty(idx_not_found)
+                w_msg = '';
                 if numel(idx_not_found) == 1 && isempty(cell2mat(antmod(idx_not_found)))
                     w_msg = sprintf('No antenna model found for this station');
-                else
-                    w_msg = sprintf('The PCO/PCV model for the following antennas has not been found,\nsome models are missing or not defined at the time of processing');
+                else                   
+                    no_ant = true;
                     for a = 1 : length(idx_not_found)
-                        w_msg = sprintf('%s\n -  antenna model for "%s" is missing', w_msg, cell2mat(antmod(idx_not_found(a))));
+                        if ~isempty(antmod) && (length(antmod{idx_not_found(a)}) >=4 && ~strcmp(antmod{idx_not_found(a)}(1:4), 'NONE'))
+                            no_ant = false;
+                        end
+                    end
+                    if ~no_ant
+                        w_msg = sprintf('The PCO/PCV model for the following antennas has not been found,\nsome models are missing or not defined at the time of processing');
+                        for a = 1 : length(idx_not_found)
+                            if ~isempty(antmod{idx_not_found(a)}) && ~strcmp(antmod{idx_not_found(a)}(1:4), 'NONE')
+                                w_msg = sprintf('%s\n -  antenna model for "%s" is missing', w_msg, cell2mat(antmod(idx_not_found(a))));
+                            end
+                        end
                     end
                 end
-                log.addWarning(w_msg);
+                if ~isempty(w_msg)
+                    log.addWarning(w_msg);
+                end
             end
         end
         
