@@ -53,6 +53,7 @@ classdef File_Name_Processor < handle
         GPS_WEEK = '${WWWW}';
         GPS_WD = '${WWWWD}';
         GPS_DOW = '${D}';
+        GPS_3H = '${3H}';
         GPS_6H = '${6H}';
         GPS_HH = '${HH}';
         GPS_YY = '${YY}';
@@ -92,6 +93,7 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
             file_name_out = strrep(file_name_out, this.GPS_WD, sprintf('%04d%01d', gps_week(1), gps_dow(1)));
             file_name_out = strrep(file_name_out, this.GPS_DOW, sprintf('%01d', gps_dow(1)));
+            file_name_out = strrep(file_name_out, this.GPS_3H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3*3600))*3));
             file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
             file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
             file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
@@ -118,6 +120,8 @@ classdef File_Name_Processor < handle
                 step_sec = 900;
             elseif ~isempty(strfind(file_name, this.GPS_HH))
                 step_sec = 3600;
+            elseif ~isempty(strfind(file_name, this.GPS_3H))
+                step_sec = 3 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_6H))
                 step_sec = 6 * 3600;
             elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_YYDOY))
@@ -384,6 +388,7 @@ classdef File_Name_Processor < handle
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    4 char GPS week', File_Name_Processor.GPS_WEEK), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4+1 char GPS week + day of the week', File_Name_Processor.GPS_WD), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s       1 char day of the week', File_Name_Processor.GPS_DOW), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 03, 06, 09, 12, 15, 18, 21)', File_Name_Processor.GPS_3H), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour', File_Name_Processor.GPS_HH), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS quarter of hour (00, 15, 30, 45)', File_Name_Processor.GPS_QQ), str_cell);
