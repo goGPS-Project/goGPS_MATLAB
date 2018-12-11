@@ -495,22 +495,19 @@ classdef Core < handle
                 rec = this.rec;
             end
             
-            
             this.log.newLine();
+            rin_list = this.getRinFileList();
             if ~this.state.isRinexSession()
-                rin_list = this.getRinFileList();
                 if ~isempty(rin_list)
                     [buff_lim, out_limits] = this.state.getSessionLimits(session);
                     time_lim_large = buff_lim;
                 end
-%                 rin_list_chk = rin_list.getCopy();
-%                 rin_list_chk.keepFiles(out_limits.first,out_limits.last);
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
-            if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list.isValid) % && ~rin_list_chk.isValid
+            if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list.isValid) || ((time_lim_large.last - time_lim_large.first) < 0) % && ~rin_list_chk.isValid
                 is_empty = true;
-                this.log.addMessage(sprintf('No valid receivers are present for session %d', session));
+                this.log.addMessage(sprintf('No valid receivers are present / session not valid %d', session));
             else
 
                 is_empty = false;
