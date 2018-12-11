@@ -239,7 +239,7 @@ classdef Network < handle
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
                         [x, res, s0, Cxx, l_fixed] = ls.solve;
                         this.tropo_idx = ls.tropo_idx;
-                         this.tropo_g_idx = ls.tropo_g_idx;
+                        this.tropo_g_idx = ls.tropo_g_idx;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
                         

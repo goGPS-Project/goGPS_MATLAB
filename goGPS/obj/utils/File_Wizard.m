@@ -402,7 +402,11 @@ classdef File_Wizard < handle
                                         if status
                                             this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server));
                                         else
-                                            this.log.addWarning(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
+                                            if instr(port,'21')
+                                                this.log.addWarning(sprintf('"ftp://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                            else
+                                                this.log.addWarning(sprintf('"http://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                            end
                                             if ~this.nrt
                                                 break
                                             end
