@@ -212,6 +212,7 @@ classdef Go_Slave < Com_Interface
                     this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
                     
                     % Creating worker
+                    Core.clearSingletons();
                     core = Core.getInstance(); % Init Core
                     this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                     tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
@@ -224,7 +225,6 @@ classdef Go_Slave < Com_Interface
                     this.log.addMarkedMessage('State updated');
                     clear tmp;
                     this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
-                    clear Core_Sky Atmosphere Meteo_Network;
                     tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
                     core.sky  = tmp.sky;  % load the state
                     core.atmo = tmp.atmo; % load the atmosphere
