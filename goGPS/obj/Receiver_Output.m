@@ -302,7 +302,7 @@ classdef Receiver_Output < Receiver_Commons
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut()|| is_last_session); 
+                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut()|| is_last_session || ~isempty(rec_work.quality_info.s0) && (rec_work.quality_info.s0 < Inf)); 
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
                     initial_len = this.time.length;
