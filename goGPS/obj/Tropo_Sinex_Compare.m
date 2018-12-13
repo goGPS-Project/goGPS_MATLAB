@@ -493,6 +493,86 @@ classdef Tropo_Sinex_Compare < handle
             end
         end
         
+        function plotCooDifferenceSummary(this)
+             % print the difference between the results
+            %
+            % SYNTAX
+            %   this.plotComparison()
+            if nargin < 2
+                mode = 1;
+            end
+            sta1 = fieldnames(this.results.r1);
+            sta2 = fieldnames(this.results.r2);
+            [Csta,ia,ib] = intersect(lower(sta1),lower(sta2), 'stable');
+            siz_col = ceil(sqrt(length(Csta)));
+            siz_row = ceil(length(Csta)/siz_col);
+             f = figure; f.Name = sprintf('%03d: %s ', f.Number, 'EAST coordinate differences'); f.NumberTitle = 'off';
+             diffs = {};
+             xlim1 = -20;
+             xlim2 = 20;
+             dx = 2.5;
+            for s = 1 : length(Csta)
+                s1 = ia(s);
+                s2 = ib(s);
+                data1 = this.results.r1.(sta1{s1});
+                data2 = this.results.r2.(sta2{s2});
+                xyz_ref = median(data2.xyz,1);
+                if mode == 1
+                    enu1 = Coordinates.cart2local(xyz_ref, data1.xyz - repmat(xyz_ref, size(data1.xyz,1),1));% - repmat(data1.delta_enu,size( data1.xyz,1),1);
+                    enu2 = Coordinates.cart2local(xyz_ref, data2.xyz  - repmat(xyz_ref, size(data2.xyz,1),1));
+                else
+                    enu1 = data1.xyz;
+                    enu2 = data2.xyz;
+                end
+                [LIA,LocB] = ismembertol(data1.coord_time.getMatlabTime,data2.coord_time.getMatlabTime,1/24, 'DataScale', 1);
+                diff_enu = enu1(LIA,:) - enu2(LocB(LocB~=0),:);
+                %disp(sprintf('%s : %.4f %.4f %.4f , %.4f ',sta1{s1}, mean(diff_enu,1) ,sqrt(sum(mean(diff_enu,1).^2))))
+                diffs{s} = diff_enu;
+             
+               
+                % plot ZTD series
+                diffagg = diff_enu(:,1);
+                subplot(siz_row,siz_col,s)
+                hist(noNaN(diffagg*1e3),[xlim1:dx:xlim2])
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+                title(sprintf('%s \n Bias: %0.2f mm \n RMS: %0.2f mm',upper(sta1{s1}),bias,rms))
+                xlabel('Diff [mm]');
+                ylabel('#');
+                xlim([xlim1 xlim2]);
+            end
+            f = figure; f.Name = sprintf('%03d: %s ', f.Number, 'NORTH coordinate differences'); f.NumberTitle = 'off';
+            for s = 1 : length(Csta)
+                 % plot ZTD series
+                 diff_enu = diffs{s};
+                  s1 = ia(s);
+                diffagg = diff_enu(:,2);
+                subplot(siz_row,siz_col,s)
+                hist(noNaN(diffagg*1e3),[xlim1:dx:xlim2])
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+                title(sprintf('%s \n Bias: %0.2f mm \n RMS: %0.2f mm',upper(sta1{s1}),bias,rms))
+                xlabel('Differences [mm]');
+                ylabel('#');
+                xlim([xlim1 xlim2]);
+            end
+            f = figure; f.Name = sprintf('%03d: %s ', f.Number, 'UP coordinate differences'); f.NumberTitle = 'off';
+            for s = 1 : length(Csta)
+               % plot ZTD series
+                diff_enu = diffs{s};
+                 s1 = ia(s);
+                diffagg = diff_enu(:,3);
+                subplot(siz_row,siz_col,s)
+                hist(noNaN(diffagg*1e3),[xlim1:dx:xlim2])
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+                title(sprintf('%s \n Bias: %0.2f mm \n RMS: %0.2f mm',upper(sta1{s1}),bias,rms))
+                xlabel('Differences [mm]');
+                ylabel('#');
+                xlim([xlim1 xlim2]);
+            end
+        end
+        
     end
     methods (Static)
         function [results] = parseMultiStationTropoSinex(filename)
