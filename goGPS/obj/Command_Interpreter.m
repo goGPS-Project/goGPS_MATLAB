@@ -122,6 +122,7 @@ classdef Command_Interpreter < handle
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
         CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT','REMSAT'};
+        PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
         KEY_ID = [];
@@ -1578,7 +1579,7 @@ classdef Command_Interpreter < handle
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
-        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev] = fastCheck(this, cmd_list)
+        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push] = fastCheck(this, cmd_list)
             % Check a cmd list keeping the valid commands only
             %
             % INPUT
@@ -1601,6 +1602,7 @@ classdef Command_Interpreter < handle
             sss_id_counter = 0;
             par_id_counter = 0;
             execution_block = zeros(1, numel(cmd_list));
+            flag_push = false(0,0);
             sss_list = cell(numel(cmd_list), 1);
             trg_list = cell(numel(cmd_list), 1);
             key_lev = zeros(1, numel(cmd_list));
@@ -1642,10 +1644,16 @@ classdef Command_Interpreter < handle
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
                 execution_block(c) = sss_id_counter;
+                flag_push_command = any(cell2mat(strfind(this.PUSH_LIST, cmd.name{1})));
+                if length(flag_push) < (sss_id_counter+1)
+                    flag_push(sss_id_counter+1) = false;
+                end
+                flag_push(sss_id_counter+1) = flag_push(sss_id_counter+1) || flag_push_command;
                 key_lev(c) = lev;
                 sss_list{c} = sss;
                 trg_list{c} = trg;
-            end            
+            end   
+           
             cmd_list = cmd_list(~err_list);
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);

@@ -582,7 +582,7 @@ classdef Core < handle
             % init refererecne frame object            
             this.rf.init();
             
-            [cmd_list, ~, execution_block, sss_list, ~, sss_level] = this.cmd.fastCheck(this.state.cmd_list);
+            [cmd_list, ~, execution_block, sss_list, ~, sss_level, flag_push] = this.cmd.fastCheck(this.state.cmd_list);
             
             cmd_line = 1;
             last_sss = 0;
@@ -604,8 +604,10 @@ classdef Core < handle
                             % for r = 1 : numel(this.rec)
                             %     this.rec(r).resetOut();
                             % end
-                            for i = 1 : length(this.rec)
-                                this.rec(i).work.pushResult();
+                            if flag_push(eb+1)
+                                for i = 1 : length(this.rec)
+                                    this.rec(i).work.pushResult();
+                                end
                             end
                         end
                     end
