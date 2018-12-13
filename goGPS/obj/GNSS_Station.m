@@ -391,6 +391,8 @@ classdef GNSS_Station < handle
                 rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
                 if strcmpi(rec(1).getMarkerName, marker_name)
                     req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                elseif strcmpi(rec(1).getMarkerName4Ch, marker_name)
+                    req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
                 end
             end
         end
