@@ -286,7 +286,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            if ~(rec_work.isEmpty || rec_work.flag_currupted)
+            if ~(rec_work.isEmpty || rec_work.flag_currupted|| ~isempty(rec_work.quality_info.s0) && (rec_work.quality_info.s0 < Inf))
                 % set the id_sync only to time in between out times
                 basic_export = false;
                 id_sync_old = rec_work.getIdSync();
@@ -302,7 +302,7 @@ classdef Receiver_Output < Receiver_Commons
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut()|| is_last_session || ~isempty(rec_work.quality_info.s0) && (rec_work.quality_info.s0 < Inf)); 
+                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut()|| is_last_session); 
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
                     initial_len = this.time.length;
@@ -427,7 +427,9 @@ classdef Receiver_Output < Receiver_Commons
                     % inject with smoothing
                     if ~basic_export && ~is_this_empty && this.state.isSmoothTropoOut()
                         rec_work.cropIdSync4out(false, is_last_session); % if i sthe last session cut the right part of the data
-                        idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
+                        if is_last_session
+                            idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
+                        end
                         % we have to find the first epoch in the receiver
                         % being pushed that is greater than the start of
                         % the session. This is done beacause might be that
