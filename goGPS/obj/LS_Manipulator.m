@@ -709,7 +709,7 @@ classdef LS_Manipulator < handle
             % get the list  of observation codes used
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             n_u_obs_code = size(u_obs_code, 1);
-            this.log.addMessage(this.log.indent(sprintf('Setting up SA system usign %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
+            this.log.addMessage(this.log.indent(sprintf('Setting up SA system using %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)

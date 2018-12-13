@@ -173,17 +173,33 @@ classdef FTP_Downloader < handle
                 status = false;
                 while(retry < 2)
                     try
-                        fpath = mget(this.ftp_server, [fname '.Z'], out_dir);
-                        if isempty(fpath)
-                            fpath = mget(this.ftp_server, fname, out_dir);
+                        try
+                            fpath = mget(this.ftp_server, [fname '*'], out_dir); % some ftp do not work properly with "*" wildcard -> try standard names too
+                        catch
+                            fpath = [];
                         end
                         if isempty(fpath)
-                            fpath = mget(this.ftp_server, [fname '.gz'], out_dir);
+                            try
+                                fpath = mget(this.ftp_server, [fname '.Z'], out_dir);
+                            catch
+                                fpath = [];
+                            end
                         end
                         if isempty(fpath)
-                            fpath = mget(this.ftp_server, [fname '*'], out_dir); % some ftp do not work properly with "*" wildcard -> try standard names before
+                            try
+                                fpath = mget(this.ftp_server, [fname '.gz'], out_dir);
+                            catch
+                                fpath = [];
+                            end
                         end
-                        retry = 10;                        
+                        if isempty(fpath)
+                            try
+                                fpath = mget(this.ftp_server, fname, out_dir);
+                            catch
+                                fpath = [];
+                            end
+                        end
+                        retry = 10;
                         
                         if isempty(fpath)
                             status = false;

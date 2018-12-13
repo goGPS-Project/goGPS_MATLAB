@@ -534,29 +534,62 @@ classdef Core_Utils < handle
             end
         end
         
-        function [status] = downloadHttpTxtRes(filename, out_dir)
+        function [status] = downloadHttpTxtResUncompress(filename, out_dir)
             log = Core.getLogger();
             fnp = File_Name_Processor();
             try
                 options = weboptions;
                 options.ContentType = 'text';
                 options.Timeout = 15;
-                [remote_location, filename, ext] =fileparts(filename);
+                [remote_location, filename, ext] = fileparts(filename);
                 filename = [filename ext];
                 log.addMessage(log.indent(sprintf('downloading %s ...',filename)));
-                txt = webread(['http://' remote_location '/' filename], options);
+                compressed_name = '';
+                status = true;
                 if ~isempty(out_dir) && ~exist(out_dir, 'dir')
                     mkdir(out_dir);
                 end
-                fid = fopen(fnp.checkPath([out_dir, filesep filename]),'w');
-                if fid < 0
-                    log.addError(sprintf('Writing of %s failed', fnp.checkPath([out_dir, filesep filename])));
-                else
-                    fprintf(fid,'%s',txt);
-                    fclose(fid);
+                try
+                    txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename]);
+                catch ex
+                    if instr(ex.message, '404')
+                        try
+                            compressed_name = [filename, '.gz'];
+                            txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name]);
+                        catch ex
+                            if instr(ex.message, '404')
+                                try
+                                    compressed_name = [filename, '.Z'];
+                                    txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name]);
+                                catch
+                                    status = false;
+                                end
+                            end
+                        end
+                    end
                 end
-                status = true;
-                log.addMessage(' Done');
+                if status
+                    status = false; %#ok<NASGU>
+                    if ~isempty(compressed_name)
+                        compressed_name = fnp.checkPath(fullfile(out_dir, compressed_name));
+                        if (isunix())
+                            system(['gzip -d -f ' compressed_name '&> /dev/null &']);
+                        else
+                            try
+                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  compressed_name ' -o'  out_dir ]); %#ok<ASGLU>
+                                if (status == 0)
+                                    status = true;
+                                end
+                                delete(compressed_name);
+                            catch
+                                this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', compressed_name));
+                                status = false;
+                            end
+                        end
+                    end
+                    status = true;
+                    log.addMessage(' Done');
+                end
             catch
                 status = false;
             end
@@ -564,15 +597,25 @@ classdef Core_Utils < handle
         
         function [status] = checkHttpTxtRes(filename)
             if isunix() || ismac()
-                 [resp, txt] = system(['curl --head ' filename]);
-                 if strfind(txt,'HTTP/1.1 200 OK')
-                     status = true;
-                 else
-                     status = false;
-                 end
+                [resp, txt] = system(['curl --head ' filename]);
+                if strfind(txt,'HTTP/1.1 200 OK')
+                    status = true;
+                else
+                    [resp, txt] = system(['curl --head ' filename '.gz']);
+                    if strfind(txt,'HTTP/1.1 200 OK')
+                        status = true;
+                    else
+                        [resp, txt] = system(['curl --head ' filename '.Z']);
+                        if strfind(txt,'HTTP/1.1 200 OK')
+                            status = true;
+                        else
+                            status = false;
+                        end
+                    end
+                end
             else
-                status = true; % !!! to be implemented
-                
+                log = Logger.getInstance.addWarning('HTTP check is implemeted only for Unix systems')
+                status = true; % !!! to be implemented                
             end
         end
         

@@ -326,9 +326,9 @@ classdef File_Wizard < handle
                                     end
                                 else
                                     if ~this.nrt
-                                        status = status && Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir);
+                                        status = status && Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir);
                                     else
-                                        status = Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir) && status;
+                                        status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir) && status;
                                     end
                                 end
                             end
@@ -486,7 +486,8 @@ classdef File_Wizard < handle
             end
             
             if ~is_ok
-                this.log.addError(['Selected center: ' this.state.preferred_center{1} ' not compatible with selected constellations: ' this.sys_c]);
+                this.log.addError(['Selected center: ' center_name ' not compatible with selected constellations: ' this.sys_c]);
+                error('Ending execution: missing valid orbits')
             end
                 
             % Prepare all the files needed for processing
@@ -737,7 +738,6 @@ classdef File_Wizard < handle
             else
                 if ~this.nrt
                     this.log.addError('Not all ephemerids files found program might misbehave');
-                    error('With no ephemerides the processing cannot be completed');
                 else
                     this.log.addError('Not all ephemerids files found');
                 end

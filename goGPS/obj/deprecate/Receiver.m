@@ -246,7 +246,7 @@ classdef Receiver < Exportable
             this.reset();
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
-            this.rf = Core_Reference_Frame.getInstance();
+            this.rf = Core.getReferenceFrame();
             if nargin >= 1 && ~isempty(cc)
                 this.cc = cc;
             else
@@ -276,7 +276,7 @@ classdef Receiver < Exportable
                 this.importRinex(this.rinex_file_name);
                 this.importAntModel();
             end
-            rf = Core_Reference_Frame.getInstance();
+            rf = Core.getReferenceFrame();
             coo = rf.getCoo(this.getMarkerName4Ch, this.getCentralTime);
             if ~isempty(coo)
                 this.xyz = coo;
@@ -2520,7 +2520,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -3690,7 +3690,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
