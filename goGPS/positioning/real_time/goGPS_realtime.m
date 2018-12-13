@@ -79,7 +79,7 @@ global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
 global n_sys
 
-state = Global_Configuration.getCurrentSettings();
+state = Core.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 if (flag_var_dyn_model) & (~flag_stopGOstop)

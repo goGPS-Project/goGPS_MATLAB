@@ -85,12 +85,10 @@ classdef Core < handle
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Core(force_clean)
-            if nargin < 1
-                force_clean = false;
-            end
             % Core object creator
+            
+            % init logger
             this.log = Logger.getInstance();
-            this.init(force_clean);            
         end
     end
     
@@ -111,6 +109,9 @@ classdef Core < handle
             if isempty(unique_instance_core__)
                 this = Core(force_clean);
                 unique_instance_core__ = this;
+                if ~skip_init
+                    this.init(force_clean);
+                end                
             else
                 this = unique_instance_core__;
                 if ~skip_init
@@ -122,15 +123,12 @@ classdef Core < handle
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
-        
-     
-        
-        
+              
         function log = getLogger()
             % Return the pointer to the Logger Object
             %
             % SYNTAX
-            %   log = getLogger()
+            %   log = Core.getLogger()
             
             core = Core.getInstance(false, true);
             log = core.log;
@@ -144,12 +142,12 @@ classdef Core < handle
             % Return the pointer to the Atmosphere Object
             %
             % SYNTAX
-            %   atmo = getAtmosphere()
+            %   atmo = Core.getAtmosphere()
             
             core = Core.getInstance(false, true);
             atmo = core.atmo;
             if isempty(atmo)
-                atmo = Atmosphere.getInstance();
+                atmo = Atmosphere();
                 core.mn = atmo;
             end            
         end
@@ -158,27 +156,30 @@ classdef Core < handle
             % Return the pointer to the Meteorological Network Object
             %
             % SYNTAX
-            %   mn = getMeteoNetwork()
+            %   mn = Core.getMeteoNetwork()
             
             core = Core.getInstance(false, true);
             mn = core.mn;
             if isempty(mn)
-                mn = Meteo_Network.getInstance();
+                mn = Meteo_Network();
                 core.mn = mn;
             end
         end
         
-        function rf = getReferenceFrame()
+        function rf = getReferenceFrame(flag_reset)
             % Return the pointer to the Reference Frame
             %
             % SYNTAX
-            %   rf = getReferenceFrame()
+            %   rf = Core.getReferenceFrame()
             
             core = Core.getInstance(false, true);
             rf = core.rf;
             if isempty(rf)
-                rf = Core_Reference_Frame.getInstance();
+                rf = Core_Reference_Frame();
                 core.rf = rf;
+            end
+            if nargin == 1 && flag_reset
+            %    rf.reset();
             end
         end
         
@@ -186,12 +187,12 @@ classdef Core < handle
             % Return the pointer to the Core Sky Object
             %
             % SYNTAX
-            %   sky = getCoreSky()
+            %   sky = Core.getCoreSky()
             
             core = Core.getInstance(false, true);
             sky = core.sky;
             if isempty(sky)
-                sky = Core_Sky.getInstance();
+                sky = Core_Sky();
                 core.sky = sky;
             end
             
@@ -201,7 +202,7 @@ classdef Core < handle
             % Get receiver list
             %
             % SYNTAX
-            %   rec_list = this.getRecList()          
+            %   rec_list = Core.getRecList()          
             core = Core.getInstance(false, true);
             rec_list = core.rec;
         end
@@ -211,7 +212,7 @@ classdef Core < handle
             % Return the pointer to the State pointed by Core
             %
             % SYNTAX
-            %   state = getState()
+            %   state = Core.getState()
             
             core = Core.getInstance(false, true);
             state = core.state;
@@ -221,7 +222,7 @@ classdef Core < handle
             % Get the id of the current session
             %
             % SYNTAX
-            %   cur_session = this.getCurrentSession() 
+            %   cur_session = Core.getCurrentSession() 
             core = Core.getInstance(false, true);
             cur_session = core.state.getCurSession;
         end
@@ -230,7 +231,7 @@ classdef Core < handle
             % Get the rinex lists (GNSS observations and meteorological)
             %
             % SYNTAX
-            %   cur_session = this.getRinLists()
+            %   cur_session = Core.getRinLists()
             core = Core.getInstance(false, true);
             rin_list = core.rin_list;
             met_list = core.met_list;
@@ -240,19 +241,39 @@ classdef Core < handle
             % Return the pointer to the Global Configuration
             %
             % SYNTAX
-            %   gc = getGlobalConfig()
+            %   gc = Core.getGlobalConfig()
             
             core = Core.getInstance(false, true);
             gc = core.gc;
+        end
+        
+        function cur_settings = getCurrentSettings(ini_settings_file)
+            % Return the pointer to the goGPS Settings
+            %
+            % SYNTAX
+            %   gc = Core.getCurrentSettings(<ini_settings_file>)
+            
+            core = Core.getInstance(false, true);
+            if isempty(core.gc)
+                core.gc = Global_Configuration();
+            end
+            if nargin == 0
+                cur_settings = core.gc.getCurrentSettings;
+            else
+                cur_settings = core.gc.getCurrentSettings(ini_settings_file);
+            end
         end
         
         function cmd = getCommandInterpreter()
             % Return the pointer to the Command Interpreter
             %
             % SYNTAX
-            %   cmd = getCommandInterpreter()
+            %   cmd = Core.getCommandInterpreter()
             
             core = Core.getInstance(false, true);
+            if isempty(core.cmd)
+                core.cmd = Command_Interpreter(core);
+            end
             cmd = core.cmd;
         end
 
@@ -260,7 +281,7 @@ classdef Core < handle
             % Return the pointer to the actual Core instance
             %
             % SYNTAX
-            %   core = getCurrentCore()
+            %   core = Core.getCurrentCore()
             
             core = Core.getInstance(false, true);
         end
@@ -279,7 +300,7 @@ classdef Core < handle
             % Set the pointer to the Meteorological Network Object
             %
             % SYNTAX
-            %   setMeteoNetwork(mn)
+            %   Core.setMeteoNetwork(mn)
             
             core = Core.getInstance(false, true);
             core.mn = mn;
@@ -289,7 +310,7 @@ classdef Core < handle
             % Return the pointer to the Reference Frame
             %
             % SYNTAX
-            %   setReferenceFrame(rf)
+            %   Core.setReferenceFrame(rf)
             
             core = Core.getInstance(false, true);
             core.rf = rf;
@@ -330,7 +351,7 @@ classdef Core < handle
             % Return the pointer to the Command Interpreter
             %
             % SYNTAX
-            %   setCommandInterpreter(cmd)
+            %   Core.setCommandInterpreter(cmd)
             
             core = Core.getInstance(false, true);
             core.cmd = cmd;
@@ -363,13 +384,13 @@ classdef Core < handle
             
             Core_UI.showTextHeader();
             this.log.setColorMode(cm);            
-            this.gc = Global_Configuration.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.gc = Global_Configuration();
+            this.state = this.gc.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
-            this.sky = Core_Sky.getInstance(force_clean);
-            this.atmo = Atmosphere.getInstance();
-            this.rf = Core_Reference_Frame.getInstance();
-            this.cmd = Command_Interpreter.getInstance(this);
+            this.sky = Core_Sky(force_clean);
+            this.atmo = Atmosphere();
+            this.rf = Core_Reference_Frame();
+            this.cmd = Command_Interpreter(this);
             if force_clean
                 this.state.setCurSession(0);
                 this.rec = [];
@@ -557,13 +578,15 @@ classdef Core < handle
         
         function initSkySession(this, time_lim)
             % Init sky for this session
-            this.sky = Core_Sky.getInstance();
+            if isempty(this.sky)
+                this.sky = Core_Sky();
+            end
             this.sky.initSession(time_lim.first, time_lim.last);
         end
         
         function initMeteoNetwork(this, time_lim)
             % Init the meteo network            
-            this.mn = Meteo_Network.getInstance();
+            this.mn = Meteo_Network();
             this.mn.initSession(time_lim.first, time_lim.last);            
         end
         
@@ -1165,28 +1188,19 @@ classdef Core < handle
             % SYNTAX Core.initGeoid();
             core = Core.getCurrentCore;            
             core.gc.initGeoid();
-        end      
+        end
+        
         function clearSingletons()
             % clear all singletons
             %
             % SYNTAX:
             % Core.clearSingletons
             clear Core ...
-                Command_Interpreter ...
-                Core_Reference_Frame ...
-                Core_Sky ...
-                Atmosphere ...
-                Meteo_Network ...
-                Core_SEID ...
-                Earth_Magnetic_Field ...
                 Core_UI ...
                 GUI_Main ...
-                MOT_Generator ...
-                Meteo_Network ...
                 Remote_Resource_Management ...
                 Parallel_Manager ...
                 Go_Slave ...
-                Global_Configuration ...
                 Go_Wait_Bar ...
                 Logger;
         end

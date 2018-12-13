@@ -45,7 +45,7 @@ classdef Meteo_Network < handle
     end
     %% METHOD CREATOR
     % ==================================================================================================================================================
-    methods (Static, Access = private)
+    methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function this = Meteo_Network()
             this.log = Core.getLogger();
@@ -54,20 +54,7 @@ classdef Meteo_Network < handle
     
     %% METHODS UI
     % ==================================================================================================================================================
-    methods (Static, Access = public)
-        function this = getInstance()
-            % Get the persistent instance of the class
-            persistent unique_instance_meteo_network__
-
-            if isempty(unique_instance_meteo_network__)
-                this = Meteo_Network();
-                unique_instance_meteo_network__ = this;
-            else
-                this = unique_instance_meteo_network__;
-            end
-            
-        end
-
+    methods (Static, Access = public)    
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
@@ -84,7 +71,7 @@ classdef Meteo_Network < handle
             
             this.mds = [];
             % load all meteo file present in current settings
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             fnames = state.getMetFileName(date_start, date_stop);
             n_stations = numel(fnames);
             for  i = 1 : n_stations

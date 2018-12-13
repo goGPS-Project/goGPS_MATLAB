@@ -510,7 +510,7 @@ classdef Parallel_Manager < Com_Interface
             % Save state on file
             gc = Core.getGlobalConfig();
             geoid = gc.getRefGeoid();
-            state = gc.getCurrentSettings();
+            state = Core.getCurrentSettings();
             cur_session = Core.getCurrentSession();
             [rin_list, met_list] = Core.getRinLists();
             save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');

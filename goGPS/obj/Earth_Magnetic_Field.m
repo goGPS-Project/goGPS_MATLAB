@@ -1,42 +1,44 @@
+% This class containing the spherical harmonics model for earth
+% magnetic field
+
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.1 beta 3
+%
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Written by: Giulio Tagliaferro
+%  Contributors:     ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
+%
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
+%
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
+%
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
+
 classdef Earth_Magnetic_Field < handle
-    % This class containing the spherical harmonics model for earth
-    % magnetic field
-    
-    %--- * --. --- --. .--. ... * ---------------------------------------------
-    %               ___ ___ ___
-    %     __ _ ___ / __| _ | __|
-    %    / _` / _ \ (_ |  _|__ \
-    %    \__, \___/\___|_| |___/
-    %    |___/                    v 0.5.1 beta 3
-    %
-    %--------------------------------------------------------------------------
-    %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
-    %  Written by: Giulio Tagliaferro
-    %  Contributors:     ...
-    %  A list of all the historical goGPS contributors is in CREDITS.nfo
-    %--------------------------------------------------------------------------
-    %
-    %   This program is free software: you can redistribute it and/or modify
-    %   it under the terms of the GNU General Public License as published by
-    %   the Free Software Foundation, either version 3 of the License, or
-    %   (at your option) any later version.
-    %
-    %   This program is distributed in the hope that it will be useful,
-    %   but WITHOUT ANY WARRANTY; without even the implied warranty of
-    %   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    %   GNU General Public License for more details.
-    %
-    %   You should have received a copy of the GNU General Public License
-    %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    %
-    %--------------------------------------------------------------------------
-    % 01100111 01101111 01000111 01010000 01010011
-    %--------------------------------------------------------------------------
     properties
-        H;%gauss coefficients
-        G;%gauss coefficients
+        H; % gauss coefficients
+        G; % gauss coefficients
         years;
     end
+    
     properties (Access = private)
         cache = false;
         state;
@@ -48,28 +50,16 @@ classdef Earth_Magnetic_Field < handle
         dP;
         P_d_length = 0.001;
     end
-    methods (Static)
-        % Concrete implementation.  See Singleton superclass.
-        function this = getInstance()
-            % Get the persistent instance of the class
-            persistent unique_instance_core_sky__;
-            
-            if isempty(unique_instance_core_sky__)
-                this = Earth_Magnetic_Field();
-                unique_instance_core_sky__ = this;
-            else
-                this = unique_instance_core_sky__;
-            end
-        end
-    end
+    
     methods
         function this = Earth_Magnetic_Field()
-            this.state = Global_Configuration.getCurrentSettings();
+            this.state = Core.getCurrentSettings();
             this.importIGRFModel(this.state.getIgrfFile());
             load(File_Name_Processor.checkPath([this.state.igrf_dir filesep 'P_dP_schimdt.mat']));
             this.P = P;
             this.dP = dP;
         end
+        
         function importIGRFModel(this, fname)
             % IMPORTANT TODO - tranform secular varaitions in coefficients
             fid = fopen(fname);
@@ -108,7 +98,7 @@ classdef Earth_Magnetic_Field < handle
                     vals = str2double(vals);
                     
                     l_idx = sub2ind(size(H),[1:n_ep]',repmat(n+1,n_ep,1),repmat(m+1,n_ep,1));
-                	if tline(1) == 'g'
+                    if tline(1) == 'g'
                         G(l_idx) = vals;
                     else
                         H(l_idx) = vals;
@@ -130,10 +120,11 @@ classdef Earth_Magnetic_Field < handle
             this.H = permute(H,[3 2 1]);
             this.G = permute(G,[3 2 1]);
             this.years = years_n;
-
+            
         end
+        
         function V = getV(this, gps_time, r, phi, theta)
-             % interpolate H at G at presetn epoch
+            % interpolate H at G at presetn epoch
             [y, doy] = gps_time.getDOY;
             re = GPS_SS.ELL_A/1000;
             iy = max(min(floor(y-1900)/5+1,24),1);
@@ -153,6 +144,7 @@ classdef Earth_Magnetic_Field < handle
             arn = repmat((re/r).^(1:n),n,1);
             V =  re * sum(sum(arn .* (G .* cosm + H .* sinm) .* P));
         end
+        
         function B = getBnum(this, gps_time, r, phi, theta)
             % X
             dtheta = 0.1/180*pi;
@@ -171,6 +163,7 @@ classdef Earth_Magnetic_Field < handle
             Z = (V2 - V1)/dr;
             B = [X;Y;Z];
         end
+        
         function B = getB(this, gps_time, r, lon, lat)
             % interpolate H at G at presetn epoch
             y = floor(gps_time/(86400*365.25));
@@ -210,12 +203,12 @@ classdef Earth_Magnetic_Field < handle
             
             N = repmat((0:n-1),n,1);
             M = N';
-           
+            
             % E dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
             Ea =  -re / (r * sin(colat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             
-             % N dV/dtheta
+            % N dV/dtheta
             dP = this.interpolatedP(cos(colat));
             No =   re / r * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
             % U dV/dr
@@ -225,24 +218,25 @@ classdef Earth_Magnetic_Field < handle
             B = [Ea;No;Up]/ 1e9; %nT to T
             B = local2globalVel2(B, lon,lat);
             %%% rotate B into cartesian
-%             R = [-sin(lon) cos(lon) 0;
-%                 -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
-%                 +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
-%             [B] = R'*B;
+            %             R = [-sin(lon) cos(lon) 0;
+            %                 -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
+            %                 +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
+            %             [B] = R'*B;
         end
+        
         function P = interpolateP(this, x)
             n1 = floor((x +1) / this.P_d_length) + 1;
             n2 = min(n1+1, 2/this.P_d_length + 1);
             d = ((x +1) - (n1-1) * this.P_d_length) / this.P_d_length;
             P = this.P(:,:,n1) * (1 - d) + this.P(:,:,n2) * d;
         end
+        
         function dP = interpolatedP(this, x)
             n1 = max(0,floor((x + 1 - this.P_d_length) / this.P_d_length)) + 1;
             n2 = min(n1+1, 2/this.P_d_length - 1);
             d = ((x +1) - (n1) * this.P_d_length) / this.P_d_length;
             dP = this.dP(:,:,n1) * (1 - d) + this.dP(:,:,n2) * d;
         end
-        
     end
     
 end

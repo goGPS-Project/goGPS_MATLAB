@@ -54,21 +54,7 @@ classdef Core_SEID < handle
             % Core object creator
             this.log = Logger.getInstance();
             this.state = Core.getState();
-        end
-
-        % Concrete implementation.  See Singleton superclass.
-        function this = getInstance()
-            % Get the persistent instance of the class
-            persistent unique_instance_core_seid_
-            unique_instance_core_seid_ = [];
-
-            if isempty(unique_instance_core_seid_)
-                this = Core();
-                unique_instance_core_seid_ = this;
-            else
-                this = unique_instance_core_seid_;
-            end
-        end
+        end      
     end
 
     % =========================================================================

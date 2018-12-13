@@ -2082,7 +2082,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   eph_ok = checkNavEphFiles(this)
             eph_ok = true;
 
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             file_name = this.getFullNavEphPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
@@ -2118,7 +2118,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   clk_ok = checkNavClkFiles(this)
 
             clk_ok = true;
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             file_name = this.getFullNavClkPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
@@ -2154,7 +2154,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_ok = checkErpFiles(this)
 
             erp_ok = true;
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             file_name = this.getFullErpPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
@@ -3103,7 +3103,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folderï¿½ï¿½
+                % Search broadcast orbits in the ephemerides folderÿÿ
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));

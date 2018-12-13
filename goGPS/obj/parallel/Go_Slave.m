@@ -217,7 +217,7 @@ classdef Go_Slave < Com_Interface
                     this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                     tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
                     core.state = tmp.state; % load the state
-                    core.gc.cur_settings = tmp.state; % load the state
+                    core.gc.setCurrentSettings(tmp.state); % load the state
                     core.gc.initGeoid(tmp.geoid); % load the geoid
                     core.cur_session = tmp.cur_session; % load the current session number
                     core.rin_list = tmp.rin_list; % load the rinex list of files
@@ -247,7 +247,7 @@ classdef Go_Slave < Com_Interface
                     
                     active_ps = true;
                     while active_ps
-                        try
+%                        try
                             msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
                             if isnumeric(msg)
                                 active_ps = false;
@@ -290,33 +290,33 @@ classdef Go_Slave < Com_Interface
                                 clear rec;
                                 this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                             end
-                        catch ex
-                            % Export work
-                            try
-                                rec = core.rec(rec_id);
-                            catch
-                                % I'm going to create an empty rec if something
-                                % goes wrong
-                            end
-                            try
-                                if isempty(rec)
-                                    rec = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0);
-                                end
-                                rec.out = []; % do not want to save out
-                                rec.work.flag_currupted = true;
-                                save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
-                                pause(0.1); % be sure that the file is saved correctly
-                            catch
-                                % try to send the receiver, if something goes bad,
-                                % the master with deal with it
-                            end
-                            core.rec = []; % empty space
-                            clear rec;
-                            
-                            % If something bad happen during work restart
-                            this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
-                            this.log.addError(sprintf('Something bad happen: %s\n', ex.message));
-                        end
+%                         catch ex
+%                             % Export work
+%                             try
+%                                 rec = core.rec(rec_id);
+%                             catch
+%                                 % I'm going to create an empty rec if something
+%                                 % goes wrong
+%                             end
+%                             try
+%                                 if isempty(rec)
+%                                     rec = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0);
+%                                 end
+%                                 rec.out = []; % do not want to save out
+%                                 rec.work.flag_currupted = true;
+%                                 save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
+%                                 pause(0.1); % be sure that the file is saved correctly
+%                             catch
+%                                 % try to send the receiver, if something goes bad,
+%                                 % the master with deal with it
+%                             end
+%                             core.rec = []; % empty space
+%                             clear rec;
+%                             
+%                             % If something bad happen during work restart
+%                             this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
+%                             this.log.addError(sprintf('Something bad happened: %s\n', ex.message));
+%                         end
                     end
                     clear cmd_file rec_pass;
                 end

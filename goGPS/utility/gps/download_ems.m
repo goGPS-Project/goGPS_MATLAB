@@ -50,7 +50,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
-state = Global_Configuration.getCurrentSettings();
+state = Core.getCurrentSettings();
 
 file_ems = {};
 

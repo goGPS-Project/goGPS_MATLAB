@@ -88,7 +88,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
     global cutoff snr_threshold n_sys flag_doppler_cs
 
-    state = Global_Configuration.getCurrentSettings();
+    state = Core.getCurrentSettings();
     log = Logger.getInstance();
 
     % Check doppler validity, if dop1 == dop2 [ !! ]

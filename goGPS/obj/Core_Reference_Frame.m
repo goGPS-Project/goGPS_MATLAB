@@ -49,29 +49,15 @@ classdef Core_Reference_Frame < handle
         flag
         is_valid
     end
-    methods (Access = 'private')
+    
+    methods
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
-            this.state = Global_Configuration.getCurrentSettings();
+            this.state = Core.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
+            this.cc = Core.getCurrentSettings().getConstellationCollector;
             this.init();
-        end
-    end
-    
-    methods (Static)
-        % Concrete implementation.  See Singleton superclass.
-        function this = getInstance()
-            % Get the persistent instance of the class
-            persistent unique_instance_reference_frame
-            
-            if isempty(unique_instance_reference_frame)
-                this = Core_Reference_Frame();
-                unique_instance_reference_frame = this;
-            else
-                this = unique_instance_reference_frame;
-            end
         end
     end
     

@@ -64,7 +64,7 @@ classdef Atmosphere < handle
             'n_t',        [], ...    % num of epocvhs
             'height',     []  ...    % heigh of the layer
             )
-       atm_load_nt = struct( ...
+        atm_load_nt = struct( ...
             'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
@@ -80,7 +80,7 @@ classdef Atmosphere < handle
             'n_t',        [] ...   % num of epocvhs
             )
         atm_load_t = struct( ...
-            'harmonics',       [], ...    % ionosphere single layer map [n_lat x _nlon n n_harmonics] 
+            'harmonics',       [], ...    % ionosphere single layer map [n_lat x _nlon n n_harmonics]
             'first_lat',  89.5, ...    % first latitude
             'first_lon',  0.5, ...    % first longitude
             'd_lat',      1, ...    % lat spacing
@@ -96,7 +96,7 @@ classdef Atmosphere < handle
             'ell_height', [], ... %ellipsoidal height for the vmf values
             'ah',       [], ...    % alpha coefficient dry
             'aw',       [], ...    % alpha coefficent wet
-            'zhd',       [], ...    % zhd 
+            'zhd',       [], ...    % zhd
             'zwd',       [], ...    % zwd
             'first_lat',  [], ...    % first latitude
             'first_lon',  [], ...    % first longitude
@@ -109,7 +109,8 @@ classdef Atmosphere < handle
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
             )
-         emf     % current Earth geomagnetic field object
+        
+        emf     % current Earth geomagnetic field object
     end
     
     properties  (SetAccess = private, GetAccess = private)
@@ -130,41 +131,23 @@ classdef Atmosphere < handle
         atm     % atm saved value for GPT computation
         ata     % ata saved value for GPT computation
         
-       
+        
         log
-
+        
         V_LIGHT = Global_Configuration.V_LIGHT;
     end
     
-    methods (Access = private)
+    methods
         function this = Atmosphere()
             % Initialisation of the variables
             %
             % SYNTAX
             %   this = Atmosphere()
+            this.state = Core.getCurrentSettings();
+            this.log = Core.getLogger();
         end
     end
-    methods (Static)
-        % Concrete implementation.  See Singleton superclass.
-        function this = getInstance()
-            % Get the persistent instance of the class
-            %
-            % SYNTAX
-            %   this = getInstance()
-            persistent unique_instance_atmosphere__
-            
-            if isempty(unique_instance_atmosphere__)
-                this = Atmosphere();
-                unique_instance_atmosphere__ = this;
-            else
-                this = unique_instance_atmosphere__;
-            end
-            gs = Global_Configuration.getInstance;            
-            this.geoid = gs.getRefGeoid;
-            this.state = gs.getCurrentSettings();
-            this.log = Logger.getInstance();
-        end
-    end
+    
     methods
         function importIonex(this, file_name)
             % import IONEX file
@@ -215,7 +198,7 @@ classdef Atmosphere < handle
             end
             %-------------------
             isempty_obj = isempty(this.ionex.data);
-             if not(isempty_obj) && (first_epoch >= this.ionex.first_time) && (first_epoch - this.ionex.first_time) < this.ionex.d_t *  this.ionex.n_t
+            if not(isempty_obj) && (first_epoch >= this.ionex.first_time) && (first_epoch - this.ionex.first_time) < this.ionex.d_t *  this.ionex.n_t
                 %% file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
             else
@@ -270,7 +253,7 @@ classdef Atmosphere < handle
                     end
                     this.ionex.n_t = this.ionex.n_t + 24;
                 end
-             end         
+            end
         end
         
         function initIonex(this, dsa, dso)
@@ -354,7 +337,7 @@ classdef Atmosphere < handle
                 
                 txt = fread(fid, '*char')';
                 txt(txt == 13) = []; % remove carriage return - I hate you Bill!
-                fclose(fid);                
+                fclose(fid);
                 
                 % get new line separators
                 nl = regexp(txt, '\n')';
@@ -413,7 +396,7 @@ classdef Atmosphere < handle
                 end
             end
         end
-                
+        
         function importVMFCoeffFile(this, file_name)
             % import data of atmospehric loading file
             %
@@ -423,7 +406,7 @@ classdef Atmosphere < handle
             fnp = File_Name_Processor;
             fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('Atmosphere: File %s not found', file_name));                              
+                this.log.addWarning(sprintf('Atmosphere: File %s not found', file_name));
             else
                 % Parsing title
                 [~, file_name, ext ] = fileparts(file_name);
@@ -447,7 +430,7 @@ classdef Atmosphere < handle
                         isempty_obj = true;
                     end
                     this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
-
+                    
                     txt = fread(fid, '*char')';
                     txt(txt == 13) = []; % remove carriage return - I hate you Bill!
                     fclose(fid);
@@ -480,7 +463,7 @@ classdef Atmosphere < handle
                     aw =  reshape(data(4:6:end), 144, 91)';
                     zhd = reshape(data(5:6:end), 144, 91)';
                     zwd = reshape(data(6:6:end), 144, 91)';
-                                        
+                    
                     if isempty_obj
                         this.vmf_coeff.ah         = ah;
                         this.vmf_coeff.aw         = aw;
@@ -513,7 +496,7 @@ classdef Atmosphere < handle
                         this.vmf_coeff.n_t = this.vmf_coeff.n_t + 1;
                     end
                 end
-            end            
+            end
         end
         
         function [ah, aw, zhd, zwd] = readVMF(file_name)
@@ -566,20 +549,20 @@ classdef Atmosphere < handle
             % SYNTAX
             %   clearAtmLoad(this)
             this.atm_load_nt = struct( ...
-            'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'first_lat',  [], ...    % first latitude
-            'first_lon',  [], ...    % first longitude
-            'd_lat',      [], ...    % lat spacing
-            'd_lon',      [], ...    % lon_spacing
-            'n_lat',      [], ...    % num lat
-            'n_lon',      [], ...    % num lon
-            'first_time', [], ...    % times [time] of the maps
-            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
-            'dt',         [], ...    % time spacing
-            'n_t',        [] ...    % num of epocvhs
-            );
+                'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+                'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+                'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+                'first_lat',  [], ...    % first latitude
+                'first_lon',  [], ...    % first longitude
+                'd_lat',      [], ...    % lat spacing
+                'd_lon',      [], ...    % lon_spacing
+                'n_lat',      [], ...    % num lat
+                'n_lon',      [], ...    % num lon
+                'first_time', [], ...    % times [time] of the maps
+                'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                'dt',         [], ...    % time spacing
+                'n_t',        [] ...    % num of epocvhs
+                );
         end
         
         function clearIonex(this)
@@ -588,19 +571,19 @@ classdef Atmosphere < handle
             % SYNTAX
             %   clearIonex(this)
             this.ionex = struct( ...
-            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'first_lat',  [], ...    % first latitude
-            'first_lon',  [], ...    % first longitude
-            'd_lat',      [], ...    % lat spacing
-            'd_lon',      [], ...    % lon_spacing
-            'n_lat',      [], ...    % num lat
-            'n_lon',      [], ...    % num lon
-            'first_time', [], ...    % times [time] of the maps
-            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
-            'dt',         [], ...    % time spacing
-            'n_t',        [], ...    % num of epocvhs
-            'height',     []  ...    % heigh of the layer
-            );
+                'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+                'first_lat',  [], ...    % first latitude
+                'first_lon',  [], ...    % first longitude
+                'd_lat',      [], ...    % lat spacing
+                'd_lon',      [], ...    % lon_spacing
+                'n_lat',      [], ...    % num lat
+                'n_lon',      [], ...    % num lon
+                'first_time', [], ...    % times [time] of the maps
+                'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                'dt',         [], ...    % time spacing
+                'n_t',        [], ...    % num of epocvhs
+                'height',     []  ...    % heigh of the layer
+                );
         end
         
         function clearVMF(this)
@@ -609,21 +592,21 @@ classdef Atmosphere < handle
             % SYNTAX
             %   clearVMF(this)
             this.vmf_coeff = struct( ...
-            'ah',       [], ...    % alpha coefficient dry
-            'aw',       [], ...    % alpha coefficent wet
-            'zhd',       [], ...    % zhd 
-            'zwd',       [], ...    % zwd
-            'first_lat',  [], ...    % first latitude
-            'first_lon',  [], ...    % first longitude
-            'd_lat',      [], ...    % lat spacing
-            'd_lon',      [], ...    % lon_spacing
-            'n_lat',      [], ...    % num lat
-            'n_lon',      [], ...    % num lon
-            'first_time', [], ...    % times [time] of the maps
-            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
-            'dt',         [], ...    % time spacing
-            'n_t',        [] ...   % num of epocvhs
-            );
+                'ah',       [], ...    % alpha coefficient dry
+                'aw',       [], ...    % alpha coefficent wet
+                'zhd',       [], ...    % zhd
+                'zwd',       [], ...    % zwd
+                'first_lat',  [], ...    % first latitude
+                'first_lon',  [], ...    % first longitude
+                'd_lat',      [], ...    % lat spacing
+                'd_lon',      [], ...    % lon_spacing
+                'n_lat',      [], ...    % num lat
+                'n_lon',      [], ...    % num lon
+                'first_time', [], ...    % times [time] of the maps
+                'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                'dt',         [], ...    % time spacing
+                'n_t',        [] ...   % num of epocvhs
+                );
         end
         
         function [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
@@ -889,7 +872,7 @@ classdef Atmosphere < handle
             % SYNTAX
             %   [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
             
-            thin_shell_height = this.ionex.height(1) * 1000;       
+            thin_shell_height = this.ionex.height(1) * 1000;
             % ionopshere thin shell height [km]->[m]
             % get piercing point and mapping function
             %
@@ -942,8 +925,8 @@ classdef Atmosphere < handle
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
                 if sum(idx_sat > 0)
-                t_time= gps_time(t);
-                [stec, pp, mfpp, k] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
+                    t_time= gps_time(t);
+                    [stec, pp, mfpp, k] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
                     A = 80.6;
                     
                     t_stec(t,idx_sat) = stec;
@@ -1395,7 +1378,7 @@ classdef Atmosphere < handle
             temp = temp0 - 0.0065d0 * h_ort;
         end
         
-         function [gmfh, gmfw] = gmf(this, time, lat, lon, hgt, el)
+        function [gmfh, gmfw] = gmf(this, time, lat, lon, hgt, el)
             % This subroutine determines the Global Mapping Functions GMF
             % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
             % Global Mapping Functions (GMF): A new empirical mapping function based on numerical weather model data,
@@ -1632,7 +1615,7 @@ classdef Atmosphere < handle
         function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, el, h_ell, interp_first)
             %angles in radians!!
             %code based on:
-            %    [1]  Boehm, J., B. Werl, H. Schuh (2006),  Troposphere mapping functions for GPS and very long baseline interferometry  from European Centre for Medium-Range Weather Forecasts operational analysis data,J. Geoph. Res., Vol. 111, B02406, doi:10.1029/2005JB003629.  
+            %    [1]  Boehm, J., B. Werl, H. Schuh (2006),  Troposphere mapping functions for GPS and very long baseline interferometry  from European Centre for Medium-Range Weather Forecasts operational analysis data,J. Geoph. Res., Vol. 111, B02406, doi:10.1029/2005JB003629.
             %    [2] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
             %    [3] Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
             %    [4] http://ggosatm.hg.tuwien.ac.at/DELAY/SOURCE/vmf1_grd.m
@@ -1729,14 +1712,14 @@ classdef Atmosphere < handle
                 
             end
         end
-         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
+        function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
             %angles in radians!!
             %code based on:
             %    [3] Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
             %
             % SYNTAX
             %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
-            T0 = 28  - (lat<0)*365.25/2; 
+            T0 = 28  - (lat<0)*365.25/2;
             lat = abs(lat);
             lat_p = [ 15 30 45 60 75]/180*pi;
             ah_coef_lat = [1.2769934e-3 1.2683230e-3 1.2465397e-3 1.2196049e-3 1.2045996e-3];
@@ -1791,8 +1774,8 @@ classdef Atmosphere < handle
             [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,n_sat),repmat(bw,1,n_sat),repmat(cw,1,n_sat),el);
             
             [h_h_coorection] = this.hydrostaticMFHeigthCorrection(h_ell,el);
-            gmfh = gmfh + h_h_coorection;            
-         end
+            gmfh = gmfh + h_h_coorection;
+        end
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1811,7 +1794,7 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [iono_mf] = getIonoMF(lat_rad, h_ortho, el_rad, rcm)
-
+            
             % Get radius of curvature at lat
             if nargin < 5
                 rcm = getMeridianRadiusCurvature(lat_rad);
@@ -1845,16 +1828,16 @@ classdef Atmosphere < handle
             % formulas and paramaters taken from :
             %   Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
             
-            % height correction for the hydrostatic part 
+            % height correction for the hydrostatic part
             
-            % coefficent from tab 3 
+            % coefficent from tab 3
             a_ht = 2.53d-5;
             b_ht = 5.49d-3;
             c_ht = 1.14d-3;
             h_ell_km     = h_ell/1000;   % convert height to km
-            % eq (6) 
+            % eq (6)
             ht_corr_coef = 1 ./ sin(zero2nan(el))   -    Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
-            % eq (7) 
+            % eq (7)
             ht_corr      = ht_corr_coef * h_ell_km;
         end
         
@@ -1863,7 +1846,7 @@ classdef Atmosphere < handle
             % INPUT:
             %    time - time GPS_Time object
             %    lat  - latitude in radians
-             % coefficients of tab 1 in [1]
+            % coefficients of tab 1 in [1]
             if (lat<0)      % southern hemisphere
                 phi_h  = pi;
                 c11_h = 0.007;
@@ -1963,7 +1946,7 @@ classdef Atmosphere < handle
             
             index = find(abs(x) >= 1.57);
             delay(index,1) = Global_Configuration.V_LIGHT * f(index) .* 5e-9;
-        end        
+        end
         
         function [lat_pp, lon_pp, iono_mf, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
             % Get the pierce point
@@ -2033,7 +2016,7 @@ classdef Atmosphere < handle
         
         function [ZWD] = saast_wet(T, H,h)
             % Saastamoinen wet
-            %            
+            %
             % SYNTAX
             %   [ZWD] = saast_wet(T, H);
             %

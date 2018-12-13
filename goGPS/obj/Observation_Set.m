@@ -75,7 +75,7 @@ classdef Observation_Set < handle
             this.el = el;
             this.az = az;
             this.prn = prn;
-            cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
+            cc = Core.getCurrentSettings().getConstellationCollector;
             this.go_id = cc.getIndex(this.obs_code(:,1), this.prn);
                         
         end

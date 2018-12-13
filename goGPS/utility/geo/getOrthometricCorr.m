@@ -51,8 +51,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %--------------------------------------------------------------------------
 
 if (nargin == 2)
-    gs = Global_Configuration.getInstance();
-    geoid = gs.getRefGeoid();
+    geoid = Core.getGlobalConfig.getRefGeoid();
 end
 
 N = zeros(numel(lam), 1);

@@ -56,7 +56,7 @@ global nmea_init nmea_update_rate
 global master rover
 global n_sys
 
-state = Global_Configuration.getCurrentSettings();
+state = Core.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 nSatTot = constellations.nEnabledSat;

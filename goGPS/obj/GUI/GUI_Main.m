@@ -1317,7 +1317,7 @@ end
             % SYNTAX:
             %   [sss_start, sss_stop, validity_check] = getSessionLimits(this)
             %
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             validity_check = true;
             
             date = this.ui_sss_start.Children(2).JavaPeer.getDate;
@@ -1372,7 +1372,7 @@ end
                 this.ui_sss_stop.Children(2).JavaPeer.setDate(java.util.Date(sss_stop.toString('yyyy/mm/dd')));
             end
             
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             status_change = false;
             if sss_start - state.getSessionsStart() ~= 0
                 status_change = true;
@@ -1597,7 +1597,7 @@ end
         end
         
         function updateSessionFromState(this, caller, event)
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             this.ui_sss_start.Children(2).JavaPeer.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
             this.ui_sss_start.Children(1).Children(1).String = state.sss_date_start.toString('HH:MM:SS');
             %this.ui_sss_start.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
@@ -1734,7 +1734,7 @@ end
         
         function updateAndCheckRecList(this, caller, event)
             % Get file name list
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             state.updateObsFileName;
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
@@ -1762,7 +1762,7 @@ end
             %   this.updateAndPlotRecList
             
             % Get file name list
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             state.updateObsFileName;
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
@@ -1925,7 +1925,7 @@ end
             %
             % SYNTAX:
             %   this.updateRecList
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             state.updateObsFileName;
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;

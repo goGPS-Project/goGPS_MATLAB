@@ -157,8 +157,7 @@ fprintf('\n\nprogram demo_jpl_mice\n');
 
 fprintf('\n\nephemeris file     ');
 
-gs = Global_Configuration.getInstance();
-go_dir = gs.getLocalStorageDir();
+go_dir = Core.getGlobalConfig().getLocalStorageDir();
 disp(fullfile(go_dir, ephname));
 
 fprintf('\ntarget body    ');

@@ -87,34 +87,19 @@ classdef Core_Sky < handle
         cc                    % constellation collector handler
     end
     
-    methods (Access = 'private')
+    methods
         % Creator
-        function this = Core_Sky()
+        function this = Core_Sky(force_clean)
             % Core object creator
-            this.state = Global_Configuration.getCurrentSettings();
+            this.state = Core.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
+            this.cc = Core.getCurrentSettings().getConstellationCollector;
             this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
-        end
-    end
-    
-    methods (Static)
-        % Concrete implementation.  See Singleton superclass.
-        function this = getInstance(force_clean)
-            % Get the persistent instance of the class
-            persistent unique_instance_core_sky__
-            
-            if isempty(unique_instance_core_sky__)
-                this = Core_Sky();
-                unique_instance_core_sky__ = this;
-            else
-                this = unique_instance_core_sky__;
-            end
             if nargin == 1 && force_clean
                 this.clearOrbit();
             end
         end
-    end
+    end      
     
     % =========================================================================
     %  METHODS
@@ -1011,7 +996,7 @@ classdef Core_Sky < handle
         end
         
         function importCODEDCB(this)
-            state = Global_Configuration.getCurrentSettings;
+            state = Core.getCurrentSettings();
             
             [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, state.getCC);
             %%% assume that CODE dcb contains only GPS and GLONASS
@@ -1859,7 +1844,7 @@ classdef Core_Sky < handle
             setdt(5.877122033683494);
             xp = 171209e-6; yp = 414328e-6;
             
-            gs = Global_Configuration.getInstance();
+            gs = Core.getGlobalConfig();
             go_dir = gs.getLocalStorageDir();
             
             %if the binary JPL ephemeris file is not available, generate it
@@ -2150,7 +2135,7 @@ classdef Core_Sky < handle
             
             flag_return = 0;
             log = Logger.getInstance();
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             
             %number of satellite slots for enabled constellations
             nSatTot = cc.getNumSat();

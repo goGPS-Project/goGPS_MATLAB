@@ -36,7 +36,7 @@ function report_generator(report)
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-state = Global_Configuration.getCurrentSettings();;
+state = Core.getCurrentSettings();;
 
 if is_subfield(report,'opt.write') && report.opt.write == 1
 

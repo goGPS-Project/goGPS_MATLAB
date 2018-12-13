@@ -415,7 +415,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.importAntModel();
             end
-            rf = Core.getReferenceFrame();
+            rf = Core.getReferenceFrame(true);
             coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
             if ~isempty(coo)
                 this.xyz = coo;
@@ -5998,8 +5998,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             else
                 % all 342 tides
-                mot = MOT_Generator.getInstance();
-                corr = mot.computeDisplacement(ol_disp.matrix(1:3,:), ol_disp.matrix(4:6,:), this.time);
+                corr = MOT_Generator.computeDisplacement(ol_disp.matrix(1:3,:), ol_disp.matrix(4:6,:), this.time);
             end
             corrENU(:,1) = -corr(:,2); %east
             corrENU(:,2) = -corr(:,3); %north

@@ -73,7 +73,7 @@ global ratiotest mutest succ_rate fixed_solution
 global n_sys geoid
 global apriori_ZHD apriori_ZWD
 
-state = Global_Configuration.getCurrentSettings();
+state = Core.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 kalman_initialized = 0;

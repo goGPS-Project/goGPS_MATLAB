@@ -1163,7 +1163,7 @@ classdef Core_Utils < handle
             state.prj_name = prj_name;
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             state.save(config_path);
-            Global_Configuration.getCurrentSettings.import(state);
+            Core.getCurrentSettings().import(state);
         end
         
         function y = fillNan1D(y,x)

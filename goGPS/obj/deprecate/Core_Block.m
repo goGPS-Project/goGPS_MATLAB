@@ -1730,7 +1730,7 @@ classdef Core_Block < handle
             % Separate the dataset in single blocks and solve float -> fix
             % go_block = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, 3600);
             %%
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             log = Core.getLogger();
 
             s_rate = s_rate(1);

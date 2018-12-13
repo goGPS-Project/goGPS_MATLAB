@@ -158,7 +158,7 @@ classdef File_Wizard < handle
     end
     
     properties (SetAccess = protected, GetAccess = protected)
-        state = Global_Configuration.getCurrentSettings();     %  Global state, to import custom server and service preferences
+        state = Core.getCurrentSettings();     %  Global state, to import custom server and service preferences
     end
     
     properties (SetAccess = private, GetAccess = private)
@@ -598,7 +598,7 @@ classdef File_Wizard < handle
                 %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
                 
                 % Pointer to the global settings:
-                state = Global_Configuration.getCurrentSettings();
+                state = Core.getCurrentSettings();
                 
                 file_dcb = {};
                 compressed = 0;
@@ -808,7 +808,7 @@ classdef File_Wizard < handle
             %[file_crx] = download_crx(gps_weeks, gps_times);
             
             % Pointer to the global settings:
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             
             %AIUB FTP server IP address
             % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch

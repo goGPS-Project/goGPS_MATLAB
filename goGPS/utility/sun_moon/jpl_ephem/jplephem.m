@@ -66,8 +66,7 @@ if (iephem == 1)
 
     % read header file data
 
-    gs = Global_Configuration.getInstance();
-    go_dir = gs.getLocalStorageDir();
+    go_dir = Core.getGlobalConfig.getLocalStorageDir();
     fid = fopen(fullfile(go_dir, ephname), 'r');
 
     ttl = fread(fid, 252);

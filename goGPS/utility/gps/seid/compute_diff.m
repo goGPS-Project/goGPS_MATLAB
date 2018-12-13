@@ -31,7 +31,7 @@ function [diff_L4, diff_P4, commontime, stations_idx, L1_series, L2_series, L4_s
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-cc = Global_Configuration.getCurrentSettings().getConstellationCollector();
+cc = Core.getCurrentSettings().getConstellationCollector();
 lambda1 = cc.gps.L_VEC(1);
 lambda2 = cc.gps.L_VEC(2);
 

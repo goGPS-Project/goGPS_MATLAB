@@ -146,23 +146,7 @@ classdef Command_Interpreter < handle
             this.init(varargin{1});
         end
     end
-    %
-    %% METHOD INTERFACE
-    % ==================================================================================================================================================
-    methods (Static, Access = public)
-        function this = getInstance(varargin)
-            % Get the persistent instance of the class
-            persistent unique_instance_cmdi__
-            
-            if isempty(unique_instance_cmdi__)
-                this = Command_Interpreter(varargin);
-                unique_instance_cmdi__ = this;
-            else
-                this = unique_instance_cmdi__;
-                this.init(varargin);
-            end
-        end
-    end
+    
     %
     %% METHODS INIT
     % ==================================================================================================================================================
@@ -858,7 +842,7 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
                         if sys_found
-                            state = Global_Configuration.getCurrentSettings();
+                            state = Core.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
                         if this.core.state.isRinexSession()
@@ -898,7 +882,7 @@ classdef Command_Interpreter < handle
                     this.log.newLine();                    
                     if rec(r).isEmpty
                         if sys_found
-                            state = Global_Configuration.getCurrentSettings();
+                            state = Core.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
                         rec(r).work.load();
@@ -951,7 +935,7 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     if rec(r).isEmpty
                         if sys_found
-                            state = Global_Configuration.getCurrentSettings();
+                            state = Core.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
                         rec(r).load();
@@ -1422,7 +1406,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   [id_sss, found] = this.getMatchingSession(tok)            
-                    state = Global_Configuration.getCurrentSettings(); 
+                    state = Core.getCurrentSettings(); 
                     n_key = state.getSessionCount();
                     [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
         end
@@ -1592,7 +1576,7 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %  [cmd, err_list, execution_block, sss_list, trg_list, key_lev] = fastCheck(this, cmd_list)
             if nargout > 3
-                state = Global_Configuration.getCurrentSettings;
+                state = Core.getCurrentSettings();
             end
             err_list = zeros(size(cmd_list));
             

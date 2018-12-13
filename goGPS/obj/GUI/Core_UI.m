@@ -1365,7 +1365,7 @@ classdef Core_UI < handle
         end
         
         function onSearchFileBox(caller, event)
-            state = Global_Configuration.getCurrentSettings();
+            state = Core.getCurrentSettings();
             [file, path] = uigetfile([state.getHomeDir filesep '*.*']);
             if file ~= 0
                 caller.Parent.Children(2).String = file;

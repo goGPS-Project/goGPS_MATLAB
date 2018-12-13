@@ -49,7 +49,7 @@ function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, cc)
 %--------------------------------------------------------------------------
 
 if (isempty(cc)) %then use only GPS as default
-    state = Global_Configuration.getCurrentSettings;
+    state = Core.getCurrentSettings();
     cc = state.getCC;
 end
 

@@ -536,7 +536,7 @@ classdef Meteo_Data < handle
                 [~, day_start, day_id] = unique(yyyy*1e4+doy);
                 
                 if (nargin == 1)
-                    state = Global_Configuration.getCurrentSettings();
+                    state = Core.getCurrentSettings();
                     file_name =  this.marker_name;
                     % generate short 4 letters name
                     if numel(file_name) < 4
@@ -977,7 +977,7 @@ classdef Meteo_Data < handle
             do_export = true;
             show_fig = true;
             
-            gc = Global_Configuration.getInstance;
+            gc = Core.getGlobalConfig;
             state = gc.getCurrentSettings();
             state.setMetDir(data_path);
             log = Logger.getInstance();

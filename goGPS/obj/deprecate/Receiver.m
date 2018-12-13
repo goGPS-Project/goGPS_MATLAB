@@ -245,7 +245,7 @@ classdef Receiver < Exportable
             % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
             this.reset();
             this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.state = Core.getCurrentSettings();
             this.rf = Core.getReferenceFrame();
             if nargin >= 1 && ~isempty(cc)
                 this.cc = cc;
@@ -438,9 +438,7 @@ classdef Receiver < Exportable
             % initialize satellite related parameters
             % SYNTAX this.initR2S();
             
-            this.sat.cs           = Core_Sky.getInstance();
-            %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
-            %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
+            this.sat.cs = Core.getCoreSky();
         end
         
         function TEST_smoothCodeWithDoppler(this, win_size)
@@ -1412,7 +1410,7 @@ classdef Receiver < Exportable
         function importMeteoData(this)
             %DESCRIPTION load meteo data from Meteo Network object
             %and get a virtual station at receiver positions
-            mn = Meteo_Network.getInstance();
+            mn = Core.getMeteoNetwork();
             if ~isempty(mn.mds)
                 this.log.addMarkedMessage('importing meteo data');
                 this.meteo_data = mn.getVMS(this.marker_name, this.xyz, this.getNominalTime);
@@ -2523,9 +2521,8 @@ classdef Receiver < Exportable
             %   [lat, lon, h_ellips, h_ortho]�= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
-                gs = Global_Configuration.getInstance;
-                gs.initGeoid();
-                ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                Core.initGeoid();
+                ondu = getOrthometricCorr(lat, lon, Core.getGlobalConfig().getRefGeoid);
                 h_ortho = h_ellips - ondu;
             end
         end
@@ -2635,9 +2632,8 @@ classdef Receiver < Exportable
                     xyz = median(this(r).xyz, 1);
                     [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
                     if nargout == 4
-                        gs = Global_Configuration.getInstance;
-                        gs.initGeoid();
-                        ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
+                        Core.initGeoid();
+                        ondu = getOrthometricCorr(lat(r), lon(r), Core.getGlobalConfig().getRefGeoid);
                         h_ortho(r) = h_ellips(r) - ondu; %#ok<AGROW>
                     end
                     lat(r) = lat(r) / pi * 180;
@@ -2664,9 +2660,8 @@ classdef Receiver < Exportable
             if ~isempty(this(1))
                 [lat, lon, h_ellips] = cart2geod(xyz);
                 if nargout == 4
-                    gs = Global_Configuration.getInstance;
-                    gs.initGeoid();
-                    ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                    Core.initGeoid();                    
+                    ondu = getOrthometricCorr(lat, lon, Core.getGlobalConfig().getRefGeoid());
                     h_ortho = h_ellips - ondu;
                 end
                 lat = lat / pi * 180;

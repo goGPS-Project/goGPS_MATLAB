@@ -52,7 +52,7 @@ global weights
 global n_sys
 week = 0;
 
-state = Global_Configuration.getCurrentSettings();
+state = Core.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 nSatTot = constellations.nEnabledSat;
