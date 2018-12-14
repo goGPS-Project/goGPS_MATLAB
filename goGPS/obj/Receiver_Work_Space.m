@@ -929,12 +929,24 @@ classdef Receiver_Work_Space < Receiver_Commons
             [pr, id_pr] = this.getPseudoRanges;
             inan = isnan(pr);
             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
-            med_pr = median(Core_Utils.diffAndPred(pr_fill,2),2,'omitnan');
-            out = abs(bsxfun(@minus, Core_Utils.diffAndPred(pr_fill, 2), med_pr)) > thr;
+            
+            pr_d3 = Core_Utils.diffAndPred(pr_fill,3);
+            med_pr0 = median(pr_d3, 2,'omitnan');
+            out = flagExpand(abs(bsxfun(@minus, pr_d3, med_pr0)) > thr, 2); % flagExpand -> beeing conservative, I prefer to flag more
+            pr_fill(out) = nan;
+            pr_fill = simpleFill1D(pr_fill, flagExpand(~inan, 5) &  inan);
+            
+            pr_d3 = Core_Utils.diffAndPred(bsxfun(@minus, Core_Utils.diffAndPred(pr_fill,2), cumsum(med_pr0)));
+            med_pr = median(pr_d3, 2,'omitnan');
+            out = flagExpand(abs(bsxfun(@minus, pr_d3, med_pr)) > thr/4, 2); % flagExpand -> beeing conservative, I prefer to flag more
             pr(out) = nan;
+            % eliminate the last strong outliers
+            out2 = flagExpand(abs(bsxfun(@minus, diff([nan(3, size(pr(1,:),2)); pr],3), median(diff([nan(3, size(pr(1,:),2)); pr],3),2,'omitnan'))) > thr / 5, 2);
+            pr(out2) = nan;
+            
             pr = zero2nan(Core_PP.remShortArcs(pr', 1))';
             this.setPseudoRanges(pr, id_pr);
-            n_out = sum(out(:) & ~inan(:));
+            n_out = sum((out(:) | out2(:)) & ~inan(:));
             this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
         end
         
