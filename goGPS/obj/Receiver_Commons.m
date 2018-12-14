@@ -935,6 +935,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
             if new_fig
                 f = Mapper();
+                if isa(f,'Mapper')
+                    f = f.fig;
+                end
             else
                 f = gcf;
                 hold on;

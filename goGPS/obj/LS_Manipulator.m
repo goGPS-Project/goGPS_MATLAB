@@ -1943,7 +1943,9 @@ classdef LS_Manipulator < handle
             
             if nargout > 1
                 x_res = zeros(size(x));
-                x_res(N2A_idx) = x(1:end-size(this.G,1));
+                if not(isempty(x_res))
+                    x_res(N2A_idx) = x(1:end-size(this.G,1));
+                end
                 if sum(isnan(x_res)) ==0
                     res = this.getResiduals(x_res);
                     s0 = mean(abs(res(res~=0)));
