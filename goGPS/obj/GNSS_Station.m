@@ -389,10 +389,12 @@ classdef GNSS_Station < handle
             req_rec = [];
             for r = 1 : size(rec_list,2)
                 rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
-                if strcmpi(rec(1).getMarkerName, marker_name)
-                    req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
-                elseif strcmpi(rec(1).getMarkerName4Ch, marker_name)
-                    req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                if not(rec.isEmpty)
+                    if strcmpi(rec(1).getMarkerName, marker_name)
+                        req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                    elseif strcmpi(rec(1).getMarkerName4Ch, marker_name)
+                        req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                    end
                 end
             end
         end
@@ -488,8 +490,7 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   is_empty = this.isEmpty();
             
-            is_empty =  this.work.isEmpty() && this.out.isEmpty();
-            
+            is_empty = isempty(this) || (this.work.isEmpty() && this.out.isEmpty());
         end
         
         function time = getTime(this)
