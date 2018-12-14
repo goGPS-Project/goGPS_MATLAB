@@ -6736,12 +6736,14 @@ classdef Receiver_Work_Space < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
-        function [is_pr_jumping, is_ph_jumping] = correctTimeDesync(this)
+        function [is_pr_jumping, is_ph_jumping] = correctTimeDesync(this, disable_dt_correction)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX
             %   this.correctTimeDesync()
             this.log.addMarkedMessage('Correct for time desync');
-            disable_dt_correction = true; % Skip to speed-up processing
+            if nargin < 2 | isempty(disable_dt_correction)
+                disable_dt_correction = true; % Skip to speed-up processing
+            end
             
             % computing nominal_time
             nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24; % start of day
@@ -7144,7 +7146,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if size(this.xyz,1) == 1
                 this.xyz = repmat(this.xyz,this.time.length,1);
             end
-            this.xyz = this.xyz(id_sync,:) + dpos;
+            this.xyz = bsxfun(@plus, this.xyz(id_sync,:), dpos);
             dt = x(x(:,2) == 6,1);
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
