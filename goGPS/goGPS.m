@@ -69,7 +69,7 @@ function goGPS(ini_settings, use_gui, flag_online)
     log = Logger.getInstance();
     log.disableFileOut();
     
-    core = Core.getInstance(); % Init Core
+    core = Core.getInstance(true); % Init Core
     
     if nargin >= 1 && ~isempty(ini_settings)
         core.import(ini_settings);
