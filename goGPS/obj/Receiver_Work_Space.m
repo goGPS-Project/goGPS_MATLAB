@@ -7118,7 +7118,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.quality_info.fixing_ratio = 0; 
         end
         
-        function [dpos, s0] = codeDynamicPositioning(this, id_sync, cut_off)
+        function [dpos, s0, ls] = codeDynamicPositioning(this, id_sync, cut_off)
             ls = LS_Manipulator(this.cc);
             if nargin < 2
                 if ~isempty(this.id_sync)
@@ -7219,7 +7219,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
-                [~, s0] = this.codeDynamicPositioning(this.id_sync, 15);
+                [~, s0, ls] = this.codeDynamicPositioning(this.id_sync, 15);
                 this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
@@ -7554,13 +7554,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 else
                     this.log.addError('Pre-Processing failed: skipping PPP solution');
                 end
+            elseif this.quality_info.s0_ip > 10
+                this.log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
             else
                 if nargin >= 2
                     if ~isempty(sys_list)
                         this.setActiveSys(sys_list);
                     end
                 end
-                
                 if nargin < 3
                     id_sync = (1 : this.time.length())';
                 end
@@ -7575,7 +7576,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 ls = LS_Manipulator(this.cc);
                 pos_idx = [];
-                
                 
                 order_tropo = this.state.spline_tropo_order;
                 order_tropo_g = this.state.spline_tropo_gradient_order;
@@ -7600,8 +7600,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
                         ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
                     end
-                    
-                    
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0, ~, l_fixed] = ls.solve();
