@@ -2528,10 +2528,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             n_obs = size(this.obs, 1);
         end
         
-        function n_pr = getNumPseudoRanges(this)
+        function n_pr = getNumPrEpochs(this)
             % get the number of epochs stored in the object
-            % SYNTAX n_pr = this.getNumPseudoRanges()
+            % SYNTAX n_pr = this.getNumPrEpochs()
             n_pr = sum(this.obs_code(:,1) == 'C');
+        end
+        
+        function n_pr = getNumPhEpochs(this)
+            % get the number of epochs stored in the object
+            % SYNTAX n_pr = this.getNumPhEpochs()
+            n_pr = sum(this.obs_code(:,1) == 'L');
         end
         
         function n_sat = getNumSat(this, sys_c)
@@ -3996,7 +4002,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if nargin < 4
                     max_obs_type = length(preferences);
                 end
-                % find the better flag present
+                % find the best flag present
                 for j = 1 : max_obs_type
                     for i = 1:length(preferences)
                         if sum(sum(sys_obs_code == repmat([flag preferences(i)],sz,1),2)==3)>0
@@ -7450,68 +7456,73 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.remBadPrObs(150);
                 end
                 this.remShortArc(this.state.getMinArc); 
+                this.remEmptyObs();
                 
-                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
-                if (min(s02) > this.S02_IP_THR)
-                    this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                if this.getNumPrEpochs == 0
+                    this.log.addError('Pre-Processing failed: the receiver object is empty');
                 else
-                    this.remUnderCutOff();
-                    this.setAvIdx2Visibility();
-                    this.meteo_data = [];
-                    this.importMeteoData(); % now with more precise coordinates
-                    
-                    % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-                    this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
-                    % smooth clock estimation
-                    this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
-                    
-                    % update azimuth elevation
-                    this.updateAzimuthElevation();
-                    % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                    this.shiftToNominal();
-                    
-                    this.updateAllTOT(true);
-                    this.correctPhJump();
-                    
-                    if flag_apply_corrections
-                        % apply various corrections
-                        this.sat.cs.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                    s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
+                    if (min(s02) > this.S02_IP_THR)
+                        this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                    else
+                        this.remUnderCutOff();
+                        this.setAvIdx2Visibility();
+                        this.meteo_data = [];
+                        this.importMeteoData(); % now with more precise coordinates
                         
+                        % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
+                        this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
+                        % smooth clock estimation
+                        this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                        
+                        % update azimuth elevation
                         this.updateAzimuthElevation();
-                        if this.state.isAprIono || this.state.getIonoManagement == 3
-                            this.updateErrIono();
-                            this.applyIonoModel();
+                        % Add a model correction for time desync -> observations are now referred to nominal time  #14
+                        this.shiftToNominal();
+                        
+                        this.updateAllTOT(true);
+                        this.correctPhJump();
+                        
+                        if flag_apply_corrections
+                            % apply various corrections
+                            this.sat.cs.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                            
+                            this.updateAzimuthElevation();
+                            if this.state.isAprIono || this.state.getIonoManagement == 3
+                                this.updateErrIono();
+                                this.applyIonoModel();
+                            end
+                            
+                            %ph0 = this.getPhases();
+                            this.applyPCV();
+                            %ph1 = this.getPhases();
+                            %corr.pcv = ph1 - ph0;
+                            this.applyPoleTide();
+                            %ph2 = this.getPhases();
+                            %corr.pt = ph2 - ph1;
+                            this.applyPhaseWindUpCorr();
+                            %ph3 = this.getPhases();
+                            %corr.pwu = ph3 - ph2;
+                            this.applySolidEarthTide();
+                            %ph4 = this.getPhases();
+                            %corr.set = ph4 - ph3;
+                            this.applyShDelay();
+                            %ph5 = this.getPhases();
+                            %corr.shd = ph5 - ph4;
+                            this.applyOceanLoading();
+                            %ph6 = this.getPhases();
+                            %corr.ocl = ph6 - ph5;
+                            this.applyAtmLoad();
+                            this.applyHOI();
+                            
+                            if this.state.isRepairOn()
+                                this.repairPhases();
+                            end
+                            
+                            this.detectOutlierMarkCycleSlip();
+                            this.coarseAmbEstimation();
+                            this.pp_status = true;
                         end
-                        
-                        %ph0 = this.getPhases();
-                        this.applyPCV();
-                        %ph1 = this.getPhases();
-                        %corr.pcv = ph1 - ph0;
-                        this.applyPoleTide();
-                        %ph2 = this.getPhases();
-                        %corr.pt = ph2 - ph1;
-                        this.applyPhaseWindUpCorr();
-                        %ph3 = this.getPhases();
-                        %corr.pwu = ph3 - ph2;
-                        this.applySolidEarthTide();
-                        %ph4 = this.getPhases();
-                        %corr.set = ph4 - ph3;
-                        this.applyShDelay();
-                        %ph5 = this.getPhases();
-                        %corr.shd = ph5 - ph4;
-                        this.applyOceanLoading();
-                        %ph6 = this.getPhases();
-                        %corr.ocl = ph6 - ph5;
-                        this.applyAtmLoad();
-                        this.applyHOI();
-                        
-                        if this.state.isRepairOn()
-                            this.repairPhases();
-                        end
-                        
-                        this.detectOutlierMarkCycleSlip();
-                        this.coarseAmbEstimation();
-                        this.pp_status = true;
                     end
                 end
             end
