@@ -1242,6 +1242,18 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showProcessingQualityInfo(sta_list)
+            % Show quality info about the receiver processing
+            % SYNTAX this.showProcessingQualityInfo();
+            
+            for r = 1 : length(sta_list)
+                rec = sta_list(r).out;
+                if ~rec.isEmpty() && ~rec.out.isEmpty()
+                    rec.out.showProcessingQualityInfo();
+                end
+            end
+        end
+        
         function showPositionENU(sta_list, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();

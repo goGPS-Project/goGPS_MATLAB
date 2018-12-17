@@ -105,7 +105,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     properties
-        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
         a_fix
         s_rate
         n_sat_ep
@@ -146,7 +146,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
 
             this.a_fix = [];
             this.s_rate = [];

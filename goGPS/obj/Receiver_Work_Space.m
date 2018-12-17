@@ -359,7 +359,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
             
             this.a_fix = [];
             this.s_rate = [];
@@ -914,6 +914,30 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+%         function remBadPrObs(this, thr)
+%             % remove bad pseudo-ranges
+%             % and isolated observations
+%             %
+%             % INPUT
+%             %   thr is a threshold in meters (default = 150)
+%             %
+%             % SYNTAX
+%             %   this.remBadPrObs(thr)
+%             if nargin == 1
+%                 thr = 150; % meters
+%             end
+%             [pr, id_pr] = this.getPseudoRanges;
+%             inan = isnan(pr);
+%             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
+%             med_pr = median(Core_Utils.diffAndPred(pr_fill,2),2,'omitnan');
+%             out = abs(bsxfun(@minus, Core_Utils.diffAndPred(pr_fill, 2), med_pr)) > thr;
+%             pr(out) = nan;
+%             pr = zero2nan(Core_PP.remShortArcs(pr', 1))';
+%             this.setPseudoRanges(pr, id_pr);
+%             n_out = sum(out(:) & ~inan(:));
+%             this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
+%         end
+%         
         function remBadPrObs(this, thr)
             % remove bad pseudo-ranges
             % and isolated observations
@@ -7127,6 +7151,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.quality_info.s0_ip = s0;
             this.quality_info.n_epochs = ls.n_epochs;
             this.quality_info.n_obs = size(ls.epoch, 1);
+            this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
             this.quality_info.n_sat = length(unique(ls.sat));
             this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs)); 
             this.quality_info.fixing_ratio = 0; 
@@ -7238,6 +7263,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
+                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0; 
@@ -7686,6 +7712,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.s0 = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
+                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 if this.state.getAmbFixPPP
