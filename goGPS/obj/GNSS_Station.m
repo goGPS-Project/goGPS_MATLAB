@@ -1247,9 +1247,9 @@ classdef GNSS_Station < handle
             % SYNTAX this.showProcessingQualityInfo();
             
             for r = 1 : length(sta_list)
-                rec = sta_list(r).out;
-                if ~rec.isEmpty() && ~rec.out.isEmpty()
-                    rec.out.showProcessingQualityInfo();
+                if ~sta_list(r).isEmpty() && ~sta_list(r).out.isEmpty()
+                    rec_out = sta_list(r).out;
+                    rec_out.showProcessingQualityInfo();
                 end
             end
         end
@@ -1465,21 +1465,25 @@ classdef GNSS_Station < handle
                     quality = Receiver_Commons.smoothSatData([],[],zero2nan(quality), [], 'spline', 900 / this.getRate, 10); % smoothing Quality => to be improved
                 end
                 
-                f = figure; f.Name = sprintf('%03d: %s', f.Number, upper(type)); f.NumberTitle = 'off';
-                f_handle(r) = f;
-                id_ok = (~isnan(quality));
-                polarScatter(serialize(az(id_ok)) / 180 * pi, serialize(90 - el(id_ok)) / 180 * pi, 45, serialize(quality(id_ok)), 'filled');
-                colormap(jet);  cax = caxis();
-                switch type
-                    case 'snr'
-                        caxis([min(cax(1), 10), max(cax(2), 55)]);
-                        setColorMap([10 55], 0.9);
+                if (numel(az) ~= numel(quality))
+                    log = Logger.getInstance();
+                    log.addError('Number of elements for az different from quality data\nPlotting id not possible');
+                else
+                    f = figure; f.Name = sprintf('%03d: %s', f.Number, upper(type)); f.NumberTitle = 'off';
+                    f_handle(r) = f;
+                    id_ok = (~isnan(quality));
+                    polarScatter(serialize(az(id_ok)) / 180 * pi, serialize(90 - el(id_ok)) / 180 * pi, 45, serialize(quality(id_ok)), 'filled');
+                    colormap(jet);  cax = caxis();
+                    switch type
+                        case 'snr'
+                            caxis([min(cax(1), 10), max(cax(2), 55)]);
+                            setColorMap([10 55], 0.9);
+                    end
+                    colorbar();
+                    h = title(sprintf('%s - receiver %s', upper(type), sta_list(r).getMarkerName4Ch()), 'interpreter', 'none');
+                    h.FontWeight = 'bold'; h.Units = 'pixels';
+                    h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                 end
-                colorbar();
-                h = title(sprintf('%s - receiver %s', upper(type), sta_list(r).getMarkerName4Ch()), 'interpreter', 'none');
-                h.FontWeight = 'bold'; h.Units = 'pixels';
-                h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                
             end
         end
                 

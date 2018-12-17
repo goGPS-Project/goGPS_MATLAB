@@ -224,7 +224,7 @@ classdef Command_Settings < Settings_Interface
                 this.cmd_list = this.CMD_LIST;
                 this.log.addWarning(sprintf('Command list seems to be empty, using default values\n %s', this.cmdToString));
             end
-            this.cmd_list = Core.getCommandInterpreter().fastCheck(this.cmd_list);
+            this.cmd_list = Core.getCommandInterpreter.fastCheck(this.cmd_list);
         end
     end
     

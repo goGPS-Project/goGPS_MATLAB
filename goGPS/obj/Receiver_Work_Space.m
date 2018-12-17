@@ -6923,7 +6923,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.time.addSeconds(time_desync - this.dt_pr);
         end
         
-        function s02 = initPositioning(this, sys_c)
+        function s0 = initPositioning(this, sys_c)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX
@@ -6950,9 +6950,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.parent.static = 0;
                 if this.isStatic()
                     %this.initStaticPositioningOld(obs, prn, sys, flag)
-                    s02 = this.initStaticPositioning();
+                    s0 = this.initStaticPositioning();
                 else
-                    s02 = this.initDynamicPositioning();
+                    s0 = this.initDynamicPositioning();
                 end
             end
         end
@@ -6997,42 +6997,42 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
-                    coarsePositioning(this, obs_set)
+                    s0 = coarsePositioning(this, obs_set);
                 end
                 
-                this.updateAllAvailIndex();
-                this.updateAllTOT();
-                this.updateAzimuthElevation()
-                this.updateErrTropo();
-                if ~this.isMultiFreq()
-                    this.updateErrIono();
-                end
-                this.log.addMessage(this.log.indent('Improving estimation'))
-                this.codeStaticPositioning(this.id_sync, this.state.cut_off);
-                %                 %----- NEXUS DEBUG
-                %                 this.adjustPrAmbiguity();
-                %                 this.codeStaticPositioning(this.id_sync, 15);
-                %------
-                this.remBadTracking();
-                
-                this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation'))
-                corr = 2000;
-                i = 1;
-                while max(abs(corr)) > 0.1 && i < 3
-                [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off);
-                % final estimation of time of flight
-                this.updateAllAvailIndex()
-                this.updateAllTOT();
-                i = i+1;
-                end
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
-                
-                
+                if s0 > 0
+                    this.updateAllAvailIndex();
+                    this.updateAllTOT();
+                    this.updateAzimuthElevation()
+                    this.updateErrTropo();
+                    if ~this.isMultiFreq()
+                        this.updateErrIono();
+                    end
+                    this.log.addMessage(this.log.indent('Improving estimation'))
+                    this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                    %                 %----- NEXUS DEBUG
+                    %                 this.adjustPrAmbiguity();
+                    %                 this.codeStaticPositioning(this.id_sync, 15);
+                    %------
+                    this.remBadTracking();
+                    
+                    this.updateAllTOT();
+                    this.log.addMessage(this.log.indent('Final estimation'))
+                    corr = 2000;
+                    i = 1;
+                    while max(abs(corr)) > 0.1 && i < 3
+                        [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                        % final estimation of time of flight
+                        this.updateAllAvailIndex()
+                        this.updateAllTOT();
+                        i = i+1;
+                    end
+                    this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
+                end                
             end
         end
         
-        function coarsePositioning(this, obs_set)
+        function s0 = coarsePositioning(this, obs_set)
             % get a very coarse postioning for the receiver
             if nargin < 2
                 obs_set = Observation_Set();
@@ -7065,14 +7065,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
-                dpos = this.codeStaticPositioning(ep_coarse);
+                [dpos, s0] = this.codeStaticPositioning(ep_coarse);
             end
-            this.updateAzimuthElevation()
-            this.updateErrTropo();
-            if ~this.isMultiFreq()
-                this.updateErrIono();
+            if s0 > 0
+                this.updateAzimuthElevation()
+                this.updateErrTropo();
+                if ~this.isMultiFreq()
+                    this.updateErrIono();
+                end
+                this.codeStaticPositioning(ep_coarse, 15);
             end
-            this.codeStaticPositioning(ep_coarse, 15);
         end
         
         function remBadTracking(this) %%% imprtnat check!! if ph obervation with no code are deleted elsewhere
@@ -7128,33 +7130,38 @@ classdef Receiver_Work_Space < Receiver_Commons
                 [x, res, s0] = ls.solve();
             end
             
-            dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
-            if isempty(dpos)
+            if isempty(x)
                 dpos = [0 0 0];
-            end
-            this.xyz = this.getMedianPosXYZ() + dpos;
-            dt = x(x(:,2) == 6,1);
-            this.dt = zeros(this.time.length,1);
-            this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
-            isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
-            % LS does not know the max number of satellite stored
-            dsz = max(id_sync) - size(res,1);
-            if dsz == 0
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                s0 = 0;
             else
-                if dsz > 0
-                    id_sync = id_sync(1 : end - dsz);
+                dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                if isempty(dpos)
+                    dpos = [0 0 0];
                 end
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                this.xyz = this.getMedianPosXYZ() + dpos;
+                dt = x(x(:,2) == 6,1);
+                this.dt = zeros(this.time.length,1);
+                this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
+                isb = x(x(:,2) == 4,1);
+                this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
+                % LS does not know the max number of satellite stored
+                dsz = max(id_sync) - size(res,1);
+                if dsz == 0
+                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                else
+                    if dsz > 0
+                        id_sync = id_sync(1 : end - dsz);
+                    end
+                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                end
+                this.quality_info.s0_ip = s0;
+                this.quality_info.n_epochs = ls.n_epochs;
+                this.quality_info.n_obs = size(ls.epoch, 1);
+                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
+                this.quality_info.n_sat = length(unique(ls.sat));
+                this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
+                this.quality_info.fixing_ratio = 0;
             end
-            this.quality_info.s0_ip = s0;
-            this.quality_info.n_epochs = ls.n_epochs;
-            this.quality_info.n_obs = size(ls.epoch, 1);
-            this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
-            this.quality_info.n_sat = length(unique(ls.sat));
-            this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs)); 
-            this.quality_info.fixing_ratio = 0; 
         end
         
         function [dpos, s0, ls] = codeDynamicPositioning(this, id_sync, cut_off)
@@ -7502,7 +7509,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.log.addError('Pre-Processing failed: the receiver object is empty');
                 else
                     s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
-                    if (min(s02) > this.S02_IP_THR)
+                    if (s02 == 0)
+                        this.log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
+                    elseif (min(s02) > this.S02_IP_THR)
                         this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
                     else
                         this.remUnderCutOff();

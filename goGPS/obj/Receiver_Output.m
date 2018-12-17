@@ -233,9 +233,19 @@ classdef Receiver_Output < Receiver_Commons
         function [quality, az, el] = getQuality(this)
             % SYNTAX
             %  [quality, az, el] = this.getQuality()
-            quality = this.sat.quality(this.getIdSync,:);
-            az = this.sat.az(this.getIdSync,:);
-            el = this.sat.el(this.getIdSync,:);
+            try
+                quality = this.sat.quality(this.getIdSync,:);
+            catch
+                quality = [];
+            end
+            
+            try
+                az = this.sat.az(this.getIdSync,:);
+                el = this.sat.el(this.getIdSync,:);
+            catch
+                az = [];
+                el = [];
+            end
         end
         
         function missing_epochs = getMissingEpochs(this)
@@ -627,9 +637,11 @@ classdef Receiver_Output < Receiver_Commons
                 h = ylabel(ax(3), 'max # sat'); h.FontWeight = 'bold';
                 h = title(ax(3), 'Maximum number of satellites seen in one epoch', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                plot(ax(4), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
-                h = ylabel(ax(4), '# outliers'); h.FontWeight = 'bold';
-                h = title(ax(4), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
+                if isfield(this.quality_info, 'n_out')
+                    plot(ax(4), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
+                    h = ylabel(ax(4), '# outliers'); h.FontWeight = 'bold';
+                    h = title(ax(4), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
+                end
                 
                 plot(ax(5), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
                 h = ylabel(ax(5), 's0 [cm]'); h.FontWeight = 'bold';
