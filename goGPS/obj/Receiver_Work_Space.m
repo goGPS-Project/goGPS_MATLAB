@@ -3567,7 +3567,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if level < 3
                 % check for bad std
                 % mark sat above a 2 std level (if the std level is greater than 8mm
-                id_ko = repmat(std(sensor, 1, 2, 'omitnan'),1, n_sat) > 6 & abs(sensor) > 10;
+                id_ko = repmat(std(sensor, 1, 2, 'omitnan'),1, n_sat) > 6 & abs(sensor) > 10; % if the epoch is very bad and the residual is bad itself
                 id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), repmat(2*std(sensor,1,2,'omitnan'),1, n_sat));
 
                 % mark outliers out of thr level
@@ -3605,13 +3605,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sensor(id_ok, s) = sensor(id_ok, s) - splinerMat(id_ok, sensor(id_ok, s), 300 / this.getRate(), 1e-6);
                     end
                 end
-                sensor = bsxfun(@minus, sensor, strongMean(zero2nan(sensor)', 0.7, 0.7, 2)');
-                
-                flagged_data = flagged_data | this.flagArcOutliers(sensor, 9, 5);
-                %             fh(4) = figure; plot(sensor, '.', 'Color', [0.7 0.7 0.7]); hold on; plot(sensor .* zero2nan(double(flagged_data)), '.', 'MarkerSize', 10); dockAllFigures;
+                 sensor = bsxfun(@minus, sensor, strongMean(zero2nan(sensor)', 0.7, 0.7, 2)');
+                 threshold = [5 2.5] .* max(2, median(std(sensor, 'omitnan'), 'omitnan'));
+                 flagged_data = flagged_data | this.flagArcOutliers(sensor, threshold(1), threshold(2));
+%                 %             fh(4) = figure; plot(sensor, '.', 'Color', [0.7 0.7 0.7]); hold on; plot(sensor .* zero2nan(double(flagged_data)), '.', 'MarkerSize', 10); dockAllFigures;
                 sensor = sensor + tmp_jmp;
                 sensor = bsxfun(@minus, sensor, strongMean(zero2nan(sensor)', 0.7, 0.7, 2)');
-                flagged_data = flagged_data | this.flagArcOutliers(sensor, 12, 5);
+                threshold = [5 2.5] .* max(2, median(std(sensor, 'omitnan'), 'omitnan'));
+                flagged_data = flagged_data | this.flagArcOutliers(sensor,threshold(1), threshold(2));
             end
 %             fh(1) = figure; plot(sensor, '.-', 'Color', [0.7 0.7 0.7]); hold on; plot(sensor .* zero2nan(double(flagged_data)), '.', 'MarkerSize', 10); dockAllFigures;
 %             fh(2) = figure; plot(res*1e3, '.-'); ax = []; ax(1) = gca;

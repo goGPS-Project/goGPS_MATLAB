@@ -1269,10 +1269,11 @@ classdef LS_Manipulator < handle
             s0 = mean(abs(this.res).*this.rw);
             res_n = this.res/s0;
             if nargin > 2
+                % propagate outlier flag ( snooping gatt)
                 if nargin > 3 && (thr_propagate > 0)
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
                     sat_err(this.epoch + this.sat * this.n_epochs) = this.res/s0;
-                    ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10); % smoothing SNR => to be improved
+                    ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10); 
                     idx_ko = false(this.n_epochs, max(this.sat_go_id));
                     for s = 1 : size(idx_ko, 2)
                         idx_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
