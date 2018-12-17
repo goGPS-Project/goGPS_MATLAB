@@ -110,7 +110,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         CRD_NAME = '';    % Location of the stations coordinate file
         MET_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'MET' filesep]; % Path to Clock Offset files folder
         MET_NAME = '';    % Location of the meteorological file
-        OCEAN_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
+        OCEAN_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'ocean' filesep]; % Path to BLQ folder containing files of Satellites problems
         OCEAN_NAME = '';  % Location of the ocean loading file
 
         % REFERENCE
@@ -3103,7 +3103,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folderÿÿ
+                % Search broadcast orbits in the ephemerides folderï¿½ï¿½
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));
