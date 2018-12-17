@@ -1578,8 +1578,14 @@ classdef Command_Interpreter < handle
             if nargout > 3
                 state = Core.getCurrentSettings();
             end
-            err_list = zeros(size(cmd_list));
-            
+            % remove empty lines
+            for c = length(cmd_list) : -1 : 1
+                if isempty(cmd_list{c})
+                    cmd_list(c) = [];
+                end
+                    
+            end
+            err_list = zeros(size(cmd_list));   
             sss = 1;
             trg = [];
             lev = 0;
