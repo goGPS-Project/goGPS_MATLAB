@@ -1634,7 +1634,11 @@ classdef Command_Interpreter < handle
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
                 execution_block(c) = sss_id_counter;
-                flag_push_command = any(cell2mat(strfind(this.PUSH_LIST, cmd.name{1})));
+                if ~isempty(cmd)
+                    flag_push_command = any(cell2mat(strfind(this.PUSH_LIST, cmd.name{1})));
+                else
+                    flag_push_command = false;
+                end
                 if length(flag_push) < (sss_id_counter+1)
                     flag_push(sss_id_counter+1) = false;
                 end
