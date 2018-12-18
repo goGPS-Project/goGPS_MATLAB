@@ -2919,7 +2919,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % special relativity (eccntrcity term)
             idx = this.sat.avail_index(:,sat) > 0;
             [X,V] = this.sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
-            dtRel = -2 * sum(conj(X) .* V, 2) / (Global_Configuration.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
+            dtRel = -2 * sum(conj(X) .* V, 2) / (Core_Utils.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
         end
         
         function dtS = getDtS(this, sat)
@@ -4871,9 +4871,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
             if isempty(this.dt_ip) || ~any(this.dt_ip)
-                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT - this.dt(:, 1));  %<---- check dt with all the new dts field
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Core_Utils.V_LIGHT - this.dt(:, 1));  %<---- check dt with all the new dts field
             else
-                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT);  %<---- check dt with all the new dts field
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Core_Utils.V_LIGHT);  %<---- check dt with all the new dts field
             end
         end
         
@@ -4999,7 +4999,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 go_id = this.go_id(i);
                 sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0,1));
-                dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Global_Configuration.V_LIGHT;
+                dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Core_Utils.V_LIGHT;
                 for o = find(sat_idx)'
                     obs_idx_l = this.obs(o,:) ~= 0;
                     obs_idx = find(obs_idx_l);
@@ -5166,7 +5166,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@minus, ph, dt_dj);
             this.setPhases(ph, wl, id_ph);
             
-            % this.timeShiftObs(dt_dj ./ Global_Configuration.V_LIGHT, true);
+            % this.timeShiftObs(dt_dj ./ Core_Utils.V_LIGHT, true);
         end
         
         function applyDtRec(this, dt_pr, dt_ph)
@@ -6466,9 +6466,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             GM = 3.986005e14;
             
-            %corr = 2*GM/(Global_Configuration.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
+            %corr = 2*GM/(Core_Utils.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
-            sh_delay = 2*GM/(Global_Configuration.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
+            sh_delay = 2*GM/(Core_Utils.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
             
         end
         
@@ -7000,6 +7000,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     s0 = coarsePositioning(this, obs_set);
+                else
+                    s0 = 5;
                 end
                 
                 if s0 > 0
@@ -7083,7 +7085,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
+            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2))*Core_Utils.V_LIGHT;
             bad_track = abs(sensor) > 1e5;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
@@ -7099,7 +7101,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor =  pr - this.getSyntPrObs;
             dt = median(zero2nan(sensor),2,'omitnan');
             sensor = sensor - repmat(dt,1,size(pr,2));
-            pr_amb = 1e-3*Global_Configuration.V_LIGHT;
+            pr_amb = 1e-3*Core_Utils.V_LIGHT;
             pr_amb_idx =  abs(sensor) > 1e4 & fracFNI(sensor/(pr_amb)) < 1e2;
             pr(pr_amb_idx) = pr(pr_amb_idx) - round(sensor(pr_amb_idx)/pr_amb)*pr_amb;
             this.setPseudoRanges(pr, id_pr);
@@ -7143,7 +7145,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.xyz = this.getMedianPosXYZ() + dpos;
                 dt = x(x(:,2) == 6,1);
                 this.dt = zeros(this.time.length,1);
-                this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
+                this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
                 isb = x(x(:,2) == 4,1);
                 this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
                 % LS does not know the max number of satellite stored
@@ -7195,7 +7197,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.xyz = bsxfun(@plus, this.xyz(id_sync,:), dpos);
             dt = x(x(:,2) == 6,1);
             this.dt = zeros(this.time.length,1);
-            this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
+            this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
             isb = x(x(:,2) == 4,1);
             this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
             % LS does not know the max number of satellite stored
@@ -7430,7 +7432,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 s = this.cc.getIndex(sys(o),prn(o));
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
-                times.addSeconds(-obs(o,o_idx_l)' / Global_Configuration.V_LIGHT); % add rough time of flight
+                times.addSeconds(-obs(o,o_idx_l)' / Core_Utils.V_LIGHT); % add rough time of flight
                 xs = this.sat.cs.coordInterpolate(times,s);
                 to_remove = isnan(xs(:,1));
                 o_idx = find(o_idx_l);
@@ -7716,7 +7718,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
                 
                 valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
+                this.dt(valid_ep, 1) = clock / Core_Utils.V_LIGHT;
                 this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
                 this.sat.amb_idx(id_sync,ls.go_id_amb(ls.phase_idx)) = ls.amb_idx;
                 this.if_amb = amb; % to test ambiguity fixing

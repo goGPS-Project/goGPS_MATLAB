@@ -71,7 +71,7 @@ function [XR, dtR, ISBs, N_hat, cov_XR, var_dtR, var_ISBs, cov_N, PDOP, HDOP, VD
 %variable initialization
 global sigmaq_cod1 sigmaq_ph
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 ISBs = [];
 var_ISBs = [];
 

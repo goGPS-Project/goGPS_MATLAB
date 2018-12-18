@@ -494,8 +494,7 @@ classdef Parallel_Manager < Com_Interface
             %
             
             % Save state on file
-            gc = Core.getGlobalConfig();
-            state = gc.getCurrentSettings();
+            state = Core.getCurrentSettings();
             save(fullfile(this.getComDir, 'cmd_list.mat'), 'cmd_list');
             this.sendMsg(this.BRD_CMD, 'Broadcast state');
         end
@@ -509,7 +508,7 @@ classdef Parallel_Manager < Com_Interface
             
             % Save state on file
             gc = Core.getGlobalConfig();
-            geoid = gc.getRefGeoid();
+            geoid = Core.getRefGeoid();
             state = Core.getCurrentSettings();
             cur_session = Core.getCurrentSession();
             [rin_list, met_list] = Core.getRinLists();

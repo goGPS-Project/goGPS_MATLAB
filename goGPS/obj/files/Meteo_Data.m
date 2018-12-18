@@ -977,8 +977,7 @@ classdef Meteo_Data < handle
             do_export = true;
             show_fig = true;
             
-            gc = Core.getGlobalConfig;
-            state = gc.getCurrentSettings();
+            state = Core.getCurrentSettings();
             state.setMetDir(data_path);
             log = Logger.getInstance();
             v_lev = log.getVerbosityLev();
@@ -1031,7 +1030,7 @@ classdef Meteo_Data < handle
                     log.setVerbosityLev(1);
                     file_name = [data_path filesep '${YYYY}_${DOY}' filesep sta_name '_PR_${DOY}.${YY}m'];
                     
-                    ondu = getOrthometricCorr(pres.a1dLatitudini(s)./180*pi, pres.a1dLongitudini(s)./180*pi, gc.getRefGeoid());
+                    ondu = getOrthometricCorr(pres.a1dLatitudini(s)./180*pi, pres.a1dLongitudini(s)./180*pi, Core.getRefGeoid());
                     h_ellips = pres.a1dAltitudini(s) + ondu;
                     [x, y, z] = geod2cart(pres.a1dLatitudini(s)./180*pi, pres.a1dLongitudini(s)./180*pi, h_ellips);
                     
@@ -1094,7 +1093,7 @@ classdef Meteo_Data < handle
                     log.setVerbosityLev(1);
                     file_name = [data_path filesep '${YYYY}_${DOY}' filesep sta_name '_TM_${DOY}.${YY}m'];
                     
-                    ondu = getOrthometricCorr(temp.a1dLatitudini(s)./180*pi, temp.a1dLongitudini(s)./180*pi, gc.getRefGeoid());
+                    ondu = getOrthometricCorr(temp.a1dLatitudini(s)./180*pi, temp.a1dLongitudini(s)./180*pi, Core.getRefGeoid());
                     h_ellips = temp.a1dAltitudini(s) + ondu;
                     [x, y, z] = geod2cart(temp.a1dLatitudini(s)./180*pi, temp.a1dLongitudini(s)./180*pi, h_ellips);
                     

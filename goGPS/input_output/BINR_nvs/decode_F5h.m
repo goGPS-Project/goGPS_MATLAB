@@ -254,7 +254,7 @@ for j = 1 : NSV
 
     %phase, code and doppler measure save
     CPM = L1;
-    PRM = C1*goGNSS.V_LIGHT*1e-3; %in meters
+    PRM = C1*Core_Utils.V_LIGHT*1e-3; %in meters
     DOM = D1;
 
     if (~isempty(idx))

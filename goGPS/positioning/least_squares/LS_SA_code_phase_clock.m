@@ -63,7 +63,7 @@ function [dtR, ISBs, N_hat, var_dtR, var_ISBs, cov_N] = LS_SA_code_phase_clock(p
 %--------------------------------------------------------------------------%variable initialization
 global sigmaq_cod1 sigmaq_ph
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 ISBs = [];
 var_ISBs = [];
 

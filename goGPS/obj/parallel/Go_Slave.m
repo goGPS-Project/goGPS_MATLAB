@@ -217,8 +217,8 @@ classdef Go_Slave < Com_Interface
                     this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                     tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
                     core.state = tmp.state; % load the state
-                    core.gc.setCurrentSettings(tmp.state); % load the state
-                    core.gc.initGeoid(tmp.geoid); % load the geoid
+                    core.setCurrentSettings(tmp.state); % load the state
+                    core.initGeoid(tmp.geoid); % load the geoid
                     core.cur_session = tmp.cur_session; % load the current session number
                     core.rin_list = tmp.rin_list; % load the rinex list of files
                     core.met_list = tmp.met_list; % load the meteorological list of files

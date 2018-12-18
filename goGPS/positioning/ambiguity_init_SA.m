@@ -72,7 +72,7 @@ function [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, 
 
 global sigmaq_cod1 sigmaq_ph
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 
 %remove zeros
 % index_zero_pr = (pr == 0);

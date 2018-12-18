@@ -65,7 +65,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(
 %variable initialization
 global sigmaq_ph
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 
 %number of observations
 nsat_ph = length(sat_ph);

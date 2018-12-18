@@ -33,7 +33,7 @@ function [pos] = bancroft(B_pass)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
 
 pos = zeros(4,1);

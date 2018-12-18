@@ -66,7 +66,7 @@ function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF,
 %--------------------------------------------------------------------------
 
 %variable initialization
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 
 %design matrix
 A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate

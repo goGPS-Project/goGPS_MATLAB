@@ -56,5 +56,5 @@ lambda = lambda(:,ones(n_epochs,1));
 
 idx_pr = pr_in ~= 0;
 idx_ph = ph_in ~= 0;
-pr_out(idx_pr) = pr_in(idx_pr) + time_desync(idx_pr)*goGNSS.V_LIGHT;
-ph_out(idx_ph) = ph_in(idx_ph) + time_desync(idx_ph)*goGNSS.V_LIGHT./lambda(idx_ph);
+pr_out(idx_pr) = pr_in(idx_pr) + time_desync(idx_pr)*Core_Utils.V_LIGHT;
+ph_out(idx_ph) = ph_in(idx_ph) + time_desync(idx_ph)*Core_Utils.V_LIGHT./lambda(idx_ph);

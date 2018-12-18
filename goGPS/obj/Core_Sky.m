@@ -485,21 +485,21 @@ classdef Core_Sky < handle
                         case 'G'
                             idx_c1w = this.getGroupDelayIdx('GC1W');
                             idx_c2w = this.getGroupDelayIdx('GC2W');
-                            this.group_delays(s,idx_c1w) = -GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c1w) = -GD * Core_Utils.V_LIGHT;
                             f = this.cc.getGPS().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * Core_Utils.V_LIGHT;
                         case 'R'
                             idx_c1p = this.getGroupDelayIdx('RC1P');
                             idx_c2p = this.getGroupDelayIdx('RC2P');
-                            this.group_delays(s,idx_c1p) = -GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c1p) = -GD * Core_Utils.V_LIGHT;
                             f = this.cc.getGLONASS().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Core_Utils.V_LIGHT;
                         case 'E'
                             idx_c1p = this.getGroupDelayIdx('EC1B');
                             idx_c2p = this.getGroupDelayIdx('EC5I');
-                            this.group_delays(s,idx_c1p) = -GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c1p) = -GD * Core_Utils.V_LIGHT;
                             f = this.cc.getGalileo().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Core_Utils.V_LIGHT;
                             
                     end
                 end
@@ -1005,23 +1005,23 @@ classdef Core_Sky < handle
             idx_w2 =  this.getGroupDelayIdx('GC2W');
             p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'G');
             iono_free = this.cc.getGPS.getIonoFree();
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*Global_Configuration.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*Core_Utils.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*Core_Utils.V_LIGHT*1e-9;
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
             p1c1 = nan(this.cc.getGPS.N_SAT,1);
             p1c1(dcb.P1C1.sys == 'G') = dcb.P1C1.value(dcb.P1C1.sys == 'G');
             prns = dcb.P1C1.prn(dcb.P1P2.sys == 'G');
-            this.group_delays(prns(prns~=0) , idx_w1) = (iono_free.alpha2 *p1p2(prns~=0) + p1c1(prns~=0))*Global_Configuration.V_LIGHT*1e-9;
-            this.group_delays(prns(prns~=0) , idx_w2) = (iono_free.alpha1 *p1p2(prns~=0) + p1c1(prns~=0))*Global_Configuration.V_LIGHT*1e-9; %semi codeless tracking
+            this.group_delays(prns(prns~=0) , idx_w1) = (iono_free.alpha2 *p1p2(prns~=0) + p1c1(prns~=0))*Core_Utils.V_LIGHT*1e-9;
+            this.group_delays(prns(prns~=0) , idx_w2) = (iono_free.alpha1 *p1p2(prns~=0) + p1c1(prns~=0))*Core_Utils.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
             p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'R');
             iono_free = this.cc.getGLONASS.getIonoFree();
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*Global_Configuration.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*Core_Utils.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*Core_Utils.V_LIGHT*1e-9;
         end
         
         function importSinexDCB(this)
@@ -1171,7 +1171,7 @@ classdef Core_Sky < handle
                         this.log.addWarning('Invalid set of DCB ignoring them')
                     else
                         dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
-                        this.group_delays(prn, dcb_col) = - gd * Global_Configuration.V_LIGHT * 1e-9;
+                        this.group_delays(prn, dcb_col) = - gd * Core_Utils.V_LIGHT * 1e-9;
                     end
                 end
             end
@@ -1844,8 +1844,7 @@ classdef Core_Sky < handle
             setdt(5.877122033683494);
             xp = 171209e-6; yp = 414328e-6;
             
-            gs = Core.getGlobalConfig();
-            go_dir = gs.getLocalStorageDir();
+            go_dir = Core.getLocalStorageDir();
             
             %if the binary JPL ephemeris file is not available, generate it
             if (exist(fullfile(go_dir, 'de436.bin'),'file') ~= 2)

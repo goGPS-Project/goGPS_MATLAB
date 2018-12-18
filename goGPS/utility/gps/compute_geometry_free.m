@@ -49,7 +49,7 @@ function [ph_GF] = compute_geometry_free(ph1, ph2, lambda, err_iono)
 ph_GF = zeros(size(ph1));
 for s = 1 : size(ph1,1)
     if (any(ph1(s,:)) && any(ph2(s,:)))
-        freq = goGNSS.V_LIGHT ./ lambda(s,1:2);
+        freq = Core_Utils.V_LIGHT ./ lambda(s,1:2);
         index_1 = find(ph1(s,:) ~= 0);
         index_2 = find(ph2(s,:) ~= 0);
         index = intersect(index_1, index_2);

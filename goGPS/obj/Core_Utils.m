@@ -43,7 +43,8 @@
 %--------------------------------------------------------------------------
 
 classdef Core_Utils < handle
-    properties
+    properties (Constant)
+        V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
     end
     
     methods (Static)

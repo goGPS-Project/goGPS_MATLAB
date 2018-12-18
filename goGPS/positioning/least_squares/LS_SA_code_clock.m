@@ -64,7 +64,7 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %--------------------------------------------------------------------------
 global flag_outlier flag_outlier_OLOO max_code_residual
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 sigma02_hat = NaN(1,3);
 residuals_obs = NaN(length(pr_R),1); %#ok<NASGU>
 ISBs = [];

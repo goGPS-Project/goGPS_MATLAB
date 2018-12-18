@@ -154,7 +154,7 @@ for sys_c = sys_list
         
         % First approach
         %if any(work.dt)
-        %    est_clock{r} = work.dt .* Global_Configuration.V_LIGHT;
+        %    est_clock{r} = work.dt .* Core_Utils.V_LIGHT;
         %else
         est_clock{r} = detrend(cumsum(mean(Core_Utils.diffAndPred(obs_diff), 2, 'omitnan')));
         %end

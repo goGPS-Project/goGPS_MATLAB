@@ -460,7 +460,7 @@ grad_ZWD_N = 0;
 grad_ZWD_E = 0;
 
 %initialization of the state vector
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; delta_ZWD; grad_ZWD_N; grad_ZWD_E; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; delta_ZWD; grad_ZWD_N; grad_ZWD_E; Core_Utils.V_LIGHT*dtR; Core_Utils.V_LIGHT*ISB];
 
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -492,9 +492,9 @@ if (flag_tropo)
         Cee(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = (sigmaq0_tropo_gradient / 3600 * interval) * eye(nT-1);
     end
 end
-Cee(o3+nN+nT+1,o3+nN+nT+1) = goGNSS.V_LIGHT^2*var_dtR;
+Cee(o3+nN+nT+1,o3+nN+nT+1) = Core_Utils.V_LIGHT^2*var_dtR;
 if (~isempty(ISB))
-    Cee(o3+nN+nT+2:o3+nN+nT+nC,o3+nN+nT+2:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_ISB * eye(nC-1);
+    Cee(o3+nN+nT+2:o3+nN+nT+nC,o3+nN+nT+2:o3+nN+nT+nC) = Core_Utils.V_LIGHT^2*var_ISB * eye(nC-1);
 end
 
 ratiotest = [ratiotest NaN];

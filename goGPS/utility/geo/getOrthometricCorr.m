@@ -4,9 +4,10 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %   N = getOrthometricCorr(phi, lam, geoid);
 %
 % EXAMPLE:
-%   gs = Global_Configuration.getInstance;
-%   gs.initGeoid();
+%   core = Core.getInstance;
+%   core.initGeoid();
 %   getOrthometricCorr(45.69 ./ 180*pi, 9.03 ./ 180*pi, gs.getRefGeoid())
+%   % answer should be 46.1767008
 %
 % INPUT:
 %   phi     = geocentric latitude                [rad]
@@ -51,7 +52,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %--------------------------------------------------------------------------
 
 if (nargin == 2)
-    geoid = Core.getGlobalConfig.getRefGeoid();
+    geoid = Core.getRefGeoid();
 end
 
 N = zeros(numel(lam), 1);

@@ -376,7 +376,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     [lat_d(r), lon_d(r), h_ellips(r)] = cart2geod(xyz);
                     if nargout == 4
                         Core.initGeoid();
-                        ondu = getOrthometricCorr(lat_d(r), lon_d(r), Core.getGlobalConfig.getRefGeoid());
+                        ondu = getOrthometricCorr(lat_d(r), lon_d(r), Core.getRefGeoid());
                         h_ortho(r) = h_ellips(r) - ondu;
                     end
                     lat_d(r) = lat_d(r) / pi * 180;

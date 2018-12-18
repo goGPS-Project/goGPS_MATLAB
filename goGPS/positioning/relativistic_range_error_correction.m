@@ -73,6 +73,6 @@ distSR = sqrt(sum((XS-XR_mat).^2 ,2));
 %         GM = 3.986005e14;
 % end
 
-corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+corr = 2*GM/(Core_Utils.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
 
 distSR_corr = distSR + corr;

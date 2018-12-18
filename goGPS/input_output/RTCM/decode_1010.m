@@ -153,7 +153,7 @@ for i = 1 : NSV
             %output data save
             data{3}(idx,1)  = DF039;
             data{3}(idx,2)  = (DF041 * 0.02)  + (DF044 * 599584.92);
-            data{3}(idx,3)  = (data{3}(idx,2) + (DF042 * 0.0005)) * data{3}(idx,6) * 1e6 / goGNSS.V_LIGHT;
+            data{3}(idx,3)  = (data{3}(idx,2) + (DF042 * 0.0005)) * data{3}(idx,6) * 1e6 / Core_Utils.V_LIGHT;
             data{3}(idx,4)  = DF043;
             data{3}(idx,5)  = DF045 * 0.25;
         end

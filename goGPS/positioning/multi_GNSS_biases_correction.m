@@ -68,10 +68,10 @@ if (~isempty(ISBs))
                 k = find_eph(Eph, idx(c)+r, time_ref(round(length(time_ref)/2)), 86400);
                 if (~isempty(k) && all(lambda(idx(c)+r,:)))
                     slot = Eph(15,k) + 8;
-                    pr1(idx(c)+r,:) = pr1(idx(c)+r,:) - ISBs(c-2+slot)*goGNSS.V_LIGHT*(pr1(idx(c)+r,:)~=0);
-                    pr2(idx(c)+r,:) = pr2(idx(c)+r,:) - ISBs(c-2+slot)*goGNSS.V_LIGHT*(pr2(idx(c)+r,:)~=0);
-                    ph1(idx(c)+r,:) = ph1(idx(c)+r,:) - ISBs(c-2+slot)*goGNSS.V_LIGHT*(ph1(idx(c)+r,:)~=0)/lambda(idx(c)+r,1);
-                    ph2(idx(c)+r,:) = ph2(idx(c)+r,:) - ISBs(c-2+slot)*goGNSS.V_LIGHT*(ph2(idx(c)+r,:)~=0)/lambda(idx(c)+r,2);
+                    pr1(idx(c)+r,:) = pr1(idx(c)+r,:) - ISBs(c-2+slot)*Core_Utils.V_LIGHT*(pr1(idx(c)+r,:)~=0);
+                    pr2(idx(c)+r,:) = pr2(idx(c)+r,:) - ISBs(c-2+slot)*Core_Utils.V_LIGHT*(pr2(idx(c)+r,:)~=0);
+                    ph1(idx(c)+r,:) = ph1(idx(c)+r,:) - ISBs(c-2+slot)*Core_Utils.V_LIGHT*(ph1(idx(c)+r,:)~=0)/lambda(idx(c)+r,1);
+                    ph2(idx(c)+r,:) = ph2(idx(c)+r,:) - ISBs(c-2+slot)*Core_Utils.V_LIGHT*(ph2(idx(c)+r,:)~=0)/lambda(idx(c)+r,2);
                 else
                     pr1(idx(c)+r,:) = 0;
                     pr2(idx(c)+r,:) = 0;
@@ -81,10 +81,10 @@ if (~isempty(ISBs))
             end
             offset = slot;
         else
-            pr1(idx(c):e,:) = pr1(idx(c):e,:) - ISBs(c-1+offset)*goGNSS.V_LIGHT*(pr1(idx(c):e,:)~=0);
-            pr2(idx(c):e,:) = pr2(idx(c):e,:) - ISBs(c-1+offset)*goGNSS.V_LIGHT*(pr2(idx(c):e,:)~=0);
-            ph1(idx(c):e,:) = ph1(idx(c):e,:) - ISBs(c-1+offset)*goGNSS.V_LIGHT*(ph1(idx(c):e,:)~=0)/max(lambda(idx(c):e,1));
-            ph2(idx(c):e,:) = ph2(idx(c):e,:) - ISBs(c-1+offset)*goGNSS.V_LIGHT*(ph2(idx(c):e,:)~=0)/max(lambda(idx(c):e,2));
+            pr1(idx(c):e,:) = pr1(idx(c):e,:) - ISBs(c-1+offset)*Core_Utils.V_LIGHT*(pr1(idx(c):e,:)~=0);
+            pr2(idx(c):e,:) = pr2(idx(c):e,:) - ISBs(c-1+offset)*Core_Utils.V_LIGHT*(pr2(idx(c):e,:)~=0);
+            ph1(idx(c):e,:) = ph1(idx(c):e,:) - ISBs(c-1+offset)*Core_Utils.V_LIGHT*(ph1(idx(c):e,:)~=0)/max(lambda(idx(c):e,1));
+            ph2(idx(c):e,:) = ph2(idx(c):e,:) - ISBs(c-1+offset)*Core_Utils.V_LIGHT*(ph2(idx(c):e,:)~=0)/max(lambda(idx(c):e,2));
         end
     end
 end

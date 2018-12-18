@@ -55,6 +55,6 @@ if (isempty(SP3)) %if not using SP3 ephemeris
     Ek = ecc_anomaly(time, Eph);
     corr = -4.442807633e-10 * ecc * roota * sin(Ek);
 else
-    % corr = -2 * dot(XS,VS) / (goGNSS.V_LIGHT^2); % slower
-    corr = -2 * sum(conj(XS) .* VS) / (goGNSS.V_LIGHT ^ 2); % faster
+    % corr = -2 * dot(XS,VS) / (Core_Utils.V_LIGHT^2); % slower
+    corr = -2 * sum(conj(XS) .* VS) / (Core_Utils.V_LIGHT ^ 2); % faster
 end

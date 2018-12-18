@@ -58,7 +58,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ph, distR,
 %variable initialization
 global flag_doppler_cs
 
-v_light = goGNSS.V_LIGHT;
+v_light = Core_Utils.V_LIGHT;
 
 %number of visible satellites
 nsat = size(sat_ph,1);

@@ -52,12 +52,20 @@ classdef Core < handle
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
+    %% PROPERTIES MISC
+    % ==================================================================================================================================================
+    properties (GetAccess = private, SetAccess = private) % Public Access
+        local_storage = '';
+        
+        is_advanced = true;
+    end
+    
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log         % Logger handler
         gc          % global configuration handler
-        state       % state (gc.state) handler
+        state       % state
         w_bar       % WaitBar handler
         sky         % Core_Sky handler
         atmo        % Atmosphere handler
@@ -65,7 +73,10 @@ classdef Core < handle
         rf          % Reference Frame handler
         cmd         % Command_Interpreter handler
         
-        gom         % go Master parallel controller
+        geoid = struct('file', [], 'grid', 0, 'cellsize', 0, 'Xll', 0, 'Yll', 0, 'ncols', 0, 'nrows', 0); % parameters of the reference geoid
+        reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
+        
+        gom         % Parallel controller
     end
 
     %% PROPERTIES RECEIVERS
@@ -80,6 +91,7 @@ classdef Core < handle
         net             % List of all the network used
     end
 
+    
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
@@ -89,8 +101,23 @@ classdef Core < handle
             
             % init logger
             this.log = Logger.getInstance();
+            
+            if ispc()
+                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
+                this.local_storage = [home '\AppData\Local\goGPS'];
+            else
+                home = getenv('HOME');
+                if ismac()
+                    this.local_storage = [home '/Library/Application Support/goGPS'];
+                else
+                    this.local_storage = [home '/.goGPS'];
+                end
+            end
+            if ~(exist(this.local_storage, 'dir'))
+                mkdir(this.local_storage)
+            end
         end
-    end
+    end    
     
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
@@ -119,7 +146,88 @@ classdef Core < handle
                 end
             end            
         end
+        
+        function initGeoid(geoid)
+            % load external geoid
+            %
+            % SYNTAX
+            %   this.initGeoid(); -> load from file
+            %   this.initGeoid(geoid); -> import from obj
+            core = Core.getInstance(false, true);
+            if nargin == 2
+                core.geoid = geoid;
+            else
+                try
+                    geoid_file = core.state.getGeoidFile();
+                    if ~exist(core.state.getGeoidDir, 'file')
+                        core.state.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
+                        geoid_file = core.state.getGeoidFile();
+                    end
+                    if ~strcmp(core.geoid.file, geoid_file)
+                        g = load(geoid_file);
+                        fn = fieldnames(g);
+                        % geoid grid and parameters
+                        core.geoid.file = geoid_file;
+                        core.geoid.grid = g.(fn{1});
+                        core.geoid.cellsize = 360 / size(core.geoid.grid, 2);
+                        core.geoid.Xll = -180 + core.geoid.cellsize / 2;
+                        core.geoid.Yll = -90 + core.geoid.cellsize / 2;
+                        core.geoid.ncols = size(core.geoid.grid, 2);
+                        core.geoid.nrows = size(core.geoid.grid, 1);
+                        clear g
+                    end
+                catch
+                    core.log.addWarning('Reference geoid not found');
+                    % geoid unavailable
+                    core.geoid.grid = 0;
+                    core.geoid.cellsize = 0;
+                    core.geoid.Xll = 0;
+                    core.geoid.Yll = 0;
+                    core.geoid.ncols = 0;
+                    core.geoid.nrows = 0;
+                end
+            end
+        end
+        
+        function [go_dir] = getLocalStorageDir()
+            % Get local storage
+            core = Core.getInstance(false, true);
+            
+            go_dir = core.local_storage;
+        end
 
+        function [ref_path, mat_path] = getReferencePath()
+            % Get reference path
+            core = Core.getInstance(false, true);
+
+            if (nargout == 2)
+                ref_path = core.reference.path;
+                mat_path = core.reference.adj_mat;
+            elseif (nargout == 1)
+                ref_path = core.reference;
+            end
+        end
+
+        function geoid = getRefGeoid()
+            % Get reference path
+            core = Core.getInstance(false, true);
+            
+            if isempty(core.geoid)
+                core.initGeoid();
+            end
+            geoid = core.geoid;
+        end
+        
+        function [is_adv] = isAdvanced()
+            % Get the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.isAdvanced()
+            core = Core.getInstance(false, true);
+            
+            is_adv = core.is_advanced;
+        end    
+    
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
@@ -235,33 +343,23 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             rin_list = core.rin_list;
             met_list = core.met_list;
-        end
-       
-        function gc = getGlobalConfig()
-            % Return the pointer to the Global Configuration
-            %
-            % SYNTAX
-            %   gc = Core.getGlobalConfig()
-            
-            core = Core.getInstance(false, true);
-            gc = core.gc;
-        end
+        end              
         
-        function cur_settings = getCurrentSettings(ini_settings_file)
-            % Return the pointer to the goGPS Settings
+        function state = getCurrentSettings(ini_settings_file)
+            % Get the persistent settings
             %
             % SYNTAX
-            %   gc = Core.getCurrentSettings(<ini_settings_file>)
+            %   state = Core.getCurrentSettings(<ini_settings_file>)
             
             core = Core.getInstance(false, true);
-            if isempty(core.gc)
-                core.gc = Global_Configuration();
+            if isempty(core.state)
+                core.state = Main_Settings();
             end
-            if nargin == 0
-                cur_settings = core.gc.getCurrentSettings;
-            else
-                cur_settings = core.gc.getCurrentSettings(ini_settings_file);
+            if nargin == 1 && ~isempty(ini_settings_file)
+                this.state.importIniFile(ini_settings_file);
             end
+            % Return the handler to the object containing the current settings
+            state = handle(core.state);
         end
         
         function cmd = getCommandInterpreter()
@@ -285,6 +383,18 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
         end
+
+        function setAdvanced(mode)
+            % Set the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.setAdvanced(<mode>)
+            core = Core.getInstance(false, true);
+            if nargin == 0
+                mode = true;
+            end
+            core.is_advanced = mode;
+        end        
 
         function setAtmosphere(atmo)
             % Set the pointer to the Atmosphere Object
@@ -335,16 +445,14 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             core.state = state;
         end
-
-        function setGlobalConfig(gc)
-            % Return the pointer to the Global Configuration
+        
+        function setCurrentSettings(cs)
+            % Set the persistent settings
             %
             % SYNTAX
-            %   Core.setGlobalConfig(gc)
-            
+            %   this.setCurrentSettings(ini_settings_file)
             core = Core.getInstance(false, true);
-            core.gc = gc;
-            core.state = gc.getCurrentSettings;
+            core.state = cs;
         end
         
         function setCommandInterpreter(cmd)
@@ -384,8 +492,7 @@ classdef Core < handle
             
             Core_UI.showTextHeader();
             this.log.setColorMode(cm);            
-            this.gc = Global_Configuration();
-            this.state = this.gc.getCurrentSettings();
+            this.state = Main_Settings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky(force_clean);
             this.atmo = Atmosphere();
@@ -396,6 +503,24 @@ classdef Core < handle
                 this.rec = [];
             end
         end
+        
+        function initConfiguration(this)
+            % Load all the files necessary to the functioning of a goGPS session
+            % SYNTAX:   this.initProcessing()
+            
+            % Load external resources and update
+            fnp = File_Name_Processor();
+            out_dir = fnp.checkPath(this.state.getOutDir());
+            if ~exist(out_dir, 'dir')
+                this.log.newLine();
+                this.log.addWarning(sprintf('The out folder does not exists\n Creating %s', out_dir));
+                mkdir(out_dir);
+            end
+
+            this.log.addMessage(this.log.indent(this.state.cc.toString, 5));
+
+            this.initGeoid();
+        end       
         
         function import(this, state)
             % Import Settings from ini files
@@ -445,7 +570,7 @@ classdef Core < handle
             this.log.newLine();
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
-            this.gc.initConfiguration(); % Set up / download observations and navigational files
+            this.initConfiguration(); % Set up / download observations and navigational files
             this.log.addMarkedMessage('Conjuring all the auxilliary files!');
             rin_list = this.getRinFileList();
             
@@ -790,7 +915,7 @@ classdef Core < handle
             %err_code.geoid = state.checkDir('geoid_dir', 'Geoid loading dir', flag_verbose);
             err_code.geoid_f = state.checkFile({'geoid_dir', 'geoid_name'}, 'Geoid file', flag_verbose);
             
-            geoid = this.gc.getRefGeoid();
+            geoid = Core.getRefGeoid();
             if isempty(geoid) || isempty(geoid.grid)
                 err_code.geoid = -1;
                 if flag_verbose
@@ -1181,14 +1306,7 @@ classdef Core < handle
         end
     end
 
-    methods (Static) % Public Access (Legacy support)
-        function initGeoid()
-            % Perform init geoid
-            %
-            % SYNTAX Core.initGeoid();
-            core = Core.getCurrentCore;            
-            core.gc.initGeoid();
-        end
+    methods (Static) % Public Access
         
         function clearSingletons()
             % clear all singletons

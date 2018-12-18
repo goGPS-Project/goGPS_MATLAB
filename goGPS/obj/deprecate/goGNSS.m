@@ -144,7 +144,7 @@ classdef goGNSS < handle & Mode_Settings
         FS5 = goGNSS.FL5;      %
 
         FG = [goGNSS.FL1 goGNSS.FL2 goGNSS.FL5]*1e6;                % GPS carriers frequencies [Hz]
-        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;                      % GPS carriers wavelengths [m]
+        LAMBDAG = Core_Utils.V_LIGHT ./ goGNSS.FG;                      % GPS carriers wavelengths [m]
         ALPHA1G = goGNSS.FG(1)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
         ALPHA2G = goGNSS.FG(2)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
         ALPHATG = 77;% round(goGNSS.FL1/10.23/2);                   % GPS iono-free combination parameter
@@ -155,35 +155,35 @@ classdef goGNSS < handle & Mode_Settings
         FR1 = goGNSS.FR_channels' .* goGNSS.FR_delta(1) + goGNSS.FR_base(1);
         FR2 = goGNSS.FR_channels' .* goGNSS.FR_delta(2) + goGNSS.FR_base(2);
         FR = [goGNSS.FR1 goGNSS.FR2]*1e6;                                     % GLONASS carriers frequencies [Hz]
-        LAMBDAR = goGNSS.V_LIGHT ./ goGNSS.FR;                                % GLONASS carriers wavelengths [m]
+        LAMBDAR = Core_Utils.V_LIGHT ./ goGNSS.FR;                                % GLONASS carriers wavelengths [m]
         ALPHA1R = goGNSS.FR(:,1).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
         ALPHA2R = goGNSS.FR(:,2).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
         ALPHATR = 9;                                                          % GLONASS iono-free combination parameter
         ALPHANR = 7;                                                          % GLONASS iono-free combination parameter
 
         FE = [goGNSS.FE1 goGNSS.FE5a goGNSS.FE5b goGNSS.FE5 goGNSS.FE6]*1e6; % Galileo carriers frequencies [Hz]
-        LAMBDAE = goGNSS.V_LIGHT ./ goGNSS.FE;                               % Galileo carriers wavelengths [m]
+        LAMBDAE = Core_Utils.V_LIGHT ./ goGNSS.FE;                               % Galileo carriers wavelengths [m]
         ALPHA1E = goGNSS.FE(1)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
         ALPHA2E = goGNSS.FE(2)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
         ALPHATE = 154;% round(goGNSS.FE1/10.23);                             % Galileo iono-free combination parameter
         ALPHANE = 115;% round(goGNSS.FE5a/10.23);                            % Galileo iono-free combination parameter
 
         FC = [goGNSS.FC2 goGNSS.FC5b goGNSS.FC6 goGNSS.FC1]*1e6;             % BeiDou carriers frequencies [Hz]
-        LAMBDAC = goGNSS.V_LIGHT ./ goGNSS.FC;                               % BeiDou carriers wavelengths [m]
+        LAMBDAC = Core_Utils.V_LIGHT ./ goGNSS.FC;                               % BeiDou carriers wavelengths [m]
         ALPHA1C = goGNSS.FC(1)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
         ALPHA2C = goGNSS.FC(2)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
         ALPHATC = 763;% round(goGNSS.FC2/2.046);                             % BeiDou iono-free combination parameter
         ALPHANC = 590;% round(goGNSS.FC5b/2.046);                            % BeiDou iono-free combination parameter
 
         FJ = [goGNSS.FJ1 goGNSS.FJ2 goGNSS.FJ5 goGNSS.FJ6]*1e6;     % QZSS carriers frequencies [Hz]
-        LAMBDAJ = goGNSS.V_LIGHT ./ goGNSS.FJ;                      % QZSS carriers wavelengths [m]
+        LAMBDAJ = Core_Utils.V_LIGHT ./ goGNSS.FJ;                      % QZSS carriers wavelengths [m]
         ALPHA1J = goGNSS.FJ(1)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
         ALPHA2J = goGNSS.FJ(2)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
         ALPHATJ = 77;% round(goGNSS.FJ1/10.23/2);                   % QZSS iono-free combination parameter
         ALPHANJ = 60;% round(goGNSS.FJ2/10.23/2);                   % QZSS iono-free combination parameter
 
         FS = [goGNSS.FS1 goGNSS.FS5]*1e6;                           % SBAS carriers frequencies [Hz]
-        LAMBDAS = goGNSS.V_LIGHT ./ goGNSS.FS;                      % SBAS carriers wavelengths [m]
+        LAMBDAS = Core_Utils.V_LIGHT ./ goGNSS.FS;                      % SBAS carriers wavelengths [m]
         ALPHA1S = goGNSS.FS(1)^2/(goGNSS.FS(1)^2 - goGNSS.FS(2)^2); % SBAS iono-free combination parameter
         ALPHA2S = goGNSS.FS(2)^2/(goGNSS.FS(1)^2 - goGNSS.FS(2)^2); % SBAS iono-free combination parameter
         ALPHATS = 154;% round(goGNSS.FE1/10.23);                    % SBAS iono-free combination parameter
@@ -460,10 +460,10 @@ classdef goGNSS < handle & Mode_Settings
         function [XR, dtR] = getBancroftPos(XS, dtS, prR)
             % get a bancroft solution from one receiver
 
-            matB = [XS(:,:), prR(:) + goGNSS.V_LIGHT * dtS(:)]; % Bancroft matrix
+            matB = [XS(:,:), prR(:) + Core_Utils.V_LIGHT * dtS(:)]; % Bancroft matrix
             b = goGNSS.bancroft(matB);
             XR = b(1:3);
-            dtR = b(4)/goGNSS.V_LIGHT;
+            dtR = b(4)/Core_Utils.V_LIGHT;
         end
 
         function RinReader(fileNameObs, constellations)
@@ -1049,7 +1049,7 @@ classdef goGNSS < handle & Mode_Settings
                         z = matB(s,3);  % Z coordinate of the satellite S
                         % Compute approximate distance^2 between R and S
                         rho = (x-pos(1))^2+(y-pos(2))^2+(z-pos(3))^2;
-                        traveltime = sqrt(rho)/goGNSS.V_LIGHT;
+                        traveltime = sqrt(rho)/Core_Utils.V_LIGHT;
                     end
                     angle = traveltime*goGNSS.OMEGAE_DOT;
                     cosa = cos(angle);

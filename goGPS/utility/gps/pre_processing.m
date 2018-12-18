@@ -97,7 +97,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         dop2 = dop2 * 0;
     end
     p_rate = state.getProcessingRate();
-    v_light = Global_Configuration.V_LIGHT;
+    v_light = Core_Utils.V_LIGHT;
 
     %iono-free coefficients
     alpha1 = lambda(:,4);
@@ -1033,8 +1033,8 @@ function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_
         if (any(delta_GF_ref))
             delta = delta_GF_ref/lambda_main;
         elseif (any(delta_MW))
-            freq_main = goGNSS.V_LIGHT ./ lambda_main;
-            freq_sec = goGNSS.V_LIGHT ./ lambda_sec;
+            freq_main = Core_Utils.V_LIGHT ./ lambda_main;
+            freq_sec = Core_Utils.V_LIGHT ./ lambda_sec;
             delta = delta_MW*abs((freq_main - freq_sec)/(freq_main*lambda_main));
         elseif (any(delta_doppler))
             delta = -delta_doppler;
