@@ -254,8 +254,8 @@ classdef Network < handle
                             % I can be satisfied
                             n_clean = -1;
                         end
-                        if n_clean > 0
-                            out_found = 0;
+                        out_found = 0;
+                        while (out_found == 0) && (n_clean > 0)
                             for r = 1 : length(this.rec_list)
                                 tmp_work = this.rec_list(r).work;
                                 
@@ -277,7 +277,7 @@ classdef Network < handle
                                     id_ko = abs(mean(zero2nan(res_rec), 'omitnan')) > 1;
                                     id_ko = sparse(repmat(id_ko, size(res_rec, 1), 1));
                                 else
-                                    id_ko = sparse(tmp_work.search4outliers(res_rec, n_clean+1));
+                                    [id_ko] = tmp_work.search4outliers(res_rec, n_clean+1);
                                     % At the first loop start filtering bad satellites
                                     if n_clean > 1
                                         bad_sat = std(res_rec, 'omitnan') > max(0.01, perc(noNaN(std(res_rec, 'omitnan')), 0.9)) | max(abs(res_rec)) > 0.15;
