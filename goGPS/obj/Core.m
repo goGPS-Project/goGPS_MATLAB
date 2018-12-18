@@ -64,7 +64,6 @@ classdef Core < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log         % Logger handler
-        gc          % global configuration handler
         state       % state
         w_bar       % WaitBar handler
         sky         % Core_Sky handler
@@ -472,7 +471,6 @@ classdef Core < handle
     methods
         function init(this, force_clean)
             % Get instances for:
-            %   - Global_Configuration
             %   - Settings
             %   - Wait_Bar
             %   - Sky

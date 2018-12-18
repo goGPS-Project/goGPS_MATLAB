@@ -7,11 +7,6 @@
 % EXAMPLE
 %   state = Main_Settings();
 %
-% SEE ALSO
-%   - Global_Configuration
-%         it is a singleton class that store the status of the
-%         Main_Settings to be used in one goGPS session
-%
 % FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
 
 %--------------------------------------------------------------------------

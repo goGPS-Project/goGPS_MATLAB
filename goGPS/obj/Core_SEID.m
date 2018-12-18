@@ -293,7 +293,7 @@ classdef Core_SEID < handle
                     
                     % Apply mapping function
                     [lat, lon, ~, h_ortho] = ref(r).getMedianPosGeodetic;
-                    [pierce_point(r).lat, pierce_point(r).lon, iono_ref(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), 350*1e3);
+                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), 350*1e3);
                     iono_ref(r).obs(idx_nan) = nan;
                     %iono_ref(r).obs = ref(r).applyMF(iono_ref(r).obs, iono_ref(r).mf, 1);
                     %iono_ref(r).obs(idx_nan) = nan;

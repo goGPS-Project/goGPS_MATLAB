@@ -238,7 +238,7 @@ classdef Coordinates < Exportable & handle
         end
         
         function ondu = getOrthometricCorrection(this)
-            % Get Orthometric corraction from the geoid loaded in Global_Configuration
+            % Get Orthometric correction from the geoid loaded in Core
             %
             % OUTPUT
             %   ondu     = geoid ondulation [m]
