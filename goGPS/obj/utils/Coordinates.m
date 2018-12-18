@@ -513,7 +513,7 @@ classdef Coordinates < Exportable & handle
     
     methods (Access = 'public', Static)
         function ondu = getOrthometricCorrFromLatLon(lat, lon)
-            % Get Orthometric corraction from the geoid loaded in Global_Configuration
+            % Get Orthometric correction from the geoid loaded in Core
             %
             % SYNTAX:
             %   ondu = getOrthometricCorrFromLatLon(lat, lon);

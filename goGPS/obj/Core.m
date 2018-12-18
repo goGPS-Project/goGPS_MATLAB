@@ -87,6 +87,7 @@ classdef Core < handle
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
         rec             % List of all the receiver used
+        
         net             % List of all the network used
     end
 
