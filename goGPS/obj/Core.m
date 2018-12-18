@@ -64,8 +64,9 @@ classdef Core < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log         % Logger handler
-        state       % state
         w_bar       % WaitBar handler
+        
+        state       % state
         sky         % Core_Sky handler
         atmo        % Atmosphere handler
         mn          % Meteorological Network handler

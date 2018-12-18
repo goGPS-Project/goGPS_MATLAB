@@ -909,7 +909,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -979,7 +979,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1098,7 +1098,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ï¿½C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1601,7 +1601,7 @@ classdef Atmosphere < handle
             aw =  (awm + awa*cos(doy*2*pi))*1d-5;
             ah  = (ahm + aha*cos(doy*2.d0*pi))*1d-5;
             % --------------------------------------------------------
-            [bh, bw, ch, cw] = this.GMFVMFBC(time, lat);
+            [bh, bw, ch, cw] = this.getGMFVMFBC(time, lat);
             
             % compute the mapping functions
             [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
@@ -1633,7 +1633,7 @@ classdef Atmosphere < handle
                 %             % eq (6) in [2]
                 %             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
                 
-                [bh, bw, ch, cw] = this.GMFVMFBC(time,lat);
+                [bh, bw, ch, cw] = this.getGMFVMFBC(time,lat);
                 [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
                 [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
                 
@@ -1649,7 +1649,7 @@ classdef Atmosphere < handle
                 h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
                 n_sat = size(el,2);
                 % compute the mapping function and the heoght correction for all the inteprolating points
-                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat);
+                [bh, bw, ch, cw] = this.getGMFVMFBC(time, lat);
                 [gmfh_11_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
                 [gmfw_11_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(1,1,:)),1,n_sat),bw,cw,el);
                 [gmfh_12_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
@@ -1841,8 +1841,8 @@ classdef Atmosphere < handle
             ht_corr      = ht_corr_coef * h_ell_km;
         end
         
-        function [bh, bw, ch, cw] = GMFVMFBC(time, lat)
-            % get the coefficients b and c of the continued fratcion form, both for GMF and VMF
+        function [bh, bw, ch, cw] = getGMFVMFBC(time, lat)
+            % get the coefficients b and c of the continued fraction form, both for GMF and VMF
             % INPUT:
             %    time - time GPS_Time object
             %    lat  - latitude in radians
@@ -1863,7 +1863,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45ï¿½ lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
