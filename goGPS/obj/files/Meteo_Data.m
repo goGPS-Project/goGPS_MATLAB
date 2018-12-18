@@ -410,6 +410,7 @@ classdef Meteo_Data < handle
             end
         end
     end
+    
     methods (Access = public)
         
         function inject(this, md)
@@ -427,7 +428,6 @@ classdef Meteo_Data < handle
             else
                 this.log.addWarning('Meteo files contains different data types, inject skipped')
             end
-            
         end
     end
     

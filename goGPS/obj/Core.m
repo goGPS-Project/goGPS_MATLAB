@@ -74,7 +74,6 @@ classdef Core < handle
         cmd         % Command_Interpreter handler
         
         geoid = struct('file', [], 'grid', 0, 'cellsize', 0, 'Xll', 0, 'Yll', 0, 'ncols', 0, 'nrows', 0); % parameters of the reference geoid
-        reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
         
         gom         % Parallel controller
     end
@@ -194,22 +193,10 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             
             go_dir = core.local_storage;
-        end
-
-        function [ref_path, mat_path] = getReferencePath()
-            % Get reference path
-            core = Core.getInstance(false, true);
-
-            if (nargout == 2)
-                ref_path = core.reference.path;
-                mat_path = core.reference.adj_mat;
-            elseif (nargout == 1)
-                ref_path = core.reference;
-            end
-        end
+        end       
 
         function geoid = getRefGeoid()
-            % Get reference path
+            % Get reference geoid
             core = Core.getInstance(false, true);
             
             if isempty(core.geoid)
