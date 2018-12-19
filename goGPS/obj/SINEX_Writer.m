@@ -168,7 +168,7 @@ classdef SINEX_Writer < handle
             yy_doy_sod = gps_time.toSinexStrDate();
             mrk_name = repmat([' ' mrk_mame ' '], n_ep, 1);
             vals_mat = [];
-            vals_flag = this.SUPPORTED_PARAMETERS(vals_flag);
+            vals_flag = this.SUPPORTED_PARAMETERS(vals_flag>0);
             for i = 1 : size(vals,2)
                 if strfind(vals_flag{i},'TROTOT')
                     vals_mat = [ vals_mat reshape(sprintf('%7.1f',vals(:,i)),7,n_ep)'];

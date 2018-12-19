@@ -616,7 +616,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             snx_wrt.writeFileReference()
                             snx_wrt.writeAcknoledgments()
                             smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
-                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function}, SINEX_Writer.SUPPORTED_PARAMETERS(param_to_export), false(length(param_to_export),1))
+                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function}, SINEX_Writer.SUPPORTED_PARAMETERS(param_to_export>0), false(length(param_to_export),1))
                             snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
                             snx_wrt.writeTropoSolutionSt()
                             data = [];

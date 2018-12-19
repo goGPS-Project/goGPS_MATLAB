@@ -154,7 +154,7 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX
             %   ztd = this.getZtd()
-            if max(this.getIdSync) > numel(this.ztd)
+            if max(this.getIdSync) > numel(this.ztd) || isempty(this.pressure) ||  isempty(this.temperature) ||  isempty(this.humidity)
                 P = nan(size(this.getIdSync));
                 T = nan(size(this.getIdSync));
                 H = nan(size(this.getIdSync));
@@ -280,6 +280,82 @@ classdef Receiver_Output < Receiver_Commons
                 d = days(i);
                 day_lim(i,1) = find(mat_time > d,1,'first');
                 day_lim(i,2) = find(mat_time < (d+1),1,'last');
+            end
+        end
+        
+        function remEpoch(this, ep_idx)
+            % remove epochs from the results
+            %
+            % SYNTAX
+            % this.remEpoch(ep_idx)
+            
+            this.time.remEpoch(ep_idx);
+            if ~isempty(this.zwd)
+                this.zwd(ep_idx) = [];
+            end
+            if ~isempty(this.pressure)
+                this.pressure(ep_idx) = [];
+            end
+            if ~isempty(this.temperature)
+                this.temperature(ep_idx) = [];
+            end
+            if ~isempty(this.humidity)
+                this.humidity(ep_idx) = [];
+            end
+            if ~isempty(this.desync)
+                this.desync(ep_idx) = [];
+            end
+            if ~isempty(this.dt_ip)
+                this.dt_ip(ep_idx) = [];
+            end
+            if ~isempty(this.dt)
+                this.dt(ep_idx) = [];
+            end
+            if ~isempty(this.apr_zhd)
+                this.apr_zhd(ep_idx) = [];
+            end
+            if ~isempty(this.ztd)
+                this.ztd(ep_idx) = [];
+            end
+            if ~isempty(this.apr_zwd)
+                this.apr_zwd(ep_idx) = [];
+            end
+            if ~isempty(this.pwv)
+                this.pwv(ep_idx) = [];
+            end
+            if ~isempty(this.tgn)
+                this.tgn(ep_idx) = [];
+            end
+            if ~isempty(this.tge)
+                this.tge(ep_idx) = [];
+            end
+            if ~isempty(this.n_sat_ep)
+                this.n_sat_ep(ep_idx) = [];
+            end
+            % remove from sat struct 
+            if ~isempty(this.sat.outlier_idx_ph)
+                this.sat.outlier_idx_ph(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.cycle_slip_idx_ph)
+                this.sat.cycle_slip_idx_ph(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.quality)
+                this.sat.quality(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.az)
+                this.sat.az(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.el)
+                this.sat.el(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.res)
+                this.sat.res(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.mfw)
+                this.sat.mfw(ep_idx,:) = [];
+            end
+            if ~isempty(this.sat.mfh)
+                this.sat.mfh(ep_idx,:) = [];
             end
         end
         
