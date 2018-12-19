@@ -507,7 +507,6 @@ classdef Parallel_Manager < Com_Interface
             %
             
             % Save state on file
-            gc = Core.getGlobalConfig();
             geoid = Core.getRefGeoid();
             state = Core.getCurrentSettings();
             cur_session = Core.getCurrentSession();
