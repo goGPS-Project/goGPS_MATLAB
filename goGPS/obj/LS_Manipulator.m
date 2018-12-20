@@ -400,7 +400,7 @@ classdef LS_Manipulator < handle
                 % setting the first clock of each connected set of arc to 0
                 %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
-                 amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
                 %                 clock_const = zeros(1,n_clocks);
                 %                 amb_const = zeros(1,n_amb);
                 %                 amb_const(1) = 1;
@@ -413,10 +413,10 @@ classdef LS_Manipulator < handle
                 amb_idx = this.amb_idx;
                 clock_const = zeros(1,this.n_epochs);
                 for i = 1: (length(amb_set_jmp_bnd)-1)
-                    %clock_const(system_jmp(i)+1) = 1;
+                    %clock_const(amb_set_jmp_bnd(i)+1) = 1;
                     amb_const = zeros(1,n_amb);
                     amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
-                    amb_idx_const = mode(amb_idx_const);
+                    amb_idx_const = unique(amb_idx_const);
                     amb_const(amb_idx_const) = 1;
                     G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
                 end
@@ -1273,7 +1273,7 @@ classdef LS_Manipulator < handle
                 if nargin > 3 && (thr_propagate > 0)
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
                     sat_err(this.epoch + this.sat * this.n_epochs) = this.res/s0;
-                    ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10); 
+                    ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10);
                     idx_ko = false(this.n_epochs, max(this.sat_go_id));
                     for s = 1 : size(idx_ko, 2)
                         idx_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
@@ -1607,7 +1607,7 @@ classdef LS_Manipulator < handle
                 n_epochs = length(unique(this.epoch));
                 idx_clk_to_rm = true(n_epochs,1);
                 i = 1;
-                while sum(idx_clk_to_rm) > 0
+                while sum(idx_clk_to_rm) > 0 && i
                     idx_i_c = this.receiver_id == i;
                     idx_rec_clk = unique(this.A_idx(idx_i_c, clk_idx));
                     idx_rec_clk_ep =  unique(this.epoch(idx_i_c));
@@ -1639,10 +1639,10 @@ classdef LS_Manipulator < handle
                 % 4)remove one ambiguity per satellite form the firs receiver
                 if true
                     %n_jmp_sat
-                    for i = 1 :length(u_sat)
-                        jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
-                        if ~this.sat_jmp_idx(1,u_sat(i))
-                            if ~prev_info || sum(u_sat(i) == this.apriori_info.goids) == 0
+                    for s = 1 :length(u_sat)
+                        jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(s))) == -1);
+                        if ~this.sat_jmp_idx(1,u_sat(s))
+                            if ~prev_info || sum(u_sat(s) == this.apriori_info.goids) == 0
                                 jmp_idx = [1; jmp_idx];
                             end
                         end
@@ -1655,41 +1655,58 @@ classdef LS_Manipulator < handle
                                 jmp2 = Inf;
                             end
                             %                         while isempty(idx_amb_rec) && d <= n_rec
-                            %                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+                            %                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(s) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
                             %                            d = d + 1;
                             %                         end
-                            idx_amb_rec = this.A_idx(this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
-                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
-                            if ~isempty(idx_amb_rec)
-                                idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                            r = 1;
+                            not_found = true;
+                            while r <= n_rec && not_found % always tak off ftom the first reciever, thi should avoid very nasty case of overcobstarininf
+                                idx_amb_rec = this.A_idx(this.receiver_id == r & this.sat == u_sat(s) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+                                idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                                if ~isempty(idx_amb_rec)
+                                    idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                                    not_found = false;
+                                end
+                                idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                                r = r + 1;
                             end
-                            idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                         end
                     end
-                    %                 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
-                    %                 first recievr does not have clocks any more so no rank defricency
+                end
+                %                 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
+                %                 first recievr does not have clocks any more so no rank defricency
+                if true
                     for i = 2 : n_rec
                         jmps = this.amb_set_jmp{i}';
                         if ~prev_info
                             jmps = [1 jmps];
                         end
                         for j = 1 : length(jmps)
+                            
                             jmp = jmps(j);
                             jmp2 = jmps(min(j+1,length(jmps)));
                             if jmp == jmp2
                                 jmp2 = Inf;
                             end
-                            idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
-                            g = 1;
-                            %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
-                            %                             g = g +1;
-                            %                         end
-                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
-                            if ~isempty(idx_amb_rec)
-                                
-                                idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                            
+                            
+                            idx_clock_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_REC_CLK);
+                            if isempty(intersect(idx_rm,idx_clock_rec))  % chekc i clck has been removed for the receiver in that ambiguity set
+                                idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
+                                %if isempty(intersect(idx_amb_rm,idx_amb_rec))
+                                    %if
+                                    %                                     g = 1;
+                                    %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+                                    %                             g = g +1;
+                                    %                         end
+                                    idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                                    if ~isempty(idx_amb_rec)
+                                        
+                                        idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                                    end
+                                    idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                                %end
                             end
-                            idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                         end
                     end
                 end
@@ -1770,12 +1787,12 @@ classdef LS_Manipulator < handle
                 
                 idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
                 n_amb = length(idx_amb_par);
-%                 x_rec = ones(size(x,1),1);
-%                 id_rec = find(diff(x_class) < 0);
-%                 for i = 1 : length(id_rec)
-%                     idx = id_rec(i)+1;
-%                     x_rec(idx:end) = i+1;
-%                 end
+                %                 x_rec = ones(size(x,1),1);
+                %                 id_rec = find(diff(x_class) < 0);
+                %                 for i = 1 : length(id_rec)
+                %                     idx = id_rec(i)+1;
+                %                     x_rec(idx:end) = i+1;
+                %                 end
             end
             %[x, flag] =  pcg(N,B,1e-9, 10000);
             
