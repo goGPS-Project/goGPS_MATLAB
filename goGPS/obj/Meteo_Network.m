@@ -66,9 +66,7 @@ classdef Meteo_Network < handle
             %
             % SYNTAX
             % this.initSession(data_start, data_stop)
-            
-           
-            
+ 
             this.mds = [];
             % load all meteo file present in current settings
             state = Core.getCurrentSettings();

@@ -198,8 +198,7 @@ classdef Coordinates < Exportable & handle
                 east = [east(:) north(:) up(:)];
                 north = utm_zone;
             end            
-        end
-        
+        end        
         
         function [lat, lon, h_ellips, h_ortho] = getGeodetic(this)
             % Get Coordinates as Geodetic coordinates

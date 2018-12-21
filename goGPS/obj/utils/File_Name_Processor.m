@@ -63,6 +63,7 @@ classdef File_Name_Processor < handle
         GPS_SESSION = '${S}';
         GPS_MM = '${MM}';
         GPS_DD = '${DD}';
+        GPS_1D = '${1D}';
         GPS_QQ = '${QQ}';
         GPS_5M = '${5M}';
     end
@@ -107,6 +108,7 @@ classdef File_Name_Processor < handle
             [date] = datevec(date.getMatlabTime());
             file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
             file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
+            file_name_out = strrep(file_name_out, this.GPS_1D, sprintf('%d', date(3)));
         end
 
         function step_sec = getStepSec(this, file_name)
@@ -124,7 +126,7 @@ classdef File_Name_Processor < handle
                 step_sec = 3 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_6H))
                 step_sec = 6 * 3600;
-            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_YYDOY))
+            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_1D)) || ~isempty(strfind(file_name, this.GPS_YYDOY))
                 step_sec = 24 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_WEEK))
                 step_sec = 24 * 3600 * 7;
