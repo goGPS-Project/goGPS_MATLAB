@@ -490,6 +490,22 @@ classdef Core < handle
                 this.rec = [];
             end
         end
+
+        function initSimpleHandlers(this)
+            % Get instances for:
+            %   - Logger
+            %   - Wait_Bar
+            %   - Command_Interpreter
+            %
+            % SYNTAX:
+            %   this.initSimpleHandlers()
+            
+            this.log = Logger.getInstance;
+            this.log.setOutMode([], false);
+            if ispc, fclose('all'); end
+            this.w_bar = Go_Wait_Bar.getInstance(100, 'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
+            this.cmd = Command_Interpreter(this);
+        end
         
         function initConfiguration(this)
             % Load all the files necessary to the functioning of a goGPS session
