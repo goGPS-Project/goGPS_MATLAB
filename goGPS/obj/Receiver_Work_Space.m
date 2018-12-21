@@ -3864,8 +3864,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % but at the moment seems to always work
                         % whenever we find some cases when CS is no more detected
                         % remember to continue the investigation
-                        sensor = tmp_ph_dred(:,:,t) - median(serialize(tmp_ph_dred(:,:,t)), 'omitnan');
-                        sensor = bsxfun(@minus, sensor, median(sensor,'omitnan'));
+                        sensor = tmp_ph_dred(:,:,t) - median(serialize(tmp_ph_dred(:,:,t)), 'omitnan');  % remove the overall median on all epoch satellites
+                        sensor = bsxfun(@minus, sensor, median(sensor,'omitnan')); % remove the satellite median for all satellite
                         
                         % further remove slow rates by satellite (clock drifting)
                         %sensor_red = sensor - movmean(movmedian(sensor, 11), 17,'omitnan'); % ultra reduced data (requires longer arcs)
