@@ -1211,7 +1211,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.detectOutlierMarkCycleSlip();
         end
         
-        function detectOutlierMarkCycleSlip(this)
+        function detectOutlierMarkCycleSlip(this, flag_rem_dt)
+            
+            if nargin < 2 || isempty(flag_rem_dt)
+                flag_rem_dt = true;
+            end                
+               
             this.log.addMarkedMessage('Cleaning observations');
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
@@ -1230,22 +1235,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
-            synt_ph = this.getSyntPhases;
+            phs = this.getSyntPhases;
             %%
-            sensor_ph0 = Core_Utils.diffAndPred(ph - synt_ph);
+            sensor_ph0 = Core_Utils.diffAndPred(ph - phs);
             
             % subtract median (clock error)
-            
-            % subtract median (clock error)
-            %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
-            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'),2,'omitnan'),5, 'omitnan')));
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            if flag_rem_dt
+                %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
+                sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'),2,'omitnan'),5, 'omitnan')));
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            else
+                sensor_ph = sensor_ph0;
+            end
             
             % first rough out detection ------------------------------------------------------------------
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
             arc_mean = abs(mean(sensor_ph0,'omitnan'));
             bad_id = find(arc_mean > max(0.001, median(movstd(sensor_ph0, 5), 'omitnan')));
+            % This mean should be less than 10cm, otherwise the satellite have some very bad observations
+            arc_std = abs(std(sensor_ph0,'omitnan'));
+            bad_id = unique([bad_id find(arc_std > 12*median(serialize(movstd(sensor_ph0, 5)), 'omitnan'))]);
             for i = 1 : numel(bad_id)
                 % analize current arc
                 sensor_tmp = sensor_ph(:, bad_id(i));
@@ -1267,9 +1277,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % recompute dt and sensor_ph
-            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            if flag_rem_dt
+                sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            else
+                sensor_ph = sensor_ph0;
+            end
             
             % --------------------------------------------------------------------------------------------
             % detection on arc edges
@@ -1302,7 +1316,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
                 der = 2; % use second
                 % try with second time derivative
-                sensor_ph = Core_Utils.diffAndPred(ph - synt_ph, der);
+                sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             else
                 der = 1; % use first
@@ -1310,6 +1324,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             
@@ -1339,7 +1354,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
                 if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx, o) = Core_Utils.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
+                    sensor_ph_cs(ph_idx, o) = Core_Utils.diffAndPred(tmp_ph - phs(ph_idx,o), der);
                 end
             end
             
@@ -1360,7 +1375,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if sum(poss_rest_line) > 0
                 poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
                 ph_rest_lines = ph(poss_rest_line,:);
-                synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+                synt_ph_rest_lines = phs(poss_rest_line,:);
                 sensor_rst = Core_Utils.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
                 % subtract median
                 sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
@@ -5018,14 +5033,37 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function smoothAndApplyDt(this, smoothing_win, is_pr_jumping, is_ph_jumping)
+        function remDtPPP(this)
+            % From the PPP a clock error from the phases have been estimated
+            % -> remove it from the observations 
+            %
+            % Update dt_ip time to consider also this dt
+            %
+            % SYNTAX
+            %   this.remDtPPP
+            
+            this.dt_ip = this.dt_ip + this.dt;
+            this.smoothAndApplyDt();
+        end
+        
+        function smoothAndApplyDt(this, smoothing_win, are_pr_jumping, are_ph_jumping)
             % Smooth dt * c correction computed from init-positioning with a spline with base 3 * rate,
             % apply the smoothed dt to pseudo-ranges and phases
+            %
+            % INPUT
+            %   smoothing_win   moving window to smooth dt (spline base)
+            %   are_pr_jumping   are the pr jumping?
+            %   are_ph_jumping   are the pr jumping?
+            %
             % SYNTAX
-            %   this.smoothAndApplyDt(smoothing_win)
+            %   this.smoothAndApplyDt(smoothing_win, is_pr_jumping, is_ph_jumping)
             if nargin == 1
-                smoothing_win = 3;
+                smoothing_win = 0; % do not smooth
             end
+            if nargin < 4
+                are_pr_jumping = false;
+                are_ph_jumping = false;
+            end                
             if any(smoothing_win)
                 this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver'));
             else
@@ -5049,7 +5087,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             this.dt = simpleFill1D(zero2nan(dt_pr), id_ko, 'pchip');
-            if (~is_ph_jumping)
+            if (~are_ph_jumping)
                 id_jump = abs(diff(dt_pr)) > 1e-4; %find clock resets
                 ddt = simpleFill1D(diff(dt_pr), id_jump, 'linear');
                 dt_ph = dt_pr(1) + [0; cumsum(ddt)];
@@ -5059,7 +5097,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.applyDtRec(dt_pr, dt_ph)
             %this.dt_pr = this.dt_pr + this.dt;
             %this.dt_ph = this.dt_ph + this.dt;
-            this.dt(:)  = 0;%zeros(size(this.dt_pr));
+            this.dt(:)  = 0; %zeros(size(this.dt_pr));
         end
         
         function [dop] = computeKinDop(this)
@@ -7841,8 +7879,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                     %this.pushResult();
                 end
                 
-                
-                
             end
         end
         
@@ -8706,7 +8742,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function showOutliersAndCycleSlip(this, sys_c_list)
             % Plot the outliers found
-            % SYNTAX this.showOutliers()
+            % SYNTAX this.showOutliersAndCycleSlip(sys_c_list)
             
             if nargin == 1
                 sys_c_list = unique(this.system);
@@ -8753,13 +8789,66 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+            end
+        end
+        
+        function showOutliersAndCycleSlip_d(this, sys_c_list)
+            % Plot the outliers found
+            % SYNTAX this.showOutliersAndCycleSlip_d(sys_c_list)
+            
+            if nargin == 1
+                sys_c_list = unique(this.system);
+            end
+            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
+            ss_ok = intersect(this.cc.sys_c, sys_c_list);
+            
+            [ph, id_ph] = this.getObs('L');
+            wl = this.wl(id_ph);
+            ph = bsxfun(@times, zero2nan(ph), wl)';
+
+            phs = this.synt_ph;
+            cs = this.sat.cycle_slip_idx_ph;
+            out = this.sat.outlier_idx_ph;
+            for sys_c = sys_c_list
+                ss_id = find(this.cc.sys_c == sys_c);
+                switch numel(ss_ok)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                                
+                id_ss = find(this.system(id_ph) == sys_c);
+                dph_diff = Core_Utils.diffAndPred(bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
+                dph_diff = (bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
+                plot(dph_diff, 'Color', [0.7 0.7 0.7]); hold on;
+                % fopr each sat visualize outliers and CS
+                for s = 1 : numel(id_ss)
+                    id_out = find(out(:, id_ss(s)));
+                    plot(id_out, dph_diff(id_out, s), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                    id_cs = find(cs(:, id_ss(s)));
+                    plot(id_cs, dph_diff(id_cs, s), '.k', 'MarkerSize', 20);
+                end
+                grid on;
+                h = xlabel('epoch'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
         end
         
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX this.plotSNR(sys_c)
+            % SYNTAX this.showOutliersAndCycleSlip_p(sys_c_list)
             
             % SNRs
             if nargin == 1
@@ -8804,7 +8893,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
                     plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
             
         end

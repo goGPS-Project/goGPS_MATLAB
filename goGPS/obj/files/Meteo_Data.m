@@ -729,7 +729,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.pressure_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data.pressureAdjustment(data, this.amsl, amsl);
             end
         end
         
@@ -744,7 +744,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.temperature_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data.temperatureAdjustment(data, this.amsl, amsl);
             end
         end
         
@@ -759,7 +759,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.humidity_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data.humidityAdjustment(data, this.amsl, amsl);
             end
         end
         
@@ -921,24 +921,24 @@ classdef Meteo_Data < handle
             md.importRaw(time, data, type, name, xyz);
         end
 
-        function [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
+        function [ temperature_adj ] = temperatureAdjustment( temperature , obs_h, pred_h)
             % Barometric formula taken from Bai and Feng, 2003.
             % The parameter value is taken from Realini et al., 2014
             % Parameter definition
             %
             % SYNTAX
-            %   [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
+            %   [ temperature_adj ] = temperatureAdjustment( temperature , obs_h, pred_h)
             grad = 0.0065 ; % * C / m gravitational acceleration constant
             temperature_adj = temperature + grad * (obs_h - pred_h);
         end
 
-        function [ pressure_adj ] = pressure_adjustment( pressure , obs_h, pred_h)
+        function [ pressure_adj ] = pressureAdjustment( pressure , obs_h, pred_h)
             % Barometric formula taken from Berberan-Santos et al., 1997
             % The parameter values are taken from Realini et al., 2014
             % Parameters definition
             %
             % SYNTAX
-            % [ pressure_adj ] = pressure_adjustment( pressure , obs_h, pred_h)
+            % [ pressure_adj ] = pressureAdjustment( pressure , obs_h, pred_h)
             g = 9.80665 ;    % m / s^2 gravitational acceleration constant
             Md = 0.0289644 ; % kg / mol molar mass of dry air
             R = 8.31432 ;    % J(mol * K) gas constant for air
@@ -946,7 +946,7 @@ classdef Meteo_Data < handle
             pressure_adj = pressure .* exp(-(g * Md * (pred_h - obs_h))/(R * Tisa ));
         end
 
-        function [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
+        function [ humidity_adj ] = humidityAdjustment( humidity , obs_h, pred_h)
             % Empirically derived from here, to be substituted with something better...
             % % http://www.engineeringtoolbox.com/relative-humidity-air-d_687.html
             %
@@ -961,7 +961,7 @@ classdef Meteo_Data < handle
             %humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
             %
             % SYNTAX
-            %   [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
+            %   [ humidity_adj ] = humidityAdjustment( humidity , obs_h, pred_h)
             humidity_adj = humidity / exp(-6.396e-4 * (obs_h - pred_h));
         end
         

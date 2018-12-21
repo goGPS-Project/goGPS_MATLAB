@@ -711,7 +711,7 @@ classdef Command_Interpreter < handle
                         case this.CMD_EXPORT.name               % EXPORT
                             this.runExport(rec, tok, level(l));
                         case this.CMD_PUSHOUT.name              % PUSHOUT
-                            this.runPushOut(rec, tok, level(l));
+                            this.runPushOut(rec, tok);
                     end
                 end
                 if toc(t1) > 1
@@ -893,7 +893,7 @@ classdef Command_Interpreter < handle
             end
         end
         
-        function runPushOut(this, rec, tok, lvl)
+        function runPushOut(this, rec, tok)
             % Execute Computation of azimuth and elevation
             %
             % INPUT
@@ -981,7 +981,7 @@ classdef Command_Interpreter < handle
             end
         end
         
-         function runRemSat(this, rec, tok)
+        function runRemSat(this, rec, tok)
             % Remove satelites from receivers
             %
             % INPUT
@@ -1006,8 +1006,6 @@ classdef Command_Interpreter < handle
             end
         end
         
-        
-
         function runNet(this, rec, tok)
             % Execute Network undifferenced solution
             %
@@ -1376,7 +1374,6 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
     end
     %
     %% METHODS UTILITIES (PRIVATE)
