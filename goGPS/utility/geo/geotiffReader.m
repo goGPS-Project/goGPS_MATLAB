@@ -52,4 +52,6 @@ function [img, georef, lat, lon, info] = geotiffReader(file_name)
                     'CoordinateSystemType',     'geographic', ...
                     'AngleUnit',                'degree'); % in geotiffread this is an object "GeographicPostingsReference"
     
-    img(img == str2num(info.GDAL_NODATA)) = nan;
+        if isfield(info, 'GDAL_NODATA')
+            img(img == str2num(info.GDAL_NODATA)) = nan;
+        end
