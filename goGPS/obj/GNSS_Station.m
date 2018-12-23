@@ -798,7 +798,7 @@ classdef GNSS_Station < handle
             ztd = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
-                id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.ztd));
+                id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
                 ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(~isnan(id_rec));
             end
             
@@ -807,9 +807,9 @@ classdef GNSS_Station < handle
                 tgn = nan(size(id_sync));
                 for r = 1 : n_rec
                     id_rec = id_sync(:,r);
-                    id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.ztd));
-                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(~isnan(id_rec));
-                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(~isnan(id_rec));
+                    id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(id_rec(~isnan(id_rec)));
                 end
             end
         end
@@ -846,6 +846,7 @@ classdef GNSS_Station < handle
             pwv = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).out.pwv)) = nan;
                 pwv(~isnan(id_rec), r) = sta_list(r).out.pwv(id_rec(~isnan(id_rec)));
             end
         end
@@ -889,8 +890,8 @@ classdef GNSS_Station < handle
             zwd = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
-                id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.zwd));
-                zwd(~isnan(id_rec), r) = sta_list(r).out.zwd(~isnan(id_rec));
+                id_rec(id_rec > length(sta_list(r).out.zwd)) = nan;
+                zwd(~isnan(id_rec), r) = sta_list(r).out.zwd(id_rec(~isnan(id_rec)));
             end
             
             if nargout == 5
@@ -898,9 +899,9 @@ classdef GNSS_Station < handle
                 tgn = nan(size(id_sync));
                 for r = 1 : n_rec
                     id_rec = id_sync(:,r);
-                    id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.zwd));
-                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(~isnan(id_rec));
-                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(~isnan(id_rec));
+                    id_rec(id_rec > length(sta_list(r).out.zwd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(id_rec(~isnan(id_rec)));
                 end
             end
         end
@@ -1315,10 +1316,11 @@ classdef GNSS_Station < handle
             maximizeFig(f);
             [lat, lon] = cart2geod(sta_list.getMedianPosXYZ());
             
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
-            hold on;
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 10);
-            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 10, 'LineWidth', 2);
+            for r = 1 : numel(sta_list)
+                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list))); hold on;
+            end            
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 5);
+            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
             
             if numel(sta_list) == 1
                 lon_lim = minMax(lon/pi*180);
@@ -1347,7 +1349,7 @@ classdef GNSS_Station < handle
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
                 t.Units = 'pixels';
-                t.Position(1) = t.Position(1) + 10 + 10 * double(numel(sta_list) == 1);
+                t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
                 t.Units = 'data';
             end
             
@@ -1568,9 +1570,9 @@ classdef GNSS_Station < handle
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2); hold on;
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.-', 'LineWidth', 2); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
                         tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
@@ -1592,15 +1594,14 @@ classdef GNSS_Station < handle
                     end
                     
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                    h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
+                    h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if sub_plot_nsat
                         subplot(3,1,3);
                         for r = 1 : numel(sta_list)
                         rec = sta_list(r);
-                        if new_fig
-                            
+                        if new_fig                            
                             plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();

@@ -1331,14 +1331,14 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-        function round(this, rounding)
+        function this = round(this, rounding)
             % round the time
             %
             % SYNTAX 
-            %   this.round(rounding);
+            %   this = this.round(rounding);
             %
             % EXAMPLE:
-            %   this.round(1e-5);
+            %   this = this.round(1e-5);
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.mat_time = (round(this.mat_time * 86400 ./ rounding) .* rounding) / 86400;
