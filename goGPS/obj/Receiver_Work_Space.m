@@ -7789,7 +7789,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
                             
                             % precipitable Water Vapor
-                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q * 1e3;
+                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
                         end
                         this.sat.amb = amb;
                     end
