@@ -107,6 +107,7 @@ classdef Coordinates < Exportable & handle
                 this.Cxx = cat(this.Cxx, pos.Cxx, 3);
             end
         end
+        
         function rem(this, idx)
             % Remove coordinates into the this
             %
@@ -285,7 +286,7 @@ classdef Coordinates < Exportable & handle
             %   this.setPosXYZ(x, y, z)
             
             if nargin == 4
-                xyz = [x(:) y(:) z(:)];
+                xyz = [xyz(:) y(:) z(:)];
             end
             this.xyz = xyz;
         end
@@ -319,14 +320,16 @@ classdef Coordinates < Exportable & handle
         
         function this = fromGeodetic(lat, lon, h_ellips, h_ortho)
             % Set the Coordinates from Geodetic coordinates
-            % 
+            %
+            % INPUT
+            %   lat, lon [radians]
+            %
             % SYNTAX
             %   this = Coordinates.fromGeodetic(phi, lam, h_ellips);
             %   this = Coordinates.fromGeodetic(phi, lam, [], h_ortho);
             
             this = Coordinates;
             if nargin == 4
-                [lat, lon] = this.getGeodetic();
                 h_ellips = h_ortho + this.getOrthometricCorrFromLatLon(lat, lon);
             end
             
@@ -514,11 +517,12 @@ classdef Coordinates < Exportable & handle
         function ondu = getOrthometricCorrFromLatLon(lat, lon)
             % Get Orthometric correction from the geoid loaded in Core
             %
+            % INPUT
+            %   lat, lon    [radians]
             % SYNTAX:
             %   ondu = getOrthometricCorrFromLatLon(lat, lon);
             
-            gs = Core.getGlobalConfig();
-            geoid = gs.getRefGeoid();
+            geoid = Core.getRefGeoid();
             
             ondu = zeros(numel(lon), 1);
             for i = 1 : numel(lon)
