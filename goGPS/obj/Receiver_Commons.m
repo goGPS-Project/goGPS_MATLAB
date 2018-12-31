@@ -124,7 +124,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     end
     
     % ==================================================================================================================================================
-    %% METHODS INIT - CLEAN - RESET - REM -IMPORT
+    %% METHODS INIT - CLEAN - RESET - REM - IMPORT
     % ==================================================================================================================================================
     
     methods
@@ -573,6 +573,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             time = this.time.getCopy;
             [year, doy] = time.getCentralTime.getDOY();
             out_prefix = sprintf('%s_%04d_%03d_', this.getMarkerName4Ch, year, doy);
+        end
+        
+        function [sys_c, prn] = getSysPrn(this, go_id)
+            % Return sys_c and prn for a given go_id
+            %
+            % SYNTAX
+            %    [sys_c, prn] = this.getSysPrn(go_id)
+            [sys_c, prn] = this.cc.getSysPrn(go_id);
         end
 
     end

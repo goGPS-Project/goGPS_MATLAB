@@ -854,6 +854,20 @@ classdef Constellation_Collector < Settings_Interface
         function sat_name = getSatName(this, go_id)
             sat_name = reshape(sprintf('%c%02d', [this.system(go_id); this.prn(go_id)'])', 3, length(go_id))';
         end
+        
+        function [sys_c, prn] = getSysPrn(this, go_id)
+            % return sys_c and prn for a given go_id
+            % SYNTAX [sys_c, prn] = this.getSysPrn(go_id)
+            sys_c = char(ones(size(go_id))*32);
+            prn = zeros(size(go_id));
+            for i = 1:length(prn)
+                tmp_id = find(this.index == go_id(i), 1, 'first');
+                if ~isempty(tmp_id)
+                    sys_c(i) = this.system(tmp_id);
+                    prn(i) = this.prn(tmp_id);
+                end
+            end
+        end
     end
     
     % =========================================================================
