@@ -490,7 +490,7 @@ classdef Meteo_Data < handle
 
             % Cut empty epochs
             invalid_epoch = sum(isnan(this.data),2) == numel(this.type);
-            ok = ok & ~invalid_epoch;
+            ok(ok) = ok(ok) & ~invalid_epoch;
             this.time = obs_time.getEpoch(ok);
             this.data(invalid_epoch, :) = [];
 
@@ -616,7 +616,15 @@ classdef Meteo_Data < handle
     %  GETTERS
     % =========================================================================
     
-    methods        
+    methods
+        function is_empty = isEmpty(md_list)
+            % Return a logical array contain which station is 
+            is_empty = false(numel(md_list), 1);
+            for i = 1 : numel(md_list)
+                is_empty(i) = isempty(md_list(i)) | isempty(md_list(i).data);
+            end
+        end
+        
         function validity = isValid(this)
             % Get the validity of a RINEX file or the object
             
@@ -689,32 +697,61 @@ classdef Meteo_Data < handle
                     data = [];
                 end
             else
-                data_in = this.data(:,id);
-                if nargin == 3
-                    data = nan(time.length(), 1);
-                    time_data = this.time.getMatlabTime();
-                    time_pred = time.getMatlabTime();
-                    if (sum(~isnan(data_in)) > 0)
-                        if numel(data_in(~isnan(data_in))) == 1
-                            [~, id] = min(time_data(~isnan(data_in)) - time_pred);
-                            data(id) = data_in(~isnan(data_in));
-                        else
-                            data_in = data_in(~isnan(data_in));
-                            time_data = time_data(~isnan(data_in));
-                            data_in = [data_in(1); data_in; data_in(end)];
-                            time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
-                            data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
-                            if this.smoothing(data_id) > 0
-                                data = splinerMat(time_pred * 86400, data - mean(data), (this.smoothing(data_id)), 0) + mean(data);
+                if size(this.data, 2) >= id
+                    data_in = this.data(:,id);
+                    if nargin == 3
+                        data = nan(time.length(), 1);
+                        time_data = this.time.getMatlabTime();
+                        time_pred = time.getMatlabTime();
+                        if (sum(~isnan(data_in)) > 0)
+                            if numel(data_in(~isnan(data_in))) == 1
+                                [~, id] = min(time_data(~isnan(data_in)) - time_pred);
+                                data(id) = data_in(~isnan(data_in));
+                            else
+                                data_in = data_in(~isnan(data_in));
+                                time_data = time_data(~isnan(data_in));
+                                data_in = [data_in(1); data_in; data_in(end)];
+                                time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
+                                data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
+                                if this.smoothing(data_id) > 0
+                                    data = splinerMat(time_pred * 86400, data - mean(data), (this.smoothing(data_id)), 0) + mean(data);
+                                end
+                                % do not extrapolate further than 20 minutes in time
+                                data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + this.getMaxBound / 1440)) = NaN;
+                                % extrapoleted value
                             end
-                            % do not extrapolate further than 20 minutes in time
-                            data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + this.getMaxBound / 1440)) = NaN;
-                            % extrapoleted value 
                         end
+                    else
+                        data = data_in;
                     end
                 else
-                    data = data_in;
+                    data = [];
                 end
+            end
+        end
+        
+        function t_dist = getTimeInterpDistance(this, time, time2)
+            % Get the time distance in seconds from the observed data
+            %
+            % SYNTAX
+            %   t_dist = getTimeInterpDistance(this, time)
+            
+            t_dist = nan(time.length, 1);
+            i = 1;
+            j = 1;
+            % moving on prediction time
+            t0_mat = time.getMatlabTime;
+            if nargin == 3
+                t1_mat = time2.getMatlabTime();
+            else
+                t1_mat = this.time.getMatlabTime();
+            end
+            while (i <= time.length())
+                t0 = t0_mat(i);
+                % moving on data time
+                while j < length(t1_mat) && (abs(t0 - t1_mat(j)) > (abs(t0 - t1_mat(j + 1)))); j = j + 1; end
+                t_dist(i) = abs(t0 - t1_mat(j)) * 86400;
+                i = i + 1;
             end
         end
         
@@ -763,14 +800,27 @@ classdef Meteo_Data < handle
             end
         end
         
-        function [x, y, z, amsl] = getLocation(this)
+        function [x, y, z, amsl] = getLocation(md_list)
             % Get meteo station location
             % SINTAX
             %   [x, y, z, amsl] = this.getLocation();
-            x = this.xyz(1);
-            y = this.xyz(2);
-            z = this.xyz(3);
-            amsl = this.amsl;
+            if nargout == 1
+                x = nan(numel(md_list), 3);
+                for i = 1 : numel(md_list)
+                    x(i, :) = md_list(i).xyz;
+                end
+            else                
+                x = nan(numel(md_list), 1);
+                y = nan(numel(md_list), 1);
+                z = nan(numel(md_list), 1);
+                amsl = nan(numel(md_list), 1);
+                for i = 1 : numel(md_list)
+                    x(i) = md_list(i).xyz(1);
+                    y(i) = md_list(i).xyz(2);
+                    z(i) = md_list(i).xyz(3);
+                    amsl(i) = md_list(i).amsl;
+                end
+            end                
         end
         
         function time = getObsTime(this)
@@ -847,23 +897,52 @@ classdef Meteo_Data < handle
             for s = 1 : numel(id_pr)
                 pr_obs(s, :) = station(id_pr(s)).getPressure(time, amsl);
             end
-
+            
             id_pr(sum(isnan(pr_obs),2) > 0) = [];
             pr_obs(sum(isnan(pr_obs),2) > 0, :) = [];
+
+            % get the time distance from true observations
+            t_thr = 3000;
+            t_dist = zeros(numel(id_pr), time.length());
+            for s = 1 : numel(id_pr)
+                t_dist(s, :) = station(id_pr(s)).getTimeInterpDistance(time, station(id_pr(s)).time.getEpoch(find(~isnan(station(id_pr(s)).getPressure()))));
+            end
+            t_all = repmat(time.getMatlabTime, 1, numel(id_pr))';
 
             if isempty(id_pr)
                 log.addWarning('There are no station to get pressure information', 100);
                 pres = nan(time.length,1);
             else
-                %A = ones(size(id_pr));
-                %Q = d2(id_pr, id_pr);
-                %AinvQ =  A'/Q;
-                %w = (AinvQ*A)\AinvQ;
+                % A = ones(size(id_pr));
+                % Q = d2(id_pr, id_pr);
+                % AinvQ =  A'/Q;
+                % w = (AinvQ*A)\AinvQ;
+                
                 trans = sum(q_fun_obs(id_pr, id_pr));
                 w = sum(trans)\trans;
-                pres = (w * pr_obs)';
-            end
 
+                % Rescale weigths epoch by epoch
+                w_all = repmat(w', 1, size(t_dist,2));
+                w_all(t_dist > t_thr) = 0; % eliminate too distance ineterpolations
+                w_all = bsxfun(@rdivide, w_all, sum(w_all));
+                pres0 = sum(w_all .* pr_obs);
+                
+                % adjust pres0 and avoid discontinuities
+                % temporary approach
+                dpres = Core_Utils.diffAndPred(pres0'); sensor = abs(dpres - medfilt_mat(dpres, 3));
+                dpres = simpleFill1D(dpres, sensor > 1e-3, 'linear');
+                pres_fill = cumsum(dpres); 
+                lid_best = sum(w_all>0.01') == max(sum(w_all>0.01'));
+                pres = pres_fill - mean(pres_fill(lid_best) - pres0(lid_best)', 'omitnan');
+                
+                % simpler weighed approach
+                % pres = (w * pr_obs)';
+            end
+            
+            % Get the closest station
+            %[~, id_min] = min(d); figure; plot(time.getMatlabTime, pres, '.'); hold on; plot(time.getMatlabTime, pr_obs(id_min, :), '.'); plot(station(id_min).time.getMatlabTime, station(id_min).data(:, station(id_min).type == 1), '*')
+            %dockAllFigures;
+            
             % fun for temperature
             fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
             q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);

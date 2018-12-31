@@ -772,8 +772,10 @@ classdef Receiver_Output < Receiver_Commons
                 for prn = this.cc.prn(this.cc.system == sys_c)'
                     s = this.cc.getIndex(sys_c, prn);
                     cs = ep(this.sat.cycle_slip_idx_ph(:, s) ~= 0);
-                    plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
+                    sat_on = ep(this.sat.az(:, s) ~= 0);
+                    plot(sat_on,  prn * ones(size(sat_on)), '.', 'MarkerSize', 10, 'Color', [0.7 0.7 0.7]);
                     hold on;
+                    plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
                     out = ep(this.sat.outlier_idx_ph(:, s) ~= 0);
                     plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
@@ -808,11 +810,17 @@ classdef Receiver_Output < Receiver_Commons
                     
                     cs = sum(this.sat.cycle_slip_idx_ph(:, s), 2) > 0;
                     out = sum(this.sat.outlier_idx_ph(:, s), 2) > 0;
+                    sat_on = (this.sat.az(:, s) ~= 0);
                     
+                    decl_n = (serialize(90 - el(sat_on)) / 180*pi) / (pi/2);
+                    x = sin(az(sat_on)/180*pi) .* decl_n; x(az(sat_on) == 0) = [];
+                    y = cos(az(sat_on)/180*pi) .* decl_n; y(az(sat_on) == 0) = [];
+                    plot(x, y, '.', 'MarkerSize', 7, 'Color', [0.7 0.7 0.7]);
+
                     decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
                     x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
                     y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
-                    plot(x, y, '.k', 'MarkerSize', 20)
+                    plot(x, y, '.k', 'MarkerSize', 20);
                     
                     decl_n = (serialize(90 - el(out)) / 180*pi) / (pi/2);
                     x = sin(az(out)/180*pi) .* decl_n; x(az(out) == 0) = [];
