@@ -53,17 +53,17 @@ classdef GNSS_Station < handle
         ant_delta_h    % antenna height from the ground [m]
         ant_delta_en   % antenna east/north offset from the ground [m]
         
-        static         % static or dynamic receiver 1: static 0: dynamic
+        static         % static or dynamic receiver 1: static 0: dynamic        
         
+        work           % handle to receiver Work Space
+        old_work       % handle to the old Work Space used for repair CS (contains just few epochs)
+        out            % handle to receiver outputs
         
-        work % handle to receiver Work Space
-        old_work % handle to the old Work Space
-        out % handle to receiver outputs
+        cc             % constallation collector contains information on the Constellation used
+        state          % handle to the state object
         
-        cc
-        state
-        log
-        w_bar
+        log            % handle to the log object
+        w_bar          % handle to the wait bar object
     end
     
     % ==================================================================================================================================================
@@ -71,54 +71,66 @@ classdef GNSS_Station < handle
     % ==================================================================================================================================================
     
     properties
-        slant_filter_win = 0;
+        slant_filter_win = 0; % used in some visualization represente the knot distance of splines used for filtering
     end
+    
     % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM - IMPORT - EXPORT
     % ==================================================================================================================================================
     methods
-        function this = GNSS_Station(cc, static)
+        function this = GNSS_Station(cc, flag_static)
+            % Creator method
+            %
+            % INPUT
+            %   cc           object containing info on Constellations [ Constellation Collector ]
+            %   flag_static  flag is static [ boolean ]
+            %
+            % SYNTAX
+            %   this = GNSS_Static(cc, static)
             if nargin <= 1 || isempty(cc)
                 cc = Constellation_Collector('G');
             end
             this.cc = cc;
             this.work = Receiver_Work_Space(cc, this);
             this.out = Receiver_Output(this.cc, this);
-            if nargin >= 2 && ~isempty(static)
-                this.static = logical(static);
+            if nargin >= 2 && ~isempty(flag_static)
+                this.static = logical(flag_static);
             end
             this.init();
-            this.reset();
+            this.resetInfo();
         end
-        
-        function importRinexLegacy(this,rinex_file_name, rate)
-            if ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
-                this.work.rinex_file_name = rinex_file_name;
-            else
-                this.work.rinex_file_name = '';
-            end
-            this.work.load(rate);
-            this.work.out_start_time = this.work.time.first;
-            this.work.out_stop_time = this.work.time.last;
-        end
-        
+                
         function importRinexes(this, rin_list, time_start, time_stop, rate)
-            % select the files to be imported
+            % Select the files to be imported
+            %
+            % INPUT
+            %   rin_list      object containing the list of rinex to load [ File_Rinex ]
+            %   time_start    first epoch to load [ GPS_Time ]
+            %   time_stop     last epoch to load [ GPS_Time ]
             %
             % SYNTAX
-            % this.importRinexes(rin_list, time_start, time_stop, rate)
+            %   this.importRinexes(rin_list, time_start, time_stop, rate)
             this.work.importRinexFileList(rin_list, time_start, time_stop, rate);
         end
         
         function init(this)
+            % Reload handles
+            %
+            % SYNTAX
+            %   this.init();
+            
             this.log = Core.getLogger();
             this.state = Core.getState();
+            
             this.w_bar = Go_Wait_Bar.getInstance();
-            %this.work.resetWorkSpace();
             this.work = Receiver_Work_Space(this.cc, this);
         end
         
-        function reset(this)
+        function resetInfo(this)
+            % Reset information about receiver (name, type, number...)
+            %
+            % SYNTAX
+            %   this.reset()
             this.marker_name  = 'unknown';  % marker name
             this.marker_type  = '';       % marker type
             this.number   = '000';
@@ -127,16 +139,24 @@ classdef GNSS_Station < handle
         end
         
         function resetOut(this)
+            % Reset handle to output object
+            %
+            % SYNTAX
+            %   this.reset()
             this.out = Receiver_Output(this.cc, this);
         end
         
-        function netPrePro(rec_list)
+        function netPrePro(sta_list)
+            % EXPERIMENTAL pre processing multi-receiver
             % Perform multi-receiver pre-processing
             %  - outlier detection, 
             %  - realignment of "old" phases for ambiguity passing + repair
             %
+            % INPUT
+            %   sta_list    list of receiver
+            %
             % SYNTAX
-            %   rec_list.netProPro()
+            %   sta_list.netProPro()
             
             realign_ph = true;
             out_det = true;
@@ -144,7 +164,7 @@ classdef GNSS_Station < handle
             show_fig = false;
             % Prepare data in a unique structure
             
-            work_list = [rec_list(~rec_list.isEmptyWork_mr).work];
+            work_list = [sta_list(~sta_list.isEmptyWork_mr).work];
             if numel(work_list) > 1 && (show_fig || out_det)
                 
                 [~, id_rsync] = Receiver_Commons.getSyncTimeExpanded(work_list);
@@ -299,29 +319,29 @@ classdef GNSS_Station < handle
             end
         end
         
-        function exportMat(this)
-            % Export the receiver into a MATLAB file
+        function exportMat(sta_list)
+            % Export the receiver into a MATLAB file (work properties is not saved )
             %
             % SYNTAX
-            %   this.exportMat
+            %   sta_list.exportMat()
             
-            for r = 1 : numel(this)
+            for r = 1 : numel(sta_list)
                 try
                     % Get time span of the receiver
-                    time = this(r).getTime().getEpoch([1 this(r).getTime().length()]);
+                    time = sta_list(r).getTime().getEpoch([1 sta_list(r).getTime().length()]);
                     time.toUtc();
                     
-                    fname = fullfile(this(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', this(r).marker_name, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
+                    fname = fullfile(sta_list(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', sta_list(r).marker_name, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
                     
-                    rec = this(r);
+                    rec = sta_list(r);
                     tmp_work = rec.work; % back-up current out
-                    rec.work = Receiver_Work_Space(this(r).cc, rec);
+                    rec.work = Receiver_Work_Space(sta_list(r).cc, rec);
                     save(fname, 'rec');
                     rec.work = tmp_work;
                     
                     rec.log.addStatusOk(sprintf('Receiver %s: %s', rec.getMarkerName4Ch, fname));
                 catch ex
-                    this(r).log.addError(sprintf('saving Receiver %s in matlab format failed: %s', this(r).getMarkerName4Ch, ex.message));
+                    sta_list(r).log.addError(sprintf('saving Receiver %s in matlab format failed: %s', sta_list(r).getMarkerName4Ch, ex.message));
                 end
             end
         end
@@ -334,7 +354,12 @@ classdef GNSS_Station < handle
         % standard utility
         function toString(sta_list)
             % Display on screen information about the receiver
-            % SYNTAX this.toString();
+            %
+            % INPUT
+            %   sta_list    list of receivers
+            %
+            % SYNTAX
+            %   this.toString(sta_list);
             for i = 1:length(sta_list)
                 if ~sta_list(i).work.isEmpty()
                     sta_list(i).work.toString();
@@ -345,15 +370,19 @@ classdef GNSS_Station < handle
             end
         end
         
-        function id = getStationId(rec_list, marker_name)
+        function id = getStationId(sta_list, marker_name)
             % Given a marker_name get the sequencial id of a station
             %
+            % INPUT
+            %   sta_list      list of receivers
+            %   marker_name   4 letter marker name
+            %
             % SYNTAX
-            %   id = findStationId(this, marker_name)
+            %   id = getStationId(this, marker_name)
             marker4ch_list = '';
-            for r = 1 : numel(rec_list)
+            for r = 1 : numel(sta_list)
                 try
-                    marker4ch_list(r, :) = char(rec_list(r).getMarkerName4Ch);
+                    marker4ch_list(r, :) = char(sta_list(r).getMarkerName4Ch);
                 catch
                     % the name is shorter or missing => ignore
                 end
@@ -361,39 +390,19 @@ classdef GNSS_Station < handle
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
         end
         
-        function printStationList(rec_list)
-            % Given a marker_name get the sequencial id of a station
+        function req_rec = get(sta_list, marker_name)
+            % Get the receivers with a certain Marker name (case unsensitive)
             %
             % SYNTAX
-            %   id = findStationId(this, marker_name)
-            log = Logger.getInstance();
-            if numel(rec_list) > 0
-                log.addMessage('List of available stations:');
-                for r = 1 : numel(rec_list)
-                    try
-                        log.addMessage(sprintf('%4d) %s', r, char(rec_list(r).getMarkerName)));
-                        marker4ch_list
-                    catch
-                        % the name is shorter or missing => ignore
-                    end
-                end
-            end
-        end
-        
-        function req_rec = get(rec_list, marker_name)
-            % Get the receivers with a certain Marker name
-            % case unsensitive
-            %
-            % SYNTAX
-            %   req_rec = rec_list.get(marker_name)
+            %   req_rec = sta_list.get(marker_name)
             req_rec = [];
-            for r = 1 : size(rec_list,2)
-                rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
+            for r = 1 : size(sta_list,2)
+                rec = sta_list(~sta_list(:,r).isEmpty_mr ,r);
                 if not(rec.isEmpty)
                     if strcmpi(rec(1).getMarkerName, marker_name)
-                        req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                        req_rec = [req_rec sta_list(:,r)]; %#ok<AGROW>
                     elseif strcmpi(rec(1).getMarkerName4Ch, marker_name)
-                        req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                        req_rec = [req_rec sta_list(:,r)]; %#ok<AGROW>
                     end
                 end
             end
@@ -410,12 +419,31 @@ classdef GNSS_Station < handle
             end
         end
         
+        function printStationList(sta_list)
+            % Print the list of station / markers
+            %
+            % SYNTAX
+            %   sta_list.printStationList()
+            log = Logger.getInstance();
+            if numel(sta_list) > 0
+                log.addMessage('List of available stations:');
+                for r = 1 : numel(sta_list)
+                    try
+                        log.addMessage(sprintf('%4d) %s', r, char(sta_list(r).getMarkerName)));
+                        marker4ch_list
+                    catch
+                        % the name is shorter or missing => ignore
+                    end
+                end
+            end
+        end
+                        
         function marker_name = getMarkerName4Ch(this)
             % Get the Marker name as specified in the file name
             % (first four characters)
             %
             % SYNTAX
-            %   marker_name = getMarkerName(this)
+            %   marker_name = getMarkerName4Ch(this)
             if ~isempty(this.work.rinex_file_name)
                 marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
             else
@@ -431,6 +459,7 @@ classdef GNSS_Station < handle
             %   - 3 char doy
             %
             % SYNTAX
+            %   out_prefix = this.getOutPrefix()
             if this.out.length == 0
                 time = this.work.time.getCopy;
             else
@@ -441,11 +470,14 @@ classdef GNSS_Station < handle
         end
         
         function is_empty = isEmpty_mr(sta_list)
-            % Return if the object does not cantains any observation
+            % Return if the object does not cantain any observations (work) or results (out)
             %
             % SYNTAX
             %   is_empty = this.isEmpty_mr();
-            is_empty =  zeros(numel(sta_list), 1);
+            %
+            % SEE ALSO
+            %   isEmptyOut_mr isEmptyWork_mr
+            is_empty =  false(numel(sta_list), 1);
             for r = 1 : numel(sta_list)
                 is_empty(r) =  sta_list(r).work.isEmpty() && sta_list(r).out.isEmpty();
             end
@@ -456,34 +488,29 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   is_empty = this.isEmptyWork_mr();
-            is_empty =  zeros(numel(sta_list), 1);
+            %
+            % SEE ALSO
+            %   isEmpty_mr isEmptyOut_mr
+            is_empty =  false(numel(sta_list), 1);
             for r = 1 : numel(sta_list)
                 is_empty(r) =  sta_list(r).work.isEmpty();
             end
         end
         
         function is_empty = isEmptyOut_mr(sta_list)
-            % Return if the object out does not cantains any observation
+            % Return if the object out does not cantains any results
             %
             % SYNTAX
             %   is_empty = this.isEmptyOut_mr();
-            is_empty =  zeros(numel(sta_list), 1);
-            for r = 1 : numel(sta_list)
-                is_empty(r) =  sta_list(r).out.isEmpty();
-            end
-        end
-        
-        function is_empty = isOutEmpty_mr(sta_list)
-            % Return if the object (out) does not cantains any observation
             %
-            % SYNTAX
-            %   is_empty = this.isOutEmpty_mr();
-            is_empty =  zeros(numel(sta_list), 1);
+            % SEE ALSO
+            %   isEmpty_mr isEmptyWork_mr
+            is_empty =  false(numel(sta_list), 1);
             for r = 1 : numel(sta_list)
                 is_empty(r) =  sta_list(r).out.isEmpty();
             end
         end
-        
+                
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
             %
@@ -494,7 +521,7 @@ classdef GNSS_Station < handle
         end
         
         function time = getTime(this)
-            % return the time stored in the object
+            % return the time stored in the object out
             %
             % OUTPUT
             %   time     GPS_Time
@@ -504,23 +531,23 @@ classdef GNSS_Station < handle
             time = this.out.getTime();
         end
         
-        function n_epo = getNumEpochs(this)
-            % Return the time span of the receiver
+        function n_epo = getNumEpochs(sta_list)
+            % Return the number of epochs stored in work
+            %
             % SYNTAX
-            %   len = this.length();
-            n_epo =  zeros(numel(this), 1);
-            for r = 1 : numel(this)
-                n_epo(r) =  this(r).work.time.length();
+            %   len = this.getNumEpochs();
+            n_epo =  zeros(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                n_epo(r) =  sta_list(r).work.time.length();
             end
             n_epo = sum(n_epo);
         end
         
         function n_sat = getMaxSat(sta_list, sys_c)
-            % get the number of satellites stored in the object
+            % get the number of satellites stored in the object work
             %
             % SYNTAX
-            %   n_sat = getNumSat(<sys_c>)
-            
+            %   n_sat = getNumSat(<sys_c>)            
             n_sat = zeros(numel(sta_list),1);
             for r = 1 : size(sta_list, 2)
                 rec(r) = sta_list(r);
@@ -616,11 +643,22 @@ classdef GNSS_Station < handle
         end
         
         function [rate] = getRate(this)
+            % Get the rate of the output (or work if out is empty)
+            %
             % SYNTAX
             %   rate = this.getRate();
-            rate = this.out.getTime.getRate;
-            if isnan(rate)
-                rate = this.work.getTime.getRate;
+            try
+                if ~(isempty(this.out) || this.out.isEmpty)
+                    rate = this.out.getTime.getRate;
+                else
+                    rate = nan;
+                end
+                if isnan(rate)
+                    rate = this.work.getTime.getRate;
+                end
+            catch
+                % if anything appen probably  
+                rate = nan;
             end
         end
         
@@ -628,7 +666,7 @@ classdef GNSS_Station < handle
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   coo     Coordinate object array
+            %   coo     object array [ Coordinate ]
             %
             % SYNTAX
             %   coo = sta_list.getPos()
@@ -641,10 +679,11 @@ classdef GNSS_Station < handle
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   xyz     XYZ coordinates
+            %   xyz     XYZ coordinates cell array
             %
             % SYNTAX
             %   xyz = this.getPosENU()
+            xyz = {};
             for r = 1 : numel(sta_list)
                 xyz{r} = sta_list(r).out.getPosXYZ();
             end
@@ -655,10 +694,10 @@ classdef GNSS_Station < handle
             % multi_rec mode (synced)
             %
             % OUTPUT
-            %   xyz     XYZ coordinates
+            %   xyz     XYZ coordinates synced matrix (n_epoch, 3, n_rec)
             %
             % SYNTAX
-            %   xyz = this.getPosENU()
+            %   xyz = sta_list.getPosENU()
          
             [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list, [], true);
             
@@ -679,10 +718,10 @@ classdef GNSS_Station < handle
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   enu     enu coordinates
+            %   enu     enu coordinates cell array
             %
             % SYNTAX
-            %   enu = this.getPosENU()
+            %   enu = sta_list.getPosENU()
             for r = 1 : numel(sta_list)
                 enu{r} = sta_list(r).out.getPosENU();
             end
@@ -757,31 +796,35 @@ classdef GNSS_Station < handle
             end
         end
         
-        function getChalmersString(this)
-            % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
-            % SYNTAX   this.getChalmersString();
-            this(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');
-            this(1).log.addMessage(this(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
-            this(1).log.addMessage(this(1).log.indent('using ocean tide model FES2004'));
-            this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));
-            this(1).log.addMessage(this(1).log.indent('Use the following string for the staion locations:'));
-            this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
+        function getChalmersString(sta_list)
+            % Get the string of the station to be used in http://holt.oso.chalmers.se/loading/
+            %
+            % SYNTAX
+            %   this.getChalmersString(sta_list);
             
-            for r = 1 : size(this, 2)
-                rec = this(~this(:,r).isEmpty, r);
+            sta_list(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');
+            sta_list(1).log.addMessage(sta_list(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
+            sta_list(1).log.addMessage(sta_list(1).log.indent('using ocean tide model FES2004'));
+            sta_list(1).log.addMessage(sta_list(1).log.indent('select also to compensate the values for the motion'));
+            sta_list(1).log.addMessage(sta_list(1).log.indent('Use the following string for the staion locations:'));
+            sta_list(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
+            
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(~sta_list(:,r).isEmpty, r);
                 if ~isempty(rec)
                     xyz = rec.out.getMedianPosXYZ();
                     if isempty(xyz)
                         xyz = rec.work.getMedianPosXYZ();
                     end
-                    this(1).log.addMessage([char(8) sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3))]);
+                    sta_list(1).log.addMessage([char(8) sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3))]);
                 end
             end
             
-            this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
+            sta_list(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
         end
         
         function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
+            % Get synced data of ztd
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
@@ -799,7 +842,7 @@ classdef GNSS_Station < handle
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
                 id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
-                ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(~isnan(id_rec));
+                ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(id_rec(~isnan(id_rec)));
             end
             
             if nargout == 5
@@ -814,16 +857,18 @@ classdef GNSS_Station < handle
             end
         end
                 
-        function [ztd_res, p_time, ztd_height] = getReducedZtd_mr(sta_list)
-            % MultiRec: works on an array of receivers
-            % Reduce the ZTD of all the stations removing the
-            % component dependent with the altitude
+        function [ztd_res, p_time, ztd_height] = getReducedZtd_mr(sta_list, degree)
+            % Reduce the ZTD of all the stations removing the component dependent with the altitude
+            % Return synced ZTD
+            % MultiRec: works on an array of receivers            
             %
             % SYNTAX
             %  [ztd_res, p_time, ztd_height] = sta_list.getReducedZtd_mr()
             
             med_ztd = median(sta_list.getZtd_mr, 'omitnan')';
-            degree = 5;
+            if nargin == 1
+                degree = 5;
+            end
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
             
             ztd_height = Core_Utils.interp1LS(h_o, med_ztd, degree);
@@ -832,6 +877,7 @@ classdef GNSS_Station < handle
         end
         
         function [pwv, p_time, id_sync] = getPwv_mr(sta_list)
+            % Get synced data of pwv
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
@@ -852,6 +898,8 @@ classdef GNSS_Station < handle
         end
         
         function [di, p_time, id_sync] = getSlantDispersionIndex_mr(sta_list)
+            % Get synced data of dispersion index
+            % Dispersion Index is computed as moving mean of var of slant total delay
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
@@ -874,6 +922,7 @@ classdef GNSS_Station < handle
         end
         
         function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
+            % Get synced data of zwd
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
@@ -907,7 +956,8 @@ classdef GNSS_Station < handle
         end
 
         function [tropo, time] = getTropoPar(sta_list, par_name)
-            % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
+            % Get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
+            % Generic function multi parameter getter
             %
             % SYNTAX
             %  [tropo, p_time] = sta_list.getAprZhd()
@@ -951,12 +1001,12 @@ classdef GNSS_Station < handle
             [tropo, time] = sta_list.getTropoPar('ztd');
         end
         
-        function [tropo, time] = getNumSat(sta_list)
-            % Get Nu, sta
+        function [n_sat, time] = getNumSat(sta_list)
+            % Get the number of satellite in view per epoch
             %
             % SYNTAX
             %  [tropo, p_time] = sta_list.getNumSat()
-            [tropo, time] = sta_list.getTropoPar('nsat');
+            [n_sat, time] = sta_list.getTropoPar('nsat');
         end
         
         function [tropo, time] = getZwd(sta_list)
@@ -976,23 +1026,23 @@ classdef GNSS_Station < handle
         end
         
         function [tropo, time] = getAprZhd(sta_list)
-            % Get ZHD
+            % Get a-priori ZHD
             %
             % SYNTAX
-            %  [tropo, p_time] = sta_list.getZhd()
+            %  [tropo, p_time] = sta_list.getAprZhd()
             [tropo, time] = sta_list.getTropoPar('zhd');
         end
         
         function rec_works = getWork(sta_list, id)
-            % return the working receiver for a gnss station array
+            % Return the working receiver for a GNSS station array
             %
             % SYNTAX
             %  rec_works = sta_list.getWork(<id>)
             if nargin < 2
-                rec_works= [sta_list.work];
+                rec_works = [sta_list.work];
             else
                 id(id > numel(sta_list)) = [];
-                rec_works= [sta_list(id).work];
+                rec_works = [sta_list(id).work];
             end
         end
     end
@@ -1003,6 +1053,7 @@ classdef GNSS_Station < handle
     methods (Access = public)
         function setSlantFilterSize(this, win_size)
             % Setter multi_receiver to change filtering windows size for slant export
+            %
             % SYNTAX
             %   this.setSlantFilterSize(win_size)
             for r = 1 : numel(this)
@@ -1015,14 +1066,18 @@ classdef GNSS_Station < handle
     %% TESTER
     % ==================================================================================================================================================
     methods (Access = public)
-        function id_ko = checkZtd_mr(rec, verbose)
+        function id_ko = checkZtd_mr(sta_list, flag_verbose)
+            % Check ZTD for possible outliers (works on the mr ZTD getter)
+            %
+            % SYNTAX 
+            %   id_ko = sta_list.checkZtd_mr(flag_verbose)   
             if nargin < 2
-                verbose = true;
+                flag_verbose = true;
             end
             
-            ztd = rec.getZtd_mr();
+            ztd = sta_list.getZtd_mr();
             med_ztd = median(ztd * 1e2, 'omitnan')';
-            [lat, lon, h_e, h_o] = rec.getMedianPosGeodetic();
+            [lat, lon, h_e, h_o] = sta_list.getMedianPosGeodetic();
             
             log = Logger.getInstance();
             
@@ -1031,10 +1086,10 @@ classdef GNSS_Station < handle
             ztd_diff = abs(med_ztd - h_component);
             id_ko = find(ztd_diff > 8);
             
-            if not(isempty(id_ko)) && verbose
+            if not(isempty(id_ko)) && flag_verbose
                 log.addMessage('Strange stations detected');
                 for s = 1 : numel(id_ko)
-                    log.addMessage(sprintf(' - %s out for: %.2f cm wrt global behaviour', rec(id_ko(s)).getMarkerName, ztd_diff(id_ko(s))));
+                    log.addMessage(sprintf(' - %s out for: %.2f cm wrt global behaviour', sta_list(id_ko(s)).getMarkerName, ztd_diff(id_ko(s))));
                 end
             end
         end
@@ -1159,7 +1214,7 @@ classdef GNSS_Station < handle
             % processing time will start with the receiver with the last first epoch
             %          and it will stop  with the receiver with the first last epoch
             
-            first_id_ok = find(~sta_list.isOutEmpty_mr, 1, 'first');
+            first_id_ok = find(~sta_list.isEmptyOut_mr, 1, 'first');
             p_time_zero = round(sta_list(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
             p_time_start = sta_list(first_id_ok).out.time.first.getRefTime(p_time_zero);
             p_time_stop = sta_list(first_id_ok).out.time.last.getRefTime(p_time_zero);
@@ -1227,6 +1282,7 @@ classdef GNSS_Station < handle
     %   m mixed
     methods (Access = public)
         function showAll(sta_list)
+            % Try to show all the possible plots
             for i = 1:numel(sta_list)
                 sta_list(i).out.showAll;
             end
@@ -1570,9 +1626,9 @@ classdef GNSS_Station < handle
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.-', 'LineWidth', 2); hold on;
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
                         tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
@@ -1659,7 +1715,7 @@ classdef GNSS_Station < handle
             this.showTropoPar('GE', new_fig)
         end
         
-        function showZtdVsHeight(sta_list)
+        function showZtdVsHeight(sta_list, degree)
             % Show Median ZTD of n_receivers vs Hortometric height
             %
             % SYNTAX
@@ -1673,7 +1729,9 @@ classdef GNSS_Station < handle
             xlabel('Elevation [m]');
             title('ZTD vs Height')
             
-            degree = 5;
+            if nargin == 1
+                degree = 5;
+            end
             y_out = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
             plot(sort(h_o), Core_Utils.interp1LS(h_o, med_ztd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
             subplot(2,1,2);
@@ -1705,7 +1763,7 @@ classdef GNSS_Station < handle
             for r = 1 : size(this, 2)
                 rec_ok(r) = any(~isnan(this(:,r).out.getZtd));
             end
-            rec_list = this(:, rec_ok);
+            sta_list = this(:, rec_ok);
             
             if nargin < 3
                 new_fig = true;
@@ -1713,30 +1771,30 @@ classdef GNSS_Station < handle
             
             switch lower(par_name)
                 case 'ztd'
-                    [tropo] = rec_list(1).out.getZtd();
+                    [tropo] = sta_list(1).out.getZtd();
                 case 'zwd'
-                    [tropo] = rec_list(1).out.getZwd();
+                    [tropo] = sta_list(1).out.getZwd();
                 case 'pwv'
-                    [tropo] = rec_list(1).out.getPwv();
+                    [tropo] = sta_list(1).out.getPwv();
                 case 'zhd'
-                    [tropo] = rec_list(1).out.getAprZhd();
+                    [tropo] = sta_list(1).out.getAprZhd();
             end
             
             if ~iscell(tropo)
                 tropo = {tropo};
             end
             if isempty(tropo)
-                rec_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
+                sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, rec_list(1).out.cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
                     old_legend = get(l,'String');
                 end
-                for r = 1 : numel(rec_list)
-                    rec = rec_list(~rec_list(r).isEmpty, r);
+                for r = 1 : numel(sta_list)
+                    rec = sta_list(~sta_list(r).isEmpty, r);
                     if ~isempty(rec)
                         switch lower(par_name)
                             case 'ztd'
@@ -1750,7 +1808,7 @@ classdef GNSS_Station < handle
                         end
                         [~, ~, ~, h_o] = rec(1).out.getPosGeodetic();
                         if new_fig
-                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
+                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
                             plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
                         end

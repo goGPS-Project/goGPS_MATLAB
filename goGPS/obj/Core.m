@@ -64,7 +64,7 @@ classdef Core < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log         % Logger handler
-        w_bar       % WaitBar handler
+        w_bar       % Wait_Bar handler
         
         state       % state
         sky         % Core_Sky handler
@@ -96,7 +96,7 @@ classdef Core < handle
     % ==================================================================================================================================================
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
-        function this = Core(force_clean)
+        function this = Core()
             % Core object creator
             
             % init logger
@@ -122,29 +122,68 @@ classdef Core < handle
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance(force_clean, skip_init)
-            if nargin < 1 || isempty(force_clean)
-                force_clean = false;
-            end
-            if nargin < 2 || isempty(skip_init)
-                skip_init = false;
-            end
-
+        function this = getInstance(force_clean, skip_init)                        
             % Get the persistent instance of the class
+            %
+            % INPUT
+            %   force_clean  remove rec and reset state from core
+            %   skip_init    take the object core as it is
+            %
+            % SYNTAX
+            %    this = getInstance(force_clean, skip_init)
+            %
+            % ALTERNATIVE
+            % Set the persistent instance of the class
+            % substitute the current persistent link to the core
+            %
+            % INPUT 
+            %   core        existent core
+            %
+            % SYNTAX
+            %   core = getInstance(core)
+            
+            
             persistent unique_instance_core__
 
-            if isempty(unique_instance_core__)
-                this = Core(force_clean);
-                unique_instance_core__ = this;
-                if ~skip_init
-                    this.init(force_clean);
-                end                
-            else
-                this = unique_instance_core__;
-                if ~skip_init
-                    this.init(force_clean);
+            if (nargin == 1) && isa(force_clean, 'Core')
+                unique_instance_core__ = force_clean;
+                this = force_clean;
+            else                
+                if nargin < 1 || isempty(force_clean)
+                    force_clean = false;
                 end
-            end            
+                if nargin < 2 || isempty(skip_init)
+                    skip_init = false;
+                end
+                
+                
+                if isempty(unique_instance_core__)
+                    this = Core();
+                    unique_instance_core__ = this;
+                    if ~skip_init
+                        this.init(force_clean);
+                    end
+                else
+                    this = unique_instance_core__;
+                    if ~skip_init
+                        this.init(force_clean);
+                    end
+                end
+            end
+        end
+        
+        
+        function this = setInstance(core)
+            % Set the persistent instance of the class
+            % substitute the current persistent link to the core
+            %
+            % INPUT
+            %   core        existent core
+            %
+            % SYNTAX
+            %   core = Core.setInstance(core)
+            
+            this = Core.getInstance(core);
         end
         
         function initGeoid(geoid)
@@ -153,7 +192,7 @@ classdef Core < handle
             % SYNTAX
             %   this.initGeoid(); -> load from file
             %   this.initGeoid(geoid); -> import from obj
-            core = Core.getInstance(false, true);
+            core = Core.getCurrentCore;
             if nargin == 2
                 core.geoid = geoid;
             else
@@ -234,6 +273,20 @@ classdef Core < handle
             end            
         end
         
+        function wb = getWaitBar()
+            % Return the pointer to the Go_Wait_Bar
+            %
+            % SYNTAX
+            %   log = Core.getWaitBar()
+            
+            core = Core.getInstance(false, true);
+            wb = core.w_bar;
+            if isempty(wb)
+                wb = Go_Wait_Bar.getInstance();
+                core.wb = wb;
+            end            
+        end
+        
         function atmo = getAtmosphere()
             % Return the pointer to the Atmosphere Object
             %
@@ -294,7 +347,7 @@ classdef Core < handle
             
         end
         
-         function rec_list = getRecList()
+        function rec_list = getRecList()
             % Get receiver list
             %
             % SYNTAX
@@ -302,8 +355,7 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             rec_list = core.rec;
         end
-        
-                
+             
         function state = getState()
             % Return the pointer to the State pointed by Core
             %
@@ -370,6 +422,15 @@ classdef Core < handle
             %   core = Core.getCurrentCore()
             
             core = Core.getInstance(false, true);
+        end
+        
+        function core = setCurrentCore(core)
+            % Set the pointer to the actual Core instance
+            %
+            % SYNTAX
+            %   core = Core.setCurrentCore(core)
+            
+            core = Core.getInstance(core);
         end
 
         function setAdvanced(mode)
@@ -452,7 +513,6 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             core.cmd = cmd;
         end
-
     end
     
     %% METHODS INIT
