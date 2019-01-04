@@ -823,13 +823,12 @@ classdef GNSS_Station < handle
             sta_list(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
         end
         
-        function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
-            % Get synced data of ztd
+        function [pressure, temperature, humidity, p_time, id_sync] = getPTH_mr(sta_list)
+            % Get synced data of TPH
             % MultiRec: works on an array of receivers
             %
             % SYNTAX
-            %  [ztd, p_time, id_sync] = this.getZtd_mr()
-            %  [ztd, p_time, id_sync, tge, tgn] = this.getZtd_mr()
+            %  [pressure, temperaure, humidiy, p_time, id_sync] = this.getPTH_mr()
             
             [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
             
@@ -838,22 +837,27 @@ classdef GNSS_Station < handle
             p_time = p_time.getEpoch(id_ok);
             
             n_rec = numel(sta_list);
-            ztd = nan(size(id_sync));
+            pressure = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
-                id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
-                ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(id_rec(~isnan(id_rec)));
+                id_rec(id_rec > length(sta_list(r).out.pressure)) = nan;
+                pressure(~isnan(id_rec), r) = sta_list(r).out.pressure(id_rec(~isnan(id_rec)));
             end
             
-            if nargout == 5
-                tge = nan(size(id_sync));
-                tgn = nan(size(id_sync));
-                for r = 1 : n_rec
-                    id_rec = id_sync(:,r);
-                    id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
-                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(id_rec(~isnan(id_rec)));
-                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(id_rec(~isnan(id_rec)));
-                end
+            n_rec = numel(sta_list);
+            temperature = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).out.temperature)) = nan;
+                temperature(~isnan(id_rec), r) = sta_list(r).out.temperature(id_rec(~isnan(id_rec)));
+            end
+            
+            n_rec = numel(sta_list);
+            humidity = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).out.humidity)) = nan;
+                humidity(~isnan(id_rec), r) = sta_list(r).out.humidity(id_rec(~isnan(id_rec)));
             end
         end
                 
@@ -1579,6 +1583,30 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showPTH(sta_list)
+            % Show plots for pressure, temperature and humidity
+            %
+            % SYNATAX
+            %   sta_list.showPTH()
+            [pressure, temperature, humidity, p_time, id_sync] = sta_list.getPTH_mr();
+            
+            figure;
+            subplot(3,1,1);
+            plot(p_time.getMatlabTime, pressure,'.');
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel(['Pressure [mbar]']); h.FontWeight = 'bold';
+
+            subplot(3,1,2);
+            plot(p_time.getMatlabTime, temperature,'.');
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel(['Temperaure [°C]']); h.FontWeight = 'bold';
+
+            subplot(3,1,3);
+            plot(p_time.getMatlabTime, humidity*100,'.');
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel(['Humidity [%]']); h.FontWeight = 'bold';            
+        end
+            
         function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
             % one function to rule them all
             
