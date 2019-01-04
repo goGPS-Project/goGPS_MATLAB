@@ -708,8 +708,8 @@ classdef Meteo_Data < handle
                                 [~, id] = min(time_data(~isnan(data_in)) - time_pred);
                                 data(id) = data_in(~isnan(data_in));
                             else
-                                data_in = data_in(~isnan(data_in));
                                 time_data = time_data(~isnan(data_in));
+                                data_in = data_in(~isnan(data_in));
                                 data_in = [data_in(1); data_in; data_in(end)];
                                 time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
                                 data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
@@ -907,7 +907,6 @@ classdef Meteo_Data < handle
             for s = 1 : numel(id_pr)
                 t_dist(s, :) = station(id_pr(s)).getTimeInterpDistance(time, station(id_pr(s)).time.getEpoch(find(~isnan(station(id_pr(s)).getPressure()))));
             end
-            t_all = repmat(time.getMatlabTime, 1, numel(id_pr))';
 
             if isempty(id_pr)
                 log.addWarning('There are no station to get pressure information', 100);
@@ -924,24 +923,54 @@ classdef Meteo_Data < handle
                 % Rescale weigths epoch by epoch
                 w_all = repmat(w', 1, size(t_dist,2));
                 w_all(t_dist > t_thr) = 0; % eliminate too distance ineterpolations
+                lid_best = (sum(w_all > 0.8)) >= 1;
+                if sum(lid_best) < 2
+                    [~, id_min] = min(d .* double(sum(w_all, 2) > 0));
+                    lid_best = w_all(id_min, :) > 0;
+                end
                 w_all = bsxfun(@rdivide, w_all, sum(w_all));
                 pres0 = sum(w_all .* pr_obs);
                 
+                lim = getOutliers(lid_best);
+
                 % adjust pres0 and avoid discontinuities
                 % temporary approach
                 dpres = Core_Utils.diffAndPred(pres0'); sensor = abs(dpres - medfilt_mat(dpres, 3));
-                dpres = simpleFill1D(dpres, sensor > 1e-3, 'linear');
-                pres_fill = cumsum(dpres); 
-                lid_best = sum(w_all>0.01') == max(sum(w_all>0.01'));
-                pres = pres_fill - mean(pres_fill(lid_best) - pres0(lid_best)', 'omitnan');
+                id_jmp = sensor > 1e-3;                
+                dpresf = simpleFill1D(dpres, id_jmp, 'linear');
+                pres_fill = cumsum(dpresf); 
+                pres_fill(lid_best) = pres0(lid_best);
                 
+                % first block bias
+                if ~isempty(lim) && (lim(1) > 1)
+                    pres_fill(1 : lim(1) - 1)  = pres_fill(1 : lim(1) - 1) + pres0(lim(1)) - pres_fill(lim(1) - 1) - dpresf(lim(1) - 1);
+                end
+                
+                % middle blocks linear interpolations
+                for l = 2 : size(lim, 1)
+                    m = (pres_fill(lim(l,1)) - dpresf(lim(l,1) + 1) - pres_fill(lim(l,1) - 1) ...
+                        - ( pres_fill(lim(l-1,2)) + dpresf(lim(l-1,2) + 1) - pres_fill(lim(l-1,2) + 1))) / ...
+                        (lim(l,1) - lim(l-1,2) + 1);
+                    pres_fill((lim(l-1, 2) + 1) : (lim(l, 1) - 1)) = pres_fill((lim(l-1, 2) + 1) :  (lim(l, 1) - 1)) + ...
+                                                                      m * (0 : (lim(l,1) - 2 - lim(l-1, 2)))' + ...
+                                                                      ( pres_fill(lim(l-1,2)) + dpresf(lim(l-1,2) + 1) - pres_fill(lim(l-1,2) + 1));
+                end
+                
+                % last block bias
+                
+                if ~isempty(lim) && (lim(end) < size(pres_fill,1))
+                    pres_fill((lim(end) + 1) : end) = pres_fill((lim(end) + 1) : end) - pres_fill(lim(end) + 1) + pres_fill(lim(end)) + dpresf(lim(end) + 1);
+                end
+                
+                pres = pres_fill;
+                 
                 % simpler weighed approach
                 % pres = (w * pr_obs)';
             end
             
             % Get the closest station
-            %[~, id_min] = min(d); figure; plot(time.getMatlabTime, pres, '.'); hold on; plot(time.getMatlabTime, pr_obs(id_min, :), '.'); plot(station(id_min).time.getMatlabTime, station(id_min).data(:, station(id_min).type == 1), '*')
-            %dockAllFigures;
+            [~, id_min] = min(d); figure; plot(time.getMatlabTime, pres, '.'); hold on; plot(time.getMatlabTime, pr_obs(id_min, :), '.'); plot(station(id_min).time.getMatlabTime, station(id_min).data(:, station(id_min).type == 1), '*')
+            dockAllFigures;
             
             % fun for temperature
             fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
