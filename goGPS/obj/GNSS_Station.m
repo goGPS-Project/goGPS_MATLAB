@@ -1594,17 +1594,17 @@ classdef GNSS_Station < handle
             subplot(3,1,1);
             plot(p_time.getMatlabTime, pressure,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel(['Pressure [mbar]']); h.FontWeight = 'bold';
+            h = ylabel('Pressure [mbar]'); h.FontWeight = 'bold';
 
             subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel(['Temperaure [°C]']); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [°C]'); h.FontWeight = 'bold';
 
             subplot(3,1,3);
             plot(p_time.getMatlabTime, humidity*100,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel(['Humidity [%]']); h.FontWeight = 'bold';            
+            h = ylabel('Humidity [%]'); h.FontWeight = 'bold';            
         end
             
         function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)

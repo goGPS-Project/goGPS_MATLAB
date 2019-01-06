@@ -1485,10 +1485,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function tryCycleSlipRepair(this)
-            %----------------------------
             % Cycle slip repair
-            %----------------------------
-            
+            %
             % window used to estimate cycle slip
             % linear time
             lin_time = 900; %single diffrence is linear in 15 minutes

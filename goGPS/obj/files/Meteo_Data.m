@@ -835,6 +835,116 @@ classdef Meteo_Data < handle
     %  STATIC
     % =========================================================================
     methods (Static)
+        function data = getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, type)
+            % Get interpolated data of meteo parameter
+            % pressure / temperaure / humidity
+            %
+            % SYNTAX
+            %   data = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, type)
+           
+            t_thr = 3000;
+
+            q_fun_obs = fun(d_oo) .* repmat(fun(d_op)', size(d_oo,1), 1);
+            q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
+
+            % getting data
+            id_data = find(st_type(:, type));
+            % id_pr = id_pr(real_dist(id_pr) < 20e3);
+
+            data_obs = zeros(numel(id_data), time.length());
+            switch type
+                case Meteo_Data.PR
+                    for s = 1 : numel(id_data)
+                        data_obs(s, :) = station(id_data(s)).getPressure(time, amsl);
+                    end
+                case Meteo_Data.TD
+                    for s = 1 : numel(id_data)
+                        data_obs(s, :) = station(id_data(s)).getTemperature(time, amsl);
+                    end
+                case Meteo_Data.HR
+                    for s = 1 : numel(id_data)
+                        data_obs(s, :) = station(id_data(s)).getHumidity(time, amsl);
+                    end
+            end
+            
+            id_data(sum(isnan(data_obs),2) > 0) = [];
+            data_obs(sum(isnan(data_obs),2) > 0, :) = [];
+
+            % get the time distance from true observations
+            t_dist = zeros(numel(id_data), time.length());
+            for s = 1 : numel(id_data)
+                t_dist(s, :) = station(id_data(s)).getTimeInterpDistance(time, station(id_data(s)).time.getEpoch(find(~isnan(station(id_data(s)).getPressure()))));
+            end
+
+            if isempty(id_data)
+                switch type
+                    case Meteo_Data.PR
+                        log.addWarning('There are no station to get pressure information', 100);
+                    case Meteo_Data.TD
+                        log.addWarning('There are no station to get temperature information', 100);
+                    case Meteo_Data.HR
+                        log.addWarning('There are no station to get humidity information', 100);
+                end
+                data = nan(time.length,1);
+            else
+                % A = ones(size(id_pr));
+                % Q = d2(id_pr, id_pr);
+                % AinvQ =  A'/Q;
+                % w = (AinvQ*A)\AinvQ;
+                
+                trans = sum(q_fun_obs(id_data, id_data));
+                w = sum(trans)\trans;
+
+                % Rescale weigths epoch by epoch
+                w_all = repmat(w', 1, size(t_dist,2));
+                w_all(t_dist > t_thr) = 0; % eliminate too distance ineterpolations
+                lid_best = (sum(w_all > 0.8)) >= 1;
+                if sum(lid_best) < 2
+                    [~, id_min] = min(d_op .* double(sum(w_all, 2) > 0));
+                    lid_best = w_all(id_min, :) > 0;
+                end
+                w_all = bsxfun(@rdivide, w_all, sum(w_all));
+                data0 = sum(w_all .* data_obs);
+                
+                lim = getOutliers(lid_best);
+
+                % adjust pres0 and avoid discontinuities
+                % temporary approach
+                ddata = Core_Utils.diffAndPred(data0'); sensor = abs(ddata - medfilt_mat(ddata, 3));
+                id_jmp = sensor > 1e-3;                
+                ddata_fill = simpleFill1D(ddata, id_jmp, 'linear');
+                data_fill = cumsum(ddata_fill); 
+                data_fill(lid_best) = data0(lid_best);
+                
+                % first block bias
+                if ~isempty(lim) && (lim(1) > 1)
+                    data_fill(1 : lim(1) - 1)  = data_fill(1 : lim(1) - 1) + data0(lim(1)) - data_fill(lim(1) - 1) - ddata_fill(lim(1) - 1);
+                end
+                
+                % middle blocks linear interpolations
+                for l = 2 : size(lim, 1)
+                    m = (data_fill(lim(l,1)) - ddata_fill(lim(l,1) + 1) - data_fill(lim(l,1) - 1) ...
+                        - ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1))) / ...
+                        (lim(l,1) - lim(l-1,2) + 1);
+                    data_fill((lim(l-1, 2) + 1) : (lim(l, 1) - 1)) = data_fill((lim(l-1, 2) + 1) :  (lim(l, 1) - 1)) + ...
+                                                                      m * (0 : (lim(l,1) - 2 - lim(l-1, 2)))' + ...
+                                                                      ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1));
+                end
+                
+                % last block bias
+                
+                if ~isempty(lim) && (lim(end) < size(data_fill,1))
+                    data_fill((lim(end) + 1) : end) = data_fill((lim(end) + 1) : end) - data_fill(lim(end) + 1) + data_fill(lim(end)) + ddata_fill(lim(end) + 1);
+                end
+                
+                data = data_fill;
+                
+                if type == Meteo_Data.HR
+                    data = min(1, max(0, data));
+                end
+            end            
+        end
+                
         function md = getVMS(name, xyz, time, station)
             % Get Virtual Meteo Station
             %
@@ -881,146 +991,24 @@ classdef Meteo_Data < handle
             st_type = st_type';
 
             [e_mesh, n_mesh] = meshgrid(e_obs, n_obs);
-            d2 = sqrt(abs(e_mesh - e_mesh').^2 + abs(n_mesh - n_mesh').^2);
-            d = sqrt(abs(e_obs - e).^2 + abs(n_obs - n).^2);
+            d_oo = sqrt(abs(e_mesh - e_mesh').^2 + abs(n_mesh - n_mesh').^2); % distance obs obs
+            d_op = sqrt(abs(e_obs - e).^2 + abs(n_obs - n).^2);               % distance obs o prediction point
 
             % fun for pressure
             fun = @(dist) 0.2 * exp(-(dist/0.8e4)) + exp(-(dist/6e3).^2);
-            q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
-            q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
-
-            % getting pressure
-            id_pr = find(st_type(:,1) == 1);
-            % id_pr = id_pr(real_dist(id_pr) < 20e3);
-
-            pr_obs = zeros(numel(id_pr), time.length());
-            for s = 1 : numel(id_pr)
-                pr_obs(s, :) = station(id_pr(s)).getPressure(time, amsl);
-            end
-            
-            id_pr(sum(isnan(pr_obs),2) > 0) = [];
-            pr_obs(sum(isnan(pr_obs),2) > 0, :) = [];
-
-            % get the time distance from true observations
-            t_thr = 3000;
-            t_dist = zeros(numel(id_pr), time.length());
-            for s = 1 : numel(id_pr)
-                t_dist(s, :) = station(id_pr(s)).getTimeInterpDistance(time, station(id_pr(s)).time.getEpoch(find(~isnan(station(id_pr(s)).getPressure()))));
-            end
-
-            if isempty(id_pr)
-                log.addWarning('There are no station to get pressure information', 100);
-                pres = nan(time.length,1);
-            else
-                % A = ones(size(id_pr));
-                % Q = d2(id_pr, id_pr);
-                % AinvQ =  A'/Q;
-                % w = (AinvQ*A)\AinvQ;
-                
-                trans = sum(q_fun_obs(id_pr, id_pr));
-                w = sum(trans)\trans;
-
-                % Rescale weigths epoch by epoch
-                w_all = repmat(w', 1, size(t_dist,2));
-                w_all(t_dist > t_thr) = 0; % eliminate too distance ineterpolations
-                lid_best = (sum(w_all > 0.8)) >= 1;
-                if sum(lid_best) < 2
-                    [~, id_min] = min(d .* double(sum(w_all, 2) > 0));
-                    lid_best = w_all(id_min, :) > 0;
-                end
-                w_all = bsxfun(@rdivide, w_all, sum(w_all));
-                pres0 = sum(w_all .* pr_obs);
-                
-                lim = getOutliers(lid_best);
-
-                % adjust pres0 and avoid discontinuities
-                % temporary approach
-                dpres = Core_Utils.diffAndPred(pres0'); sensor = abs(dpres - medfilt_mat(dpres, 3));
-                id_jmp = sensor > 1e-3;                
-                dpresf = simpleFill1D(dpres, id_jmp, 'linear');
-                pres_fill = cumsum(dpresf); 
-                pres_fill(lid_best) = pres0(lid_best);
-                
-                % first block bias
-                if ~isempty(lim) && (lim(1) > 1)
-                    pres_fill(1 : lim(1) - 1)  = pres_fill(1 : lim(1) - 1) + pres0(lim(1)) - pres_fill(lim(1) - 1) - dpresf(lim(1) - 1);
-                end
-                
-                % middle blocks linear interpolations
-                for l = 2 : size(lim, 1)
-                    m = (pres_fill(lim(l,1)) - dpresf(lim(l,1) + 1) - pres_fill(lim(l,1) - 1) ...
-                        - ( pres_fill(lim(l-1,2)) + dpresf(lim(l-1,2) + 1) - pres_fill(lim(l-1,2) + 1))) / ...
-                        (lim(l,1) - lim(l-1,2) + 1);
-                    pres_fill((lim(l-1, 2) + 1) : (lim(l, 1) - 1)) = pres_fill((lim(l-1, 2) + 1) :  (lim(l, 1) - 1)) + ...
-                                                                      m * (0 : (lim(l,1) - 2 - lim(l-1, 2)))' + ...
-                                                                      ( pres_fill(lim(l-1,2)) + dpresf(lim(l-1,2) + 1) - pres_fill(lim(l-1,2) + 1));
-                end
-                
-                % last block bias
-                
-                if ~isempty(lim) && (lim(end) < size(pres_fill,1))
-                    pres_fill((lim(end) + 1) : end) = pres_fill((lim(end) + 1) : end) - pres_fill(lim(end) + 1) + pres_fill(lim(end)) + dpresf(lim(end) + 1);
-                end
-                
-                pres = pres_fill;
-                 
-                % simpler weighed approach
-                % pres = (w * pr_obs)';
-            end
-            
-            % Get the closest station
-            [~, id_min] = min(d); figure; plot(time.getMatlabTime, pres, '.'); hold on; plot(time.getMatlabTime, pr_obs(id_min, :), '.'); plot(station(id_min).time.getMatlabTime, station(id_min).data(:, station(id_min).type == 1), '*')
-            dockAllFigures;
-            
+            %fun = @(dist) min(1, 1 ./ dist.);
+            pres = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.PR);
+                        
             % fun for temperature
             fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
-            q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
-            q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
-
-            % getting temperature
-            id_td = find(st_type(:,2) == 1);
-
-            td_obs = zeros(numel(id_td), time.length);
-            for s = 1 : numel(id_td)
-                td_obs(s, :) = station(id_td(s)).getTemperature(time, amsl);
-            end
-            id_td(sum(isnan(td_obs),2) > 1) = [];
-            td_obs(sum(isnan(td_obs),2) > 1, :) = [];
-
-            if isempty(id_td)
-                log.addWarning('There are no station to get temperature information', 100);
-                temp = nan(time.length,1);
-            else
-                trans = sum(q_fun_obs(id_td, id_td));
-                w = sum(trans)\trans;
-                temp = (w * td_obs)';
-            end
-
+            %fun = @(dist) min(1, 1 ./ dist);
+            temp = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.TD);
+            
             % fun for humidity
             fun = @(dist) exp(-(dist/1e4)) + exp(-(dist/8e3).^2);
-            q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
-            q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
-
-            % getting humidity
-            id_hr = find(st_type(:,2) == 1);
-
-            hr_obs = zeros(numel(id_hr), time.length);
-            for s = 1 : numel(id_hr)
-                hr_obs(s, :) = station(id_hr(s)).getHumidity(time, amsl);
-            end
-
-            id_hr(sum(isnan(hr_obs),2) > 1) = [];
-            hr_obs(sum(isnan(hr_obs),2) > 1, :) = [];
-
-            if isempty(id_hr)
-                log.addWarning('There are no station to get relative humidity information', 100);
-                hum = nan(time.length,1);
-            else
-                trans = sum(q_fun_obs(id_hr, id_hr));
-                w = sum(trans)\trans;
-                hum = (w * hr_obs)';
-            end
-
+            %fun = @(dist) min(1, 1 ./ dist);
+            hum = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
+            
             data = [pres temp hum];
             id_ok = (sum(isnan(data)) < time.length());
             data = data(:, id_ok);
