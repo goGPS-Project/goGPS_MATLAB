@@ -99,6 +99,25 @@ classdef GNSS_Station < handle
             this.init();
             this.resetInfo();
         end
+        
+        function importRinexLegacy(this, rinex_file_name, rate)
+            % Select the files to be imported
+            %
+            % INPUT
+            %   rinex_file_name     path to a RINEX file
+            %   rate                import rate
+            %
+            % SYNTAX
+            %   this.importRinexLegacy(rinex_file_name, rate)
+           if ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
+                this.work.rinex_file_name = rinex_file_name;
+            else
+                this.work.rinex_file_name = '';
+            end
+            this.work.load(rate);
+            this.work.out_start_time = this.work.time.first;
+            this.work.out_stop_time = this.work.time.last;
+        end
                 
         function importRinexes(this, rin_list, time_start, time_stop, rate)
             % Select the files to be imported
@@ -107,6 +126,7 @@ classdef GNSS_Station < handle
             %   rin_list      object containing the list of rinex to load [ File_Rinex ]
             %   time_start    first epoch to load [ GPS_Time ]
             %   time_stop     last epoch to load [ GPS_Time ]
+            %   rate          import rate [s]
             %
             % SYNTAX
             %   this.importRinexes(rin_list, time_start, time_stop, rate)
