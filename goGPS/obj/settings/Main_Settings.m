@@ -44,8 +44,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
     properties (Constant, Access = 'protected')
         % id to string of out modes
-        DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
-        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];
+        DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
+        DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];
     end
     
     % Real constant

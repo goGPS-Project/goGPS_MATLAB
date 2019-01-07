@@ -1006,7 +1006,7 @@ classdef Meteo_Data < handle
             
             % fun for humidity
             fun = @(dist) exp(-(dist/1e4)) + exp(-(dist/8e3).^2);
-            %fun = @(dist) min(1, 1 ./ dist);
+            % fun = @(dist) min(1, 1 ./ dist);
             hum = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
             
             data = [pres temp hum];
