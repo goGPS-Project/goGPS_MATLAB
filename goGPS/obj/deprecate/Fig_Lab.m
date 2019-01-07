@@ -109,12 +109,12 @@ classdef Fig_Lab < handle
             if isempty(m_enu)
                 m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
             end
-            data_e = (enu(:,1) - m_enu(:,1))*1e3;
-            data_n = (enu(:,2) - m_enu(:,2))*1e3;
-            data_u = (enu(:,3) - m_enu(:,3))*1e3;
-            %data_e = enu(:,1) * 1e3;
-            %data_n = enu(:,2) * 1e3;
-            %data_u = enu(:,3) * 1e3;
+            data_e = (enu(:,1) - m_enu(:,1))*1e2;
+            data_n = (enu(:,2) - m_enu(:,2))*1e2;
+            data_u = (enu(:,3) - m_enu(:,3))*1e2;
+            %data_e = enu(:,1) * 1e2;
+            %data_n = enu(:,2) * 1e2;
+            %data_u = enu(:,3) * 1e2;
 
             if spline_base > 0
                 if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
@@ -192,30 +192,30 @@ classdef Fig_Lab < handle
             subplot(3,1,1); ax(1) = gca;
             grid on;
             if color_type
-                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_e(~isnan(data_e)))));
+                title(sprintf('%s vs std %.2f [cm]', handle(gca).Title.String, std(data_e(~isnan(data_e)))));
             else
-                title(sprintf('std %.2f [mm]', std(data_e(~isnan(data_e)))));
+                title(sprintf('std %.2f [cm]', std(data_e(~isnan(data_e)))));
             end
-            ylabel('\Delta EAST [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta EAST [cm]', 'FontWeight', 'Bold')
 
             subplot(3,1,2); ax(2) = gca;
             grid on;
             if color_type
-                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_n(~isnan(data_n)))));
+                title(sprintf('%s vs std %.2f [cm]', handle(gca).Title.String, std(data_n(~isnan(data_n)))));
             else
-                title(sprintf('std %.2f [mm]', std(data_n(~isnan(data_n)))));
+                title(sprintf('std %.2f [cm]', std(data_n(~isnan(data_n)))));
             end
-            ylabel('\Delta NORTH [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta NORTH [cm]', 'FontWeight', 'Bold')
 
             subplot(3,1,3); ax(3) = gca;
             grid on;
             if color_type
-                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_u(~isnan(data_u)))));
+                title(sprintf('%s vs std %.2f [cm]', handle(gca).Title.String, std(data_u(~isnan(data_u)))));
             else
-                title(sprintf('std %.2f [mm]', std(data_u(~isnan(data_u)))));
+                title(sprintf('std %.2f [cm]', std(data_u(~isnan(data_u)))));
             end
             linkaxes(ax,'x');
-            ylabel('\Delta UP [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta UP [cm]', 'FontWeight', 'Bold')
         end
     end
     
@@ -314,13 +314,13 @@ classdef Fig_Lab < handle
                 if ~isempty(intersect(plot_list, 2))
                     color_order = handle(gca).ColorOrder;
                     fh2 = figure(); maximizeFig(fh2);
-                    data = sqrt((xyz(:,1) - m_xyz(:,1)).^2 + (xyz(:,2) - m_xyz(:,2)).^2 + (xyz(:,3) - m_xyz(:,3)).^2) * 1e3;
+                    data = sqrt((xyz(:,1) - m_xyz(:,1)).^2 + (xyz(:,2) - m_xyz(:,2)).^2 + (xyz(:,3) - m_xyz(:,3)).^2) * 1e2;
                     data_s = iif(numel(data)>14, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
                     plot(time.getMatlabTime, data, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(4,:));  hold on;
                     plot(time.getMatlabTime, data_s, 'k--');
                     grid on; setTimeTicks(4,'dd mmm yyyy');
-                    title(sprintf('3D - mean %.2f [mm]', mean(data)));
-                    ylabel('displacement [mm]', 'FontWeight', 'Bold')
+                    title(sprintf('3D - mean %.2f [cm]', mean(data)));
+                    ylabel('displacement [cm]', 'FontWeight', 'Bold')
                 end
             end
         end
