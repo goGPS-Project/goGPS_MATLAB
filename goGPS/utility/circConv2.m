@@ -39,12 +39,17 @@ function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 %--------------------------------------------------------------------------
 
 if (nargin == 2)
-    if numel(conv_x_pixels) > 1
+    if numel(conv_x_pixels) > 2
         kernel = conv_x_pixels;
         conv_x_pixels = size(kernel,2);
         conv_y_pixels = size(kernel,1);
+    elseif numel(conv_x_pixels) == 2
+        conv_y_pixels = conv_x_pixels(2);
+        conv_x_pixels = conv_x_pixels(1);
+        kernel = ones(conv_y_pixels, conv_x_pixels) / (conv_y_pixels * conv_x_pixels);        
     else
-        conv_y_pixels = conv_x_pixels;
+        conv_y_pixels = conv_x_pixels(1);
+        conv_x_pixels = conv_x_pixels(1);
         kernel = ones(conv_x_pixels, conv_x_pixels) / (conv_x_pixels * conv_x_pixels);
     end
 else
