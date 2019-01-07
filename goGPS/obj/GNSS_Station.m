@@ -1587,6 +1587,43 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showResMap(sta_list, step)
+            % Plot Satellite Residuals as a map
+            %
+            % SYNTAX
+            %   sta_list.showResiduals
+            if nargin == 1
+                step = 0.5;
+            end
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(r);
+                if ~isempty(rec)
+                    if ~rec.out.isEmpty
+                        [map, map_fill, ~, az_g, el_g] = rec.out.getResMap(step, 3, rec.cc.getActiveSysChar);
+                    else
+                        [map, map_fill, ~, az_g, el_g] = rec.work.getResMap(step, 3, rec.cc.getActiveSysChar);
+                    end
+                    figure; 
+                    % restore the original mean data where observations are present
+                    %map_fill(~isnan(map)) = map(~isnan(map));
+                    % image
+                    img = imagesc(az_g, el_g, circshift(abs(map_fill), size(map_fill, 2) / 2, 2));
+                    set(gca,'YDir','normal');
+                    grid on
+                    % image alpha  = 0.3 everywhere 1 where obs are present
+                    img.AlphaData = (~isnan(circshift(abs(map), size(map, 2) / 2, 2)) * 0.7) + 0.3;
+                    %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);                    
+
+                    caxis([min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
+                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', rec.getMarkerName4Ch, rec.cc.getActiveSysChar),'interpreter', 'none');  
+                    h.FontWeight = 'bold';
+                    hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                    hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                end
+            end
+        end
+        
         function showZtdSlant(sta_list, time_start, time_stop)
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);

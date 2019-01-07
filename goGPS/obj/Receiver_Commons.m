@@ -1694,8 +1694,124 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             figure
             plot(zero2nan(this.sat.res),'.');
         end
-    end    
-% ==================================================================================================================================================
+    end
+    
+    %% METHODS UTILITIES FUNCTIONS
+    % ==================================================================================================================================================
+    
+    methods (Access = public)
+        function [map, map_fill, n_data_map, az_g, el_g] = getResMap(rec, step, size_conv, sys_c)
+            % Export a map containing the residuals
+            % This export works better when a sequence of session is passed to it
+            % Note: it works one riceiver at a time
+            %
+            % OUTPUT
+            %   snr_map         cartesian map of the mean observed SNR
+            %   snr_map_fill    cartesian map of the mean observed SNR filled in polar view
+            %   snr_mask        mask of all the position with snr < threshold
+            %   n_data_map      number of data used for the mean (obs falling in the cell)
+            %   out_map         map of the number of outliers flagged by goGPS per cell
+            %
+            % SYNTAX
+            %   [snr_map, snr_map_fill, snr_mask, n_data_map, out_map] = this.getMeanMapSNR(<step = 0.5>, <size_conv = 21>, <snr_thr = 45>, <sys_c_list>);
+            
+            use_work = false;
+            
+            if nargin < 2 || isempty(step)
+                step = 0.5;
+            end
+            if nargin < 3 || isempty(size_conv)
+                size_conv = 21;
+            end
+            
+            log = Core.getLogger();
+            if nargin < 4 || isempty(sys_c)
+                sys_c = rec(r).cc.getAvailableSys;
+                sys_c = sys_c(1);
+            end
+            
+            % Create an el/az grid
+            [phi_g, az_g] = getGrid(step);
+            el_g = phi_g(phi_g > 0);
+            
+            % [num_occur] = hist(id_map, unique(id_map));
+            map = zeros(numel(el_g), numel(az_g));
+            n_data_map = zeros(numel(el_g), numel(az_g));
+            
+            rec.w_bar.createNewBar('Computing map');
+            rec.w_bar.setBarLen(numel(rec));
+            
+            data = abs(rec.getResidual());
+            if sys_c == 'A'
+                id_keep = 1 : numel(sys);
+            else
+                [sys, prn] = rec.cc.getSysPrn(1:size(data,2));
+                id_keep = false(size(sys));
+                for i = 1 : numel(sys)
+                    id_keep(i) = contains(sys_c, sys(i));
+                end
+                data = data(:, id_keep);
+            end
+            az = rec.sat.az(:, id_keep);
+            el = rec.sat.el(:, id_keep);
+            
+            if ~isempty(data)
+                % Extract non NaN serialized data
+                data = zero2nan(data);
+                id_ok = (~isnan(data));
+                
+                % Eliminate empty epochs
+                az = az(:, sum(id_ok) > 1);
+                el = el(:, sum(id_ok) > 1);
+                data = data(:, sum(id_ok) > 1);
+                
+                id_oo = (~isnan(data(:)));
+                
+                id_az = max(1, ceil(mod(az(id_oo), 360) / step)); % Get the index of the grid
+                id_el = (numel(el_g)) - floor(max(0, min(90 - step/2, el(id_oo)) / step)); % Get the index of the grid
+                
+                id_map = (id_az - 1) * numel(el_g) + id_el;
+                data = serialize(data(id_oo));
+                for i = 1 : numel(id_map)
+                    map(id_map(i)) = map(id_map(i)) + data(i);
+                    n_data_map(id_map(i)) = n_data_map(id_map(i)) + 1;
+                end
+            end
+            rec.w_bar.go();
+            
+            rec.w_bar.close();
+            if isempty(data)
+                log.addWarning(sprintf('No data found for %s', rec.getMarkerName4Ch));
+                map_fill = nan(size(map));
+            else
+                map(n_data_map(:) > 0) = map(n_data_map(:) > 0) ./ n_data_map(n_data_map(:) > 0);
+                map(n_data_map(:) == 0) = nan;
+                               
+                % Convert map in polar coordinates to allow a better interpolation
+                % In principle it is possible to compute directly this polar map
+                % This can be implemented some lines above this point
+                step_p = step;
+                polar_map = ones(ceil(360 / step_p)) * 0;
+                polar_map(2 : end - 1, 2 : end - 1) = nan;
+                
+                dc_g = (90 - el_g) / 90; % declination
+                [az_mesh, dc_mesh] = meshgrid(az_g ./ 180 * pi, dc_g);
+                x = round((sin(az_mesh) .* dc_mesh) / step_p * 180) + size(polar_map , 1) / 2;
+                y = round((cos(az_mesh) .* dc_mesh) / step_p * 180) + size(polar_map , 1) / 2;
+                id_p = size(polar_map,1) .* (x(:)) + (y(:)+1); % id of the polar projection corresponding to the cartesian one
+                polar_map(id_p) = map(:);
+                %polar_map_fill = max(min(snr_map(:)), min(max(snr_map(:)), simpleFill2D(polar_map, isnan(polar_map),  @(dist) exp(-((dist)).^2))));
+                polar_map_fill = max(min(map(:)), min(max(map(:)), inpaint_nans(polar_map)));
+                if numel(size_conv) > 0 && ~((numel(size_conv) == 1) && size_conv == 0)
+                    polar_map_fill = circConv2(polar_map_fill, size_conv);
+                end
+                map_fill = nan(size(map));
+                map_fill(:) = polar_map_fill(id_p);
+            end
+        end
+    end
+    
+    % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
