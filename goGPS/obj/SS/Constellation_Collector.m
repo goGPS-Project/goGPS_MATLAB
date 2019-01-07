@@ -282,8 +282,10 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function active_list = getActive(this)
-            % get the logical array of satellite actually active, order: GPS GLO GAL QZS BDS SBS -> and update the object if something has changed
-            % SYNTAX: active_list = this.getActive();
+            % Get the logical array of satellite actually active, order: GPS GLO GAL QZS BDS SBS -> and update the object if something has changed
+            %
+            % SYNTAX
+            %   active_list = this.getActive();
             active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.qzs.isActive this.bds.isActive this.irn.isActive this.sbs.isActive];
             
             % If some constellation have been activated not in the proper way
@@ -291,6 +293,14 @@ classdef Constellation_Collector < Settings_Interface
                 this.updateStatus(active_list);
             end
         end
+        
+        function active_list = getActiveSysChar(this)
+            % Get the list of active constellation characters
+            %
+            % SYNTAX
+            %   active_list = this.getActiveSysChar();
+            active_list = this.SYS_C(this.getActive);
+        end        
         
         function sys_c = getAvailableSys(this)
             sys_c = this.SYS_C(this.getActive());
