@@ -3918,7 +3918,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %close(gcf);
         end
         
-        function [quality] = getQuality(this, type)
+        function [quality, az, el] = getQuality(this, type)
             % get a quality index of the satellite data
             % type could be:
             %   'snr'
@@ -3933,14 +3933,28 @@ classdef Receiver_Work_Space < Receiver_Commons
             switch lower(type)
                 case 'snr'
                     quality = [];
+                    az = [];
+                    el = [];
                     for c = this.cc.SYS_C(this.cc.getActive)
                         [snr, id_snr] = this.getSNR(c,'1');
                         snr_temp = nan(size(snr, 1),this.cc.getMaxNumSat(c));
                         [~, prn] = this.getSysPrn(this.go_id(id_snr));
                         snr_temp(:, prn) = snr;
                         quality = [quality snr_temp]; %#ok<AGROW>
+                        if nargout > 1
+                            az_temp = nan(size(snr, 1),this.cc.getMaxNumSat(c));
+                            az_temp(:, prn) = this.sat.az;
+                            az = [az az_temp];
+                            el_temp = nan(size(snr, 1),this.cc.getMaxNumSat(c));
+                            el_temp(:, prn) = this.sat.el;
+                            el = [el el_temp];
+                        end                        
                     end
                     quality = quality(this.getIdSync, :);
+                    if nargout > 1
+                        az = az(this.getIdSync, :);
+                        el = el(this.getIdSync, :);
+                    end
             end
         end
         
