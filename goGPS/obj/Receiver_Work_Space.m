@@ -5465,7 +5465,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 'I'
                     omegae_dot = this.cc.irn.ORBITAL_P.OMEGAE_DOT;
                 otherwise
-                    Core.getLogger.addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
+                     Core.getLogger.addWarning('Something went wrong in Receiver_Work_Space.earthRotationCorrection() \nUnrecognized Satellite system!\n');
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
             end
             omega_tau = omegae_dot * travel_time;
@@ -7673,7 +7673,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.Astack2Nstack();
                 time = this.time.getSubSet(id_sync);
                 rate = time.getRate();
-                ls.setTimeRegularization(ls.PAR_REC_CLK, this.state.std_clock* rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
                 if this.state.flag_tropo
                     if order_tropo == 0
                         ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );

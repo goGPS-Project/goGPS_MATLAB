@@ -279,7 +279,7 @@ classdef Go_Slave < Com_Interface
                                 for c = 1 : numel(cmd_file.cmd_list)
                                     cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(rec_id));
                                 end
-                                core.exec(cmd_file.cmd_list);
+                                core.exec(cmd_file.cmd_list,ones(size(cmd_file.cmd_list)));
                                 rec(rec_id).work.state.cmd_list = cmd_file.cmd_list;
                                 
                                 % Export work
