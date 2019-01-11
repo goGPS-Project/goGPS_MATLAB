@@ -680,7 +680,7 @@ classdef Core_Utils < handle
                 station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
                 station_name = unique(station_num);
                 for s = 1 : numel(station_name)
-                    station_list = [station_list {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
+                    station_list = [station_list; {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
                 end
             end
         end
