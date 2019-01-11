@@ -126,7 +126,7 @@ classdef FTP_Downloader < handle
             close(this.ftp_server);
         end
         
-        function [status]  = check(this, filepath)
+        function [status, ext]  = check(this, filepath)
             folder = this.fnp.getPath(filepath);
             f_name = this.fnp.getFileName(filepath);
             not_in_cache = true;
@@ -137,6 +137,7 @@ classdef FTP_Downloader < handle
                     not_in_cache = false;
                 end
             end
+            ext = '';
             if not_in_cache
                 try
                     files = dir(this.ftp_server, folder);
@@ -152,6 +153,10 @@ classdef FTP_Downloader < handle
             files = folder_s{2};
             for i = 1 : length(files)
                 if ~isempty(strfind(files(i).name, f_name))
+                    [~, ~, ext_s] = fileparts(files(i).name); 
+                    [~, ~, ext] = fileparts(f_name);
+                    % If the file on the server is compressed return the extension of the compression
+                    ext = iif(strcmp(ext, ext_s), '', ext_s);
                     status = true;
                     return
                 end

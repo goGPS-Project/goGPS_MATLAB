@@ -535,6 +535,137 @@ classdef Core_Utils < handle
             end
         end
         
+        function f_status_lst = aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list)
+            % Try to download files using aria2C
+            %
+            % INPUT
+            %   file_name_list      list of file_names to download (remote path)   [cell]
+            %   f_ext_lst           extension of compression ('' is valid)         [cell]
+            %   f_status_lst        bool array of files to download                [bool]
+            %   date_list           GPS_Time of days of interest .                 [GPS_Time]
+            %
+            % SYNTAX
+            %   f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst)
+            %
+            
+            log = Core.getLogger();
+            fnp = File_Name_Processor();
+            rm = Remote_Resource_Manager.getInstance;
+            
+            if ispc()
+                aria2c_path = '.\utility\thirdParty\aria-extra\aria2c.exe';
+            elseif ismac()
+                aria2c_path = '/usr/local/bin/aria2c';
+            else % is linux
+                aria2c_path = '/usr/local/bin/aria2c';
+                if ~exist(aria2c_path, 'file')
+                    aria2c_path = '/usr/bin/aria2c';
+                end
+            end
+            
+            % Get file list path for all the files present in the list
+            idf = find(~f_status_lst);
+            fnl = file_name_lst(idf);
+            fel = f_ext_lst(idf); % file extension list
+            odl = {}; % out_dir_list
+            ffp = {}; % fineal file path
+            for i = 1 : numel(fnl)
+                file_name = fnl{i};
+                server = regexp(file_name,'(?<=\?{)\w*(?=})','match', 'once'); % saerch for ?{server_name} in paths
+                file_name = strrep(file_name,['?{' server '}'],'');
+                [s_ip, port] = rm.getServerIp(server);
+                switch port
+                    case '21'
+                        fnl{i} = ['ftp://' s_ip ':' port file_name fel{i}];
+                    otherwise
+                        fnl{i} = ['http://' s_ip ':' port file_name fel{i}];
+                end
+                out_dir = Core.getState.getFileDir(file_name);
+                out_dir = fnp.dateKeyRep(out_dir, date_list.getEpoch(date_list.length - idf(i) + 1));
+                odl{i} = out_dir;
+                [~, name, ~] = fileparts(fnl{i});
+                ffp{i} = fullfile(out_dir, name);
+            end
+            
+            % if I have at least one file to download
+            if numel(odl) > 0
+                i = 0;
+                file_name = sprintf('./reserved/tmpAriaDownload.lst');
+                fid = fopen(file_name, 'w');
+                str = '';
+                old_od = odl{1};
+                while i <= numel(fnl)
+                    i = i + 1;
+                    if (i < numel(fnl)) && strcmp(odl{i}, old_od)
+                        str = sprintf('%s%s\n', str, fnl{i});
+                    else
+                        
+                        if i <= numel(fnl)
+                            if i == numel(fnl)
+                                str = sprintf('%s%s\n', str, fnl{i});
+                            end
+                            
+                            % call aria
+                            % check for .Z or .gz compressed files too
+                            fwrite(fid, str, '*char');
+                            fclose(fid);
+                            if ~isempty(str)                                
+                                if ~exist(old_od, 'file')
+                                    mkdir(old_od);
+                                end
+                                log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
+                                log.addMessage(log.indent(sprintf('%s', str)));
+                                try
+                                    if ispc()
+                                        dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));
+                                    else
+                                        dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));
+                                    end
+                                catch
+                                    this.log.addError('aria2c is not working, is it installed?');
+                                end
+                                
+                                % open file list for the next set
+                                fid = fopen(file_name, 'w');
+                                str = '';                                
+                            end
+                        end
+                    end
+                    if i <= numel(fnl)
+                        old_od = odl{i};
+                    end
+                end
+                fclose(fid);
+                delete(file_name);
+                
+                % once the file have been downloaded decompress and test presence
+                for i = 1 : numel(fnl)
+                    if strcmp(fel{i},'.Z') || strcmp(fel{i},'.gz')
+                        if (isunix())
+                            system(['gzip -d -f ' ffp{i} fel{i} '&> /dev/null']);
+                        else
+                            try
+                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  ffp{i} fel{i} ' -o'  odl{i} ]); %#ok<ASGLU>
+                                if (status == 0)
+                                    status = true;
+                                end
+                                delete([ffp{i} fel{i}]);
+                            catch
+                                this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
+                                status = false;
+                            end
+                        end
+                    end
+                end
+                
+                % update f_status_lst
+                for i = 1 : numel(ffp)
+                    f_status_lst(idf(i)) = exist(ffp{i}, 'file');
+                end
+            end
+            
+        end
+
         function [status] = downloadHttpTxtResUncompress(filename, out_dir)
             log = Core.getLogger();
             fnp = File_Name_Processor();
@@ -596,7 +727,8 @@ classdef Core_Utils < handle
             end
         end
         
-        function [status] = checkHttpTxtRes(filename)
+        function [status, ext] = checkHttpTxtRes(filename)
+            ext = '';
             if isunix() || ismac()
                 [resp, txt] = system(['curl --head ' filename]);
                 if strfind(txt,'HTTP/1.1 200 OK')
@@ -604,10 +736,12 @@ classdef Core_Utils < handle
                 else
                     [resp, txt] = system(['curl --head ' filename '.gz']);
                     if strfind(txt,'HTTP/1.1 200 OK')
+                        ext = '.gz';
                         status = true;
                     else
                         [resp, txt] = system(['curl --head ' filename '.Z']);
                         if strfind(txt,'HTTP/1.1 200 OK')
+                            ext = '.Z';
                             status = true;
                         else
                             status = false;

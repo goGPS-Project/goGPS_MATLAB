@@ -198,6 +198,7 @@ classdef File_Wizard < handle
             %
             % OUPUT:
             %     status = 1 everything has been found 0 no
+            
             if nargin < 3
                 date_start = this.date_start;
                 date_stop = this.date_stop;
@@ -236,7 +237,7 @@ classdef File_Wizard < handle
                     status = false;
                 else
                     this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
-                    [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
+                    [status, file_tree, ext] = this.navigateTree(file_tree, 'remote_check');
                     if status
                         this.log.addMessage(this.log.indent('All files have been found remotely\n'));
                     else
@@ -277,7 +278,7 @@ classdef File_Wizard < handle
             end
         end
         
-        function [status, file_tree] = navigateTree(this, file_tree, mode)
+        function [status, file_tree, ext] = navigateTree(this, file_tree, mode)
             % Navigate into th logical file tree (see Remote_resource_manager.getFileStr) and perform operations
             %
             % SYNTAX:
@@ -287,6 +288,7 @@ classdef File_Wizard < handle
             %     logical operators
             %     mode: 'local_check' , 'remote_check' , 'download'
             status = false;
+            ext = '';
             if iscell(file_tree) % if is a leaf
                 if strcmp(file_tree{1}, 'null') || file_tree{2}
                     status = true;
@@ -304,11 +306,14 @@ classdef File_Wizard < handle
                         file_name_lst = flipud(file_name_lst);
                         status = true;
                         f_status_lst = file_tree{4};
+                        f_ext_lst = file_tree{5};
+                        
+                        f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
+                        
                         for i = 1 : length(file_name_lst)
                             if ~f_status_lst(i)
                                 file_name = file_name_lst{i};
-                                [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
-                                server = server{1};
+                                server = regexp(file_name,'(?<=\?{)\w*(?=})','match','once'); % search for ?{server_name} in paths
                                 file_name = strrep(file_name,['?{' server '}'],'');
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 out_dir = this.state.getFileDir(file_name);
@@ -377,6 +382,7 @@ classdef File_Wizard < handle
                                 file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso));
                                 status = true;
                                 f_status_lst = file_tree{4};
+                                f_ext_lst = cell(numel(f_status_lst),1);
                                 for j = 1 : length(file_name_lst)
                                     if ~f_status_lst(j)
                                         file_name = file_name_lst{j};
@@ -387,18 +393,21 @@ classdef File_Wizard < handle
                                         
                                         if instr(port,'21')
                                             idx = this.getServerIdx(s_ip, port);
+                                            [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
                                             if ~this.nrt
-                                                status = status && this.ftp_downloaders{idx}.check(file_name);
+                                                status = status && stat;
                                             else
-                                                status = this.ftp_downloaders{idx}.check(file_name);
+                                                status = stat;
                                             end
                                         else
+                                            [stat, ext] = Core_Utils.checkHttpTxtRes([s_ip file_name]);
                                             if ~this.nrt
-                                                status = status && Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                                status = status && stat;
                                             else
-                                                status = Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                                status = stat;
                                             end
                                         end
+                                        f_ext_lst{j} = ext;
                                         if status
                                             this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server));
                                         else
@@ -413,6 +422,7 @@ classdef File_Wizard < handle
                                         end
                                     end
                                 end
+                                file_tree{5} = f_ext_lst;                                
                                 if status
                                     file_tree{3} = i;
                                     break
@@ -434,7 +444,7 @@ classdef File_Wizard < handle
                 end
                 branch = fieldnames(file_tree.(b_name));
                 for i = 1 :length(branch)
-                    [status_b, file_tree_b] = this.navigateTree(file_tree.(b_name).(branch{i}), mode);
+                    [status_b, file_tree_b, ext] = this.navigateTree(file_tree.(b_name).(branch{i}), mode);
                     if or_flag
                         status  = status || status_b;
                         if status
