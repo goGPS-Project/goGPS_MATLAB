@@ -1277,5 +1277,35 @@ classdef Core_Utils < handle
             
             
         end
+        function [x,inv_diag] = fastInvDiag(N,B,mode)
+            % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
+            % much faster than computing the whole inverse in case of very sparse
+            % matrix. Its is done jointly with the resolution of the system in order to
+            % keep the decomposition of the matrix.
+            % SYNTAX
+            %  inv_diag = Core_Utils.fastInvDiag(N,B,<mode>)
+            
+            if nargin < 3
+                mode = 'ldl';
+            end
+            n_p = size(N,1);
+            if strcmpi(mode,'ldl')
+                % rememeber : inv(N) ==  P*iL'*inv(D)*iL*P'
+                [L,D,P] = ldl(N);
+                y = L\B;
+                x = (D*L')\y;
+                x= P*x;
+                iL = inv(L);
+                inv_diag = P'*sum(iL.*repmat(1./diag(D),1,n_p).*iL)';
+            elseif  strcmpi(mode,'chol')
+                [R] = chol(N);
+                R = chol(N);
+                y = R'\B;
+                x=R\y;
+                iR = inv(R);
+                inv_diag = sum(iR.^2,2);
+            end
+        end
+        
     end
 end
