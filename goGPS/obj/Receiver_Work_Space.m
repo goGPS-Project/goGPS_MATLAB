@@ -8152,6 +8152,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Export the content of the object as RINEX 3
             % SYNTAX
             %   this.exportRinex3(file_name);
+            if nargin < 2 || isempty(file_name)
+                file_name = fullfile(this.state.getOutDir, [this.parent.getMarkerName4Ch '_' this.time.first.round(86400).toString('yyyymmdd') '.rnx']);
+            end
             
             this.remAllCorrections();
             
@@ -8214,6 +8217,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
             txt = sprintf('%s%10.3f                                                  INTERVAL\n', txt, this.time.getRate());
             txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS\n', txt, this.time.first.get6ColDate());
+            txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF LAST OBS\n', txt, this.time.last.get6ColDate());
             txt = sprintf('%sCARRIER PHASE SHIFT removed BY goGPS SOFTWARE.              COMMENT\n', txt);
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
