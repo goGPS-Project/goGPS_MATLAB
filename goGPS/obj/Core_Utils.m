@@ -1422,6 +1422,7 @@ classdef Core_Utils < handle
             
             
         end
+        
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
             % much faster than computing the whole inverse in case of very sparse

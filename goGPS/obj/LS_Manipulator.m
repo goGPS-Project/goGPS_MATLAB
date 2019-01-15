@@ -210,6 +210,8 @@ classdef LS_Manipulator < handle
                 dynamic = false;
             end
             
+                
+            
             % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
             flag_amb_fix = this.state.getAmbFixPPP();
@@ -367,6 +369,9 @@ classdef LS_Manipulator < handle
             idx_empty_ep = sum(diff_obs ~= 0,2) <= 1;
             obs_set.remEpochs(idx_empty_ep);
             obs_set.sanitizeEmpty();
+            if dynamic
+                pos_idx_vec = 1:obs_set.time.length;
+            end
             [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = this.getObsEq( rec, obs_set, pos_idx_vec, tropo_rate);
             this.true_epoch = id_sync_out;
             this.A_ep = A;
@@ -379,6 +384,9 @@ classdef LS_Manipulator < handle
             %             sat2progsat(obs_set.go_id) = 1: length(unique(obs_set.go_id));
             %             this.sat = sat2progsat(sat);
             this.sat = sat;
+            if dynamic
+                p_flag(p_class == this.PAR_X | p_class == this.PAR_Y  | p_class == this.PAR_Z ) = 1;
+            end
             this.param_flag = p_flag;
             this.param_class = p_class;
             this.amb_idx = obs_set.getAmbIdx();
@@ -872,7 +880,7 @@ classdef LS_Manipulator < handle
                         if this.state.flag_ppp_amb_fix
                             A(lines_stream, prog_p_col) = 1;
                         else
-                            A(lines_stream, prog_p_col) = obs_set.wl(s);;
+                            A(lines_stream, prog_p_col) = obs_set.wl(s);
                         end
                         A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, phase_s == s);
                     else
@@ -947,12 +955,12 @@ classdef LS_Manipulator < handle
             if dynamic
                 p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
-                e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
-                e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
+                
                 
                 p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
-            
+            e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
+                e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
                 this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg];
             if obs_set.hasPhase()
