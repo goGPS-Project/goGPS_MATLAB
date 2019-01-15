@@ -7186,7 +7186,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if isempty(dpos)
                     dpos = [0 0 0];
                 end
-                this.xyz = this.getMedianPosXYZ() + dpos;
+                this.xyz = repmat(this.getMedianPosXYZ(), size(dpos,1),1) + dpos;
                 dt = x(x(:,2) == 6,1);
                 this.dt = zeros(this.time.length,1);
                 this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
