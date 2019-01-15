@@ -771,6 +771,16 @@ classdef LS_Manipulator < handle
             end
             phase_s = find(obs_set.wl ~=  -1);
             islinspline = ~isempty(tropo_rate);
+            
+            if ~isempty(tropo_rate) && sum(abs(tropo_rate)) ~= 0
+                if isempty(this.tropo_time_start)
+                    
+                    delta_tropo_time_sart = 0;
+                else
+                    delta_tropo_time_sart = round((obs_set.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
+                end
+            end
+            
             if isempty(tropo_rate) || tropo_rate (1) == 0
                 n_tropo = n_clocks;
                 
@@ -781,14 +791,11 @@ classdef LS_Manipulator < handle
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                if isempty(this.tropo_time_start)
-                    
-                    delta_tropo_time_sart = 0;
-                else
-                    delta_tropo_time_sart = round((rec.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
-                end
-                tropo_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
                 
+                tropo_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
+                if isempty(this.tropo_time_start);
+                    tropo_idx = tropo_idx - tropo_idx(1) +1;
+                end
                 this.tropo_idx = tropo_idx;
                 n_tropo = max(tropo_idx) + order_tropo;
                 tropo_dt = rem(id_sync_out-1+delta_tropo_time_sart,tropo_rate(1)/rec.time.getRate)/(tropo_rate(1)/rec.time.getRate);
@@ -801,14 +808,10 @@ classdef LS_Manipulator < handle
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                if isempty(this.tropo_time_start)
-                    
-                    
-                    delta_tropo_time_sart = 0;
-                else
-                    delta_tropo_time_sart = round((rec.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
-                end
                 tropo_g_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
+                if isempty(this.tropo_time_start);
+                    tropo_g_idx = tropo_g_idx - tropo_g_idx(1) +1;
+                end
                 this.tropo_g_idx = tropo_g_idx;
                 delta_tropo_time_sart = 0;
                 n_tropo_g = max(tropo_g_idx) + order_tropo_g;

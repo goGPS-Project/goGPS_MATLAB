@@ -446,7 +446,7 @@ classdef Network < handle
                 if this.state.flag_tropo
                     if this.state.spline_rate_tropo ~= 0 && this.state.spline_tropo_order > 0
                         tropo_dt = rem(this.common_time.getRefTime - this.common_time.getRate,this.state.spline_rate_tropo)/(this.state.spline_rate_tropo);
-                        tropo_idx = ceil((this.common_time.getRefTime - this.common_time.getRate)/this.state.spline_rate_tropo_gradient+eps);
+                        tropo_idx = ceil((this.common_time.getRefTime(this.common_time.first.getMatlabTime))/this.state.spline_rate_tropo_gradient+eps);
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
                         tropo = x(x(:,2) == LS_Manipulator.PAR_TROPO & idx_rec,1);
                         if max(tropo_idx) > numel(tropo) % if the receiver time was shorter than the common one
@@ -463,7 +463,7 @@ classdef Network < handle
                 if this.state.flag_tropo_gradient
                     if this.state.spline_rate_tropo_gradient ~= 0 && this.state.spline_tropo_gradient_order > 0
                         tropo_dt = rem(this.common_time.getRefTime - this.common_time.getRate,this.state.spline_rate_tropo_gradient)/(this.state.spline_rate_tropo_gradient);
-                        tropo_g_idx = ceil((this.common_time.getRefTime - this.common_time.getRate)/this.state.spline_rate_tropo_gradient +eps);
+                        tropo_g_idx = ceil((this.common_time.getRefTime(this.common_time.first.getMatlabTime))/this.state.spline_rate_tropo_gradient +eps);
                         
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
                         gntropo = x(x(:,2) == LS_Manipulator.PAR_TROPO_N & idx_rec,1);
