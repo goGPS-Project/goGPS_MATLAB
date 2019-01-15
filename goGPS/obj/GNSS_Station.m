@@ -1681,7 +1681,8 @@ classdef GNSS_Station < handle
             %   sta_list.showPTH()
             [pressure, temperature, humidity, p_time, id_sync] = sta_list.getPTH_mr();
             
-            figure;
+            f = figure;
+            f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
             subplot(3,1,1);
             plot(p_time.getMatlabTime, pressure,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
