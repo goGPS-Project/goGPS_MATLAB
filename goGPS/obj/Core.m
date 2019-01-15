@@ -355,17 +355,7 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             rec_list = core.rec;
         end
-             
-        function state = getState()
-            % Return the pointer to the State pointed by Core
-            %
-            % SYNTAX
-            %   state = Core.getState()
-            
-            core = Core.getInstance(false, true);
-            state = core.state;
-        end
-        
+                     
         function cur_session = getCurrentSession()
             % Get the id of the current session
             %
@@ -384,6 +374,15 @@ classdef Core < handle
             rin_list = core.rin_list;
             met_list = core.met_list;
         end              
+        
+        function state = getState()
+            % Return the pointer to the State pointed by Core
+            %
+            % SYNTAX
+            %   state = Core.getState()
+            
+            state = Core.getCurrentSettings;
+        end
         
         function state = getCurrentSettings(ini_settings_file)
             % Get the persistent settings
