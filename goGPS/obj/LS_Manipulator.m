@@ -951,7 +951,8 @@ classdef LS_Manipulator < handle
             
             
             ep = obs;
-            
+            e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
+            e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
             if dynamic
                 p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
@@ -959,8 +960,7 @@ classdef LS_Manipulator < handle
                 
                 p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
-            e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
-                e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
+           
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
                 this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg];
             if obs_set.hasPhase()
