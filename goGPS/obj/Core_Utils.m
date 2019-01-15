@@ -554,7 +554,7 @@ classdef Core_Utils < handle
             rm = Remote_Resource_Manager.getInstance;
             
             if ispc()
-                aria2c_path = '.\utility\thirdParty\aria-extra\aria2c.exe';
+                aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
             elseif ismac()
                 aria2c_path = '/usr/local/bin/aria2c';
             else % is linux

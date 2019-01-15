@@ -1,0 +1,52 @@
+aria2 1.34.0
+============
+
+Release Note
+------------
+
+This release fixes several bugs.  See Changes for details.
+
+Changes
+-------
+
+* mingw: Use SetFileTime to avoid DST adjustment
+
+  GH-1079
+
+* UnknownLengthPieceStorage: return piece length
+
+  show something in console status when downloading items
+  with unknown content length
+
+  Patch from kwkam
+
+  GH-1065
+
+* WinConsoleFile: fix colour properly
+
+  Patch from kwkam
+
+  GH-1058
+
+* util: also detect xdg_* env variables on windows
+
+  so if people like to keep FHS they could define XDG_* for it
+
+  Patch from kwkam
+
+  GH-1057
+
+* MacOS: Allocate once (apfs compat)
+
+* Fix bug that signal handler does not work with libaria2
+
+  This commit fixes the bug that signal handler does not work with
+  libaria2 when aria2::RUN_ONCE is passed to aria2::run().
+
+  GH-1053
+
+* Retry on HTTP 502
+
+  Patch from nicolov
+
+  GH-1038
