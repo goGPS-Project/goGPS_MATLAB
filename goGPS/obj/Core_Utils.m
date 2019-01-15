@@ -626,10 +626,11 @@ classdef Core_Utils < handle
                                 log.addMessage(log.indent(sprintf('%s', str)));
                                 try
                                     if ispc()
-                                        dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));
+                                        dos(sprintf('"%s" -j 20 -c -i %s -d %s >nul 2>&1', aria2c_path, file_name, old_od)); % suppress output
+                                        % dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od)); % do not suppress output
                                     else
-                                        dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));
-                                        %dos(sprintf('%s -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));
+                                        dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));  % suppress output
+                                        %dos(sprintf('%s -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));  % do not suppress output
                                     end
                                 catch
                                     this.log.addError('aria2c is not working, is it installed?');

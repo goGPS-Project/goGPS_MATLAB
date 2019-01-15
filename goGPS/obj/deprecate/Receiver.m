@@ -2518,7 +2518,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 Core.initGeoid();
@@ -2661,7 +2661,7 @@ classdef Receiver < Exportable
                 [lat, lon, h_ellips] = cart2geod(xyz);
                 if nargout == 4
                     Core.initGeoid();                    
-                    ondu = getOrthometricCorr(lat, lon, Core.getGlobalConfig().getRefGeoid());
+                    ondu = getOrthometricCorr(lat, lon, Core.getRefGeoid());
                     h_ortho = h_ellips - ondu;
                 end
                 lat = lat / pi * 180;
@@ -3685,7 +3685,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
