@@ -75,6 +75,11 @@ classdef FTP_Downloader < handle
         function addr = getAddress(this)
             addr = this.addr;
         end
+        
+        function addr = getFullAddress(this)
+            addr = ['ftp://' this.addr ':' this.port '/' this.remote_dir];
+        end
+        
         function this = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir)
             % Constructor
             % EXAMPLE: FTP_Downloader('')
