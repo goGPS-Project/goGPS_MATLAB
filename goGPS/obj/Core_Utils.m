@@ -759,7 +759,8 @@ classdef Core_Utils < handle
                     end
                 end
             else
-                log = Logger.getInstance.addWarning('HTTP check is implemeted only for Unix systems')
+                log = Logger.getInstance;
+                log.addWarning('HTTP check is implemeted only for Unix systems')
                 status = true; % !!! to be implemented                
             end
         end
