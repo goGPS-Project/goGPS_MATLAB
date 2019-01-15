@@ -114,6 +114,7 @@ classdef Command_Interpreter < handle
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
         PAR_E_REC_MAT   % Receiver export parameter matlab format
+        PAR_E_REC_RIN   % Receiver export parameter RINEX format
         PAR_E_TROPO_SNX % Tropo export paramter sinex format
         PAR_E_TROPO_MAT % Tropo export paramter mat format
         PAR_E_COO_CRD   % Coordinates in bernese crd format
@@ -293,6 +294,11 @@ classdef Command_Interpreter < handle
             this.PAR_E_REC_MAT.par = '(rec_mat)|(REC_MAT)';
             this.PAR_E_REC_MAT.accepted_values = {};
 
+            this.PAR_E_REC_RIN.name = 'RINEX v3';
+            this.PAR_E_REC_RIN.descr = 'REC_RIN          Rinex file containing the actual data stored in rec.work';
+            this.PAR_E_REC_RIN.par = '(REC_RIN)|(rec_rin)|(rin3)|(RIN3)';
+            this.PAR_E_REC_RIN.accepted_values = {};
+
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
             this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters as SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
@@ -302,7 +308,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.accepted_values = {};
-            
+                        
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
             this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
@@ -383,10 +389,10 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
-            this.CMD_EXPORT.name = {'EXPORT', 'export_results', 'export_results'};
-            this.CMD_EXPORT.descr = 'Export results';
+            this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
+            this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_REC_MAT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
+            this.CMD_EXPORT.par = [this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = 'Push results in output';
@@ -1047,7 +1053,11 @@ classdef Command_Interpreter < handle
                        iono_reduce = true;
                     end
                 end
-                net.adjust(id_ref, coo_rate, iono_reduce); 
+                try
+                    net.adjust(id_ref, coo_rate, iono_reduce); 
+                catch ex
+                    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
+                end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();
@@ -1326,50 +1336,53 @@ classdef Command_Interpreter < handle
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
-            else
-                
+            else                
                 for r = id_trg % different for each target
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
                     for t = 1 : numel(tok)
-                       % try
-                            if sss_lev == 0 % run on all thw results (out)
-                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
-                                    pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
-                                    export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
-                                    if isempty(pars)
-                                        export_par([1,2,3]) = true; % by defaul export only ztd and gradients
-                                    elseif strcmpi(pars{1},'ALL')
-                                        export_par(:) = true; % export all
-                                    else
-                                        for i = 1 : length(pars)
-                                            for j = 1 : length(export_par)
-                                                if strcmpi(pars{i}, this.PAR_E_TROPO_SNX.accepted_values{j})
-                                                    export_par(j) = true;
+                        try
+                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_RIN.par ')*$'], 'once'))
+                                rec(r).work.exportRinex3();
+                            else
+                                if sss_lev == 0 % run on all thw results (out)
+                                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
+                                        pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
+                                        export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
+                                        if isempty(pars)
+                                            export_par([1,2,3]) = true; % by defaul export only ztd and gradients
+                                        elseif strcmpi(pars{1},'ALL')
+                                            export_par(:) = true; % export all
+                                        else
+                                            for i = 1 : length(pars)
+                                                for j = 1 : length(export_par)
+                                                    if strcmpi(pars{i}, this.PAR_E_TROPO_SNX.accepted_values{j})
+                                                        export_par(j) = true;
+                                                    end
                                                 end
                                             end
                                         end
+                                        rec(r).out.exportTropoSINEX(export_par);
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                        rec(r).out.exportTropoMat();
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
+                                        rec(r).exportMat();
                                     end
-                                    rec(r).out.exportTropoSINEX(export_par);
-                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
-                                    rec(r).out.exportTropoMat();
-                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
-                                    rec(r).exportMat();
-                                end
-                            else % run in single session mode (work)
-                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
-                                    rec(r).work.exportTropoSINEX();
-                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
-                                    rec(r).work.exportTropoMat();
-                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
-                                    rec(r).work.exportMat();
+                                else % run in single session mode (work)
+                                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
+                                        rec(r).work.exportTropoSINEX();
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                        rec(r).work.exportTropoMat();
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
+                                        rec(r).work.exportMat();
+                                    end
                                 end
                             end
-%                         catch ex
-%                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
-%                         end
+                        catch ex
+                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+                        end
                     end
                 end
             end
