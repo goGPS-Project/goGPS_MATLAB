@@ -270,8 +270,11 @@ classdef Logger < handle
 
         function fid = getOutFId(this)
             % Get the handler of the output file
-            try 
-                ftell(this.fid); % Test if the file is open                
+            try
+                resp = ftell(this.fid); % Test if the file is open    
+                if resp == -1
+                     throw(MException('FileNotOpen', 'The log file is not open'));
+                end
             catch % file is not open => try to create it or open it
                 out_file_path = this.out_file_path;
                 [f_dir, ~, ~] = fileparts(out_file_path);
