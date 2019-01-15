@@ -125,7 +125,11 @@ function goGPS(ini_settings, use_gui, flag_online)
         log.addError('Invalid configuration found! Check the log messages above.');
     else
         
-        core.prepareProcessing(flag_online); % download important files
+        if nargin >= 3 && ~isempty(flag_online)
+            core.prepareProcessing(flag_online); % download important files
+        else
+            core.prepareProcessing();
+        end
         
         ok_go = true; % here a check on the validity of the resources should be done
         
