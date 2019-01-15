@@ -1082,8 +1082,7 @@ end
             javacomponent(j_scroll_rri, [1 1 1 1], rr_box);
             rr_box. Heights = [18 -1];
             tab_bv.Heights = [15 5 20 18 18 18 1 -1];
-            this.uip.tab_rr = tab;
-            
+            this.uip.tab_rr = tab;            
         end
         
         function insertOldRemoteResource(this, container)

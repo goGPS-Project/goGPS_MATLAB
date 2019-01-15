@@ -1364,7 +1364,7 @@ classdef LS_Manipulator < handle
                 for u = 1 : length(u_class)
                     n_param_class(u) = max(max(this.A_idx(:,this.param_class == u_class(u)))) - min(min(this.A_idx(:,this.param_class == u_class(u)))) + 1;
                 end
-                a_idx_const =unique(A_rec(:, idx_constant_l));
+                a_idx_const = unique(A_rec(:, idx_constant_l));
                 a_idx_const(a_idx_const == 0) = [];
                 a_idx_ep_wise = unique(A_rec(:, idx_ep_wise));
                 a_idx_ep_wise(a_idx_ep_wise == 0) = [];

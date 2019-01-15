@@ -535,14 +535,15 @@ classdef Core_Utils < handle
             end
         end
         
-        function f_status_lst = aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list)
+        function f_status_lst = aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list, out_dir)
             % Try to download files using aria2C
             %
             % INPUT
             %   file_name_list      list of file_names to download (remote path)   [cell]
             %   f_ext_lst           extension of compression ('' is valid)         [cell]
             %   f_status_lst        bool array of files to download                [bool]
-            %   date_list           GPS_Time of days of interest .                 [GPS_Time]
+            %   date_list           GPS_Time of days of interest                   [GPS_Time]
+            %   out_dir             path to out folder                             [char]
             %
             % SYNTAX
             %   f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst)
@@ -572,18 +573,26 @@ classdef Core_Utils < handle
             for i = 1 : numel(fnl)
                 file_name = fnl{i};
                 server = regexp(file_name,'(?<=\?{)\w*(?=})','match', 'once'); % saerch for ?{server_name} in paths
-                file_name = strrep(file_name,['?{' server '}'],'');
-                [s_ip, port] = rm.getServerIp(server);
-                switch port
-                    case '21'
-                        fnl{i} = ['ftp://' s_ip ':' port file_name fel{i}];
-                    otherwise
-                        fnl{i} = ['http://' s_ip ':' port file_name fel{i}];
+                if ~isempty(server)
+                    file_name = strrep(file_name,['?{' server '}'],'');
+                    [s_ip, port] = rm.getServerIp(server);
+                    switch port
+                        case '21'
+                            fnl{i} = ['ftp://' s_ip ':' port file_name fel{i}];
+                        otherwise
+                            fnl{i} = ['http://' s_ip ':' port file_name fel{i}];
+                    end
+                else
+                    fnl{i} = [file_name fel{i}];
                 end
-                out_dir = Core.getState.getFileDir(file_name);
-                out_dir = fnp.dateKeyRep(out_dir, date_list.getEpoch(date_list.length - idf(i) + 1));
+                if nargin < 5
+                    out_dir = Core.getState.getFileDir(file_name);
+                end
+                if nargin >= 4 && ~isempty(date_list)
+                    out_dir = fnp.dateKeyRep(out_dir, date_list.getEpoch(date_list.length - idf(i) + 1));
+                end
                 odl{i} = out_dir;
-                [~, name, ~] = fileparts(fnl{i});
+                [~, name, ext] = fileparts(fnl{i});
                 ffp{i} = fullfile(out_dir, name);
             end
             
@@ -620,6 +629,7 @@ classdef Core_Utils < handle
                                         dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));
                                     else
                                         dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));
+                                        %dos(sprintf('%s -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));
                                     end
                                 catch
                                     this.log.addError('aria2c is not working, is it installed?');
@@ -660,7 +670,7 @@ classdef Core_Utils < handle
                 
                 % update f_status_lst
                 for i = 1 : numel(ffp)
-                    f_status_lst(idf(i)) = exist(ffp{i}, 'file');
+                    f_status_lst(idf(i)) = exist(ffp{i}, 'file') == 2;
                 end
             end
             
