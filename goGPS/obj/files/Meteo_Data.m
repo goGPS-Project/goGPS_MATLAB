@@ -897,10 +897,10 @@ classdef Meteo_Data < handle
 
                 % Rescale weigths epoch by epoch
                 w_all = repmat(w', 1, size(t_dist,2));
-                w_all(t_dist > t_thr) = 0; % eliminate too distance ineterpolations
+                w_all(t_dist > t_thr) = 0; % eliminate interpolations too much distant in time
                 lid_best = (sum(w_all > 0.8)) >= 1;
                 if sum(lid_best) < 2
-                    [~, id_min] = min(d_op .* double(sum(w_all, 2) > 0));
+                    [~, id_min] = min(d_op + 1e300 * double(~(sum(w_all, 2) > 0)));
                     lid_best = w_all(id_min, :) > 0;
                 end
                 w_all = bsxfun(@rdivide, w_all, sum(w_all));
