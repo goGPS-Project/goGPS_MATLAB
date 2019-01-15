@@ -184,7 +184,7 @@ classdef Network < handle
                     end
                     wl_struct = [];
                     if reduce_iono
-                        if this.state.getAmbFix_NET()
+                        if this.state.getAmbFixNET()
                             this.estimateWB();
                             ls.wl_amb = this.wl_mats;
                         end
@@ -230,11 +230,9 @@ classdef Network < handle
                                 ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                                 ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                             else
-                                ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * this.state.spline_rate_tropo_gradient );%this.state.std_tropo / 3600 * rate );
-                                ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 *  this.state.spline_rate_tropo_gradient);%this.state.std_tropo  / 3600 * rate );
-                            end
-                            
-                            
+                                ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * this.state.spline_rate_tropo_gradient ); %this.state.std_tropo / 3600 * rate );
+                                ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 *  this.state.spline_rate_tropo_gradient); %this.state.std_tropo  / 3600 * rate );
+                            end                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
                         [x, res, s0, Cxx, l_fixed] = ls.solve;
@@ -751,7 +749,7 @@ classdef Network < handle
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
                 clk = this.clock(idx_res_av, i);
-                this.rec_list(i).work.dt(idx_pos) = clk(idx_is);
+                this.rec_list(i).work.dt(idx_pos) = clk(idx_is) ./ Core_Utils.V_LIGHT;
                 if this.state.flag_tropo
                     ztd = this.ztd(idx_res_av, i);
                     this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);
