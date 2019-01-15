@@ -945,6 +945,40 @@ classdef GNSS_Station < handle
             end
         end
         
+        function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
+            % Get synced data of ztd
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [ztd, p_time, id_sync] = this.getZtd_mr()
+            %  [ztd, p_time, id_sync, tge, tgn] = this.getZtd_mr()
+            
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
+            
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+            
+            n_rec = numel(sta_list);
+            ztd = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
+                ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(id_rec(~isnan(id_rec)));
+            end
+            
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).out.tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).out.tgn(id_rec(~isnan(id_rec)));
+                end
+            end
+        end
+
         function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
             % Get synced data of zwd
             % MultiRec: works on an array of receivers
@@ -1961,10 +1995,12 @@ classdef GNSS_Station < handle
         
         function showZtdSlantRes_p(this, time_start, time_stop)
             for r = 1 : size(this, 2)
-                if isempty(this(r).out.ztd) || ~any(this(r).out.sat.slant_td(:))
+                ztd = this(r).out.getZtd();
+                slant_td = this(r).out.getSlantTD();                
+                if isempty(ztd) || ~any(slant_td(:))
                     this.log.addWarning('ZTD and slants have not been computed');
                 else
-                    this.out.showZtdSlantRes_p(time_start, time_stop)
+                    this(r).out.showZtdSlantRes_p(time_start, time_stop)
                 end
             end
         end
