@@ -129,7 +129,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %REMOTE_RES_CONF_DIR = [Main_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
         REMOTE_RES_CONF_DIR = './';
 
-        FLAG_DOWNLOAD = true;
+        FLAG_DOWNLOAD = true;      % automatically try to download resources
+        FLAG_NO_RESOURCES = false; % one true no resources are used => no orbits are computed -> useful in limited scenarios
         
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
         SELECTED_CENTER = {'default'}
@@ -417,6 +418,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %------------------------------------------------------------------
         % Centers for computation of orbits and other related parameters
         flag_download = Main_Settings.FLAG_DOWNLOAD;         % enable auto download of missing resources
+        flag_no_resources = Main_Settings.FLAG_NO_RESOURCES; % one true no resources are used => no orbits are computed -> useful in limited scenarios
         
         preferred_eph = Main_Settings.PREFERRED_EPH;         % kind of orbits to prefer
         preferred_iono = Main_Settings.PREFERRED_IONO;
@@ -3421,6 +3423,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_download = flag;
         end
         
+        function setNoResources(this, flag)
+            % Set the no_resources flag
+            %
+            % SYNTAX
+            %   this.setNoResources(flag)
+            this.flag_no_resources = flag;
+        end
+        
         function setPreferredOrbit(this, flag)
             % Set the preferred orbit sequence:
             %   1 final
@@ -3615,6 +3625,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_dwn = this.isAutomaticDownload()
             is_dwn = this.flag_download;
+        end
+        
+        function is_nores = isNoResources(this)
+            % Get wheter resources (orbits, VMF, ecc) are used
+            %
+            % SYNTAX
+            %   is_dwn = this.isNoResources()
+            is_nores = this.flag_no_resources;
         end
         
         function is_vmf = isVMF(this)

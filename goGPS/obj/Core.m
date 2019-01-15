@@ -746,19 +746,21 @@ classdef Core < handle
                     this.log.newLine();
                     this.rec = rec;
                     % Init Meteo and Sky objects
-                    this.initSkySession(time_lim_large);
-                    this.log.newLine();
-                    if this.state.isMet()
-                        this.initMeteoNetwork(time_lim_large);
-                    end
-                    this.log.simpleSeparator();
-                    
-                    % init atmo object
-                    if this.state.isVMF()
-                        this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
-                    end
-                    if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
-                        this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                    if ~this.state.isNoResources()
+                        this.initSkySession(time_lim_large);
+                        this.log.newLine();
+                        if this.state.isMet()
+                            this.initMeteoNetwork(time_lim_large);
+                        end
+                        this.log.simpleSeparator();
+                        
+                        % init atmo object
+                        if this.state.isVMF()
+                            this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
+                        end
+                        if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
+                            this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                        end
                     end
                 end
             end
@@ -769,7 +771,9 @@ classdef Core < handle
             if isempty(this.sky)
                 this.sky = Core_Sky();
             end
-            this.sky.initSession(time_lim.first, time_lim.last);
+            if ~this.state.isNoResources()
+                this.sky.initSession(time_lim.first, time_lim.last);
+            end
         end
         
         function initMeteoNetwork(this, time_lim)

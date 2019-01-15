@@ -495,28 +495,39 @@ classdef File_Wizard < handle
                 end
             end
             
+            if ~strcmp(center_name, 'none')
+                this.state.setNoResources(false);
+            end
+
             if ~is_ok
-                this.log.addError(['Selected center: ' center_name ' not compatible with selected constellations: ' this.sys_c]);
-                error('Ending execution: missing valid orbits')
+                if strcmp(center_name, 'none')
+                    this.state.setNoResources(true);
+                    this.log.addWarning('Resource center have not been selected, orbits will not be computed!!!');                    
+                else
+                    this.log.addError(['Selected center: ' center_name ' not compatible with selected constellations: ' this.sys_c]);
+                    error('Ending execution: missing valid orbits')
+                end
             end
                 
             % Prepare all the files needed for processing
             
-            this.state.updateNavFileName();
-            this.state.updateErpFileName();
-            this.conjureNavFiles(dsa, dso);
-            if this.state.isAutomaticDownload()
-                this.conjureDCBFiles(dsa, dso);
-                this.conjureCRXFiles(dsa, dso);
-            end
-            if this.state.needIonoMap()
-                this.conjureIonoFiles(dsa, dso);
-            end
-            if this.state.isAtmLoading()
-                this.conjureAtmLoadFiles(dsa, dso);
-            end
-            if this.state.isVMF()
-                this.conjureVmfFiles(dsa, dso);
+            if ~this.state.isNoResources()
+                this.state.updateNavFileName();
+                this.state.updateErpFileName();
+                this.conjureNavFiles(dsa, dso);
+                if this.state.isAutomaticDownload()
+                    this.conjureDCBFiles(dsa, dso);
+                    this.conjureCRXFiles(dsa, dso);
+                end
+                if this.state.needIonoMap()
+                    this.conjureIonoFiles(dsa, dso);
+                end
+                if this.state.isAtmLoading()
+                    this.conjureAtmLoadFiles(dsa, dso);
+                end
+                if this.state.isVMF()
+                    this.conjureVmfFiles(dsa, dso);
+                end
             end
         end
         
@@ -581,19 +592,34 @@ classdef File_Wizard < handle
                 end
                 
                 if any(~dcb_ok)
-                    this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
-                    for i = 1 : length(file_list)
-                        if not(dcb_ok(i))
+                    aria_try = true;
+                    try % ARIA2C download
+                        aria_file_list = file_list;
+                        f_ext_lst = cell(size(file_list));
+                        for i = 1 : numel(file_list)
+                            aria_file_list{i} = [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path file_list{i}];
                             [~, name, ext] = fileparts(file_list{i});
-                            if (isunix())
-                                system(['gzip -fd ' this.state.getDcbDir() filesep name ext]);
-                            else
-                                try
-                                    [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
-                                    delete([this.state.getDcbDir() filesep name ext]);
-                                catch
-                                    this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
-                                    compressed = 1;
+                            if strcmpi(ext, '.gz') || strcmpi(ext, '.Z')
+                                f_ext_lst{i} = ext;
+                                aria_file_list{i} = aria_file_list{i}(1 : end - length(ext));
+                            end
+                        end                        
+                        dcb_ok = Core_Utils.aria2cDownloadUncompress(aria_file_list, f_ext_lst, dcb_ok, [], this.state.getDcbDir());
+                    catch ex
+                        this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
+                        for i = 1 : length(file_list)
+                            if not(dcb_ok(i))
+                                [~, name, ext] = fileparts(file_list{i});
+                                if (isunix())
+                                    system(['gzip -fd ' this.state.getDcbDir() filesep name ext]);
+                                else
+                                    try
+                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
+                                        delete([this.state.getDcbDir() filesep name ext]);
+                                    catch
+                                        this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
+                                        compressed = 1;
+                                    end
                                 end
                             end
                         end
@@ -877,7 +903,30 @@ classdef File_Wizard < handle
                 if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
                     this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                     %if not(exist([down_dir, '/', s2]) == 2)
-                    mget(ftp_server,s2,down_dir);
+                    try
+                        if exist(fullfile(down_dir, s2), 'file') == 2
+                            movefile(fullfile(down_dir, s2), fullfile(down_dir, [s2 '.old']));
+                        end
+                        try % ARIA2C download
+                            clear file_name_lst f_ext_lst;
+                            file_lst{1} = ['ftp://' aiub_ip s '/' s2];
+                            f_ext_lst{1} = '';
+                            f_status_lst = false;
+                            f_status_lst = Core_Utils.aria2cDownloadUncompress(file_lst, f_ext_lst, f_status_lst, [], down_dir);
+                        catch ex
+                            % fprintf(ex.message)
+                            mget(ftp_server,s2,down_dir);
+                            f_status_lst = true;
+                        end                     
+                        if ~f_status_lst
+                            throw(MException('Verify CRX download', 'download error'));
+                        end
+                    catch ex
+                        this.log.addWarning(sprintf('CRX file have not been updated due to connection problems: %s', ex.message))
+                        if exist(fullfile(down_dir, [s2, '.old']), 'file') == 2
+                            movefile(fullfile(down_dir, [s2 '.old']), fullfile(down_dir, s2));
+                        end
+                    end
                     this.log.addMessage(this.log.indent(sprintf(['Downloaded CRX file: ' s2 '\n'])));
                 end
                 

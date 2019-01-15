@@ -223,8 +223,11 @@ classdef Remote_Resource_Manager < Ini_Manager
             center = cell(n_center, 1);
             center_ss = cell(n_center, 1);
             for c = 1 : n_center
-                center(c) = regexp(tmp{c}, '(?<=@).*', 'match');
-                center_ss(c) = regexp(tmp{c}, '.*(?=@)', 'match');
+                center{c} = regexp(tmp{c}, '(?<=@).*', 'match', 'once');
+                if isempty(center{c})
+                    center{c} = tmp{c};
+                end
+                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');;
             end            
         end
         

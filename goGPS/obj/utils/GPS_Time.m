@@ -1333,6 +1333,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = round(this, rounding)
             % round the time
+            % 
+            % INPUT
+            %   rounding [seconds]
             %
             % SYNTAX 
             %   this = this.round(rounding);
