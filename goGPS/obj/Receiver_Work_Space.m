@@ -3966,7 +3966,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs, idx] = getObs(this, flag, sys_c, prn)
+        function [obs, idx, snr, cs] = getObs(this, flag, sys_c, prn)
             % get observation and index corresponfing to the flag
             % SYNTAX this.findObservableByFlag(flag, <system>)
             if nargin > 3
@@ -3977,6 +3977,32 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idx = this.findObservableByFlag(flag);
             end
             obs = zero2nan(this.obs(idx,:));
+            if nargout > 2
+                if nargin > 3
+                    idx_snr = this.findObservableByFlag(['S' flag(2:end)], sys_c, prn);
+                elseif nargin > 2
+                    idx_snr = this.findObservableByFlag(['S' flag(2:end)], sys_c);
+                else
+                    idx_snr = this.findObservableByFlag(['S' flag(2:end)]);
+                end
+                go_id_obs = this.go_id(idx);
+                go_id_snr = this.go_id(idx_snr);
+                snr_uns = this.obs(idx_snr,:);
+                [~,io,is] = intersect(go_id_obs,go_id_snr);
+                snr = nan(size(obs));
+                snr(io,:) = snr_uns(is,:);
+                
+            end
+            if nargout > 3 
+                if flag(1) == 'L'
+                    [~,~,idx_ph] = this.getPhases();
+                    idx_ph = find(idx_ph);
+                    [~,idx_o,idx_cs] = intersect(idx,idx_ph);
+                    cs = this.sat.cycle_slip_idx_ph(:,idx_cs)';
+                else
+                    cs = [];
+                end
+            end
         end
         
         function id = findObservableByFlag(this, flag, sys_c, prn)
@@ -4175,11 +4201,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if ischar(flag1)
                 system = flag1(1);
-                [o1, i1, s1, cs1] = this.getPrefObsCh(flag1(2:3), system, 1);
+                if length(flag1) < 4 % tracking not specified
+                    [o1, i1, s1, cs1] = this.getPrefObsCh(flag1(2:3), system, 1);
+                else
+                    [o1, i1, s1, cs1] = this.getObs(flag1(2:end), system);
+                end
                 o1 = o1';
                 s1 = s1';
                 cs1 = cs1';
-                [o2, i2, s2, cs2] = this.getPrefObsCh(flag2(2:3), system, 1);
+                if length(flag2) < 4 % tracking not specified
+                    [o2, i2, s2, cs2] = this.getPrefObsCh(flag2(2:3), system, 1);
+                else
+                    [o2, i2, s2, cs2] = this.getObs(flag2(2:end), system);
+                end
                 o2 = o2';
                 s2 = s2';
                 cs2 = cs2';

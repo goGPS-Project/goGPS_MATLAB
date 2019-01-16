@@ -675,7 +675,7 @@ classdef Network < handle
                         this.log.addWarning(sprintf('No common code on the ferequency %s and freqeuncy %s for system %s',b1,b2,sys_c));
                     else
                         this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
-                        this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),num2str(b2)]];
+                        this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),track_1,num2str(b2),track_2]];
                         b1code_aval(:,:,~nt2cb1) = [];
                         b2code_aval(:,:,~nt2cb2) = [];
                         rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;

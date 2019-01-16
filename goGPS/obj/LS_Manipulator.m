@@ -461,7 +461,13 @@ classdef LS_Manipulator < handle
                 if ~isempty(wl_struct)%% case multi frequency
                     for sys_c = rec_list(i).work.cc.sys_c
                         if this.state.isIonoFree
-                            temp_o_set = work_list(i).getPrefIonoFree('L', sys_c);
+                            if this.state.getAmbFixNET % use the same tracking used in the computation of the widelane
+                                trcks = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,2:end);
+                                
+                                temp_o_set = work_list(i).getIonoFree(['L',trcks(1:2)],['L',trcks(3:4)],sys_c);
+                            else
+                                temp_o_set = work_list(i).getPrefIonoFree('L', sys_c);
+                            end
                         else
                             temp_o_set = work_list(i).getSmoothIonoFreeAvg('L', sys_c);
                             temp_o_set.iono_free = true;
@@ -470,7 +476,7 @@ classdef LS_Manipulator < handle
                         if this.state.getAmbFixNET
                             f_vec = this.cc.getSys(sys_c).F_VEC;
                             l_vec = this.cc.getSys(sys_c).L_VEC;
-                            rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 3]);
+                            rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 4]);
                             id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1));
                             id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
                             temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));

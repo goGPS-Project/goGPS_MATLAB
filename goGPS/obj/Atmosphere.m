@@ -397,19 +397,19 @@ classdef Atmosphere < handle
             end
         end
         
-        function importVMFCoeffFile(this, file_name)
+        function importVMFCoeffFile(this, ffile_name)
             % import data of atmospehric loading file
             %
             % SYNTAX
             %   importVMFCoeffFile(this, filename)
             
             fnp = File_Name_Processor;
-            fid = fopen(file_name,'r');
+            fid = fopen(ffile_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('Atmosphere: File %s not found', file_name));
+                this.log.addWarning(sprintf('Atmosphere: File %s not found', ffile_name));
             else
                 % Parsing title
-                [~, file_name, ext ] = fileparts(file_name);
+                [~, file_name, ext ] = fileparts(ffile_name);
                 year = str2double(file_name(6 : 9));
                 month = str2double(file_name(10 : 11));
                 day = str2double(file_name(12 : 13));
@@ -420,7 +420,7 @@ classdef Atmosphere < handle
                 
                 if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
                     % file is contained in the data already
-                    this.log.addMessage(this.log.indent(sprintf('%s already present, skipping', fnp.getFileName(file_name))));
+                    this.log.addMessage(this.log.indent(sprintf('%s already present, skipping', fnp.getFileName(ffile_name))));
                     fclose(fid);
                 else
                     if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
@@ -429,7 +429,7 @@ classdef Atmosphere < handle
                         this.clearVMF();
                         isempty_obj = true;
                     end
-                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
+                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(ffile_name))));
                     
                     txt = fread(fid, '*char')';
                     txt(txt == 13) = []; % remove carriage return - I hate you Bill!
