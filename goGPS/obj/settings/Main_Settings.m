@@ -3206,6 +3206,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.setVMFFile(filename);
             end
         end
+        
+        function setCrdFile(this, crd_path)
+            % Set the path of the stations coordinates file
+            %
+            % SYNTAX
+            %   file_path = this.setCrdFile(crd_file_path)
+            if ~(isempty(crd_path))
+                [path, name, ext] = fileparts(crd_path);
+                this.crd_name = [name, ext];
+                this.crd_dir = path;
+            end
+        end
 
         function setNavPath(this, nav_dir)
             % Set the path to the navigational files

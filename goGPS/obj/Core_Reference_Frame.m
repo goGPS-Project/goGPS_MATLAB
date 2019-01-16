@@ -33,11 +33,15 @@ classdef Core_Reference_Frame < handle
     % 01100111 01101111 01000111 01010000 01010011
     %--------------------------------------------------------------------------
     
+    
+    properties (Constant)
+        FLAG_STRING = {'0) rough position', '1) a-priori','2) Fixed', '3) Fixed for PREPRO'};
+    end
+    
     properties
         state
         log
-        cc
-        
+       
         station_code
         xyz
         vxvyvz
@@ -56,17 +60,21 @@ classdef Core_Reference_Frame < handle
             % Core object creator
             this.state = Core.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Core.getCurrentSettings().getConstellationCollector;
-            this.init();
         end
     end
     
     methods
-        function init(this)
+        function init(this, crd_file)
             % initilize the reference frame object loading the crd file specified in state
             %
             % SYNTAX:
             % this.init()
+            
+            this.state = Core.getCurrentSettings();
+            if nargin == 2
+                this.state.setCrdFile(crd_file);
+            end
+            
             this.clear();
             this.is_valid = true;
             try
@@ -165,8 +173,16 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
             xyz = [];
+            
+            % load RF if not loaded
             is_valid = false;
-            if this.is_valid
+            if ~this.isValid()
+                if exist(Core.getState.getCrdFile, 'file') == 2
+                    this.init();
+                end
+            end
+            
+            if this.isValid()
                 
                 if ~isempty(this.station_code) && length(sta_name) == 4
                     idx_sta = strLineMatch(lower(this.station_code), lower(sta_name));
@@ -185,6 +201,46 @@ classdef Core_Reference_Frame < handle
             end
         end
         
+        function crx_list = getEntryCell(this)
+            % Get the list of CORD entries in the format:
+            % 'Marker Name'; 'X'; 'Y'; 'Z'; 'type'; 'start', 'stop'
+            % 
+            % SYNTAX:
+            %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
+            % load RF if not loaded
+            is_valid = false;
+            if ~this.isValid()
+                if exist(Core.getState.getCrdFile, 'file') == 2
+                    this.init();
+                end
+            end
+            
+            crx_list = {};
+            if this.isValid()
+                crx_list = cell(size(this.station_code, 1), 7);
+                for i = 1 : size(this.station_code, 1)
+                    crx_list{i, 1} = this.station_code(i, :);
+                    crx_list{i, 2} = this.xyz(i, 1);
+                    crx_list{i, 3} = this.xyz(i, 2);
+                    crx_list{i, 4} = this.xyz(i, 3);
+                    crx_list{i, 5} = this.FLAG_STRING{this.flag(i) + 1};
+                    crx_list{i, 6} = this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
+                    crx_list{i, 7} = this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
+                    crx_list{i, 8} = this.vxvyvz(i,1);
+                    crx_list{i, 9} = this.vxvyvz(i,2);
+                    crx_list{i, 10} = this.vxvyvz(i,3);
+                end
+            end
+        end
+        
+        function [status] = isValid(this)
+            % Tell if station coordiantes are loaded
+            %
+            % SYNTAX:
+            %  [status] = this.isValid()
+            status = ~isempty(this.is_valid) && this.is_valid;
+        end
+        
         function [status] = isFixed(this, sta_code)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
@@ -192,7 +248,7 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [status] = this.isFixed(sta_code)
             status = false;
-            if size(this.station_code) >0
+            if size(this.station_code) > 0
                 sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2;
@@ -207,7 +263,7 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [status] = this.hasAPriori(sta_code)
             status = false;
-            if size(this.station_code) >0
+            if size(this.station_code) > 0
                 sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1  || this.flag(sta_idx) == 3;
@@ -222,7 +278,7 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [status] = this.hasAPriori(sta_code)
             status = false;
-            if size(this.station_code) >0
+            if size(this.station_code) > 0
                 sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 3 || this.flag(sta_idx) == 2;

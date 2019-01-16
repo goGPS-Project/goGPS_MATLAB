@@ -167,13 +167,12 @@ classdef Parallel_Manager < Com_Interface
                 gom.createSlaves(n_slaves - n_living_slaves, gom.getComDir());
             end
             
-            % Wait for slaves to appear (for max 20 seconds)
+            % Wait for slaves to appear (for max 25 seconds)
             if n_living_slaves < n_slaves
-                n_living_slaves = gom.waitForSlaves(n_slaves, 20);
+                n_living_slaves = gom.waitForSlaves(n_slaves, 25);
             end
             gom.log.addMarkedMessage(sprintf('At the moment I see %d living %s ready for processing - after %.2f seconds', n_living_slaves, iif(n_living_slaves == 1, 'slave', 'slaves'), toc(t0)));
-        end
-        
+        end        
     end
     
     methods (Static, Access = private)

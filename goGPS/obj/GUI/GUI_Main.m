@@ -65,6 +65,7 @@ classdef GUI_Main < handle
         ui_sss_start
         ui_sss_stop
         
+        coo_tbl     % table of coordinates
         j_settings  % Java settings panel
         j_cmd       % Java command list panel
         ini_path    % ini path text box
@@ -222,19 +223,21 @@ end
             % Main Panel > tab4 data sources
             this.insertDataSources(tab_panel);            
             
-            % Main Panel > tab5 processing options
+            % Main Panel > tab5 CRD of the stations
+            this.insertRecSpecificParameters(tab_panel);
+
+            % Main Panel > tab6 processing options
             this.insertProcessing(tab_panel);
             
-            % Main Panel > tab6 atmosphere options
+            % Main Panel > tab7 atmosphere options
             this.insertAtmosphere(tab_panel);
-            
             
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Coordinates', 'Processing', 'Atmosphere'};
             else
-                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Coordinates', 'Processing', 'Atmosphere'};
             end
             
             % Botton Panel ---------------------------------------------------------------------------------------------
@@ -581,10 +584,8 @@ end
             Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [170 -3 5 -1 25]);
             Core_UI.insertEmpty(box_g);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
-            Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
-            box_g.Heights = [-1 5 23 5 23 5 23];
+            box_g.Heights = [-1 5 23 5 23];
         end
         
         function insertProcessing(this, container)
@@ -870,6 +871,47 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             
             opt_grid.Widths = -1;
+        end
+        
+        function insertRecSpecificParameters(this, container)
+            tab = uix.Grid('Parent', container, ...
+                'Padding', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
+            
+            %%% Rec
+            box = Core_UI.insertPanelLight(tab, 'Station Coordinates');
+            vbox = uix.VBox('Parent', box,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
+            Core_UI.insertEmpty(vbox);
+                        
+            % Create UITable
+            this.coo_tbl = uitable('Parent', vbox);
+            vbox.Heights = [23 5 -1];            
+            this.coo_tbl.Position = [25 40 250 100];
+            
+            this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
+            colTypes = {'char', 'long g', 'long g', 'long g', Core_Reference_Frame.FLAG_STRING, 'char', 'char', 'short g', 'short g', 'short g'};
+            this.coo_tbl.ColumnFormat = colTypes;
+            this.coo_tbl.ColumnEditable = [false true true true true true true true true true];
+            this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 'auto', 'auto', 'auto'};
+            
+            this.updateCooTable();
+        end
+        
+        function updateCooTable(this)
+            % Update the table of coordinates (CRD file interface)
+            rf = Core.getReferenceFrame();
+            if ~rf.isValid && (exist(Core.getState.getCrdFile, 'file') == 2)
+                rf.init();
+            end
+            this.coo_tbl.Data = rf.getEntryCell();
+            for i = 1 : size(this.coo_tbl.Data, 1)
+                this.coo_tbl.Data{i,1} = ['<html><tr><td width=9999 align=center style="color: #6666FF; font-weight: bold">' this.coo_tbl.Data{i,1}];
+            end
+            this.coo_tbl.RowName = {};
         end
         
         function insertAtmosphere(this, container)
@@ -1518,6 +1560,12 @@ end
             this.state.check();
             caller.String = this.state.getProperty(caller.UserData);
             this.updateINI();
+            
+            if strcmp(caller.UserData, 'crd_name') || strcmp(caller.UserData, 'crd_dir')
+                rf = Core.getReferenceFrame;
+                rf.init(this.state.getCrdFile);
+                this.updateCooTable();
+            end
         end
         
         function onEditArrayChange(this, caller, event)
@@ -1827,6 +1875,7 @@ end
             % Create a new project            
             new = GUI_About(this);
         end
+        
         function loadState(this, caller, event)
             % Load state settings
             
@@ -1845,6 +1894,7 @@ end
                 settings_file = fullfile(path_name, file_name);
                 if strcmp(ext, '.ini')
                     this.state.importIniFile(settings_file);
+                    Core.getReferenceFrame.init();
                     this.updateUI();
                 else
                     this.log.addError('Unrecognized input file format!');
@@ -1906,6 +1956,7 @@ end
         function updateUI(this)
             if isvalid(this.w_main)
                 this.updateINI();
+                this.updateCooTable();
                 this.updateCmdList();
                 this.ini_path.String = this.state.getIniPath();
                 this.updateRecList();
