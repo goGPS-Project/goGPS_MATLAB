@@ -882,24 +882,202 @@ end
             box = Core_UI.insertPanelLight(tab, 'Station Coordinates');
             vbox = uix.VBox('Parent', box,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
             Core_UI.insertEmpty(vbox);
+            table_hbox = uix.HBox('Parent', vbox,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            vbox.Heights = [23 5 -1];
                         
             % Create UITable
-            this.coo_tbl = uitable('Parent', vbox);
-            vbox.Heights = [23 5 -1];            
+            this.coo_tbl = uitable('Parent', table_hbox, ...
+                'CellEditCallback', @this.dataCrdChange);
+            but_box = uix.VBox('Parent', table_hbox,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            table_hbox.Widths = [-1 120];
+                        
+            add_row_but = uicontrol( 'Parent', but_box, ...
+                'String', 'Add a line', ...
+                'TooltipString', 'Add a new entry to CRD file', ...
+                'Callback', @this.addCrdRow); %#ok<NASGU>
+            
+            del_row_but = uicontrol( 'Parent', but_box, ...
+                'String', 'Remove selected', ...
+                'TooltipString', 'Remove row/s with selected cells', ...
+                'Callback', @this.delCrdRow); %#ok<NASGU>
+
+            del_row_but = uicontrol( 'Parent', but_box, ...
+                'String', 'Import from RINEX', ...
+                'TooltipString', 'Import from RINEX', ...
+                'Callback', @this.rin2Crd); %#ok<NASGU>
+            
+            Core_UI.insertEmpty(but_box);
+
+            save = uicontrol( 'Parent', but_box, ...
+                'String', 'Save', ...
+                'TooltipString', 'Save file in the current location', ...
+                'Callback', @this.saveCrd); %#ok<NASGU>
+            
+            save_as = uicontrol( 'Parent', but_box, ...
+                'String', 'Save as', ...
+                'TooltipString', 'Save file as', ...
+                'Callback', @this.saveAsCrd); %#ok<NASGU>
+
+            save_as_default = uicontrol( 'Parent', but_box, ...
+                'String', 'Save (Dafault)', ...
+                'TooltipString', 'Save file in the default position (PRJ_HOME/station/crd/station.crd)', ...
+                'Callback', @this.saveAsDefaultCrd); %#ok<NASGU>
+
+            Core_UI.insertEmpty(but_box);
+            
+            add_row_but = uicontrol( 'Parent', but_box, ...
+                'String', 'ShowMap', ...
+                'TooltipString', 'Show stations on a map', ...
+                'Callback', @this.showCrdMap); %#ok<NASGU>
+
+            but_box.Heights = [25 25 25 -1 25 25 25 15 25];
             this.coo_tbl.Position = [25 40 250 100];
             
             this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
             colTypes = {'char', 'long g', 'long g', 'long g', Core_Reference_Frame.FLAG_STRING, 'char', 'char', 'short g', 'short g', 'short g'};
             this.coo_tbl.ColumnFormat = colTypes;
-            this.coo_tbl.ColumnEditable = [false true true true true true true true true true];
-            this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 'auto', 'auto', 'auto'};
-            
+            this.coo_tbl.ColumnEditable = [true true true true true true true true true true];
+            this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 'auto', 'auto', 'auto'};            
             this.updateCooTable();
+            this.coo_tbl.addlistener('Data','PostSet', @(src,event)this.dataCrdChange(this.coo_tbl,src,event));
         end
+        
+        function rf = crd2RefFrame(this)
+            % Import in the reference frame object the coordinates from the GUI table
+            %
+            % SYNTAX:
+            %   rf = this.crd2RefFrame()
+            rf = Core.getReferenceFrame();
+            rf.importTableData(this.coo_tbl.Data);
+        end
+        
+        function saveCrd(this, tbl, src, event)
+            % Add a new row to the CRD table
+            rf = this.crd2RefFrame();
+            %rf.export(this.state.getCrdFile);
+        end
+        
+        function dataCrdChange(this, tbl, src, event)
+            % Add a new row to the CRD table
+            for i = 1 : size(tbl.Data, 1)
+                if ischar(this.coo_tbl.Data{i,1})
+                    name_start = find(this.coo_tbl.Data{i,1} == '>', 1, 'last');
+                    name_start = iif(isempty(name_start), 1, name_start + 1);
+                    name = this.coo_tbl.Data{i,1}(name_start : end);
+                else
+                    name = 'NAME';
+                end
+                this.coo_tbl.Data{i,1} = ['<html><tr><td width=9999 align=center style="color: #6666FF; font-weight: bold">' name];
+            end
+        end
+
+        function rin2Crd(this, caller, event)
+            % Add a new row to the CRD table            
+            rec_path = Core.getState.getRecPath();
+            data = this.coo_tbl.Data;            
+            for r = 1 : numel(rec_path)
+                fr = File_Rinex(rec_path{r}, 100);
+                if fr.isValid()
+                    name = fr.marker_name{1};
+                    xyz = median(fr.coo.getXYZ,1,'omitnan');
+                    time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
+                    time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');
+        
+                    if ~isempty(xyz)
+                        if ~isempty(data)
+                            data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0}];
+                        else
+                            data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0};
+                        end
+                    end
+                end
+            end
+            this.coo_tbl.Data = data;
+            
+            % Import info from Rinex
+        end
+        
+        function showCrdMap(this, caller, event)
+            f = figure;
+            maximizeFig(f);            
+            data = this.coo_tbl.Data;
+            
+            % get marker names:
+            name = {};
+            for i = 1 : size(data, 1)
+                if ischar(data{i,1})
+                    name_start = find(data{i,1} == '>', 1, 'last');
+                    name_start = iif(isempty(name_start), 1, name_start + 1);
+                    name{i} = data{i,1}(name_start : end);
+                else
+                    name{i} = 'NAME';
+                end                
+            end
+
+            % get Location
+            [lat, lon] = cart2geod([[data{:,2}]' [data{:,3}]' [data{:,4}]']);
+            
+            % Plot
+            for r = 1 : size(data, 1)
+                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, size(data, 1))); hold on;
+            end
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 5);
+            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
+            
+            if size(data, 1) == 1
+                lon_lim = minMax(lon/pi*180);
+                lat_lim = minMax(lat/pi*180);
+                lon_lim(1) = lon_lim(1) - 0.1;
+                lon_lim(2) = lon_lim(2) + 0.1;
+                lat_lim(1) = lat_lim(1) - 0.1;
+                lat_lim(2) = lat_lim(2) + 0.1;
+            else
+                lon_lim = xlim();
+                lon_lim(1) = lon_lim(1) - diff(lon_lim)/3;
+                lon_lim(2) = lon_lim(2) + diff(lon_lim)/3;
+                lat_lim = ylim();
+                lat_lim(1) = lat_lim(1) - diff(lat_lim)/3;
+                lat_lim(2) = lat_lim(2) + diff(lat_lim)/3;
+            end
+            
+            xlim(lon_lim);
+            ylim(lat_lim);
+            
+            for r = 1 : size(data, 1)
+                t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name{r} ' '], ...
+                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+                t.Units = 'pixels';
+                t.Position(1) = t.Position(1) + 20 + 10 * double(size(data, 1) == 1);
+                t.Units = 'data';
+            end
+            
+            plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+            title('Receiver position');
+            xlabel('Longitude [deg]');
+            ylabel('Latitude [deg]');
+        end
+        
+        function addCrdRow(this, caller, event)
+            % Add a new row to the CRD table
+            this.coo_tbl.Data = [this.coo_tbl.Data; {'NAME', 0, 0, 0, Core_Reference_Frame.FLAG_STRING{1}, GPS_Time(0).toString('yyyy-mm-dd HH:MM:SS'), GPS_Time(datenum('2099/12/31')).toString('yyyy-mm-dd HH:MM:SS'), 0, 0, 0}];
+        end
+        
+        function delCrdRow(this, caller, event)
+            % Add a new row to the CRD table            
+            j_scroll_table = findjobj(this.coo_tbl);
+            j_ui_table =  j_scroll_table.getViewport.getView;
+            this.coo_tbl.Data(j_ui_table.getSelectedRows + 1, :) = [];
+        end 
         
         function updateCooTable(this)
             % Update the table of coordinates (CRD file interface)
@@ -908,9 +1086,6 @@ end
                 rf.init();
             end
             this.coo_tbl.Data = rf.getEntryCell();
-            for i = 1 : size(this.coo_tbl.Data, 1)
-                this.coo_tbl.Data{i,1} = ['<html><tr><td width=9999 align=center style="color: #6666FF; font-weight: bold">' this.coo_tbl.Data{i,1}];
-            end
             this.coo_tbl.RowName = {};
         end
         
