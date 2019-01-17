@@ -1689,16 +1689,20 @@ classdef LS_Manipulator < handle
                     % Get ambiguity array
                     
                     xe = x(idx_est);
+                    % get some information about the ambiguty (receiver,
+                    % satellite, and number of epoch used in the
+                    % compesation)
                     amb = xe(idx_amb_par, 1);
                     amb_rec = x_rec(idx_est);
                     amb_rec = amb_rec(idx_amb_par);
                     n_ep_amb = zeros(size(amb));
+                    amb_sat = zeros(size(amb));
                     idx_amb_par_tot = find(idx_est); idx_amb_par_tot = idx_amb_par_tot(idx_amb_par);% <- amb indices in the A matrix
                     for i = 1 : n_amb
-                        idx = this.A_idx(:,4)== idx_amb_par_tot(i);
+                        idx = this.A_idx(:,this.param_class == this.PAR_AMB)== idx_amb_par_tot(i);
                         n_ep_amb(i) = sum(idx);
-                        
-                        
+                        idx_first = find(idx,1,'first');
+                        amb_sat(i) = this.sat(idx_first);
                     end
                     
                     % Getting tht VCV matrix for the ambiguities
@@ -1711,19 +1715,27 @@ classdef LS_Manipulator < handle
                     C_amb_amb = C_amb_amb(idx_t_amb_par, :);
                     C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
                     Cxx = C_amb_amb;
-                    %                     if ~isempty(this.wl_amb)
-                    %                         % estimate narrowlanes phase delays and remove them
-                    %                         % from abiguity vector and from observations
-                    %                         for r = 1 : n_rec
-                    %                             id_amb_r = amb_rec == r;
-                    %                             if sum(id_amb_r) > 0
-                    %                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
-                    %                                 weigth = weigth./sum(weigth);
-                    %                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-                    %                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
-                    %                             end
-                    %                         end
-                    %                     end
+                    present_sat = unique(this.sat);
+                    a_id = this.cc.getAntennaId(1:max(present_sat)); % sat in network are equals to go_id
+                    s2syc_c = a_id(:,1);
+                    sys_c = unique(s2syc_c);
+
+                    if ~isempty(this.wl_amb) && (n_rec > 2 || numel(sys_c > 1));
+                        % estimate narrowlanes phase delays and remove them
+                        % from abiguity vector and from observations
+                        for r = 2 : n_rec
+                            for j = 1:numel(sys_c)
+                                s = sys_c(j);
+                            id_amb_r = amb_rec == r & s2syc_c(amb_sat) == sys_c(j);
+                            if sum(id_amb_r) > 0
+                                weigth = min(n_ep_amb(id_amb_r),100)./100;
+                                weigth = weigth./sum(weigth);
+                                [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+                                amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+                            end
+                            end
+                        end
+                    end
                     
                     
                     % ILS shrinking, method 1

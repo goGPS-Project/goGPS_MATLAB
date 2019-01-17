@@ -594,7 +594,7 @@ classdef Network < handle
                 0  1 -1;];
             wide_laneM{2} = [ 1 -1 0; %% GLONASS
                 0  1 -1;];
-            wide_laneM{3} = [ 1 -1  0  0 0; %% GALILEO
+            wide_laneM{3} = [ 1 0  -1  0 0; %% GALILEO
                 0  1 0  0 -1;
                 0  1  -1 0 0;
                 0  0  1 -1 0; ] ;
