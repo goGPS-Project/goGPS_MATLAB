@@ -989,7 +989,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 t.Units = 'data';
             end
             
-            %plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+            plot_google_map('alpha', 0.95, 'MapType', 'satellite');
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
