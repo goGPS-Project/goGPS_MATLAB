@@ -1491,22 +1491,36 @@ classdef LS_Manipulator < handle
                             
                             
                             idx_clock_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_REC_CLK);
-                            if isempty(intersect(idx_rm,idx_clock_rec))  % chekc i clck has been removed for the receiver in that ambiguity set
-                                idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
-                                %if isempty(intersect(idx_amb_rm,idx_amb_rec))
-                                    %if
-                                    %                                     g = 1;
-                                    %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
-                                    %                             g = g +1;
-                                    %                         end
-                                    idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
-                                    if ~isempty(idx_amb_rec)
-                                        
-                                        idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
-                                    end
-                                    idx_amb_rm = [idx_amb_rm; idx_amb_rec];
-                                %end
+                            %if isempty(intersect(idx_rm,idx_clock_rec))  % chekc i clck has been removed for the receiver in that ambiguity set
+                            idx_space = this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2;
+                            idx_amb_rec = this.A_idx(idx_space, this.param_class == this.PAR_AMB);
+                            if sum(this.param_class == this.PAR_ISB) > 0
+                                 idx_isb = this.A_idx(idx_space, this.param_class == this.PAR_ISB) - double(this.A_ep(idx_space, this.param_class == this.PAR_ISB) == 0); % very not nice trick to have also a differnt index when the value is 0
                             end
+                            %if isempty(intersect(idx_amb_rm,idx_amb_rec))
+                            %if
+                            %                                     g = 1;
+                            %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+                            %                             g = g +1;
+                            %                         end
+                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                            if ~isempty(idx_amb_rec)
+                                
+                                
+                                 if sum(this.param_class == this.PAR_ISB) > 0
+                                     idx_amb_rect = idx_amb_rec;
+                                     idx_amb_rec = [];
+                                     u_idx_isb = unique(idx_isb)';
+                                     for uii = u_idx_isb
+                                         idx_amb_rec = [idx_amb_rec; mode(idx_amb_rect(idx_isb == uii))];
+                                     end
+                                 else
+                                     idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
+                                 end
+                            end
+                            idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                            %end
+                            %end
                         end
                     end
                 end
@@ -1720,22 +1734,22 @@ classdef LS_Manipulator < handle
                     s2syc_c = a_id(:,1);
                     sys_c = unique(s2syc_c);
 
-                    if ~isempty(this.wl_amb) && (n_rec > 2 || numel(sys_c > 1));
-                        % estimate narrowlanes phase delays and remove them
-                        % from abiguity vector and from observations
-                        for r = 2 : n_rec
-                            for j = 1:numel(sys_c)
-                                s = sys_c(j);
-                            id_amb_r = amb_rec == r & s2syc_c(amb_sat) == sys_c(j);
-                            if sum(id_amb_r) > 0
-                                weigth = min(n_ep_amb(id_amb_r),100)./100;
-                                weigth = weigth./sum(weigth);
-                                [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-                                amb(id_amb_r) = amb(id_amb_r) - frac_bias;
-                            end
-                            end
-                        end
-                    end
+%                     if ~isempty(this.wl_amb) && (n_rec > 2 || numel(sys_c > 1));
+%                         % estimate narrowlanes phase delays and remove them
+%                         % from abiguity vector and from observations
+%                         for r = 2 : n_rec
+%                             for j = 1:numel(sys_c)
+%                                 s = sys_c(j);
+%                             id_amb_r = amb_rec == r & s2syc_c(amb_sat) == sys_c(j);
+%                             if sum(id_amb_r) > 0
+%                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
+%                                 weigth = weigth./sum(weigth);
+%                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
+%                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
+%                             end
+%                             end
+%                         end
+%                     end
                     
                     
                     % ILS shrinking, method 1
