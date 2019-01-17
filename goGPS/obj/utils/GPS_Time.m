@@ -1721,10 +1721,26 @@ classdef GPS_Time < Exportable & handle
             % construct GPS_Time from current time
             %
             % SYNTAX
-            %   this = now()
+            %   this = GPS_Time.now()
             mat_time = now();
             mat_time = mat_time + java.util.Date().getTimezoneOffset/(60*24);
             this = GPS_Time(mat_time, true);
+        end
+                
+        function this = fromString(str_gps_time, is_gps)
+            % construct gpstime from time as string
+            % date separated by spaces yyyy mm dd HH MM SS.SSSSS
+            %
+            % SYNTAX
+            %  this = GPS_Time.fromString(gps_time)
+            if nargin == 1
+                is_gps = true;
+            end
+            if isempty(str_gps_time)
+                this = GPS_Time();
+            else
+                this = GPS_Time(str_gps_time, [], is_gps);
+            end
         end
         
         function this = fromWeekDow(week, dow)
@@ -1733,7 +1749,7 @@ classdef GPS_Time < Exportable & handle
             % repository
             %
             % SYNTAX
-            %   this = fromWeekDow(week, dow)
+            %   this = GPS_Time.fromWeekDow(week, dow)
             this = GPS_Time(week, dow, true, 3);
         end
         
@@ -1741,7 +1757,7 @@ classdef GPS_Time < Exportable & handle
             % construct gpstime from gps time (in seconds)
             %
             % SYNTAX
-            %  this = fromGpsTime(gps_time)
+            %  this = GPS_Time.fromGpsTime(gps_time)
             this = GPS_Time(GPS_Time.GPS_ZERO, gps_time, true, 2);
         end
         
@@ -1750,7 +1766,7 @@ classdef GPS_Time < Exportable & handle
             %[date, ~, ~] = GPS_Time.gps2date(week, sow);
             %
             % SYNTAX
-            %   this = fromWeekSow(week, sow)
+            %   this = GPS_Time.fromWeekSow(week, sow)
             this = GPS_Time.fromWeekDow(week, (dow) / 86400);
         end
         
@@ -1758,7 +1774,7 @@ classdef GPS_Time < Exportable & handle
             % construct from year doy ad second of day
             %
             % SYNTAX
-            %   this = fromDoySod(year, doy, sod)
+            %   this = GPS_Time.fromDoySod(year, doy, sod)
             unix_s = uint32((datenum(year , 1, doy)  - datenum(1970,1,1))*86400) + uint32(floor(sod));
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
@@ -1768,7 +1784,7 @@ classdef GPS_Time < Exportable & handle
             % construct from MJD vector
             %
             % SYNTAX
-            %   this = fromMJD(mjd_vector)
+            %   this = GPS_Time.fromMJD(mjd_vector)
             jday = mjd+2400000.5;
             deltat = jday - 2444244.5;
             week = floor(deltat/7);
