@@ -318,6 +318,20 @@ classdef Coordinates < Exportable & handle
             this.setPosXYZ(xyz);
         end
         
+        function this = fromStringXYZ(xyz_string)
+            % Set the Coordinates from XYZ coordinates (String)
+            %
+            % SYNTAX
+            %   this = Coordinates.fromStringXYZ(xyz)
+            
+            this = Coordinates;
+            xyz = sscanf(xyz_string, '%f%f%f')';
+            if numel(xyz) ~= 3
+                xyz = [0 0 0];
+            end            
+            this.setPosXYZ(xyz);
+        end
+        
         function this = fromGeodetic(lat, lon, h_ellips, h_ortho)
             % Set the Coordinates from Geodetic coordinates
             %
