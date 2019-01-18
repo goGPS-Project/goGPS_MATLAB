@@ -111,7 +111,7 @@ classdef Core_Reference_Frame < handle
                     %initilaize array
                     n_sta = size(lim,1);
                     
-                    this.station_code=char(' '*ones(n_sta,4));
+                    this.station_code = {};
                     this.xyz = zeros(n_sta,3);
                     this.vxvyvz = zeros(n_sta,3);
                     this.flag = zeros(n_sta,1);
@@ -122,7 +122,7 @@ classdef Core_Reference_Frame < handle
                         line = txt(lim(i,1):lim(i,2));
                         parts = strsplit(line);
                         l = length(parts);
-                        this.station_code(i,:) = parts{1};
+                        this.station_code(i) = parts(1);
                         this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
                         if l > 4
                             this.flag(i) = str2double(parts{5});
@@ -160,7 +160,7 @@ classdef Core_Reference_Frame < handle
             this.is_valid = false;
             this.xyz = [];
             this.vxvyvz = [];
-            this.station_code = [];
+            this.station_code = {};
             this.flag = [];
             this.start_validity_epoch = [];
             this.end_validity_epoch = [];
@@ -185,7 +185,7 @@ classdef Core_Reference_Frame < handle
             if this.isValid()
                 
                 if ~isempty(this.station_code) && length(sta_name) == 4
-                    idx_sta = strLineMatch(lower(this.station_code), lower(sta_name));
+                    idx_sta = find(strcmpi(this.station_code, sta_name));
                     if sum(idx_sta) > 0
                         st_validity_time = this.start_validity_epoch.getSubSet(idx_sta).getGpsTime();
                         end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
@@ -217,9 +217,9 @@ classdef Core_Reference_Frame < handle
             
             crx_list = {};
             if this.isValid()
-                crx_list = cell(size(this.station_code, 1), 7);
-                for i = 1 : size(this.station_code, 1)
-                    crx_list{i, 1} = this.station_code(i, :);
+                crx_list = cell(numel(this.station_code), 7);
+                for i = 1 : numel(this.station_code)
+                    crx_list{i, 1} = this.station_code{i};
                     crx_list{i, 2} = this.xyz(i, 1);
                     crx_list{i, 3} = this.xyz(i, 2);
                     crx_list{i, 4} = this.xyz(i, 3);
@@ -249,7 +249,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.isFixed(sta_code)
             status = false;
             if size(this.station_code) > 0
-                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
+                sta_idx = find(strcmpi(this.station_code, sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2;
                 end
@@ -263,8 +263,8 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [status] = this.hasAPriori(sta_code)
             status = false;
-            if size(this.station_code) > 0
-                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
+            if numel(this.station_code) > 0
+                sta_idx = find(strcmpi(this.station_code, sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1  || this.flag(sta_idx) == 3;
                 end
@@ -278,8 +278,8 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             %  [status] = this.hasAPriori(sta_code)
             status = false;
-            if size(this.station_code) > 0
-                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
+            if numel(this.station_code) > 0
+                sta_idx = find(strcmpi(this.station_code, sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 3 || this.flag(sta_idx) == 2;
                 end
@@ -291,7 +291,7 @@ classdef Core_Reference_Frame < handle
             %
             % SYNTAX:
             %  this.setFlag(sta_code,flag)
-            sta_idx  = strLineMatch(this.station_code, sta_code);
+            sta_idx = find(strcmpi(this.station_code, sta_code));
             if sum(sta_idx) > 0
                 this.flag(sta_idx) = flag;
             end
@@ -314,7 +314,9 @@ classdef Core_Reference_Frame < handle
                     name{i} = 'NAME';
                 end                
             end
-
+            
+            this.station_code = name;
+            
             % get location
             this.xyz = [[data{:,2}]' [data{:,3}]' [data{:,4}]'];
             
@@ -331,6 +333,41 @@ classdef Core_Reference_Frame < handle
             flag = []; for i = 1 : size(data, 1); flag(i) = iif(isempty(data{i,5}), 0, str2double(data{i,5}(1))); end
             this.flag = flag;
             this.is_valid = 1;
+        end
+        
+        function str = toCrdString(this)
+            % Create the string to Export the object
+            %
+            % SYNTAX:
+            %  str = this.toCrdString()
+            str = sprintf('#goGPS Coordinate file\n');
+            str = sprintf('%s#This file contains position and velocity for multiple stations\n', str);
+            str = sprintf('%s#F = FLAG: %s\n', str, sprintf('%s    ', Core_Reference_Frame.FLAG_STRING{:}));
+            str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
+            str = sprintf('%s#STA       X [m]          Y [m]          Z [m]    F   dx [m/y]   dy [m/y]   dz [m/y]   date validity start    date validity stop\n', str);
+            str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
+            for i = 1 : size(this.xyz, 1)                
+                str = sprintf('%s%s %+14.5f %+14.5f %+14.5f %1d %+10.5f %+10.5f %+10.5f %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3), this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
+            end
+        end
+        
+        function export(this, file_path)
+            % Export the object in a CRD file
+            %
+            % SYNTAX:
+            %  this.export(file_name)    
+            
+            [path, ~] = fileparts(file_path);
+            if ~(exist(path, 'file') == 7)
+                mkdir(path);
+            end
+            fid = fopen(file_path, 'w');
+            if fid > 0
+                fwrite(fid, this.toCrdString, 'char');
+                fclose(fid);
+            else
+                Core.getLogger.addError(sprintf('"%s" cannot be saved', file_path));
+            end
         end
     end
     

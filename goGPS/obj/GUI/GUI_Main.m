@@ -134,6 +134,9 @@ end
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 close(this.w_main);
             end
+            % Close the old goGPS windows
+            old_win = findobj('UserData', 'goGPSwin');
+            close(old_win);
             
             t0 = tic();
             this.ok_go = false;
@@ -150,6 +153,8 @@ end
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
+                'UserData', 'goGPSwin', ...
+                'Renderer', 'opengl', ...
                 'Position', [0 0 1010, 610]);
             
             this.w_main = win;            
@@ -235,9 +240,9 @@ end
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Coordinates', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
             else
-                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Coordinates', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
             end
             
             % Botton Panel ---------------------------------------------------------------------------------------------
@@ -908,7 +913,7 @@ end
                 'TooltipString', 'Remove row/s with selected cells', ...
                 'Callback', @this.delCrdRow); %#ok<NASGU>
 
-            del_row_but = uicontrol( 'Parent', but_box, ...
+            importFromRin = uicontrol( 'Parent', but_box, ...
                 'String', 'Import from RINEX', ...
                 'TooltipString', 'Import from RINEX', ...
                 'Callback', @this.rin2Crd); %#ok<NASGU>
@@ -959,9 +964,53 @@ end
         end
         
         function saveCrd(this, tbl, src, event)
-            % Add a new row to the CRD table
+            % Save CRD
             rf = this.crd2RefFrame();
-            %rf.export(this.state.getCrdFile);
+            rf.export(this.state.getCrdFile);
+        end
+        
+        function saveAsCrd(this, tbl, src, event)
+            % Save CRD as ...
+            
+            crd_dir = this.state.getCrdDir();
+            
+            [file_name, path_name] = uiputfile('*.crd','Save your crd', crd_dir);
+            
+            if path_name == 0 %if the user pressed cancelled, then we exit this callback
+                return
+            end
+            
+            % build the path name of the save location
+            crd_path = fullfile(path_name,file_name);
+            try
+                rf = this.crd2RefFrame();
+                this.state.setCrdFile(crd_path);
+                obj = findobj('UserData', 'crd_name'); obj.String = file_name;
+                obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
+                rf.export(crd_path);
+                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
+            catch ex
+                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+            end
+        end
+        
+        function saveAsDefaultCrd(this, tbl, src, event)
+            % Save CRD in the default location
+                        
+            path_name = fullfile(this.state.getHomeDir, 'station', 'CRD');
+            file_name = 'stations.crd';
+            % build the path name of the save location
+            crd_path = fullfile(path_name, file_name);
+            try
+                rf = this.crd2RefFrame();
+                this.state.setCrdFile(crd_path);
+                obj = findobj('UserData', 'crd_name'); obj.String = file_name;
+                obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
+                rf.export(crd_path);
+                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
+            catch ex
+                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+            end
         end
         
         function dataCrdChange(this, tbl, src, event)
@@ -999,9 +1048,7 @@ end
                     end
                 end
             end
-            this.coo_tbl.Data = data;
-            
-            % Import info from Rinex
+            this.coo_tbl.Data = data;            
         end
         
         function showCrdMap(this, caller, event)
