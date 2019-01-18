@@ -2166,10 +2166,9 @@ end
         end
         
         function go(this, caller, event)
+            this.crd2RefFrame
             this.log.addMarkedMessage('Starting computation!');
             
-%             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-%             this.state.import(Ini_Manager(txt{1}));
             this.state.save(Main_Settings.LAST_SETTINGS);
             close(this.w_main);
             this.ok_go = true;
