@@ -2730,6 +2730,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
         end
 
+        function out = getCrdDir(this)
+            % Get the dir containing the stations coordinates file
+            %
+            % SYNTAX
+            %   file_dir = this.getCrdDir()
+            out =  File_Name_Processor.getFullDirPath(this.crd_dir, this.getHomeDir);
+        end
+        
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             %
