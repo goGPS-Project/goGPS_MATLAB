@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -1691,7 +1691,7 @@ classdef GNSS_Station < handle
             subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [Â°C]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [°C]'); h.FontWeight = 'bold';
 
             subplot(3,1,3);
             plot(p_time.getMatlabTime, humidity*100,'.');

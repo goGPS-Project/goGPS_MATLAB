@@ -21,7 +21,7 @@ function [datee, num_sat, sat, sat_types] = RINEX_get_epoch_old(fid)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

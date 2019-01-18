@@ -5,7 +5,7 @@ function [diff_L4, diff_P4, commontime, stations_idx, L1_series, L2_series, L4_s
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

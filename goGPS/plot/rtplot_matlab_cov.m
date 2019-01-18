@@ -25,7 +25,7 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

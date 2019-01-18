@@ -26,7 +26,7 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

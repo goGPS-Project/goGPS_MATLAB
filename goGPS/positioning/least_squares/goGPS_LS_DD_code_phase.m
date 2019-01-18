@@ -31,7 +31,7 @@ function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, 
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 1
+%    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
