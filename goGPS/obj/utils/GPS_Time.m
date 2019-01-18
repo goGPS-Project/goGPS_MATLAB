@@ -1270,6 +1270,8 @@ classdef GPS_Time < Exportable & handle
         
         function date_string = toString(this, date_format)
             % Convert a date to string format
+            % Date format support also decimals 
+            %   e.g. date_format = 'HH:MM:SS.ssss'
             %
             % SYNTAX
             %   date_string = toString(this, date_format)
@@ -1277,9 +1279,14 @@ classdef GPS_Time < Exportable & handle
                 date_string = '';
             else
                 if (nargin == 2)
+                    date_format(date_format == 's') = 'A';
                     time = this.getMatlabTime();
                     time(isnan(time)) = 0;
-                    date_string = datestr(time, date_format);
+                    if any(date_format == 'A')
+                        date_string = datestr(floor(time*86400)/86400, date_format);
+                    else
+                        date_string = datestr(time, date_format);
+                    end
                 else
                     time = round(this.getMatlabTime() * 86400 * 1e7) / 1e7 / 86400;
                     time(isnan(time)) = 0;
@@ -1289,6 +1296,18 @@ classdef GPS_Time < Exportable & handle
                     date_6col(:,6) = round(date_6col(:,6)) + mod(fraction_of_seconds, 1);
                     date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%010.7f', date_6col')',27,numel(time))';
                 end
+                
+                if (nargin == 2) && any(date_format == 'A') && (size(date_string,1) > 0)
+                    % I have a fractional par
+                    [~, fraction_of_seconds] = this.getUnixTime();
+                    fraction_of_seconds = round(fraction_of_seconds * 1e7) / 1e7;
+                    
+                    id = find(date_string(1, :) == 'A');
+                    date_string = date_string';
+                    date_string(id,:) = reshape(sprintf(['%0' num2str(numel(id)) 'd'], round(mod(fraction_of_seconds, 1) * 10^(numel(id)))), numel(id), size(date_string,2));
+                    date_string = date_string';
+                end
+                
                 if (nargin == 1)
                     if this.isGPS()
                         date_string = [char(date_string(:,:)) char(repmat(' GPS',size(date_string,1),1))];
