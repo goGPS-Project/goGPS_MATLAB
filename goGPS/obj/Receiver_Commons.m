@@ -1052,7 +1052,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showResiduals(sta_list)            
+        function showRes(sta_list)            
             % In a future I could use multiple tabs for each constellation
             for r = numel(sta_list)
                 work = sta_list(r);

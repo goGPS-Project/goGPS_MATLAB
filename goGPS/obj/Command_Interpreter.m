@@ -1311,7 +1311,7 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
                                 trg.showOutliersAndCycleSlip_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
-                                trg.showResiduals();
+                                trg.showRes();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
                                 trg.showResSky_c();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))

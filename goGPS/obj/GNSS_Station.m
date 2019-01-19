@@ -1602,20 +1602,41 @@ classdef GNSS_Station < handle
                 end
             end
         end
-                
-        function showResiduals(sta_list)
+        
+        function showResPerSat(sta_list)
             % Plot Satellite Residuals
-            %
+            % As scatter per satellite
+            % (work data only)
+            %   
             % SYNTAX
-            %   sta_list.showResiduals
+            %   sta_list.showResPerSat()
             
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(r);
                 if ~isempty(rec)
                     if ~rec.out.isEmpty
-                        rec.out.showResiduals();
+                        rec.log.addWarning('This show function works only on the work data stored within GNSS_Station')
+                        rec.work.showResPerSat();
                     else
-                        rec.work.showResiduals();
+                        rec.work.showResPerSat();
+                    end
+                end
+            end
+        end
+        
+        function showRes(sta_list)
+            % Plot Satellite Residuals
+            %
+            % SYNTAX
+            %   sta_list.showRes()
+            
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(r);
+                if ~isempty(rec)
+                    if ~rec.out.isEmpty
+                        rec.out.showRes();
+                    else
+                        rec.work.showRes();
                     end
                 end
             end
@@ -1625,7 +1646,7 @@ classdef GNSS_Station < handle
             % Plot Satellite Residuals as a map
             %
             % SYNTAX
-            %   sta_list.showResiduals
+            %   sta_list.showResMap(step)
             if nargin == 1
                 step = 0.5;
             end
@@ -1691,7 +1712,7 @@ classdef GNSS_Station < handle
             subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [°C]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
 
             subplot(3,1,3);
             plot(p_time.getMatlabTime, humidity*100,'.');
