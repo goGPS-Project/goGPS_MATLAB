@@ -2333,6 +2333,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             to_keep_ep = this.time > t_start & this.time < t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
+            ljmp = ([true; diff(this.time.getRefTime) > 1e-7]); % find when epochs change (if the distance between two consecutive epochs is < 1e-7 consider them as duplicate epochs)
+            tid = cumsum(ljmp); % time id -> in presence of duplicate epochs tid doesn't change
+            this.time.remEpoch(~ljmp); % remove duplicate epochs
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 nominal_ss = this.time.getNominalTime(rate, true);
@@ -2348,12 +2351,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(t_line)
                 this.rate = this.time.getRate();
                 n_epo = numel(t_line);
+                n_true_epo = tid(end);
                 
                 % get number of observations per epoch
                 this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, n_epo, 1))', '%d');
+                
+                % find data lines
                 d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
                 
-                all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
+                %all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
                 
                 % find the data present into the file
                 gps_line = d_line(txt(lim(d_line,1)) == 'G');
@@ -2403,7 +2409,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 n_ss = numel(sys_c); % number of satellite system
                 
                 % init datasets
-                obs = zeros(n_obs, n_epo);
+                obs = zeros(n_obs, n_true_epo);
                 
                 this.obs_code = [];
                 this.prn = [];
@@ -2424,7 +2430,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     
                     prn_ss = repmat(prn.(sys)', n_code, 1);
-                    % discarding staellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
+                    % discarding satellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
                     this.prn = [this.prn; prn_ss];
                     this.obs_code = [this.obs_code; obs_code];
                     this.n_sat = this.n_sat + n_sat;
@@ -2470,13 +2476,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                             % try with sscanf
                             line = line(data_pos(1 : numel(line)));
                             data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                            obs(obs_line(1:size(data,1)), e) = data;
+                            obs(obs_line(1:size(data,1)), tid(e)) = data;
                         end
                         % alternative approach with textscan
                         %data = textscan(line, '%14.3f%1d%1d');
                         %obs(obs_line(1:numel(data{1})), e) = data{1};
                     end
                     this.w_bar.go(e);
+                end
+                
+                if n_epo > n_true_epo
+                    % in case of duplicate epochs cumulate the observations
+                    tmp = zeros(n_true_epo, 1);
+                    for i = 1 : n_epo
+                        tmp(tid(i)) = tmp(tid(i)) + this.n_spe(i);
+                    end
+                    this.n_spe = tmp;
                 end
             else
                 % init datasets
@@ -7891,7 +7906,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                                 rate = time.getRate();
                                 
-                                ls.setTimeRegularization(ls.PAR_CLK, (this.state.std_clock)^2 / 3600 * rate); % really small regularization
+                                ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600 * rate); % really small regularization
                                 ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                                 if this.state.flag_tropo_gradient
                                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
@@ -8727,14 +8742,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function showResidualsPerSat(this, res, sys_c_list)
+        function showResPerSat(this, res, sys_c_list)
             % Plot the residuals of phase per Satellite
             % 
             % INPUT
             %   res     is the matrix of residuals and can be passed from e.g. NET
             %
             % SYNTAX 
-            %   this.showResidualsPerSat(res)
+            %   this.showResPerSat(res)
             
             if nargin < 3
                 sys_c_list = unique(this.system);
@@ -8764,15 +8779,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
                 
                 for prn = this.cc.prn(this.cc.system == sys_c)'
-                    s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
+                    go_id = this.getGoId(sys_c, prn);
+                    s = find(unique(this.go_id(this.obs_code(:,1) == 'L')) == go_id);
                     if any(s)
-                        id_ok = find(~isnan(zero2nan(res(:, s))));
-                        [~, id_sort] = sort(abs(res(id_ok, s)));
-                        scatter(id_ok(id_sort),  prn * ones(size(id_ok)), 50, res(id_ok(id_sort), s), 'filled');
+                        id_ok = find(~isnan(zero2nan(res(:, go_id))));
+                        [~, id_sort] = sort(abs(res(id_ok, go_id)));
+                        scatter(id_ok(id_sort),  prn * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), go_id)), 'filled');
                         hold on
                     end
                 end
-                colormap(gat); colorbar; ax = gca; ax.Color = [0.7 0.7 0.7];
+                cax = caxis(); caxis([-1 1] * max(abs(cax)));
+                colormap(gat);
+                if min(abs(cax)) > 5
+                    setColorMapGat(caxis(), 0.99, [-5 5])
+                end
+                colorbar; ax = gca; ax.Color = [0.7 0.7 0.7];
                 prn_ss = unique(this.prn(this.system == sys_c));
                 xlim([1 size(this.obs,2)]);
                 ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
@@ -8780,7 +8801,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s Residuals per sat [mm]', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
         end
         
