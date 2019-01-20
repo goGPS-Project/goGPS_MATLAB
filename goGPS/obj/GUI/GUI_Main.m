@@ -1035,6 +1035,7 @@ end
                 fr = File_Rinex(rec_path{r}, 100);
                 if fr.isValid()
                     name = fr.marker_name{1};
+                    name = name(1:min(4, numel(name)));
                     xyz = median(fr.coo.getXYZ,1,'omitnan');
                     time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
                     time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');

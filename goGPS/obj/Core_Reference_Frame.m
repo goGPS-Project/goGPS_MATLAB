@@ -309,7 +309,7 @@ classdef Core_Reference_Frame < handle
                 if ischar(data{i,1})
                     name_start = find(data{i,1} == '>', 1, 'last');
                     name_start = iif(isempty(name_start), 1, name_start + 1);
-                    name{i} = data{i,1}(name_start : end);
+                    name{i} = data{i,1}(name_start : min(name_start+4, numel(data{i,1}))) ;
                 else
                     name{i} = 'NAME';
                 end                
@@ -347,7 +347,7 @@ classdef Core_Reference_Frame < handle
             str = sprintf('%s#STA       X [m]          Y [m]          Z [m]    F   dx [m/y]   dy [m/y]   dz [m/y]   date validity start    date validity stop\n', str);
             str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
             for i = 1 : size(this.xyz, 1)                
-                str = sprintf('%s%s %+14.5f %+14.5f %+14.5f %1d %+10.5f %+10.5f %+10.5f %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3), this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
+                str = sprintf('%s%4s %+14.5f %+14.5f %+14.5f %1d %+10.5f %+10.5f %+10.5f %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3), this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
             end
         end
         
