@@ -1712,7 +1712,7 @@ classdef GNSS_Station < handle
             subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature,'.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
 
             subplot(3,1,3);
             plot(p_time.getMatlabTime, humidity*100,'.');
@@ -2084,7 +2084,7 @@ classdef GNSS_Station < handle
                         else
                             h = ylabel('East [m]'); h.FontWeight = 'bold';
                         end
-                        grid on;
+                        grid minor;
                         h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         
                         if ~one_plot, subplot(3,1,2); end
@@ -2100,7 +2100,7 @@ classdef GNSS_Station < handle
                             h = ylabel('North [m]'); h.FontWeight = 'bold';
                         end
                         
-                        grid on;
+                        grid minor;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca();
@@ -2114,7 +2114,7 @@ classdef GNSS_Station < handle
                             h = ylabel('Up [m]'); h.FontWeight = 'bold';
                         end
                         
-                        grid on;
+                        grid minor;
                         if one_plot
                             if plot_relative_variation
                                 h = ylabel('ENU [mm]'); h.FontWeight = 'bold';
