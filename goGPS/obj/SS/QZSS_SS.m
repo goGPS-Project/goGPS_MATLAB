@@ -67,8 +67,8 @@ classdef QZSS_SS < Satellite_System
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ QZSS_SS.F_VEC;
 
-        N_SAT = 4;           % Maximum number of satellite in the constellation
-        PRN = (1 : 4)';  % Satellites id numbers as defined in the constellation
+        N_SAT = 9;           % Maximum number of satellite in the constellation
+        PRN = (1 : 9)';      % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'ZXLSC ' 'XLS ', 'XIQ ', 'XLS '}; % last letter of the observation code
