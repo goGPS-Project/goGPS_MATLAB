@@ -585,7 +585,7 @@ classdef Receiver_Output < Receiver_Commons
                         else
                             is_empty_coo = false;
                         end
-                        for i = 1:length(rec_work.add_coo)
+                        for i = 1 : length(rec_work.add_coo)
                             if is_empty_coo
                                 this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
                                 this.add_coo(i).rate = rec_work.add_coo(i).rate;
@@ -739,6 +739,84 @@ classdef Receiver_Output < Receiver_Commons
                 linkaxes(ax, 'x');    
             else
                 rec(1).log.addMessage('Plotting a single point is not supported');
+            end
+        end
+        
+        function f = showResPerSat(this, res, sys_c_list)
+            % Plot the residuals of phase per Satellite
+            % 
+            % INPUT
+            %   res     is the matrix of residuals and can be passed from e.g. NET
+            %
+            % SYNTAX 
+            %   this.showResPerSat(res)
+            
+            if nargin < 3
+                sys_c_list = this.cc.getAvailableSys;
+            end
+            if nargin < 2
+                res = this.sat.res;
+            end
+           
+            ss_ok = intersect(this.cc.sys_c, sys_c_list);
+            for sys_c = sys_c_list
+                f = figure; f.Name = sprintf('%03d: Res per sat', f.Number); f.NumberTitle = 'off';
+                ss_id = find(this.cc.sys_c == sys_c);
+                switch numel(ss_ok)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                
+                fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
+                color = gat(256, [], false);
+                ax2 = subplot(1, 6, 5:6);
+                ax1 = subplot(1, 6, 1:4);
+                ss_id = find(this.cc.system == sys_c);
+                for s = ss_id
+                    id_ok = find(~isnan(zero2nan(res(:, s))));
+                    [~, id_sort] = sort(abs(res(id_ok, s)));
+                    scatter(ax1, id_ok(id_sort),  this.cc.prn(s) * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), s)), 'filled');
+                    hold(ax1, 'on');
+                    err = std(zero2nan(this.sat.res(:,s)), 'omitnan')*1e3;
+                    errorbar(ax2, mean(zero2nan(this.sat.res(:,s)), 'omitnan').*1e3, this.cc.prn(s), err, '.', 'horizontal', 'MarkerSize', 25, 'LineWidth', 2)%, 'Color', color(fun(err), :));
+                    hold(ax2, 'on');
+                end
+                cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
+                colormap(ax1, gat);
+                if min(abs(cax)) > 5
+                    setColorMapGat(caxis(ax1), 0.99, [-5 5])
+                end
+                colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
+                prn_ss = unique(this.cc.prn(this.cc.system == sys_c));
+                xlim(ax1, [1 size(this.sat.res,1)]);
+                ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
+                ax1.YTick = prn_ss;
+                grid(ax1, 'on');
+                h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
+                h = title(ax1, sprintf('%s %s Residuals per sat [mm]', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                
+                ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(this.sat.res(:,:)), 'omitnan'))) * 1e3, ...
+                                        max(std(zero2nan(this.sat.res(:,:)), 'omitnan')) * 1e3) + 1));
+                ax2.YTick = prn_ss; ax2.Color = [1 1 1];
+                grid(ax2, 'on');
+                xlabel(ax2, 'mean [mm]');
+                h = title('mean', 'interpreter', 'none'); h.FontWeight = 'bold';      
+                
+                f.Position(3) = 900;
             end
         end
         

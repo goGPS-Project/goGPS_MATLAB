@@ -1615,8 +1615,7 @@ classdef GNSS_Station < handle
                 rec = sta_list(r);
                 if ~isempty(rec)
                     if ~rec.out.isEmpty
-                        rec.log.addWarning('This show function works only on the work data stored within GNSS_Station')
-                        rec.work.showResPerSat();
+                        rec.out.showResPerSat();
                     else
                         rec.work.showResPerSat();
                     end
