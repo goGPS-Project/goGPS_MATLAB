@@ -57,7 +57,7 @@ classdef Network < handle
         ztd_ge           % [n_epoch x n_rec] reciever ZTD gradients east
         amb              % {n_rec} recievers ambiguity
         log
-        pos_indexs_tc       % index for subpositions
+        pos_indexs_tc    % index for subpositions
         id_ref
         wl_mats          % widelane matrices
         wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
@@ -157,10 +157,10 @@ classdef Network < handle
                 id_ref = find(lid_ref);
                 this.id_ref = id_ref;
                 
-                if this.state.getReweightNET() == 1
+                if this.state.getReweightNET() < 2
                     n_clean = 0;
                 else
-                    this.log.addMessage(this.log.indent('Network reweight perform only a simple outlier detection on the residuals'), 2);
+                    this.log.addMessage(this.log.indent('Network solution performing 4 loops of outlier detection on the residuals'), 2);
                     n_clean = 3;
                 end
                 
@@ -246,6 +246,7 @@ classdef Network < handle
                         this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f', s0)));
                         %figure; plot(res(:,:,2)); ylim([-0.05 0.05]); dockAllFigures;
                         if s0 < 0.0025 && ... % low sigma0 of the computation
+                                ~(any(abs(mean(zero2nan(reshape(res, size(res,1), size(res,2) * size(res,3), 1)), 'omitnan')) > 2e-3) && this.state.getReweightNET() == 3) && ... % mean of residuals all below 5 mm
                                 all(abs(res(:)) < this.state.pp_max_phase_err_thr) && ...  % no residuals above thr level
                                 all(std(zero2nan(reshape(permute(res(:,:,:),[1 3 2]), size(res,1) * size(res,3), size(res,2))),1,2,'omitnan') < 9e-3) % low dispersion of the residuals
                             
@@ -253,7 +254,7 @@ classdef Network < handle
                             n_clean = -1;
                         end
                         out_found = 0;
-                        while (out_found == 0) && (n_clean > 0)
+                        while (out_found == 0) && (n_clean >= 0)
                             for r = 1 : length(this.rec_list)
                                 tmp_work = this.rec_list(r).work;
                                 
@@ -275,12 +276,31 @@ classdef Network < handle
                                     id_ko = abs(mean(zero2nan(res_rec), 'omitnan')) > 1;
                                     id_ko = sparse(repmat(id_ko, size(res_rec, 1), 1));
                                 else
-                                    [id_ko] = tmp_work.search4outliers(res_rec, n_clean+1);
-                                    % At the first loop start filtering bad satellites
+                                    % Search for outliers until found or n_clean == 1 (last clean)
+                                    [id_ko] = tmp_work.search4outliers(res_rec, n_clean + 1);
+                                    
+                                    % At the first loops  (3-2) just start filtering bad satellites
+                                    % bad satellites are satellites with std > 15mm or std > max(10mm, 90% other rec)
                                     if n_clean > 1
                                         bad_sat = std(res_rec, 'omitnan') > max(0.01, perc(noNaN(std(res_rec, 'omitnan')), 0.9)) | max(abs(res_rec)) > 0.15;
                                         if any(bad_sat) && any(any(id_ko(:, bad_sat)))
                                             id_ko(:, ~bad_sat) = false;
+                                        end
+                                    end
+                                    
+                                    % Add satellites with very bad res mean
+                                    if n_clean < 3 && this.state.getReweightNET() == 3
+                                        % bad satellites are satellites with median > 5 mm or median > std(other rec median)
+                                        % this check is also performend depending on the std of the residuals
+                                        % on bad receivers should be less stringent
+                                        mean_sat_res = median(zero2nan(res_rec), 'omitnan');
+                                        bad_sat = abs(mean_sat_res) > max(2e-3, 2*std(mean_sat_res, 'omitnan')) & ...
+                                            abs(mean_sat_res) > std(zero2nan(res_rec(:)), 'omitnan') & ...
+                                            (abs(mean_sat_res) == max(abs(mean_sat_res))); % flag bad as the only the satellite
+                                        if any(bad_sat) % && any(any(id_ko(:, bad_sat)))
+                                            %  checking where the mean is above threshold 2mm
+                                            mean_lev = movmean(zero2nan(res_rec(:, bad_sat)),10, 'omitnan');                                            
+                                            id_ko(:, bad_sat) = abs(mean_lev) > 1e-3;
                                         end
                                     end
                                 end
@@ -289,12 +309,8 @@ classdef Network < handle
                                     out_found = out_found + 1;
                                 end
                             end
-                            if out_found == 0
-                                % no need to iterate
-                                n_clean = -1;
-                            end
+                            n_clean = n_clean - 1;
                         end
-                        n_clean = n_clean - 1;
                         % end of cleaning ----------------------------------------------------------------------------------------------------------------------
                         
                     end

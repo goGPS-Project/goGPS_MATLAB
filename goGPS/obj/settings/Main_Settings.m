@@ -176,8 +176,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
-        PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
-        PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
+        PP_MAX_CODE_ERR_THR = 10;                       % Threshold on the maximum residual of code observations [m]
+        PP_MAX_PHASE_ERR_THR = 0.02;                    % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
         FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
@@ -298,7 +298,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       '7: simple snooping', ...
                       '8: smart snooping'}
         NET_REWEIGHT_SMODE = {'1: none', ...
-                      '2: simple 4 loops'}
+                      '2: simple 4 loops', ...
+                      '3: 4 loops + remove bad satellites'}
         PPP_REWEIGHT_LABEL = {'none', ...
                       're-weight Huber', ...
                       're-weight Huber (no threshold)', ...
@@ -308,7 +309,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       'simple snooping', ...
                       'smart snooping'}
         NET_REWEIGHT_LABEL = {'none', ...
-                      'simple 4 loops'}
+                      'simple 4 loops', ...
+                      '4 loops + remove bad satellites'}
 
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
@@ -3108,7 +3110,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folderÿÿ
+                % Search broadcast orbits in the ephemerides folderï¿½ï¿½
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));

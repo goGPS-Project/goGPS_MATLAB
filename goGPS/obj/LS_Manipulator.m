@@ -2061,7 +2061,7 @@ classdef LS_Manipulator < handle
         end
         
         function [pos_idx_nh, pos_idx_tc] = getPosIdx(time, st_time, coo_rate)
-            % given a time and the sampling rate return the position index referring to the given sampling rate, the first index is porgressive, the seocond id time consistent
+            % given a time and the sampling rate return the position index referring to the given sampling rate, the first index is prgressive, the seocond id time consistent
             sec_from_sod = time.getRefTime(st_time.getMatlabTime);
             pos_idx_tc = max(1,ceil((sec_from_sod - 0.002) / coo_rate));
             u_pos = unique(pos_idx_tc);
@@ -2070,6 +2070,7 @@ classdef LS_Manipulator < handle
                 pos_idx_nh(pos_idx_tc==u_pos(i)) = i;
             end
             pos_idx_tc = unique(pos_idx_tc);
+            pos_idx_tc = pos_idx_tc - (pos_idx_tc(1) - 1);
         end
     end
 end
