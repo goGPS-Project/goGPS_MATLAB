@@ -2167,7 +2167,7 @@ end
         end
         
         function go(this, caller, event)
-            this.crd2RefFrame
+            this.crd2RefFrame;
             this.log.addMarkedMessage('Starting computation!');
             
             this.state.save(Main_Settings.LAST_SETTINGS);
