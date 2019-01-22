@@ -466,7 +466,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         iono_dir = Main_Settings.IONO_DIR;   % Path to IONO files folder
         iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
         atm_load_dir = Main_Settings.ATM_LOAD_DIR;   % Path to IONO files folder
-        atm_load_name_nt = Main_Settings.ATM_LOAD_NAME_NT; % Path to IONO files folder
+        atm_load_name_nt = Main_Settings.ATM_LOAD_NAME_NT; % Path to ATMOSPHERIC LOADING files folder
         atm_load_name_t = Main_Settings.ATM_LOAD_NAME_T;
         vmf_dir = Main_Settings.VMF_DIR;   % Path to IONO files folder
         vmf_name = Main_Settings.VMF_NAME; % Path to IONO files folder
@@ -2011,8 +2011,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('ocean_dir', EMPTY_IS_NOT_VALID);
 
+            this.checkPathField('iono_dir', EMPTY_IS_NOT_VALID);
+            this.checkStringField('iono_name', EMPTY_IS_VALID);
             this.checkPathField('igrf_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('igrf_name', EMPTY_IS_NOT_VALID);
+            this.checkPathField('atm_load_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('vmf_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('geoid_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkStringField('geoid_name', EMPTY_IS_NOT_VALID);
 
