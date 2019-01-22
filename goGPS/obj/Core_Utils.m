@@ -516,7 +516,7 @@ classdef Core_Utils < handle
                 else                   
                     no_ant = true;
                     for a = 1 : length(idx_not_found)
-                        if ~isempty(antmod) && (length(antmod{idx_not_found(a)}) >=4 && ~strcmp(antmod{idx_not_found(a)}(1:4), 'NONE'))
+                        if ~isempty(antmod) && (length(antmod{idx_not_found(a)}) >=4 && ~strcmp(antmod{idx_not_found(a)}(1:4), 'NONE') && ~strcmp(antmod{idx_not_found(a)}(1:4), 'NONE'))
                             no_ant = false;
                         end
                     end

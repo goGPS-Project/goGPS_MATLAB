@@ -1778,12 +1778,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             pcv =  Core_Utils.readAntennaPCV(filename_pcv, {this.parent.ant_type});
             if pcv.available == 0 
                 ant_parts = strsplit(this.parent.ant_type);
-                ant_parts{2} = 'NONE';
-                ant_name = repmat(' ',1,20);
-                ant_name(1:length(ant_parts{1})) = ant_parts{1};
-                ant_name((end +1 -length(ant_parts{2})):end) = ant_parts{2};
-                this.log.addMessage(this.log.indent(sprintf('looking for antenna without radome: %s',ant_name)));
-                pcv = Core_Utils.readAntennaPCV(filename_pcv, {ant_name});
+                if ~isempty(ant_parts{1})
+                    ant_parts{2} = 'NONE';
+                    ant_name = repmat(' ',1,20);
+                    ant_name(1:length(ant_parts{1})) = ant_parts{1};
+                    ant_name((end +1 -length(ant_parts{2})):end) = ant_parts{2};
+                    this.log.addMessage(this.log.indent(sprintf('looking for antenna without radome: %s',ant_name)));
+                    pcv = Core_Utils.readAntennaPCV(filename_pcv, {ant_name});
+                end
             end
             this.pcv = pcv;
         end
