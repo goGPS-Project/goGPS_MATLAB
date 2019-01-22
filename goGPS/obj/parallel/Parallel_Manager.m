@@ -305,10 +305,10 @@ classdef Parallel_Manager < Com_Interface
                 this.sendMsg(msg, sprintf('"%s" are you ready to work?', slave_id));
             end
             
-            % Wait 1 seconds for slave answers or till all the slaves have responded
+            % Wait 2 seconds max for slave answers or till all the slaves have responded
             n_workers = 0;
             elapsed_time = 0;
-            while elapsed_time < 1 && (n_workers < n_slaves)
+            while elapsed_time < 2 && (n_workers < n_slaves)
                 pause(0.1);
                 elapsed_time = elapsed_time + 0.1;
                 slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
