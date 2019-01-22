@@ -172,7 +172,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         CUT_OFF = 10;                                   % Cut-off [degrees]
         SNR_THR = 0;                                    % Signal-to-noise ratio threshold [dB]
         MIN_ARC = 10;                                   % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
-
+        
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]

@@ -416,7 +416,7 @@ classdef Command_Interpreter < handle
             this.CMD_PKILL.par = [];
             
             this.CMD_REMSAT.name = {'REMSAT', 'remsat'};
-            this.CMD_REMSAT.descr = 'Remove satellites';
+            this.CMD_REMSAT.descr = ['Remove satellites, format: <1ch sat. sys. (GREJCI)><2ch sat. prn>' new_line 'e.g. REMSAT T1 G04,G29,J04'];
             this.CMD_REMSAT.rec = 'T';
             this.CMD_REMSAT.key = 'S';
             this.CMD_REMSAT.par = [];
@@ -1008,10 +1008,10 @@ classdef Command_Interpreter < handle
                 s_idx = 2;
                 for r = id_trg
                     sats = strsplit(tok{s_idx},',');
-                    for s = 1:length(sats)
-                        sysc = sats{s}(1);
-                        prn = str2num(sats{s}(2:3));
-                        rec(r).work.remSat(sysc,prn);
+                    for s = 1 : length(sats)
+                        sys_c = sats{s}(1);
+                        prn = str2double(sats{s}(2:3));
+                        rec(r).work.remSat(sys_c, prn);
                     end
                 end
             end
