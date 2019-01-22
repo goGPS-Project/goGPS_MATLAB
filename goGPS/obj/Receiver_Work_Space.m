@@ -1679,7 +1679,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 if (this.rin_type < 3)
                     % considering rinex 2
-                    this.parseRin2Data(txt, lim, eoh, t_start, t_stop, rate);
+                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate);
                 else
                     % considering rinex 3
                     this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate);
@@ -2113,7 +2113,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function parseRin2Data(this, txt, lim, eoh, t_start, t_stop, rate)
+        function parseRin2Data(this, txt, has_cr, lim, eoh, t_start, t_stop, rate)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
             % SYNTAX this.parseRin2Data(txt, lim, eoh, <t_start>, <t_stop>)
             % remove comment line from lim
@@ -2262,7 +2262,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 for e = 1 : n_epo % for each epoch
                     n_sat = this.n_spe(e);
                     % get the list of satellites in view
-                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                    nlps = ceil(this.n_spe(e) / 12); % number of lines used to store satellite names
+                    id_sat = serialize((lim(t_line(e),1) + repmat((0 : nlps - 1)' * (69 + has_cr), 1, 36) + repmat(32:67, nlps, 1))');                    
+                    sat = txt(id_sat(1 : n_sat * 3));
                     sat = sat(1:n_sat * 3);
                     sat = reshape(sat, 3, n_sat)';
                     sat(sat(:,1) == 32) = this.rinex_ss;
