@@ -41,7 +41,7 @@ classdef Core_Reference_Frame < handle
     properties
         state
         log
-       
+        
         station_code
         xyz
         vxvyvz
@@ -204,7 +204,7 @@ classdef Core_Reference_Frame < handle
         function crx_list = getEntryCell(this)
             % Get the list of CORD entries in the format:
             % 'Marker Name'; 'X'; 'Y'; 'Z'; 'type'; 'start', 'stop'
-            % 
+            %
             % SYNTAX:
             %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
             % load RF if not loaded
@@ -304,35 +304,39 @@ classdef Core_Reference_Frame < handle
             %  this.importTableData(data)
             
             % get marker names:
-            name = {};
-            for i = 1 : size(data, 1)
-                if ischar(data{i,1})
-                    name_start = find(data{i,1} == '>', 1, 'last');
-                    name_start = iif(isempty(name_start), 1, name_start + 1);
-                    name{i} = data{i,1}(name_start : min(name_start+4, numel(data{i,1}))) ;
-                else
-                    name{i} = 'NAME';
-                end                
+            if ~isempty(data)
+                name = {};
+                for i = 1 : size(data, 1)
+                    if ischar(data{i,1})
+                        name_start = find(data{i,1} == '>', 1, 'last');
+                        name_start = iif(isempty(name_start), 1, name_start + 1);
+                        name{i} = data{i,1}(name_start : min(name_start+4, numel(data{i,1}))) ;
+                    else
+                        name{i} = 'NAME';
+                    end
+                end
+                
+                this.station_code = name;
+                
+                % get location
+                this.xyz = [[data{:,2}]' [data{:,3}]' [data{:,4}]'];
+                
+                % get speed
+                this.vxvyvz = [[data{:,8}]' [data{:,9}]' [data{:,10}]'];
+                
+                % epochs
+                date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,6}), '0000/01/01 00:00:00', data{i,6})); end
+                this.start_validity_epoch = GPS_Time(date');
+                this.ref_epoch = this.start_validity_epoch;
+                date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,7}), '2099/01/31 00:00:00', data{i,7})); end
+                this.end_validity_epoch = GPS_Time(date');
+                
+                flag = []; for i = 1 : size(data, 1); flag(i) = iif(isempty(data{i,5}), 0, str2double(data{i,5}(1))); end
+                this.flag = flag;
+                this.is_valid = 1;
+            else
+                this.is_valid = 0;
             end
-            
-            this.station_code = name;
-            
-            % get location
-            this.xyz = [[data{:,2}]' [data{:,3}]' [data{:,4}]'];
-            
-            % get speed
-            this.vxvyvz = [[data{:,8}]' [data{:,9}]' [data{:,10}]'];
-            
-            % epochs
-            date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,6}), '0000/01/01 00:00:00', data{i,6})); end
-            this.start_validity_epoch = GPS_Time(date');
-            this.ref_epoch = this.start_validity_epoch;
-            date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,7}), '2099/01/31 00:00:00', data{i,7})); end
-            this.end_validity_epoch = GPS_Time(date');
-            
-            flag = []; for i = 1 : size(data, 1); flag(i) = iif(isempty(data{i,5}), 0, str2double(data{i,5}(1))); end
-            this.flag = flag;
-            this.is_valid = 1;
         end
         
         function str = toCrdString(this)
@@ -346,7 +350,7 @@ classdef Core_Reference_Frame < handle
             str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
             str = sprintf('%s#STA       X [m]          Y [m]          Z [m]    F   dx [m/y]   dy [m/y]   dz [m/y]   date validity start    date validity stop\n', str);
             str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
-            for i = 1 : size(this.xyz, 1)                
+            for i = 1 : size(this.xyz, 1)
                 str = sprintf('%s%4s %+14.5f %+14.5f %+14.5f %1d %+10.5f %+10.5f %+10.5f %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3), this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
             end
         end
@@ -355,7 +359,7 @@ classdef Core_Reference_Frame < handle
             % Export the object in a CRD file
             %
             % SYNTAX:
-            %  this.export(file_name)    
+            %  this.export(file_name)
             
             [path, ~] = fileparts(file_path);
             if ~(exist(path, 'file') == 7)
