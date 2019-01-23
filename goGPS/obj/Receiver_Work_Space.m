@@ -4061,20 +4061,24 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function obs_set = getPrefObsSetCh(this, flag, system)
             [obs, idx, snr, cycle_slips] = this.getPrefObsCh(flag, system, 1);
-            go_ids = this.getGoId(system, this.prn(idx)');
-            if ~isempty(this.sat.el) && ~isempty(this.sat.az)
-                el = this.sat.el(:, go_ids);
-                az = this.sat.az(:, go_ids);
+            if isempty(obs)
+                
+                obs_set = Observation_Set();
             else
-                az = [];
-                el = [];
-            end
-            obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', el, az, this.prn(idx)');
-            obs_set.cycle_slip = cycle_slips';
-            obs_set.snr = snr';
-            sigma = this.rec_settings.getStd(system, obs_set.obs_code(1,2:4));
-            obs_set.sigma = sigma*ones(size(obs_set.prn));
-            
+                go_ids = this.getGoId(system, this.prn(idx)');
+                if ~isempty(this.sat.el) && ~isempty(this.sat.az)
+                    el = this.sat.el(:, go_ids);
+                    az = this.sat.az(:, go_ids);
+                else
+                    az = [];
+                    el = [];
+                end
+                obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', el, az, this.prn(idx)');
+                obs_set.cycle_slip = cycle_slips';
+                obs_set.snr = snr';
+                sigma = this.rec_settings.getStd(system, obs_set.obs_code(1,2:4));
+                obs_set.sigma = sigma*ones(size(obs_set.prn));
+            end            
         end
         
         function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
@@ -4101,7 +4105,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 preferences = sys.CODE_RIN3_ATTRIB{band}; % get preferences
                 sys_obs_code = this.obs_code(sys_idx,:); % get obs code for the given system
-                sz =size(sys_obs_code,1);
+                sz = size(sys_obs_code, 1);
                 complete_flags = [];
                 if nargin < 4
                     max_obs_type = length(preferences);
@@ -4121,6 +4125,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     obs = [] ; idx = [];
                     return;
                 end
+                
                 max_obs_type = size(complete_flags,1);
                 idxes = [];
                 prn = [];
@@ -7110,6 +7115,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.updateErrIono();
                     end
                     this.log.addMessage(this.log.indent('Improving estimation'))
+                                        
                     this.codeStaticPositioning(this.id_sync, this.state.cut_off);
                     %                 %----- NEXUS DEBUG
                     %                 this.adjustPrAmbiguity();
@@ -7122,7 +7128,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     corr = 2000;
                     i = 1;
                     while max(abs(corr)) > 0.1 && i < 3
-                        [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                        rw_loops = 0; % number of re-weight loops
+                        [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
                         % final estimation of time of flight
                         this.updateAllAvailIndex()
                         this.updateAllTOT();
