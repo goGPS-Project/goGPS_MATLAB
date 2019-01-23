@@ -57,6 +57,7 @@ classdef Core < handle
     properties (GetAccess = private, SetAccess = private) % Public Access
         local_storage = '';
         
+        creation_time = GPS_Time(now);
         is_advanced = true;
     end
     
@@ -80,9 +81,7 @@ classdef Core < handle
 
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
-    properties % Utility Pointers to Singletons
-        cur_session     % id of the current session
-        
+    properties % Utility Pointers to Singletons        
         rin_list        % List of observation file (as File_Rinex objects) to store minimal information on the input files
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
@@ -369,7 +368,7 @@ classdef Core < handle
             % Get the rinex lists (GNSS observations and meteorological)
             %
             % SYNTAX
-            %   cur_session = Core.getRinLists()
+            %   [rin_list, met_list] = Core.getRinLists()
             core = Core.getInstance(false, true);
             rin_list = core.rin_list;
             met_list = core.met_list;
@@ -726,7 +725,7 @@ classdef Core < handle
                 for r = 1 : this.state.getRecCount()
                     this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
                     if (numel(rec) < r) || rec(r).isEmpty
-                        rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0); %#ok<AGROW>
+                        rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0);
                     else
                         buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
                         if buf == 0
@@ -1369,6 +1368,20 @@ classdef Core < handle
             state = this.state;
             log = this.log;
             w_bar = this.w_bar;
+        end
+        
+        function toString(this)
+            % Display on screen information about the core object
+            %
+            % INPUT
+            %   this    core object
+            %
+            % SYNTAX
+            %   this.toString();
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMarkedMessage(sprintf('Core object created at %s\n', this.creation_time.toString));
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.newLine();
         end
     end
 

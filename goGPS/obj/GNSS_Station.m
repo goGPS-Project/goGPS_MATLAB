@@ -37,6 +37,10 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %--------------------------------------------------------------------------
 classdef GNSS_Station < handle
+    properties (SetAccess = private, GetAccess = private)
+        creation_time = GPS_Time(now); % object creation time
+    end
+    
     properties (SetAccess = public, GetAccess = public)
         marker_name    % marker name
         marker_type    % marker type
@@ -162,7 +166,7 @@ classdef GNSS_Station < handle
             % Reset handle to output object
             %
             % SYNTAX
-            %   this.reset()
+            %   this.resetOut()
             this.out = Receiver_Output(this.cc, this);
         end
         
@@ -381,11 +385,17 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.toString(sta_list);
             for i = 1:length(sta_list)
-                if ~sta_list(i).work.isEmpty()
-                    sta_list(i).work.toString();
-                end
-                if ~sta_list(i).out.isEmpty()
-                    sta_list(i).out.toString();
+                if ~isempty(sta_list(i))
+                    fprintf('==================================================================================\n')
+                    sta_list(i).log.addMarkedMessage(sprintf('Receiver %s\n Object created at %s', sta_list(i).getMarkerName(), sta_list(i).creation_time.toString));
+                    fprintf('==================================================================================\n')
+                    
+                    if ~sta_list(i).work.isEmpty()
+                        sta_list(i).work.toString();
+                    end
+                    if ~sta_list(i).out.isEmpty()
+                        sta_list(i).out.toString();
+                    end
                 end
             end
         end
