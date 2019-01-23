@@ -964,6 +964,7 @@ end
             %   rf = this.crd2RefFrame()
             rf = Core.getReferenceFrame();
             rf.importTableData(this.coo_tbl.Data);
+            this.updateCooTable();
         end
         
         function saveCrd(this, tbl, src, event)

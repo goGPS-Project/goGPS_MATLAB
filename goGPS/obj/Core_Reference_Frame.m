@@ -325,10 +325,27 @@ classdef Core_Reference_Frame < handle
                 this.vxvyvz = [[data{:,8}]' [data{:,9}]' [data{:,10}]'];
                 
                 % epochs
-                date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,6}), '0000/01/01 00:00:00', data{i,6})); end
+                date = []; 
+                for i = 1 : size(data,1)
+                    try
+                        date(i) = datenum(iif(isempty(data{i,6}), '0000/01/01 00:00:00', data{i,6}), 'yyyy/mm/dd HH:MM:SS');
+                    catch ex
+                        % not valid epoch
+                        date(i) = datenum('0000/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS'); 
+                    end
+                end
                 this.start_validity_epoch = GPS_Time(date');
                 this.ref_epoch = this.start_validity_epoch;
-                date = []; for i = 1 : size(data,1); date(i) = datenum(iif(isempty(data{i,7}), '2099/01/31 00:00:00', data{i,7})); end
+
+                date = [];
+                for i = 1 : size(data,1)
+                    try
+                        date(i) = datenum(iif(isempty(data{i,7}), '2099/01/01 00:00:00', data{i,7}), 'yyyy/mm/dd HH:MM:SS');
+                    catch ex
+                        % not valid epoch
+                        date(i) = datenum('2099/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS');
+                    end
+                end
                 this.end_validity_epoch = GPS_Time(date');
                 
                 flag = []; for i = 1 : size(data, 1); flag(i) = iif(isempty(data{i,5}), 0, str2double(data{i,5}(1))); end
