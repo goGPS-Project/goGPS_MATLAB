@@ -825,7 +825,7 @@ classdef Command_Interpreter < handle
                     this.log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
-                    rec(r).reset();
+                    rec(r).resetOut();
                     rec(r).work.resetWorkSpace();
                 end
             end
