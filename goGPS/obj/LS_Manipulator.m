@@ -464,7 +464,7 @@ classdef LS_Manipulator < handle
                             if this.state.getAmbFixNET % use the same tracking used in the computation of the widelane
                                 trcks = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,2:end);
                                 
-                                temp_o_set = work_list(i).getIonoFree(['L',trcks(1:2)],['L',trcks(3:4)],sys_c);
+                                temp_o_set = work_list(i).getIonoFree(['L',trcks(1,1:2)],['L',trcks(1,3:4)],sys_c);
                             else
                                 temp_o_set = work_list(i).getPrefIonoFree('L', sys_c);
                             end

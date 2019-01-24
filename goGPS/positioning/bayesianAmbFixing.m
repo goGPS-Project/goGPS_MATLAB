@@ -1,7 +1,7 @@
-function [mass_pt] = multiIntegerProbability(Q,a)
+function [mass_pt] = bayesianAmbFixing(a,Q)
 % compute multi integer weighted probability 
-if true
-[dQ,Z,L,D,da,iZt] = decorrel(Q,a);
+if exist('decorrel') > 0
+ [dQ,Z,L,D,da,iZt] = decorrel(Q,a);
 else
     dQ = Q;
     da = a;
