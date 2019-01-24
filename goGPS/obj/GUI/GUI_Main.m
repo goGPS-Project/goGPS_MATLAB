@@ -558,14 +558,13 @@ end
             this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
             this.edit_texts{end}.FontWeight = 'bold';
             sss_list_box_g.Widths = [-1 5 50 5 50];
-            
-           
-            
+
             sss_box_h.Widths      = [340 10 -1];
             sss_box_l.Heights     = [46 5];
             sss_check_box.Widths  = [350 -1];
             sss_box_r.Heights     = [46 5];
             sss_box_v.Heights     = [51 5 23 5 23];
+            
             % --------------------------------------------------------
             
             Core_UI.insertEmpty(tab);
@@ -740,15 +739,15 @@ end
         end
         
         function proc_opt = insertProcessingOptions(this, container)
-             proc_opt = Core_UI.insertPanelLight(container, 'Options');
-             opt_grid = uix.VBox('Parent', proc_opt,...
-                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
-            Core_UI.insertEmpty(opt_grid);            
-             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'NET Try to fix Ambiguity', 'flag_net_amb_fix', @this.onCheckBoxChange);
-             opt_grid.Heights = [22 22 5 22 22];
+            proc_opt = Core_UI.insertPanelLight(container, 'Options');
+            opt_grid = uix.VBox('Parent', proc_opt,...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
+            Core_UI.insertEmpty(opt_grid);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
+            opt_grid.Heights = [22 22 5 22 22];
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -756,7 +755,6 @@ end
             opt_grid = uix.Grid('Parent', crd_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+1}] = Core_UI.insertDirFileBox(opt_grid, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange);
-            
         end
         
         function ss_panel = insertSatSelector(this, container)
@@ -766,7 +764,6 @@ end
             
             h_box_cc = uix.HBox('Parent', ss_panel, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            
             
             v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
                 'ButtonSize', [100 20], ...

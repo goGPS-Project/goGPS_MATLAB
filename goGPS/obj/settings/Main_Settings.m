@@ -204,7 +204,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         
         FLAG_AMB_PASS = false;                          % try to pass ambiguities to the next session
         FLAG_PPP_AMB_FIX = false;                       % try to fix ambiguity
-        FLAG_NET_AMB_FIX = false;                       % try to fix ambiguity
+        NET_AMB_FIX_APPROACH = 1;                           % try to fix ambiguity
+                                                        %  1 = no fix
+                                                        %  2 = lambda
+                                                        %  3 = bayesian
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
          
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
@@ -300,6 +303,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         NET_REWEIGHT_SMODE = {'1: none', ...
                       '2: simple 4 loops', ...
                       '3: 4 loops + remove bad satellites'}
+        NET_AMB_FIX_SMODE = {'1: none', ...
+                      '2: lambda search and shrink', ...
+                      '3: lambda integer bootstrapping', ...
+                      '4: lambda partial', ...                      
+                      '5: bayesian'}
         PPP_REWEIGHT_LABEL = {'none', ...
                       're-weight Huber', ...
                       're-weight Huber (no threshold)', ...
@@ -308,6 +316,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       're-weight Tukey', ...
                       'simple snooping', ...
                       'smart snooping'}
+        % this label is used for GUI
+        NET_AMB_FIX_LABEL = {'none', ...
+                      'lambda search and shrink', ...
+                      'lambda integer bootstrapping', ...
+                      'lambda partial', ...                      
+                      'bayesian'}
+        % this NET_AMB_FIX_APPROACH must match the names used in the class Fixer.m          
+        NET_AMB_FIX_FIXER_APPROACH = {'none', ...
+                      'lambda', ...
+                      'lambda_bootstrapping', ...
+                      'lambda_partial', ...
+                      'bayesian'}                  
         NET_REWEIGHT_LABEL = {'none', ...
                       'simple 4 loops', ...
                       '4 loops + remove bad satellites'}
@@ -562,7 +582,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         net_reweight_mode = Main_Settings.NET_REWEIGHT_MODE;
         
         flag_ppp_amb_fix = Main_Settings.FLAG_PPP_AMB_FIX;        
-        flag_net_amb_fix = Main_Settings.FLAG_NET_AMB_FIX;        
+        net_amb_fix_approach = Main_Settings.NET_AMB_FIX_APPROACH;        
         
         flag_amb_pass = Main_Settings.FLAG_AMB_PASS; 
         
@@ -805,7 +825,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.ppp_reweight_mode = state.getData('ppp_reweight_mode');
                 this.net_reweight_mode = state.getData('net_reweight_mode');
                 this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');
-                this.flag_net_amb_fix = state.getData('flag_net_amb_fix');
+                this.net_amb_fix_approach = state.getData('net_amb_fix_approach');
+                if isempty(this.net_amb_fix_approach) % compatibility mode
+                    this.net_amb_fix_approach = state.getData('flag_net_amb_fix') + 1;
+                end
                 this.flag_amb_pass = state.getData('flag_amb_pass');
                 
                 this.flag_solid_earth = state.getData('flag_solid_earth');
@@ -953,7 +976,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.ppp_reweight_mode = state.ppp_reweight_mode;
                 this.net_reweight_mode = state.net_reweight_mode;
                 this.flag_ppp_amb_fix = state.flag_ppp_amb_fix;
-                this.flag_net_amb_fix = state.flag_net_amb_fix;
+                this.net_amb_fix_approach = state.net_amb_fix_approach;
                 this.flag_amb_pass = state.flag_amb_pass;
                 
                 this.flag_solid_earth = state.flag_solid_earth;
@@ -1133,7 +1156,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];
             str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
-            str = [str sprintf(' NET Enable ambiguity fixing:                      %d\n\n', this.flag_net_fix)];
+            str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.flag_net_fix})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
@@ -1539,7 +1562,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable ambiguity fixing', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_net_amb_fix', this.flag_net_amb_fix, str_cell);
+            str_cell = Ini_Manager.toIniString('net_amb_fix_approach', this.net_amb_fix_approach, str_cell);
+            for i = 1 : numel(this.NET_AMB_FIX_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.NET_AMB_FIX_SMODE{i}), str_cell);
+            end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniString('flag_amb_pass', this.flag_amb_pass, str_cell);
 
@@ -2227,7 +2253,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('net_reweight_mode',[1 numel(this.NET_REWEIGHT_SMODE)]);
             
             this.checkLogicalField('flag_ppp_amb_fix');
-            this.checkLogicalField('flag_net_amb_fix');
+            this.checkNumericField('net_amb_fix_approach', [1 numel(this.NET_AMB_FIX_FIXER_APPROACH)]);
             this.checkLogicalField('flag_amb_pass');
             
             this.checkLogicalField('flag_smooth_tropo_out');
@@ -3441,6 +3467,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.cur_session = cur_session;
         end
         
+        function setAmbFixNET(this, amb_fix)
+            % Set the amb fixing flag for NET
+            %
+            % SYNTAX
+            %   this.setAmbFixNET(amb_fix)
+            this.net_amb_fix_approach = amb_fix;
+        end
+        
         function setAutomaticDownload(this, flag)
             % Set the download flag
             %
@@ -3642,7 +3676,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   amb_fix = this.getAmbFixNET()
-            amb_fix = this.flag_net_amb_fix;
+            amb_fix = this.net_amb_fix_approach;
         end
         
         function is_dwn = isAutomaticDownload(this)

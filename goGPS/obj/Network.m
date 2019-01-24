@@ -184,7 +184,7 @@ classdef Network < handle
                     end
                     wl_struct = [];
                     if reduce_iono
-                        if this.state.getAmbFixNET()
+                        if this.state.getAmbFixNET() > 1
                             this.estimateWB();
                             ls.wl_amb = this.wl_mats;
                         end

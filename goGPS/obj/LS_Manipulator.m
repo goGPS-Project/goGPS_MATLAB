@@ -461,7 +461,7 @@ classdef LS_Manipulator < handle
                 if ~isempty(wl_struct)%% case multi frequency
                     for sys_c = rec_list(i).work.cc.sys_c
                         if this.state.isIonoFree
-                            if this.state.getAmbFixNET % use the same tracking used in the computation of the widelane
+                            if this.state.getAmbFixNET > 1 % use the same tracking used in the computation of the widelane
                                 trcks = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,2:end);
                                 
                                 temp_o_set = work_list(i).getIonoFree(['L',trcks(1,1:2)],['L',trcks(1,3:4)],sys_c);
@@ -473,7 +473,7 @@ classdef LS_Manipulator < handle
                             temp_o_set.iono_free = true;
                             temp_o_set.sigma = obs_set_list(i).sigma * 1.5;
                         end
-                        if this.state.getAmbFixNET
+                        if this.state.getAmbFixNET > 1
                             f_vec = this.cc.getSys(sys_c).F_VEC;
                             l_vec = this.cc.getSys(sys_c).L_VEC;
                             rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 4]);
@@ -1695,7 +1695,7 @@ classdef LS_Manipulator < handle
                     
                 end
             else
-                if (this.state.getAmbFixNET && ~isempty(x(x_class == 5,1)))
+                if ((this.state.getAmbFixNET > 1) && ~isempty(x(x_class == 5,1)))
                     
                     % Ambiguity fixing
                     
@@ -1752,7 +1752,7 @@ classdef LS_Manipulator < handle
                     
                     
                     % ILS shrinking, method 1
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, 'lambda', 1);
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Main_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET}, 1);
                     
                     if is_fixed
                         % FIXED!!!!

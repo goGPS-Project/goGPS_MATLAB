@@ -1058,11 +1058,11 @@ classdef Command_Interpreter < handle
                        iono_reduce = true;
                     end
                 end
-                try
+                %try
                     net.adjust(id_ref, coo_rate, iono_reduce); 
-                catch ex
-                    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
-                end
+                %catch ex
+                %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
+                %end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();

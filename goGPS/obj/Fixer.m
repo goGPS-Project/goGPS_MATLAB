@@ -93,20 +93,63 @@ classdef Fixer < handle
             switch approach
                 case {'lambda'}
                     try
-                    [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), iar_method, 'P0', this.p0, 'mu', this.mu);
-                    %[tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
-                     %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
-                    
-                    mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
-                    ratio = sq_norm(1) / sq_norm(2);
-                    
-                    amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
-                    is_fixed  = ratio <= mu;
-                    if is_fixed
-                        is_fixed = is_fixed + ~all(amb_ok);
+                        [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), iar_method, 'P0', this.p0, 'mu', this.mu);
+                        %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
+                        
+                        mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
+                        ratio = sq_norm(1) / sq_norm(2);
+                        
+                        amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed  = ratio <= mu;
+                        if is_fixed
+                            is_fixed = is_fixed + ~all(amb_ok);
+                        end
+                        l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
+                    catch
+                        log = Logger.getInstance();
+                        log.addError('LAMBDA fixing crashed, keeping float solution');
+                        % Keep it float
+                        amb_fixed = amb_float;
+                        is_fixed = 0;
+                        l_fixed = false(size(amb_float));
                     end
-                    l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
+                case {'lambda_bootstrapping'}
+                    try
+                        [tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
+                        
+                        mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
+                        ratio = sq_norm(1) / sq_norm(2);
+                        
+                        amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed  = ratio <= mu;
+                        if is_fixed
+                            is_fixed = is_fixed + ~all(amb_ok);
+                        end
+                        l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
+                    catch
+                        log = Logger.getInstance();
+                        log.addError('LAMBDA fixing crashed, keeping float solution');
+                        % Keep it float
+                        amb_fixed = amb_float;
+                        is_fixed = 0;
+                        l_fixed = false(size(amb_float));
+                    end
+                case {'lambda_partial'}
+                    try
+                        [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
+                        
+                        mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
+                        ratio = sq_norm(1) / sq_norm(2);
+                        
+                        amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed  = ratio <= mu;
+                        if is_fixed
+                            is_fixed = is_fixed + ~all(amb_ok);
+                        end
+                        l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
                     catch
                         log = Logger.getInstance();
                         log.addError('LAMBDA fixing crashed, keeping float solution');
@@ -117,7 +160,7 @@ classdef Fixer < handle
                     end
                 case {'bayesian'}
                     [tmp_amb_fixed] = bayesianAmbFixing(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;;
+                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
                     is_fixed = true;
                     l_fixed = amb_ok;
                     
