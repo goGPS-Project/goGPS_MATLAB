@@ -220,7 +220,7 @@ classdef Go_Slave < Com_Interface
                     core.state = tmp.state; % load the state
                     core.setCurrentSettings(tmp.state); % load the state
                     core.initGeoid(tmp.geoid); % load the geoid
-                    core.cur_session = tmp.cur_session; % load the current session number
+                    core.state.setCurSession(tmp.cur_session); % load the current session number
                     core.rin_list = tmp.rin_list; % load the rinex list of files
                     core.met_list = tmp.met_list; % load the meteorological list of files
                     this.log.addMarkedMessage('State updated');
