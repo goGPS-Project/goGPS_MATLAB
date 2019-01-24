@@ -115,6 +115,12 @@ classdef Fixer < handle
                         is_fixed = 0;
                         l_fixed = false(size(amb_float));
                     end
+                case {'bayesian'}
+                    [tmp_amb_fixed] = bayesianAmbFixing(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
+                    amb_fixed(amb_ok, :) = tmp_amb_fixed;;
+                    is_fixed = true;
+                    l_fixed = amb_ok;
+                    
             end
         end
     end
