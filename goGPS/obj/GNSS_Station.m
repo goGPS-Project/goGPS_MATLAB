@@ -776,8 +776,10 @@ classdef GNSS_Station < handle
             enu = nan(size(id_sync, 1), 3, n_rec);
             for r = 1 : n_rec
                 enu_rec = sta_list(r).out.getPosENU();
-                id_rec = id_sync(:,r);
-                enu(~isnan(id_rec), :, r) = enu_rec(id_rec(~isnan(id_rec)), :);
+                if any(enu_rec)
+                    id_rec = id_sync(:,r);
+                    enu(~isnan(id_rec), :, r) = enu_rec(id_rec(~isnan(id_rec)), :);
+                end
             end
         end
         
@@ -836,7 +838,7 @@ classdef GNSS_Station < handle
             sta_list(1).log.addMessage(sta_list(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
             sta_list(1).log.addMessage(sta_list(1).log.indent('using ocean tide model FES2004'));
             sta_list(1).log.addMessage(sta_list(1).log.indent('select also to compensate the values for the motion'));
-            sta_list(1).log.addMessage(sta_list(1).log.indent('Use the following string for the staion locations:'));
+            sta_list(1).log.addMessage(sta_list(1).log.indent('Use the following string for the station locations:'));
             sta_list(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
             
             for r = 1 : size(sta_list, 2)

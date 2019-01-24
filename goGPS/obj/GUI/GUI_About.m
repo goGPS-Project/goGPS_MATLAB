@@ -110,8 +110,7 @@ classdef GUI_About < handle
             try
                 main_vb = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GRAY_BG);
-                
+                    'BackgroundColor', Core_UI.DARKER_GRAY_BG);                
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
