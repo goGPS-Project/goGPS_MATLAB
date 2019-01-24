@@ -589,8 +589,24 @@ end
             Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [170 -3 5 -1 25]);
             Core_UI.insertEmpty(box_g);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
+            
+            box_gh = uix.HBox('Parent', box_g, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_gh, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
+            plot_rec = uicontrol( 'Parent', box_gh, ...
+                'String', 'Get Chalmers String', ...
+                'Callback', @this.openGetChalmerString);
+            box_gh.Widths = [-1 120];
             box_g.Heights = [-1 5 23 5 23];
+        end
+        
+        function openGetChalmerString(this, caller, event)
+            % Update file name list and plot daily availability of the files
+            %
+            % SYNTAX:
+            %   this.updateAndPlotRecList            
+            GUI_Chalmers;            
         end
         
         function insertProcessing(this, container)
