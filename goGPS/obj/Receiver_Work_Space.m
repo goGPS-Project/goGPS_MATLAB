@@ -7186,11 +7186,11 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remBadTracking(this) %%% important check!! if ph obervation with no code are deleted elsewhere
-            % requires approximate postioin and approx clock estimate
+            % requires approximate position and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
-            sensor = sensor - median(sensor,2, 'omitnan');
+            sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
             bad_track = abs(sensor) > 1e5;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
