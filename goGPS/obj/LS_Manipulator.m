@@ -477,11 +477,10 @@ classdef LS_Manipulator < handle
                             f_vec = this.cc.getSys(sys_c).F_VEC;
                             l_vec = this.cc.getSys(sys_c).L_VEC;
                             rnx3_bnd = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,[2 4]);
-                            id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1));
-                            id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(2));
+                            id_b1 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1,1));
+                            id_b2 = find(this.cc.getSys(sys_c).CODE_RIN3_2BAND == rnx3_bnd(1,2));
                             temp_o_set.obs = nan2zero(zero2nan(temp_o_set.obs) - (nan2zero(wl_struct.amb_mats{i}(:,temp_o_set.go_id)))*f_vec(id_b2)^2*l_vec(2)/(f_vec(id_b1)^2 - f_vec(id_b2)^2));
-                            temp_o_set.wl = ones(size(temp_o_set.wl))*Core_Utils.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as nnarrow lane
-                            
+                            temp_o_set.wl = ones(size(temp_o_set.wl))*Core_Utils.V_LIGHT / (f_vec(id_b1) + f_vec(id_b2)); % <- set wavelength as narrow lane                            
                         end
                         obs_set_list(i).merge(temp_o_set);
                     end
