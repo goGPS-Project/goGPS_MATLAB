@@ -2337,9 +2337,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             to_keep_ep = this.time > t_start & this.time < t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
-            ljmp = ([true; diff(this.time.getRefTime) > 1e-7]); % find when epochs change (if the distance between two consecutive epochs is < 1e-7 consider them as duplicate epochs)
-            tid = cumsum(ljmp); % time id -> in presence of duplicate epochs tid doesn't change
-            this.time.remEpoch(~ljmp); % remove duplicate epochs
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 nominal_ss = this.time.getNominalTime(rate, true);
@@ -2352,6 +2349,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
             end
+            ljmp = ([true; diff(this.time.getRefTime) > 1e-7]); % find when epochs change (if the distance between two consecutive epochs is < 1e-7 consider them as duplicate epochs)
+            tid = cumsum(ljmp); % time id -> in presence of duplicate epochs tid doesn't change
+            this.time.remEpoch(~ljmp); % remove duplicate epochs
             if ~isempty(t_line)
                 this.rate = this.time.getRate();
                 n_epo = numel(t_line);
