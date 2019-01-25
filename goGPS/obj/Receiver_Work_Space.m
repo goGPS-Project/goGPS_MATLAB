@@ -5820,7 +5820,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 1 % no model
                     this.sat.err_iono(:, go_id) = 0;
                 case 2 % Klobuchar model
-                    if ~isempty(this.sat.cs.iono )
+                    if ~isempty(this.sat.cs.iono)
                         for s = go_id(:)'
                             idx = this.sat.avail_index(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());

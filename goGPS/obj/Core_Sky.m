@@ -156,7 +156,7 @@ classdef Core_Sky < handle
                     this.coord_type = 1; % antenna phase center
                 end
                 
-                if this.state.iono_model == 2 && (this.state.iono_management == 3 || this.state.flag_apr_iono)
+                if this.state.isIonoKlobuchar
                     f_name = this.state.getIonoFileName(start_date, stop_date);
                     this.importIono(f_name{1});
                 end
@@ -466,7 +466,7 @@ classdef Core_Sky < handle
                 f_names = {f_names};
             end
             eph = [];
-            for i=1:length(f_names)
+            for i = 1:length(f_names)
                 [eph_temp, this.iono] = this.loadRinexNav(f_names{i},this.cc,0,0);
                 eph = [eph eph_temp];
             end
@@ -504,8 +504,6 @@ classdef Core_Sky < handle
                     end
                 end
             end
-            
-            
         end
         
         function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this, time, sat, eph)
@@ -2308,7 +2306,9 @@ classdef Core_Sky < handle
                     iono = iono_I;
                 else
                     iono = zeros(8,1);
-                    log.addWarning(sprintf('Klobuchar ionosphere parameters not found in navigation file\n("%s")\n', filename));
+                    if isempty(regexp(filename, '(?<=brdm).*', 'once')) % brdm are broadcast mgex with no iono parameters, iono will be imported from other files
+                        log.addWarning(sprintf('Klobuchar ionosphere parameters not found in navigation file\n("%s")\n', filename));
+                    end
                 end
                 
                 if (wait_dlg_PresenceFlag)

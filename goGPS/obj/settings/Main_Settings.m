@@ -2476,36 +2476,34 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
         end
         
-        function dir = getFileDir(this, filename)
-            % get file dir
+        function dir_path = getFileDir(this, filename)
+            % get file dir (form the resource name try to get the name of the iono)
             %
             % SYNTAX
             %   dir = getFileDir(this, filename)
             if length(filename) < 1
-                dir = '';
+                dir_path = '';
                 return
             end
             [~, name,ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre') || strcmp(ext,'.${YY}p') || strcmp(ext,'.${YY}n')
-                dir = this.getNavEphDir();
+            % CGIM is iono breadcast
+            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+                dir_path = this.getNavEphDir();
             elseif strcmpi(ext,'.erp')
-                dir = this.getErpDir();
+                dir_path = this.getErpDir();
             elseif instr(lower(ext),'.clk')
-                dir = this.getNavClkDir();
+                dir_path = this.getNavClkDir();
             elseif strcmpi(ext,'.CRX')
                 
-            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
-                dir = this.getIonoDir();
+            elseif ~isempty(regexp(ext,'\.\d\d[i|I]', 'once')) || ~isempty(regexp(ext,'\.\d\d[n|N]', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}n')
+                dir_path = this.getIonoDir();
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.BSX')) || (strcmpi(ext,'.BIA'))
-                dir = this.getDcbDir();
-            elseif strcmpi(ext,'.${YY}p') || strcmpi(ext,'.${YY}n') || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\dp')) || ~isempty(regexpi(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl', 'once'))
-                dir = this.getNavEphDir();
+                dir_path = this.getDcbDir();
             elseif strcmpi(ext,'.apl')
-                dir = this.getAtmLoadDir();
+                dir_path = this.getAtmLoadDir();
             elseif instr(name,'VMFG') && instr(ext,'.H')
-                dir = this.getVMFDir();
-            end
-            
+                dir_path = this.getVMFDir();
+            end            
         end
 
         function base_rinex_dir = getRinexBaseDir(this)
@@ -3057,6 +3055,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             iono_model = this.iono_model;
         end
         
+        function iono_management = isIonoKlobuchar(this)
+            % SYNTAX
+            %   date = isIonoKlobuchar(this)
+            iono_management = this.iono_model == 2;
+        end
+        
         function iono_management = getIonoManagement(this)
             % SYNTAX
             %   date = getIonoManagement(this)
@@ -3138,18 +3142,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
+            
             fnp = File_Name_Processor();
+                
             if this.isIonoBroadcast()
-                % Search broadcast orbits in the ephemerides folder��
+                % Search broadcast orbits in the ephemerides folder
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
             else
                 file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));
             end
 
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy;
-                date_stop = date_stop.getCopy;
-            end
+            date_start = date_start.getCopy;
+            date_stop = date_stop.getCopy;
             iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
@@ -3229,7 +3233,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
-            if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono'))
+            if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono')) %#ok<STREMP>
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
@@ -3238,7 +3242,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif strcmpi(ext,'.CRX')
             elseif strcmpi(ext,'.apl')
                 this.setAtmLoadFile(filename);
-            elseif (~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}p'))  && ~isempty(strfind(resouce_name,'iono'))
+            elseif (~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}p')) || ~isempty(strfind(resouce_name,'iono'))  %#ok<STREMP>
                 this.setIonoFile(filename);
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);

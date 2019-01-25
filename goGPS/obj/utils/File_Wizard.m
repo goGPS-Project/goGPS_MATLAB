@@ -519,8 +519,8 @@ classdef File_Wizard < handle
                     this.conjureDCBFiles(dsa, dso);
                     this.conjureCRXFiles(dsa, dso);
                 end
-                if this.state.needIonoMap()
-                    this.conjureIonoFiles(dsa, dso);
+                if this.state.needIonoMap() || this.state.isIonoKlobuchar()
+                    this.conjureIonoFiles(dsa, dso, this.state.isIonoKlobuchar());
                 end
                 if this.state.isAtmLoading()
                     this.conjureAtmLoadFiles(dsa, dso);
@@ -800,7 +800,7 @@ classdef File_Wizard < handle
             end
         end
         
-        function conjureIonoFiles(this, date_start, date_stop)
+        function conjureIonoFiles(this, date_start, date_stop, flag_brdc)
             % Wrapper of conjureResources for iono files
             %
             % SYNTAX:
@@ -808,7 +808,14 @@ classdef File_Wizard < handle
             %
             list_preferred = this.state.preferred_iono;
             for i = 1 : length(list_preferred)
-                status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
+                if strcmp(list_preferred{i}, 'broadcast')
+                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
+                else
+                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
+                    if flag_brdc
+                        status = this.conjureResource('iono_broadcast', date_start, date_stop);
+                    end
+                end
                 if status
                     break
                 end

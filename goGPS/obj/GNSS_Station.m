@@ -547,7 +547,7 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   is_empty = this.isEmpty();
             
-            is_empty = isempty(this) || (this.work.isEmpty() && this.out.isEmpty());
+            is_empty = isempty(this) || ((isempty(this.work) || this.work.isEmpty()) && (isempty(this.out) || this.out.isEmpty()));
         end
         
         function time = getTime(this)
