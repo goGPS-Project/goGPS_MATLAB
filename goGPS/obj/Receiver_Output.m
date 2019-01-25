@@ -760,7 +760,7 @@ classdef Receiver_Output < Receiver_Commons
            
             ss_ok = intersect(this.cc.sys_c, sys_c_list);
             for sys_c = sys_c_list
-                f = figure; f.Name = sprintf('%03d: Res per sat', f.Number); f.NumberTitle = 'off';
+                f = figure; f.Name = sprintf('%03d: %s Res per sat', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
                 ss_id = find(this.cc.sys_c == sys_c);
                 switch numel(ss_ok)
                     case 2
@@ -814,7 +814,7 @@ classdef Receiver_Output < Receiver_Commons
                 ax2.YTick = prn_ss; ax2.Color = [1 1 1];
                 grid(ax2, 'on');
                 xlabel(ax2, 'mean [mm]');
-                h = title('mean', 'interpreter', 'none'); h.FontWeight = 'bold';      
+                h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';      
                 
                 f.Position(3) = 900;
             end
