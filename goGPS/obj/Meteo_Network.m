@@ -71,7 +71,19 @@ classdef Meteo_Network < handle
             % load all meteo file present in current settings
             state = Core.getCurrentSettings();
             fnames = state.getMetFileName(date_start, date_stop);
-            n_stations = numel(fnames);
+            this.initFromFileList(fnames)
+        end
+        
+        function initFromFileList(this, fnames)
+            % lod metereological data directly from file list
+            %
+            % SYNTAX
+            % this.initFromFileList(fnames)
+            %
+            %
+            % fanmes: two level cells, first level station second lavel
+            % days
+             n_stations = numel(fnames);
             for  i = 1 : n_stations
                 n_sss = numel(fnames{i});
                 for  s = 1 : n_sss
