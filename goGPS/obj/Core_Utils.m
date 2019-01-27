@@ -635,11 +635,10 @@ classdef Core_Utils < handle
                                 catch
                                     this.log.addError('aria2c is not working, is it installed?');
                                 end
-                                
-                                % open file list for the next set
-                                fid = fopen(file_name, 'w');
-                                str = '';                                
                             end
+                            % open file list for the next set
+                            fid = fopen(file_name, 'w');
+                            str = '';
                         end
                     end
                     if i <= numel(fnl)
