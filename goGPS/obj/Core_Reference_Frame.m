@@ -223,7 +223,7 @@ classdef Core_Reference_Frame < handle
                     crx_list{i, 2} = this.xyz(i, 1);
                     crx_list{i, 3} = this.xyz(i, 2);
                     crx_list{i, 4} = this.xyz(i, 3);
-                    crx_list{i, 5} = this.FLAG_STRING{this.flag(i) + 1};
+                    crx_list{i, 5} = this.FLAG_STRING{nan2zero(this.flag(i)) + 1};
                     crx_list{i, 6} = this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
                     crx_list{i, 7} = this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
                     crx_list{i, 8} = this.vxvyvz(i,1);
