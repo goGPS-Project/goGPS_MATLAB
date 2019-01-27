@@ -877,6 +877,7 @@ classdef Meteo_Data < handle
             end
 
             if isempty(id_data)
+                log =  Core.getLogger();
                 switch type
                     case Meteo_Data.PR
                         log.addWarning('There are no station to get pressure information', 100);
@@ -903,8 +904,8 @@ classdef Meteo_Data < handle
                     [~, id_min] = min(d_op + 1e300 * double(~(sum(w_all, 2) > 0)));
                     lid_best = w_all(id_min, :) > 0;
                 end
-                w_all = bsxfun(@rdivide, w_all, sum(w_all));
-                data0 = sum(w_all .* data_obs);
+                w_all = bsxfun(@rdivide, w_all, sum(w_all,1));
+                data0 = sum(w_all .* data_obs, 1);
                 
                 lim = getOutliers(lid_best);
 
