@@ -1715,20 +1715,50 @@ classdef GNSS_Station < handle
             
             f = figure;
             f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
-            subplot(3,1,1);
-            plot(p_time.getMatlabTime, pressure,'.');
+            set(f,'defaultAxesColorOrder', Core_UI.getColor(1 : numel(sta_list), numel(sta_list)));
+            ax(1) = subplot(3,1,1);
+            plot(p_time.getMatlabTime, pressure, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
             h = ylabel('Pressure [mbar]'); h.FontWeight = 'bold';
+            
+            outm = {};
+            for r = 1 : numel(sta_list)
+                outm{r} = sta_list(r).getMarkerName4Ch();
+            end
+            [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+            n_entry = numel(outm);
+            icons = icons(n_entry + 2 : 2 : end);            
+            for i = 1 : numel(icons)
+                icons(i).MarkerSize = 16;
+            end
 
-            subplot(3,1,2);
-            plot(p_time.getMatlabTime, temperature,'.');
+            ax(2) = subplot(3,1,2);
+            plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [�C]'); h.FontWeight = 'bold';
-
-            subplot(3,1,3);
-            plot(p_time.getMatlabTime, humidity*100,'.');
+            h = ylabel('Temperaure [°C]'); h.FontWeight = 'bold';
+            
+            [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+            n_entry = numel(outm);
+            icons = icons(n_entry + 2 : 2 : end);
+            for i = 1 : numel(icons)
+                icons(i).MarkerSize = 16;
+            end
+            
+            ax(3) = subplot(3,1,3);
+            plot(p_time.getMatlabTime, humidity, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Humidity [%]'); h.FontWeight = 'bold';            
+            h = ylabel('Humidity [%]'); h.FontWeight = 'bold';
+            
+            [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+            n_entry = numel(outm);
+            icons = icons(n_entry + 2 : 2 : end);
+            for i = 1 : numel(icons)
+                icons(i).MarkerSize = 16;
+            end
+            
+            linkaxes(ax, 'x');
+            xlim([p_time.first.getMatlabTime() p_time.last.getMatlabTime()]);
+            
         end
             
         function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
@@ -1773,14 +1803,22 @@ classdef GNSS_Station < handle
                         old_legend = get(l,'String');
                     end
                     if sub_plot_nsat
-                        subplot(3,1,1:2);
+                        ax1 = subplot(3,1,1:2);
                     end
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
+                            if strcmp(par_name, 'nsat')
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            else
                                 plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            end
                         else
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2); hold on;
+                            if strcmp(par_name, 'nsat')
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2); hold on;
+                            else
+                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2); hold on;
+                            end
                         end
                         outm{r} = rec(1).getMarkerName();
                         tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
@@ -1790,7 +1828,7 @@ classdef GNSS_Station < handle
                     
                     outm = [old_legend, outm];
                     if ~sub_plot_nsat
-                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                        [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                     else
                          [~, icons] = legend(outm, 'Location', 'SouthWest', 'interpreter', 'none');
                     end
@@ -1806,65 +1844,145 @@ classdef GNSS_Station < handle
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if sub_plot_nsat
-                        subplot(3,1,3);
+                        ax2 = subplot(3,1,3);
                         for r = 1 : numel(sta_list)
-                        rec = sta_list(r);
-                        if new_fig                            
-                            plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
-                        end
-                        outm{r} = rec(1).getMarkerName();
-                        tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
-                        tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
-                        xlim(tlim);
+                            rec = sta_list(r);
+                            if new_fig
+                                plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            end
+                            outm{r} = rec(1).getMarkerName();
+                            tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
+                            tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
+                            xlim(tlim);
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                         h = ylabel(['# sat']); h.FontWeight = 'bold';
                         grid on;
+                        linkaxes([ax1 ax2], 'x');
                     end
                 end
             end
         end
-        
-        function showZhd(this, new_fig)
-            if nargin == 1
-                new_fig = true;
-            end
-            this.showTropoPar('ZHD', new_fig)
-        end
-        
+                
         function showNSat(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('nsat', new_fig)
+            this.showTropoPar('nsat', new_fig, false)
         end
         
-        function showZwd(this, new_fig)
-            if nargin == 1
+        function showZhd(sta_list, new_fig, sub_plot_nsat)
+            % Display ZHD values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showZhd(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
             end
-            this.showTropoPar('ZWD', new_fig)
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat)
+        end
+
+        function showZwd(sta_list, new_fig, sub_plot_nsat)
+            % Display ZWD values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showZwd(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
+                new_fig = true;
+            end
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat)
         end
         
-        function showZtd(this, new_fig)
-            if nargin == 1
+        function showPwv(sta_list, new_fig, sub_plot_nsat)
+            % Display PWV values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showPwv(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
             end
-            this.showTropoPar('ZTD', new_fig)
-        end                
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat)
+        end
         
-        function showGn(this, new_fig)
-            if nargin == 1
+        function showZtd(sta_list, new_fig, sub_plot_nsat)
+            % Display ZTD values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showZtd(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
             end
-            this.showTropoPar('GN', new_fig)
-        end        
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat)
+        end
         
-        function showGe(this, new_fig)
-            if nargin == 1
+        function showGn(sta_list, new_fig, sub_plot_nsat)
+            % Display ZTD Gradiet North values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showGn(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
             end
-            this.showTropoPar('GE', new_fig)
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('GN', new_fig, sub_plot_nsat)
+        end
+        
+        function showGe(sta_list, new_fig, sub_plot_nsat)
+            % Display ZTD Gradiet East values
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %
+            % SYNTAX:
+            %   sta_list.showGe(<new_fig = true>, <sub_plot_nsat = true>)
+            
+            if nargin <= 1 || isempty(new_fig)
+                new_fig = true;
+            end
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            sta_list.showTropoPar('GE', new_fig, sub_plot_nsat)
         end
         
         function showZtdVsHeight(sta_list, degree)
@@ -1901,14 +2019,7 @@ classdef GNSS_Station < handle
                 end
             end
         end
-        
-        function showPwv(this, new_fig)
-            if nargin == 1
-                new_fig = true;
-            end
-            this.showTropoPar('PWV', new_fig)
-        end
-        
+                
         function showMedianTropoPar(this, par_name, new_fig)
             % one function to rule them all
             rec_ok = false(size(this,2), 1);
