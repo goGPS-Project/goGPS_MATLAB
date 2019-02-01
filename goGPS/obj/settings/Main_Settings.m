@@ -233,7 +233,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % - iono_model = 2: Klobuchar model
                                                         % - iono_model = 3: IONEX
                                                         
-        ZD_MODEL  = 2;                                  % A-priori Tropospheric Zenith delay model to be used (0: none, 1: Saastamoinen , 2: Vienna mapping function gridded delays)
+        ZD_MODEL  = 2;                                  % A-priori Tropospheric Zenith delay model to be used (1: none, 2: Saastamoinen , 3: Vienna mapping function gridded delays)
                                                         % - zd_model = 1: no model
                                                         % - zd_model = 2: Saastamoinen
                                                         % - zd_model = 3:  Vienna mapping function gridded delay

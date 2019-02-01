@@ -3251,7 +3251,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.tge = zeros(this.length,1);
                 this.tgn = zeros(this.length,1);
             end
-            if this.state.zd_model == 1 % no vmf gridded value
+            if this.state.zd_model == 1 % sastamoinen + met
                 [P,T,H] = this.getPTH();
                 updateAprZhd(this,P,T,H);
                 updateAprZwd(this,P,T,H);
@@ -3262,10 +3262,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function updateAprZhd(this,P,T,H)
-            %update zhd
-            if isempty(this.lat)
-                this.updateCoordinates()
-            end
+            % update zhd
+            this.updateCoordinates()
             switch this.state.zd_model
                 case 1 %% saastamoinen
                     if nargin < 2
