@@ -2225,6 +2225,193 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % =========================================================================
 
     methods (Access = 'public')
+        function setToTropoPPP(this)
+            % Modify the parameters to have a standard configuration for PPP troposphere estimation
+            this.rec_dyn_mode = 0; % static
+            
+            % set std receiver data quality:
+            this.std_code = 3;
+            this.std_phase = 0.003;
+            this.std_phase_if = 0.009;
+            this.sigma0_clock = this.SIGMA0_CLOCK;
+            this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
+            
+            % Data filtering
+            this.min_n_sat = 2;
+            this.cut_off = 7;
+            this.snr_thr = 0;
+            this.min_arc = 10;
+            this.pp_max_code_err_thr = 5;
+            this.pp_max_phase_err_thr = 0.05;
+            
+            % Processing
+            this.w_mode = 1; % same weight for all the observations
+            this.ppp_reweight_mode = 8; % smart snooping
+            
+            this.flag_repair = 0; % (too much experimental)
+            this.flag_amb_pass = 0;
+            this.flag_ppp_amb_fix = 0; % not yet woking stable enough
+            this.flag_amb_pass = 0; % (too much experimental)
+            
+            % Corrections
+            this.flag_solid_earth = 1;
+            this.flag_pole_tide = 1;
+            this.flag_phase_wind = 1;
+            this.flag_shapiro = 1;
+            this.flag_ocean_load = 1;
+            this.flag_atm_load = 1;
+            this.flag_hoi = 1;
+            this.flag_rec_pcv = 1;
+            this.flag_apr_iono = 1;
+            
+            % Coordinates
+            this.flag_separate_apc = 0;  % hope that the antenna is calibrated such that only one center of phase per constellation is present
+            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
+            this.coo_rates = [0 0 0];
+            
+            % Atmosphere
+            this.iono_management = 1;       % iono-free
+            this.iono_model = 3;            % use IONEX external model for reductions
+            
+            this.flag_tropo = 1;            % compute troposphere
+            this.flag_tropo_gradient = 1;   % compute troposphere
+            
+            this.zd_model = 2;              % Use VMF for a-priori
+            this.mapping_function = 2;      % Use VMF grids
+            this.meteo_data = 3;            % Use meteo data if they are present (goGPS switches to GPT for fallback)
+            
+            % Regularization
+            this.std_tropo = 0.015;
+            this.std_tropo_gradient = 0.001;
+            this.std_clock = 1e+30;
+            this.spline_rate_tropo = 300;
+            this.spline_rate_tropo_gradient = 300;
+            this.spline_tropo_order = 0;
+            this.spline_tropo_gradient_order = 0;
+            
+            % Save Results
+            this.flag_out_pwv = 1;
+            this.flag_out_zwd = 1;
+            this.flag_out_ztd = 1;
+            this.flag_out_tropo_g = 1;
+            this.flag_out_apr_tropo = 1;
+            this.flag_out_pth = 1;
+            this.flag_out_ocs = 1;
+            this.flag_out_quality = 1;
+            this.flag_out_azel = 1;
+            this.flag_out_res = 1;
+            this.flag_out_mf = 1;
+            
+            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'PPP T*', 'ENDFOR', 'SHOW T* ZTD'};
+        end
+        
+        function setToMediumNET(this)
+            % Modify the parameters to have a standard configuration for medium baselines
+            % No iono - Tropo estimation on (with splines)
+            this.rec_dyn_mode = 0; % static
+            
+            % set std receiver data quality:
+            this.std_code = 3;
+            this.std_phase = 0.003;
+            this.std_phase_if = 0.009;
+            this.sigma0_clock = this.SIGMA0_CLOCK;
+            this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
+            
+            % Data filtering
+            this.min_n_sat = 2;
+            this.cut_off = 7;
+            this.snr_thr = 28;
+            this.min_arc = 10;
+            this.pp_max_code_err_thr = 5;
+            this.pp_max_phase_err_thr = 0.05;
+            
+            % Processing
+            this.w_mode = 1; % same weight for all the observations
+            
+            this.net_reweight_mode = 2; % 4 loops
+            this.net_amb_fix_approach = 2; % fix ambiguities with lambda
+            
+            this.flag_repair = 0; % (too much experimental)
+            this.flag_amb_pass = 0;
+            this.flag_ppp_amb_fix = 0; % not yet woking stable enough
+            this.flag_amb_pass = 0; % (too much experimental)
+            
+            % Corrections
+            this.flag_solid_earth = 1;
+            this.flag_pole_tide = 0;
+            this.flag_phase_wind = 0;
+            this.flag_shapiro = 0;
+            this.flag_ocean_load = 0;
+            this.flag_atm_load = 0;
+            this.flag_hoi = 0;
+            this.flag_rec_pcv = 1;
+            this.flag_apr_iono = 1;
+            
+            % Coordinates
+            this.flag_separate_apc = 0;  % hope that the antenna is calibrated such that only one center of phase per constellation is present
+            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
+            this.coo_rates = [0 0 0];
+            
+            % Atmosphere
+            this.iono_management = 1;       % iono-free
+            this.iono_model = 3;            % use IONEX external model for reductions
+            
+            this.flag_tropo = 1;            % compute troposphere
+            this.flag_tropo_gradient = 1;   % compute troposphere
+            
+            this.zd_model = 1;              % Use Saastamoinen for a-priori
+            this.mapping_function = 1;      % Use GMF grids
+            this.meteo_data = 1;            % Use meteo data if they are present (goGPS switches to GPT for fallback)
+            
+            % Regularization
+            this.std_tropo = 0.015;
+            this.std_tropo_gradient = 0.001;
+            this.std_clock = 1e+30;
+            this.spline_rate_tropo = 900;
+            this.spline_rate_tropo_gradient = 3600;
+            this.spline_tropo_order = 2;
+            this.spline_tropo_gradient_order = 2;
+            
+            % Save Results
+            this.flag_out_pwv = 0;
+            this.flag_out_zwd = 0;
+            this.flag_out_ztd = 1;
+            this.flag_out_tropo_g = 1;
+            this.flag_out_apr_tropo = 1;
+            this.flag_out_pth = 0;
+            this.flag_out_ocs = 1;
+            this.flag_out_quality = 1;
+            this.flag_out_azel = 1;
+            this.flag_out_res = 1;
+            this.flag_out_mf = 1;
+            
+            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'NET T* R1', 'ENDFOR', 'SHOW T* ENUBSL'};
+        end
+        
+        function setToShortNET(this)
+            % Modify the parameters to have a standard configuration for short baselines
+            % No iono - No Tropo
+            this.setToMediumNET();
+            
+            this.flag_tropo = 0;            % do not compute troposphere
+            this.flag_tropo_gradient = 0;   % do not compute tropospheric gradients
+
+            this.flag_out_pwv = 0;
+            this.flag_out_zwd = 0;
+            this.flag_out_ztd = 0;
+            this.flag_out_tropo_g = 0;
+            this.flag_out_apr_tropo = 0;
+            this.flag_out_pth = 0;
+        end
+        
+        function setToLongNET(this)
+            % Modify the parameters to have a standard configuration for long baselines
+            % Iono free mode - Tropo estimation on (with splines)
+            this.setToMediumNET();
+
+            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'NET T* R1 -IONO', 'ENDFOR', 'SHOW T* ENUBSL'};            
+        end
+        
         function check(this)
             % Check the validity of the fields
             %
@@ -2369,6 +2556,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   n_missing = this.checkPath(field_name, field_text, flag_verbose);
             %   n_missing = this.checkPath({field_dir, field_name}, field_text, flag_verbose);
             
+            keyboard
             if nargin < 4
                 flag_verbose = true;
             end

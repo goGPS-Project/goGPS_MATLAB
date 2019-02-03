@@ -1,5 +1,5 @@
 function [str_is_found] = instr(str, pattern)
-    % implementation fo constains function, not presents in all matlab
+    % implementation fo contains function, not presents in all matlab
     %
     % SYNTAX:
     %   str_is_found = instr(str, pattern)

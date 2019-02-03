@@ -2106,14 +2106,37 @@ end
         end
         
         function createNewProject(this, caller, event)
-            % Create a new project
-            
+            % Create a new project            
             new = GUI_New_Project(this);
         end
         
         function about(this, caller, event)
-            % Create a new project            
+            % Show About window
             new = GUI_About(this);
+        end
+        
+        function setToPPP(this, caller, event)
+            % Reset settings to values suggested for PPP troposphere estimation
+            this.state.setToTropoPPP();
+            this.updateUI();
+        end
+        
+        function setToIonoFreeNET(this, caller, event)
+            % Reset settings to values suggested for NET solution (long baselines iono-free)
+            this.state.setToLongNET();
+            this.updateUI();
+        end
+        
+        function setToMediumNET(this, caller, event)
+            % Reset settings to values suggested for NET solution (medium < 20km baselines no iono)
+            this.state.setToMediumNET();
+            this.updateUI();
+        end
+        
+        function setToShortNET(this, caller, event)
+            % Reset settings to values suggested for NET solution (short baselines no iono, no tropo)
+            this.state.setToShortNET();
+            this.updateUI();
         end
         
         function loadState(this, caller, event)
@@ -2364,6 +2387,19 @@ end
             uimenu(this.menu.goGPS, ...
                 'Label', 'About', ...
                 'Callback', @this.about);            
+            this.menu.options = uimenu(this.w_main, 'Label', 'Options');
+            uimenu(this.menu.options, ...
+                'Label', 'Set for PPP troposphere estimation', ...
+                'Callback', @this.setToPPP);
+            uimenu(this.menu.options, ...
+                'Label', 'Set for NET solution (short baselines - ignore ionosphere - ignore troposphere)', ...
+                'Callback', @this.setToShortNET);
+            uimenu(this.menu.options, ...
+                'Label', 'Set for NET solution (medium baselines < 20km - ignore ionosphere)', ...
+                'Callback', @this.setToMediumNET);
+            uimenu(this.menu.options, ...
+                'Label', 'Set for NET solution (long baselines - iono-free)', ...
+                'Callback', @this.setToIonoFreeNET);
             this.menu.project = uimenu(this.w_main, 'Label', 'Project');
             uimenu(this.menu.project, ...
                 'Label', 'New', ...

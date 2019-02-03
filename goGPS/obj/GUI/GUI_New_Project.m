@@ -58,6 +58,7 @@ classdef GUI_New_Project < handle
         
         dir_base    % handle to dir EditBox
         prj_name    % handle to prj EditBox
+        prj_type    % handle to prj type List
         
         check_boxes % List of chgoGPS
         pop_ups     % List of drop down menu
@@ -177,7 +178,7 @@ classdef GUI_New_Project < handle
             
             fnp = File_Name_Processor();
             % ProjectType
-            [~, prj_type] = Core_UI.insertPopUpDark(panel_g_border, 'Project type', {'PPP'}, 'prj_type', @this.none, [110 100]);
+            [~, this.prj_type] = Core_UI.insertPopUpDark(panel_g_border, 'Project type', {'PPP', 'NET (short baselines) no iono - no tropo', 'NET  (medium baselines) no iono', 'NET (long baselines) iono free'}, 'prj_type', @this.none, [110 300]);
             
             % Folder
             [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [120 -1 25]);                      
@@ -255,7 +256,7 @@ classdef GUI_New_Project < handle
         
         function okCreate(this, caller, event)
             try
-                Core_Utils.createEmptyProject(this.dir_base.String, this.prj_name.String);
+                Core_Utils.createEmptyProject(this.dir_base.String, this.prj_name.String, this.prj_type.Value);
                 this.init();
                 close(this.win);
             catch ex

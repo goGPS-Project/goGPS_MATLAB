@@ -1280,7 +1280,7 @@ classdef Core_Utils < handle
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
-        function createEmptyProject(base_dir, prj_name)
+        function createEmptyProject(base_dir, prj_name, prj_type)
             % create empty config file
             %
             % SYNTAX
@@ -1288,8 +1288,13 @@ classdef Core_Utils < handle
             %    createEmptyProject(prj_name)
             
             fnp = File_Name_Processor();
-            state = Main_Settings('');
 
+            if nargin == 3
+                state = Main_Settings('', fnp.checkPath([base_dir filesep prj_name]));
+            else
+                state = Main_Settings('');
+            end
+            
             if nargin == 1
                 prj_name = base_dir;
                 base_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
@@ -1304,11 +1309,25 @@ classdef Core_Utils < handle
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'RINEX']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/CRD']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/ocean']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/MET']));
             state.setPrjHome(fnp.checkPath([base_dir filesep prj_name]));
             state.prj_name = prj_name;
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
+            if nargin == 3
+                switch prj_type
+                    case 1 % PPP for tropo
+                        state.setToTropoPPP();
+                    case 2 % NET no iono, no tropo
+                        state.setToShortNET();
+                    case 3 % NET no iono
+                        state.setToMediumNET();
+                    case 4 % NET iono-free                       
+                        state.setToLongNET();
+                end
+            end
             state.save(config_path);
+            state.check();
             Core.getCurrentSettings().import(state);
         end
         
