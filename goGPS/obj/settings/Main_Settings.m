@@ -2556,7 +2556,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   n_missing = this.checkPath(field_name, field_text, flag_verbose);
             %   n_missing = this.checkPath({field_dir, field_name}, field_text, flag_verbose);
             
-            keyboard
             if nargin < 4
                 flag_verbose = true;
             end
