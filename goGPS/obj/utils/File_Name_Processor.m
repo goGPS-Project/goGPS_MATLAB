@@ -421,7 +421,7 @@ classdef File_Name_Processor < handle
             end
         end
 
-        function [universal_path, is_valid] = checkPath(path)
+        function [universal_path, is_valid] = checkPath(path, prj_home)
             % Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep
             %
             % SYNTAX:
@@ -440,6 +440,15 @@ classdef File_Name_Processor < handle
             %       2 => is a file
             %       7 => is a folder
 
+            if instr(path, '${PRJ_HOME}')
+                if nargin < 2 
+                %    state = Core.getState();
+                %    prj_home = state.getHomeDir;
+                    prj_home = '';
+                end
+                path = strrep(path, '${PRJ_HOME}', prj_home);
+            end
+            
             prefix = '';
             if numel(path) > 2
                 prefix = iif(strcmp(path(1:2),'\\'), '\', '');

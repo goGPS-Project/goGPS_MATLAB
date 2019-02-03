@@ -3201,7 +3201,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.updateCoordinates();
                     time = time.getGpsTime();
                     if this.isStatic()
-                        [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
+                        [P, T, undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                         H = zeros(l,1);
                         H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
                     else
@@ -3223,7 +3223,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.updateCoordinates();
                         time = time.getGpsTime();
                         if this.isStatic()
-                            [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
+                            [P, T, undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                         else
                             P = zeros(l,1);
                             T = zeros(l,1);
@@ -3235,7 +3235,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     if any(isnan(H))
                         % Fall back to std values
-                        H(isnan(H)) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
+                        H(isnan(H)) = atmo.STD_HUMI; % * exp(-0.0006396*this.h_ortho);
                     end
             end
             if use_id_sync
@@ -5731,8 +5731,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             % get meteo data
             
-            
-            
             % upadte the ztd zwd
             this.updateAprTropo();
             
@@ -5761,7 +5759,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.zwd(:) = 0;
             this.updateErrTropo();
-            
         end
         
         

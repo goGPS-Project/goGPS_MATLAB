@@ -44,8 +44,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
     properties (Constant, Access = 'protected')
         % id to string of out modes
-        DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
-        DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];
+        DEFAULT_DIR_IN = ['${PRJ_HOME}' filesep '..' filesep '..' filesep];
+        DEFAULT_DIR_OUT = ['${PRJ_HOME}' filesep 'out', filesep];
     end
     
     % Real constant
@@ -81,7 +81,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
         % STATIONS
         OBS_DIR = 'RINEX';
-        OBS_NAME = {'ZIMM${DOY}${S}.${YY}O'};
+        OBS_NAME = {'NAME${DOY}${S}.${YY}O'};
         REC_DYN_MODE = 0;    % Array for each receiver specify the kind of station
                              % - rec_mode = 0; static
                              % - rec_mode = 1; constant velocity
@@ -151,7 +151,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         ATX_NAME = 'igs14.atx';    % Name antex file
 
         % OUT PATH
-        OUT_DIR = [Main_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
+        OUT_DIR = Main_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = [];     % This parameter store the current run number
         
@@ -161,7 +161,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         % ADV RECEIVER DEFAULT PARAMETERS
         STD_CODE = 3;                                   % Std of code observations [m]
-        STD_PHASE = 0.03;                               % Std of phase observations [m]
+        STD_PHASE = 0.003;                              % Std of phase observations [m]
         STD_PHASE_IF = 0.009;                           % Std of iono-free phase observations [m]
         SIGMA0_CLOCK = 4.47e-9;                         % Std of a priori receiver clock
         SIGMA0_R_CLOCK = 31                             % Std of receiver clock
@@ -200,6 +200,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         NET_REWEIGHT_MODE = 1                           % NET re-weight / snooping
                                                         % 1: none
                                                         % 2: simple 4 loops
+                                                        % 3: simple 4 loops + remove bad sat
                                                         
                                                         
         FLAG_AMB_PASS = false;                          % try to pass ambiguities to the next session
@@ -571,11 +572,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Main_Settings.W_MODE;
-        %  - weights = 0: same weight for all the observations
-        %  - weights = 1: weight based on satellite elevation (sin)
-        %  - weights = 2: weight based on signal-to-noise ratio
-        %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
-        %  - weights = 4: weight based on satellite elevation (exp)
+        %  - weights = 1: same weight for all the observations
+        %  - weights = 2: weight based on satellite elevation (sin)
+        %  - weights = 3: weight based on satellite elevation (exp)
 
         % PPP re-weight / snooping
         ppp_reweight_mode = Main_Settings.PPP_REWEIGHT_MODE;
@@ -662,21 +661,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     %%  INIT
     % =========================================================================
     methods
-        function this = Main_Settings(ini_settings_file)
+        function this = Main_Settings(ini_settings_file, prj_home)
             % Creator
             %
             % SYNTAX
-            %   s_obj = Main_Settings(<ini_settings_file>);
+            %   s_obj = Main_Settings(<ini_settings_file>, <prj_home>);
 
             this.initLogger();
             this.log.addMarkedMessage('Building settings object...');
             this.log.newLine();
-            if (nargin == 1)
+            if (nargin >= 1)
                 if ~exist(ini_settings_file, 'file')
                     if ~isempty(ini_settings_file)
                         this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
                         ini_settings_file = this.LAST_SETTINGS;
                     end
+                end
+                if (nargin >= 2)
+                    this.setPrjHome(prj_home);
                 end
             else
                 ini_settings_file = this.LAST_SETTINGS;
@@ -706,7 +708,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             if isa(state, 'Ini_Manager')
                 % PROJECT
-                this.prj_name   = fnp.checkPath(state.getData('prj_name'));
+                this.prj_name   = fnp.checkPath(state.getData('prj_name'), this.getHomeDir());
                 if isempty(fnp.getPath(state.file_name))
                     dir_fallback = fnp.getFullDirPath([fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]);
                 else
@@ -741,26 +743,26 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 % STATIONS
                 this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
-                this.obs_name = fnp.checkPath(state.getData('obs_name'));
+                this.obs_name = fnp.checkPath(state.getData('obs_name'), this.getHomeDir());
                 this.obs_full_name = {};
                 
                 this.rec_dyn_mode = state.getData('rec_dyn_mode');
 
                 this.crd_dir    = fnp.getFullDirPath(state.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir')), this.prj_home));
-                this.crd_name   = fnp.checkPath(state.getData('crd_name'));
+                this.crd_name   = fnp.checkPath(state.getData('crd_name'), this.getHomeDir());
                 this.met_dir    = fnp.getFullDirPath(state.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir')), this.prj_home));
-                this.met_name   = fnp.checkPath(state.getData('met_name'));
+                this.met_name   = fnp.checkPath(state.getData('met_name'), this.getHomeDir());
                 this.met_full_name = {};
                 this.ocean_dir  = fnp.getFullDirPath(state.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir')), this.prj_home));
-                this.ocean_name = fnp.checkPath(state.getData('ocean_name'));
+                this.ocean_name = fnp.checkPath(state.getData('ocean_name'), this.getHomeDir());
 
                 % REFERENCE
                 %this.remote_res_conf_dir = fnp.getFullDirPath(settings.getData('remote_res_conf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('remote_res_conf_dir')), this.prj_home));
                 this.igrf_dir   = fnp.getFullDirPath(state.getData('igrf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('igrf_dir')), this.prj_home));
-                this.igrf_name  = fnp.checkPath(state.getData('igrf_name'));
+                this.igrf_name  = fnp.checkPath(state.getData('igrf_name'), this.getHomeDir());
                 this.erp_dir    = fnp.getFullDirPath(state.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
                 this.geoid_dir  = fnp.getFullDirPath(state.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
-                this.geoid_name = fnp.checkPath(state.getData('geoid_name'));
+                this.geoid_name = fnp.checkPath(state.getData('geoid_name'), this.getHomeDir());
                 this.iono_dir   = fnp.getFullDirPath(state.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
                 this.atm_load_dir   = fnp.getFullDirPath(state.getData('atm_load_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('atm_load_dir')), this.prj_home));
                 this.vmf_dir   = fnp.getFullDirPath(state.getData('vmf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('vmf_dir')), this.prj_home));
@@ -785,7 +787,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % ANTENNAS
                 this.atx_dir    = fnp.getFullDirPath(state.getData('atx_dir'), this.prj_home, pwd);
-                this.atx_name   = fnp.checkPath(state.getData('atx_name'));
+                this.atx_name   = fnp.checkPath(state.getData('atx_name'), this.getHomeDir());
 
                 % OUTPUT
                 this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir')), this.prj_home));
@@ -793,7 +795,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     % fallback of fallback
                     this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home);
                 end
-                this.out_prefix = fnp.checkPath(state.getData('out_prefix'));
+                this.out_prefix = fnp.checkPath(state.getData('out_prefix'), this.getHomeDir());
                 this.run_counter = state.getData('run_counter');
                 this.run_counter_is_set = ~isempty(this.run_counter);                
                 
@@ -1057,13 +1059,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
-            str = [str sprintf(' Project home:                                     %s\n', fnp.getRelDirPath(this.prj_home, pwd))];
-            str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.cur_ini)];
+            str = [str sprintf(' Project home:                                     %s\n', fnp.getFullDirPath(this.prj_home, pwd))];
+            str = [str sprintf(' Path to the current project ini file:             %s\n\n', fnp.getRelDirPath(this.cur_ini, pwd))];
             str = [str '---- SESSION --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Definition of the file names to be parsed\n')];
             if ~(this.sss_date_start.isempty)
-                str = [str sprintf(' Session start at                              %s \n', this.sss_date_start.toString())];
-                str = [str sprintf(' Session end at                                %s \n', this.sss_date_stop.toString())];
+                str = [str sprintf(' Session start at   %s \n', this.sss_date_start.toString())];
+                str = [str sprintf(' Session end at     %s \n', this.sss_date_stop.toString())];
             end
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
@@ -1105,7 +1107,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Try to download the missing resources:            %d\n\n', this.flag_download)];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
-            str = [str sprintf(' Selected center:                                 %s\n\n', strCell2Str(this.selected_center))];
+            str = [str sprintf(' Selected center:                                  %s\n\n', strCell2Str(this.selected_center))];
             
             str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
@@ -1117,7 +1119,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', fnp.getRelDirPath(this.ems_dir, this.prj_home))];
             
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
+            str = [str sprintf(' Directory of antennas (atx) files                 %s \n', fnp.getRelDirPath(this.atx_dir))];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
             
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
@@ -1156,7 +1158,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];
             str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
-            str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.flag_net_fix})];
+            str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
@@ -1536,13 +1538,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % PROCESSING PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Enable cycle slip repair (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable cycle slip repair (0/1) Experimental', str_cell);
             str_cell = Ini_Manager.toIniString('flag_repair', this.flag_repair, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
             for i = 1 : numel(this.W_SMODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i - 1, this.W_SMODE{i}), str_cell);
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i, this.W_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
@@ -1567,6 +1569,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.NET_AMB_FIX_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Allow ambiguity passing from one session to the following (experimental)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_amb_pass', this.flag_amb_pass, str_cell);
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
@@ -1826,13 +1829,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             fnp = File_Name_Processor();
-            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home, [], fnp.getFullDirPath(this.(upper(field_name))));
+            tmp_path = fnp.checkPath(this.(field_name), this.getHomeDir);
+            tmp_default_path = fnp.getFullDirPath(fnp.checkPath(this.(upper(field_name)), this.getHomeDir), this.getHomeDir);
+            this.(field_name) = fnp.getFullDirPath(tmp_path, this.prj_home, [], fnp.getFullDirPath(tmp_default_path));
             switch nargin
-                case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
-                case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
-                case 4, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid, check_existence);
+                case 2, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path);
+                case 3, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid);
+                case 4, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
+            this.(field_name) = fnp.getFullDirPath(this.(field_name));
         end
 
         function checkNumericField(this, field_name, limits, valid_val)
@@ -1858,16 +1864,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.checkCrdPath(<file_path>)
             fnp = File_Name_Processor();
-            file_path = fnp.checkPath(file_path);
+            file_path = fnp.checkPath(file_path, this.getHomeDir());
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 [~, name, ext] = fileparts(file_path);
                 % check for existence in the local project folder standard location
-                tmp_path = fnp.checkPath([this.prj_home this.CRD_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                tmp_path = fnp.checkPath([this.prj_home this.CRD_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext], this.getHomeDir());
                 if exist(tmp_path, 'file')
                     file_path = tmp_path;
                 else
                     % check for existence in the data folder standard location
-                    tmp_path = fnp.checkPath([this.crd_dir filesep name ext]);
+                    tmp_path = fnp.checkPath([this.crd_dir filesep name ext], this.getHomeDir());
                     if exist(tmp_path, 'file')
                         file_path = tmp_path;
                     else
@@ -1886,17 +1892,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.checkAtxPath(<file_path>)
             fnp = File_Name_Processor();
-            file_path = fnp.checkPath(file_path);
+            file_path = fnp.checkPath(file_path, this.getHomeDir());
 
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 [~, name, ext] = fileparts(file_path);
                 % check for existence in the local project folder standard location
-                tmp_path = fnp.checkPath([this.prj_home this.ATX_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                tmp_path = fnp.checkPath([this.prj_home this.ATX_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext], this.getHomeDir());
                 if exist(tmp_path, 'file')
                     file_path = tmp_path;
                 else
                     % check for existence in the data folder standard location
-                    tmp_path = fnp.checkPath([this.atx_dir filesep name ext]);
+                    tmp_path = fnp.checkPath([this.atx_dir filesep name ext], this.getHomeDir());
                     if exist(tmp_path, 'file')
                         file_path = tmp_path;
                     else
@@ -1915,18 +1921,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.checkAtxPath(<file_path>)
             fnp = File_Name_Processor();
-            file_path = fnp.checkPath(file_path);
+            file_path = fnp.checkPath(file_path, this.getHomeDir());
 
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 fnp = File_Name_Processor();
                 [~, name, ext] = fileparts(file_path);
                 % check for existence in the local project folder standard location
-                tmp_path = fnp.checkPath([this.prj_home this.OCEAN_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                tmp_path = fnp.checkPath([this.prj_home this.OCEAN_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext], this.getHomeDir());
                 if exist(tmp_path, 'file')
                     file_path = tmp_path;
                 else
                     % check for existence in the data folder standard location
-                    tmp_path = fnp.checkPath([this.ocean_dir filesep name ext]);
+                    tmp_path = fnp.checkPath([this.ocean_dir filesep name ext], this.getHomeDir());
                     if exist(tmp_path, 'file')
                         file_path = tmp_path;
                     else
@@ -1945,18 +1951,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.checkMetPath(<file_path>)
             fnp = File_Name_Processor();
-            file_path = fnp.checkPath(file_path);
+            file_path = fnp.checkPath(file_path, this.getHomeDir());
 
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 fnp = File_Name_Processor();
                 [~, name, ext] = fileparts(file_path);
                 % check for existence in the local project folder standard location
-                tmp_path = File_Name_Processor.checkPath([this.prj_home this.MET_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                tmp_path = File_Name_Processor.checkPath([this.prj_home this.MET_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext], this.getHomeDir());
                 if exist(tmp_path, 'file')
                     file_path = tmp_path;
                 else
                     % check for existence in the data folder standard location
-                    tmp_path = fnp.checkPath([this.met_dir filesep name ext]);
+                    tmp_path = fnp.checkPath([this.met_dir filesep name ext], this.getHomeDir());
                     if exist(tmp_path, 'file')
                         file_path = tmp_path;
                     else
@@ -2002,6 +2008,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('sss_duration', [0 365*86400]);
             this.checkNumericField('sss_buffer', [0 86400*10]);
         
+            this.checkPathField('out_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkPathField('obs_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkCellStringField('obs_name', EMPTY_IS_NOT_VALID);
 
@@ -2035,7 +2042,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('rec_dyn_mode');
             this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
-            this.checkStringField('ocean_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('ocean_dir', EMPTY_IS_NOT_VALID);
 
             this.checkPathField('iono_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('iono_name', EMPTY_IS_VALID);
@@ -2086,7 +2093,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     file_name = file_name_all{r};
                     file_count = 0;
                     for f = 1 : numel(file_name)
-                        full_path = fnp.checkPath(file_name{f});
+                        full_path = fnp.checkPath(file_name{f}, this.getHomeDir());
                         file_ok = exist(full_path, 'file') == 2;
                         file_count = file_count + uint16(logical(file_ok));
                         if go_verbose
@@ -2437,7 +2444,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   file_dir = getHomeDir(this)
-            file_dir = this.prj_home;
+            file_dir = File_Name_Processor.getFullDirPath(this.prj_home);
         end
 
         function remote_source_file = getRemoteSourceFile(this)
@@ -2448,7 +2455,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             remote_ini_path = [this.remote_res_conf_dir iif(isempty(this.remote_res_conf_dir), '', filesep) 'remote_resource.ini'];
             remote_ini_path = fnp.getFullDirPath(remote_ini_path, this.getHomeDir);
-            remote_source_file = fnp.checkPath(remote_ini_path);
+            remote_source_file = fnp.checkPath(remote_ini_path, this.getHomeDir());
             if ~exist(remote_source_file, 'file')
                 remote_source_file = which('remote_resource.ini');
             end
@@ -2741,7 +2748,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   nav_path = this.getNavEphPath()
-            out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
+            out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name), this.getHomeDir());
         end
 
         function out = getNavClkPath(this)
@@ -2749,7 +2756,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   nav_path = this.getNavClkPath()
-            out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+            out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name), this.getHomeDir());
         end
 
         function out = getErpPath(this)
@@ -2757,7 +2764,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   erp_path = this.getErpPath()
-            out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+            out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name), this.getHomeDir());
         end
 
         function out = getCrdDir(this)
@@ -2777,7 +2784,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 out = '';
             else
                 crd_dir = File_Name_Processor.getFullDirPath(this.crd_dir, this.getHomeDir);
-                out = File_Name_Processor.checkPath(strcat(crd_dir, filesep, this.crd_name));
+                out = File_Name_Processor.checkPath(strcat(crd_dir, filesep, this.crd_name), this.getHomeDir());
             end
         end
 
@@ -2848,7 +2855,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   file_path = this.getIgrfFile()
-            file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
+            file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name), this.getHomeDir());
         end
 
         function out = getGeoidDir(this)
@@ -2856,7 +2863,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   out = this.getGeoidDir()
-            out = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep));
+            out = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep), this.getHomeDir());
         end
         
         function file_path = getGeoidFile(this)
@@ -2864,7 +2871,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   file_path = this.getGeoidFile()
-            file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
+            file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name), this.getHomeDir());
         end
 
         function out_dir = getOutDir(this)
@@ -2872,7 +2879,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   out_dir = this.getOutDir()
-            out_dir = File_Name_Processor.checkPath(this.out_dir);
+            out_dir = File_Name_Processor.checkPath(this.out_dir, this.getHomeDir());
         end
 
         function out_prefix = getOutPrefix(this)
@@ -2881,7 +2888,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   out_prefix = this.getOutPrefix()
             fnp = File_Name_Processor;
-            out_prefix = fnp.checkPath(this.out_prefix);
+            out_prefix = fnp.checkPath(this.out_prefix, this.getHomeDir());
         end
 
         function updateOutPath(this, date, session)
@@ -2905,7 +2912,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 session = '0';
             end
 
-            this.out_full_path = fnp.dateKeyRep(fnp.checkPath([this.out_dir filesep this.out_prefix]), date, session);
+            this.out_full_path = fnp.dateKeyRep(fnp.checkPath([this.out_dir filesep this.out_prefix], this.getHomeDir()), date, session);
 
             if ~(this.run_counter_is_set)
                 % make sure to have the name of the file and the name of the
@@ -2918,7 +2925,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     this.run_counter = 0; % set the counter of the output == 0
                 else
                     % put the cell of the file in a single string
-                    file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));
+                    file_list = fnp.checkPath(strCell2Str({file_list(:).name},''), this.getHomeDir());
                     % parse with regexp for output numbers -> get the maximum
                     this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROPLC>
                     this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
@@ -3073,7 +3080,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
+            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name), this.getHomeDir());
             step_sec = fnp.getStepSec(file_name);
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
@@ -3102,7 +3109,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             met_full_name = {};
             for i = 1 : numel(met_name)
-                met_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop); %#ok<AGROW>
+                met_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i}), this.getHomeDir()), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop); %#ok<AGROW>
             end
         end
 
@@ -3112,7 +3119,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name), this.getHomeDir());
             step_sec = fnp.getStepSec(file_name);
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
@@ -3128,7 +3135,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name), this.getHomeDir());
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy;
@@ -3147,9 +3154,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
             if this.isIonoBroadcast()
                 % Search broadcast orbits in the ephemerides folder
-                file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
+                file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name), this.getHomeDir());
             else
-                file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));
+                file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name), this.getHomeDir());
             end
 
             date_start = date_start.getCopy;
@@ -3163,7 +3170,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name_nt));
+            file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name_nt), this.getHomeDir());
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy;
@@ -3178,7 +3185,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            stm_load_full_name = fnp.checkPath(strcat(strrep(this.atm_load_dir, '${YYYY}',''), filesep, this.atm_load_name_t));
+            stm_load_full_name = fnp.checkPath(strcat(strrep(this.atm_load_dir, '${YYYY}',''), filesep, this.atm_load_name_t), this.getHomeDir());
         end
         
         function vmf_full_name = getVMFFileName(this, date_start, date_stop)
@@ -3187,7 +3194,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name));
+            file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name), this.getHomeDir());
 
             date_start = date_start.getCopy;
             date_stop = date_stop.getCopy;
@@ -3202,7 +3209,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the full name of the ERP files (replacing special keywords)
             % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            vmf_height_name = fnp.checkPath(strcat(strrep(this.vmf_dir, '${YYYY}',''), filesep, 'orography_ell'));
+            vmf_height_name = fnp.checkPath(strcat(strrep(this.vmf_dir, '${YYYY}',''), filesep, 'orography_ell'), this.getHomeDir());
 
         end
 
@@ -3212,7 +3219,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
+            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name), this.getHomeDir());
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy;
@@ -3363,7 +3370,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   out_prefix = this.setOutPrefix(out_prefix)
-            this.out_prefix = File_Name_Processor.checkPath(out_prefix);
+            this.out_prefix = File_Name_Processor.checkPath(out_prefix, this.getHomeDir());
         end
 
         function updateObsFileName(this)
@@ -3377,7 +3384,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.obs_name = {this.obs_name};
             end
             for i = 1 : numel(this.obs_name)
-                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i}), this.getHomeDir()), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
 
@@ -3393,7 +3400,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             this.met_full_name = {};
             for i = 1 : numel(this.met_name)
-                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i}), this.getHomeDir()), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
             end
             %this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
         end
@@ -3551,11 +3558,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   this.autoUpdatePrj(this, file_path)
             fnp = File_Name_Processor();
 
-            [path_str, name, ~] = fileparts(fnp.checkPath(file_path));
+            [path_str, name, ~] = fileparts(fnp.checkPath(file_path, this.getHomeDir()));
             this.cur_ini = [path_str filesep name '.ini'];
             path_parts = strsplit(path_str,filesep);
             if numel(path_parts) > 3
-                this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep));
+                this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep), this.getHomeDir());
                 this.prj_name = path_parts{end-1};
                 this.log.addMessage('Trying to guess project name / home / ini');
                 this.log.addMessage(sprintf(' name: %s', this.prj_name));
