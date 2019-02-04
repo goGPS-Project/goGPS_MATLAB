@@ -249,6 +249,28 @@ classdef Fixer < handle
             %mass_pt = mode(ra,2);
             mass_pt = iZt*(mass_pt);
         end
+        
+        function amb_fixed=bootstrap(amb_float,L)
+            % compute the integer bootstrap estimator
+            %
+            % SYNTAX
+            %  amb_fixed=bootstrap(amb_float,L)
+            %
+            % INPUT
+            %  amb_float : float value of the desidered integer
+            %  L : lower vtriangular decomposition (LDLt) of the Variance Covarince Matrix
+            
+            amb_fixed = zeros(size(amb_float));
+            
+            for i = 1:n-1
+                amb_fixed(i) = amb_float(i);
+                amb_float(i+1:end) = amb_float(i+1:end) - L(i+1:end,i)*(amb_float(i) - amb_fixed(i))
+            end
+            
+            
+            
+            
+        end
 
         
     end
