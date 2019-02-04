@@ -3134,6 +3134,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             out = this.out_full_path;
         end
+        
+        function w_mode = getWeigthingStrategy(this)
+            % Get the weighting strategy
+            %
+            % SYNTAX
+            %   w_mode = getWeigthingStrategy(this)
+            w_mode = this.w_mode;
+        end
 
         function counter = getRunCounter(this)
             % Get the currGPS_Time(0)ent run counter
@@ -4229,3 +4237,4 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
     end
 end
+
