@@ -1752,7 +1752,7 @@ classdef LS_Manipulator < handle
                     
                     
                     % ILS shrinking, method 1
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Main_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET}, 1);
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Main_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET});
                     
                     if is_fixed
                         % FIXED!!!!

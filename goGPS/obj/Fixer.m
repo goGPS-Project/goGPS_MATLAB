@@ -43,7 +43,6 @@
 %--------------------------------------------------------------------------
 classdef Fixer < handle
     properties (GetAccess = private, SetAccess = private)
-        iar_method = 1;
         p0 = 0.001;
         mu = [];
     end
@@ -54,7 +53,7 @@ classdef Fixer < handle
             % nothing necessary, this is mainly a Static class
         end
         
-        function [amb_fixed, is_fixed, l_fixed] = fixAmbiguities(this, amb_float, C_amb_amb, approach, iar_method)
+        function [amb_fixed, is_fixed, l_fixed] = fixAmbiguities(this, amb_float, C_amb_amb, approach)
             % Fix ambiguities using the selected approach 
             %
             % INPUT
@@ -62,16 +61,12 @@ classdef Fixer < handle
             %   C_amb_amb   covariance matrix of the ambiguities
             %
             %   approach    chose an approach amongo these:
-            %                - 'lambda'     (yes) it's the only one available at the moment'
+            %                - 'lambda_ILS'     
+            %                - 'lambda_bootstrapping'
+            %                - 'lambda_partial'
+            %                - 'bayesian'
+            %                - 'best_integer_equivariant'
             %
-            %   iar_method  Integer Ambiguities Resolution method
-            %               Lambda approach:
-            %                   1: ILS method based on search-and-shrink [DEFAULT]
-            %                   2: ILS method based enumeration in search
-            %                   3: integer rounding method
-            %                   4: integer bootstrapping method
-            %                   5: PAR with the input P0 of user-defined success rate
-            %                   6: ILS method with Ratio Test (uses search-and shrink)
             %
             % OUTPUTS:
             %
@@ -83,7 +78,7 @@ classdef Fixer < handle
             %   l_fixed:   Logical array of fixed ambiguities
             %
             % SYNTAX
-            %   [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach, iar_method)
+            %   [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach)
             
             amb_fixed = amb_float;
             is_fixed = 0;
@@ -91,9 +86,9 @@ classdef Fixer < handle
             
             amb_ok = (abs(diag(C_amb_amb)) < 1); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
             switch approach
-                case {'lambda'}
+                case {'lambda_ILS'}
                     try
-                        [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), iar_method, 'P0', this.p0, 'mu', this.mu);
+                        [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
                         %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
                         
                         mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
@@ -158,8 +153,13 @@ classdef Fixer < handle
                         is_fixed = 0;
                         l_fixed = false(size(amb_float));
                     end
-                case {'bayesian'}
+                case {'bayesian_with_monte_carlo'}
                     [tmp_amb_fixed] = bayesianAmbFixing(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
+                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                    is_fixed = true;
+                    l_fixed = amb_ok;
+                case {'best_integer_equivariant'}
+                    [tmp_amb_fixed] = BIE(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)))
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
                     is_fixed = true;
                     l_fixed = amb_ok;
@@ -170,7 +170,7 @@ classdef Fixer < handle
     
     methods (Access = public, Static)
         
-        function [amb_fixed, is_fixed, l_fixed] = fix(amb_float, C_amb_amb, approach, iar_method)
+        function [amb_fixed, is_fixed, l_fixed] = fix(amb_float, C_amb_amb, approach)
             % Fix ambiguities using the selected approach 
             %
             % INPUT
@@ -179,15 +179,6 @@ classdef Fixer < handle
             %
             %   approach    chose an approach amongo these:
             %                - 'lambda'     (yes) it's the only one available at the moment'
-            %
-            %   iar_method  Integer Ambiguities Resolution method
-            %               Lambda approach:
-            %                   1: ILS method based on search-and-shrink [DEFAULT]
-            %                   2: ILS method based enumeration in search
-            %                   3: integer rounding method
-            %                   4: integer bootstrapping method
-            %                   5: PAR with the input P0 of user-defined success rate
-            %                   6: ILS method with Ratio Test (uses search-and shrink)
             %
             % OUTPUTS:
             %
@@ -199,14 +190,13 @@ classdef Fixer < handle
             %   l_fixed:   Logical array of fixed ambiguities
             %
             % SYNTAX
-            %   [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, approach, iar_method)
+            %   [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, approach)
             
             this = Fixer();
             if nargin < 3 || isempty(approach)
                 approach = 'lambda';
-                iar_method = this.iar_method;
             end
-            [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach, iar_method);
+            [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach);
         end
     end
 end
