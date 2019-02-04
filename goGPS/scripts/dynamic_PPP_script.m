@@ -1,3 +1,10 @@
+% INSTRUCTION:
+% - Set up goGPS in PPP mode
+% - Run goGPS with only PREPRO command
+% - Launch the script, it will compute a kinematic solution for the first
+%   receiver
+
+
 % set up the PPP system
 ls = LS_Manipulator();
 id_sync = rec(1).work.getIdSync;
