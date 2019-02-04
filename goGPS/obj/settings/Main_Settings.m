@@ -2371,8 +2371,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.std_clock = 1e+30;
             this.spline_rate_tropo = 900;
             this.spline_rate_tropo_gradient = 3600;
-            this.spline_tropo_order = 2;
-            this.spline_tropo_gradient_order = 2;
+            this.spline_tropo_order = 3;
+            this.spline_tropo_gradient_order = 3;
             
             % Save Results
             this.flag_out_pwv = 0;
