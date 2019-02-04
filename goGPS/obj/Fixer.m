@@ -154,12 +154,12 @@ classdef Fixer < handle
                         l_fixed = false(size(amb_float));
                     end
                 case {'bayesian_with_monte_carlo'}
-                    [tmp_amb_fixed] = bayesianAmbFixing(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
+                    [tmp_amb_fixed] = this.bayesianAmbFixing(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
                     is_fixed = true;
                     l_fixed = amb_ok;
                 case {'best_integer_equivariant'}
-                    [tmp_amb_fixed] = BIE(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)))
+                    [tmp_amb_fixed] = this.BIE(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)));
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
                     is_fixed = true;
                     l_fixed = amb_ok;
@@ -198,5 +198,58 @@ classdef Fixer < handle
             end
             [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach);
         end
+        
+        function [bie, sols, p_sols] = BIE(a,Q,n_cand)
+            % compute the best integer equivariant 
+            %
+            % SYNTAX:
+            %    [bie, sols, p_sols] = Fixer.BIE(a, Q, <n_cand>)
+            if nargin < 3
+                n_cand = 8;
+            end
+            % compute best integer equivariant using fir 8 terms
+            if exist('decorrel') > 0
+                [dQ,Z,L,D,da,iZt] = decorrel(Q,a);
+            else
+                dQ = Q;
+                da = a;
+                iZt = eye(size(Q));
+            end
+            [zfixed,sqnorm] = ssearch(da,L,D,8);
+            p_sols = exp(-1/2*sqnorm);
+            p_sols = p_sols./sum(p_sols);
+            bie = sum(zfixed.*repmat(p_sols,size(zfixed,1),1),2);
+            bie = iZt*bie;
+            if nargout > 2
+                sols = iZt*zfixed;
+            end
+        end
+        
+        function [mass_pt] = bayesianAmbFixing(a,Q)
+            % Same as best integer equivarint but  using a montecarlo simulation
+            %
+            % SYNTAX:
+            %    [mass_pt] = bayesianAmbFixing(a,Q)
+            if exist('decorrel') > 0
+                [dQ,Z,L,D,da,iZt] = decorrel(Q,a);
+            else
+                dQ = Q;
+                da = a;
+                iZt = eye(size(Q));
+            end
+            R = chol(dQ);
+            n_samples = 500000;
+            %nc = det(2*pi*Q)^(0.5);
+            %nc*exp(-1/2*u'*iQ*u);
+            ra = repmat(da,1,n_samples)+ R*randn(numel(a),n_samples);
+            ra(abs(fracFNI(ra)) > 0.1) = nan;
+            ra = round(ra);
+            n_valid_sml = sum(~isnan(ra),2);
+            mass_pt = sum(nan2zero(ra),2)./n_valid_sml;
+            %mass_pt = mode(ra,2);
+            mass_pt = iZt*(mass_pt);
+        end
+
+        
     end
 end
