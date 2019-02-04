@@ -155,7 +155,7 @@ end
                 'NumberTitle', 'off', ...
                 'UserData', 'goGPSwin', ...
                 'Renderer', 'opengl', ...
-                'Position', [0 0 1010, 610]);
+                'Position', [0 0 1040, 610]);
             
             this.w_main = win;            
             
@@ -638,18 +638,18 @@ end
             err_box_g = uix.VBox('Parent', ds_h_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [165 40 5 45]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [165 40 5 45]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [165 40 5 45]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [173 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [173 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [173 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [173 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
 
             %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Sat to remove', 'sat_to_remove', '', @this.onEditChange, [95 120 0 40 ]);
             %Core_UI.insertEmpty(err_box_g);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [165 40 5 45]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [165 40 5 45]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [173 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [173 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [173 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
             err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
             
@@ -657,7 +657,7 @@ end
             
             ss_panel  = this.insertSatSelector(ds_h_box); %#ok<NASGU>
             
-            ds_h_box.Widths = [270 5 -1];
+            ds_h_box.Widths = [280 3 -1];
             
             %Core_UI.insertEmpty(ds_box_g);
             
@@ -687,7 +687,7 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
                          
             % left top left
-            ppp_panel = this.insertPPPOptions(opt_tll); %#ok<NASGU>
+            ppp_panel = this.insertCorrections(opt_tll); %#ok<NASGU>
                         
             % left top left right
             pp_panel = this.insertProcessingOptions(opt_tlr);
@@ -704,9 +704,9 @@ end
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [240 5 23 -1];
+            opt_l.Heights = [250 5 23 -1];
             opt_tll.Heights = 200;
-            opt_tlr.Heights = [120, 5, 115];
+            opt_tlr.Heights = [152, 5, 93];
             
             opt_tlh.Widths = [195 5 -1];
             opt_h.Widths = [-1 5 190];
@@ -732,22 +732,24 @@ end
             opt_v = uix.VBox('Parent', ocean_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
+            %this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
-            set( opt_v, 'Heights', [22 22 22 22] );
+            set( opt_v, 'Heights', [22 22 22] );
         end
         
         function proc_opt = insertProcessingOptions(this, container)
             proc_opt = Core_UI.insertPanelLight(container, 'Options');
             opt_grid = uix.VBox('Parent', proc_opt,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
+            Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
             Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            opt_grid.Heights = [22 22 5 22 22];
+            opt_grid.Heights = [22 5 22 22 5 22 22];
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -876,7 +878,7 @@ end
             %opt_container.Heights = [260 -1];
         end
         
-        function ppp_panel = insertPPPOptions(this, container)
+        function ppp_panel = insertCorrections(this, container)
             %%% processing options
             ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
             opt_grid = uix.Grid('Parent', ppp_panel,...
