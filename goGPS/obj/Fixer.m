@@ -215,7 +215,7 @@ classdef Fixer < handle
                 da = a;
                 iZt = eye(size(Q));
             end
-            [zfixed,sqnorm] = ssearch(da,L,D,8);
+            [zfixed,sqnorm] = ssearch(da,L,D,n_cand);
             p_sols = exp(-1/2*sqnorm);
             p_sols = p_sols./sum(p_sols);
             bie = sum(zfixed.*repmat(p_sols,size(zfixed,1),1),2);
