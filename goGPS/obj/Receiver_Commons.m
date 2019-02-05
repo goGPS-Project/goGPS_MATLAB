@@ -452,15 +452,27 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function n_sat = getNSat(this)
+        function [n_sat, n_sat_ss] = getNSat(this)
             % get num sta per epoch
             %
+            % OUTPUT
+            %   n_sat       total number of sat in view
+            %   n_sat_ss    struct(.G .E .R ...) number of sat per constellation
+            %
             % SYNTAX
-            %   zhd = this.getNSat()
+            %   [n_sat, n_sat_ss] = this.getNSat()
             if max(this.getIdSync) > numel(this.n_sat_ep)
                 n_sat = nan(size(this.getIdSync));
+                n_sat_ss.G = n_sat;
             else
                 n_sat = this.n_sat_ep(this.getIdSync);
+                if ~any(n_sat)
+                    % retrieve the n_sat from residuals
+                    n_sat = sum(this.sat.res(this.getIdSync,:) ~= 0, 2);
+                    for sys_c = this.cc.sys_c
+                        n_sat_ss.(sys_c) = sum(this.sat.res(this.getIdSync, this.cc.system == sys_c) ~= 0, 2);
+                    end
+                end
             end
         end
         
@@ -1549,6 +1561,24 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.showTropoPar('nsat', new_fig)
         end
         
+        function showNSatSS(this)
+            % Show number of satellites in view per constellation
+            if ~this.isEmpty()
+                [n_sat, n_sat_ss] = this.getNSat;
+                f = figure; f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                plot(zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
+                plot(zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                sys_list = {};
+                for i = 1 : numel(this.cc.sys_c)
+                    sys_list = [sys_list, {this.cc.sys_c(i)}];
+                end
+                legend([sys_list, {'All'}]);
+                ylim([0 (max(serialize(n_sat)) + 1)]);
+                grid minor;
+                h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
+
+            end            
+        end
         
         function showMedianTropoPar(this, par_name, new_fig)
             % one function to rule them all

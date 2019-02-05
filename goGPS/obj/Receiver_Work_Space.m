@@ -9188,7 +9188,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 prn  = this.prn(id_ph(id_sys));
                 band = unique(str2num(this.obs_code(id_ph(id_sys), 2)));
                 legend_on = false(max(band), 1);
-                legend_s = {};
+                legend_s{1} = {};
+                legend_s{2} = {};
                 for p = unique(prn)'
                     id_prn = find(prn == p);
                     band = str2num(this.obs_code(id_ph(id_sys(id_prn)), 2));
@@ -9206,16 +9207,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                         min_pr_prn(prn(id_prn(id_band)), b, s) = (min(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
                         max_ph_prn(prn(id_prn(id_band)), b, s) = (max(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
                         max_pr_prn(prn(id_prn(id_band)), b, s) = (max(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
+                        subplot(2,1,1)
                         plot(prn(id_prn(id_band)), std_ph_prn(prn(id_prn(id_band)), b, s), '.', 'MarkerSize', 30, 'Color', Core_UI.getColor(b, 9)); hold on;
+                        subplot(2,1,2)
                         plot(prn(id_prn(id_band)), std_pr_prn(prn(id_prn(id_band)), b, s), 'o', 'MarkerSize', 10, 'LineWidth', 3, 'Color', Core_UI.getColor(b, 9)); hold on;
                         obs_code = this.obs_code(id_ph(id_sys(id_prn(id_band))), :);
                         if ~legend_on(b)
                             legend_on(b) = true;
-                            legend_s = [legend_s {['PH ' obs_code(1:2)], ['PR ' obs_code(1:2)]}];
+                            legend_s{1} = [legend_s{1} {['PH ' obs_code(1:2)]}];
+                            legend_s{2} = [legend_s{2} {['PR ' obs_code(1:2)]}];
                         end
                     end
                 end
-                legend(legend_s);
+                subplot(2,1,1)
+                legend(legend_s{1});
+                subplot(2,1,2)
+                legend(legend_s{2});
                 %ylim([0 50]);
                 h = ylabel('std (mm)'); h.FontWeight = 'bold';
                 h = xlabel('PRN'); h.FontWeight = 'bold';

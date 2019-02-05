@@ -1864,11 +1864,24 @@ classdef GNSS_Station < handle
             end
         end
                 
-        function showNSat(this, new_fig)
+        function showNSat(sta_list, new_fig)
+            % Show total number of satellites in view (epoch by epoch) for each satellite
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('nsat', new_fig, false)
+            sta_list.showTropoPar('nsat', new_fig, false)
+        end
+        
+        function showNSatSS(sta_list)
+            % Show total number of satellites in view (epoch by epoch) for each satellite
+            
+            for r = 1 : numel(sta_list)
+                if ~(isempty(sta_list(r).out) || sta_list(r).out.isEmpty)
+                    sta_list(r).out.showNSatSS();
+                else
+                    sta_list(r).work.showNSatSS();
+                end
+            end
         end
         
         function showZhd(sta_list, new_fig, sub_plot_nsat)
