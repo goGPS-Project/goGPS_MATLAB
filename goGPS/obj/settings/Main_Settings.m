@@ -205,7 +205,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         
         FLAG_AMB_PASS = false;                          % try to pass ambiguities to the next session
         FLAG_PPP_AMB_FIX = false;                       % try to fix ambiguity
-        NET_AMB_FIX_APPROACH = 1;                           % try to fix ambiguity
+        NET_AMB_FIX_APPROACH = 1;                       % try to fix ambiguity
                                                         %  1 = no fix
                                                         %  2 = lambda
                                                         %  3 = bayesian

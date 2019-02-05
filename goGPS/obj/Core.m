@@ -59,6 +59,9 @@ classdef Core < handle
         
         creation_time = GPS_Time(now);
         is_advanced = true;
+        
+        session_list = [];  % in the go function this variable is update to keep the list of session to compute
+        preloaded_session = 0;  % Current preloaded session in Core (for meteo, orbits, and other data)
     end
     
     %% PROPERTIES SINGLETON POINTERS
@@ -355,13 +358,24 @@ classdef Core < handle
             rec_list = core.rec;
         end
                      
-        function cur_session = getCurrentSession()
+        function [cur_session, session_list, cur_pos] = getCurrentSession()
             % Get the id of the current session
             %
+            % OUTPUT
+            %   cur_session     current session
+            %   session_list    list of active sessions to process (in go)
+            %   cur_pos         pos of cur_session in session_list
+            %
             % SYNTAX
-            %   cur_session = Core.getCurrentSession() 
+            %   [cur_session, session_list, cur_pos] = Core.getCurrentSession()
             core = Core.getInstance(false, true);
             cur_session = core.state.getCurSession;
+            if nargout >= 2
+                session_list = core.session_list;
+                if nargout >= 3
+                    cur_pos = find(session_list ==cur_session);
+                end
+            end
         end
 
         function [rin_list, met_list] = getRinLists()
@@ -544,6 +558,7 @@ classdef Core < handle
             this.rf = Core_Reference_Frame();
             this.cmd = Command_Interpreter(this);
             if force_clean
+                this.preloaded_session = 0;
                 this.state.setCurSession(0);
                 this.rec = [];
             end
@@ -682,27 +697,36 @@ classdef Core < handle
     %% METHODS RUN
     % ==================================================================================================================================================
     methods
-        function is_empty = prepareSession(this, session_number)
+        function is_empty = prepareSession(this, session_number, flag_preload)
             % Check the time-limits for the files in the session
             % Init the Sky and Meteo object
             %
             % SYNTAX
             %   is_empty = this.prepareSession(session_number)
             
-            this.state.setCurSession(session_number);
-            session = session_number;
-            
-            this.log.newLine;
-            this.log.simpleSeparator();
-            this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
-            
-            if isempty(this.rec)
-                rec = GNSS_Station;
-            else
-                rec = this.rec;
+            if nargin < 3 || isempty(flag_preload)
+                flag_preload = false;
             end
             
-            this.log.newLine();
+            session = session_number;
+            if ~flag_preload
+                this.state.setCurSession(session_number);
+                
+                this.log.newLine;
+                this.log.simpleSeparator();
+                this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
+                
+                if isempty(this.rec)
+                    rec = GNSS_Station;
+                else
+                    rec = this.rec;
+                end
+                
+                this.log.newLine();                
+            elseif (session ~= this.preloaded_session)
+                this.log.addMarkedMessage(sprintf('Preloading session %d', session), 0);
+            end
+            
             rin_list = this.getRinFileList();
             if ~this.state.isRinexSession()
                 if ~isempty(rin_list)
@@ -712,6 +736,7 @@ classdef Core < handle
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
+                        
             if out_limits.length < 2 || (~this.state.isRinexSession() && ~rin_list.isValid) || ((time_lim_large.last - time_lim_large.first) < 0) % && ~rin_list_chk.isValid
                 is_empty = true;
                 this.log.addMessage(sprintf('No valid receivers are present / session not valid %d', session));
@@ -722,29 +747,34 @@ classdef Core < handle
                 this.log.addMessage(sprintf('End   %s', out_limits.last.toString()));
                 this.log.simpleSeparator();
                 
-                for r = 1 : this.state.getRecCount()
-                    this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
-                    if (numel(rec) < r) || rec(r).isEmpty
-                        rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0);
-                    else
-                        buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
-                        if buf == 0
-                            rec(r).work.resetWorkSpace();
-                            rec(r).old_work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                if ~flag_preload
+                    for r = 1 : this.state.getRecCount()
+                        this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
+                        if (numel(rec) < r) || rec(r).isEmpty
+                            rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0);
                         else
-                            % keep the old work
-                            rec(r).old_work = rec(r).work;
-                            rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
-                            % reset the new work
-                            rec(r).work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                            buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
+                            if buf == 0
+                                rec(r).work.resetWorkSpace();
+                                rec(r).old_work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                            else
+                                % keep the old work
+                                rec(r).old_work = rec(r).work;
+                                rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
+                                % reset the new work
+                                rec(r).work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                            end
                         end
                     end
                 end
-                if numel(rec) > 0
+                if flag_preload || numel(rec) > 0
                     this.log.newLine();
-                    this.rec = rec;
+                    if ~flag_preload
+                        this.rec = rec;
+                    end
+                                        
                     % Init Meteo and Sky objects
-                    if ~this.state.isNoResources()
+                    if ~this.state.isNoResources() && (session ~= this.preloaded_session)
                         this.initSkySession(time_lim_large);
                         this.log.newLine();
                         if this.state.isMet()
@@ -759,6 +789,7 @@ classdef Core < handle
                         if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
                             this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
                         end
+                        this.preloaded_session = session;
                     end
                 end
             end
@@ -803,6 +834,7 @@ classdef Core < handle
                 t1 = tic;
                 if cmd_line <= numel(sss_list)
                     sessions = sss_list{cmd_line};
+                    this.session_list = sessions;
                     this.net = [];
                     for s = sessions
                         if s ~= last_sss

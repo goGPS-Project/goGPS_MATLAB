@@ -360,6 +360,12 @@ classdef Parallel_Manager < Com_Interface
             missing_job = trg_list;
             completed_job = [];
             active_jobs = 0;
+            
+            % Get info on the curret session
+            core = Core.getCurrentCore();
+            [cur_sss, sss_list, sss_id] = Core.getCurrentSession();
+            log = core.getLogger();
+            
             while numel(completed_job) < numel(trg_list)
                 % Send work to slaves
                 parallel_job = 1 : min(numel(worker_stack), numel(missing_job));
@@ -374,10 +380,18 @@ classdef Parallel_Manager < Com_Interface
                     active_jobs = active_jobs + 1;
                 end
                 missing_job(1 : t) = []; % remove the currently executing jobs
-                worker_stack(parallel_job) = []; %  remove the active worker from the worker stack
+                worker_stack(parallel_job) = []; %  remove the active worker from the worker stack               
                 
-                % wait for complete job
-                pause(0.1);
+                % Before checking for finished job I can maybe start computeing the orbits for the next session!!!
+                test_parallel_session_load = false;
+                if sss_id < numel(sss_list) && test_parallel_session_load
+                    vl = log.getVerbosityLev(); log.setVerbosityLev(log.WARNING_VERBOSITY_LEV);
+                    core.prepareSession(sss_list(sss_id + 1), true);
+                    log.setVerbosityLev(vl);
+                else
+                    % wait for complete job
+                    pause(0.1);
+                end
                 
                 % check for complete jobs
                 [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack, worker2job);

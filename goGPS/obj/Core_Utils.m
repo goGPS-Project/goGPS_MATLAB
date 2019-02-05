@@ -1328,7 +1328,7 @@ classdef Core_Utils < handle
             end
             state.save(config_path);
             state.check();
-            Core.getCurrentSettings().import(state);
+            Core.getCurrentSettings.import(state);
         end
         
         function y = fillNan1D(y,x)
