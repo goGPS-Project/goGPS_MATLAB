@@ -2336,8 +2336,27 @@ classdef Core_Sky < handle
             %   Computation of the satellite position (X,Y,Z) and velocity by means
             %   of its ephemerides.
             
-            cc = Constellation_Collector('GRECJI');
-            sys_str = cc.getSys(char(Eph(31)));
+            % the following two line offer an elegant but slow implementation
+            %cc = Constellation_Collector('GRECJI');
+            %sys_str = cc.getSys(char(Eph(31)));            
+            % the following switch is equivalent to the previous two lines but musch faster
+            switch char(Eph(31))
+                case 'G'
+                    sys_str = GPS_SS();
+                case 'R'
+                    sys_str = GLONASS_SS();
+                case 'E'
+                    sys_str = Galileo_SS();
+                case 'C'
+                    sys_str = BeiDou_SS();
+                case 'J'
+                    sys_str = QZSS_SS();
+                case 'I'
+                    sys_str = IRNSS_SS();
+                case 'S'
+                    sys_str = SBAS_SS();
+            end
+            
             orbital_p = sys_str.ORBITAL_P;
             Omegae_dot = orbital_p.OMEGAE_DOT;
             
