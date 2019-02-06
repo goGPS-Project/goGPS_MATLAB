@@ -1870,7 +1870,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 l = l + 1;
                 if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
                     type_found = true;
-                    dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');
+                    dataset = textscan(txt(lim(l,1):lim(l,2)), '%f%c%18c%c');
                 end
             end
             this.rin_type = dataset{1};
