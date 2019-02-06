@@ -384,7 +384,7 @@ classdef Parallel_Manager < Com_Interface
                 
                 % Before checking for finished job I can maybe start computeing the orbits for the next session!!!
                 test_parallel_session_load = false;
-                if sss_id < numel(sss_list) && test_parallel_session_load
+                if (sss_id < numel(sss_list)) && test_parallel_session_load
                     vl = log.getVerbosityLev(); log.setVerbosityLev(log.WARNING_VERBOSITY_LEV);
                     core.prepareSession(sss_list(sss_id + 1), true);
                     log.setVerbosityLev(vl);

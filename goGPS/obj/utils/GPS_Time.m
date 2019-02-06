@@ -84,6 +84,7 @@ classdef GPS_Time < Exportable & handle
         %                               '2012/07/01'; '2015/07/01'; '2017/01/01'})
         
         GPS_ZERO = 723186;              % datenum('Jan 6, 1980')
+        GPS_BDS_WEEK0 = 1356;            % GPS week number on 1st January 2006 (start of BeiDou time)
         UNIX_ZERO = 719529;             % datenum('Jan 1, 1970')
     end
     

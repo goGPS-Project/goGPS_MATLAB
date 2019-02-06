@@ -1907,7 +1907,7 @@ classdef Core_Sky < handle
             [this.X_sun , this.X_moon] = this.computeSunMoonPos(this.getCoordTime());
             this.computeSMPolyCoeff();
         end
-        
+                
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
@@ -2095,10 +2095,284 @@ classdef Core_Sky < handle
             prn_name(:,3) = char(prn_num);
         end
         
+        function [eph, iono] = loadNavParameters(file_nav, cc)
+            % SYNTAX:
+            %   [eph, iono] = getNavParameters(file_nav, cc);
+            %
+            % INPUT:
+            %   file_nav = RINEX navigation file
+            %   cc = Constellation_Collector object, contains the satus of the satellite systems in use
+            %
+            % OUTPUT:
+            %   Eph = matrix containing 33 navigation parameters for each satellite
+            %   iono = matrix containing ionosphere parameters
+            %
+            % DESCRIPTION:
+            %   Parse a RINEX navigation file.
+            
+            %  Partially based on RINEXE.M (EASY suite) by Kai Borre
+            
+            % ioparam = 0;
+            eph = [];
+            iono = zeros(8,1);
+            
+            
+            %%
+            % open RINEX observation file
+            fid = fopen(file_nav,'r');
+            txt = fread(fid,'*char')';
+            % try to see if carriage return is present in the file (Windows stupid standard)
+            % On Windows file lines ends with char(13) char(10)
+            % instead of just using char(10)
+            if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
+                has_cr = true;  % The file has carriage return - I hate you Bill!
+            else
+                has_cr = false;  % The file is UNIX standard
+            end
+            % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  (numel(txt) - double(has_cr))
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+            lim = [lim lim(:,2) - lim(:,1)];
+            while lim(end,3) < 3
+                lim(end,:) = [];
+            end
+            
+            % removing empty lines at end of file
+            while (lim(end,1) - lim(end-1,1))  < 2
+                lim(end,:) = [];
+            end
+            
+            eoh = 0;
+            flag_eoh = false;
+            while eoh < size(lim, 1) && flag_eoh == false
+                eoh = eoh + 1;
+                flag_eoh = strcmp(txt((lim(eoh,1) + 60) : min(lim(eoh,1) + 72, lim(eoh, 2))), 'END OF HEADER');
+            end
+            
+            % Reading Header
+            head_field{1} = 'RINEX VERSION / TYPE';                  %  1
+            head_field{2} = 'PGM / RUN BY / DATE';                   %  2
+            head_field{3} = 'LEAP SECONDS';                          %  3
+            head_field{4} = 'ION ALPHA';                             %  4
+            head_field{5} = 'ION BETA';                              %  5
+            
+            % parsing ------------------------------------------------------------------------------------------------------------------------------------------
+            
+            % retriving the kind of header information is contained on each line
+            line2head = zeros(eoh, 1);
+            l = 0;
+            while l < eoh
+                l = l + 1;
+                %DEBUG: txt((lim(l,1) + 60) : lim(l,2))
+                tmp = find(strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), head_field));
+                if ~isempty(tmp)
+                    % if the field have been recognized (it's not a comment)
+                    line2head(l) = tmp;
+                end
+            end
+            
+            % read RINEX type 3 or 2 ---------------------------------------------------------------------------------------------------------------------------
+            
+            l = find(line2head == 1);
+            type_found = ~isempty(l);
+            
+            if type_found
+                dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');
+            else
+                throw(MException('VerifyINPUTInvalidNavigationalFile', 'This navigational RINEX does not contain orbits'));
+            end
+            this.rin_type = dataset{1};
+            this.rinex_ss = dataset{4};
+            
+            if dataset{2} == 'N'
+                % Is a navigational file
+            else
+                throw(MException('VerifyINPUTInvalidNavigationalFile', 'This navigational RINEX does not contain orbits'));
+            end
+            
+            % Read iono parameters (if found):
+            
+            [~, l_iono] = intersect(line2head, [4,5]);
+            iono_found = numel(l_iono) == 2;
+            iono_loaded = false;
+            if iono_found
+                data = textscan(txt(lim(l_iono(1),1) + (2 : 49)), '%f%f%f%f');
+                if ~isempty(data{4})
+                    iono(1) = data{1};
+                    iono(2) = data{2};
+                    iono(3) = data{3};
+                    iono(4) = data{4};
+                end
+                data = textscan(txt(lim(l_iono(2),1) + (2 : 49)), '%f%f%f%f');
+                if ~isempty(data{4})
+                    iono(5) = data{1};
+                    iono(6) = data{2};
+                    iono(7) = data{3};
+                    iono(8) = data{4};
+                end
+                iono_loaded = true;
+            end
+            
+            if this.rin_type < 3 % at the moment the new reader support only RINEX 3 broadcast ephemeris
+                [eph, iono] = RINEX_get_nav(file_nav, cc);
+            else
+                eph = [];
+                for sys_c = cc.getActiveSysChar()
+                    
+                    id_ss = find(txt(lim(eoh:end,1)) == sys_c) + eoh - 1;
+                    n_epo = numel(id_ss);
+                    
+                    switch sys_c
+                        case 'G'
+                            sys_index = cc.getGPS().getFirstId();
+                            nppl = [4 4 4 4 4 4 4 2]; % number of parameters per line
+                        case 'R'
+                            sys_index = cc.getGLONASS().getFirstId();
+                            nppl = [4 4 4 4];         % number of parameters per line
+                        case 'E'
+                            sys_index = cc.getGalileo().getFirstId();
+                            full_line = median(lim(id_ss + 6 ,3)) > 65; % detect if all the lines have 79 chars (empty fields are filled with spaces)
+                            nppl = [4 4 4 4 4 (3 + full_line) 4 1]; % number of parameters per line
+                        case 'J'
+                            sys_index = cc.getQZSS().getFirstId();
+                            nppl = [4 4 4 4 4 4 4 2]; % number of parameters per line
+                        case 'C'
+                            sys_index = cc.getBeiDou().getFirstId();
+                            nppl = [4 4 4 4 4 4 4 2]; % number of parameters per line
+                        case 'I'
+                            sys_index = cc.getIRNSS().getFirstId();
+                            full_line = median(lim(id_ss + 6 ,3)) > 65; % detect if all the lines have 79 chars (empty fields are filled with spaces)
+                            nppl = [4 4 4 4 4 (3 + full_line) (3 + full_line) 1]; % number of parameters per line
+                        case 'S'
+                            sys_index = cc.getSBAS().getFirstId();
+                            nppl = [4 4 4 4];         % number of parameters per line
+                    end
+                    par_offset = [4 23 42 61]; % character offset for reading a parameter
+                    lin_offset = [0 cumsum((nppl(1:end-1) * 19 + 5 + has_cr))]; % character offset for reading on a certain line
+                    
+                    % Function to extract a parameter from the broadcast info table
+                    getParStr = @(r,c) txt(repmat(lim(id_ss,1),1,19) + par_offset(c) + lin_offset(r) + repmat(0:18, n_epo, 1));
+                    getParNum = @(r,c) str2num(txt(repmat(lim(id_ss,1),1,19) + par_offset(c) + lin_offset(r) + repmat(0:18, n_epo, 1)));
+                    
+                    % Epochs
+                    eph_ss = zeros(n_epo, 33);
+                    eph_ss(:,  1) = str2num(txt(repmat(lim(id_ss,1), 1, 2) + repmat([1 2], length(id_ss), 1)));
+                    
+                    date = cell2mat(textscan(getParStr(1,1)','%4f %2f %2f %2f %2f %2f'));
+                    time = GPS_Time(date, [], iif(sys_c == 'R', false, true));
+                    
+                    % Other parameters
+                    if ismember(sys_c, 'RS')
+                        eph_ss(:,  2) = -getParNum(1,2); % TauN
+                        eph_ss(:,  3) = getParNum(1,3); % GammaN
+                        eph_ss(:,  4) = getParNum(1,4); % tk
+                        
+                        eph_ss(:,  5) = 1e3 * getParNum(2,1); % X
+                        eph_ss(:,  8) = 1e3 * getParNum(2,2); % Xv
+                        eph_ss(:, 11) = 1e3 * getParNum(2,3); % Xa
+                        eph_ss(:, 27) = getParNum(2,4); % Bn
+                        
+                        eph_ss(:,  6) = 1e3 * getParNum(3,1); % Y
+                        eph_ss(:,  9) = 1e3 * getParNum(3,2); % Yv
+                        eph_ss(:, 12) = 1e3 * getParNum(3,3); % Ya
+                        eph_ss(:, 15) = getParNum(3,4); % freq_num
+                        
+                        eph_ss(:,  7) = 1e3 * getParNum(4,1); % Z
+                        eph_ss(:, 10) = 1e3 * getParNum(4,2); % Zv
+                        eph_ss(:, 13) = 1e3 * getParNum(4,3); % Za
+                        eph_ss(:, 14) = getParNum(4,4); % E
+                        
+                        [week_toe, toe] = time.getGpsWeek;
+                        eph_ss(:, 18) = toe;
+                        eph_ss(:, 24) = week_toe;
+                        eph_ss(:, 32) = double(week_toe) * 7 * 86400 + toe;
+                        
+                        eph_ss(:, 30) = eph_ss(:, 1) + (sys_index - 1); % go_id
+                        eph_ss(:, 31) = int8(sys_c);
+                    else % for GEJCI
+                        eph_ss(:, 19) = getParNum(1,2); % af0
+                        eph_ss(:, 20) = getParNum(1,3); % af1
+                        eph_ss(:,  2) = getParNum(1,4); % af2
+                        
+                        eph_ss(:, 22) = getParNum(2,1); % IODE
+                        eph_ss(:, 11) = getParNum(2,2); % crs
+                        eph_ss(:,  5) = getParNum(2,3); % deltan
+                        eph_ss(:,  3) = getParNum(2,4); % M0
+                        
+                        eph_ss(:,  8) = getParNum(3,1); % cuc
+                        eph_ss(:,  6) = getParNum(3,2); % ecc
+                        eph_ss(:,  9) = getParNum(3,3); % cus
+                        eph_ss(:,  4) = getParNum(3,4); % roota
+                        
+                        eph_ss(:, 18) = getParNum(4,1); % toe
+                        eph_ss(:, 14) = getParNum(4,2); % cic
+                        eph_ss(:, 16) = getParNum(4,3); % Omega0
+                        eph_ss(:, 15) = getParNum(4,4); % cis
+                        
+                        eph_ss(:, 12) = getParNum(5,1); % i0
+                        eph_ss(:, 10) = getParNum(5,2); % crc
+                        eph_ss(:,  7) = getParNum(5,3); % omega
+                        eph_ss(:, 17) = getParNum(5,4); % Omegadot
+                        
+                        eph_ss(:, 13) = getParNum(6,1); % idot
+                        eph_ss(:, 23) = getParNum(6,2); % code_on_L2
+                        if (sys_c == 'C') % Beidou week have an offset of 1356 weeks
+                            eph_ss(:, 24) = GPS_Time.GPS_BDS_WEEK0 + getParNum(6,3); % weekno
+                        else
+                            eph_ss(:, 24) = getParNum(6,3); % weekno
+                        end
+                        if ismember(sys_c, 'GJC') % present only for G,J,C constellations
+                            eph_ss(:, 25) = getParNum(6,4); % L2flag
+                        end
+                        
+                        eph_ss(:, 26) = getParNum(7,1); % svaccur
+                        eph_ss(:, 27) = getParNum(7,2); % svhealth
+                        eph_ss(:, 28) = getParNum(7,3); % tgd
+                        if ismember(sys_c, 'G') % present only for G constellation
+                            iodc = getParNum(7,4); % IODC
+                            
+                            time_thr = 0;
+                            iod_check = (abs(eph_ss(:, 22) - iodc) > time_thr);
+                            sat_ko = unique(eph_ss(iod_check, 1));
+                            log = Core.getLogger;
+                            cm = log.getColorMode();
+                            log.setColorMode(0);
+                            log.addWarning(sprintf('IODE - IODC of sat %sare different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
+                            log.setColorMode(cm);
+                            % eph_ss(iod_check, :) = [];
+                        end
+                        
+                        %eph_ss(:, xx) = getParNum(8,1); % tom
+                        if ismember(sys_c, 'GJC') % present only for G,J,C constellations
+                            valid_fit_int = any(getParStr(8, 2)' - 32);
+                            eph_ss(valid_fit_int, 29) = getParNum(8, 2); % fit_int
+                        end
+                        
+                        % Other parameter to stor in eph
+                        eph_ss(:, 30) = eph_ss(:, 1) + (sys_index - 1); % go_id
+                        eph_ss(:, 31) = int8(sys_c);
+                        
+                        [week, toc] = time.getGpsWeek;
+                        eph_ss(:, 21) = toc;
+                        eph_ss(:, 32) = double(week)*7*86400 + eph_ss(:, 18);
+                        eph_ss(:, 33) = time.getGpsTime();
+                    end
+                    % Append SS ephemeris
+                    eph = [eph eph_ss'];
+                end
+            end
+        end
+        
         % ---------------------------------------------------------------------------
         % Old goGPS functions , integrated with minor modifications as static methods
         %----------------------------------------------------------------------------
-        
+                
         function [Eph, iono, flag_return] = loadRinexNav(filename, cc, flag_SP3, iono_model, time, wait_dlg)
             
             % SYNTAX:
@@ -2220,7 +2494,8 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (GPS) NOTE: filename expected to
                         %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
-                        [Eph_G, iono_G] = RINEX_get_nav(filename, cc);
+                        % [Eph_G, iono_G] = RINEX_get_nav(filename, cc); % Old implementation slower but support RINEX 2
+                        [Eph_G, iono_G] = Core_Sky.loadNavParameters(filename, cc);
                         if(~only_iono), log.addStatusOk(); end
                     else
                         log.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
@@ -2232,7 +2507,7 @@ classdef Core_Sky < handle
                     if (exist([filename(1:end-1) 'g'],'file'))
                         %parse RINEX navigation file (GLONASS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
-                        [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], cc);
+                        [Eph_R, iono_R] = Core_Sky.loadNavParameters([filename(1:end-1) 'g'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
@@ -2244,7 +2519,7 @@ classdef Core_Sky < handle
                     if (exist([filename(1:end-1) 'l'],'file'))
                         %parse RINEX navigation file (Galileo)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
-                        [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], cc);
+                        [Eph_E, iono_E] = Core_Sky.loadNavParameters([filename(1:end-1) 'l'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
@@ -2256,7 +2531,7 @@ classdef Core_Sky < handle
                     if (exist([filename(1:end-1) 'c'],'file'))
                         %parse RINEX navigation file (BeiDou)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
-                        [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], cc);
+                        [Eph_C, iono_C] = Core_Sky.loadNavParameters([filename(1:end-1) 'c'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
@@ -2268,7 +2543,7 @@ classdef Core_Sky < handle
                     if (exist([filename(1:end-1) 'q'],'file'))
                         %parse RINEX navigation file (QZSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
-                        [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], cc);
+                        [Eph_J, iono_J] = Core_Sky.loadNavParameters([filename(1:end-1) 'q'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
@@ -2280,7 +2555,7 @@ classdef Core_Sky < handle
                     if (exist([filename(1:end-1) 'i'],'file'))
                         %parse RINEX navigation file (IRNSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
-                        [Eph_I, iono_I] = RINEX_get_nav([filename(1:end-1) 'i'], cc);
+                        [Eph_I, iono_I] = Core_Sky.loadNavParameters([filename(1:end-1) 'i'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
