@@ -254,7 +254,11 @@ while (~feof(fid))
         idot       = str2num(lin6(o+[4:22]));
         code_on_L2 = str2num(lin6(o+[23:41]));
         weekno     = str2num(lin6(o+[42:60]));
-        L2flag     = str2num(lin6(o+[61:79]));
+        if length(lin6) <= (o + 79)
+            L2flag = [];
+        else
+            L2flag = str2num(lin6(o+[61:79]));
+        end
 
         if (isempty(code_on_L2))
             code_on_L2 = 0;
