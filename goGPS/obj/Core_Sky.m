@@ -440,7 +440,7 @@ classdef Core_Sky < handle
                 t_dist_exced=false;
                 for t = times
                     i = i + 1;
-                    [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat,eph(:,eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
+                    [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e] = this.satellitePositions(t, sat, eph(:, eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
                     if clock
                         this.clock(i,prg_idx) = clock_temp';
                     end
@@ -2334,19 +2334,6 @@ classdef Core_Sky < handle
                         eph_ss(:, 26) = getParNum(7,1); % svaccur
                         eph_ss(:, 27) = getParNum(7,2); % svhealth
                         eph_ss(:, 28) = getParNum(7,3); % tgd
-                        if ismember(sys_c, 'G') % present only for G constellation
-                            iodc = getParNum(7,4); % IODC
-                            
-                            time_thr = 0;
-                            iod_check = (abs(eph_ss(:, 22) - iodc) > time_thr);
-                            sat_ko = unique(eph_ss(iod_check, 1));
-                            log = Core.getLogger;
-                            cm = log.getColorMode();
-                            log.setColorMode(0);
-                            log.addWarning(sprintf('IODE - IODC of sat %sare different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
-                            log.setColorMode(cm);
-                            % eph_ss(iod_check, :) = [];
-                        end
                         
                         %eph_ss(:, xx) = getParNum(8,1); % tom
                         if ismember(sys_c, 'GJC') % present only for G,J,C constellations
@@ -2362,6 +2349,20 @@ classdef Core_Sky < handle
                         eph_ss(:, 21) = toc;
                         eph_ss(:, 32) = double(week)*7*86400 + eph_ss(:, 18);
                         eph_ss(:, 33) = time.getGpsTime();
+                        
+                        if ismember(sys_c, 'G') % present only for G constellation
+                            iodc = getParNum(7,4); % IODC
+                            
+                            time_thr = 0;
+                            iod_check = (abs(eph_ss(:, 22) - iodc) > time_thr);
+                            sat_ko = unique(eph_ss(iod_check, 1));
+                            log = Core.getLogger;
+                            cm = log.getColorMode();
+                            log.setColorMode(0);
+                            log.addWarning(sprintf('IODE - IODC of sat %sare different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
+                            log.setColorMode(cm);
+                            eph_ss(iod_check, :) = []; % delete non valid ephemeris
+                        end                                                
                     end
                     % Append SS ephemeris
                     eph = [eph eph_ss'];
