@@ -1566,17 +1566,49 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if ~this.isEmpty()
                 [n_sat, n_sat_ss] = this.getNSat;
                 f = figure; f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                plot(zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
-                plot(zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+%                 if isfield(n_sat_ss, 'S')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'I')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.I), '.', 'MarkerSize', 35, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'C')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.C), '.', 'MarkerSize', 30, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'J')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.J), '.', 'MarkerSize', 25, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'E')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.E), '.', 'MarkerSize', 20, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'R')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.R), '.', 'MarkerSize', 15, 'LineWidth', 2); hold on;
+%                 end
+%                 if isfield(n_sat_ss, 'G')
+%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.G), '.', 'MarkerSize', 10, 'LineWidth', 2); hold on;
+%                 end
+
+                % If I'm plotting more than one day smooth the number of satellites
+                if (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
+                    for sys_c = this.cc.sys_c
+                        plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
+                    end
+                    plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
+                else % If I'm plotting less than 24 hours of satellites number                    
+                    plot(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
+                    plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                end
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
+
                 sys_list = {};
                 for i = 1 : numel(this.cc.sys_c)
                     sys_list = [sys_list, {this.cc.sys_c(i)}];
                 end
                 legend([sys_list, {'All'}]);
+                %legend(sys_list);
                 ylim([0 (max(serialize(n_sat)) + 1)]);
                 grid minor;
                 h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
-
             end            
         end
         
