@@ -437,17 +437,24 @@ classdef Core_Sky < handle
                 sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
                 i = 0;
                 prg_idx = sat;%this.cc.getIndex(sys,sat); % get progressive index of given satellites
-                t_dist_exced=false;
+                t_dist_exced = false;
                 for t = times
                     i = i + 1;
-                    [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e] = this.satellitePositions(t, sat, eph(:, eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
+                    [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e, bad_sat] = this.satellitePositions(t, sat, eph(:, eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
                     if clock
                         this.clock(i,prg_idx) = clock_temp';
                     end
                     t_dist_exced = t_dist_exced || t_d_e;
                 end
                 if t_dist_exced
-                    this.log.addWarning(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids \nPositions might be inaccurate\n ',t_st.toString(0),t_end.toString(0)))
+                    cc = Core.getState.getConstellationCollector();
+                    [ss, prn] = cc.getSysPrn(bad_sat);
+                    str = '';
+                    for s = 1 : numel(ss)
+                        str = sprintf('%s, %c%02d', str, ss(s), prn(s));
+                    end
+                    str = str(3:end);
+                    this.log.addWarning(sprintf('Satellite position problem:\nOne of the time bonds (%s , %s)\nfor sat %s\nis too far from valid ephemerids \nPositions might be inaccurate ',t_st.toString(0),t_end.toString(0), str));
                 end
             end
         end
@@ -506,7 +513,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this, time, sat, eph)
+        function [XS,VS,dt_s, t_dist_exced, bad_sat] =  satellitePositions(this, time, sat, eph)
             
             % SYNTAX:
             %   [XS, VS] = satellite_positions(time_rx, sat, eph);
@@ -530,6 +537,7 @@ classdef Core_Sky < handle
             
             dt_s = zeros(nsat, 1);
             t_dist_exced = false;
+            bad_sat = [];
             for i = 1 : nsat
                 
                 k = find_eph(eph, sat(i), time, 86400);
@@ -540,6 +548,7 @@ classdef Core_Sky < handle
                     dt_s(i) = sat_clock_error_correction(time - dt_s(i), eph(:,k));
                 else
                     t_dist_exced = true;
+                    bad_sat = [bad_sat; sat(i)];
                 end
                 
             end
@@ -1095,14 +1104,17 @@ classdef Core_Sky < handle
             dcb_std = sscanf(txt(idx)','%f');
             % between C2C C2W the std are 0 -> unestimated
             % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
+            bad_ant_id = []; % list of missing antennas in the DCB file
             dcb_std(dcb_std == 0) = mean(dcb_std(dcb_std ~= 0));
+            ref_dcb_name_old = '';
+            bad_sat_str = '';
             for s = 1 : this.cc.getNumSat()
                 sys = this.cc.system(s);
                 prn = this.cc.prn(s);
                 ant_id = this.cc.getAntennaId(s);
                 sat_idx = this.prnName2Num(tmp(:,1:3)) == this.prnName2Num(ant_id);
                 if sum(sat_idx) == 0
-                    this.log.addWarning(sprintf('Satellite %s not found in the DCB file', ant_id));
+                    bad_ant_id = [bad_ant_id; ant_id];
                 else
                     sat_dcb_name = tmp(sat_idx,4:end);
                     sat_dcb = dcb(sat_idx);
@@ -1155,15 +1167,27 @@ classdef Core_Sky < handle
                             gd(end) = []; %taking off lagrange multiplier
                         end
                     else
-                        this.log.addWarning([ref_dcb_name 'DCB missing, the bias will be eliminated \nonly using iono-free combination']);
+                        % Save sat DCB problem string
+                        if isempty(bad_sat_str)
+                            bad_sat_str = sprintf(' - %s for %c%d', ref_dcb_name, sys, prn);
+                        elseif strcmp(ref_dcb_name, ref_dcb_name_old)
+                            bad_sat_str = sprintf('%s, %c%d', bad_sat_str, sys, prn);
+                        else
+                            bad_sat_str = sprintf('%s\n%s for %c%d', bad_sat_str, ref_dcb_name, sys, prn);
+                        end
+                        ref_dcb_name_old = ref_dcb_name;
+                        
+                        % deal with the problem (by hiding warnings)
                         const = zeros(2,size(A,2));
                         ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
                         const(1,ref_col1) = 1;
                         ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
                         const(2,ref_col2) =1;
                         N = [ A'*W*A  const'; const zeros(2)];
+                        warning('off'); % Sometimes the system could be singular
                         gd = N \ ([A'* W * sat_dcb; zeros(2,1)]);
-                        gd(end-1:end) = []; %t aking off lagrange multiplier
+                        warning('on');
+                        gd(end-1:end) = []; % t aking off lagrange multiplier
                     end
                     if sum(isnan(gd)) > 0 || sum(abs(gd) == Inf) > 0
                         this.log.addWarning('Invalid set of DCB ignoring them')
@@ -1171,6 +1195,17 @@ classdef Core_Sky < handle
                         dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
                         this.group_delays(prn, dcb_col) = - gd * Core_Utils.V_LIGHT * 1e-9;
                     end
+                end
+            end
+            if ~isempty(bad_sat_str)
+                this.log.addWarning(sprintf('One or more DCB are missing in "%s":\n%s\nthe bias will be eliminated only using iono-free combination', File_Name_Processor.getFileName(file_name), bad_sat_str));
+            end
+            if ~isempty(bad_ant_id)
+                str = sprintf(', %c%c%c', bad_ant_id');
+                if size(bad_ant_id, 1) > 1
+                    this.log.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                else
+                    this.log.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
                 end
             end
         end
@@ -2357,10 +2392,10 @@ classdef Core_Sky < handle
                             iod_check = (abs(eph_ss(:, 22) - iodc) > time_thr);
                             sat_ko = unique(eph_ss(iod_check, 1));
                             log = Core.getLogger;
-                            cm = log.getColorMode();
-                            log.setColorMode(0);
+                            %cm = log.getColorMode();
+                            %log.setColorMode(0);
                             log.addWarning(sprintf('IODE - IODC of sat %sare different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
-                            log.setColorMode(cm);
+                            %log.setColorMode(cm);
                             eph_ss(iod_check, :) = []; % delete non valid ephemeris
                         end                                                
                     end

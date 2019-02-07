@@ -500,10 +500,10 @@ classdef Core_Utils < handle
                                     
                             end
                         else
-                            log.addWarning('PCO/PCV file not loaded.\n');
+                            log.addWarning(sprintf('PCO/PCV file is missing, check: "%s"', filename(file_pcv, :)));
                         end
                     else
-                        log.addWarning('PCO/PCV file not loaded.\n');
+                        log.addWarning('PCO/PCV filename is empty.');
                     end
                 end
             end
