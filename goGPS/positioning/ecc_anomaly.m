@@ -86,8 +86,9 @@ Mk = M0 + n*tk;                %mean anomaly
 Mk = rem(Mk+cr,cr);
 Ek = Mk;
 
-max_iter = 12; %it was 10 when using only GPS (convergence was achieved at 4-6 iterations);
+max_iter = 16; % it was 10 when using only GPS (convergence was achieved at 4-6 iterations);
                % now it set to 12 because QZSS PRN 193 can take 11 iterations to converge
+               % now it set to 16 because Galileo PRN 14, 18 can take 11 iterations to converge
 
 for i = 1 : max_iter
    Ek_old = Ek;
@@ -98,8 +99,20 @@ for i = 1 : max_iter
    end
 end
 
-if (i == max_iter)
-    fprintf('WARNING: Eccentric anomaly does not converge.\n')
+if (i == max_iter)    
+    for i = 1 : 30
+        Ek_old = Ek;
+        Ek = Mk+ecc*sin(Ek);
+        dEk = rem(Ek-Ek_old,cr);
+        if abs(dEk) < 1.e-12
+            break
+        end
+    end
+    if i < 30
+        Core.getLogger().addWarning(sprintf('WARNING: Eccentric anomaly needs many iterations (%d) for converging - sat %c%02d\n', i + 16, char(Eph(31)), Eph(1)));
+    else
+        Core.getLogger().addWarning(sprintf('WARNING: Eccentric anomaly does not converge for sat %c%02d\n', char(Eph(31)), Eph(1)));
+    end
 end
 
 Ek = rem(Ek+cr,cr);
