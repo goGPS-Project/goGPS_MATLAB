@@ -148,7 +148,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % ANTENNA
         ATX_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
-        ATX_NAME = 'igs14.atx';    % Name antex file
+        ATX_NAME = 'I14.ATX';    % Name antex file
 
         % OUT PATH
         OUT_DIR = Main_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
