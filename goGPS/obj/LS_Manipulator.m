@@ -261,16 +261,16 @@ classdef LS_Manipulator < handle
             end
             if phase_present
                 n_sat = rec.cc.getMaxNumSat();
-                rec.sat.o_cs_ph = zeros(rec.time.length, n_sat);
-                rec.sat.o_cs_ph(:,obs_set.go_id) = obs_set.cycle_slip;
-                rec.sat.o_out_ph = zeros(rec.time.length, n_sat);
+                rec.sat.cycle_slip = zeros(rec.time.length, n_sat);
+                rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
+                rec.sat.outliers = zeros(rec.time.length, n_sat);
                 dual_freq = size(obs_set.obs_code,2) > 5;
                 [~, ~, ph_idx] = rec.getPhases();
                 obs_code_ph = rec.obs_code(ph_idx,:);
                 go_id_ph = rec.go_id(ph_idx);
                 ph_idx = find(obs_set.obs_code(:,2) == 'L');
                 o_ph_goi = obs_set.go_id(ph_idx);
-                for s = 1 : length(o_ph_goi);
+                for s = 1 : length(o_ph_goi)
                     g = o_ph_goi(s);
                     obs_code1 = obs_set.obs_code(ph_idx(s),2:4);
                     if dual_freq
@@ -279,15 +279,14 @@ classdef LS_Manipulator < handle
                         obs_code2 = '   ';
                     end
                     out_idx = strLineMatch(obs_code_ph,obs_code1) & go_id_ph == g;
-                    out = rec.sat.outlier_idx_ph(:,out_idx);
+                    out = rec.sat.outliers_ph_by_ph(:,out_idx);
                     if strcmp(obs_code2,'   ')
                         out_idx = strLineMatch(obs_code_ph,obs_code2) & go_id_ph == g;
                         if any(out_idx)
-                            out(:,out_idx) = out(:,out_idx) | rec.sat.outlier_idx_ph(:,out_idx);
+                            out(:,out_idx) = out(:,out_idx) | rec.sat.outliers_ph_by_ph(:,out_idx);
                         end
                     end
-                    rec.sat.o_out_ph(:,g) = out;
-                    
+                    rec.sat.outliers(:,g) = out;                    
                 end
             end
             % check presence of snr data and fill the gaps if needed
@@ -827,8 +826,8 @@ classdef LS_Manipulator < handle
                 
                 obs_stream = diff_obs(id_ok_stream, s);
                 % snr_stream = obs_set.snr(id_ok_stream, s); % SNR is not currently used
+                el_stream = obs_set.el(id_ok_stream, s) / 180 * pi;
                 if tropo || tropo_g
-                    el_stream = obs_set.el(id_ok_stream, s) / 180 * pi;
                     az_stream = obs_set.az(id_ok_stream, s) / 180 * pi;
                     mfw_stream = mfw(id_ok_stream, obs_set.go_id(s)); % A simpler value could be 1./sin(el_stream);
                 end

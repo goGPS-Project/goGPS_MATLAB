@@ -130,10 +130,10 @@ classdef Receiver_Work_Space < Receiver_Commons
     properties (SetAccess = public, GetAccess = public)
         sat = struct( ...
             'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
-            'o_out_ph',         [], ...    % outlier    processing to be saved in result
-            'o_cs_ph',          [], ...    % cycle slip processing to be saved in result
-            'outlier_idx_ph',   [], ...    % logical index of outliers
-            'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+            'outliers',         [], ...    % outlier    processing to be saved in result
+            'cycle_slip',          [], ...    % cycle slip processing to be saved in result
+            'outlier_ph_by_ph',   [], ...    % logical index of outliers
+            'cicle_slip_ph_by_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
             'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
             'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
@@ -218,8 +218,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
             
             this.sat.avail_index       = [];
-            this.sat.outlier_idx_ph    = [];
-            this.sat.cycle_slip_idx_ph = [];
+            this.sat.outlier_ph_by_ph    = [];
+            this.sat.cicle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
             this.sat.solid_earth_corr  = [];
@@ -232,8 +232,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.crx               = [];
             this.sat.res               = [];
             this.sat.slant_td          = [];
-            this.sat.o_cs_ph           = [];
-            this.sat.o_out_ph          = [];
+            this.sat.cycle_slip           = [];
+            this.sat.outliers          = [];
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
@@ -374,8 +374,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.tge = [];
             
             this.sat.avail_index       = [];
-            this.sat.outlier_idx_ph    = [];
-            this.sat.cycle_slip_idx_ph = [];
+            this.sat.outlier_ph_by_ph    = [];
+            this.sat.cicle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
             this.sat.solid_earth_corr  = [];
@@ -388,8 +388,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.crx               = [];
             this.sat.res               = [];
             this.sat.slant_td          = [];
-            this.sat.o_cs_ph           = [];
-            this.sat.o_out_ph          = [];
+            this.sat.cycle_slip           = [];
+            this.sat.outliers          = [];
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
@@ -626,11 +626,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(this.synt_ph)
                 this.synt_ph(:,id_out) = [];
             end
-            if ~isempty(this.sat.outlier_idx_ph)
-                this.sat.outlier_idx_ph(:,id_out) = [];
+            if ~isempty(this.sat.outlier_ph_by_ph)
+                this.sat.outlier_ph_by_ph(:,id_out) = [];
             end
-            if ~isempty(this.sat.cycle_slip_idx_ph)
-                this.sat.cycle_slip_idx_ph(:,id_out) = [];
+            if ~isempty(this.sat.cicle_slip_ph_by_ph)
+                this.sat.cicle_slip_ph_by_ph(:,id_out) = [];
             end
             
             % try to remove observables from other precomputed properties of the object in sat
@@ -787,8 +787,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if ~isempty(bad_epochs)
                 
-                if ~isempty(this.sat.cycle_slip_idx_ph)
-                    cycle_slip = this.sat.cycle_slip_idx_ph;
+                if ~isempty(this.sat.cicle_slip_ph_by_ph)
+                    cycle_slip = this.sat.cicle_slip_ph_by_ph;
                     
                     tmp = false(max(bad_epochs), 1); tmp(bad_epochs) = true;
                     lim = getOutliers(tmp);
@@ -802,7 +802,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     cycle_slip(bad_epochs,:) = [];
                     
-                    this.sat.cycle_slip_idx_ph = cycle_slip;
+                    this.sat.cicle_slip_ph_by_ph = cycle_slip;
                 end
                 n_ep = this.time.length;
                 this.time.remEpoch(bad_epochs);
@@ -818,8 +818,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.obs(:, bad_epochs) = [];
                 end
                 
-                if ~isempty(this.sat.outlier_idx_ph)
-                    this.sat.outlier_idx_ph(bad_epochs, :) = [];
+                if ~isempty(this.sat.outlier_ph_by_ph)
+                    this.sat.outlier_ph_by_ph(bad_epochs, :) = [];
                 end
                 
                 if ~isempty(this.id_sync)
@@ -1180,23 +1180,23 @@ classdef Receiver_Work_Space < Receiver_Commons
             [ph, wl, id_ph] = this.getPhases();
             ph = zero2nan(this.obs(id_ph, :)');
             % Adding outliers
-            if size(id_ko, 2) > size(this.sat.outlier_idx_ph, 2)
+            if size(id_ko, 2) > size(this.sat.outlier_ph_by_ph, 2)
                 id_ko = id_ko(:, this.go_id(id_ph));
             end
-            this.sat.outlier_idx_ph(:,:) = (this.sat.outlier_idx_ph(:,:) | id_ko) & ~isnan(ph);
+            this.sat.outlier_ph_by_ph(:,:) = (this.sat.outlier_ph_by_ph(:,:) | id_ko) & ~isnan(ph);
             if remove_short_arcs
-                this.sat.outlier_idx_ph = flagMergeArcs(this.sat.outlier_idx_ph | isnan(ph), this.state.getMinArc) & ~isnan(ph); % mark short arcs
+                this.sat.outlier_ph_by_ph = flagMergeArcs(this.sat.outlier_ph_by_ph | isnan(ph), this.state.getMinArc) & ~isnan(ph); % mark short arcs
             end
             % Move cycle slips
-            tmp = this.sat.outlier_idx_ph | isnan(ph);
-            invalid_cs = this.sat.cycle_slip_idx_ph & tmp;
+            tmp = this.sat.outlier_ph_by_ph | isnan(ph);
+            invalid_cs = this.sat.cicle_slip_ph_by_ph & tmp;
             for s = 1 : numel(unique(this.go_id(id_ph)))
                 id_cs_ko = find(invalid_cs(:,s));
                 for k = 1 : numel(id_cs_ko)
-                    this.sat.cycle_slip_idx_ph(id_cs_ko(k), s) = false;
+                    this.sat.cicle_slip_ph_by_ph(id_cs_ko(k), s) = false;
                     new_cs = id_cs_ko(k) + find(~tmp(id_cs_ko(k) : end, s), 1, 'first') -1;
                     if ~isempty(new_cs)
-                        this.sat.cycle_slip_idx_ph(new_cs, s) = true;
+                        this.sat.cicle_slip_ph_by_ph(new_cs, s) = true;
                     end
                 end
             end            
@@ -1205,8 +1205,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         function updateDetectOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
-            this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
-            this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
+            this.sat.outlier_ph_by_ph = false(size(this.sat.outlier_ph_by_ph));
+            this.sat.cicle_slip_ph_by_ph = false(size(this.sat.cicle_slip_ph_by_ph));
             this.updateSyntPhases();
             this.detectOutlierMarkCycleSlip();
         end
@@ -1230,8 +1230,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % mark all as outlier and interpolate
             % get observed values
             [ph, wl, lid_ph] = this.getPhases;
-            this.sat.outlier_idx_ph = false(size(ph));
-            this.sat.cycle_slip_idx_ph = false(size(ph));
+            this.sat.outlier_ph_by_ph = false(size(ph));
+            this.sat.cicle_slip_ph_by_ph = false(size(ph));
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
@@ -1272,7 +1272,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 % if the sensor is greater than 1m consider the observation as outlier
                 tmp_out = tmp_out | abs(sensor_tmp) > 1;
-                this.sat.outlier_idx_ph(tmp_out, bad_id(i)) = true;
+                this.sat.outlier_ph_by_ph(tmp_out, bad_id(i)) = true;
                 sensor_ph0(tmp_out, bad_id(i)) = nan;
             end
             
@@ -1297,7 +1297,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             tmp_out = tmp_out | flagShrink(flagExpand(tmp_out, this.state.getMinArc), this.state.getMinArc);
             
             % save the outliers
-            this.sat.outlier_idx_ph(tmp_out) = true;
+            this.sat.outlier_ph_by_ph(tmp_out) = true;
             sensor_ph0(tmp_out) = nan;
             
             % recompute dt and sensor_ph
@@ -1333,7 +1333,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % take them off
             ph2 = ph;
             ph2(poss_out_idx) = nan;
-            ph2(this.sat.outlier_idx_ph) = nan;
+            ph2(this.sat.outlier_ph_by_ph) = nan;
             
             sensor_ph0(poss_out_idx) = nan;
             if der > 1
@@ -1440,11 +1440,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %             to_short_idx(poss_slip_idx) = false;
             %             poss_out_idx(to_short_idx) = true;
             
-            this.sat.outlier_idx_ph = ((this.sat.outlier_idx_ph | poss_out_idx) & ~(poss_slip_idx));
-            n_out = sum(this.sat.outlier_idx_ph(:));
-            this.sat.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
+            this.sat.outlier_ph_by_ph = ((this.sat.outlier_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
+            n_out = sum(this.sat.outlier_ph_by_ph(:));
+            this.sat.cicle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
-            this.addOutliers(this.sat.outlier_idx_ph, true);
+            this.addOutliers(this.sat.outlier_ph_by_ph, true);
             
             % % Outlier detection for some reason is not working properly -> reperform outlier detection
             % sensor_ph = Core_Utils.diffAndPred(this.getPhases - this.getSyntPhases, 2);
@@ -1453,9 +1453,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             % % outlier when they exceed 0.5 cycle
             % poss_out_idx = abs(sensor_ph) > 0.5;
-            % this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
+            % this.sat.outlier_ph_by_ph = this.sat.outlier_ph_by_ph | poss_out_idx;
             
-            %this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
+            %this.sat.cicle_slip_ph_by_ph([false(1,size(this.sat.outlier_ph_by_ph,2)); (diff(this.sat.outlier_ph_by_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
             % %%
             % sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
@@ -1464,7 +1464,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % figure; plot(sensor_ph);
             % tmp = sensor_ph;
-            % tmp(~this.sat.outlier_idx_ph) = nan;
+            % tmp(~this.sat.outlier_ph_by_ph) = nan;
             % hold on; plot(tmp, '.', 'MarkerSize', 10, 'Color', [1 0.4 0]);
             % tmp = sensor_ph;
             % tmp(~poss_slip_idx) = nan;
@@ -1480,7 +1480,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx = abs(sensor) > 0.03;
             for i = 1 : size(sensor,2)
                 sat_idx = this.go_id(ph_idx) == i;
-                this.sat.cycle_slip_idx_ph(idx(:,i), :) = 1;
+                this.sat.cicle_slip_ph_by_ph(idx(:,i), :) = 1;
             end
         end
         
@@ -1493,8 +1493,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             max_window = 600; %maximum windows allowed (for computational reason)
             win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
             
-            poss_out_idx = this.sat.outlier_idx_ph;
-            poss_slip_idx = this.sat.cycle_slip_idx_ph;
+            poss_out_idx = this.sat.outlier_ph_by_ph;
+            poss_slip_idx = this.sat.cicle_slip_ph_by_ph;
             
             [ph, ~, id_ph_l] = this.getPhases();
             id_ph = find(id_ph_l);
@@ -1590,7 +1590,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
             
-            this.sat.cycle_slip_idx_ph = poss_slip_idx;
+            this.sat.cicle_slip_ph_by_ph = poss_slip_idx;
             
             % save index into object
             
@@ -3402,11 +3402,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
-            if not(isempty(this.sat.outlier_idx_ph))
+            if not(isempty(this.sat.outlier_ph_by_ph))
                 if (nargin == 2) && ~isempty(sys_c)
-                    ph(this.sat.outlier_idx_ph(:,(this.system(id_ph) == sys_c)')') = nan;
+                    ph(this.sat.outlier_ph_by_ph(:,(this.system(id_ph) == sys_c)')') = nan;
                 else
-                    ph(this.sat.outlier_idx_ph') = nan;
+                    ph(this.sat.outlier_ph_by_ph') = nan;
                 end
             end
             wl = this.wl(id_ph);
@@ -4015,7 +4015,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [~,~,idx_ph] = this.getPhases();
                     idx_ph = find(idx_ph);
                     [~,idx_o,idx_cs] = intersect(idx,idx_ph);
-                    cs = this.sat.cycle_slip_idx_ph(:,idx_cs)';
+                    cs = this.sat.cicle_slip_ph_by_ph(:,idx_cs)';
                 else
                     cs = [];
                 end
@@ -4158,12 +4158,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             else
                                 snr((s-1)*n_opt+i,take_idx) = 1;
                             end
-                            if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L' % take off outlier
+                            if ~isempty(this.sat.outlier_ph_by_ph) && flag(1) == 'L' % take off outlier
                                 ph_idx = this.ph_idx == find(c_idx);
                                 if sum(ph_idx) > 0
-                                obs((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
-                                snr((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
-                                cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_idx_ph(:,ph_idx)';
+                                obs((s-1)*n_opt+i,this.sat.outlier_ph_by_ph(:,ph_idx)) = 0;
+                                snr((s-1)*n_opt+i,this.sat.outlier_ph_by_ph(:,ph_idx)) = 0;
+                                cycle_slips((s-1)*n_opt+i,:) = this.sat.cicle_slip_ph_by_ph(:,ph_idx)';
                                 end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
@@ -4546,21 +4546,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             [obs_set]  = this.getMelWub([iono_pref(1,1)], [iono_pref(1,2)], system);
         end
         
-        function [rec_out_ph] = getOOutPh(this)
+        function [rec_out_ph] = getObsOutSat(this)
             % get the phase outlier to be putted in the results
-            % default outiler are the ones on the iono free combination
-            if ~isempty(this.sat.o_out_ph)
-                rec_out_ph = this.sat.o_out_ph(this.getIdSync(),:);
+            % default outlier are the ones on the iono free combination
+            if ~isempty(this.sat.outliers)
+                rec_out_ph = this.sat.outliers(this.getIdSync(),:);
             else
                 rec_out_ph = zeros(length(this.getIdSync()), this.cc.getMaxNumSat());
             end
         end
         
-        function [rec_cs_ph] = getOCsPh(this)
+        function [rec_cs_ph] = getObsCsSat(this)
             % get the phase outlier to be putted in the results
-            % default outiler are the ones on the iono free combination
-            if ~isempty( this.sat.o_cs_ph)
-                rec_cs_ph = this.sat.o_cs_ph(this.getIdSync(),:);
+            % default outlier are the ones on the iono free combination
+            if ~isempty( this.sat.cycle_slip)
+                rec_cs_ph = this.sat.cycle_slip(this.getIdSync(),:);
             else
                 rec_cs_ph = zeros(length(this.getIdSync()), this.cc.getMaxNumSat());
             end
@@ -4645,7 +4645,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.updateSyntPhases();
             end
             synt_ph = this.synt_ph;
-            synt_ph(this.sat.outlier_idx_ph) = nan;
+            synt_ph(this.sat.outlier_ph_by_ph) = nan;
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
@@ -4884,7 +4884,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sys_c = this.cc.sys_c;
             end
             synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');
-            synt_ph_obs(this.sat.outlier_idx_ph) = nan;
+            synt_ph_obs(this.sat.outlier_ph_by_ph) = nan;
             this.synt_ph = synt_ph_obs;
         end
         
@@ -5768,14 +5768,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             % this.updateAmbIdx()
             
-            amb_idx = ones(size(this.sat.cycle_slip_idx_ph));
+            amb_idx = ones(size(this.sat.cicle_slip_ph_by_ph));
             n_epochs = size(amb_idx,1);
             n_stream = size(amb_idx,2);
             for s = 1:n_stream
                 if s > 1
                     amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
                 end
-                cs = find(this.sat.cycle_slip_idx_ph(:, s) > 0)';
+                cs = find(this.sat.cicle_slip_ph_by_ph(:, s) > 0)';
                 for c = cs
                     amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
                 end
@@ -7261,7 +7261,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
-                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
+                this.quality_info.n_out = sum(this.sat.outlier_ph_by_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;
@@ -7374,7 +7374,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
-                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
+                this.quality_info.n_out = sum(this.sat.outlier_ph_by_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0; 
@@ -7825,7 +7825,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.s0 = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
-                this.quality_info.n_out = sum(this.sat.outlier_idx_ph(:));
+                this.quality_info.n_out = sum(this.sat.outlier_ph_by_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 if this.state.getAmbFixPPP
@@ -8081,7 +8081,7 @@ classdef Receiver_Work_Space < Receiver_Commons
            [ph, wl, id_ph] = this.getPhases();
            synt_ph = this.getSyntPhases;
            ph_diff = ph - synt_ph;
-           amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_idx_ph, zero2nan(ph));
+           amb_idx = Core_Utils.getAmbIdx(this.sat.cicle_slip_ph_by_ph, zero2nan(ph));
            max_amb = max(max(amb_idx));
            for a = 1 : max_amb
                idx_amb = amb_idx == a;
@@ -8783,7 +8783,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_ph_by_ph, 2));
                 
                 for prn = this.cc.prn(this.cc.system == sys_c)'
                     go_id = this.getGoId(sys_c, prn);
@@ -8838,7 +8838,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_ph_by_ph, 2));
                 
                 for prn = this.cc.prn(this.cc.system == sys_c)'
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn, :),1));
@@ -8848,9 +8848,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', [0.7 0.7 0.7]);
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
-                        cs = ep(this.sat.cycle_slip_idx_ph(:, s) ~= 0);
+                        cs = ep(this.sat.cicle_slip_ph_by_ph(:, s) ~= 0);
                         plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20)
-                        out = ep(this.sat.outlier_idx_ph(:, s) ~= 0);
+                        out = ep(this.sat.outlier_ph_by_ph(:, s) ~= 0);
                         plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                     end
                 end
@@ -8880,8 +8880,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
 
             phs = this.synt_ph;
-            cs = this.sat.cycle_slip_idx_ph;
-            out = this.sat.outlier_idx_ph;
+            cs = this.sat.cicle_slip_ph_by_ph;
+            out = this.sat.outlier_ph_by_ph;
             for sys_c = sys_c_list
                 ss_id = find(this.cc.sys_c == sys_c);
                 switch numel(ss_ok)
@@ -8899,7 +8899,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_ph_by_ph, 2));
                                 
                 id_ss = find(this.system(id_ph) == sys_c);
                 dph_diff = Core_Utils.diffAndPred(bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
@@ -8952,8 +8952,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     el = this.sat.el(:,s);
                     
                     id_cs = find(this.go_id(this.obs_code(:,1) == 'L') == s);
-                    cs = sum(this.sat.cycle_slip_idx_ph(:, id_cs), 2) > 0;
-                    out = sum(this.sat.outlier_idx_ph(:, id_cs), 2) > 0;
+                    cs = sum(this.sat.cicle_slip_ph_by_ph(:, id_cs), 2) > 0;
+                    out = sum(this.sat.outlier_ph_by_ph(:, id_cs), 2) > 0;
                     
                     decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
                     x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];

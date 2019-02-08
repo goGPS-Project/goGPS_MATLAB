@@ -50,8 +50,8 @@ classdef Receiver_Output < Receiver_Commons
     
     properties (SetAccess = public, GetAccess = public)
         sat = struct( ...
-            'outlier_idx_ph',   [], ...    % logical index of outliers
-            'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+            'outliers',   [], ...    % logical index of outliers
+            'cycle_slip',[], ...    % logical index of cycle slips
             'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation
@@ -90,8 +90,8 @@ classdef Receiver_Output < Receiver_Commons
             this.reset@Receiver_Commons();
             
             this.sat = struct(  ...
-                'outlier_idx_ph',   [], ...    % logical index of outliers
-                'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+                'outliers',   [], ...    % logical index of outliers
+                'cycle_slip',[], ...    % logical index of cycle slips
                 'quality',          [], ...    % quality
                 'az',               [], ...    % double  [n_epoch x n_sat] azimuth
                 'el',               [], ...    % double  [n_epoch x n_sat] elevation
@@ -333,11 +333,11 @@ classdef Receiver_Output < Receiver_Commons
                 this.n_sat_ep(ep_idx) = [];
             end
             % remove from sat struct 
-            if ~isempty(this.sat.outlier_idx_ph)
-                this.sat.outlier_idx_ph(ep_idx,:) = [];
+            if ~isempty(this.sat.outliers)
+                this.sat.outliers(ep_idx,:) = [];
             end
-            if ~isempty(this.sat.cycle_slip_idx_ph)
-                this.sat.cycle_slip_idx_ph(ep_idx,:) = [];
+            if ~isempty(this.sat.cycle_slip)
+                this.sat.cycle_slip(ep_idx,:) = [];
             end
             if ~isempty(this.sat.quality)
                 this.sat.quality(ep_idx,:) = [];
@@ -443,8 +443,8 @@ classdef Receiver_Output < Receiver_Commons
                         
                         % Inject outliers and cs
                         if this.state.flag_out_ocs
-                            this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
-                            this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+                            this.sat.outliers   = Core_Utils.injectData(this.sat.outliers, rec_work.getObsOutSat(), idx1, idx2);
+                            this.sat.cycle_slip = Core_Utils.injectData(this.sat.cycle_slip, rec_work.getObsCsSat(), idx1, idx2);
                         end
                         
                         if ~this.state.isSmoothTropoOut() || is_this_empty
@@ -777,7 +777,7 @@ classdef Receiver_Output < Receiver_Commons
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 
                 fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
                 color = gat(256, [], false);
@@ -845,16 +845,16 @@ classdef Receiver_Output < Receiver_Commons
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 
                 for prn = this.cc.prn(this.cc.system == sys_c)'
                     s = this.cc.getIndex(sys_c, prn);
-                    cs = ep(this.sat.cycle_slip_idx_ph(:, s) ~= 0);
+                    cs = ep(this.sat.cycle_slip(:, s) ~= 0);
                     sat_on = ep(this.sat.az(:, s) ~= 0);
                     plot(sat_on,  prn * ones(size(sat_on)), '.', 'MarkerSize', 10, 'Color', [0.7 0.7 0.7]);
                     hold on;
                     plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
-                    out = ep(this.sat.outlier_idx_ph(:, s) ~= 0);
+                    out = ep(this.sat.outliers(:, s) ~= 0);
                     plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
                 prn_ss = this.cc.prn(this.cc.system == sys_c);
@@ -886,8 +886,8 @@ classdef Receiver_Output < Receiver_Commons
                     az = this.sat.az(:,s);
                     el = this.sat.el(:,s);
                     
-                    cs = sum(this.sat.cycle_slip_idx_ph(:, s), 2) > 0;
-                    out = sum(this.sat.outlier_idx_ph(:, s), 2) > 0;
+                    cs = sum(this.sat.cycle_slip(:, s), 2) > 0;
+                    out = sum(this.sat.outliers(:, s), 2) > 0;
                     sat_on = (this.sat.az(:, s) ~= 0);
                     
                     decl_n = (serialize(90 - el(sat_on)) / 180*pi) / (pi/2);

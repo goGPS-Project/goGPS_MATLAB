@@ -267,7 +267,7 @@ classdef Network < handle
                                 
                                 go_id = tmp_work.go_id(this.rec_list(r).work.findObservableByFlag('L'));
                                 
-                                res_rec = zeros(size(tmp_work.sat.outlier_idx_ph));
+                                res_rec = zeros(size(tmp_work.sat.outlier_ph_by_ph));
                                 res_rec(id_sync_rec, :) = res(id_sync_res, go_id, r);
                                 
                                 if s0 > 1

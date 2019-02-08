@@ -798,7 +798,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home);
                 end
                 this.out_prefix = fnp.checkPath(state.getData('out_prefix'), this.getHomeDir());
-                this.run_counter = state.getData('run_counter');
+                %this.run_counter = state.getData('run_counter'); % not currently used
                 this.run_counter_is_set = ~isempty(this.run_counter);                
                 
                 % RECEIVER DEFAULT PARAMETERS
@@ -2057,9 +2057,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             this.checkStringField('out_prefix', EMPTY_IS_VALID);
 
-            if (this.run_counter_is_set) || ~(isempty(this.run_counter))
-                this.checkNumericField('run_counter',[0 1e6]);
-            end
+            %if (this.run_counter_is_set) || ~(isempty(this.run_counter))
+            %    this.checkNumericField('run_counter',[0 1e6]);
+            %end
         end
 
         function status = checkRecFiles(this, go_verbose)
