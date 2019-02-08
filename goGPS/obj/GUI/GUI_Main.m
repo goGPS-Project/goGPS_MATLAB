@@ -704,9 +704,9 @@ end
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [250 5 23 -1];
-            opt_tll.Heights = 200;
-            opt_tlr.Heights = [152, 5, 93];
+            opt_l.Heights = [240 1 23 -1];
+            opt_tll.Heights = 233;
+            opt_tlr.Heights = [138, 5, 93];
             
             opt_tlh.Widths = [195 5 -1];
             opt_h.Widths = [-1 5 190];
@@ -746,10 +746,9 @@ end
             Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
-            Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            opt_grid.Heights = [22 5 22 22 5 22 22];
+            opt_grid.Heights = [22 5 22 22 22 22];
         end
         
         function crd_panel = insertCrdFile(this, container)
