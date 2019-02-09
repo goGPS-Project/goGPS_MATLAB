@@ -1506,8 +1506,8 @@ classdef GNSS_Station < handle
             end
             maximizeFig(f);
             
-            [res_tropo, s_time] = this.getReducedZtd_mr();
-            %[res_tropo, s_time] = this.getZwd_mr();
+            %[res_tropo, s_time] = this.getReducedZtd_mr();
+            [res_tropo, s_time] = this.getZwd_mr();
             res_tropo = res_tropo * 1e2;
             
             if nargin < 3
@@ -2026,9 +2026,9 @@ classdef GNSS_Station < handle
             
             sta_strange = find(abs(med_ztd - y_out) > 8);
             if ~isempty(sta_strange)
-                sta_list.log.addMessage('Strange station detected');
+                Core.getLogger.addMessage('Strange station detected');
                 for s = 1 : numel(sta_strange)
-                    sta_list.log.addMessage(sprintf(' - %s', sta_list.station_name(sta_list.sta_ok(sta_strange(s)),:)));
+                    Core.getLogger.addMessage(sprintf(' %d - %s', sta_strange(s), sta_list(sta_strange(s)).getMarkerName()));
                 end
             end
         end

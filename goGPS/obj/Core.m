@@ -1161,58 +1161,63 @@ classdef Core < handle
             
             verbosity = true;
             
-            if nargin < 4 || isempty(time_par) || ~isclass(time_par, 'GPS_Time') 
-                %[~, time_lim_large, is_empty] = this.getRecTimeSpan();
-                time_lim_large = this.state.getSessionsStartExt;
-                time_lim_large.append(this.state.getSessionsStopExt);                
-                time_lim = time_lim_large;
-            else
-                time_lim = time_par.getCopy();
-            end
-            
-            if ~isa(time_par, 'GPS_Time')
-                % is a margin!!!
-                time_lim.first.addIntSeconds(margin(1));
-                time_lim.first.addIntSeconds(margin(end));
-            end
-                        
-            file_list = {};
-            fnp = File_Name_Processor();
-            if ~iscell(file_name)
-                file_name = {file_name};
-            end
-            for i = 1 : numel(file_name)
-                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), this.state.getSessionsStartExt,  this.state.getSessionsStopExt, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
-            end
-            
-            if isempty(file_list)
+            if isempty(file_name)
                 n_ok = 0;
                 n_ko = 0;
-                this.met_list = [];
             else
-                n_rec = size(file_list, 2);
-                n_ok = zeros(n_rec, 1);
-                n_ko = zeros(n_rec, 1);
-                for r = 1 : n_rec
-                    name = File_Name_Processor.getFileName(file_name{r});
-                    name = name(1:4);
-                    if verbosity
-                        this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', name)));
-                    end
-                    for s = 1 : numel(file_list{r})
-                        if (exist(file_list{r}{s}, 'file') == 2)
-                            n_ok(r) = n_ok(r) + 1;
-                        else
-                            n_ko(r) = n_ko(r) + 1;
-                        end
-                    end                    
-                    if verbosity
-                        this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
-                    end
+                if nargin < 4 || isempty(time_par) || ~isclass(time_par, 'GPS_Time')
+                    %[~, time_lim_large, is_empty] = this.getRecTimeSpan();
+                    time_lim_large = this.state.getSessionsStartExt;
+                    time_lim_large.append(this.state.getSessionsStopExt);
+                    time_lim = time_lim_large;
+                else
+                    time_lim = time_par.getCopy();
                 end
                 
-                if n_rec == 0
-                    % 'No receivers found';
+                if ~isa(time_par, 'GPS_Time')
+                    % is a margin!!!
+                    time_lim.first.addIntSeconds(margin(1));
+                    time_lim.first.addIntSeconds(margin(end));
+                end
+                
+                file_list = {};
+                fnp = File_Name_Processor();
+                if ~iscell(file_name)
+                    file_name = {file_name};
+                end
+                for i = 1 : numel(file_name)
+                    file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), this.state.getSessionsStartExt,  this.state.getSessionsStopExt, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
+                end
+                
+                if isempty(file_list)
+                    n_ok = 0;
+                    n_ko = 0;
+                    this.met_list = [];
+                else
+                    n_rec = size(file_list, 2);
+                    n_ok = zeros(n_rec, 1);
+                    n_ko = zeros(n_rec, 1);
+                    for r = 1 : n_rec
+                        name = File_Name_Processor.getFileName(file_name{r});
+                        name = name(1:4);
+                        if verbosity
+                            this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', name)));
+                        end
+                        for s = 1 : numel(file_list{r})
+                            if (exist(file_list{r}{s}, 'file') == 2)
+                                n_ok(r) = n_ok(r) + 1;
+                            else
+                                n_ko(r) = n_ko(r) + 1;
+                            end
+                        end
+                        if verbosity
+                            this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
+                        end
+                    end
+                    
+                    if n_rec == 0
+                        % 'No receivers found';
+                    end
                 end
             end
         end

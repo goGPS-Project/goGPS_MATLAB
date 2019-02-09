@@ -614,12 +614,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
             end
             if ~isempty(this.ph_idx)
-%                 tmp = false(max(this.ph_idx), 1);
-%                 tmp(this.ph_idx) = true;
-%                 tmp(id_out) = false;
-%                 id_obs = id_obs(id_obs < length(tmp));
-%                 tmp(id_obs) = [];
-                this.ph_idx = find(this.obs_code(1,:) == 'L');
+                if isempty(this.obs_code)
+                    this.ph_idx = [];
+                else
+                    this.ph_idx = find(this.obs_code(1,:) == 'L');
+                end
             end
             
             % try to remove observables from other precomputed properties of the object
@@ -5251,9 +5250,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
          end
         
-        
-        
-        
         function correctPhJump(this)
             % remove huge jumps in phase
             %
@@ -7734,213 +7730,216 @@ classdef Receiver_Work_Space < Receiver_Commons
                 order_tropo_g = this.state.spline_tropo_gradient_order;
                 tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx, tropo_rate);
-                ls.Astack2Nstack();
-                time = this.time.getSubSet(id_sync);
-                rate = time.getRate();
-                ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
-                if this.state.flag_tropo
-                    if order_tropo == 0
-                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-                    else
-                        ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
-                    end
-                end
-                if this.state.flag_tropo_gradient
-                    if order_tropo_g == 0
-                        ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                        ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
-                    else
-                        ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
-                        ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
-                    end
-                end
-                this.log.addMessage(this.log.indent('Solving the system'));
-                [x, res, s0, ~, l_fixed] = ls.solve();
-                % REWEIGHT ON RESIDUALS
-                if this.state.getReweightPPP > 1
-                    switch this.state.getReweightPPP()
-                        case 2, ls.reweightHuber;
-                        case 3, ls.reweightHubNoThr;
-                        case 4, ls.reweightDanish;
-                        case 5, ls.reweightDanishWM;
-                        case 6, ls.reweightTukey;
-                        case 7, ls.snooping;
-                        case 8, ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
-                    end
+                if isempty(id_sync)
+                    this.log.addWarning('No processable epochs found, skipping PPP');
+                else
                     ls.Astack2Nstack();
-                    [x, res, s0, ~, l_fixed] = ls.solve();
-                end
-                id_sync = ls.true_epoch;
-                
-                if isempty(this.zwd) || all(isnan(this.zwd))
-                    this.zwd = zeros(this.time.length(), 1);
-                end
-                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
-                    this.apr_zhd = zeros(this.time.length(),1);
-                end
-                if isempty(this.ztd) || all(isnan(this.ztd))
-                    this.ztd = zeros(this.time.length(),1);
-                end
-                
-                n_sat = size(this.sat.el,2);
-                if isempty(this.sat.slant_td)
-                    this.sat.slant_td = zeros(this.time.length(), n_sat);
-                end
-                
-               
-                
-                this.id_sync = id_sync;
-                
-                this.sat.res = zeros(this.time.length, n_sat);
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
-                
-                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                
-                coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
-                if isempty(coo)
-                    coo = [0 0 0];
-                end
-                
-                clock = x(x(:,2) == 6,1);
-                tropo = x(x(:,2) == 7,1);
-                amb = x(x(:,2) == 5,1);
-                
-                % saving matrix of float ambiguities
-                amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
-                id_ok = ~isnan(ls.amb_idx);
-                amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
-                this.sat.amb_mat = nan(this.length, this.parent.cc.getMaxNumSat);
-                this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
-                
-                gntropo = x(x(:,2) == 8,1);
-                getropo = x(x(:,2) == 9,1);
-                this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
-                
-                valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = clock / Core_Utils.V_LIGHT;
-                this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
-                this.sat.amb_idx(id_sync,ls.go_id_amb(ls.phase_idx)) = ls.amb_idx;
-                this.if_amb = amb; % to test ambiguity fixing
-                this.quality_info.s0 = s0;
-                this.quality_info.n_epochs = ls.n_epochs;
-                this.quality_info.n_obs = size(ls.epoch, 1);
-                this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
-                this.quality_info.n_sat = length(unique(ls.sat));
-                this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
-                if this.state.getAmbFixPPP
-                    this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
-                end
-
-                if s0 > 0.10
-                    this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
-                end
-                if s0 < 0.5 % with over 50cm of error the results are not meaningfull
-                    if isempty(pos_idx)
-                        this.xyz = this.xyz + coo;
-                    else
-                        this.xyz = this.xyz + coo(2,:);
-                    end
+                    time = this.time.getSubSet(id_sync);
+                    rate = time.getRate();
+                    ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
                     if this.state.flag_tropo
-                        zwd = this.getZwd();
-                        zwd_tmp = zeros(size(this.zwd));
-                        zwd_tmp(this.id_sync) = zwd;
                         if order_tropo == 0
-                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
+                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                         else
-                            tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
-                            
-                            spline_base = Core_Utils.spline(tropo_dt,order_tropo);
-                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base.*tropo(repmat(ls.tropo_idx,1,order_tropo+1)+repmat((0:order_tropo),numel(ls.tropo_idx),1)),2);
+                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
                         end
-                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
-                        this.pwv = nan(size(this.zwd));
-                        if ~isempty(this.meteo_data)
-                            degCtoK = 273.15;
-                            [~,Tall, H] = this.getPTH();
-                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
-                            
-                            % Askne and Nordius formula (from Bevis et al., 1994)
-                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-                            
-                            % precipitable Water Vapor
-                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
-                        end
-                        this.sat.amb = amb;
                     end
                     if this.state.flag_tropo_gradient
-                        if isempty(this.tgn) || all(isnan(this.tgn))
-                            this.tgn = nan(this.time.length,1);
-                        end
                         if order_tropo_g == 0
-                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                         else
-                            tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
-                            spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
-                            this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
-                        end
-                        if isempty(this.tge) || all(isnan(this.tge))
-                            this.tge = nan(this.time.length,1);
-                        end
-                        if order_tropo_g == 0
-                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
-                        else
-                            this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
                         end
                     end
-                    this.updateErrTropo();
-                    % -------------------- estimate additional coordinate set
-                    if this.state.flag_coo_rate
-                        for i = 1 : 3
-                            if this.state.coo_rates(i) ~= 0
-                                pos_idx = [ones(sum(this.time < this.out_start_time),1)];
-                                time_1 = this.out_start_time.getCopy;
-                                time_2 = this.out_start_time.getCopy;
-                                time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2));
-                                for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/this.state.coo_rates(i)) - 1)
-                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time < time_2),1)];
-                                    time_1.addSeconds(this.state.coo_rates(i));
-                                    time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2) );
-                                end
-                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
+                    this.log.addMessage(this.log.indent('Solving the system'));
+                    [x, res, s0, ~, l_fixed] = ls.solve();
+                    % REWEIGHT ON RESIDUALS
+                    if this.state.getReweightPPP > 1
+                        switch this.state.getReweightPPP()
+                            case 2, ls.reweightHuber;
+                            case 3, ls.reweightHubNoThr;
+                            case 4, ls.reweightDanish;
+                            case 5, ls.reweightDanishWM;
+                            case 6, ls.reweightTukey;
+                            case 7, ls.snooping;
+                            case 8, ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
+                        end
+                        ls.Astack2Nstack();
+                        [x, res, s0, ~, l_fixed] = ls.solve();
+                    end
+                    id_sync = ls.true_epoch;
+                    
+                    if isempty(this.zwd) || all(isnan(this.zwd))
+                        this.zwd = zeros(this.time.length(), 1);
+                    end
+                    if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
+                        this.apr_zhd = zeros(this.time.length(),1);
+                    end
+                    if isempty(this.ztd) || all(isnan(this.ztd))
+                        this.ztd = zeros(this.time.length(),1);
+                    end
+                    
+                    n_sat = size(this.sat.el,2);
+                    if isempty(this.sat.slant_td)
+                        this.sat.slant_td = zeros(this.time.length(), n_sat);
+                    end
+                    
+                    
+                    
+                    this.id_sync = id_sync;
+                    
+                    this.sat.res = zeros(this.time.length, n_sat);
+                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                    this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
+                    
+                    %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+                    
+                    coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                    if isempty(coo)
+                        coo = [0 0 0];
+                    end
+                    
+                    clock = x(x(:,2) == 6,1);
+                    tropo = x(x(:,2) == 7,1);
+                    amb = x(x(:,2) == 5,1);
+                    
+                    % saving matrix of float ambiguities
+                    amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
+                    id_ok = ~isnan(ls.amb_idx);
+                    amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
+                    this.sat.amb_mat = nan(this.length, this.parent.cc.getMaxNumSat);
+                    this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
+                    
+                    gntropo = x(x(:,2) == 8,1);
+                    getropo = x(x(:,2) == 9,1);
+                    this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
+                    
+                    valid_ep = ls.true_epoch;
+                    this.dt(valid_ep, 1) = clock / Core_Utils.V_LIGHT;
+                    this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
+                    this.sat.amb_idx(id_sync,ls.go_id_amb(ls.phase_idx)) = ls.amb_idx;
+                    this.if_amb = amb; % to test ambiguity fixing
+                    this.quality_info.s0 = s0;
+                    this.quality_info.n_epochs = ls.n_epochs;
+                    this.quality_info.n_obs = size(ls.epoch, 1);
+                    this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
+                    this.quality_info.n_sat = length(unique(ls.sat));
+                    this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
+                    if this.state.getAmbFixPPP
+                        this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
+                    end
+                    
+                    if s0 > 0.10
+                        this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
+                    end
+                    if s0 < 0.5 % with over 50cm of error the results are not meaningfull
+                        if isempty(pos_idx)
+                            this.xyz = this.xyz + coo;
+                        else
+                            this.xyz = this.xyz + coo(2,:);
+                        end
+                        if this.state.flag_tropo
+                            zwd = this.getZwd();
+                            zwd_tmp = zeros(size(this.zwd));
+                            zwd_tmp(this.id_sync) = zwd;
+                            if order_tropo == 0
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
+                            else
+                                tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
                                 
-                                ls = LS_Manipulator(this.cc);
-                                id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
-                                ls.Astack2Nstack();
-                                
-                                time = this.time.getSubSet(id_sync_in);
-                                
-                                rate = time.getRate();
-                                
-                                ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600 * rate); % really small regularization
-                                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-                                if this.state.flag_tropo_gradient
-                                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
-                                end
-                                this.log.addMessage(this.log.indent('Solving the system'));
-                                [x, res, s0]  = ls.solve();
-                                
-                                coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
-                                time_coo = this.out_start_time.getCopy;
-                                time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
-                                sub_coo = struct();
-                                sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
-                                sub_coo.time = time_coo.getCopy();
-                                sub_coo.rate = this.state.coo_rates(i);
-                                if isempty(this.add_coo)
-                                    this.add_coo = sub_coo;
-                                else
-                                    this.add_coo(end+1) = sub_coo;
-                                end
+                                spline_base = Core_Utils.spline(tropo_dt,order_tropo);
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base.*tropo(repmat(ls.tropo_idx,1,order_tropo+1)+repmat((0:order_tropo),numel(ls.tropo_idx),1)),2);
                             end
-                            
+                            this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                            this.pwv = nan(size(this.zwd));
+                            if ~isempty(this.meteo_data)
+                                degCtoK = 273.15;
+                                [~,Tall, H] = this.getPTH();
+                                % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                                Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                                
+                                % Askne and Nordius formula (from Bevis et al., 1994)
+                                Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                                
+                                % precipitable Water Vapor
+                                this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                            end
+                            this.sat.amb = amb;
                         end
+                        if this.state.flag_tropo_gradient
+                            if isempty(this.tgn) || all(isnan(this.tgn))
+                                this.tgn = nan(this.time.length,1);
+                            end
+                            if order_tropo_g == 0
+                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
+                            else
+                                tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
+                                spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
+                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                            end
+                            if isempty(this.tge) || all(isnan(this.tge))
+                                this.tge = nan(this.time.length,1);
+                            end
+                            if order_tropo_g == 0
+                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
+                            else
+                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                            end
+                        end
+                        this.updateErrTropo();
+                        % -------------------- estimate additional coordinate set
+                        if this.state.flag_coo_rate
+                            for i = 1 : 3
+                                if this.state.coo_rates(i) ~= 0
+                                    pos_idx = [ones(sum(this.time < this.out_start_time),1)];
+                                    time_1 = this.out_start_time.getCopy;
+                                    time_2 = this.out_start_time.getCopy;
+                                    time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2));
+                                    for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/this.state.coo_rates(i)) - 1)
+                                        pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time < time_2),1)];
+                                        time_1.addSeconds(this.state.coo_rates(i));
+                                        time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2) );
+                                    end
+                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
+                                    
+                                    ls = LS_Manipulator(this.cc);
+                                    id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
+                                    ls.Astack2Nstack();
+                                    
+                                    time = this.time.getSubSet(id_sync_in);
+                                    
+                                    rate = time.getRate();
+                                    
+                                    ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600 * rate); % really small regularization
+                                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                                    if this.state.flag_tropo_gradient
+                                        ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                                        ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                                    end
+                                    this.log.addMessage(this.log.indent('Solving the system'));
+                                    [x, res, s0]  = ls.solve();
+                                    
+                                    coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                                    time_coo = this.out_start_time.getCopy;
+                                    time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
+                                    sub_coo = struct();
+                                    sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
+                                    sub_coo.time = time_coo.getCopy();
+                                    sub_coo.rate = this.state.coo_rates(i);
+                                    if isempty(this.add_coo)
+                                        this.add_coo = sub_coo;
+                                    else
+                                        this.add_coo(end+1) = sub_coo;
+                                    end
+                                end
+                                
+                            end
+                        end
+                        %this.pushResult();
                     end
-                    %this.pushResult();
                 end
-                
             end
         end
         

@@ -907,6 +907,9 @@ classdef Meteo_Data < handle
                 w_all = bsxfun(@rdivide, w_all, sum(w_all,1));
                 data0 = sum(w_all .* data_obs, 1);
                 
+                if ~any(data0(:)) % there are no valid data
+                    data = [];
+                else
                 lim = getOutliers(lid_best);
 
                 % adjust pres0 and avoid discontinuities
@@ -943,6 +946,7 @@ classdef Meteo_Data < handle
                 if type == Meteo_Data.HR
                     data = min(1, max(0, data));
                 end
+                end
             end            
         end
                 
@@ -965,8 +969,6 @@ classdef Meteo_Data < handle
             % EXAMPLE
             %   [x, y, z, amsl] = station(1).getLocation();
             %   md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
-
-            log = Logger.getInstance();
 
             md = Meteo_Data();
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
@@ -1011,11 +1013,13 @@ classdef Meteo_Data < handle
             hum = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
             
             data = [pres temp hum];
-            id_ok = (sum(isnan(data)) < time.length());
-            data = data(:, id_ok);
-            type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
-            type = type(:, id_ok);
-            md.importRaw(time, data, type, name, xyz);
+            if any(data)
+                id_ok = (sum(isnan(data)) < time.length());
+                data = data(:, id_ok);
+                type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
+                type = type(:, id_ok);
+                md.importRaw(time, data, type, name, xyz);
+            end
         end
 
         function [ temperature_adj ] = temperatureAdjustment( temperature , obs_h, pred_h)

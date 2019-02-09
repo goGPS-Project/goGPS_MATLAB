@@ -208,239 +208,240 @@ classdef LS_Manipulator < handle
             end
             if nargin < 7
                 dynamic = false;
-            end
-            
-                
+            end   
             
             % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
-            flag_amb_fix = this.state.getAmbFixPPP();
-            if nargin < 6 || isempty(custom_obs_set)
-                obs_set = Observation_Set();
-                if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
-                    
-                    % Using smoothed iono fromg geometry free
-                    for sys_c = rec.cc.sys_c
-                        for i = 1 : length(obs_type)
-                            if this.state.isIonoFree || ~phase_present
-                                obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
-                            else
-                                obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
-                                obs_set.iono_free = true;
-                                obs_set.sigma = obs_set.sigma * 1.5;
+            if phase_present && isempty(rec.findObservableByFlag('L'))
+                this.log.addError(sprintf('Receiver %s does not contains phase observations for computing the requested solution', rec.parent.getMarkerName()));
+                id_sync_out = [];
+            else
+                flag_amb_fix = this.state.getAmbFixPPP();
+                if nargin < 6 || isempty(custom_obs_set)
+                    obs_set = Observation_Set();
+                    if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
+                        
+                        % Using smoothed iono fromg geometry free
+                        for sys_c = rec.cc.sys_c
+                            for i = 1 : length(obs_type)
+                                if this.state.isIonoFree || ~phase_present
+                                    obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                                else
+                                    obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
+                                    obs_set.iono_free = true;
+                                    obs_set.sigma = obs_set.sigma * 1.5;
+                                end
                             end
                         end
-                    end
-                    
-                    if flag_amb_fix && phase_present
-                        [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
-                        f_vec = GPS_SS.F_VEC;
-                        l_vec = GPS_SS.L_VEC;
-                        obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
+                        
+                        if flag_amb_fix && phase_present
+                            [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
+                            f_vec = GPS_SS.F_VEC;
+                            l_vec = GPS_SS.L_VEC;
+                            obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
+                        end
+                    else
+                        % Using the best combination available
+                        for sys_c = rec.cc.sys_c
+                            f = rec.getFreqs(sys_c);
+                            for i = 1 : length(obs_type)
+                                if ~isempty(f)
+                                    obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                                end
+                            end
+                        end
+                        idx_ph = obs_set.obs_code(:, 2) == 'L';
+                        if sum(idx_ph) > 0
+                            obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(serialize(obs_set.wl(idx_ph))', size(obs_set.obs,1), 1);
+                        end
                     end
                 else
-                    % Using the best combination available
-                    for sys_c = rec.cc.sys_c
-                        f = rec.getFreqs(sys_c);
-                        for i = 1 : length(obs_type)
-                            if ~isempty(f)
-                                obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                    obs_set = custom_obs_set;
+                end
+                if not(phase_present)
+                    obs_set.wl(:) = -1;
+                end
+                if phase_present
+                    n_sat = rec.cc.getMaxNumSat();
+                    rec.sat.cycle_slip = zeros(rec.time.length, n_sat);
+                    rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
+                    rec.sat.outliers = zeros(rec.time.length, n_sat);
+                    dual_freq = size(obs_set.obs_code,2) > 5;
+                    [~, ~, ph_idx] = rec.getPhases();
+                    obs_code_ph = rec.obs_code(ph_idx,:);
+                    go_id_ph = rec.go_id(ph_idx);
+                    ph_idx = find(obs_set.obs_code(:,2) == 'L');
+                    o_ph_goi = obs_set.go_id(ph_idx);
+                    for s = 1 : length(o_ph_goi)
+                        g = o_ph_goi(s);
+                        obs_code1 = obs_set.obs_code(ph_idx(s),2:4);
+                        if dual_freq
+                            obs_code2 = obs_set.obs_code(ph_idx(s),5:7);
+                        else
+                            obs_code2 = '   ';
+                        end
+                        out_idx = strLineMatch(obs_code_ph,obs_code1) & go_id_ph == g;
+                        out = rec.sat.outliers_ph_by_ph(:,out_idx);
+                        if strcmp(obs_code2,'   ')
+                            out_idx = strLineMatch(obs_code_ph,obs_code2) & go_id_ph == g;
+                            if any(out_idx)
+                                out(:,out_idx) = out(:,out_idx) | rec.sat.outliers_ph_by_ph(:,out_idx);
                             end
                         end
-                    end
-                    idx_ph = obs_set.obs_code(:, 2) == 'L';
-                    if sum(idx_ph) > 0
-                        obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(serialize(obs_set.wl(idx_ph))', size(obs_set.obs,1), 1);
+                        rec.sat.outliers(:,g) = out;
                     end
                 end
-            else
-                obs_set = custom_obs_set;
-            end
-            if not(phase_present)
-                obs_set.wl(:) = -1;
-            end
-            if phase_present
-                n_sat = rec.cc.getMaxNumSat();
-                rec.sat.cycle_slip = zeros(rec.time.length, n_sat);
-                rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
-                rec.sat.outliers = zeros(rec.time.length, n_sat);
-                dual_freq = size(obs_set.obs_code,2) > 5;
-                [~, ~, ph_idx] = rec.getPhases();
-                obs_code_ph = rec.obs_code(ph_idx,:);
-                go_id_ph = rec.go_id(ph_idx);
-                ph_idx = find(obs_set.obs_code(:,2) == 'L');
-                o_ph_goi = obs_set.go_id(ph_idx);
-                for s = 1 : length(o_ph_goi)
-                    g = o_ph_goi(s);
-                    obs_code1 = obs_set.obs_code(ph_idx(s),2:4);
-                    if dual_freq
-                        obs_code2 = obs_set.obs_code(ph_idx(s),5:7);
-                    else
-                        obs_code2 = '   ';
+                % check presence of snr data and fill the gaps if needed
+                if ~isempty(obs_set.snr)
+                    snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
+                    if sum(sum(snr_to_fill))
+                        obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
                     end
-                    out_idx = strLineMatch(obs_code_ph,obs_code1) & go_id_ph == g;
-                    out = rec.sat.outliers_ph_by_ph(:,out_idx);
-                    if strcmp(obs_code2,'   ')
-                        out_idx = strLineMatch(obs_code_ph,obs_code2) & go_id_ph == g;
-                        if any(out_idx)
-                            out(:,out_idx) = out(:,out_idx) | rec.sat.outliers_ph_by_ph(:,out_idx);
-                        end
+                end
+                
+                % remove epochs based on desired sampling
+                if nargin > 2
+                    obs_set.keepEpochs(id_sync_in);
+                end
+                
+                % re-apply cut off if requested
+                if nargin > 4 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
+                    obs_set.remUnderCutOff(cut_off);
+                end
+                
+                
+                % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
+                idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
+                obs_set.setZeroEpochs(~idx_valid_ep_l);
+                
+                %remove too shortArc
+                
+                % Compute the number of ambiguities that must be estimated
+                cycle_slip = obs_set.cycle_slip;
+                min_arc = this.state.getMinArc;
+                if phase_present && min_arc > 1
+                    amb_idx = obs_set.getAmbIdx();
+                    % amb_idx = n_coo + n_iob + amb_idx;
+                    amb_idx = zero2nan(amb_idx);
+                    
+                    % remove short arcs
+                    
+                    % ambiguity number for each satellite
+                    amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
+                    assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
+                    id = 1 : numel(amb_obs_count);
+                    ko_amb_list = id(amb_obs_count < min_arc);
+                    amb_obs_count(amb_obs_count < min_arc) = [];
+                    for ko_amb = fliplr(ko_amb_list)
+                        id_ko = amb_idx == ko_amb;
+                        obs_set.remObs(id_ko,false)
                     end
-                    rec.sat.outliers(:,g) = out;                    
+                    
                 end
-            end
-            % check presence of snr data and fill the gaps if needed
-            if ~isempty(obs_set.snr)
-                snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
-                if sum(sum(snr_to_fill))
-                    obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
-                end
-            end
-            
-            
-            
-            % remove epochs based on desired sampling
-            if nargin > 2
-                obs_set.keepEpochs(id_sync_in);
-            end
-            
-            % re-apply cut off if requested
-            if nargin > 4 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
-                obs_set.remUnderCutOff(cut_off);
-            end
-            
-            
-            % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
-            idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
-            obs_set.setZeroEpochs(~idx_valid_ep_l);
-            
-            %remove too shortArc
-            
-            % Compute the number of ambiguities that must be estimated
-            cycle_slip = obs_set.cycle_slip;
-            min_arc = this.state.getMinArc;
-            if phase_present && min_arc > 1
-                amb_idx = obs_set.getAmbIdx();
-                % amb_idx = n_coo + n_iob + amb_idx;
-                amb_idx = zero2nan(amb_idx);
+                idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
+                obs_set.setZeroEpochs(~idx_valid_ep_l);
                 
-                % remove short arcs
+                obs_set.remEmptyColumns();
+                % if phase observations are present check if the computation of troposphere parameters is required
                 
-                % ambiguity number for each satellite
-                amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
-                assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
-                id = 1 : numel(amb_obs_count);
-                ko_amb_list = id(amb_obs_count < min_arc);
-                amb_obs_count(amb_obs_count < min_arc) = [];
-                for ko_amb = fliplr(ko_amb_list)
-                    id_ko = amb_idx == ko_amb;
-                    obs_set.remObs(id_ko,false)
+                if phase_present
+                    tropo = this.state.flag_tropo;
+                    tropo_g = this.state.flag_tropo_gradient;
+                else
+                    tropo = false;
+                    tropo_g = false;
                 end
                 
-            end
-            idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
-            obs_set.setZeroEpochs(~idx_valid_ep_l);
-            
-            obs_set.remEmptyColumns();
-            % if phase observations are present check if the computation of troposphere parameters is required
-            
-            if phase_present
-                tropo = this.state.flag_tropo;
-                tropo_g = this.state.flag_tropo_gradient;
-            else
-                tropo = false;
-                tropo_g = false;
-            end
-            
-            
-            % get reference observations and satellite positions
-            [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
-            xs_loc = zero2nan(xs_loc);
-            diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-            
-            
-            % Sometime code observations may contain unreasonable values -> remove them
-            if obs_type == 'C'
-                % very coarse outlier detection based on diff obs
-                mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
-                diff_obs(abs(diff_obs) > 50 * mean_diff_obs) = 0;
-            end
-            idx_empty_ep = sum(diff_obs ~= 0,2) <= 1;
-            obs_set.remEpochs(idx_empty_ep);
-            obs_set.sanitizeEmpty();
-            if dynamic
-                pos_idx_vec = 1:obs_set.time.length;
-            end
-            [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = this.getObsEq( rec, obs_set, pos_idx_vec, tropo_rate);
-            this.true_epoch = id_sync_out;
-            this.A_ep = A;
-            this.A_idx = A_idx;
-            this.variance = variance;
-            this.y = y;
-            this.receiver_id = ones(size(y));
-            this.epoch = ep;
-            %             sat2progsat = zeors(max(obs_set.go_id));
-            %             sat2progsat(obs_set.go_id) = 1: length(unique(obs_set.go_id));
-            %             this.sat = sat2progsat(sat);
-            this.sat = sat;
-            if dynamic
-                p_flag(p_class == this.PAR_X | p_class == this.PAR_Y  | p_class == this.PAR_Z ) = 1;
-            end
-            this.param_flag = p_flag;
-            this.param_class = p_class;
-            this.amb_idx = obs_set.getAmbIdx();
-            this.go_id_amb = obs_set.go_id;
-            this.sat_go_id = obs_set.go_id;
-            n_epochs = size(obs_set.obs, 1);
-            this.n_epochs = n_epochs;
-            phase_s = find(obs_set.wl ~=  -1);
-            this.phase_idx = phase_s;
-            
-            
-            %---- Set up the constraint to solve the rank deficeny problem --------------
-            if phase_present
-                % Ambiguity set
-                %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                %                 if ~flag_amb_fix
-                %                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
-                %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
-                % setting the first clock of each connected set of arc to 0
-                %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
-                amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
-                %                 clock_const = zeros(1,n_clocks);
-                %                 amb_const = zeros(1,n_amb);
-                %                 amb_const(1) = 1;
-                G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
-                amb_par = this.A_idx(:,this.param_class == this.PAR_AMB);
-                min_amb = min(amb_par);
-                max_amb = max(amb_par);
-                max_par = max(this.A_idx(:,end));
-                n_amb = max_amb - min_amb +1;
-                amb_idx = this.amb_idx;
-                clock_const = zeros(1,this.n_epochs);
-                for i = 1: (length(amb_set_jmp_bnd)-1)
-                    %clock_const(amb_set_jmp_bnd(i)+1) = 1;
-                    amb_const = zeros(1,n_amb);
-                    amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
-                    amb_idx_const = unique(amb_idx_const);
-                    amb_const(amb_idx_const) = 1;
-                    G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
+                
+                % get reference observations and satellite positions
+                [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
+                xs_loc = zero2nan(xs_loc);
+                diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
+                
+                
+                % Sometime code observations may contain unreasonable values -> remove them
+                if obs_type == 'C'
+                    % very coarse outlier detection based on diff obs
+                    mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
+                    diff_obs(abs(diff_obs) > 50 * mean_diff_obs) = 0;
                 end
+                idx_empty_ep = sum(diff_obs ~= 0,2) <= 1;
+                obs_set.remEpochs(idx_empty_ep);
+                obs_set.sanitizeEmpty();
+                if dynamic
+                    pos_idx_vec = 1:obs_set.time.length;
+                end
+                [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = this.getObsEq( rec, obs_set, pos_idx_vec, tropo_rate);
+                this.true_epoch = id_sync_out;
+                this.A_ep = A;
+                this.A_idx = A_idx;
+                this.variance = variance;
+                this.y = y;
+                this.receiver_id = ones(size(y));
+                this.epoch = ep;
+                %             sat2progsat = zeors(max(obs_set.go_id));
+                %             sat2progsat(obs_set.go_id) = 1: length(unique(obs_set.go_id));
+                %             this.sat = sat2progsat(sat);
+                this.sat = sat;
+                if dynamic
+                    p_flag(p_class == this.PAR_X | p_class == this.PAR_Y  | p_class == this.PAR_Z ) = 1;
+                end
+                this.param_flag = p_flag;
+                this.param_class = p_class;
+                this.amb_idx = obs_set.getAmbIdx();
+                this.go_id_amb = obs_set.go_id;
+                this.sat_go_id = obs_set.go_id;
+                n_epochs = size(obs_set.obs, 1);
+                this.n_epochs = n_epochs;
+                phase_s = find(obs_set.wl ~=  -1);
+                this.phase_idx = phase_s;
                 
-                G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
                 
-                D = zeros(size(G,1),1);
-                this.G = G;
-                this.D = D;
-            end
-            if phase_present
-                %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                fprintf('#### DEBUG #### \n');
-                [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]]
-                this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
-            else
-                this.system_split = [1 max(ep)];
+                %---- Set up the constraint to solve the rank deficeny problem --------------
+                if phase_present
+                    % Ambiguity set
+                    %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
+                    %                 if ~flag_amb_fix
+                    %                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
+                    %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
+                    % setting the first clock of each connected set of arc to 0
+                    %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                    %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                    amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                    %                 clock_const = zeros(1,n_clocks);
+                    %                 amb_const = zeros(1,n_amb);
+                    %                 amb_const(1) = 1;
+                    G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
+                    amb_par = this.A_idx(:,this.param_class == this.PAR_AMB);
+                    min_amb = min(amb_par);
+                    max_amb = max(amb_par);
+                    max_par = max(this.A_idx(:,end));
+                    n_amb = max_amb - min_amb +1;
+                    amb_idx = this.amb_idx;
+                    clock_const = zeros(1,this.n_epochs);
+                    for i = 1: (length(amb_set_jmp_bnd)-1)
+                        %clock_const(amb_set_jmp_bnd(i)+1) = 1;
+                        amb_const = zeros(1,n_amb);
+                        amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
+                        amb_idx_const = unique(amb_idx_const);
+                        amb_const(amb_idx_const) = 1;
+                        G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
+                    end
+                    
+                    G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
+                    
+                    D = zeros(size(G,1),1);
+                    this.G = G;
+                    this.D = D;
+                end
+                if phase_present
+                    %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                    fprintf('#### DEBUG #### \n');
+                    [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]]
+                    this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
+                else
+                    this.system_split = [1 max(ep)];
+                end
             end
         end
         
