@@ -78,6 +78,7 @@ classdef Command_Interpreter < handle
         CMD_EXPORT      % Export results
         CMD_PUSHOUT     % push results in output
         CMD_REMSAT      % remove satellites from receivers
+        CMD_REMOBS      % Remove some observations from the receiver (given the obs code)
             
         CMD_PINIT       % parallel request slaves
         CMD_PKILL       % parallel kill slaves
@@ -123,7 +124,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT','REMSAT'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -418,8 +419,14 @@ classdef Command_Interpreter < handle
             this.CMD_REMSAT.name = {'REMSAT', 'remsat'};
             this.CMD_REMSAT.descr = ['Remove satellites, format: <1ch sat. sys. (GREJCI)><2ch sat. prn>' new_line 'e.g. REMSAT T1 G04,G29,J04'];
             this.CMD_REMSAT.rec = 'T';
-            this.CMD_REMSAT.key = 'S';
+            this.CMD_REMSAT.key = 'S'; % fake not used key, indicate thet there's one mandatory parameter
             this.CMD_REMSAT.par = [];
+
+            this.CMD_REMOBS.name = {'REMOBS', 'remobs'};
+            this.CMD_REMOBS.descr = ['Remove observation, format: <1ch obs. type (CPDS)><1ch freq><1ch tracking>' new_line 'e.g. REMOBS T1 D,S2,L2C'];
+            this.CMD_REMOBS.rec = 'T';
+            this.CMD_REMOBS.key = 'O'; % fake not used key, indicate thet there's one mandatory parameter
+            this.CMD_REMOBS.par = [];
 
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
@@ -703,8 +710,10 @@ classdef Command_Interpreter < handle
                             this.runCodePP(rec, tok(2:end));
                         case this.CMD_PPP.name                  % PPP
                             this.runPPP(rec, tok(2:end));
-                        case this.CMD_REMSAT.name               % REM SAt
+                        case this.CMD_REMSAT.name               % REM SAT
                             this.runRemSat(rec, tok(2:end));
+                        case this.CMD_REMOBS.name               % REM OBS
+                            this.runRemObs(rec, tok(2:end));
                         case this.CMD_NET.name                  % NET
                             this.runNet(rec, tok(2:end));
                         case this.CMD_SEID.name                 % SEID
@@ -1016,7 +1025,31 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
+        function runRemObs(this, rec, tok)
+            % Remove observation from receivers
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runRemObs(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                s_idx = 2;
+                for r = id_trg
+                    obs_type = strsplit(tok{s_idx},',');
+                    for o = 1 : length(obs_type)
+                        id = rec(r).work.findObservableByFlag(obs_type{o});
+                        rec(r).work.remObs(id);
+                    end
+                end
+            end
+        end
+
         function runNet(this, rec, tok)
             % Execute Network undifferenced solution
             %
@@ -1428,7 +1461,7 @@ classdef Command_Interpreter < handle
                     [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
         end
         
-        function [id_sss, found] = getMatchingTarget(this, tok)
+        function [id_trg, found] = getMatchingTarget(this, tok)
             % Extract from a set of tokens the target to be used
             %
             % INPUT
@@ -1436,7 +1469,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   [id_sss, found] = this.getMatchingSession(tok)            
-            [id_sss, found] = getMatchingKey(this, tok, 'T', 1000); % 1000 maximum number of targets
+            [id_trg, found] = getMatchingKey(this, tok, 'T', 10000); % 10000 maximum number of targets
         end
         
         function [id_key, found] = getMatchingKey(this, tok, type, n_key)
