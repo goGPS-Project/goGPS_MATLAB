@@ -5258,10 +5258,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             [ph, wl, id_ph] = this.getPhases();
             ddt = nan2zero(median(zero2nan(diff(ph -this.getSyntPhases)), 2, 'omitnan'));
             ddt(abs(ddt) < 1e3) = 0;
-            dt_dj = cumsum([0; ddt(:)]);
-            ph = bsxfun(@minus, ph, dt_dj);
-            this.setPhases(ph, wl, id_ph);
-            
+            if any(ddt)
+                % This is an adaptation, too big jump probably indicates a problem in the data      
+                ddt(abs(ddt) > 1e10) = 0; % correction added for Japanese station 0731 day 01/01/2019
+                dt_dj = cumsum([0; ddt(:)]);
+                ph = bsxfun(@minus, ph, dt_dj);
+                this.setPhases(ph, wl, id_ph);
+            end            
             % this.timeShiftObs(dt_dj ./ Core_Utils.V_LIGHT, true);
         end
         
