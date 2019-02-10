@@ -596,17 +596,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             if islogical(id_obs)
                 id_obs = find(id_obs);
             end
-            this.obs(id_obs,:) = [];
+            this.obs(intersect(1 : size(this.obs,1), id_obs),:) = [];
             this.obs_code(id_obs, :) = [];
-            this.active_ids(id_obs) = [];
+            this.active_ids(intersect(1:size(this.active_ids,1), id_obs)) = [];
             this.wl(id_obs) = [];
             this.f_id(id_obs) = [];
             this.prn(id_obs) = [];
             
             this.system(id_obs) = [];
             
-            go_out = this.go_id(id_obs);
-            this.go_id(id_obs) = [];
+            go_out = this.go_id(intersect(1 : size(this.go_id, 1), id_obs));
+            this.go_id(intersect(1 : size(this.go_id, 1), id_obs)) = [];
             go_out = setdiff(go_out, unique(this.go_id));
             
             id_out = [];
@@ -1751,7 +1751,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % remove empty sets very useful when reading RINEX 2
                 % multi-constellations files
                 if ~isempty(this.obs)
-                    this.remObs(not(any(this.obs')));
+                    this.remObs(~(any(this.obs')));
                     % remove unselected observations
                     u_sys_c = unique(this.system);
                     for i = 1 : length(u_sys_c)

@@ -1205,7 +1205,8 @@ classdef GNSS_Station < handle
                 % processing time will start with the receiver with the last first epoch
                 %          and it will stop  with the receiver with the first last epoch
                 
-                first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+                out = [rec.out];
+                first_id_ok = find(~out.isEmpty_mr, 1, 'first');
                 if ~isempty(first_id_ok)
                     if use_pos_time
                         p_time_zero = round(rec(first_id_ok).out.time_pos.first.getMatlabTime() * 24)/24; % get the reference time for positions
