@@ -1439,6 +1439,70 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cicle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
+            if this.isMultiFreq % if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
+                [ph,wl,lid_ph] = this.getPhases;
+                id_ph = find(lid_ph);
+                go_id_ph = this.go_id(lid_ph);
+                [pr,lid_pr] = this.getPseudoRanges;
+                id_pr = find(lid_pr);
+                go_id_pr = this.go_id(lid_pr);
+                for g = unique(go_id_ph)'
+                    % for each sat get all available observations and ge
+                    % cycle slips
+                    id_sat_ph = find(go_id_ph == g);
+                    ph_sat = ph(:,id_sat_ph);
+                    wl_sat = wl(id_sat_ph);
+                    ph_sat_code = this.obs_code(id_ph(id_sat_ph),:);
+                    u_fr_ph = unique(ph_sat_code(:,2));
+                    n_fr_ph = zeros(size(u_fr_ph));
+                    for i = 1 : length(u_fr_ph)
+                        n_fr_ph(i) == sum(u_fr_ph == i);
+                    end
+                    ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
+                    lid_sat_pr = go_id_pr == g;
+                    pr_sat = pr(:,lid_sat_pr);
+                    pr_sat_code = this.obs_code(id_pr(lid_sat_pr),:);
+                    lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
+                    id_cs_ep = find(lid_cs_ep);
+                    n_epoch = size(this.sat.cicle_slip_ph_by_ph,1);
+                    for ce = id_cs_ep' % for each epoch with a cycle slip
+                        % 1) for each frequency check all tracking if one
+                        % has jumped and the other no check if was really a
+                        % cycle slip and repair
+                        for f  = u_fr_ph'
+                            id_fr_sat = find(ph_sat_code(:,2) == f);
+                            cs_same_f = ph_sat_cs(ce,id_fr_sat);
+                            if sum(cs_same_f) < length(cs_same_f) && sum(cs_same_f) > 0 % if not all have jumped
+                                id_not_cs = find(~cs_same_f);
+                                for s = find(cs_same_f)'
+                                    cs_f = find(ph_sat_cs(:,id_fr_sat(s)));
+                                    notcs_f = find(ph_sat_cs(:,id_not_cs(1))); % using first good frequency
+                                    cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
+                                    cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
+                                    id_1 = id_sat_ph(id_fr_sat(s));
+                                    id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
+                                    jmp = mean(ph(ce:cs_aft,id_1) - ph(ce:cs_aft,id_2) ,'omitnan') - mean(ph(cs_bf:(ce-1),id_1) - ph(cs_bf:(ce-1),id_2),'omitnan');
+                                    i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
+                                    if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
+                                        this.sat.cicle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                                        if i_jmp ~= 0 
+                                          ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
+                                        end
+                                    end
+                                end
+                                
+                            end
+                        end
+                        %2) check the geometry free and the melbourne
+                        %wubbena if one of the two detec a cycle slip then
+                        %is really a cycle slip otherwise remove it
+                        
+                        
+                    end
+                    
+                end
+                
+            end
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
         end
         
