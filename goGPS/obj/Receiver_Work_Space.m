@@ -2641,7 +2641,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if nargin == 2
                         n_sat(r) = max(rec.go_id( (rec.system == sys_c)' & (rec.obs_code(:,1) == 'C' | rec.obs_code(:,1) == 'L') ));
                     else
-                        n_sat(r) = max(rec.go_id(rec.obs_code(:,1) == 'C' | rec.obs_code(:,1) == 'L'));
+                        if isempty(rec.go_id)
+                            n_sat(r) = 0;
+                        else
+                            n_sat(r) = max(rec.go_id(rec.obs_code(:,1) == 'C' | rec.obs_code(:,1) == 'L'));
+                        end
                     end
                 end
             end
@@ -3098,54 +3102,59 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             n_sat = this.parent.getMaxSat;
             
-            mfh = zeros(this.length, n_sat);
-            mfw = zeros(this.length, n_sat);
-            
-            if this.length > 0
-                t = 1;
+            if n_sat == 0
+                mfh = [];
+                mfw = [];
+            else
+                mfh = zeros(this.length, n_sat);
+                mfw = zeros(this.length, n_sat);
                 
-                atmo = Core.getAtmosphere();
-                [lat, lon, h_ellipse, h_ortho] = this.getMedianPosGeodetic();
-                lat = median(lat);
-                lon = median(lon);
-                h_ortho = median(h_ortho);
-                if nargin == 1
-                    for s = 1 : numel(this)
-                        if ~isempty(this(s))
-                            if this(s).state.mapping_function == 3
-                                [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                            elseif this(s).state.mapping_function == 2
-                                [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                            elseif this(s).state.mapping_function == 1
-                                [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
-                            end
-                            
-                            if isempty(this(s).id_sync)
-                                mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp;
-                                mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp;
-                            else
-                                mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(this(s).id_sync, :);
-                                mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(this(s).id_sync, :);
-                            end
-                            t = t + this(s).length;
-                        end
-                    end
-                else
-                    if numel(id_sync) > 0
+                if this.length > 0
+                    t = 1;
+                    
+                    atmo = Core.getAtmosphere();
+                    [lat, lon, h_ellipse, h_ortho] = this.getMedianPosGeodetic();
+                    lat = median(lat);
+                    lon = median(lon);
+                    h_ortho = median(h_ortho);
+                    if nargin == 1
                         for s = 1 : numel(this)
                             if ~isempty(this(s))
                                 if this(s).state.mapping_function == 3
                                     [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                                elseif this.state.mapping_function == 2
+                                elseif this(s).state.mapping_function == 2
                                     [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                                elseif this.state.mapping_function == 1
+                                elseif this(s).state.mapping_function == 1
                                     [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
                                 end
                                 
-                                
-                                mfh(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(id_sync, :);
-                                mfw(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(id_sync, :);
+                                if isempty(this(s).id_sync)
+                                    mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp;
+                                    mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp;
+                                else
+                                    mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(this(s).id_sync, :);
+                                    mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(this(s).id_sync, :);
+                                end
                                 t = t + this(s).length;
+                            end
+                        end
+                    else
+                        if numel(id_sync) > 0
+                            for s = 1 : numel(this)
+                                if ~isempty(this(s))
+                                    if this(s).state.mapping_function == 3
+                                        [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
+                                    elseif this.state.mapping_function == 2
+                                        [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
+                                    elseif this.state.mapping_function == 1
+                                        [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
+                                    end
+                                    
+                                    
+                                    mfh(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(id_sync, :);
+                                    mfw(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(id_sync, :);
+                                    t = t + this(s).length;
+                                end
                             end
                         end
                     end
@@ -3974,10 +3983,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             el = [el el_temp];
                         end                        
                     end
-                    quality = quality(this.getIdSync, :);
-                    if nargout > 1
-                        az = az(this.getIdSync, :);
-                        el = el(this.getIdSync, :);
+                    if ~isempty(quality)
+                        quality = quality(this.getIdSync, :);
+                        if nargout > 1
+                            az = az(this.getIdSync, :);
+                            el = el(this.getIdSync, :);
+                        end
                     end
             end
         end
