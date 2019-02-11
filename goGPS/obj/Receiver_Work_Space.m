@@ -1433,44 +1433,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
             
-            % remove too short possible arc -> this is done now in the set up if the least squares system
-            %             to_short_idx = flagMerge(poss_slip_idx,sa_thr);
-            %             poss_slip_idx = [diff(to_short_idx) <0 ; false(1, size(to_short_idx, 2))];
-            %             to_short_idx(poss_slip_idx) = false;
-            %             poss_out_idx(to_short_idx) = true;
             
             this.sat.outliers_ph_by_ph = ((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
             n_out = sum(this.sat.outliers_ph_by_ph(:));
             this.sat.cicle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
-            
-            % % Outlier detection for some reason is not working properly -> reperform outlier detection
-            % sensor_ph = Core_Utils.diffAndPred(this.getPhases - this.getSyntPhases, 2);
-            % sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % % divide for wavelength
-            % sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            % % outlier when they exceed 0.5 cycle
-            % poss_out_idx = abs(sensor_ph) > 0.5;
-            % this.sat.outliers_ph_by_ph = this.sat.outliers_ph_by_ph | poss_out_idx;
-            
-            %this.sat.cicle_slip_ph_by_ph([false(1,size(this.sat.outliers_ph_by_ph,2)); (diff(this.sat.outliers_ph_by_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
-            % %%
-            % sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
-            % sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph0, 2, 'omitnan'));
-            % %sensor_ph = ph - synt_ph;
-            %
-            % figure; plot(sensor_ph);
-            % tmp = sensor_ph;
-            % tmp(~this.sat.outliers_ph_by_ph) = nan;
-            % hold on; plot(tmp, '.', 'MarkerSize', 10, 'Color', [1 0.4 0]);
-            % tmp = sensor_ph;
-            % tmp(~poss_slip_idx) = nan;
-            % hold on; plot(tmp, '.k', 'MarkerSize', 10);
-            % xlabel('epoch');
-            % ylabel('phase rate [mm/e]');
-            % %%
         end
         
         function cycleSlipPPPres(this)
