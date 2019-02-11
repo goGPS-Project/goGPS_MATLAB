@@ -2033,7 +2033,42 @@ classdef GNSS_Station < handle
                 end
             end
         end
-                
+        
+        function showZwdVsHeight(sta_list, degree)
+            % Show Median ZTD of n_receivers vs Hortometric height
+            %
+            % SYNTAX
+            %   sta_list.showZwdVsHeight();
+            figure;
+            med_zwd = median(sta_list.getZwd_mr * 1e2, 'omitnan')';
+            subplot(2,1,1);
+            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+            plot(h_o, med_zwd, '.', 'MarkerSize', 20); hold on;
+            ylabel('Median ZWD [cm]');
+            xlabel('Elevation [m]');
+            title('ZWD vs Height')
+            
+            if nargin == 1
+                degree = 5;
+            end
+            y_out = Core_Utils.interp1LS(h_o, med_zwd, degree, h_o);
+            plot(sort(h_o), Core_Utils.interp1LS(h_o, med_zwd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
+            subplot(2,1,2);
+            plot(h_o, med_zwd - y_out, '.', 'MarkerSize', 20);
+            
+            ylabel('residual [cm]');
+            xlabel('Elevation [m]');
+            title('reduced ZWD vs Height')
+            
+            sta_strange = find(abs(med_zwd - y_out) > 8);
+            if ~isempty(sta_strange)
+                Core.getLogger.addMessage('Strange station detected');
+                for s = 1 : numel(sta_strange)
+                    Core.getLogger.addMessage(sprintf(' %d - %s', sta_strange(s), sta_list(sta_strange(s)).getMarkerName()));
+                end
+            end
+        end
+        
         function showMedianTropoPar(this, par_name, new_fig)
             % one function to rule them all
             rec_ok = false(size(this,2), 1);
