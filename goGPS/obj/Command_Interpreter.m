@@ -111,6 +111,7 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
+        PAR_S_ZWD       % ZWD
         PAR_S_PWV       % PWV
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
@@ -276,8 +277,12 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_SKYP.par = '(res_skyp)|(RES_SKYP)';
 
             this.PAR_S_ZTD.name = 'ZTD';
-            this.PAR_S_ZTD.descr = 'ZTD              Zenithal Total Delay';
+            this.PAR_S_ZTD.descr = 'ZTD              Zenith Total Delay';
             this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
+
+            this.PAR_S_ZWD.name = 'ZWD';
+            this.PAR_S_ZWD.descr = 'ZWD              Zenith Wet Delay';
+            this.PAR_S_ZWD.par = '(zwd)|(ZWD)';
 
             this.PAR_S_PWV.name = 'PWV';
             this.PAR_S_PWV.descr = 'PWV              Precipitable Water Vapour';
@@ -288,7 +293,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_PTH.par = '(pth)|(PTH)';
 
             this.PAR_S_STD.name = 'ZTD Slant';
-            this.PAR_S_STD.descr = 'STD              Zenithal Total Delay with slants';
+            this.PAR_S_STD.descr = 'STD              Zenith Total Delay with slants';
             this.PAR_S_STD.par = '(std)|(STD)';
 
             this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
@@ -393,7 +398,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1308,6 +1313,8 @@ classdef Command_Interpreter < handle
                             rec(id_trg).showPTH();
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             trg.showZtd();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD.par ')*$'], 'once'))
+                            trg.showZwd();
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
                             trg.showPwv();
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
