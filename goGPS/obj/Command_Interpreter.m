@@ -1041,9 +1041,12 @@ classdef Command_Interpreter < handle
             else
                 s_idx = 2;
                 for r = id_trg
-                    obs_type = strsplit(tok{s_idx},',');
-                    for o = 1 : length(obs_type)
-                        id = rec(r).work.findObservableByFlag(obs_type{o});
+                    if ~isempty(rec(r)) && ~(rec(r).isEmptyWork_mr)
+                        obs_type = strsplit(tok{s_idx},',');
+                        id = [];
+                        for o = 1 : length(obs_type)
+                            id = [id; rec(r).work.findObservableByFlag(obs_type{o})];
+                        end
                         rec(r).work.remObs(id);
                     end
                 end
