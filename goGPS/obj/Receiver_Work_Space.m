@@ -1458,10 +1458,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for i = 1 : length(u_fr_ph)
                         n_fr_ph(i) == sum(u_fr_ph == i);
                     end
-                    ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
+                    
                     lid_sat_pr = go_id_pr == g;
                     pr_sat = pr(:,lid_sat_pr);
                     pr_sat_code = this.obs_code(id_pr(lid_sat_pr),:);
+                    ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
                     lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
                     id_cs_ep = find(lid_cs_ep);
                     n_epoch = size(this.sat.cicle_slip_ph_by_ph,1);
@@ -1490,17 +1491,24 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         end
                                     end
                                 end
-                                
                             end
-                        end
-                        %2) check the geometry free and the melbourne
-                        %wubbena if one of the two detec a cycle slip then
-                        %is really a cycle slip otherwise remove it
-                        
-                        
+                        end  
                     end
-                    
+%                     ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
+%                     lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
+%                     id_cs_ep = find(lid_cs_ep);
+%                      %2) check the geometry free and the melbourne
+%                         %wubbena if one of the two detec a cycle slip then
+%                         %is really a cycle slip otherwise remove it
+%                     for ce = id_cs_ep' 
+%                         fr_jmp = 
+%                         for f  = 1 : length(u_fr_ph)
+%                         end
+%                     end
+%                     
+%                     
                 end
+                this.setPhases(ph,wl,lid_ph); % ste back phases
                 
             end
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
