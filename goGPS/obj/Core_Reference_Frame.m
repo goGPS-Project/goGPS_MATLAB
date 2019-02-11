@@ -191,7 +191,6 @@ classdef Core_Reference_Frame < handle
                         end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
                         epoch_gps = epoch.getGpsTime();
                         idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
-                        idx_sta = find(idx_sta);
                         idx_sta = idx_sta(idx_sta2);
                         dt = epoch - this.ref_epoch.getEpoch(idx_sta);
                         xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
