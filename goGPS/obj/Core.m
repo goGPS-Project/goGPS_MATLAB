@@ -204,7 +204,7 @@ classdef Core < handle
                         core.state.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
                         geoid_file = core.state.getGeoidFile();
                     end
-                    if ~strcmp(core.geoid.file, geoid_file)
+                    if ~strcmp(core.geoid.file, geoid_file) || (core.geoid.ncols == 0 || core.geoid.nrows == 0) 
                         g = load(geoid_file);
                         fn = fieldnames(g);
                         % geoid grid and parameters
