@@ -3699,7 +3699,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_ko = id_ko & abs(bsxfun(@minus, sensor, strongMean(sensor, 1, 1, 1))) > max(std_sensor(2), repmat(2*std(sensor,1,2,'omitnan'),1, n_sat));
                 if level == 1
                     % mark outliers out of thr level
-                    flagged_data = id_ko | this.flagArcOutliers(sensor, this.state.pp_max_phase_err_thr * 1e3, this.state.pp_max_phase_err_thr * 1e3 * 0.8);
+                    flagged_data = id_ko | this.flagArcOutliers(sensor, this.state.getMaxPhaseErrThr * 1e3, this.state.getMaxPhaseErrThr * 1e3 * 0.8);
                     flagged_data = flagMergeArcs(flagged_data | isnan(sensor), this.state.getMinArc) & ~isnan(sensor); % mark short arcs close to bad observations
                 end
                 % remove drifting

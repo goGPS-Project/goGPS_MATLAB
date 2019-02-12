@@ -122,8 +122,8 @@ classdef Core_SEID < handle
                         ph_gf(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));
                         % Import CS and outliers from receivers
                         for s = 1 : numel(ref(r).ph_idx)
-                            ph_gf(find(ref(r).sat.outlier_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                            ph_gf(find(ref(r).sat.cycle_slip_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            ph_gf(find(ref(r).sat.outliers_ph_by_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            ph_gf(find(ref(r).sat.cycle_slip_ph_by_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
                             %
                             %                         % fill small gaps
                             %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));

@@ -235,7 +235,7 @@ classdef GNSS_Station < handle
                         all_ph_red(:, sid, r) = zero2nan(ph_red{r}(:, id_red));
                         tmp = Core_Utils.diffAndPred(all_ph_red(:, sid, r));
                         tmp = bsxfun(@minus, tmp, strongMean(tmp,0.95, 0.95, 2));
-                        tmp(work_list(r).sat.outlier_idx_ph(id_rsync(:, r),:) | work_list(r).sat.cycle_slip_idx_ph(id_rsync(:, r),:)) = nan;
+                        tmp(work_list(r).sat.outliers_ph_by_ph(id_rsync(:, r),:) | work_list(r).sat.cycle_slip_ph_by_ph(id_rsync(:, r),:)) = nan;
                         all_dph_red(r, :, sid) = zero2nan(permute(tmp, [3 1 2]));
                     end
                     
@@ -275,12 +275,12 @@ classdef GNSS_Station < handle
                             %
                             %         id_obs = work_list(r).findObservableByFlag(['L' bands(b)], sys_c, prn_list(p_list(p)));
                             %         [~, ~, ido] = intersect(id_obs, id_ph);
-                            %         work_list(r).sat.outlier_idx_ph(id_rsync(:,r), ido) = work_list(r).sat.outlier_idx_ph(id_rsync(:,r), ido) | ;
+                            %         work_list(r).sat.outliers_ph_by_ph(id_rsync(:,r), ido) = work_list(r).sat.outliers_ph_by_ph(id_rsync(:,r), ido) | ;
                             %     end
                             % end
                             
                             % V1 (improve V0)
-                            id_ko = false(size(work_list(r).sat.outlier_idx_ph));
+                            id_ko = false(size(work_list(r).sat.outliers_ph_by_ph));
                             id_ko(id_rsync(:,r),:) = sensor;
                             work_list(r).addOutliers(id_ko, true);
                         end
