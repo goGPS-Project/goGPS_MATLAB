@@ -422,6 +422,19 @@ classdef Network < handle
             
         end
         
+        
+        function wl_struct = estimateWL(this)
+            % Estimate widelane 
+            %
+            % SYNTAX:
+            %    wl_struct = estimateWL(this)
+            this.estimateWB();
+            wl_struct = struct();
+            wl_struct.amb_mats = this.wl_mats;
+            wl_struct.combination_codes = this.wl_comb_codes;
+            
+        end
+        
         function initOut(this,ls)
             n_time = this.common_time.length;
             n_rec = length(this.rec_list);

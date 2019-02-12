@@ -1472,5 +1472,21 @@ classdef Core_Utils < handle
             end
         end
         
+        function [f_nnan] = firstNoNan(mat)
+            % find first no nan value of the colums
+            %
+            % SYNTAX
+            %    [f_nnan] = Core_Utils.firstNoNan(mat)
+            f_nnan = zeros(1,size(mat,2));
+            for i = 1 : length(f_nnan)
+                idx = find(~isnan(mat(:,i)),1,'first');
+                if ~isempty(idx)
+                    f_nnan(i) = mat(idx,i);
+                else
+                    f_nnan(i) = 0;
+                end
+            end
+        end
+        
     end
 end
