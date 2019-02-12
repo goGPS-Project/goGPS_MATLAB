@@ -133,7 +133,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             'outliers',         [], ...    % outlier    processing to be saved in result
             'cycle_slip',          [], ...    % cycle slip processing to be saved in result
             'outliers_ph_by_ph',   [], ...    % logical index of outliers
-            'cicle_slip_ph_by_ph',[], ...    % logical index of cycle slips
+            'cycle_slip_ph_by_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
             'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
             'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
@@ -219,7 +219,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.sat.avail_index       = [];
             this.sat.outliers_ph_by_ph    = [];
-            this.sat.cicle_slip_ph_by_ph = [];
+            this.sat.cycle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
             this.sat.solid_earth_corr  = [];
@@ -375,7 +375,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.sat.avail_index       = [];
             this.sat.outliers_ph_by_ph    = [];
-            this.sat.cicle_slip_ph_by_ph = [];
+            this.sat.cycle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
             this.sat.solid_earth_corr  = [];
@@ -628,8 +628,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(this.sat.outliers_ph_by_ph)
                 this.sat.outliers_ph_by_ph(:,id_out) = [];
             end
-            if ~isempty(this.sat.cicle_slip_ph_by_ph)
-                this.sat.cicle_slip_ph_by_ph(:,id_out) = [];
+            if ~isempty(this.sat.cycle_slip_ph_by_ph)
+                this.sat.cycle_slip_ph_by_ph(:,id_out) = [];
             end
             
             % try to remove observables from other precomputed properties of the object in sat
@@ -786,8 +786,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if ~isempty(bad_epochs)
                 
-                if ~isempty(this.sat.cicle_slip_ph_by_ph)
-                    cycle_slip = this.sat.cicle_slip_ph_by_ph;
+                if ~isempty(this.sat.cycle_slip_ph_by_ph)
+                    cycle_slip = this.sat.cycle_slip_ph_by_ph;
                     
                     tmp = false(max(bad_epochs), 1); tmp(bad_epochs) = true;
                     lim = getOutliers(tmp);
@@ -801,7 +801,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     cycle_slip(bad_epochs,:) = [];
                     
-                    this.sat.cicle_slip_ph_by_ph = cycle_slip;
+                    this.sat.cycle_slip_ph_by_ph = cycle_slip;
                 end
                 n_ep = this.time.length;
                 this.time.remEpoch(bad_epochs);
@@ -1188,14 +1188,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             % Move cycle slips
             tmp = this.sat.outliers_ph_by_ph | isnan(ph);
-            invalid_cs = this.sat.cicle_slip_ph_by_ph & tmp;
+            invalid_cs = this.sat.cycle_slip_ph_by_ph & tmp;
             for s = 1 : numel(unique(this.go_id(id_ph)))
                 id_cs_ko = find(invalid_cs(:,s));
                 for k = 1 : numel(id_cs_ko)
-                    this.sat.cicle_slip_ph_by_ph(id_cs_ko(k), s) = false;
+                    this.sat.cycle_slip_ph_by_ph(id_cs_ko(k), s) = false;
                     new_cs = id_cs_ko(k) + find(~tmp(id_cs_ko(k) : end, s), 1, 'first') -1;
                     if ~isempty(new_cs)
-                        this.sat.cicle_slip_ph_by_ph(new_cs, s) = true;
+                        this.sat.cycle_slip_ph_by_ph(new_cs, s) = true;
                     end
                 end
             end            
@@ -1205,7 +1205,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
             this.sat.outliers_ph_by_ph = false(size(this.sat.outliers_ph_by_ph));
-            this.sat.cicle_slip_ph_by_ph = false(size(this.sat.cicle_slip_ph_by_ph));
+            this.sat.cycle_slip_ph_by_ph = false(size(this.sat.cycle_slip_ph_by_ph));
             this.updateSyntPhases();
             this.detectOutlierMarkCycleSlip();
         end
@@ -1230,7 +1230,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get observed values
             [ph, wl, lid_ph] = this.getPhases;
             this.sat.outliers_ph_by_ph = false(size(ph));
-            this.sat.cicle_slip_ph_by_ph = false(size(ph));
+            this.sat.cycle_slip_ph_by_ph = false(size(ph));
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
@@ -1436,7 +1436,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.sat.outliers_ph_by_ph = ((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
             n_out = sum(this.sat.outliers_ph_by_ph(:));
-            this.sat.cicle_slip_ph_by_ph = double(sparse(poss_slip_idx));
+            this.sat.cycle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
             if this.isMultiFreq% if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
@@ -1468,10 +1468,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_sat_pr = find(go_id_pr == g);
                     pr_sat = pr(:,id_sat_pr);
                     pr_sat_code = this.obs_code(id_pr(id_sat_pr),:);
-                    ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
+                    ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
                     lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
                     id_cs_ep = find(lid_cs_ep);
-                    n_epoch = size(this.sat.cicle_slip_ph_by_ph,1);
+                    n_epoch = size(this.sat.cycle_slip_ph_by_ph,1);
                     for ce = id_cs_ep' % for each epoch with a cycle slip
                         % 1) for each frequency check all tracking if one
                         % has jumped and the other no check if was really a
@@ -1491,8 +1491,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     jmp = mean(ph(ce:cs_aft,id_1) - ph(ce:cs_aft,id_2) ,'omitnan') - mean(ph(cs_bf:(ce-1),id_1) - ph(cs_bf:(ce-1),id_2),'omitnan');
                                     i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
                                     if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
-                                        this.sat.cicle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
-                                        if i_jmp ~= 0
+                                        this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                                        if i_jmp ~= 0 
                                           ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
                                         end
                                     end
@@ -1500,7 +1500,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                         end  
                     end
-                    ph_sat_cs = this.sat.cicle_slip_ph_by_ph(:,id_sat_ph);
+                    ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
                     lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
                     id_cs_ep = find(lid_cs_ep);
                     %2) check the geometry free and the melbourne
@@ -1553,8 +1553,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
                                     id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
                                     dgf = diff(gf);
-                                    if false && (dgf(id_jmp2-1) < 0.15*wl_jmp) || (mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
-                                        this.sat.cicle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                                    if (dgf(id_jmp2-1) < 0.15*wl_jmp) || (mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
+                                        this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
                                     end
                                 end
                             end
@@ -1575,7 +1575,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx = abs(sensor) > 0.03;
             for i = 1 : size(sensor,2)
                 sat_idx = this.go_id(ph_idx) == i;
-                this.sat.cicle_slip_ph_by_ph(idx(:,i), :) = 1;
+                this.sat.cycle_slip_ph_by_ph(idx(:,i), :) = 1;
             end
         end
         
@@ -1589,7 +1589,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
             
             poss_out_idx = this.sat.outliers_ph_by_ph;
-            poss_slip_idx = this.sat.cicle_slip_ph_by_ph;
+            poss_slip_idx = this.sat.cycle_slip_ph_by_ph;
             
             [ph, ~, id_ph_l] = this.getPhases();
             id_ph = find(id_ph_l);
@@ -1685,7 +1685,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
             
-            this.sat.cicle_slip_ph_by_ph = poss_slip_idx;
+            this.sat.cycle_slip_ph_by_ph = poss_slip_idx;
             
             % save index into object
             
@@ -4121,7 +4121,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [~,~,idx_ph] = this.getPhases();
                     idx_ph = find(idx_ph);
                     [~,idx_o,idx_cs] = intersect(idx,idx_ph);
-                    cs = this.sat.cicle_slip_ph_by_ph(:,idx_cs)';
+                    cs = this.sat.cycle_slip_ph_by_ph(:,idx_cs)';
                 else
                     cs = [];
                 end
@@ -4269,7 +4269,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 if sum(ph_idx) > 0
                                 obs((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
                                 snr((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
-                                cycle_slips((s-1)*n_opt+i,:) = this.sat.cicle_slip_ph_by_ph(:,ph_idx)';
+                                cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_ph_by_ph(:,ph_idx)';
                                 end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
@@ -5874,14 +5874,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             % this.updateAmbIdx()
             
-            amb_idx = ones(size(this.sat.cicle_slip_ph_by_ph));
+            amb_idx = ones(size(this.sat.cycle_slip_ph_by_ph));
             n_epochs = size(amb_idx,1);
             n_stream = size(amb_idx,2);
             for s = 1:n_stream
                 if s > 1
                     amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
                 end
-                cs = find(this.sat.cicle_slip_ph_by_ph(:, s) > 0)';
+                cs = find(this.sat.cycle_slip_ph_by_ph(:, s) > 0)';
                 for c = cs
                     amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
                 end
@@ -8202,7 +8202,7 @@ classdef Receiver_Work_Space < Receiver_Commons
            [ph, wl, id_ph] = this.getPhases();
            synt_ph = this.getSyntPhases;
            ph_diff = ph - synt_ph;
-           amb_idx = Core_Utils.getAmbIdx(this.sat.cicle_slip_ph_by_ph, zero2nan(ph));
+           amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_ph_by_ph, zero2nan(ph));
            max_amb = max(max(amb_idx));
            for a = 1 : max_amb
                idx_amb = amb_idx == a;
@@ -8969,7 +8969,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', [0.7 0.7 0.7]);
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
-                        cs = ep(this.sat.cicle_slip_ph_by_ph(:, s) ~= 0);
+                        cs = ep(this.sat.cycle_slip_ph_by_ph(:, s) ~= 0);
                         plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20)
                         out = ep(this.sat.outliers_ph_by_ph(:, s) ~= 0);
                         plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
@@ -9001,7 +9001,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
 
             phs = this.synt_ph;
-            cs = this.sat.cicle_slip_ph_by_ph;
+            cs = this.sat.cycle_slip_ph_by_ph;
             out = this.sat.outliers_ph_by_ph;
             for sys_c = sys_c_list
                 ss_id = find(this.cc.sys_c == sys_c);
@@ -9073,7 +9073,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     el = this.sat.el(:,s);
                     
                     id_cs = find(this.go_id(this.obs_code(:,1) == 'L') == s);
-                    cs = sum(this.sat.cicle_slip_ph_by_ph(:, id_cs), 2) > 0;
+                    cs = sum(this.sat.cycle_slip_ph_by_ph(:, id_cs), 2) > 0;
                     out = sum(this.sat.outliers_ph_by_ph(:, id_cs), 2) > 0;
                     
                     decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
