@@ -719,7 +719,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [xyz, p_time] = getPosXYZ_mr(sta_list)
+        function [xyz, p_time, sta_ok] = getPosXYZ_mr(sta_list)
             % return the positions computed for the receiver
             % multi_rec mode (synced)
             %
@@ -727,21 +727,32 @@ classdef GNSS_Station < handle
             %   xyz     XYZ coordinates synced matrix (n_epoch, 3, n_rec)
             %
             % SYNTAX
-            %   xyz = sta_list.getPosENU()
+            %   [xyz, p_time = sta_list.getPosENU()
          
-            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list, [], true);
+            sta_ok = ~sta_list.isEmpty_mr();
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list(sta_ok), [], true);
             
             id_ok = any(~isnan(id_sync),2);
             id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
             
-            n_rec = numel(sta_list);
+            n_rec = sum(sta_ok);
             xyz = nan(size(id_sync, 1), 3, n_rec);
             for r = 1 : n_rec
-                xyz_rec = sta_list(r).out.getPosXYZ();
+                xyz_rec = sta_list(sta_ok(r)).out.getPosXYZ();
                 id_rec = id_sync(:,r);
                 xyz(~isnan(id_rec), :, r) = xyz_rec(id_rec(~isnan(id_rec)), :);
             end
+        end
+        
+        function [dist_3d, xyz_dist] = getDistFrom(sta_list, rec_ref)
+            % GeetDistance from reference station rec_ref
+            % 
+            % SYNTAX:
+            %   dist = getDistFrom(this, rec_ref)
+            xyz = zero2nan(sta_list.getMedianPosXYZ);
+            xyz_dist = bsxfun(@minus, xyz, rec_ref.getMedianPosXYZ);
+            dist_3d = sqrt(sum(xyz_dist.^2, 2));
         end
         
         function enu = getPosENU(sta_list)
