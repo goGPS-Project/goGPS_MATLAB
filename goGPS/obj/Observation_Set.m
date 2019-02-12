@@ -448,7 +448,7 @@ classdef Observation_Set < handle
             %  this.getNumObs()
             n_obs = 0;
             for r = 1 : length(this)
-                n_obs = n_obs + sum(sum(this.obs~=0 & ~isnan(this.ob))); 
+                n_obs = n_obs + sum(sum(this.obs~=0 & ~isnan(this.obs))); 
             end
         end
         
