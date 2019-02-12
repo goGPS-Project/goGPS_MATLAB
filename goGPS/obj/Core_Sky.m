@@ -373,7 +373,7 @@ classdef Core_Sky < handle
             %threshold to detect noon/midnight maneuvers
             thr = 4.9*pi/180*ones(time.length,size(this.coord,2)); % if we do not know put a conservative value
             
-            shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A + 200000;
+            shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < (GPS_SS.ELL_A + 200000); % 200 Km buffer to be on the safe side
             if this.cc.isGpsActive
                 for i = 1:32 % only gps implemented
                     sat_type = this.ant_pcv(i).sat_type;
