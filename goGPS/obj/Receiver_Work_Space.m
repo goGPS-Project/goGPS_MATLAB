@@ -7867,6 +7867,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [x, res, s0, ~, l_fixed] = ls.solve();
                     % REWEIGHT ON RESIDUALS
                     if this.state.getReweightPPP > 1
+                        flag_recompute = true;
                         switch this.state.getReweightPPP()
                             case 2, ls.reweightHuber;
                             case 3, ls.reweightHubNoThr;
@@ -7874,11 +7875,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                             case 5, ls.reweightDanishWM;
                             case 6, ls.reweightTukey;
                             case 7, ls.snooping;
-                            case 8, ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
+                            case 8, flag_recompute = ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings(?)
+                            case 9, flag_recompute = ls.snoopingGatt2(6); % <= sensible parameter THR => to be put in settings(?)
                         end
+                        if flag_recompute
+                            ls.Astack2Nstack();
+                            [x, res, s0, ~, l_fixed] = ls.solve();
+                        end
+                    end
+                    
+                    % Remove outliers > threshold has requested in max phase error threshold (see settings/GUI)
+                    flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
+                    if flag_recompute
                         ls.Astack2Nstack();
                         [x, res, s0, ~, l_fixed] = ls.solve();
                     end
+                    
                     id_sync = ls.true_epoch;
                     
                     if isempty(this.zwd) || all(isnan(this.zwd))

@@ -1067,14 +1067,14 @@ classdef LS_Manipulator < handle
         % Note: after reweighting the function Astackt2Nstack have to be
         % called again
         %----------------------------------------------------------------
-        function weightOnResidual(this, wfun, thr, thr_propagate)
+        function flag_recompute = weightOnResidual(this, wfun, thr, thr_propagate, flag_clean_margin)
             if isempty(this.rw)
                 this.rw = ones(size(this.variance));
             end
             s0 = mean(abs(this.res).*this.rw);
             res_n = this.res/s0;
             if nargin > 2
-                % propagate outlier flag ( snooping gatt)
+                % propagate outlier flag ( snooping gatt) -----------------------------------------------------------------------------------------------------
                 if nargin > 3 && (thr_propagate > 0)
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
                     sat_err(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs) = this.res/s0;
@@ -1084,6 +1084,45 @@ classdef LS_Manipulator < handle
                         idx_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
                     end
                     idx_rw = idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
+                    
+                    if nargin > 4 && flag_clean_margin
+                        % Find begin and end of an arc, if it's out of thr flag it till comes down under threshold --------------------------------------------
+                        ot = abs(ssat_err) > thr_propagate;
+                        for s = 1 : size(sat_err, 2)
+                            
+                            % Beginning of the arc
+                            tmp = ot(:, s) + ~isnan(sat_err(:, s));
+                            
+                            id_start_bad = find(diff([0; tmp]) == 2);
+                            for i = 1 : numel(id_start_bad)
+                                id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
+                                
+                                % rem over threshold elements
+                                if isempty(id_stop_bad)
+                                    idx_ko(id_start_bad(i) : end, s) = true;
+                                else
+                                    idx_ko(id_start_bad(i) + (0 : (id_stop_bad - 1)), s) = true;
+                                end
+                            end
+                            
+                            % End of the arc (flip method)
+                            ot(:, s) = flipud(ot(:, s));
+                            tmp = ot(:, s) + flipud(~isnan(sat_err(:, s)));
+                            
+                            id_start_bad = find(diff([0; tmp]) == 2);
+                            for i = 1 : numel(id_start_bad)
+                                id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
+                                
+                                % rem over threshold elements
+                                if isempty(id_stop_bad)
+                                    idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) : size(idx_ko, 1)), s) = true;
+                                else
+                                    idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) + (0 : (id_stop_bad - 1))), s) = true;
+                                end
+                            end                                                        
+                        end % ---------------------------------------------------------------------------------------------------------------------------------                     
+                        idx_rw = idx_rw | idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
+                    end
                 else
                     idx_rw = abs(res_n) > thr;
                 end
@@ -1091,10 +1130,30 @@ classdef LS_Manipulator < handle
                 idx_rw = true(size(res_n));
             end
             this.rw(idx_rw) =  wfun(res_n(idx_rw));
-            if sum(this.rw(idx_rw) < 1e-3) >0 % observation with weight less than 1e-3 are removed from the adjustment otherwise parmaters than depend only on them may suffer numerical instability
+            flag_recompute = any(idx_rw);
+            if sum(this.rw(idx_rw) < 1e-3) > 0 % observation with weight less than 1e-3 are removed from the adjustment otherwise parameters that depend only on them may suffer numerical instability
+                flag_recompute = true;
                 this.remObs(this.rw < 1e-3);
             end
         end
+        
+        function flag_recompute = remOverThr(this, thr)
+            % Remove all the observations with residuals over a certain threshold
+            %
+            % SYNTAX:
+            %   flag_recompute = this.remOverThr(thr)
+            if isempty(this.rw)
+                this.rw = ones(size(this.variance));
+            end
+            res_n = this.res;
+            idx_rw = abs(res_n) > thr;
+            this.rw(idx_rw) =  0;
+            flag_recompute = any(idx_rw);
+            if sum(this.rw(idx_rw) < 1e-3) > 0 % observation with weight less than 1e-3 are removed from the adjustment otherwise parameters that depend only on them may suffer numerical instability
+                flag_recompute = true;
+                this.remObs(this.rw < 1e-3);
+            end
+        end        
         
         function reweightHuber(this)
             threshold = 2;
@@ -1129,15 +1188,33 @@ classdef LS_Manipulator < handle
             threshold = 2.5;
             wfun = @(x) 0;
             this.weightOnResidual(wfun, threshold);
-        end
+        end       
         
-        function snoopingGatt(this, thr)
+        function flag_recompute = snoopingGatt(this, thr)
+            % Outlier detection on first tredshold + remove till under second threshold 
+            % that is threshold_propagate = 2 sigma
+            %
+            % SYNTAX:
+            %   flag_recompute = this.snoopingGatt(thr)
             if nargin == 1
                 thr = 10;
             end
             threshold_propagate = 2.5;
             wfun = @(x) 0;
-            this.weightOnResidual(wfun, thr, threshold_propagate);
+            flag_recompute = this.weightOnResidual(wfun, thr, threshold_propagate);
+        end
+        
+        function flag_recompute = snoopingGatt2(this, thr)
+            % Outlier detection on first tredshold + remove till under second threshold
+            % + remove beginnin and end of arcs over threshold_propagate (2 sigma)
+            % SYNTAX:
+            %   flag_recompute = this.snoopingGatt2(thr)
+            if nargin == 1
+                thr = 10;
+            end
+            threshold_propagate = 2;
+            wfun = @(x) 0;
+            flag_recompute = this.weightOnResidual(wfun, thr, threshold_propagate, true);
         end
         
         %------------------------------------------------------------------------
