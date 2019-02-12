@@ -1007,7 +1007,7 @@ classdef Command_Interpreter < handle
         end
         
         function runRemSat(this, rec, tok)
-            % Remove satelites from receivers
+            % Remove satellites from receivers
             %
             % INPUT
             %   rec     list of rec objects
