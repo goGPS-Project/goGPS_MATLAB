@@ -1439,7 +1439,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cicle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
-            if this.isMultiFreq && false% if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
+            if this.isMultiFreq% if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
                 % NOTE: with multifrequency and multi tarcking datat
                 % numeros combinations are possible the code try to find a
                 % "best" combination on th base of the wavelength of the
@@ -1478,13 +1478,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % cycle slip and repair
                         for f  = u_fr_ph'
                             id_fr_sat = find(ph_sat_code(:,2) == f);
-                            cs_same_f = ph_sat_cs(ce,id_fr_sat);
+                            cs_same_f = ph_sat_cs(ce,id_fr_sat) & isnan(ph(ce, id_sat_ph(id_fr_sat)));
                             if sum(cs_same_f) < length(cs_same_f) && sum(cs_same_f) > 0 % if not all have jumped
                                 id_not_cs = find(~cs_same_f);
                                 for s = find(cs_same_f)'
                                     cs_f = find(ph_sat_cs(:,id_fr_sat(s)));
                                     notcs_f = find(ph_sat_cs(:,id_not_cs(1))); % using first good frequency
-                                    cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
+                                     cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
                                     cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
                                     id_1 = id_sat_ph(id_fr_sat(s));
                                     id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
@@ -1492,7 +1492,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
                                     if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
                                         this.sat.cicle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
-                                        if i_jmp ~= 0 
+                                        if i_jmp ~= 0
                                           ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
                                         end
                                     end
@@ -1550,10 +1550,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     end
                                     id_pr1 = id_sat_pr(id_pr1);
                                     id_pr2 = id_sat_pr(id_pr2);
-                                    mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*ph(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
+                                    mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
                                     id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
                                     dgf = diff(gf);
-                                    if (dgf(id_jmp2-1) < 0.15*wl_jmp) || (mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
+                                    if false && (dgf(id_jmp2-1) < 0.15*wl_jmp) || (mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
                                         this.sat.cicle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
                                     end
                                 end
