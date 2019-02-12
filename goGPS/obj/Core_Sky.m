@@ -373,8 +373,7 @@ classdef Core_Sky < handle
             %threshold to detect noon/midnight maneuvers
             thr = 4.9*pi/180*ones(time.length,size(this.coord,2)); % if we do not know put a conservative value
             
-            shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
-            
+            shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A + 200000;
             if this.cc.isGpsActive
                 for i = 1:32 % only gps implemented
                     sat_type = this.ant_pcv(i).sat_type;
@@ -383,10 +382,10 @@ classdef Core_Sky < handle
                         thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
                     elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
                         thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-                        shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                        %shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
                     elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
                         thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
-                        shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                        %shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
                     end
                 end
             end
