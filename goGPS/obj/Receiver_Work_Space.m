@@ -1439,7 +1439,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cycle_slip_ph_by_ph = double(sparse(poss_slip_idx));
             % Remove short arcs            
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
-            if this.isMultiFreq% if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
+            if this.isMultiFreq && false % if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
                 % NOTE: with multifrequency and multi tarcking datat
                 % numeros combinations are possible the code try to find a
                 % "best" combination on th base of the wavelength of the
@@ -1462,7 +1462,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     u_fr_ph = unique(ph_sat_code(:,2));
                     n_fr_ph = zeros(size(u_fr_ph));
                     for i = 1 : length(u_fr_ph)
-                        n_fr_ph(i) == sum(u_fr_ph == i);
+                        n_fr_ph(i) = sum(u_fr_ph == i);
                     end
                     
                     id_sat_pr = find(go_id_pr == g);
