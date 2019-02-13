@@ -290,7 +290,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         end
         
-        function resetWorkSpace(this,append)
+        function resetWorkSpace(this, append)
             this.initHandles();
             if nargin < 2
                 append = false;
@@ -374,7 +374,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.tge = [];
             
             this.sat.avail_index       = [];
-            this.sat.outliers_ph_by_ph    = [];
+            this.sat.outliers_ph_by_ph   = [];
             this.sat.cycle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
@@ -388,7 +388,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.crx               = [];
             this.sat.res               = [];
             this.sat.slant_td          = [];
-            this.sat.cycle_slip           = [];
+            this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];

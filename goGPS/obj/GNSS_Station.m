@@ -162,12 +162,25 @@ classdef GNSS_Station < handle
             this.version  = '000';
         end
         
-        function resetOut(this)
+        function resetWork(sta_list)
+            % Reset handle to work object
+            %
+            % SYNTAX
+            %   this.resetWork()
+            for r = 1 : numel(sta_list)
+                sta_list(r).work.resetWorkSpace();
+                sta_list(r).old_work = Receiver_Work_Space(sta_list(r).cc, sta_list(r));
+            end
+        end
+            
+        function resetOut(sta_list)
             % Reset handle to output object
             %
             % SYNTAX
             %   this.resetOut()
-            this.out = Receiver_Output(this.cc, this);
+            for r = 1 : numel(sta_list)
+                sta_list(r).out = Receiver_Output(sta_list(r).cc, sta_list(r));
+            end
         end
         
         function netPrePro(sta_list)

@@ -63,6 +63,8 @@ classdef Command_Interpreter < handle
         
         CMD_LOAD        % Load data from the linked RINEX file into the receiver
         CMD_EMPTY       % Reset the receiver content
+        CMD_EMPTYWORK   % Reset the receiver work space
+        CMD_EMPTYOUT    % Reset the receiver output container
         CMD_AZEL        % Compute (or update) Azimuth and Elevation
         CMD_BASICPP     % Basic Point positioning with no correction (useful to compute azimuth and elevation)
         CMD_PREPRO      % Pre-processing command
@@ -125,7 +127,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -336,9 +338,19 @@ classdef Command_Interpreter < handle
             this.CMD_LOAD.par = [this.PAR_SS, this.PAR_RATE];
 
             this.CMD_EMPTY.name = {'EMPTY', 'empty'};
-            this.CMD_EMPTY.descr = 'Empty the receiver';
+            this.CMD_EMPTY.descr = 'Empty the entire receiver';
             this.CMD_EMPTY.rec = 'T';
             this.CMD_EMPTY.par = [];
+
+            this.CMD_EMPTYWORK.name = {'EMPTYWORK', 'emptywork'};
+            this.CMD_EMPTYWORK.descr = 'Empty the receiver work space object';
+            this.CMD_EMPTYWORK.rec = 'T';
+            this.CMD_EMPTYWORK.par = [];
+
+            this.CMD_EMPTYOUT.name = {'EMPTYOUT', 'emptyout'};
+            this.CMD_EMPTYOUT.descr = 'Empty the receiver output object';
+            this.CMD_EMPTYOUT.rec = 'T';
+            this.CMD_EMPTYOUT.par = [];
 
             this.CMD_AZEL.name = {'AZEL', 'UPDATE_AZEL', 'update_azel', 'azel'};
             this.CMD_AZEL.descr = 'Compute Azimuth and elevation ';
@@ -705,6 +717,10 @@ classdef Command_Interpreter < handle
                             this.runLoad(rec, tok(2:end));
                         case this.CMD_EMPTY.name                % EMPTY
                             this.runEmpty(rec, tok(2:end));
+                        case this.CMD_EMPTYWORK.name            % EMPTYW
+                            this.runEmptyWork(rec, tok(2:end));
+                        case this.CMD_EMPTYOUT.name            % EMPTYO
+                            this.runEmptyOut(rec, tok(2:end));
                         case this.CMD_AZEL.name                 % AZEL
                             this.runUpdateAzEl(rec, tok(2:end));
                         case this.CMD_BASICPP.name              % BASICPP
@@ -828,7 +844,7 @@ classdef Command_Interpreter < handle
             %   rec     list of rec objects
             %
             % SYNTAX
-            %   this.empty(rec)
+            %   this.runEmpty(rec, tok)
             
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -841,6 +857,52 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     rec(r).resetOut();
                     rec(r).work.resetWorkSpace();
+                end
+            end
+        end
+        
+        function runEmptyWork(this, rec, tok)
+            % Reset (empty) the receiver workspace
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.runEmptyWork(rec)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Empty the receiver work-space %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
+                    rec(r).resetWork();
+                end
+            end
+        end
+        
+        function runEmptyOut(this, rec, tok)
+            % Reset (empty) the receiver out
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.runEmptyOut(rec)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Empty the receiver output %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
+                    rec(r).resetOut();
                 end
             end
         end
@@ -1642,8 +1704,7 @@ classdef Command_Interpreter < handle
             for c = length(cmd_list) : -1 : 1
                 if isempty(cmd_list{c})
                     cmd_list(c) = [];
-                end
-                    
+                end                    
             end
             err_list = zeros(size(cmd_list));   
             sss = 1;
