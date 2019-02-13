@@ -2011,7 +2011,29 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        function data_s = smoothMat(data_in, method, spline_base)
+            % Smooth a matrix column by column using method
+            %   "spline"
+            %   "poly_quad"
+            %
+            % SYNTAX
+            %   smoothMat(data_in, method, spline_base)
+            if nargin < 3 || isempty(spline_base)
+                spline_base = 10; % 5 min
+            end
+            if nargin < 2 || isempty(method)
+                method = 'spline';
+            end
+            data_s = Receiver_Commons.smoothSatData([],[],data_in, [], method, spline_base);
+        end
+            
         function data_s = smoothSatData(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
+            % Smooth a matrix column by column using method
+            %   "spline"
+            %   "poly_quad"
+            %
+            % SYNTAX
+            %  data_s = smoothMat(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
             if nargin < 4
                 cs_mat = [];
             end
