@@ -418,7 +418,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.par = [this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
-            this.CMD_PUSHOUT.descr = 'Push results in output';
+            this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
             this.CMD_PUSHOUT.rec = 'T';
             this.CMD_PUSHOUT.par = [];
 
@@ -1713,7 +1713,8 @@ classdef Command_Interpreter < handle
             sss_id_counter = 0;
             par_id_counter = 0;
             execution_block = zeros(1, numel(cmd_list));
-            flag_push = false(0,0);
+            flag_push = false(0,0); % Indicate commands that requires push
+            auto_push = true; % This is always true unless PUSHOUT command is specifically used!
             sss_list = cell(numel(cmd_list), 1);
             trg_list = cell(numel(cmd_list), 1);
             key_lev = zeros(1, numel(cmd_list));
@@ -1757,6 +1758,7 @@ classdef Command_Interpreter < handle
                 execution_block(c) = sss_id_counter;
                 if ~isempty(cmd)
                     flag_push_command = any(cell2mat(strfind(this.PUSH_LIST, cmd.name{1})));
+                    auto_push = auto_push && ~any(cell2mat(strfind(this.CMD_PUSHOUT.name, cmd.name{1})));
                 else
                     flag_push_command = false;
                 end
@@ -1769,6 +1771,7 @@ classdef Command_Interpreter < handle
                 trg_list{c} = trg;
             end   
            
+            flag_push = flag_push .* auto_push; % If in the command list PUSHOUT is present disable automatic push!
             cmd_list = cmd_list(~err_list);
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);
