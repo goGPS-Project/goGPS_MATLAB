@@ -195,7 +195,7 @@ classdef Core < handle
             %   this.initGeoid(); -> load from file
             %   this.initGeoid(geoid); -> import from obj
             core = Core.getCurrentCore;
-            if nargin == 2
+            if nargin == 1
                 core.geoid = geoid;
             else
                 try

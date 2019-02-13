@@ -905,9 +905,11 @@ classdef Network < handle
                 % eliminate the satellites that has been used to compute
                 % the satellite bias
                 to_eliminate_sat = sat_wb_r_id == r;
-                [~,rec_gi_idx] = intersect(mel_wub_mat(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
+                [~,rec_gi_idx, idx_satwb] = intersect(mel_wub_mat(r).go_id, go_ids(~to_eliminate_sat)); %idx of the go id in the obervation set
                 if ~isempty(rec_gi_idx)
-                    rec_wb(r) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(rec_gi_idx)) - repmat(sat_wb(~to_eliminate_sat),mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
+                    sat_wb_r = sat_wb(~to_eliminate_sat);
+                    sat_wb_r = sat_wb_r(idx_satwb);
+                    rec_wb(r) = Core_Utils.estimateFracBias(zero2nan(mel_wub_mat(r).getObsCy(rec_gi_idx)) - repmat(sat_wb_r,mel_wub_mat(r).time.length,1), mel_wub_mat(r).cycle_slip(:,rec_gi_idx));
                     % update the satellite bias knpwing the receiver one
                     if sum(to_eliminate_sat) > 0
                         for s = find(to_eliminate_sat)
@@ -924,7 +926,8 @@ classdef Network < handle
                 cy = mel_wub_mat(r).getObsCy;
                 [~,rec_gi_idx, goids_idx2] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
                 cy = zero2nan(cy(:,goids_idx2)) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
-                [~,wl_amb_mat{r}]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
+                wl_amb_mat{r} = nan(mel_wub_mat(r).time.length,length(go_ids));
+                [~,wl_amb_mat{r}(:,goids_idx2)]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
             end
             % OPTIONAL ->refine the bias estimation with a LS adjustemtn
         end
