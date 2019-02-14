@@ -746,7 +746,7 @@ classdef Core_Utils < handle
                 else
                     % curl seems to have some problems with matlb libraries
                     % under some Linux installations, switching to wget --spyder
-                    rem_check_cmd = 'wget --spyder';
+                    rem_check_cmd = 'wget --spider ';
                 end
                 
                 [resp, txt] = system([rem_check_cmd filename]);
