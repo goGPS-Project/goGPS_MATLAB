@@ -599,54 +599,61 @@ classdef Core_Utils < handle
             % if I have at least one file to download
             if numel(odl) > 0
                 i = 0;
-                file_name = sprintf('./reserved/tmpAriaDownload.lst');
+                file_name = fullfile('.', 'reserved', 'tmpAriaDownload.lst');
+                if (exist(['.' filesep 'reserved' filesep], 'dir') == 0)
+                    mkdir(['.' filesep 'reserved']);
+                end
                 fid = fopen(file_name, 'w');
-                str = '';
-                old_od = odl{1};
-                while i <= numel(fnl)
-                    i = i + 1;
-                    if (i < numel(fnl)) && strcmp(odl{i}, old_od)
-                        str = sprintf('%s%s\n', str, fnl{i});
-                    else
-                        
-                        if i <= numel(fnl)
-                            if i == numel(fnl)
-                                str = sprintf('%s%s\n', str, fnl{i});
-                            end
+                if fid < 0
+                    Logger.getInstance.addWarning(['Writing on "' file_name '" is not possible' char(10) 'aria2 could not work']);
+                else
+                    str = '';
+                    old_od = odl{1};
+                    while i <= numel(fnl)
+                        i = i + 1;
+                        if (i < numel(fnl)) && strcmp(odl{i}, old_od)
+                            str = sprintf('%s%s\n', str, fnl{i});
+                        else
                             
-                            % call aria
-                            % check for .Z or .gz compressed files too
-                            fwrite(fid, str, '*char');
-                            fclose(fid);
-                            if ~isempty(str)                                
-                                if ~exist(old_od, 'file')
-                                    mkdir(old_od);
+                            if i <= numel(fnl)
+                                if i == numel(fnl)
+                                    str = sprintf('%s%s\n', str, fnl{i});
                                 end
-                                log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
-                                log.addMessage(log.indent(sprintf('%s', str)));
-                                try
-                                    if ispc()
-                                        dos(sprintf('"%s" -j 20 -c -i %s -d %s >nul 2>&1', aria2c_path, file_name, old_od)); % suppress output
-                                        % dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od)); % do not suppress output
-                                    else
-                                        dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));  % suppress output
-                                        %dos(sprintf('%s -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));  % do not suppress output
+                                
+                                % call aria
+                                % check for .Z or .gz compressed files too
+                                fwrite(fid, str, '*char');
+                                fclose(fid);
+                                if ~isempty(str)
+                                    if ~exist(old_od, 'file')
+                                        mkdir(old_od);
                                     end
-                                catch
-                                    this.log.addError('aria2c is not working, is it installed?');
+                                    log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
+                                    log.addMessage(log.indent(sprintf('%s', str)));
+                                    try
+                                        if ispc()
+                                            dos(sprintf('"%s" -j 20 -c -i %s -d %s >nul 2>&1', aria2c_path, file_name, old_od)); % suppress output
+                                            % dos(sprintf('"%s" -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od)); % do not suppress output
+                                        else
+                                            dos(sprintf('%s -j 20 -c -i %s -d %s &> /dev/null', aria2c_path, file_name, old_od));  % suppress output
+                                            %dos(sprintf('%s -j 20 -c -i %s -d %s', aria2c_path, file_name, old_od));  % do not suppress output
+                                        end
+                                    catch
+                                        this.log.addError('aria2c is not working, is it installed?');
+                                    end
                                 end
+                                % open file list for the next set
+                                fid = fopen(file_name, 'w');
+                                str = '';
                             end
-                            % open file list for the next set
-                            fid = fopen(file_name, 'w');
-                            str = '';
+                        end
+                        if i <= numel(fnl)
+                            old_od = odl{i};
                         end
                     end
-                    if i <= numel(fnl)
-                        old_od = odl{i};
-                    end
+                    fclose(fid);
+                    delete(file_name);
                 end
-                fclose(fid);
-                delete(file_name);
                 
                 % once the file have been downloaded decompress and test presence
                 for i = 1 : numel(fnl)
