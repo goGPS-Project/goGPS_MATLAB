@@ -223,32 +223,32 @@ classdef File_Wizard < handle
             end
             n_h_passed = (GPS_Time.now() - date_stop)/3600;
             % check local
-            this.log.addMessage(this.log.indent('Checking local folders ...\n'))
+            this.log.addMessage(this.log.indent('Checking local folders ...'));
             [status, file_tree] = this.navigateTree(file_tree, 'local_check');
             if status
-                this.log.addMessage(this.log.indent('All files have been found locally\n'))
+                this.log.addStatusOk('All files have been found locally', 10);
             else
-                this.log.addMessage(this.log.indent('Some files not found locally\n'))
+                this.log.addWarning('Some files not found locally');
             end
             % check remote
             if  this.state.isAutomaticDownload && ~status
                 if latency(1)~=0 && n_h_passed  < latency(1)
-                    this.log.addMessage(this.log.indent(sprintf('Not enough latency for finding all the %s orbits...\n', resource_name)));
+                    this.log.addWarning(this.log.indent(sprintf('Not enough latency for finding all the %s orbits...', resource_name)));
                     status = false;
                 else
-                    this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
+                    this.log.addMessage(this.log.indent('Checking remote folders ...'));
                     [status, file_tree, ext] = this.navigateTree(file_tree, 'remote_check');
                     if status
-                        this.log.addMessage(this.log.indent('All files have been found remotely\n'));
+                        this.log.addStatusOk('All files have been found remotely', 10);
                     else
-                        this.log.addMessage(this.log.indent('Some files not found remotely\n'))
+                        this.log.addMessage('Some files not found remotely');
                     end
                 
                     if status || this.nrt
-                        this.log.addMessage(this.log.indent('Downloading Resources ...\n'));
+                        this.log.addMessage(this.log.indent('Downloading Resources ...'));
                         [status, ~] = this.navigateTree(file_tree, 'download');
                         if not(status)
-                            this.log.addWarning('Not all file have been found or unconpressed\n');
+                            this.log.addWarning('Not all file have been found or unconpressed');
                         end
                     end
                 end
@@ -361,7 +361,7 @@ classdef File_Wizard < handle
                                 f_status_lst(i) = f_status;
                                 status = status && f_status;
                                 if f_status
-                                    this.log.addStatusOk(sprintf('%s ready',this.fnp.getFileName(file_name_lst{i})));
+                                    this.log.addStatusOk(sprintf('%s ready',this.fnp.getFileName(file_name_lst{i})), 20); % logging on 10 (default is 9, if ok do not show this)
                                 else
                                     this.log.addWarning(sprintf('%s have not been found locally', this.fnp.getFileName(file_name_lst{i})));
                                 end
@@ -409,7 +409,7 @@ classdef File_Wizard < handle
                                         end
                                         f_ext_lst{j} = ext;
                                         if status
-                                            this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server));
+                                            this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server), 20);
                                         else
                                             if instr(port,'21')
                                                 this.log.addWarning(sprintf('"ftp://%s:%s%s" have not been found remotely', s_ip, port, file_name));
@@ -532,25 +532,27 @@ classdef File_Wizard < handle
         end
         
         function conjureAtmLoadFiles(this, date_start, date_stop)
+            this.log.addMarkedMessage('Checking Athmospheric loading files');
             status = this.conjureResource('atm_load',date_start, date_stop);
 
             if status
-                this.log.addMarkedMessage('All atmospheric loading files present');
+                this.log.addStatusOk('Atmospheric loading files are present ^_^');
             else
-                this.log.addMarkedMessage('Not all atmospheric files founds');
+                this.log.addWarning('Not all atmospheric files founds');
             end
             
         end
         
         function conjureVmfFiles(this, date_start, date_stop)
+            this.log.addMarkedMessage('Checking VMF files');
             date_stop = date_stop.getCopy();
             %date_stop.addSeconds(6*3600);
             status = this.conjureResource('vmf',date_start, date_stop);
 
             if status
-                this.log.addMarkedMessage('All atmospheric loading files present');
+                this.log.addStatusOk('Vienna Mapping Function files are present ^_^');
             else
-                this.log.addMarkedMessage('Not all vmf files founds');
+                this.log.addWarning('Not all vmf files founds');
             end
             
         end
@@ -567,6 +569,7 @@ classdef File_Wizard < handle
             %
             % OUTPUT:
             
+            this.log.addMarkedMessage('Checking DCB files');
             if date_start.getCalEpoch >= 2013 % use CAS DCB
                 dcb_ok = true;
                 % check if file are present
@@ -617,7 +620,7 @@ classdef File_Wizard < handle
                                         [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
                                         delete([this.state.getDcbDir() filesep name ext]);
                                     catch
-                                        this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
+                                        this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.']));
                                         compressed = 1;
                                     end
                                 end
@@ -625,8 +628,7 @@ classdef File_Wizard < handle
                         end
                     end
                 else
-                    this.log.addStatusOk('Dcb files are present ^_^');
-                    this.log.newLine();
+                    this.log.addStatusOk('DCB files are present ^_^');
                 end
             else % use DCB from CODE
                 gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
@@ -684,13 +686,11 @@ classdef File_Wizard < handle
                 try
                     ftp_server = ftp(aiub_ip);
                 catch
-                    fprintf(' connection failed.\n');
+                    this.log.addWarning('connection failed.\n');
                     this.state.setDcbFile({''});
                     return
                 end
-                
-                fprintf('\n');
-                
+                                
                 m = 0;
                 
                 for y = 1 : length(year_orig)
@@ -721,11 +721,11 @@ classdef File_Wizard < handle
                                             delete([down_dir '/' s2]);
                                             s2 = s2(1:end-2);
                                         catch
-                                            fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                                            this.log.addWarning(sprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.']));
                                             compressed = 1;
                                         end
                                     end
-                                    fprintf(['Downloaded DCB file: ' s2 '\n']);
+                                    this.log.addMessage(this.log.indent(['DCB file downloaded: ' s2 ]));
                                 catch
                                     cd(ftp_server, '..');
                                     s1 = [ff{p} '.DCB'];
@@ -733,10 +733,10 @@ classdef File_Wizard < handle
                                     cd(ftp_server, num2str(year_orig(y)));
                                     s2 = [s2(1:end-2) '_TMP'];
                                     movefile([down_dir '/' s1], [down_dir '/' s2]);
-                                    fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
+                                    this.log.addWarning(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2]);
                                 end
                             else
-                                fprintf([s2(1:end-2) ' already present\n']);
+                                this.log.addMessage(this.log.indent([s2(1:end-2) ' already present\n']));
                             end
                             %cell array with the paths to the downloaded files
                             entry = {[down_dir, '/', s2]};
@@ -752,7 +752,7 @@ classdef File_Wizard < handle
                 
                 close(ftp_server);
                 
-                fprintf('Download complete.\n')
+                this.log.addStatusOk('Dcb files have been downloded');
             end
         end
         
@@ -762,6 +762,7 @@ classdef File_Wizard < handle
             % SYNTAX:
             %   this.conjureNavFiles(date_start, date_stop)
             %
+            this.log.addMarkedMessage('Checking ephemerides / clocks / ERPs');
             list_preferred = this.state.getPreferredEph();
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i}, date_start, date_stop);
@@ -770,35 +771,15 @@ classdef File_Wizard < handle
                 end
             end
             if status
-                this.log.addMarkedMessage('All ephemerids files present')
+                this.log.addStatusOk('Ephemerides files are present ^_^')
             else
                 if ~this.nrt
-                    this.log.addError('Not all ephemerids files found program might misbehave');
+                    this.log.addError('Not all ephemerides files have been found program might misbehave');
                 else
-                    this.log.addError('Not all ephemerids files found');
+                    this.log.addError('Not all ephemerides files have been found');
                 end
             end
-        end
-        
-        function conjureErpFiles(this, date_start, date_stop)
-            % Wrapper of conjureResources for ERP files
-            %
-            % SYNTAX:
-            %   this.conjureErpFiles(date_start, date_stop)
-            %
-            list_preferred = this.state.preferred_erp;
-            for i = 1 : length(list_preferred)
-                status = this.conjureResource(list_preferred{i},date_start, date_stop);
-                if status
-                    break
-                end
-            end
-            if status
-                this.log.addMarkedMessage('All erp files present')
-            else
-                this.log.addMarkedMessage('Not all erp files found program might misbehave')
-            end
-        end
+        end               
         
         function conjureIonoFiles(this, date_start, date_stop, flag_brdc)
             % Wrapper of conjureResources for iono files
@@ -806,6 +787,7 @@ classdef File_Wizard < handle
             % SYNTAX:
             %   this.conjureIonoFiles(date_start, date_stop)
             %
+            this.log.addMarkedMessage('Checking ionospheric resources files');
             list_preferred = this.state.preferred_iono;
             for i = 1 : length(list_preferred)
                 if strcmp(list_preferred{i}, 'broadcast')
@@ -820,13 +802,13 @@ classdef File_Wizard < handle
                     break
                 end
             end
-            if this.state.iono_model == 2 & (this.state.iono_management == 3 || this.state.flag_apr_iono)
+            if (this.state.iono_model == 2) && (this.state.iono_management == 3 || this.state.flag_apr_iono)
                 status = this.conjureResource(['iono_broadcast'], date_start, date_stop);
             end
             if status
-                this.log.addMarkedMessage('All iono files present')
+                this.log.addStatusOk('Ionosphere resource files are present ^_^')
             else
-                this.log.addMarkedMessage('Not all iono files found program might misbehave')
+                this.log.addWarning('Not all iono files found program might misbehave')
             end
             
         end
@@ -844,10 +826,11 @@ classdef File_Wizard < handle
             % DESCRIPTION:
             %   Download of .CRX files from the AIUB FTP server.
             %
+            this.log.addMarkedMessage('Checking CRX (Satellite problems file)');
             date_start = date_start.getCopy();
             date_stop = date_stop.getCopy();
             gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
-            gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
+            %gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
             %[file_crx] = download_crx(gps_weeks, gps_times);
             
             % Pointer to the global settings:
@@ -884,11 +867,10 @@ classdef File_Wizard < handle
                 ftp_server = ftp(aiub_ip);
             catch
                 this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
-                this.log.addError('Connection failed.\n');
+                this.log.addError('Connection failed.');
                 return
             end
             
-            fprintf('\n');
             
             for y = 1 : length(year)
                 
@@ -945,9 +927,7 @@ classdef File_Wizard < handle
                 close(ftp_server);
             catch
             end
-            
-            this.log.addStatusOk(this.log.indent(('CRX ready!\n')))
-            
+            this.log.addStatusOk('CRX files are present ^_^')
         end
         
     end

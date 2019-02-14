@@ -647,12 +647,12 @@ classdef Core < handle
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
             this.initConfiguration(); % Set up / download observations and navigational files
-            this.log.addMarkedMessage('Conjuring all the auxilliary files!');
+            this.log.addMessage('Conjuring all the auxilliary files...');
             rin_list = this.getRinFileList();
             
             fw = File_Wizard;
-            c_mode = this.log.getColorMode();
-            this.log.setColorMode(false);
+            %c_mode = this.log.getColorMode();
+            %this.log.setColorMode(false);
             if ~this.state.isRinexSession()
 
                     [buff_lim, ~] = this.state.getSessionLimits(1);
@@ -664,7 +664,7 @@ classdef Core < handle
               [~, time_lim_large, is_empty] = this.getRecTimeSpan();
             end
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
-            this.log.setColorMode(c_mode);
+            %this.log.setColorMode(c_mode);
         end        
         
         function activateParallelWorkers(this, id_rec2pass)

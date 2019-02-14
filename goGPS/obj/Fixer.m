@@ -19,8 +19,8 @@
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
-%  Written by:                    Andrea Gatti
-%  On the basis of the work of:   Andrea Nardo, 
+%  Written by:                    Andrea Gatti, Giulio Tagliaferro
+%  On the basis of the work of:   Andrea Nardo (on the LAMBDA approach), 
 %  Contributors:                  Eugenio Realini and Hendy F. Suhandri
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
