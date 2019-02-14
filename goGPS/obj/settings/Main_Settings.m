@@ -118,7 +118,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
         IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep '${YYYY}' filesep];
         IONO_NAME = '';
-        ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
+        ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep '${YYYY}' filesep];
         ATM_LOAD_NAME_NT = '';
         ATM_LOAD_NAME_T = 's1_s2_s3_cm_noib_grid.dat';
         VMF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'VMF' filesep '${YYYY}' filesep];
