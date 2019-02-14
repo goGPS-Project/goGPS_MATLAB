@@ -1542,10 +1542,10 @@ classdef GNSS_Station < handle
             coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
             
-            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 250, res_tropo(epoch(1),:)', 'filled');
+            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 180, res_tropo(epoch(1),:)', 'filled');
             hold on;
             % plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
-            %caxis([-10 10]);
+            caxis([10 45]);
             colormap(gat);
             colorbar;
             
@@ -1599,7 +1599,7 @@ classdef GNSS_Station < handle
             % SYNTAX f_handles = this.plotSNR(sys_c)
             
             % SNRs
-            if nargin < 2
+            if nargin c 2
                 type = 'snr';
             end
             
@@ -1852,16 +1852,23 @@ classdef GNSS_Station < handle
                     end
                     
                     outm = [old_legend, outm];
-                    if ~sub_plot_nsat
-                        [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
-                    else
-                         [~, icons] = legend(outm, 'Location', 'SouthWest', 'interpreter', 'none');
-                    end
                     n_entry = numel(outm);
-                    icons = icons(n_entry + 2 : 2 : end);
-                    
-                    for i = 1 : numel(icons)
-                        icons(i).MarkerSize = 16;
+
+                    if n_entry < 20                    
+                        if ~sub_plot_nsat
+                            [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                        else
+                            loc = 'SouthWest';
+                            if n_entry > 11
+                                loc = 'NorthWastOutside';
+                            end
+                            [~, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
+                        end
+                        icons = icons(n_entry + 2 : 2 : end);
+                        
+                        for i = 1 : numel(icons)
+                            icons(i).MarkerSize = 16;
+                        end
                     end
                     
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
