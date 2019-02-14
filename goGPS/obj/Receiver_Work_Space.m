@@ -393,7 +393,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
-            this.sat.cs                = Core.getCoReSky();
+            this.sat.cs                = [];
             
             this.add_coo               = [];
         end
