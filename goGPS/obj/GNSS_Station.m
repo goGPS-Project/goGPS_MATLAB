@@ -1519,17 +1519,21 @@ classdef GNSS_Station < handle
             end
         end
                
-        function showMapZwd(this, new_fig, epoch)
+        function showMapZwd(this, new_fig, epoch, flag_export)
             if nargin < 2 || isempty(new_fig)
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                fig_handle = figure;
             else
-                f = gcf;
+                fig_handle = gcf;
                 hold on;
             end
-            maximizeFig(f);
+            if nargin < 4
+                flag_export = true;
+            end
+            
+            maximizeFig(fig_handle);
             
             %[res_tropo, s_time] = this.getReducedZtd_mr();
             [res_tropo, s_time] = this.getZwd_mr();
@@ -1542,10 +1546,10 @@ classdef GNSS_Station < handle
             coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
             
-            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 180, res_tropo(epoch(1),:)', 'filled');
+            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 60, res_tropo(epoch(1),:)', 'filled');
             hold on;
             % plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
-            caxis([10 45]);
+            caxis([min(res_tropo(:)) max(res_tropo(:))]);
             colormap(gat);
             colorbar;
             
@@ -1566,17 +1570,52 @@ classdef GNSS_Station < handle
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
             end
-            th = title(sprintf('Receiver %s', s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            th = title(sprintf('ZWD [cm] map @%s', s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
             
+            if flag_export
+                im = {};
+                frame = getframe(fig_handle);
+                im{1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                fig_handle.Visible = 'off';
+                Core.getLogger.addMarkedMessage('Exporting video');
+                fprintf('%5d/%5d', 0, 99999);
+            end            
             drawnow
             if numel(epoch) > 1
-                for e = 2 : 10 : numel(epoch)
+                epoch_list = 11 : 10 : numel(epoch);
+                for i = 1 : numel(epoch_list)
+                    e = epoch_list(i);
                     if any(res_tropo(epoch(e),:))
                         th.String = sprintf('Receiver %s', s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
                         sh.CData = res_tropo(epoch(e),:)';
-                        drawnow
+                        if not(flag_export)
+                            drawnow
+                        end
+                    end
+                    if flag_export
+                        fprintf('%s%5d/%5d',char(8 * ones(1,11)), i,numel(epoch_list));
+                        frame = getframe(fig_handle);
+                        im{i + 1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
                     end
                 end
+            end
+            
+            if flag_export
+                fprintf('%s',char(8 * ones(1,11)));
+                if ismac()
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, 'AniZWDmap.mp4'), 'MPEG-4');
+                else
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, 'AniZWDmap.avi'));
+                end
+                video_out.FrameRate = 30;
+                video_out.Quality = 91;
+                open(video_out);
+                for i = 1 : numel(im)
+                    writeVideo(video_out, im{i});
+                end
+                close(video_out);
+                Core.getLogger.addStatusOk('Done ^_^');
+                close(fig_handle)
             end
         end
         
