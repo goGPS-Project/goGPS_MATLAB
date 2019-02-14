@@ -739,18 +739,27 @@ classdef Core_Utils < handle
         
         function [status, ext] = checkHttpTxtRes(filename)
             ext = '';
-            if isunix() || ismac()
-                [resp, txt] = system(['curl --head ' filename]);
-                if strfind(txt,'HTTP/1.1 200 OK')
+            if isunix()
+                if ismac()
+                    % Sometimes mac users does not have wget'
+                    rem_check_cmd = 'curl --head ';
+                else
+                    % curl seems to have some problems with matlb libraries
+                    % under some Linux installations, switching to wget --spyder
+                    rem_check_cmd = 'wget --spyder';
+                end
+                
+                [resp, txt] = system([rem_check_cmd filename]);
+                if strfind(txt,' 200 OK')
                     status = true;
                 else
-                    [resp, txt] = system(['curl --head ' filename '.gz']);
-                    if strfind(txt,'HTTP/1.1 200 OK')
+                    [resp, txt] = system([rem_check_cmd filename '.gz']);
+                    if strfind(txt,' 200 OK')
                         ext = '.gz';
                         status = true;
                     else
-                        [resp, txt] = system(['curl --head ' filename '.Z']);
-                        if strfind(txt,'HTTP/1.1 200 OK')
+                        [resp, txt] = system([rem_check_cmd filename '.Z']);
+                        if strfind(txt,' 200 OK')
                             ext = '.Z';
                             status = true;
                         else

@@ -4,6 +4,7 @@ function [str_is_found] = instr(str, pattern)
     % SYNTAX:
     %   str_is_found = instr(str, pattern)
     %
+    
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
     %     __ _ ___ / __| _ | __|
