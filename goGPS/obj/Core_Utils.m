@@ -569,7 +569,7 @@ classdef Core_Utils < handle
             fnl = file_name_lst(idf);
             fel = f_ext_lst(idf); % file extension list
             odl = {}; % out_dir_list
-            ffp = {}; % fineal file path
+            ffp = {}; % final file path
             for i = 1 : numel(fnl)
                 file_name = fnl{i};
                 server = regexp(file_name,'(?<=\?{)\w*(?=})','match', 'once'); % saerch for ?{server_name} in paths
@@ -593,7 +593,11 @@ classdef Core_Utils < handle
                 end
                 odl{i} = out_dir;
                 [~, name, ext] = fileparts(fnl{i});
-                ffp{i} = fullfile(out_dir, name);
+                if strcmp(ext,'.Z') || strcmp(ext,'.gz')
+                    ffp{i} = fullfile(out_dir, name);
+                else
+                    ffp{i} = fullfile(out_dir, [name ext]);
+                end
             end
             
             % if I have at least one file to download
@@ -616,7 +620,7 @@ classdef Core_Utils < handle
                         else
                             
                             if i <= numel(fnl)
-                                if i == numel(fnl)
+                                if i == numel(fnl) && strcmp(odl{i}, old_od)
                                     str = sprintf('%s%s\n', str, fnl{i});
                                 end
                                 
@@ -648,7 +652,12 @@ classdef Core_Utils < handle
                             end
                         end
                         if i <= numel(fnl)
+                            decrement = 0;
+                            if ~(strcmp(odl{i}, old_od))
+                                decrement = 1; % this last file have not been downloaded! 
+                            end
                             old_od = odl{i};
+                            i = i - decrement;                        
                         end
                     end
                     fclose(fid);
