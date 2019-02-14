@@ -191,7 +191,7 @@ end
             
             % Logo/title box -------------------------------------------------------------------------------------------
             
-            Core_UI.insertLogo(left_bv);
+            Core_UI.insertLogoGUI(left_bv);
             
             this.insertSessionInfo(left_bv);
             

@@ -671,7 +671,7 @@ classdef Core_UI < handle
     % ==================================================================================================================================================
     methods (Static)
         
-        function insertLogo(container)
+        function insertLogoGUI(container)
             % Logo
             logo_bg_color = Core_UI.LIGHT_GRAY_BG;
             
@@ -1461,6 +1461,65 @@ classdef Core_UI < handle
             else
                 color = Core_UI.COLOR_ORDER(mod(color_id - 1, size(Core_UI.COLOR_ORDER, 1)) + 1, :);
             end
+        end
+        
+        function logo_ax = insertLogo(container, location)  
+            % Insert a new axis containing goGPS Logo
+            %
+            % SYNTAX 
+            %   logo_ax = Mesonet.insertLogo(container)  
+            
+            if (nargin == 1)
+                location = 'SouthEast';
+            end
+            logo_ax = axes( 'Parent', container);
+            % [logo, ~, transparency] = imread('./reserved/GReD logo_86px.png');
+            [logo, transparency] = Core_UI.getLogo();
+            logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
+            logo = logo - 20;
+            image(logo_ax, logo, 'AlphaData', transparency);
+            logo_ax.XTickLabel = [];
+            logo_ax.YTickLabel = [];
+            
+            switch location
+                case 'NorthEast'
+                    logo_ax.Units = 'pixels';
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    cu = container.Units;
+                    container.Units = 'pixels';
+                    logo_ax.Position(1) = container.Position(3) - logo_ax.Position(3) - 10;
+                    logo_ax.Position(2) = container.Position(4) - logo_ax.Position(4) - 10;
+                    logo_ax.Units = 'normalized';            
+                    container.Units = cu;
+                case 'NorthWest'
+                    logo_ax.Units = 'pixels';
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    cu = container.Units;
+                    container.Units = 'pixels';
+                    logo_ax.Position(1) = 10;
+                    logo_ax.Position(2) = container.Position(4) - logo_ax.Position(4) - 10;
+                    logo_ax.Units = 'normalized';            
+                    container.Units = cu;
+                case 'SouthEast'
+                    logo_ax.Units = 'pixels';
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position(2) = 10;
+                    cu = container.Units;
+                    container.Units = 'pixels';
+                    logo_ax.Position(1) = container.Position(3) - logo_ax.Position(3) - 10;
+                    logo_ax.Units = 'normalized';            
+                    container.Units = cu;
+                case 'SouthWest'
+                    logo_ax.Units = 'pixels';
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position(2) = 10;
+                    cu = container.Units;
+                    container.Units = 'pixels';
+                    logo_ax.Position(1) = 10;
+                    logo_ax.Units = 'normalized';            
+                    container.Units = cu;
+            end            
+            axis off;
         end
     end
 end
