@@ -913,31 +913,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.remObs(find(this.go_id == go_id(s))); %#ok<FNDSB>
             end
         end
-        
-%         function remBadPrObs(this, thr)
-%             % remove bad pseudo-ranges
-%             % and isolated observations
-%             %
-%             % INPUT
-%             %   thr is a threshold in meters (default = 150)
-%             %
-%             % SYNTAX
-%             %   this.remBadPrObs(thr)
-%             if nargin == 1
-%                 thr = 150; % meters
-%             end
-%             [pr, id_pr] = this.getPseudoRanges;
-%             inan = isnan(pr);
-%             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
-%             med_pr = median(Core_Utils.diffAndPred(pr_fill,2),2,'omitnan');
-%             out = abs(bsxfun(@minus, Core_Utils.diffAndPred(pr_fill, 2), med_pr)) > thr;
-%             pr(out) = nan;
-%             pr = zero2nan(Core_PP.remShortArcs(pr', 1))';
-%             this.setPseudoRanges(pr, id_pr);
-%             n_out = sum(out(:) & ~inan(:));
-%             this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
-%         end
-%         
+         
         function remBadPrObs(this, thr)
             % remove bad pseudo-ranges
             % and isolated observations
