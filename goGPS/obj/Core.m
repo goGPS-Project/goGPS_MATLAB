@@ -654,12 +654,10 @@ classdef Core < handle
             %c_mode = this.log.getColorMode();
             %this.log.setColorMode(false);
             if ~this.state.isRinexSession()
-
-                    [buff_lim, ~] = this.state.getSessionLimits(1);
-                    time_lim_large = buff_lim.getEpoch(1);
-                    [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
-                    time_lim_large.append(buff_lim.getEpoch(2));
-
+                [buff_lim, ~] = this.state.getSessionLimits(1);
+                time_lim_large = buff_lim.getEpoch(1);
+                [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
+                time_lim_large.append(buff_lim.getEpoch(2));
             else
               [~, time_lim_large, is_empty] = this.getRecTimeSpan();
             end
@@ -707,6 +705,7 @@ classdef Core < handle
             if nargin < 3 || isempty(flag_preload)
                 flag_preload = false;
             end
+            
             
             session = session_number;
             if ~flag_preload

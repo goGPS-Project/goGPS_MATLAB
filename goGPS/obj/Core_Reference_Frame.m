@@ -129,19 +129,16 @@ classdef Core_Reference_Frame < handle
                             if l > 7
                                 this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
                                 if l > 9
-                                    re_date(i) = datenum([parts{9} ' ' parts{10}]);
+                                    st_date(i) = datenum([parts{9} ' ' parts{10}], 'yyyy-mm-dd HH:MM:SS');
                                     if l > 11
-                                        st_date(i) = datenum([parts{11} ' ' parts{12}]);
-                                        if l > 13
-                                            en_date(i) = datenum([parts{13} ' ' parts{14}]);
-                                        end
+                                        en_date(i) = datenum([parts{11} ' ' parts{12}], 'yyyy-mm-dd HH:MM:SS');
                                     end
                                 end
                             end
                         end
                     end
-                    this.ref_epoch            = GPS_Time(re_date);
                     this.start_validity_epoch = GPS_Time(st_date);
+                    this.ref_epoch = this.start_validity_epoch;
                     en_date(en_date == 0)     = datenum(2099, 1,1);
                     this.end_validity_epoch   = GPS_Time(en_date);
                 end
@@ -327,10 +324,10 @@ classdef Core_Reference_Frame < handle
                 date = []; 
                 for i = 1 : size(data,1)
                     try
-                        date(i) = datenum(iif(isempty(data{i,6}), '0000/01/01 00:00:00', data{i,6}), 'yyyy/mm/dd HH:MM:SS');
+                        date(i) = datenum(iif(isempty(data{i,6}), '1980/01/01 00:00:00', data{i,6}), 'yyyy/mm/dd HH:MM:SS');
                     catch ex
                         % not valid epoch
-                        date(i) = datenum('0000/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS'); 
+                        date(i) = datenum('1980/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS'); 
                     end
                 end
                 this.start_validity_epoch = GPS_Time(date');
