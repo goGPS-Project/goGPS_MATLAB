@@ -231,6 +231,26 @@ classdef Remote_Resource_Manager < Ini_Manager
             end            
         end
         
+        function [center, center_ss] = getCenterListExtended(this)
+            % Get the list of available centers and the supported constellations
+            %
+            % SYNTAX
+            %   [center, center_ss] = this.getCenterList()
+            tmp = this.getData('CENTER', 'available');
+            n_center = numel(tmp);
+            center = cell(n_center, 1);
+            center_ss = cell(n_center, 1);
+            for c = 1 : n_center
+                center{c} = regexp(tmp{c}, '(?<=@).*', 'match', 'once');
+                if isempty(center{c})
+                    center{c} = tmp{c};
+                else
+                    center{c} = [upper(center{c}) ' - ' this.getData(['c_' center{c}], 'description')];
+                end
+                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');;
+            end            
+        end        
+        
         function [descr] = centerToString(this, center)
             % Get the center description
             %

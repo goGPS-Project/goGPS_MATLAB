@@ -1270,7 +1270,7 @@ end
 
             try
                 r_man = Remote_Resource_Manager.getInstance(this.state.getRemoteSourceFile());
-                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterList, 'selected_center', @this.onResourcesPopUpChange);                
+                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange);                
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
             end
@@ -1738,7 +1738,18 @@ end
         end
         
         function onResourcesPopUpChange(this, caller, event)
-            this.state.setProperty(caller.UserData, caller.String(caller.Value));
+            
+            if strcmp(caller.UserData, 'selected_center')
+                % Particular case selected_center is in GUI with full description of the center
+                % Use caller.Value and r_man.getCenterList();
+                r_man = Remote_Resource_Manager.getInstance();
+                
+                % read current center
+                [center_list, center_ss] = r_man.getCenterList();
+                this.state.setProperty(caller.UserData, center_list{caller.Value});
+            else
+                this.state.setProperty(caller.UserData, caller.String(caller.Value));
+            end
             
             % Set resources preferences
             r_man = Remote_Resource_Manager.getInstance();
