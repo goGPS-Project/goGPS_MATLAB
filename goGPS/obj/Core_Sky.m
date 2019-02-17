@@ -634,12 +634,12 @@ classdef Core_Sky < handle
                     memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); %check whether the extend of sp3 file intersect with the current data
                     if sum(memb_idx)==0
                         empty_file = true;
-                        this.clearCoord(); %<---- if new sp3 does not match the already present data clear the data and put the new ones
-                        %                         elseif sum(memb_idx)==2 %<--- case new data are already in the class, (this leave out the case wether only one epoch more would be added to the current data, extremely unlikely)
+                        this.clearCoord(); % <---- if new sp3 does not match the already present data clear the data and put the new ones
+                        %                          else if sum(memb_idx) == 2 % <--- case new data are already in the class, (this leave out the case wether only one epoch more would be added to the current data, extremely unlikely)
                         %                             return
                     end
                 end
-                %initlaize array size
+                % initialize array size
                 if empty_file
                     this.time_ref_coord = sp3_first_ep.getCopy();
                     if clock_flag
@@ -670,26 +670,26 @@ classdef Core_Sky < handle
                     end
                 end
                 %%%% read data
-                %%% raed epochs
+                %%% read epochs
                 t_line = find(txt(lim(:,1)) == '*');
-                string_time = txt(repmat(lim(t_line,1),1,28) + repmat(3:30, length(t_line), 1))';
-                % convert the times into a 6 col time
-                date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.8f'));
+                % find the length of the time string (it should of this format: yyyy mm dd HH MM SS.00000000)
+                % but sometimes it has 4 digits for seconds :-/ i.e. igs102664.sp3
+                time_len = find(txt(repmat(lim(t_line(1),1),1,29) + repmat(3:31, 1, 1)) == char(10));
+                string_time = txt(repmat(lim(t_line,1),1,time_len) + repmat(2 + (1:time_len), length(t_line), 1))';
                 % import it as a GPS_Time obj
-                sp3_times = GPS_Time(date, [], true);
+                sp3_times = GPS_Time.fromString(string_time);
                 if version == 'a'
                     go_ids_s = this.cc.getGoIds();
-                    go_ids_s = reshape(sprintf('%2d',go_ids_s),2,length(go_ids_s))';
-                    
+                    go_ids_s = reshape(sprintf('%2d',go_ids_s),2,length(go_ids_s))';                    
                 end
                 ant_ids = this.cc.getAntennaId;
                 for i = 1 : length(ant_ids)
                     ant_id = ant_ids{i};
-                     if version == 'a'
-                         sat_line = find(txt(lim(:,1)) == 'P'  & txt(lim(:,1)+2) == go_ids_s(i,1)& txt(lim(:,1)+3) == go_ids_s(i,2));
-                     else
-                         sat_line = find(txt(lim(:,1)) == 'P' & txt(lim(:,1)+1) == ant_id(1) & txt(lim(:,1)+2) == ant_id(2)& txt(lim(:,1)+3) == ant_id(3));
-                     end
+                    if version == 'a'
+                        sat_line = find(txt(lim(:,1)) == 'P'  & txt(lim(:,1)+2) == go_ids_s(i,1)& txt(lim(:,1)+3) == go_ids_s(i,2));
+                    else
+                        sat_line = find(txt(lim(:,1)) == 'P' & txt(lim(:,1)+1) == ant_id(1) & txt(lim(:,1)+2) == ant_id(2)& txt(lim(:,1)+3) == ant_id(3));
+                    end
                     if ~isempty((sat_line))
                         c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
                         this.coord(c_ep_idx,i,:) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,41) + repmat(5:45, length(sat_line), 1))','%f %f %f'))*1e3;
@@ -704,11 +704,11 @@ classdef Core_Sky < handle
                 end
             end
             clear sp3_file;
-            this.coord = zero2nan(this.coord);  %<--- nan is slow for the computation of the polynomial coefficents
+            this.coord = zero2nan(this.coord);  % <--- nan is slow for the computation of the polynomial coefficents
         end
         
         function fillClockGaps(this)
-            %DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
+            % DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
             for i = 1 : size(this.clock,2)
                 if not(sum(this.clock(:,i),1) == 0)
                     empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
