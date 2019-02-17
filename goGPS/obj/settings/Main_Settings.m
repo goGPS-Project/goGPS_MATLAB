@@ -1843,7 +1843,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 case 4, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
-            this.(field_name) = fnp.getFullDirPath(this.(field_name));
+            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.getHomeDir);
         end
 
         function checkNumericField(this, field_name, limits, valid_val)
