@@ -3458,11 +3458,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
         end
         
+        function setCrdDir(this, crd_dir)
+            % Set the path of the stations coordinates directory
+            %
+            % SYNTAX
+            %   this.setCrdDir(crd_dir)
+            this.crd_dir = crd_dir;
+        end
+        
         function setCrdFile(this, crd_path)
             % Set the path of the stations coordinates file
             %
             % SYNTAX
-            %   file_path = this.setCrdFile(crd_file_path)
+            %   this.setCrdFile(crd_file_path)
             if ~(isempty(crd_path))
                 [path, name, ext] = fileparts(crd_path);
                 this.crd_name = [name, ext];
@@ -3741,7 +3749,23 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   dir = this.setPrjHome(prj_home)
             this.prj_home = prj_home;
         end
-
+        
+        function setObsDir(this, obs_dir)
+            % Set observation dir
+            %
+            % SYNTAX
+            %   dir = this.setObsDir(obs_dir)
+            this.obs_dir = obs_dir;
+        end
+        
+        function setOutDir(this, out_dir)
+            % Set output dir
+            %
+            % SYNTAX
+            %   dir = this.setOutDir(out_dir)
+            this.out_dir = out_dir;
+        end
+        
         function setIniPath(this, file_path)
             % Set the file name of the current settings
             %   

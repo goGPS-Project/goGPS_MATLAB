@@ -1331,6 +1331,7 @@ classdef Core_Utils < handle
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name]));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'config']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'out']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'out/log']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'RINEX']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station']));
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/CRD']));
@@ -1338,6 +1339,11 @@ classdef Core_Utils < handle
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/MET']));
             state.setPrjHome(fnp.checkPath([base_dir filesep prj_name]));
             state.prj_name = prj_name;
+            state.setOutDir('./out');
+            state.setObsDir('./RINEX');
+            state.setMetDir('./station/MET');
+            state.setCrdDir('station/CRD');
+            
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             if nargin == 3
                 switch prj_type
@@ -1351,8 +1357,8 @@ classdef Core_Utils < handle
                         state.setToLongNET();
                 end
             end
-            state.save(config_path);
             state.check();
+            state.save(config_path);
             Core.getCurrentSettings.import(state);
         end
         
