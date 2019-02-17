@@ -201,7 +201,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.reset@Receiver_Commons();
             this.resetObs();
-            this.initR2S(); % restore handle to core_sky singleton
             this.id_sync = [];
             
             this.n_sat = [];
@@ -393,7 +392,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
-            this.sat.cs                = [];
             
             this.add_coo               = [];
         end
@@ -568,14 +566,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.pwv = nan(n_epoch, 1);
             this.tge = nan(n_epoch, 1);
             this.tgn = nan(n_epoch, 1);
-        end
-        
-        function initR2S(this)
-            % initialize satellite related parameters
-            % SYNTAX this.initR2S();
-            this.sat.cs           = Core.getCoreSky();
-            % this.sat.avail_index  = false(this.length, this.cc.getMaxNumSat);
-            % this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
         function subSample(this, id_sync)
@@ -1001,11 +991,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             this.log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
-            nan_coord = sum(isnan(this.sat.cs.coord) | this.sat.cs.coord == 0,3) > 0;
-            nan_clock = isnan(this.sat.cs.clock) | this.sat.cs.clock == 0;
+            cs = Core.getCoreSky;
+            nan_coord = sum(isnan(cs.coord) | cs.coord == 0,3) > 0;
+            nan_clock = isnan(cs.clock) | cs.clock == 0;
             first_epoch = this.time.first;
-            coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
-            clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
+            coord_ref_time_diff = first_epoch - cs.time_ref_coord;
+            clock_ref_time_diff = first_epoch - cs.time_ref_clock;
             for s = 1 : this.parent.cc.getMaxNumSat()
                 o_idx = this.go_id == s;
                 dnancoord = diff(nan_coord(:,s));
@@ -1027,7 +1018,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for i = 1:length(st_idx)
                         is = st_idx(i);
                         ie = end_idx(i);
-                        c_rate = this.sat.cs.coord_rate;
+                        c_rate = cs.coord_rate;
                         bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())));
                         bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())));
                         this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
@@ -1058,7 +1049,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for i = 1:length(st_idx)
                         is = st_idx(i);
                         ie = end_idx(i);
-                        c_rate = this.sat.cs.clock_rate;
+                        c_rate = cs.clock_rate;
                         bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.time.getRate())));
                         bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.time.getRate())));
                         this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
@@ -1070,7 +1061,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             % remove moon midnight or shadow crossing epoch
-            eclipsed = this.sat.cs.checkEclipseManouver(this.time);
+            eclipsed = cs.checkEclipseManouver(this.time);
             for i = 1: size(eclipsed,2)
                 this.obs(this.go_id == i,eclipsed(:,i)~=0) = 0;
             end
@@ -1224,6 +1215,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 sensor_ph = sensor_ph0;
             end
+            
+            % this indicates the 75% level of time variation of the observations (it is usually less than 1 cm)
+            diff75 = perc(abs(Core_Utils.diffAndPred(sensor_ph(:))), 0.75);
             
             % first rough out detection ------------------------------------------------------------------
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
@@ -1430,7 +1424,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_pr = find(lid_pr);
                 go_id_pr = this.go_id(lid_pr);
                 for g = unique(go_id_ph)'
-                    % for each sat get all available observations and ge
+                    % for each sat get all available observations and get
                     % cycle slips
                     id_sat_ph = find(go_id_ph == g);
                     ph_sat = ph(:,id_sat_ph);
@@ -1461,7 +1455,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 for s = find(cs_same_f)'
                                     cs_f = find(ph_sat_cs(:,id_fr_sat(s)));
                                     notcs_f = find(ph_sat_cs(:,id_not_cs(1))); % using first good frequency
-                                     cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
+                                    cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
                                     cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
                                     id_1 = id_sat_ph(id_fr_sat(s));
                                     id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
@@ -1469,13 +1463,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
                                     if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
                                         this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
-                                        if i_jmp ~= 0 
-                                          ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
+                                        if i_jmp ~= 0
+                                            ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
                                         end
                                     end
                                 end
                             end
-                        end  
+                        end
                     end
                     ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
                     lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
@@ -3020,7 +3014,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  : get clock offset of the satellite due to
             % special relativity (eccntrcity term)
             idx = this.sat.avail_index(:,sat) > 0;
-            [X,V] = this.sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
+            [X,V] = Core.getCoreSky.coordInterpolate(this.time.getSubSet(idx),sat);
             dtRel = -2 * sum(conj(X) .* V, 2) / (Core_Utils.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
         end
         
@@ -3037,11 +3031,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   Compute the satellite clock error.
             if nargin < 2
                 dtS = zeros(size(this.sat.avail_index));
-                dtS(this.sat.avail_index(:,s),s) = this.sat.cs.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)), 1 : size(dtS,2));
+                dtS(this.sat.avail_index(:,s),s) = Core.getCoreSky.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)), 1 : size(dtS,2));
             else
                 idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx) > 0
-                    dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
+                    dtS = Core.getCoreSky.clockInterpolate(this.time.getSubSet(idx), sat);
                 else
                     dtS = zeros(0,1);
                 end
@@ -3122,17 +3116,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
             %time_tx.addSeconds(); % rel clok neglegible
-            [XS_tx, ~] = this.sat.cs.coordInterpolate(time_tx, sat);
+            [XS_tx, ~] = Core.getCoreSky.coordInterpolate(time_tx, sat);
             
             
-            %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
+            %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
             %             XS_tx  = zeros(size(this.sat.avail_index));
             %             for s = 1 : size(XS_tx)
             %                 idx = this.sat.avail_index(:,s);
             %                 %%% compute staeliite position a t trasmission time
             %                 time_tx = this.time.subset(idx);
             %                 time_tx = time_tx.time_diff - this.sat.tot(idx,s)
-            %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
+            %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
             %             end
         end
         
@@ -4548,7 +4542,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT);
             wl_cycle(:,mwb.go_id) = mwb.obs;
             wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
-            wsb = this.sat.cs.getWSB(this.getCentralTime());
+            wsb = Core.getCoreSky.getWSB(this.getCentralTime());
             % take off wsb
             wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
             
@@ -5524,18 +5518,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             % . apply group delay corrections for code and phase
             % measurement when a value if provided from an external source
             % (Navigational file  or DCB file)
-            for i = 1 : size(this.sat.cs.group_delays, 2)
-                sys  = this.sat.cs.group_delays_flags(i,1);
-                code = this.sat.cs.group_delays_flags(i,2:4);
+            cs = Core.getCoreSky;
+            for i = 1 : size(cs.group_delays, 2)
+                sys  = cs.group_delays_flags(i,1);
+                code = cs.group_delays_flags(i,2:4);
                 f_num = str2double(code(2));
                 idx = this.findObservableByFlag(code, sys);
-                if sum(this.sat.cs.group_delays(:,i)) ~= 0
+                if sum(cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
-                        for s = 1 : size(this.sat.cs.group_delays,1)
+                        for s = 1 : size(cs.group_delays,1)
                             sat_idx = idx((this.prn(idx) == s));
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
-                            if this.sat.cs.group_delays(s,i) ~= 0
-                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.sat.cs.group_delays(s,i);
+                            if cs.group_delays(s,i) ~= 0
+                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * cs.group_delays(s,i);
                             elseif ~this.cc.isRefFrequency(sys, f_num)
                                 this.active_ids(idx) = false;
                                 idx = this.findObservableByFlag(['C' code(2:end)], sys);
@@ -5876,6 +5871,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
             
+            cs = Core.getCoreSky;
             this.log.addMessage(this.log.indent('Updating ionospheric errors'))
             if nargin < 2
                 go_id  = 1 : this.parent.cc.getMaxNumSat();
@@ -5885,11 +5881,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 iono_model_override = this.state.getIonoModel;
             end
             atmo = Core.getAtmosphere();
-            if iono_model_override == 3 && isempty(atmo.ionex.data) && ~isempty(this.sat.cs.iono) && sum(sum(this.sat.cs.iono~=0)) > 0
+            if iono_model_override == 3 && isempty(atmo.ionex.data) && ~isempty(cs.iono) && sum(sum(cs.iono~=0)) > 0
                 this.log.addWarning('No ionex file present switching to Klobuckar');
                 iono_model_override = 2;
             end
-            if iono_model_override == 3 && isempty(atmo.ionex.data) && (isempty(this.sat.cs.iono) || sum(sum(this.sat.cs.iono~=0)) > 0)
+            if iono_model_override == 3 && isempty(atmo.ionex.data) && (isempty(cs.iono) || sum(sum(cs.iono~=0)) > 0)
                 this.log.addError('No iono model present');
                 iono_model_override = 1;
             end
@@ -5898,11 +5894,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 1 % no model
                     this.sat.err_iono(:, go_id) = 0;
                 case 2 % Klobuchar model
-                    if ~isempty(this.sat.cs.iono)
+                    if ~isempty(cs.iono)
                         for s = go_id(:)'
                             idx = this.sat.avail_index(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
-                            this.sat.err_iono(idx,s) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
+                            this.sat.err_iono(idx,s) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, cs.iono);
                         end
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed');
@@ -6015,8 +6011,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             %interpolate sun moon and satellites
             time = this.time.getCopy;
-            [X_sun, X_moon]  = this.sat.cs.sunMoonInterpolate(time);
-            XS               = this.sat.cs.coordInterpolate(time, sat);
+            cs = Core.getCoreSky;
+            [X_sun, X_moon]  = cs.sunMoonInterpolate(time);
+            XS               = cs.coordInterpolate(time, sat);
             %receiver geocentric position
             
             
@@ -6309,7 +6306,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
             
             pole_tide_corr = zeros(this.time.length,length(sat));
-            erp  = this.sat.cs.erp;
+            erp  = Core.getCoreSky.erp;
             %interpolate the pole displacements
             if (~isempty(erp))
                 if (length(erp.t) > 1)
@@ -6538,7 +6535,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             sat = 1: this.parent.cc.getMaxNumSat();
             
-            [x, y, z] = this.sat.cs.getSatFixFrame(s_time);
+            [x, y, z] = Core.getCoreSky.getSatFixFrame(s_time);
             ph_wind_up = zeros(this.time.length,length(sat));
             for s = sat
                 av_idx = this.sat.avail_index(:,s);
@@ -6659,7 +6656,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyremPCV(this, sgn)
             %  correct measurement for PCV both of receiver
             % antenna and satellite antenna
-            if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
+            cs = Core.getCoreSky;
+            if ~isempty(this.pcv) || ~isempty(cs.ant_pcv)
                 % this.updateAllAvailIndex(); % not needed?
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
@@ -6707,9 +6705,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Satellite PCV correction
-                if ~isempty(this.sat.cs.ant_pcv)
+                if ~isempty(cs.ant_pcv)
                     % getting satellite reference frame for each epoch
-                    [x, y, z] = this.sat.cs.getSatFixFrame(this.time);
+                    [x, y, z] = cs.getSatFixFrame(this.time);
                     sat_ok = unique(this.go_id)';
                     % transform into satellite reference system
                     XR_sat(:, sat_ok, :) = cat(3,sum(XR_sat(:, sat_ok, :) .* x(:, sat_ok, :),3), sum(XR_sat(:, sat_ok, :) .* y(:, sat_ok, :), 3), sum(XR_sat(:, sat_ok, :) .* z(:, sat_ok, :), 3));
@@ -6735,7 +6733,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 el_idx = ~isnan(el(:,s));
                                 el_tmp = el(el_idx,s) / pi * 180;
                                 ant_id = this.getAntennaId(s);
-                                pcv_delays = this.sat.cs.getPCV( f, ant_id, el_tmp, az_tmp);
+                                pcv_delays = cs.getPCV( f, ant_id, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
                                     if sum(pcv_idx) > 0
@@ -7616,7 +7614,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
                 times.addSeconds(-obs(o,o_idx_l)' / Core_Utils.V_LIGHT); % add rough time of flight
-                xs = this.sat.cs.coordInterpolate(times,s);
+                xs = Core.getCoreSky.coordInterpolate(times,s);
                 to_remove = isnan(xs(:,1));
                 o_idx = find(o_idx_l);
                 to_remove = o_idx(to_remove);
@@ -7645,7 +7643,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if nargin < 2
                     sys_c = this.cc.sys_c;
                 end
-                this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
+                this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                 this.remBad();
                 % correct for raw estimate of clock error based on the phase measure
                 this.correctTimeDesync();
@@ -7675,7 +7673,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if nargin < 2
                     sys_c = this.cc.sys_c;
                 end
-                this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
+                this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                 this.remBad();
                 
                 this.remUnderSnrThr(this.state.getSnrThr());
@@ -7721,7 +7719,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
                         if flag_apply_corrections
                             % apply various corrections
-                            this.sat.cs.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                            Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                             
                             this.updateAzimuthElevation();
                             if this.state.isAprIono || this.state.getIonoManagement == 3
@@ -8157,7 +8155,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT);
             wl_cycle(:,mwb.go_id) = mwb.obs;
             wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
-            wsb = this.sat.cs.getWSB(this.getCentralTime());
+            wsb = Core.getCoreSky.getWSB(this.getCentralTime());
             % take off wsb
             wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
             % get receiver wsb
