@@ -312,9 +312,7 @@ classdef Core_Sky < handle
             
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
             
-            
             dt = (this.clock_rate : this.clock_rate : (size(this.clock,1)-1)*this.clock_rate)';
-            
             
             u_t = r_u_t + uint32(fix(dt));
             u_t_f =  r_u_t_f  + rem(dt,1);
@@ -435,7 +433,7 @@ classdef Core_Sky < handle
             for sys = systems
                 sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
                 i = 0;
-                prg_idx = sat;%this.cc.getIndex(sys,sat); % get progressive index of given satellites
+                prg_idx = sat; %this.cc.getIndex(sys,sat); % get progressive index of given satellites
                 t_dist_exced = false;
                 for t = times
                     i = i + 1;
@@ -551,9 +549,6 @@ classdef Core_Sky < handle
                 end
                 
             end
-            
-            
-            %XS=XS';
         end
         
         function addSp3(this, filename_SP3, clock_flag)
