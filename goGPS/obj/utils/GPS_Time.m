@@ -138,18 +138,42 @@ classdef GPS_Time < Exportable & handle
             % str = regexprep(string_time(:)','[^0-9.]',' '); % sanityse string -> most of the time is not needed (consider to put it externally)
             str = string_time(:)';
             date = sscanf(str,'%f%f%f%f%f%f')';
+            
             if numel(date) <= 3
-                date = datevec(string_time);
+                % fallback to datevec
+                date_format = 'yyyy mm dd';
+                date = datevec(string_time, date_format);
+                if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
+                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                end
+                if (date(1) < 1980) || (date(1) > 2070)
+                    % fallback to datenum
+                    this.GPS_Time_mat(datenum(date), is_gps);
+                else
+                    this.GPS_Time_6col(date, is_gps);
+                end
             else
+                date_format = 'yyyy mm dd HH MM SS';
                 try
                     tmp = reshape(date, 6, numel(date) / 6)';
                     date = tmp;
                 catch
-                    date = datevec(string_time);
+                    date = datevec(string_time, date_format);
                 end
-                date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
+                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                    this.GPS_Time_6col(date, is_gps);
+                else
+                    if (date(1) < 1980) || (date(1) > 2070)
+                        % fallback to datenum
+                        this.GPS_Time_mat(datenum(date), is_gps);
+                    else
+                        this.GPS_Time_6col(date, is_gps);
+                    end                    
+                end
             end
-            this.GPS_Time_6col(date, is_gps);
         end
         
         function this = GPS_Time_mat(this, matlab_time, is_gps)
@@ -190,8 +214,9 @@ classdef GPS_Time < Exportable & handle
             %   this = GPS_Time_6col(this, date, is_gps)
             %
             % check date format 2/4 digits
-            date(date(:,1) < 70,1) = date(date(:,1) < 70,1) + 2000;
-            date(date(:,1) > 2070,1) = date(date(:,1) < 70,1) - 100;
+            
+            %date(date(:,1) < 70,1) = date(date(:,1) < 70,1) + 2000;
+            %date(date(:,1) > 2070,1) = date(date(:,1) > 2070,1) - 100;
             this.time_type = 1;
             if (nargin == 3)
                 if isempty(is_gps)
@@ -262,13 +287,41 @@ classdef GPS_Time < Exportable & handle
             end
             date = sscanf(string_time,'%f%f%f%f%f%f')';
             
-            if numel(date) < 3
-                date = datevec(string_time);
+            if numel(date) <= 3
+                % fallback to datevec
+                date_format = 'yyyy mm dd';
+                date = datevec(string_time, date_format);
+                if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
+                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                end
+                if (date(1) < 1980) || (date(1) > 2070)
+                    % fallback to datenum
+                    this.appendMatTime(datenum(date), is_gps);
+                else
+                    this.append6ColDate(date, is_gps);
+                end
             else
-                date = reshape(date,6,numel(date)/6)';
-                date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                date_format = 'yyyy mm dd HH MM SS';
+                try
+                    tmp = reshape(date, 6, numel(date) / 6)';
+                    date = tmp;
+                catch ex
+                    date = datevec(string_time, date_format);
+                end
+                if isempty(regexp(string_time(3),'[0-9]', 'once')) % 2 digits year
+                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                    this.append6ColDate(date, is_gps);
+                else
+                    if (date(1) < 1980) || (date(1) > 2070)
+                        % fallback to datenum
+                        this.appendMatTime(datenum(date), is_gps);
+                    else
+                        this.append6ColDate(date, is_gps);
+                    end
+                end
             end
-            this.append(GPS_Time(date, [], is_gps));
         end
         
         function this = appendMatTime(this, matlab_time, is_gps)
