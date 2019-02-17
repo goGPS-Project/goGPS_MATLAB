@@ -188,7 +188,7 @@ classdef File_Rinex < Exportable
                             end
                         end
                         
-                        if ~isempty(date_start)
+                        if ~isempty(coo)
                             this.coo.append(Coordinates.fromStringXYZ(coo));
                         else
                             this.coo.append(Coordinates.fromXYZ([0 0 0]));
@@ -233,7 +233,7 @@ classdef File_Rinex < Exportable
                                     %      RINEX 3 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
                                     %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
                                     % this check could not work when comment are present after the header
-                                    if (numel(line) > 20) && ~isempty(regexp(line(1:15),'( [0-9]{2,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
+                                    if (numel(line) > 20) && ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
                                         % Check that the read epoch is within 30 days from the first epoch
                                         % (if it's further in time it's probably a misleading false epoch line)
                                         time = GPS_Time(line(this.id_date), [], true);
