@@ -85,6 +85,7 @@ classdef Fixer < handle
             l_fixed = false(size(amb_float));
             
             amb_ok = (abs(diag(C_amb_amb)) < 1); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
+       
             switch approach
                 case {'lambda_ILS'}
                         [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
@@ -108,11 +109,11 @@ classdef Fixer < handle
                         amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
                         amb_fixed(amb_ok, :) = tmp_amb_fixed;
                         is_fixed = true;
-                        l_fixed   = true(size(amb_float));
+                        l_fixed   = amb_ok;
                 case {'lambda_partial'}
                     [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
                     is_fixed = true;
-                    l_fixed   = true(size(amb_float));
+                    l_fixed   = amb_ok;
                 case {'bayesian_with_monte_carlo'}
                     [tmp_amb_fixed] = this.bayesianAmbFixing(amb_float(amb_ok), full( C_amb_amb(amb_ok, amb_ok)));
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
@@ -123,7 +124,11 @@ classdef Fixer < handle
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
                     is_fixed = true;
                     l_fixed = amb_ok;
-                    
+                case {'sequential_best_integer_equivariant'}
+                    % boostrap solution starting from the most probable and
+                    % not the one with lower formal errror
+                    [amb_float(amb_ok), l_fixed,  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),5*full(C_amb_amb(amb_ok, amb_ok)));
+                    is_fixed = true;
             end
         end
     end
@@ -231,7 +236,57 @@ classdef Fixer < handle
             
             
         end
-
+        function [amb_fixed ,l_fixed, VCV_not_fixed] = mp_bootstrap(amb_float,VCV)
+            % compute the bootstrap solution not ordering ambiguites by
+            % formal accuracy but by most probabl integer
+            %
+            % SYNTAX
+            %   amb_fixed = mp_bootstrap(amb_float,L)
+            n_a = length(amb_float);
+            rounded = round(amb_float);
+            sigma_float = sqrt(diag(VCV));
+            pmf = Fixer.oneDimPMF(amb_float, sigma_float);
+            [max_pmf,idx] = max(pmf);
+            if max_pmf == 1 
+                idx_one = find(pmf == 1);
+                [~,idx_tmp] = min(abs(amb_float(idx_one) - round(amb_float(idx_one))));
+                idx = idx_one(idx_tmp);
+                
+            end
+            amb_fixed = amb_float;
+            fixed_lid = false(n_a,1);
+            i = 1;
+            while  pmf(idx) > 0.95 && i <= n_a
+                    amb_fixed(idx) = round(amb_float(idx));
+                    other_amb_lid = 1:n_a ~= idx;
+                    amb_float(other_amb_lid) = amb_float(other_amb_lid) - VCV(other_amb_lid,idx)* 1/sigma_float(idx)^2 * (amb_float(idx) - amb_fixed(idx) ); % reduce the other amb for the fixed ones
+                    VCV(other_amb_lid,other_amb_lid) = VCV(other_amb_lid,other_amb_lid) - VCV(other_amb_lid,idx) .* 1/sigma_float(idx)^2 * VCV(idx,other_amb_lid);  % reduce the vcv for the fixed ones
+                    sigma_float = max(diag(VCV),1e-6);
+                    sigma_float(fixed_lid) = 100; % this might happen beacuse we are reducing for ambiugities already fixed
+                    sigma_float = sqrt(sigma_float);
+                    fixed_lid(idx) = true;
+                    nfixed_id = find(~fixed_lid);
+                    pmf = Fixer.oneDimPMF(amb_float, sigma_float); % recompute the probability mass function
+                    [max_pmf, mx_id] = max(pmf(nfixed_id)); % find the new most probable
+                    if max_pmf == 1
+                        idx_one = find(pmf(nfixed_id) == 1);
+                        [~,idx_tmp] = min(abs(amb_float(nfixed_id(idx_one)) - round(amb_float(nfixed_id(idx_one)))));
+                        mx_id = idx_one(idx_tmp);
+                        
+                    end
+                    idx = nfixed_id(mx_id);
+                    i = i +1;
+            end
+            VCV_not_fixed = VCV(~fixed_lid,~fixed_lid);
+            l_fixed = fixed_lid;
+        end
+        
+        function pmf = oneDimPMF(amb_float, sigma_float)
+            % probability mass founction for the nearest integer
+            % eq: 23.19 handbook of GNSS
+            rounded = round(amb_float);
+            pmf = normcdf((1 - 2*(amb_float -rounded))./(2*sigma_float)) + normcdf((1 + 2*(amb_float -rounded))./(2*sigma_float)) - 1;
+        end
         
     end
 end
