@@ -758,7 +758,6 @@ classdef Network < handle
                         this.log.addWarning(sprintf('No common code on the ferequency %s and freqeuncy %s for system %s',b1,b2,sys_c));
                     else
                         this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
-                        this.wl_comb_codes = [this.wl_comb_codes; [sys_c,num2str(b1),track_1,num2str(b2),track_2]];
                         b1code_aval(:,:,~nt2cb1) = [];
                         b2code_aval(:,:,~nt2cb2) = [];
                         rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
@@ -787,7 +786,8 @@ classdef Network < handle
                         for r = find(~rec_excluded)'
                             fun1 = @(wl1,wl2) 1;
                             fun2 = @(wl1,wl2) -1;
-                            [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 track_1],['L' b2 track_2], sys_c); %widelane phase
+                            [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 ],['L' b2 ], sys_c); %widelane phase
+                            this.wl_comb_codes = [this.wl_comb_codes; [ph_wl.obs_code(1,[1 3 4 6 7])]]; % we have to make sure that the same tracking is also used when forming the phase ionofree combinations afterwards, 
                             [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1 track_1],['C'  b2 track_2], sys_c); %narrowlane code
                             [mw] =  this.rec_list(r).work.getTwoFreqComb(ph_wl, pr_nl, fun1, fun2);
                             mel_wubs = [mel_wubs mw];
