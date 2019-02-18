@@ -626,6 +626,8 @@ classdef LS_Manipulator < handle
                 variance = [variance; variance_rec];
                 r = [r; ones(size(y_rec))*i];
                 this.amb_set_jmp{i} = r2c(amb_set_jmp);
+                this.amb_idx{i} = obs_set_list(i).getAmbIdx();
+                this.go_id_amb{i} = obs_set_list(i).go_id;
             end
             
             p_flag(p_flag == 0) = -1;

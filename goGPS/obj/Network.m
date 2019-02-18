@@ -435,6 +435,59 @@ classdef Network < handle
             
         end
         
+        function phase2pseudoranges(this)
+            % reosolve all DD ambiguity with respect to one receiver,
+            % concept taken from AMBIZAP
+            %
+            % SYNTAX:
+            % this.phase2pseudaranges
+            
+            % distance matrix
+            n_r = length(this.rec);
+            DM = zeros(n_r);
+            s = [];
+            t = [];
+            weight = [];
+            for i = 1 : n_r
+                this.rec(i).updateCoo;
+                for j = i+1:n_r
+                    DM(i,j) = sphericalDistance(this.rec(i).lat,this.rec(i).lon,this.rec(j).lat,this.rec(j).lon);
+                    s = [s i];
+                    t = [t j];
+                    weight = [weight DM(i,j)];
+                end
+            end
+            G = graph(s,t,weights);
+            [T,pred] = minspantree(G);
+            T = table2array(T.Edges);
+            % minimum spanning tree
+            nodes_level = [T(1,1)];
+            nodes_level_next = []
+            n_expl = 0;
+            while n_expl <= n_r
+                for n = nodes_level
+                    % find a_b l braches
+                    node_brnch = [];
+                    id_b1 = T(:,1) == n;
+                    id_b2 = T(:,2) == n;
+                    node_brnch = [node_brnch T(id_b1,2)'];
+                    node_brnch = [node_brnch T(1,id_b2)'];
+                    for b = node_brnch
+                        % do baseline processing
+                        this.adjust([n b]);
+                        % substsitute the ambiguities
+                        n_expl = n_expl +1;
+                    end
+                    
+                    nodes_level_next= [nodes_level_next; nodes_brnch];
+                end
+                nodes_level = nodes_level_next;
+                nodes_level_next = [];
+            end
+            
+            
+        end
+        
         function initOut(this,ls)
             n_time = this.common_time.length;
             n_rec = length(this.rec_list);
@@ -805,6 +858,63 @@ classdef Network < handle
                 this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
             end
         end
+        
+        function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs)
+            % push back in the reciever the reconstructed ambiguites
+            n_a_prec = 0;
+            for i = 1:length(amb_idx)
+                amb_idx_rec = nan(size(amb_idx{i},1), this.cc.getMaxNumSat);
+                amb_idx_rec(:,go_id_ambs{i}) = amb_idx{i};
+                l1_amb_mat =nan(size(amb_idx_rec));
+                n_a_r = max(max(noNaN(amb_idx{i})));
+                for a = 1:n_a_r
+                    l1_amb_mat(amb_idx_rec == a) = x_l1(a + n_a_prec);
+                end
+                n_a_prec = n_a_r;
+                l2_amb_mat = l1_amb_mat - wl_struct.amb_mats{i};
+                [ph, wl,lid_ph] = this.rec_list(i).work.getPhases();
+                id_ph = find(lid_ph);
+                cs_slip = this.rec_list(i).work.sat.cycle_slip_ph_by_ph;
+                for j = 1 : size(this.wl_comb_codes,1)
+                    sys_c = this.wl_comb_codes(j,1);
+                    freq_used = this.wl_comb_codes([2 4]);
+                    ff= 1;
+                    for f = freq_used
+                        lid_f = wl == this.cc.getSys(sys_c).L_VEC(this.cc.getSys(sys_c).CODE_RIN3_2BAND == f);
+                        id_f = find(lid_f);
+                        c_wl = wl(id_f(1));
+                        amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
+                        for a = unique(noNaN(amb_idx_rec))'
+                            sat = find(sum(amb_idx_rec == a)>0);
+                            ep_net = find(amb_idx_rec(:,sat) == a);
+                            ep = this.rec_time_indexes(ep_net,i);
+                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat;
+                            a_f = noNaN(amb_idx_f(ep,col_cur_f));
+                            if length(a_f) > 0
+                            a_f = a_f(1);            
+                            if ff == 1
+                                amb_term = l1_amb_mat(amb_idx_rec == a);
+                                amb_term = amb_term(1);
+                            else
+                                amb_term = l2_amb_mat(amb_idx_rec == a);
+                                amb_term = amb_term(1);
+                            end
+                            ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) + amb_term*c_wl;
+                            amb_idx_f(amb_idx_f == a_f) = nan;
+                            end
+                        end
+                        ph_temp = ph(:,lid_f);
+                        ph_temp(~isnan(amb_idx_f)) = 0; % if not fixed take off
+                        ph(:,lid_f) = ph_temp;
+                        this.rec_list(i).work.sat.cycle_slip_ph_by_ph(:,lid_f) = false; % remove cycle slips
+                        ff = ff +1;
+
+                    end
+                end
+                this.rec_list(i).work.setPhases(ph,wl,id_ph);
+            end
+        end
+        
         
         function pushBackSubCooInReceiver(this, time, rate)
             n_rec = length(this.rec_list);
