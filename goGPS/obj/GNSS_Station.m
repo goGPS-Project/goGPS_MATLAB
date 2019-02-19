@@ -1518,19 +1518,25 @@ classdef GNSS_Station < handle
                 sta_list(1).log.addError('You need GReD utilities to have this features');
             end
         end
-
-        function showMapZwd(sta_list, new_fig, epoch, flag_export)
-            % Show a ZWD map with all the station in sta_list
+        
+        function showMapTropo(sta_list, par_name, new_fig, epoch, flag_export)
+            % Show a tropo map with all the station in sta_list
             %
             % INPUT
+            %   tropo_par   accepted tropo parameter:
+            %               - 'zwd'
+            %               - 'ztd'
             %   new_fig     if true or missing open a new figure
             %   epoch       list of epoch to display (pay attention that there is a subsampling rate in the function 1:10:end)
             %   flag_export if true try to export a video (the frames are not going to be seen)
             %               the video file will be saved in the out folder specified in the project
             %
             % SYNTAX
-            %   sta_list.showMapZwd(<new_fig>, <epoch>, <flag_export>);
-            if nargin < 2 || isempty(new_fig)
+            %   sta_list.showMapTropo(<new_fig>, <epoch>, <flag_export>);
+            
+            ss_rate = 10; % subsample rate for show;
+
+            if nargin < 3 || isempty(new_fig)
                 new_fig = true;
             end
             if new_fig
@@ -1539,18 +1545,29 @@ classdef GNSS_Station < handle
                 fig_handle = gcf;
                 hold on;
             end
-            if nargin < 4
+            if nargin < 5
                 flag_export = false;
             end
 
-            ss_rate = 10; % subsample rate for show;
-
             maximizeFig(fig_handle);
 
-            %[res_tropo, s_time] = sta_list.getReducedZtd_mr();
-            [res_tropo, s_time] = sta_list.getZwd_mr();
+            switch lower(par_name)
+                case 'ztd'
+                    [res_tropo, s_time] = sta_list.getReducedZtd_mr();
+                    par_str = 'reduced ZTD';
+                    par_str_short = 'RedZTD';
+                case 'zwd'
+                    [res_tropo, s_time] = sta_list.getZwd_mr();
+                    par_str = 'ZWD';
+                    par_str_short = 'ZWD';
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                case 'zhd'
+                case 'nsat'
+            end
             res_tropo = res_tropo * 1e2;
-
+                
             if nargin < 3 || isempty(epoch)
                 epoch = 1 : s_time.length();
             end
@@ -1585,7 +1602,7 @@ classdef GNSS_Station < handle
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
             end
-            th = title(sprintf('ZWD variations [cm] map @%s', s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            th = title(sprintf([par_str ' variations [cm] map @%s'], s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
             Core_UI.insertLogo(fig_handle, 'SouthEast');
 
             if flag_export
@@ -1602,7 +1619,7 @@ classdef GNSS_Station < handle
                 for i = 1 : numel(epoch_list)
                     e = epoch_list(i);
                     if any(res_tropo(epoch(e),:))
-                        th.String = sprintf('ZWD variations [cm] map %s', s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
+                        th.String = sprintf([par_str ' variations [cm] map %s'], s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
                         sh.CData = res_tropo(epoch(e),:)';
                         if not(flag_export)
                             drawnow
@@ -1620,10 +1637,177 @@ classdef GNSS_Station < handle
                 fprintf('%s',char(8 * ones(1,11)));
                 if ismac() || ispc()
                     % Better compression on Mac > 10.7 and Win > 7
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, 'AniZWDmap.mp4'), 'MPEG-4');
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short '.mp4']), 'MPEG-4');
                 else
                     % Linux doesn't have mp4 compression avaiable
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, 'AniZWDmap.avi'));
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short '.avi']));
+                end
+                video_out.FrameRate = 30;
+                video_out.Quality = 91;
+                open(video_out);
+                for i = 1 : numel(im)
+                    writeVideo(video_out, im{i});
+                end
+                close(video_out);
+                Core.getLogger.addStatusOk('Done ^_^');
+                close(fig_handle)
+            end
+        end
+
+        function showMapTropoInterp(sta_list, par_name, new_fig, epoch, flag_export)
+            % Show a tropo map with all the station in sta_list
+            %
+            % INPUT
+            %   tropo_par   accepted tropo parameter:
+            %               - 'zwd'
+            %               - 'ztd'
+            %   new_fig     if true or missing open a new figure
+            %   epoch       list of epoch to display (pay attention that there is a subsampling rate in the function 1:10:end)
+            %   flag_export if true try to export a video (the frames are not going to be seen)
+            %               the video file will be saved in the out folder specified in the project
+            %
+            % SYNTAX
+            %   sta_list.showMapTropoInterp(<new_fig>, <epoch>, <flag_export>);
+            ss_rate = 10; % subsample rate for show;
+            step = 0.075; % Grid step in degrees
+            
+            if nargin < 3 || isempty(new_fig)
+                new_fig = true;
+            end
+            if new_fig
+                fig_handle = figure;
+            else
+                fig_handle = gcf;
+                hold on;
+            end
+            if nargin < 5
+                flag_export = false;
+            end
+
+            maximizeFig(fig_handle);
+
+            %[res_tropo, s_time] = sta_list.getReducedZtd_mr();
+            switch lower(par_name)
+                case 'ztd'
+                    [res_tropo, s_time] = sta_list.getReducedZtd_mr();
+                    par_str = 'reduced ZTD';
+                    par_str_short = 'RedZTD';
+                case 'zwd'
+                    [res_tropo, s_time] = sta_list.getZwd_mr();
+                    par_str = 'ZWD';
+                    par_str_short = 'ZWD';
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                case 'zhd'
+                case 'nsat'
+            end
+            res_tropo = res_tropo * 1e2;
+
+            if nargin < 3 || isempty(epoch)
+                epoch = 1 : s_time.length();
+            end
+
+            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
+            [lat, lon, up] = coo.getGeodetic;
+
+            xyu = [lon / pi * 180, lat / pi * 180, up];
+
+            % Remove missing stations
+            station_ok = ~isnan(sum(xyu, 2));
+            xyu = xyu(station_ok, :);
+            res_tropo = res_tropo(:, station_ok);
+            id_ok = ~isnan(res_tropo'); % logical matrix of valid tropo
+
+            % Defining interpolation
+            i = 1;
+            
+            method = 'natural';
+            % Generate interpolation grid
+            x_span = max(xyu(:,1)) - min(xyu(:,1));
+            y_span = max(xyu(:,2)) - min(xyu(:,2));
+            border = 5;
+            x_grid = ((floor(min(xyu(:,1)) / step) - border) * step) : step : ((ceil(max(xyu(:,1)) / step) + border) * step);
+            y_grid = ((floor(min(xyu(:,2)) / step) - border) * step) : step : ((ceil(max(xyu(:,2)) / step) + border) * step);
+            [x_mg, y_mg] = meshgrid(x_grid, y_grid);
+
+            % Generate computation mask
+            x_id = round((xyu(:,1) - x_grid(1)) / step) + 1;
+            y_id = round((xyu(:,2) - y_grid(1)) / step) + 1;
+            mask = zeros(size(y_grid, 2), size(x_grid, 2));
+            mask((x_id - 1) * size(y_grid, 2) + y_id) = 1;
+            conv_mask = [0 0 1 1 1 0 0; ...
+                         0 1 1 1 1 1 0; ...
+                         1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1; ...
+                         0 1 1 1 1 1 0; ...
+                         0 0 1 1 1 0 0];
+            mask = circConv2(mask, conv_mask) > 0;
+
+            % List of valide epochs
+            id_mask = mask(:) > 0;
+            x_list = x_mg(id_mask);
+            y_list = y_mg(id_mask);
+            
+            imh = imagesc(x_grid, y_grid, mask);
+            imh.AlphaData = mask > 0;
+            caxis([perc(res_tropo(:),0.005) perc(res_tropo(:),0.995)]); colormap(Core_UI.CMAP_51(2:end,:));
+            colorbar;
+            set(gca, 'Ydir', 'normal');
+            
+            ax = fig_handle.Children(end);
+            ax.FontSize = 20;
+            ax.FontWeight = 'bold';
+            if new_fig
+                if FTP_Downloader.checkNet()
+                    plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+                end
+                xlabel('Longitude [deg]');
+                ylabel('Latitude [deg]');
+            end
+            
+            th = title(sprintf([par_str '  variations [cm] map @%s'], s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            Core_UI.insertLogo(fig_handle, 'SouthEast');
+
+            if flag_export
+                im = {};
+                fig_handle.Visible = 'off';
+                Core.getLogger.addMarkedMessage('Exporting video');
+                fprintf('%5d/%5d', 0, 99999);
+            end
+            drawnow
+            if numel(epoch) > 1
+                epoch_list = (ss_rate + 1) : ss_rate : numel(epoch);
+                for i = 1 : numel(epoch_list)
+                    e = epoch_list(i);
+                    if any(res_tropo(epoch(e),:))
+                        th.String = sprintf([par_str ' variations [cm] map %s'], s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
+                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), res_tropo(epoch(e), id_ok(:, epoch(e)))', method);
+                        tropo_grid = nan(size(mask));
+                        tropo_grid(id_mask) = finterp(x_list, y_list);
+                        imh.CData = tropo_grid;
+                        imh.AlphaData = ~isnan(tropo_grid);
+                        if not(flag_export)
+                            drawnow
+                        end
+                    end
+                    if flag_export
+                        fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, numel(epoch_list));
+                        frame = getframe(fig_handle);
+                        im{i} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                    end
+                end
+            end
+
+            if flag_export
+                fprintf('%s',char(8 * ones(1,11)));
+                if ismac() || ispc()
+                    % Better compression on Mac > 10.7 and Win > 7
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.mp4']), 'MPEG-4');
+                else
+                    % Linux doesn't have mp4 compression avaiable
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.avi']));
                 end
                 video_out.FrameRate = 30;
                 video_out.Quality = 91;
