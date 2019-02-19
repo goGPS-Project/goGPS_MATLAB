@@ -1022,14 +1022,14 @@ classdef LS_Manipulator < handle
             end
         end
         
-        function res = getResiduals(this, x)
-            
+        function [res, av_res] = getResiduals(this, x)
             %res_l = zeros(size(this.y));
             %for o = 1 : size(this.A_ep, 1)
             %    res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             %end
             %res_l = zeros(size(this.y));
             % speed-up of the previous lines
+            av_res = [];
             if any(isnan(x))
                 this.log.addError('Some parameters are NaN!');
             end
@@ -1061,9 +1061,7 @@ classdef LS_Manipulator < handle
                     end
                 end
                 av_res = sum(res, 3, 'omitnan') ./  sum(~isnan(zero2nan(res)),3);
-                if Core.isGReD
-                     GReD_Utility.substituteClK(av_res, this.time);
-                end
+                
                 
                 res = res - repmat(av_res,1,1,n_rec);
                 this.res(idx_tot) = res(~isnan(res));
@@ -1226,7 +1224,7 @@ classdef LS_Manipulator < handle
         end
         
         %------------------------------------------------------------------------
-        function [x, res, s0, Cxx, l_fixed] = solve(this)
+        function [x, res, s0, Cxx, l_fixed, av_res] = solve(this)
             l_fixed = 0;
             Cxx = [];
             % if N_ep if empty call A
@@ -1881,7 +1879,7 @@ classdef LS_Manipulator < handle
                     x_res(N2A_idx) = x(1:end-size(this.G,1));
                 end
                 if sum(isnan(x_res)) ==0
-                    res = this.getResiduals(x_res);
+                    [res,av_res] = this.getResiduals(x_res);
                     s0 = mean(abs(res(res~=0)));
                 else
                     res = [];
