@@ -52,6 +52,12 @@ classdef Core < handle
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
+    %% PROPERTIES GReD
+    % ==================================================================================================================================================
+    properties (GetAccess = private, SetAccess = private) % Public Access
+        is_gred = false;
+    end
+   
     %% PROPERTIES MISC
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private) % Public Access
@@ -100,6 +106,9 @@ classdef Core < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Core()
             % Core object creator
+            
+            % Knows if GReD utilities are available
+            this.is_gred = exist('GReD_Utility', 'class');
             
             % init logger
             this.log = Logger.getInstance();
@@ -345,8 +354,16 @@ classdef Core < handle
             if isempty(sky)
                 sky = Core_Sky();
                 core.sky = sky;
-            end
-            
+            end            
+        end
+        
+        function is_gred = isGReD()
+            % Return true if GReD Utilities are present
+            %
+            % SYNTAX
+            %   is_gred = isGReD()
+            core = Core.getInstance(false, true);
+            is_gred = core.is_gred;
         end
         
         function rec_list = getRecList()
@@ -1436,7 +1453,7 @@ classdef Core < handle
                 Go_Slave ...
                 Go_Wait_Bar ...
                 Logger;
-        end
+        end        
     end
 
 end
