@@ -1463,7 +1463,7 @@ classdef Core_Sky < handle
                 % extract the SP3 clocks
                 b_pos_idx = b > 0;
                 p_pos = p(b_pos_idx);
-                SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos - 1, sat), this.clock(p_pos, sat));
+                SP3_c(b_pos_idx,:) = cat(2, this.clock(max(p_pos - 1,1), sat), this.clock(p_pos, sat));
                 u(b_pos_idx) = 1 - b(b_pos_idx)/interval;
                 
                 b_neg_idx = not(b_pos_idx);
@@ -1472,7 +1472,7 @@ classdef Core_Sky < handle
                 u(b_neg_idx) = -b(b_neg_idx) / interval;
                 
                 dts_tmp = NaN * ones(size(SP3_c,1), size(SP3_c,2));
-                idx = (sum(SP3_c ~= 0,2) == 2 .* ~any(SP3_c >= 0.999,2)) > 0;
+                idx = (sum(nan2zero(SP3_c) ~= 0,2) == 2 .* ~any(SP3_c >= 0.999,2)) > 0;
                 dts_tmp = (1-u) .* SP3_c(:,1) + (u) .* SP3_c(:,2);
                 dts_tmp(not(idx)) = NaN;
                 
@@ -1670,7 +1670,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [X_sat, V_sat] = coordInterpolate11(this, t, sat)
+        function [X_sat, V_sat, A_pol_eval, c_idx] = coordInterpolate11(this, t, sat)
             % SYNTAX:
             %   [X_sat] = Eph_Tab.polInterpolate11(t, sat)
             %
@@ -1707,6 +1707,7 @@ classdef Core_Sky < handle
             %u_id=idx+10;
             
             X_sat = zeros(nt,n_sat,3);
+            A_pol_eval = zeros(nt,11);
             V_sat = zeros(nt,n_sat,3);
             un_idx = unique(c_idx)';
             for id = un_idx
@@ -1736,6 +1737,7 @@ classdef Core_Sky < handle
                     t_fct9 ...
                     t_fct10];
                 X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(:,:,sat_idx,id),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
+                A_pol_eval(t_idx,:) = A_pol_eval(t_idx,:) + eval_vec;
                 %%% compute velocity
                 eval_vec = [ ...
                     ones(size(t_fct))  ...

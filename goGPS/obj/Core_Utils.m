@@ -1519,5 +1519,13 @@ classdef Core_Utils < handle
             end
         end
         
+        function [lid] = ordinal2logical(id,n_el)
+            % ordinal 2 logical index
+            %
+            % SYNTAX
+            %    [lid] = Core_Utils.ordinal2logical(id,n_el)
+            lid = false(n_el,1);
+            lid(id) = true; 
+        end
     end
 end

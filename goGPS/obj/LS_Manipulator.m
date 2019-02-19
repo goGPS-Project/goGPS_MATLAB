@@ -92,6 +92,7 @@ classdef LS_Manipulator < handle
         time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
         mean_regularization
         true_epoch          % true epoch of the epoch-wise paramters
+        time                % true eoch in gpstime
         rec_time_idxes      % for each receiver tell which epochof the common time are used
         rate                % rate of the true epoch
         sat_go_id           % go id of the sat indexes
@@ -646,6 +647,7 @@ classdef LS_Manipulator < handle
             this.epoch = ep;
             time = common_time;
             this.true_epoch = round(time.getNominalTime().getRefTime()/time.getRate) + 1; %
+            this.time = common_time;
             this.rec_time_idxes = id_sync;
             this.rate = time.getRate;
             this.sat = sat;
@@ -1059,6 +1061,10 @@ classdef LS_Manipulator < handle
                     end
                 end
                 av_res = sum(res, 3, 'omitnan') ./  sum(~isnan(zero2nan(res)),3);
+                if Core.isGReD
+                     GReD_Utility.substituteClK(av_res, this.time);
+                end
+                
                 res = res - repmat(av_res,1,1,n_rec);
                 this.res(idx_tot) = res(~isnan(res));
                 res = nan2zero(res);
