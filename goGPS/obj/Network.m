@@ -868,6 +868,7 @@ classdef Network < handle
             % push back in the reciever the reconstructed ambiguites
             n_a_prec = 0;
             for i = 1:length(amb_idx)
+                % create a mat containing the l1 and the l2 amniguty
                 amb_idx_rec = nan(size(amb_idx{i},1), this.cc.getMaxNumSat);
                 amb_idx_rec(:,go_id_ambs{i}) = amb_idx{i};
                 l1_amb_mat =nan(size(amb_idx_rec));
@@ -877,23 +878,28 @@ classdef Network < handle
                 end
                 n_a_prec = n_a_r;
                 l2_amb_mat = l1_amb_mat - wl_struct.amb_mats{i};
+                % get the measuremnts
                 [ph, wl,lid_ph] = this.rec_list(i).work.getPhases();
                 id_ph = find(lid_ph);
                 cs_slip = this.rec_list(i).work.sat.cycle_slip_ph_by_ph;
-                for j = 1 : size(this.wl_comb_codes,1)
+                for j = 1 %: size(this.wl_comb_codes,1) %for now onluy single constellatio
                     sys_c = this.wl_comb_codes(j,1);
-                    freq_used = this.wl_comb_codes([2 4]);
+                    freq_used = this.wl_comb_codes(j,[2 4]);
                     ff= 1;
+                    % for each frequency
                     for f = freq_used
-                        lid_f = wl == this.cc.getSys(sys_c).L_VEC(this.cc.getSys(sys_c).CODE_RIN3_2BAND == f);
+                        % get the index of the frquency in the phases
+                        lid_f = abs(wl - this.cc.getSys(sys_c).L_VEC(this.cc.getSys(sys_c).CODE_RIN3_2BAND == f)) < 1e-9;
                         id_f = find(lid_f);
                         c_wl = wl(id_f(1));
+                        % get the Abx index for the phase measuremetn if
+                        % the selected frequency
                         amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
                         for a = unique(noNaN(amb_idx_rec))'
-                            sat = find(sum(amb_idx_rec == a)>0);
-                            ep_net = find(amb_idx_rec(:,sat) == a);
-                            ep = this.rec_time_indexes(ep_net,i);
-                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat;
+                            sat = find(sum(amb_idx_rec == a)>0); % sta
+                            ep_net = find(amb_idx_rec(:,sat) == a); % ep of the network
+                            ep = this.rec_time_indexes(ep_net,i); % epoch of the recievrr
+                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
                             a_f = noNaN(amb_idx_f(ep,col_cur_f));
                             if length(a_f) > 0
                             a_f = a_f(1);            
@@ -904,7 +910,7 @@ classdef Network < handle
                                 amb_term = l2_amb_mat(amb_idx_rec == a);
                                 amb_term = amb_term(1);
                             end
-                            ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) + amb_term*c_wl;
+                            ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) - amb_term*c_wl;
                             amb_idx_f(amb_idx_f == a_f) = nan;
                             end
                         end
