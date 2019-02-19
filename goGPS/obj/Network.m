@@ -70,7 +70,7 @@ classdef Network < handle
     methods
         function this = Network(rec_list, net_id)
             if nargin < 2
-                net_id = [];
+                net_id = 1 : length(rec_list);
             end
             this.net_id = net_id;
             this.rec_list = rec_list;
@@ -119,6 +119,9 @@ classdef Network < handle
             if nargin < 4
                 reduce_iono = false;
             end
+             if nargin < 5
+                export_clk = false;
+            end
             % if iono reduction is requested take off single frequency
             % receiver
             if reduce_iono
@@ -145,7 +148,6 @@ classdef Network < handle
                 [~, id_ref] = intersect(this.net_id, id_ref);
                 lid_ref(id_ref) = true;
             end
-            
             l_fixed = 0; % nothing is fixed
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
@@ -334,7 +336,7 @@ classdef Network < handle
                     end
                     this.pushBackInReceiver(s0, res, ls, l_fixed);
                     %%% from widelane l1 to l1 l2
-                    %this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
+                    this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -448,43 +450,44 @@ classdef Network < handle
             % this.phase2pseudaranges
             
             % distance matrix
-            n_r = length(this.rec);
+            n_r = length(this.rec_list);
             DM = zeros(n_r);
             s = [];
             t = [];
             weight = [];
             for i = 1 : n_r
-                this.rec(i).updateCoo;
+                this.rec_list(i).work.updateCoordinates;
                 for j = i+1:n_r
-                    DM(i,j) = sphericalDistance(this.rec(i).lat,this.rec(i).lon,this.rec(j).lat,this.rec(j).lon);
+                    DM(i,j) = sphericalDistance(this.rec_list(i).work.lat,this.rec_list(i).work.lon,this.rec_list(j).work.lat,this.rec_list(j).work.lon);
                     s = [s i];
                     t = [t j];
                     weight = [weight DM(i,j)];
                 end
             end
-            G = graph(s,t,weights);
+            G = graph(s,t,weight);
             [T,pred] = minspantree(G);
             T = table2array(T.Edges);
             % minimum spanning tree
             nodes_level = [T(1,1)];
-            nodes_level_next = []
-            n_expl = 0;
-            while n_expl <= n_r
+            nodes_level_next = [];
+            n_expl = 1;
+            while n_expl < n_r
                 for n = nodes_level
                     % find a_b l braches
                     node_brnch = [];
                     id_b1 = T(:,1) == n;
                     id_b2 = T(:,2) == n;
                     node_brnch = [node_brnch T(id_b1,2)'];
-                    node_brnch = [node_brnch T(1,id_b2)'];
+                    node_brnch = [node_brnch T(id_b2,1)'];
                     for b = node_brnch
                         % do baseline processing
-                        this.adjust([n b]);
+                        net_tmp =  Network(this.rec_list([n b]));
+                        net_tmp.adjust([],[],true);
                         % substsitute the ambiguities
                         n_expl = n_expl +1;
                     end
                     
-                    nodes_level_next= [nodes_level_next; nodes_brnch];
+                    nodes_level_next= [nodes_level_next node_brnch];
                 end
                 nodes_level = nodes_level_next;
                 nodes_level_next = [];
