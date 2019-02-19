@@ -330,6 +330,8 @@ classdef Network < handle
                         end
                     end
                     this.pushBackInReceiver(s0, res, ls, l_fixed);
+                    %%% from widelane l1 to l1 l2
+                    %this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -424,7 +426,7 @@ classdef Network < handle
         
         
         function wl_struct = estimateWL(this)
-            % Estimate widelane 
+            % Estimate widelane
             %
             % SYNTAX:
             %    wl_struct = estimateWL(this)
