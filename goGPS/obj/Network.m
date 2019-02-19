@@ -103,7 +103,7 @@ classdef Network < handle
             this.wl_comb_codes = [];
         end
         
-        function adjust(this, id_ref, coo_rate, reduce_iono)
+        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk)
             % Adjust the GNSS network
             %
             % INPUT
@@ -235,11 +235,14 @@ classdef Network < handle
                             end                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
-                        [x, res, s0, Cxx, l_fixed] = ls.solve;
+                        [x, res, s0, Cxx, l_fixed, av_res] = ls.solve;
                         this.tropo_idx = ls.tropo_idx;
                         this.tropo_g_idx = ls.tropo_g_idx;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
+                        if Core.isGReD && export_clk
+                            GReD_Utility.substituteClK(av_res, ls.time);
+                        end
                         
                         % cleaning -----------------------------------------------------------------------------------------------------------------------------
                         %s0 = mean(abs(res(res~=0)));

@@ -92,6 +92,7 @@ classdef LS_Manipulator < handle
         time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
         mean_regularization
         true_epoch          % true epoch of the epoch-wise paramters
+        time                % true eoch in gpstime
         rec_time_idxes      % for each receiver tell which epochof the common time are used
         rate                % rate of the true epoch
         sat_go_id           % go id of the sat indexes
@@ -646,6 +647,7 @@ classdef LS_Manipulator < handle
             this.epoch = ep;
             time = common_time;
             this.true_epoch = round(time.getNominalTime().getRefTime()/time.getRate) + 1; %
+            this.time = common_time;
             this.rec_time_idxes = id_sync;
             this.rate = time.getRate;
             this.sat = sat;
@@ -1020,14 +1022,14 @@ classdef LS_Manipulator < handle
             end
         end
         
-        function res = getResiduals(this, x)
-            
+        function [res, av_res] = getResiduals(this, x)
             %res_l = zeros(size(this.y));
             %for o = 1 : size(this.A_ep, 1)
             %    res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             %end
             %res_l = zeros(size(this.y));
             % speed-up of the previous lines
+            av_res = [];
             if any(isnan(x))
                 this.log.addError('Some parameters are NaN!');
             end
@@ -1059,6 +1061,8 @@ classdef LS_Manipulator < handle
                     end
                 end
                 av_res = sum(res, 3, 'omitnan') ./  sum(~isnan(zero2nan(res)),3);
+                
+                
                 res = res - repmat(av_res,1,1,n_rec);
                 this.res(idx_tot) = res(~isnan(res));
                 res = nan2zero(res);
@@ -1220,7 +1224,7 @@ classdef LS_Manipulator < handle
         end
         
         %------------------------------------------------------------------------
-        function [x, res, s0, Cxx, l_fixed] = solve(this)
+        function [x, res, s0, Cxx, l_fixed, av_res] = solve(this)
             l_fixed = 0;
             Cxx = [];
             % if N_ep if empty call A
@@ -1875,7 +1879,7 @@ classdef LS_Manipulator < handle
                     x_res(N2A_idx) = x(1:end-size(this.G,1));
                 end
                 if sum(isnan(x_res)) ==0
-                    res = this.getResiduals(x_res);
+                    [res,av_res] = this.getResiduals(x_res);
                     s0 = mean(abs(res(res~=0)));
                 else
                     res = [];

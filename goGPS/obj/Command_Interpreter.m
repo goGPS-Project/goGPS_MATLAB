@@ -95,7 +95,8 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
-        PAR_IONO    % Paramter to estimate ionosphere
+        PAR_IONO        % Paramter to estimate ionosphere
+        PAR_CLK         % Paramter to estimate clock
         
         PAR_SLAVE     % number of parallel slaves to request
         
