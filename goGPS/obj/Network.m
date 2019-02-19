@@ -889,7 +889,7 @@ classdef Network < handle
                     % for each frequency
                     for f = freq_used
                         % get the index of the frquency in the phases
-                        lid_f = abs(wl - this.cc.getSys(sys_c).L_VEC(this.cc.getSys(sys_c).CODE_RIN3_2BAND == f)) < 1e-9;
+                        lid_f = strLineMatch(this.rec_list(i).work.obs_code(lid_ph,2:3),this.wl_comb_codes(j,1 +(ff-1)*2+(1:2)));
                         id_f = find(lid_f);
                         c_wl = wl(id_f(1));
                         % get the Abx index for the phase measuremetn if
