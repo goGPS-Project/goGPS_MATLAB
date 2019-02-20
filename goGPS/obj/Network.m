@@ -336,7 +336,9 @@ classdef Network < handle
                     end
                     this.pushBackInReceiver(s0, res, ls, l_fixed);
                     %%% from widelane l1 to l1 l2
-                    this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
+                    if this.state.getAmbFixNET > 1 && false
+                        this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
+                    end
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -522,11 +524,14 @@ classdef Network < handle
                 idx_rec = x(:,3) == i;
                 if i > 1 % coordiantes are always zero on first receiver
                     coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
-                    if ~isempty(this.pos_indexs_tc)
-                        this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
-                    else
-                        this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                    if isempty(coo)
+                        coo = [ 0 0 0];
                     end
+                        if ~isempty(this.pos_indexs_tc)
+                            this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
+                        else
+                            this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                        end
                 else
                     this.coo(i,:) = nan2zero(this.coo(i,:));
                 end
