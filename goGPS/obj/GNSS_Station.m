@@ -700,7 +700,7 @@ classdef GNSS_Station < handle
                     rate = this.work.getTime.getRate;
                 end
             catch
-                % if anything appen probably
+                % if anything happen probably
                 rate = nan;
             end
         end
@@ -936,6 +936,25 @@ classdef GNSS_Station < handle
             ztd_res = bsxfun(@minus, ztd', ztd_height)';
         end
 
+        function [zwd_res, p_time, zwd_height] = getReducedZwd_mr(sta_list, degree)
+            % Reduce the ZWD of all the stations removing the component dependent with the altitude
+            % Return synced ZWD
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [ztd_res, p_time, ztd_height] = sta_list.getReducedZwd_mr()
+
+            med_zwd = median(sta_list.getZwd_mr, 'omitnan')';
+            if nargin == 1
+                degree = 5;
+            end
+            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+
+            zwd_height = Core_Utils.interp1LS(h_o, med_zwd, degree);
+            [zwd, p_time] = sta_list.getZwd_mr();
+            zwd_res = bsxfun(@minus, zwd', zwd_height)';
+        end
+        
         function [pwv, p_time, id_sync] = getPwv_mr(sta_list)
             % Get synced data of pwv
             % MultiRec: works on an array of receivers
@@ -1553,6 +1572,10 @@ classdef GNSS_Station < handle
 
             switch lower(par_name)
                 case 'ztd'
+                    [res_tropo, s_time] = sta_list.getZtd_mr();
+                    par_str = 'ZTD';
+                    par_str_short = 'ZTD';
+                case 'ztd_red'
                     [res_tropo, s_time] = sta_list.getReducedZtd_mr();
                     par_str = 'reduced ZTD';
                     par_str_short = 'RedZTD';
