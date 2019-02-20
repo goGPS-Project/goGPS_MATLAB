@@ -1146,6 +1146,157 @@ classdef GNSS_Station < handle
             [tropo, time] = sta_list.getTropoPar('zhd');
         end
 
+        function [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = getTropoMap(sta_list, par_name, rate)
+            % Get interpolated map of tropospheric parameter
+            % Resolution is determined by the dtm in use (0.029 degrees)
+            % The map is computer only on ground (> 10m) + 1 degree of margin
+            %
+            % INPUT
+            %   par_name    type of tropospheric parameter:
+            %                - ztd
+            %                - zwd
+            %                - pwv
+            %   rate        rate in seconds, nearest to closest observation 
+            %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %
+            % SYNTAX
+            %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)
+            
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            switch lower(par_name)
+                case 'ztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                case 'zwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                    [tropo, s_time] = sta_list.getPwv_mr();
+                case 'zhd'
+                case 'nsat'
+            end
+            tropo = tropo * 1e2;
+            
+            if (nargin < 3) || isempty(rate)
+                rate = 300; % 5 min
+            end
+            ss_rate = round(rate / s_time.getRate);
+            time = s_time.getEpoch(1 : ss_rate : s_time.length());
+
+            med_tropo = mean(tropo, 1, 'omitnan')';
+
+            degree = 4;
+            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
+            [lat, lon, up, h_o] = coo.getGeodetic;
+                        
+            xyu = [lon / pi * 180, lat / pi * 180, up];
+            
+            % Remove missing stations
+            id_ok = ~isnan(tropo'); % logical matrix of valid tropo
+            
+            % Defining interpolation
+            method = 'natural';
+            % Generate interpolation grid
+            x_span = max(xyu(:,1)) - min(xyu(:,1));
+            y_span = max(xyu(:,2)) - min(xyu(:,2));
+            border = 5;
+            step = 0.05; % Grid step in degrees (only for defining limits)
+            x_lim = [((floor(min(xyu(:,1)) / step) - border) * step), ((ceil(max(xyu(:,1)) / step) + border) * step)];
+            y_lim = [((floor(min(xyu(:,2)) / step) - border) * step), ((ceil(max(xyu(:,2)) / step) + border) * step)];
+            
+            % Retrieve DTM model
+            nwse = [max(y_lim), min(x_lim), min(y_lim), max(x_lim)];
+            [dtm, lat, lon] = Core.getRefDTM(nwse, 'ortho', 'low');
+            
+            if nargout < 5
+                h_list = 0;
+                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, 0);
+            else
+                h_list = 0 : max(ceil(dtm(:)));
+                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, h_list);
+            
+                % Compute map of tropo corrections for height displacements
+                tropo_height_correction = nan(size(dtm));
+                tropo_height_correction(:) = (h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
+            end
+
+            % Correct data for height
+            tropo_height = Core_Utils.interp1LS(h_o, med_tropo, degree);
+            tropo_res = bsxfun(@minus, tropo', tropo_height)';            
+
+            % Redifine the grid of the map to produce on the basis of the available DTM
+            x_grid = lon';
+            y_grid = flipud(lat)';
+            x_step = median(diff(x_grid));
+            y_step = median(diff(y_grid));
+            [x_mg, y_mg] = meshgrid(x_grid, y_grid);
+
+            % Generate computation mask (to limit points to interpolate)
+            x_id = round((xyu(:,1) - x_grid(1)) / x_step) + 1;
+            y_id = round((xyu(:,2) - y_grid(1)) / y_step) + 1;
+            mask = zeros(size(y_grid, 2), size(x_grid, 2));
+            mask((x_id - 1) * size(y_grid, 2) + y_id) = 1;
+            % Refine mask keeping only points above sea level close to the station to process
+            mask = (circConv2(mask, 25) > 0) & (dtm >= -10);
+            conv_mask = [0 0 1 1 1 0 0; ...
+                         0 1 1 1 1 1 0; ...
+                         1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1; ...
+                         0 1 1 1 1 1 0; ...
+                         0 0 1 1 1 0 0];
+            mask = (circConv2(mask, conv_mask) > 0); % enlarge a bit the mask
+
+            % List of valide epochs (opening an aproximate window around the points)
+            x_list = x_mg(mask);
+            y_list = y_mg(mask);
+            
+            epoch = 1 : s_time.length();
+            epoch_list = 1 : ss_rate : numel(epoch);
+            
+            tropo_grid = nan(size(mask,1), size(mask,2), numel(epoch_list)); 
+            % IMAGE DEBUG: 
+            %fig_handle = figure; maximizeFig(fig_handle);
+
+            w_bar = Core.getWaitBar();
+            w_bar.createNewBar('Generating maps of troposphere');
+            w_bar.setBarLen(numel(epoch_list));
+
+            %subplot(1,2,1);
+            %imh = imagesc(x_grid, y_grid, tropo_height_correction);
+            %if FTP_Downloader.checkNet()
+            %   plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+            %end
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
+            %caxis([perc(tropo(:),0.005) max(max(tropo_height_correction(:)), perc(tropo(:),0.995))]);
+            %colorbar;
+            %subplot(1,2,2);
+            %imh2 = imagesc(x_grid, y_grid, tropo_height_correction);
+            %if FTP_Downloader.checkNet()
+            %   plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+            %end
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
+            %caxis([perc(tropo(:),0.005) perc(tropo(:),0.995)]);
+            %colormap(gat);
+            %colorbar;
+            for i = 1 : numel(epoch_list)
+                e = epoch_list(i);
+                finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method);
+                tmp = nan(size(mask));
+                tmp(mask) = finterp(x_list, y_list);                
+                tropo_grid(:,:,i) = tmp + h_correction(1);
+                %imh.CData = tropo_grid(:,:,i);
+                %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                %imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
+                %imh2.AlphaData = ~isnan(tropo_grid(:,:,i));
+                %drawnow;
+                w_bar.go(i);                
+            end
+            w_bar.close();
+        end
+
         function rec_works = getWork(sta_list, id)
             % Return the working receiver for a GNSS station array
             %
@@ -1676,8 +1827,8 @@ classdef GNSS_Station < handle
                 close(fig_handle)
             end
         end
-
-        function showMapTropoInterp(sta_list, par_name, new_fig, epoch, flag_export)
+       
+        function showMapTropoInterp(sta_list, par_name, new_fig, rate, flag_dtm, flag_export)
             % Show a tropo map with all the station in sta_list
             %
             % INPUT
@@ -1685,14 +1836,30 @@ classdef GNSS_Station < handle
             %               - 'zwd'
             %               - 'ztd'
             %   new_fig     if true or missing open a new figure
-            %   epoch       list of epoch to display (pay attention that there is a subsampling rate in the function 1:10:end)
+            %   rate        rate in seconds, nearest to closest observation 
+            %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %   flag_dtm    flag to add height_correction (default == false)
             %   flag_export if true try to export a video (the frames are not going to be seen)
             %               the video file will be saved in the out folder specified in the project
             %
             % SYNTAX
-            %   sta_list.showMapTropoInterp(<new_fig>, <epoch>, <flag_export>);
-            ss_rate = 10; % subsample rate for show;
-            step = 0.075; % Grid step in degrees
+            %   sta_list.showMapTropoInterp(par_name, <new_fig>, <rate>, <flag_dtm>, <flag_export>);
+            
+            switch lower(par_name)
+                case 'ztd'
+                    par_str = 'ZTD';
+                    par_str_short = 'ZTD';
+                case 'zwd'
+                    par_str = 'ZWD';
+                    par_str_short = 'ZWD';
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                    par_str = 'PWV';
+                    par_str_short = 'PWV';
+                case 'zhd'
+                case 'nsat'
+            end
             
             if nargin < 3 || isempty(new_fig)
                 new_fig = true;
@@ -1703,79 +1870,27 @@ classdef GNSS_Station < handle
                 fig_handle = gcf;
                 hold on;
             end
+            if nargin < 4 || isempty(rate)
+                rate = 300;
+            end
             if nargin < 5
+                flag_dtm = false;
+            end
+            if nargin < 6
                 flag_export = false;
             end
 
             maximizeFig(fig_handle);
 
-            %[res_tropo, s_time] = sta_list.getReducedZtd_mr();
-            switch lower(par_name)
-                case 'ztd'
-                    [res_tropo, s_time] = sta_list.getReducedZtd_mr();
-                    par_str = 'reduced ZTD';
-                    par_str_short = 'RedZTD';
-                case 'zwd'
-                    [res_tropo, s_time] = sta_list.getZwd_mr();
-                    par_str = 'ZWD';
-                    par_str_short = 'ZWD';
-                case 'gn'
-                case 'ge'
-                case 'pwv'
-                case 'zhd'
-                case 'nsat'
+            [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate);
+            if flag_dtm
+                tropo_grid = tropo_grid + tropo_height_correction;
             end
-            res_tropo = res_tropo * 1e2;
-
-            if nargin < 3 || isempty(epoch)
-                epoch = 1 : s_time.length();
-            end
-
-            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
-            [lat, lon, up] = coo.getGeodetic;
-
-            xyu = [lon / pi * 180, lat / pi * 180, up];
-
-            % Remove missing stations
-            station_ok = ~isnan(sum(xyu, 2));
-            xyu = xyu(station_ok, :);
-            res_tropo = res_tropo(:, station_ok);
-            id_ok = ~isnan(res_tropo'); % logical matrix of valid tropo
-
-            % Defining interpolation
-            i = 1;
-            
-            method = 'natural';
-            % Generate interpolation grid
-            x_span = max(xyu(:,1)) - min(xyu(:,1));
-            y_span = max(xyu(:,2)) - min(xyu(:,2));
-            border = 5;
-            x_grid = ((floor(min(xyu(:,1)) / step) - border) * step) : step : ((ceil(max(xyu(:,1)) / step) + border) * step);
-            y_grid = ((floor(min(xyu(:,2)) / step) - border) * step) : step : ((ceil(max(xyu(:,2)) / step) + border) * step);
-            [x_mg, y_mg] = meshgrid(x_grid, y_grid);
-
-            % Generate computation mask
-            x_id = round((xyu(:,1) - x_grid(1)) / step) + 1;
-            y_id = round((xyu(:,2) - y_grid(1)) / step) + 1;
-            mask = zeros(size(y_grid, 2), size(x_grid, 2));
-            mask((x_id - 1) * size(y_grid, 2) + y_id) = 1;
-            conv_mask = [0 0 1 1 1 0 0; ...
-                         0 1 1 1 1 1 0; ...
-                         1 1 1 1 1 1 1; ...
-                         1 1 1 1 1 1 1; ...
-                         1 1 1 1 1 1 1; ...
-                         0 1 1 1 1 1 0; ...
-                         0 0 1 1 1 0 0];
-            mask = circConv2(mask, conv_mask) > 0;
-
-            % List of valide epochs
-            id_mask = mask(:) > 0;
-            x_list = x_mg(id_mask);
-            y_list = y_mg(id_mask);
-            
-            imh = imagesc(x_grid, y_grid, mask);
-            imh.AlphaData = mask > 0;
-            caxis([perc(res_tropo(:),0.005) perc(res_tropo(:),0.995)]); colormap(Core_UI.CMAP_51(2:end,:));
+                
+            imh = imagesc(x_grid, y_grid, tropo_grid(:,:,1));
+            imh.AlphaData = ~isnan(tropo_grid(:,:,1));
+            caxis([perc(tropo_grid(:),0.005) perc(tropo_grid(:),0.995)]); 
+            colormap(Core_UI.CMAP_51(2:end,:));
             colorbar;
             set(gca, 'Ydir', 'normal');
             
@@ -1784,13 +1899,13 @@ classdef GNSS_Station < handle
             ax.FontWeight = 'bold';
             if new_fig
                 if FTP_Downloader.checkNet()
-                    plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+                    plot_google_map('alpha', 0.65, 'MapType', 'satellite');
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
             end
             
-            th = title(sprintf([par_str '  variations [cm] map @%s'], s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            th = title(sprintf([par_str '  variations [cm] map @%s'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
             Core_UI.insertLogo(fig_handle, 'SouthEast');
 
             if flag_export
@@ -1800,29 +1915,23 @@ classdef GNSS_Station < handle
                 fprintf('%5d/%5d', 0, 99999);
             end
             drawnow
-            if numel(epoch) > 1
-                epoch_list = (ss_rate + 1) : ss_rate : numel(epoch);
-                for i = 1 : numel(epoch_list)
-                    e = epoch_list(i);
-                    if any(res_tropo(epoch(e),:))
-                        th.String = sprintf([par_str ' variations [cm] map %s'], s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
-                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), res_tropo(epoch(e), id_ok(:, epoch(e)))', method);
-                        tropo_grid = nan(size(mask));
-                        tropo_grid(id_mask) = finterp(x_list, y_list);
-                        imh.CData = tropo_grid;
-                        imh.AlphaData = ~isnan(tropo_grid);
-                        if not(flag_export)
-                            drawnow
-                        end
-                    end
-                    if flag_export
-                        fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, numel(epoch_list));
-                        frame = getframe(fig_handle);
-                        im{i} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+            
+            for i = 1 : time.length
+                if any(serialize(tropo_grid(:,:,i)))
+                    th.String = sprintf([par_str ' variations [cm] map %s'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
+                    imh.CData = tropo_grid(:,:,i);
+                    imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    if not(flag_export)
+                        drawnow
                     end
                 end
+                if flag_export
+                    fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, numel(epoch_list));
+                    frame = getframe(fig_handle);
+                    im{i} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                end
             end
-
+            
             if flag_export
                 fprintf('%s',char(8 * ones(1,11)));
                 if ismac() || ispc()
