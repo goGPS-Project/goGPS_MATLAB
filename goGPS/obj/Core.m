@@ -207,13 +207,14 @@ classdef Core < handle
             if nargin == 1
                 core.geoid = geoid;
             else
-                try
+                geoid_file = core.state.getGeoidFile();
+                if ~exist(core.state.getGeoidDir, 'file')
+                    core.state.geoid_dir = File_Name_Processor.getFullDirPath('../../reference/geoid', core.state.getHomeDir);
                     geoid_file = core.state.getGeoidFile();
-                    if ~exist(core.state.getGeoidDir, 'file')
-                        core.state.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
-                        geoid_file = core.state.getGeoidFile();
-                    end
-                    if ~strcmp(core.geoid.file, geoid_file) || (core.geoid.ncols == 0 || core.geoid.nrows == 0) 
+                end
+                
+                if ~strcmp(core.geoid.file, geoid_file) || (core.geoid.ncols == 0 || core.geoid.nrows == 0) % if it is not reqeusting the same goid or if the loaded geoid is empty
+                    if ~exist(geoid_file, 'file')
                         g = load(geoid_file);
                         fn = fieldnames(g);
                         % geoid grid and parameters
@@ -225,16 +226,16 @@ classdef Core < handle
                         core.geoid.ncols = size(core.geoid.grid, 2);
                         core.geoid.nrows = size(core.geoid.grid, 1);
                         clear g
+                    else
+                        core.log.addWarning('Reference geoid not found');
+                        % geoid unavailable
+                        core.geoid.grid = 0;
+                        core.geoid.cellsize = 0;
+                        core.geoid.Xll = 0;
+                        core.geoid.Yll = 0;
+                        core.geoid.ncols = 0;
+                        core.geoid.nrows = 0;
                     end
-                catch
-                    core.log.addWarning('Reference geoid not found');
-                    % geoid unavailable
-                    core.geoid.grid = 0;
-                    core.geoid.cellsize = 0;
-                    core.geoid.Xll = 0;
-                    core.geoid.Yll = 0;
-                    core.geoid.ncols = 0;
-                    core.geoid.nrows = 0;
                 end
             end
         end
