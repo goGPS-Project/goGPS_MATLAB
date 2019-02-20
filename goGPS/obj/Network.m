@@ -483,11 +483,14 @@ classdef Network < handle
                     node_brnch = [node_brnch T(id_b2,1)'];
                     for b = node_brnch
                         % do baseline processing
+                        this.log.addMessage(sprintf('Finxig ambiguities betwewn %s and %s',this.rec_list(n).getMarkerName4Ch, this.rec_list(b).getMarkerName4Ch));
                         net_tmp =  Network(this.rec_list([n b]));
                         net_tmp.adjust([],[],true);
                         % substsitute the ambiguities
                         n_expl = n_expl +1;
                     end
+                    T(id_b1,:) = [];
+                    T(id_b2,:) = [];
                     
                     nodes_level_next= [nodes_level_next node_brnch];
                 end
@@ -872,13 +875,13 @@ classdef Network < handle
             end
         end
         
-        function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs)
+        function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs,rec_time_indexes)
             % push back in the reciever the reconstructed ambiguites
             n_a_prec = 0;
             for i = 1:length(amb_idx)
                 % create a mat containing the l1 and the l2 amniguty
-                amb_idx_rec = nan(size(amb_idx{i},1), this.cc.getMaxNumSat);
-                amb_idx_rec(:,go_id_ambs{i}) = amb_idx{i};
+                amb_idx_rec = nan(size(wl_struct.amb_mats{i}));
+                amb_idx_rec(rec_time_indexes(:,i),go_id_ambs{i}) = amb_idx{i};
                 l1_amb_mat =nan(size(amb_idx_rec));
                 n_a_r = max(max(noNaN(amb_idx{i})));
                 for a = 1:n_a_r
