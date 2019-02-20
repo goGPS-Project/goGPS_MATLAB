@@ -70,7 +70,7 @@ classdef Network < handle
     methods
         function this = Network(rec_list, net_id)
             if nargin < 2
-                net_id = [];
+                net_id = 1 : length(rec_list);
             end
             this.net_id = net_id;
             this.rec_list = rec_list;
@@ -103,7 +103,7 @@ classdef Network < handle
             this.wl_comb_codes = [];
         end
         
-        function adjust(this, id_ref, coo_rate, reduce_iono)
+        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk)
             % Adjust the GNSS network
             %
             % INPUT
@@ -118,6 +118,9 @@ classdef Network < handle
             end
             if nargin < 4
                 reduce_iono = false;
+            end
+             if nargin < 5
+                export_clk = false;
             end
             % if iono reduction is requested take off single frequency
             % receiver
@@ -145,7 +148,6 @@ classdef Network < handle
                 [~, id_ref] = intersect(this.net_id, id_ref);
                 lid_ref(id_ref) = true;
             end
-            
             l_fixed = 0; % nothing is fixed
             is_empty_recs = this.rec_list.isEmptyWork_mr;
             if sum(~is_empty_recs) > 1
@@ -235,11 +237,14 @@ classdef Network < handle
                             end                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
-                        [x, res, s0, Cxx, l_fixed] = ls.solve;
+                        [x, res, s0, Cxx, l_fixed, av_res] = ls.solve;
                         this.tropo_idx = ls.tropo_idx;
                         this.tropo_g_idx = ls.tropo_g_idx;
                         %[x, res] = ls.solve;
                         %res = res(any(res(:,:,2)'), :, :);
+                        if Core.isGReD && export_clk
+                            GReD_Utility.substituteClK(av_res, ls.time);
+                        end
                         
                         % cleaning -----------------------------------------------------------------------------------------------------------------------------
                         %s0 = mean(abs(res(res~=0)));
@@ -330,6 +335,8 @@ classdef Network < handle
                         end
                     end
                     this.pushBackInReceiver(s0, res, ls, l_fixed);
+                    %%% from widelane l1 to l1 l2
+                    this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -424,7 +431,7 @@ classdef Network < handle
         
         
         function wl_struct = estimateWL(this)
-            % Estimate widelane 
+            % Estimate widelane
             %
             % SYNTAX:
             %    wl_struct = estimateWL(this)
@@ -443,43 +450,44 @@ classdef Network < handle
             % this.phase2pseudaranges
             
             % distance matrix
-            n_r = length(this.rec);
+            n_r = length(this.rec_list);
             DM = zeros(n_r);
             s = [];
             t = [];
             weight = [];
             for i = 1 : n_r
-                this.rec(i).updateCoo;
+                this.rec_list(i).work.updateCoordinates;
                 for j = i+1:n_r
-                    DM(i,j) = sphericalDistance(this.rec(i).lat,this.rec(i).lon,this.rec(j).lat,this.rec(j).lon);
+                    DM(i,j) = sphericalDistance(this.rec_list(i).work.lat,this.rec_list(i).work.lon,this.rec_list(j).work.lat,this.rec_list(j).work.lon);
                     s = [s i];
                     t = [t j];
                     weight = [weight DM(i,j)];
                 end
             end
-            G = graph(s,t,weights);
+            G = graph(s,t,weight);
             [T,pred] = minspantree(G);
             T = table2array(T.Edges);
             % minimum spanning tree
             nodes_level = [T(1,1)];
-            nodes_level_next = []
-            n_expl = 0;
-            while n_expl <= n_r
+            nodes_level_next = [];
+            n_expl = 1;
+            while n_expl < n_r
                 for n = nodes_level
                     % find a_b l braches
                     node_brnch = [];
                     id_b1 = T(:,1) == n;
                     id_b2 = T(:,2) == n;
                     node_brnch = [node_brnch T(id_b1,2)'];
-                    node_brnch = [node_brnch T(1,id_b2)'];
+                    node_brnch = [node_brnch T(id_b2,1)'];
                     for b = node_brnch
                         % do baseline processing
-                        this.adjust([n b]);
+                        net_tmp =  Network(this.rec_list([n b]));
+                        net_tmp.adjust([],[],true);
                         % substsitute the ambiguities
                         n_expl = n_expl +1;
                     end
                     
-                    nodes_level_next= [nodes_level_next; nodes_brnch];
+                    nodes_level_next= [nodes_level_next node_brnch];
                 end
                 nodes_level = nodes_level_next;
                 nodes_level_next = [];
@@ -863,6 +871,7 @@ classdef Network < handle
             % push back in the reciever the reconstructed ambiguites
             n_a_prec = 0;
             for i = 1:length(amb_idx)
+                % create a mat containing the l1 and the l2 amniguty
                 amb_idx_rec = nan(size(amb_idx{i},1), this.cc.getMaxNumSat);
                 amb_idx_rec(:,go_id_ambs{i}) = amb_idx{i};
                 l1_amb_mat =nan(size(amb_idx_rec));
@@ -872,23 +881,28 @@ classdef Network < handle
                 end
                 n_a_prec = n_a_r;
                 l2_amb_mat = l1_amb_mat - wl_struct.amb_mats{i};
+                % get the measuremnts
                 [ph, wl,lid_ph] = this.rec_list(i).work.getPhases();
                 id_ph = find(lid_ph);
                 cs_slip = this.rec_list(i).work.sat.cycle_slip_ph_by_ph;
-                for j = 1 : size(this.wl_comb_codes,1)
+                for j = 1 %: size(this.wl_comb_codes,1) %for now onluy single constellatio
                     sys_c = this.wl_comb_codes(j,1);
-                    freq_used = this.wl_comb_codes([2 4]);
+                    freq_used = this.wl_comb_codes(j,[2 4]);
                     ff= 1;
+                    % for each frequency
                     for f = freq_used
-                        lid_f = wl == this.cc.getSys(sys_c).L_VEC(this.cc.getSys(sys_c).CODE_RIN3_2BAND == f);
+                        % get the index of the frquency in the phases
+                        lid_f = strLineMatch(this.rec_list(i).work.obs_code(lid_ph,2:3),this.wl_comb_codes(j,1 +(ff-1)*2+(1:2)));
                         id_f = find(lid_f);
                         c_wl = wl(id_f(1));
+                        % get the Abx index for the phase measuremetn if
+                        % the selected frequency
                         amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
                         for a = unique(noNaN(amb_idx_rec))'
-                            sat = find(sum(amb_idx_rec == a)>0);
-                            ep_net = find(amb_idx_rec(:,sat) == a);
-                            ep = this.rec_time_indexes(ep_net,i);
-                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat;
+                            sat = find(sum(amb_idx_rec == a)>0); % sta
+                            ep_net = find(amb_idx_rec(:,sat) == a); % ep of the network
+                            ep = this.rec_time_indexes(ep_net,i); % epoch of the recievrr
+                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
                             a_f = noNaN(amb_idx_f(ep,col_cur_f));
                             if length(a_f) > 0
                             a_f = a_f(1);            
@@ -899,7 +913,7 @@ classdef Network < handle
                                 amb_term = l2_amb_mat(amb_idx_rec == a);
                                 amb_term = amb_term(1);
                             end
-                            ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) + amb_term*c_wl;
+                            ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) - amb_term*c_wl;
                             amb_idx_f(amb_idx_f == a_f) = nan;
                             end
                         end
