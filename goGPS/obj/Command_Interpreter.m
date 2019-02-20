@@ -224,6 +224,13 @@ classdef Command_Interpreter < handle
             this.PAR_IONO.class = '';
             this.PAR_IONO.limits = [];
             this.PAR_IONO.accepted_values = [];
+            
+            this.PAR_CLK.name = 'Export clock';
+            this.PAR_CLK.descr = 'Export common paramter in network';
+            this.PAR_CLK.par = '(-clk)|(-Clk)|(-CLK)';
+            this.PAR_CLK.class = '';
+            this.PAR_CLK.limits = [];
+            this.PAR_CLK.accepted_values = [];
 
             % Show plots
             
@@ -381,7 +388,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
@@ -1152,6 +1159,7 @@ classdef Command_Interpreter < handle
                 net = this.core.getNetwork(id_trg, rec);
                 net.reset();
                 iono_reduce = false;
+                clk_export = false;
                 coo_rate = [];
                 [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 if found
@@ -1161,9 +1169,12 @@ classdef Command_Interpreter < handle
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_IONO.par ')*$'], 'once'))
                        iono_reduce = true;
                     end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_CLK.par ')*$'], 'once'))
+                       clk_export = true;
+                    end
                 end
                 %try
-                    net.adjust(id_ref, coo_rate, iono_reduce); 
+                    net.adjust(id_ref, coo_rate, iono_reduce, clk_export); 
                 %catch ex
                 %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
                 %end
