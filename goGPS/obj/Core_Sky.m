@@ -557,7 +557,7 @@ classdef Core_Sky < handle
             %
             % INPUT:
             %   filename_SP3 = name of sp3 file
-            %   clock_flag   = load also clock? (optional, dafault = true)
+            %   clock_flag   = load also clock? (optional, default = true)
             %
             % DESCRIPTION:
             % add satellite and clock postiion contained in the sp3 file to

@@ -534,7 +534,7 @@ classdef Core_Utils < handle
                 end
             end
         end
-        
+                
         function f_status_lst = aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list, out_dir)
             % Try to download files using aria2C
             %
@@ -1526,6 +1526,49 @@ classdef Core_Utils < handle
             %    [lid] = Core_Utils.ordinal2logical(id,n_el)
             lid = false(n_el,1);
             lid(id) = true; 
+        end
+        function [dtm, lat, lon, georef, info] = getDTM(nwse, res)
+            % Get the dtm of an area delimited by geographical coordinates nwse
+            %
+            % INPUT
+            %   nwse(1)     North [deg: -90:90]
+            %   nwse(2)     West  [deg: -180:180]
+            %   nwse(3)     South [deg: -90:90]
+            %   nwse(4)     East  [deg: -180:180]
+            %   res         resolution ('high' / 'low') - default low
+            %
+            % If the DTM is not found in the DTM folder of the project
+            % download it from -> use http://www.marine-geo.org/services/
+            %
+            % SYNTAX
+            %  [dtm, lat, lon, georef, info] = Core_Utils.getDTM(nwse, res)
+            
+            if nargin == 1
+                res = 'low';
+            end
+            
+            dtm_path = fullfile(Core.getState.getHomeDir, 'reference' , 'DTM');
+            dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
+            if ~exist(dtm_path, 'dir')
+                mkdir(dtm_path);
+            end
+            if ~exist(fullfile(dtm_path, dtm_name), 'file')
+                if ispc()
+                    aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                elseif ismac()
+                    aria2c_path = '/usr/local/bin/aria2c';
+                else % is linux
+                    aria2c_path = '/usr/local/bin/aria2c';
+                    if ~exist(aria2c_path, 'file')
+                        aria2c_path = '/usr/bin/aria2c';
+                    end
+                end
+                aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'http://www.marine-geo.org/services/GridServer?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
+                dos(aria_call)
+            end
+            
+            % Read DTM
+            [dtm, georef, lat, lon, info] = geotiffReader(fullfile(dtm_path, dtm_name));
         end
     end
 end

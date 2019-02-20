@@ -1388,7 +1388,7 @@ classdef goGUIclass < handle
                 end
 
                 % Update newVal if the size of it is different from curVal
-                % It may appen in the initialization process
+                % It may happen in the initialization process
                 if sum(size(this.newVal) == size(this.curVal)) < 2
                     this.newVal = this.curVal;
                 end

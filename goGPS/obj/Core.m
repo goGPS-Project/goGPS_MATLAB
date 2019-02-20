@@ -257,6 +257,44 @@ classdef Core < handle
             geoid = core.geoid;
         end
         
+        function [dtm, lat, lon, georef, info] = getRefDTM(nwse, mode, res)
+            % Get the dtm of an area delimited by geographical coordinates NSWE
+            % DTM can be requested as orthometric or ellipsoidal heights
+            %
+            % INPUT
+            %   nwse(1)     North [deg: -90:90]
+            %   nwse(2)     West  [deg: -180:180]
+            %   nwse(3)     South [deg: -90:90]
+            %   nwse(4)     East  [deg: -180:180]
+            %   res         resolution ('high' / 'low') - default low
+            %   mode        orthometric / ellipsoidal height, accepted values:
+            %                - ortho
+            %                - ellips
+            %
+            % If the DTM is not found in the DTM folder of the project
+            % download it from -> use http://www.marine-geo.org/services/
+            %
+            % SYNTAX
+            %  [dtm, lat, lon, georef, info] = Core.getDTM(nwse, res)
+            
+            if nargin < 2
+                mode = 'ortho';
+            end
+            
+            if nargin < 3
+                res = 'low';
+            end
+            [dtm, lat, lon, georef, info] = Core_Utils.getDTM(nwse, res);
+
+            switch mode
+                case 'ellips'
+                    N = zeros(size(dtm));
+                    geoid = Core.getRefGeoid();
+                    tic; N(:) = getOrthometricCorr(lat, lon', geoid, 'grid_cubic'); toc
+                    dtm = dtm + N; % dtm_ellips =  dtm_ortho - N;
+            end            
+        end
+        
         function [is_adv] = isAdvanced()
             % Get the status of usage (normal/advanced)
             %
