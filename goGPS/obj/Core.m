@@ -214,7 +214,7 @@ classdef Core < handle
                 end
                 
                 if ~strcmp(core.geoid.file, geoid_file) || (core.geoid.ncols == 0 || core.geoid.nrows == 0) % if it is not reqeusting the same goid or if the loaded geoid is empty
-                    if ~exist(geoid_file, 'file')
+                    if exist(geoid_file, 'file')
                         g = load(geoid_file);
                         fn = fieldnames(g);
                         % geoid grid and parameters
