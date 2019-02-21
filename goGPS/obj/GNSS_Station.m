@@ -1208,18 +1208,6 @@ classdef GNSS_Station < handle
             nwse = [max(y_lim), min(x_lim), min(y_lim), max(x_lim)];
             [dtm, lat, lon] = Core.getRefDTM(nwse, 'ortho', 'low');
             
-            if nargout < 5
-                h_list = 0;
-                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, 0);
-            else
-                h_list = 0 : max(ceil(dtm(:)));
-                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, h_list);
-            
-                % Compute map of tropo corrections for height displacements
-                tropo_height_correction = nan(size(dtm));
-                tropo_height_correction(:) = (h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
-            end
-
             % Correct data for height
             tropo_height = Core_Utils.interp1LS(h_o, med_tropo, degree);
             tropo_res = bsxfun(@minus, tropo', tropo_height)';            
@@ -1247,6 +1235,21 @@ classdef GNSS_Station < handle
                          0 0 1 1 1 0 0];
             mask = (circConv2(mask, conv_mask) > 0); % enlarge a bit the mask
 
+            % Get DTM tropospheric correction
+            dtm(dtm < 0) = 0; % do not consider bathimetry
+            if nargout < 5
+                h_list = 0;
+                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, 0);
+            else
+                h_list = 0 : max(ceil(dtm(:)));
+                h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, h_list);
+            
+                % Compute map of tropo corrections for height displacements
+                tropo_height_correction = nan(size(dtm));
+                tropo_height_correction(:) = (h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
+            end
+
+            
             % List of valide epochs (opening an aproximate window around the points)
             x_list = x_mg(mask);
             y_list = y_mg(mask);
@@ -1881,16 +1884,22 @@ classdef GNSS_Station < handle
             end
 
             maximizeFig(fig_handle);
+            fig_handle.Visible = 'off';
 
             [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate);
-            if flag_dtm
+            if flag_dtm == 1
                 tropo_grid = tropo_grid + tropo_height_correction;
             end
-                
+            
+            if flag_dtm == 2
+                subplot(1,2,1);
+            end
             imh = imagesc(x_grid, y_grid, tropo_grid(:,:,1));
             imh.AlphaData = ~isnan(tropo_grid(:,:,1));
-            caxis([perc(tropo_grid(:),0.005) perc(tropo_grid(:),0.995)]); 
-            colormap(Core_UI.CMAP_51(2:end,:));
+            cax = [perc(serialize(min(min(tropo_grid))),0.005) perc(serialize(max(max(tropo_grid))),0.995)];
+            caxis(cax); 
+            %colormap(Core_UI.CMAP_51(2:end,:));
+            colormap(gat2);
             colorbar;
             set(gca, 'Ydir', 'normal');
             
@@ -1905,7 +1914,33 @@ classdef GNSS_Station < handle
                 ylabel('Latitude [deg]');
             end
             
-            th = title(sprintf([par_str '  variations [cm] map @%s'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            th = title(sprintf([par_str ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
+            
+            if flag_dtm == 2  
+                cax = [max(0, cax(1) + min(tropo_height_correction(:))) (cax(2) + max(tropo_height_correction(:)))];
+                caxis(cax);
+                % uniform axes
+                ax2 = subplot(1,2,2);
+                imh2 = imagesc(x_grid, y_grid, tropo_grid(:,:,1) + tropo_height_correction);
+                imh2.AlphaData = ~isnan(tropo_grid(:,:,1));
+                caxis(cax);
+                %colormap(Core_UI.CMAP_51(2:end,:));
+                colormap(gat2);
+                colorbar;
+                set(ax2, 'Ydir', 'normal');
+                ax2.FontSize = 20;
+                ax2.FontWeight = 'bold';
+                if new_fig
+                    if FTP_Downloader.checkNet()
+                        plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+                    end
+                    xlabel('Longitude [deg]');
+                    ylabel('Latitude [deg]');
+                end
+                th2 = title(ax2, 'at ground level', 'FontSize', 22);
+            end
+            
+            % Add logos
             Core_UI.insertLogo(fig_handle, 'SouthEast');
 
             if flag_export
@@ -1913,20 +1948,26 @@ classdef GNSS_Station < handle
                 fig_handle.Visible = 'off';
                 Core.getLogger.addMarkedMessage('Exporting video');
                 fprintf('%5d/%5d', 0, 99999);
+            else
+                fig_handle.Visible = 'on';
             end
             drawnow
             
             for i = 1 : time.length
                 if any(serialize(tropo_grid(:,:,i)))
-                    th.String = sprintf([par_str ' variations [cm] map %s'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
+                    th.String = sprintf([par_str ' [cm] map %s at sea level'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
                     imh.CData = tropo_grid(:,:,i);
                     imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    if flag_dtm == 2
+                        imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
+                        imh2.AlphaData = imh.AlphaData;
+                    end
                     if not(flag_export)
                         drawnow
                     end
                 end
                 if flag_export
-                    fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, numel(epoch_list));
+                    fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, time.length);
                     frame = getframe(fig_handle);
                     im{i} = frame(1:2:end,1:2:end,:); % subsample (1:2)
                 end

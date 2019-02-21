@@ -1469,7 +1469,11 @@ classdef Core_UI < handle
             % SYNTAX 
             %   logo_ax = Mesonet.insertLogo(container)  
             
-            if (nargin == 1)
+            if nargin < 1 || isempty(container)
+                container = gcf;
+            end
+            
+            if (nargin < 2) || isempty(location)
                 location = 'SouthEast';
             end
             logo_ax = axes( 'Parent', container);
@@ -1520,6 +1524,10 @@ classdef Core_UI < handle
                     container.Units = cu;
             end            
             axis off;
+            if Core.isGReD
+                GReD_Utility.insertLogoGReD(container, location);
+            end
+
         end
     end
 end
