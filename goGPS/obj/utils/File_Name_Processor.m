@@ -211,7 +211,10 @@ classdef File_Name_Processor < handle
     methods (Static)
         function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback, empty_fallback)
             % Get the full path given the relative one and the relative dir_base
-            % SYNTAX: dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
+            % It changes the folder with dir_fallback only if the changed folder exist
+            %
+            % SYNTAX: 
+            %   dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
 
             if nargin == 1
                 dir_base = pwd;
@@ -283,10 +286,16 @@ classdef File_Name_Processor < handle
 
                 % restore full path start
                 if isunix
-                    dir_path = [prefix filesep strCell2Str(list, filesep)];
+                    % change dir_path only if the new path exist
+                    if exist([prefix filesep strCell2Str(list, filesep)], 'file')
+                        dir_path = [prefix filesep strCell2Str(list, filesep)];
+                    end
                 else
-                    %dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
-                    dir_path = [prefix strCell2Str(list, filesep)];
+                    % change dir_path only if the new path exist
+                    if exist([prefix strCell2Str(list, filesep)], 'file')
+                        %dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
+                        dir_path = [prefix strCell2Str(list, filesep)];
+                    end
                 end
             end
             % Fallback if not exist
@@ -296,7 +305,11 @@ classdef File_Name_Processor < handle
                     if numel(dir_fallback) > 2
                         prefix = iif(strcmp(dir_fallback(1:2),'\\'), '\\', '');
                     end
-                    dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
+                    tmp = fnp.getFullDirPath(dir_path_bk, dir_fallback);
+                    % change dir_path only if the new path exist
+                    if exist(tmp, 'file')
+                        dir_path = tmp;
+                    end
                     dir_path = [prefix dir_path];
                 end
             end
