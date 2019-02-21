@@ -127,7 +127,7 @@ classdef Fixer < handle
                 case {'sequential_best_integer_equivariant'}
                     % boostrap solution starting from the most probable and
                     % not the one with lower formal errror
-                    [amb_float(amb_ok), l_fixed,  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),5*full(C_amb_amb(amb_ok, amb_ok)));
+                    [amb_fixed(amb_ok), l_fixed,  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),5*full(C_amb_amb(amb_ok, amb_ok)));
                     is_fixed = true;
             end
         end

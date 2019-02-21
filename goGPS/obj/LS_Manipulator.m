@@ -1720,10 +1720,14 @@ classdef LS_Manipulator < handle
                     n_ep_wl = zeros(size(amb));
                     n_amb = max(max(this.amb_idx));
                     n_ep = size(this.wl_amb,1);
+                    if sum(this.param_class == this.PAR_PCO_X) >0
                     n_coo = max(this.A_idx(:,3));
+                    else
+                        n_coo = 0;
+                    end
                     for i = 1 : n_amb
-                        sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
-                        idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
+                        sat = this.sat_go_id(this.sat(this.A_idx(:,this.param_class == this.PAR_AMB) == i+n_coo));
+                        idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,this.param_class == this.PAR_AMB)== i+n_coo));
                         amb_wl(i) = this.wl_amb(idx(1));
                         amb_wl_fixed(i)=  this.wl_fixed(idx(1));
                         n_ep_wl(i) = length(idx);
