@@ -7951,7 +7951,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
                                 
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo);
-                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base.*tropo(repmat(ls.tropo_idx,1,order_tropo+1)+repmat((0:order_tropo),numel(ls.tropo_idx),1)),2);
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(ls.tropo_idx, 1, order_tropo + 1) + repmat((0 : order_tropo), numel(ls.tropo_idx), 1)), 2);
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd));

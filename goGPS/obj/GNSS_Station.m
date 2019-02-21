@@ -1148,7 +1148,7 @@ classdef GNSS_Station < handle
 
         function [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = getTropoMap(sta_list, par_name, rate)
             % Get interpolated map of tropospheric parameter
-            % Resolution is determined by the dtm in use (0.029 degrees)
+            % Resolution is determined by the dtm in use (2 * 0.029 degrees)
             % The map is computer only on ground (> 10m) + 1 degree of margin
             %
             % INPUT
@@ -1208,6 +1208,12 @@ classdef GNSS_Station < handle
             nwse = [max(y_lim), min(x_lim), min(y_lim), max(x_lim)];
             [dtm, lat, lon] = Core.getRefDTM(nwse, 'ortho', 'low');
             
+            % I don't really need full resolution (maybe in a future)
+            k = 2;
+            dtm = dtm(1:k:end, 1:k:end);
+            lat = lat(1:k:end);
+            lon = lon(1:k:end);
+            
             % Correct data for height
             tropo_height = Core_Utils.interp1LS(h_o, med_tropo, degree);
             tropo_res = bsxfun(@minus, tropo', tropo_height)';            
@@ -1225,7 +1231,9 @@ classdef GNSS_Station < handle
             mask = zeros(size(y_grid, 2), size(x_grid, 2));
             mask((x_id - 1) * size(y_grid, 2) + y_id) = 1;
             % Refine mask keeping only points above sea level close to the station to process
-            mask = (circConv2(mask, 25) > 0) & (dtm >= -10);
+            [xg, yg] = meshgrid(x_id, y_id); 
+            d = max(25, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.15))); % 20% of min distance is uused to enlarge the area of interpolation
+            mask = (circConv2(mask, d) > 0) & (dtm >= -10);
             conv_mask = [0 0 1 1 1 0 0; ...
                          0 1 1 1 1 1 0; ...
                          1 1 1 1 1 1 1; ...
@@ -1238,7 +1246,6 @@ classdef GNSS_Station < handle
             % Get DTM tropospheric correction
             dtm(dtm < 0) = 0; % do not consider bathimetry
             if nargout < 5
-                h_list = 0;
                 h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, 0);
             else
                 h_list = 0 : max(ceil(dtm(:)));
@@ -1248,7 +1255,6 @@ classdef GNSS_Station < handle
                 tropo_height_correction = nan(size(dtm));
                 tropo_height_correction(:) = (h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
             end
-
             
             % List of valide epochs (opening an aproximate window around the points)
             x_list = x_mg(mask);
@@ -1286,16 +1292,22 @@ classdef GNSS_Station < handle
             %colorbar;
             for i = 1 : numel(epoch_list)
                 e = epoch_list(i);
-                finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method);
-                tmp = nan(size(mask));
-                tmp(mask) = finterp(x_list, y_list);                
-                tropo_grid(:,:,i) = tmp + h_correction(1);
-                %imh.CData = tropo_grid(:,:,i);
-                %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
-                %imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
-                %imh2.AlphaData = ~isnan(tropo_grid(:,:,i));
-                %drawnow;
-                w_bar.go(i);                
+                if sum(id_ok(:, epoch(e))) > 2
+                    finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method);
+                    tmp = nan(size(mask));
+                    tmp(mask) = finterp(x_list, y_list);
+                    tropo_grid(:,:,i) = tmp + h_correction(1);
+                    %imh.CData = tropo_grid(:,:,i);
+                    %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    %imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
+                    %imh2.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    %drawnow;
+                else
+                    if i > 1
+                        tropo_grid(:,:,i) = tropo_grid(:,:,i) - 1;
+                    end
+                end
+                w_bar.goTime(i);
             end
             w_bar.close();
         end
@@ -1692,7 +1704,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showMapTropo(sta_list, par_name, new_fig, epoch, flag_export)
+        function showAniMapTropo(sta_list, par_name, new_fig, epoch, flag_export)
             % Show a tropo map with all the station in sta_list
             %
             % INPUT
@@ -1831,7 +1843,7 @@ classdef GNSS_Station < handle
             end
         end
        
-        function showMapTropoInterp(sta_list, par_name, new_fig, rate, flag_dtm, flag_export)
+        function showAniMapTropoInterp(sta_list, par_name, new_fig, rate, flag_dtm, flag_export)
             % Show a tropo map with all the station in sta_list
             %
             % INPUT
@@ -1899,6 +1911,7 @@ classdef GNSS_Station < handle
             cax = [perc(serialize(min(min(tropo_grid))),0.005) perc(serialize(max(max(tropo_grid))),0.995)];
             caxis(cax); 
             %colormap(Core_UI.CMAP_51(2:end,:));
+            %colormap(flipud(gat(1024, false)));
             colormap(gat2);
             colorbar;
             set(gca, 'Ydir', 'normal');
@@ -1925,7 +1938,8 @@ classdef GNSS_Station < handle
                 imh2.AlphaData = ~isnan(tropo_grid(:,:,1));
                 caxis(cax);
                 %colormap(Core_UI.CMAP_51(2:end,:));
-                colormap(gat2);
+                %colormap(flipud(gat(1024, false)));
+                colormap(gat2);                            
                 colorbar;
                 set(ax2, 'Ydir', 'normal');
                 ax2.FontSize = 20;
@@ -1948,6 +1962,17 @@ classdef GNSS_Station < handle
                 fig_handle.Visible = 'off';
                 Core.getLogger.addMarkedMessage('Exporting video');
                 fprintf('%5d/%5d', 0, 99999);
+                
+                if ismac() || ispc()
+                    % Better compression on Mac > 10.7 and Win > 7
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.mp4']), 'MPEG-4');
+                else
+                    % Linux doesn't have mp4 compression avaiable
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.avi']));
+                end
+                video_out.FrameRate = 30;
+                video_out.Quality = 91;
+                open(video_out);
             else
                 fig_handle.Visible = 'on';
             end
@@ -1969,25 +1994,13 @@ classdef GNSS_Station < handle
                 if flag_export
                     fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, time.length);
                     frame = getframe(fig_handle);
-                    im{i} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                    ss = 1; % subsample (1:2)
+                    writeVideo(video_out, frame(1:ss:end,1:ss:end,:)); 
                 end
             end
             
             if flag_export
                 fprintf('%s',char(8 * ones(1,11)));
-                if ismac() || ispc()
-                    % Better compression on Mac > 10.7 and Win > 7
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.mp4']), 'MPEG-4');
-                else
-                    % Linux doesn't have mp4 compression avaiable
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.avi']));
-                end
-                video_out.FrameRate = 30;
-                video_out.Quality = 91;
-                open(video_out);
-                for i = 1 : numel(im)
-                    writeVideo(video_out, im{i});
-                end
                 close(video_out);
                 Core.getLogger.addStatusOk('Done ^_^');
                 close(fig_handle)
@@ -2274,7 +2287,7 @@ classdef GNSS_Station < handle
                         else
                             loc = 'SouthWest';
                             if n_entry > 11
-                                loc = 'NorthWastOutside';
+                                loc = 'NorthWestOutside';
                             end
                             [~, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
                         end
