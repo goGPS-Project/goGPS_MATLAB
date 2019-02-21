@@ -240,6 +240,7 @@ classdef LS_Manipulator < handle
                             f_vec = GPS_SS.F_VEC;
                             l_vec = GPS_SS.L_VEC;
                             obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
+                            obs_set.wl = ones(size(obs_set.wl))*Core_Utils.V_LIGHT / (f_vec(1) + f_vec(2)); % <- set wavelength as narrow lane   
                         end
                     else
                         % Using the best combination available
@@ -424,7 +425,7 @@ classdef LS_Manipulator < handle
                         %clock_const(amb_set_jmp_bnd(i)+1) = 1;
                         amb_const = zeros(1,n_amb);
                         amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
-                        amb_idx_const = unique(amb_idx_const);
+                        amb_idx_const = mode(amb_idx_const);
                         amb_const(amb_idx_const) = 1;
                         G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
                     end
@@ -895,11 +896,11 @@ classdef LS_Manipulator < handle
                     prog_p_col = prog_p_col + 1;
                     if sum(phase_s == s) > 0
                         
-                        if this.state.flag_ppp_amb_fix
-                            A(lines_stream, prog_p_col) = 1;
-                        else
+%                         if this.state.flag_ppp_amb_fix
+%                             A(lines_stream, prog_p_col) = 1;
+%                         else
                             A(lines_stream, prog_p_col) = obs_set.wl(s);
-                        end
+%                         end
                         A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, phase_s == s);
                     else
                         A_idx(lines_stream, prog_p_col) = 0;
@@ -1712,15 +1713,15 @@ classdef LS_Manipulator < handle
                 this.Cxx_amb = Cxx;
             end
             if ~is_network
-                if (this.state.getAmbFixPPP && ~isempty(x(x_class == 5,1)))
-                    amb = x(x_class == 5,1);
+                if (this.state.getAmbFixPPP && ~isempty(x(x_class == this.PAR_AMB,1)))
+                    amb = x(x_class == this.PAR_AMB,1);
                     amb_wl_fixed = false(size(amb));
                     amb_n1 = nan(size(amb));
                     amb_wl = nan(size(amb));
                     n_ep_wl = zeros(size(amb));
                     n_amb = max(max(this.amb_idx));
                     n_ep = size(this.wl_amb,1);
-                    if sum(this.param_class == this.PAR_PCO_X) >0
+                    if sum(this.param_class == this.PAR_X) >0
                     n_coo = max(this.A_idx(:,3));
                     else
                         n_coo = 0;
@@ -1731,7 +1732,7 @@ classdef LS_Manipulator < handle
                         amb_wl(i) = this.wl_amb(idx(1));
                         amb_wl_fixed(i)=  this.wl_fixed(idx(1));
                         n_ep_wl(i) = length(idx);
-                        amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
+                        amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
                         
                     end
                     
@@ -1739,7 +1740,7 @@ classdef LS_Manipulator < handle
                     weight = weight / sum(weight);
                     
                     
-                    idx_amb = find(x_class == 5);
+                    idx_amb = find(x_class == this.PAR_AMB);
                     % get thc cxx of the ambiguities
                     n_amb  = length(idx_amb);
                     b_eye = zeros(length(B),n_amb);
@@ -1747,12 +1748,12 @@ classdef LS_Manipulator < handle
                     b_eye(idx) = 1;
                     b_eye = sparse(b_eye);
                     Cxx_amb = N\b_eye;
-                    Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+                    Cxx_amb = Cxx_amb(idx_amb,:);
                     idx_constarined = abs(amb_n1) < 1e-5;
-                    l_fixed = false(size(amb_n1,1),2);
-                    amb_fixed = zeros(size(amb_n1,1),2);
+                    l_fixed = false(size(amb_n1,1),1);
+                    amb_fixed = zeros(size(amb_n1,1),1);
                     % ILS shrinking, method 1
-                    [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'lambda', 1);
+                    [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'sequential_best_integer_equivariant');
                     
                     if is_fixed
                         amb_fixed(~idx_constarined,:) = af;
@@ -1764,7 +1765,7 @@ classdef LS_Manipulator < handle
                         for i = 1 : n_amb
                             Ni = N(:, idx_amb(i));
                             if l_fixed(i)
-                                B = B - Ni * amb_fix(i)*0.1070;
+                                B = B - Ni * amb_fix(i);
                             end
                         end
                         
@@ -1781,7 +1782,7 @@ classdef LS_Manipulator < handle
                         xf(idx_nf) = N \ B;
                         xf(~idx_nf) = amb_fix(l_fixed(:,1));
                         
-                        x(idx_est) = x;
+                        x(idx_est) = xf;
                     else
                         this.log.addWarning('The ambiguities cannot be fixed!!!');
                     end

@@ -7859,13 +7859,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     
+                    
                     % Remove outliers > threshold has requested in max phase error threshold (see settings/GUI)
                     flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
                     if flag_recompute
                         ls.Astack2Nstack();
                         [x, res, s0, ~, l_fixed] = ls.solve();
                     end
-                    
+                    if this.state.getAmbFixPPP
+                        this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1), ls.wl_amb, ls.amb_idx, ls.go_id_amb,ls.true_epoch);
+                        %pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
+                    end
                     id_sync = ls.true_epoch;
                     
                     if isempty(this.zwd) || all(isnan(this.zwd))
@@ -8039,6 +8043,67 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
+        end
+        
+        function pushBackAmbiguities(this, x_l1, wl_amb_mat, amb_idx, go_id_ambs, true_epoch)
+            % push back in the reciever the reconstructed ambiguites
+            x_l1(fracFNI(x_l1) > 1e-5) = nan;
+             
+            n_a_prec = 0;
+            % create a mat containing the l1 and the l2 amniguty
+            amb_idx_rec = nan(size(wl_amb_mat));
+            amb_idx_rec(true_epoch,go_id_ambs) = amb_idx;
+            l1_amb_mat =nan(size(amb_idx_rec));
+            n_a_r = max(max(noNaN(amb_idx)));
+            for a = 1:n_a_r
+                l1_amb_mat(amb_idx_rec == a) = x_l1(a + n_a_prec);
+            end
+            n_a_prec = n_a_r;
+            l2_amb_mat = l1_amb_mat - wl_amb_mat;
+            % get the measuremnts
+            [ph, wl,lid_ph] = this.getPhases();
+            id_ph = find(lid_ph);
+            cs_slip = this.sat.cycle_slip_ph_by_ph;
+             wdln =  this.getWideLane('L1','L2','G');        
+             wl_comb_codes = wdln.obs_code(1,[1 3 4 6 7]);
+            freq_used = wl_comb_codes([2 4]);
+            ff= 1;
+            % for each frequency
+            for f = freq_used
+                % get the index of the frquency in the phases
+                lid_f = strLineMatch(this.obs_code(lid_ph,2:3),wl_comb_codes(1 +(ff-1)*2+(1:2)));
+                id_f = find(lid_f);
+                c_wl = wl(id_f(1));
+                % get the Abx index for the phase measuremetn if
+                % the selected frequency
+                amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
+                for a = unique(noNaN(amb_idx_rec))'
+                    sat = find(sum(amb_idx_rec == a)>0); % sta
+                    ep = true_epoch; % epoch of the recievrr
+                    col_cur_f = this.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
+                    a_f = noNaN(amb_idx_f(ep,col_cur_f));
+                    if length(a_f) > 0
+                        a_f = a_f(1);
+                        if ff == 1
+                            amb_term = l1_amb_mat(amb_idx_rec == a);
+                            amb_term = amb_term(1);
+                        else
+                            amb_term = l2_amb_mat(amb_idx_rec == a);
+                            amb_term = amb_term(1);
+                        end
+                        ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) - amb_term*c_wl;
+                        amb_idx_f(amb_idx_f == a_f) = nan;
+                    end
+                end
+                ph_temp = ph(:,lid_f);
+                ph_temp(~isnan(amb_idx_f)) = 0; % if not fixed take off
+                ph(:,lid_f) = ph_temp;
+                this.sat.cycle_slip_ph_by_ph(:,lid_f) = false; % remove cycle slips
+                ff = ff +1;
+                
+            end
+            this.setPhases(ph,wl,id_ph);
+            
         end
         
         function dynamicPPP(this, sys_list, id_sync)
