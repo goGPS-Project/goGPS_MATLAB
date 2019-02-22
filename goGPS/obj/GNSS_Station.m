@@ -1256,7 +1256,7 @@ classdef GNSS_Station < handle
                          1 1 1 1 1 1 1; ...
                          0 1 1 1 1 1 0; ...
                          0 0 1 1 1 0 0];
-            mask = (circConv2(mask, conv_mask) > 0); % enlarge a bit the mask
+            mask = (circConv2(single(mask), conv_mask) > 0); % enlarge a bit the mask
 
             % Get DTM tropospheric correction
             dtm(dtm < 0) = 0; % do not consider bathimetry
