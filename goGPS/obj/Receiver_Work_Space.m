@@ -7969,7 +7969,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 tropo_dt = rem(ls.true_epoch-1,tropo_rate(1)/this.time.getRate)/(tropo_rate(1)/this.time.getRate);
                                 
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo);
-                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(ls.tropo_idx, 1, order_tropo + 1) + repmat((0 : order_tropo), numel(ls.tropo_idx), 1)), 2);
+                                tropo_idx_prog = zeros(max(ls.tropo_idx),1);
+                                tropo_idx_prog(unique(ls.tropo_idx)) = 1 : length(unique(ls.tropo_idx)); % tropo idx to prgessive tropo idx
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx)), 1)), 2);
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd));
@@ -7996,7 +7998,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                             else
                                 tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
-                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                                tropo_g_idx_prog = zeros(max(ls.tropo_g_idx),1);
+                                tropo_g_idx_prog(unique(ls.tropo_g_idx)) = 1 : length(unique(ls.tropo_g_idx)); % tropo idx to prgessive tropo idx
+                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
                             end
                             if isempty(this.tge) || all(isnan(this.tge))
                                 this.tge = nan(this.time.length,1);
@@ -8004,7 +8008,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             if order_tropo_g == 0
                                 this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                             else
-                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(ls.tropo_g_idx,1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
                             end
                         end
                         this.updateErrTropo();
@@ -8097,8 +8101,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
                 for a = unique(noNaN(amb_idx_rec))'
                     sat = find(sum(amb_idx_rec == a)>0); % sta
-                    ep_sol = find(amb_idx_rec(:,sat) == a); % ep of the ls adjustemtn
-                    ep = true_epoch(ep_sol); % epoch of the recievrr
+                    ep = find(amb_idx_rec(:,sat) == a); % ep of the ls adjustemtn
+                    %ep = true_epoch(ep_sol); % epoch of the recievrr
                     col_cur_f = this.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
                     a_f = noNaN(amb_idx_f(ep,col_cur_f));
                     if length(a_f) > 0
