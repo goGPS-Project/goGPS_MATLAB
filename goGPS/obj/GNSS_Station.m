@@ -1652,11 +1652,22 @@ classdef GNSS_Station < handle
             maximizeFig(f);
             [lat, lon] = cart2geod(sta_list.getMedianPosXYZ());
 
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;            
+            % Labal BG (in background w.r.t. the point)
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                t = text(lon(r)./pi*180, lat(r)./pi*180, ['                '], ...
+                    'FontWeight', 'bold', 'FontSize', 15, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
             for r = 1 : numel(sta_list)
                 plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list))); hold on;
             end
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 5);
-            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
+            plot(lon(:)./pi*180, lat(:)./pi*180, '.k', 'MarkerSize', 5);
+            plot(lon(:)./pi*180, lat(:)./pi*180, 'ko', 'MarkerSize', 15, 'LineWidth', 2);
 
             if numel(sta_list) == 1
                 lon_lim = minMax(lon/pi*180);
@@ -1679,14 +1690,15 @@ classdef GNSS_Station < handle
 
             for r = 1 : numel(sta_list)
                 name = upper(sta_list(r).getMarkerName4Ch());
-                t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name ' '], ...
-                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                t = text(lon(r)./pi*180, lat(r)./pi*180, ['   ' name ''], ...
+                    'FontWeight', 'bold', 'FontSize', 15, 'Color', [0 0 0], ...
+                    ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
-                t.Units = 'pixels';
-                t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
-                t.Units = 'data';
+                %t.Units = 'pixels';
+                %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
+                %t.Units = 'data';
             end
 
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');

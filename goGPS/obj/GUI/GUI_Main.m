@@ -1090,9 +1090,19 @@ end
             % get Location
             [lat, lon] = cart2geod([[data{:,2}]' [data{:,3}]' [data{:,4}]']);
             
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;            
+            % Label BG (in background w.r.t. the point)
+            for r = 1 : size(data, 1)
+                text(lon(r)./pi*180, lat(r)./pi*180, '              ', ...
+                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
             % Plot
             for r = 1 : size(data, 1)
-                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, size(data, 1))); hold on;
+                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, size(data, 1)));
             end
             plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 5);
             plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
@@ -1117,14 +1127,10 @@ end
             ylim(lat_lim);
             
             for r = 1 : size(data, 1)
-                t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name{r} ' '], ...
+                text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r}], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
-                t.Units = 'pixels';
-                t.Position(1) = t.Position(1) + 20 + 10 * double(size(data, 1) == 1);
-                t.Units = 'data';
             end
             
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');

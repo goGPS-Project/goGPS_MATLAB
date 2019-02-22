@@ -2518,7 +2518,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 Core.initGeoid();
@@ -3685,7 +3685,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -7908,10 +7908,21 @@ classdef Receiver < Exportable
             maximizeFig(f);
             [lat, lon] = cart2geod(this.getMedianPosXYZ_mr());
             
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;
+            % Labal BG (in background w.r.t. the point)
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                t = text(lon(r)./pi*180, lat(r)./pi*180, ['                '], ...
+                    'FontWeight', 'bold', 'FontSize', 15, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
+            plot(lon(:)./pi*180, lat(:)./pi*180, '.w', 'MarkerSize', 30);
             hold on;
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 10);
-            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 10, 'LineWidth', 2);
+            plot(lon(:)./pi*180, lat(:)./pi*180, '.k', 'MarkerSize', 10);
+            plot(lon(:)./pi*180, lat(:)./pi*180, 'ko', 'MarkerSize', 10, 'LineWidth', 2);
             
             if numel(this) == 1
                 lon_lim = minMax(lon/pi*180);

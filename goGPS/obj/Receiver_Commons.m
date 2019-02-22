@@ -964,10 +964,21 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             maximizeFig(f);
             [lat, lon] = this.getMedianPosGeodetic();
             
-            plot(lon(:), lat(:),'.w','MarkerSize', 30);
-            hold on;
-            plot(lon(:), lat(:),'.k','MarkerSize', 10);
-            plot(lon(:), lat(:),'ko','MarkerSize', 10, 'LineWidth', 2);
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;
+            % Label BG (in background w.r.t. the point)
+            for r = 1 :  numel(this)
+                text(lon(r)./pi*180, lat(r)./pi*180, '                ', ...
+                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
+            for r = 1 : numel(sta_list)
+                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 40, 'Color', Core_UI.getColor(r, numel(sta_list)));
+            end
+            plot(lon(:)./pi*180, lat(:)./pi*180, '.k', 'MarkerSize', 5);
+            plot(lon(:)./pi*180, lat(:)./pi*180, 'ko', 'MarkerSize', 13, 'LineWidth', 2);
             
             if numel(this) == 1
                 lon_lim = minMax(lon);
@@ -990,14 +1001,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             for r = 1 : numel(this)
                 name = upper(this(r).parent.getMarkerName4Ch());
-                t = text(lon(r), lat(r), [' ' name ' '], ...
+                text(lon(r), lat(r), [' ' name ' '], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
-                t.Units = 'pixels';
-                t.Position(1) = t.Position(1) + 10 + 10 * double(numel(this) == 1);
-                t.Units = 'data';
             end
             
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');
