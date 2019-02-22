@@ -67,6 +67,7 @@ classdef Network < handle
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
     end
+    
     methods
         function this = Network(rec_list, net_id)
             if nargin < 2

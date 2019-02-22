@@ -264,40 +264,8 @@ classdef File_Name_Processor < handle
                 end
             end
             
-            if ~isempty(dir_path)
-                % remove './'
-                dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
-
-                prefix = '';
-                if numel(dir_path) > 2
-                    prefix = iif(strcmp(dir_path(1:2),'\\'), '\\', '');
-                end
+            dir_path = File_Name_Processor.remDirModifiers(dir_path);
                 
-                % extract sub folder names
-                list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
-
-                % search for "../"
-                dir_up = find(strcmp(list,'..'));
-                offset = 0;
-                for i = dir_up
-                    list(max(1, (i - 1 : i) - offset)) = [];
-                    offset = offset + 2;
-                end
-
-                % restore full path start
-                if isunix
-                    % change dir_path only if the new path exist
-                    if exist([prefix filesep strCell2Str(list, filesep)], 'file')
-                        dir_path = [prefix filesep strCell2Str(list, filesep)];
-                    end
-                else
-                    % change dir_path only if the new path exist
-                    if exist([prefix strCell2Str(list, filesep)], 'file')
-                        %dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
-                        dir_path = [prefix strCell2Str(list, filesep)];
-                    end
-                end
-            end
             % Fallback if not exist
             if (nargin >= 3) && ~isempty(dir_fallback)
                 if ~exist(dir_path, 'file')
@@ -311,6 +279,41 @@ classdef File_Name_Processor < handle
                         dir_path = tmp;
                     end
                     dir_path = [prefix dir_path];
+                end
+            end
+        end
+        
+        function path = remDirModifiers(path)
+            % Utility to remove from a path dir changes with "." and ".."
+            %
+            % SYNTAX
+            %   path = File_Name_Processor.remDirModifiers(path)
+            
+            if ~isempty(path)
+                % remove './'
+                path = strrep(path, [filesep '.' filesep], filesep);
+                
+                prefix = '';
+                if numel(path) > 2
+                    prefix = iif(strcmp(path(1:2),'\\'), '\\', '');
+                end
+                
+                % extract sub folder names
+                list = regexp(path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
+                
+                % search for "../"
+                dir_up = find(strcmp(list,'..'));
+                offset = 0;
+                for i = dir_up
+                    list(max(1, (i - 1 : i) - offset)) = [];
+                    offset = offset + 2;
+                end
+                
+                % restore full path start
+                if isunix
+                    path = [prefix filesep strCell2Str(list, filesep)];
+                else
+                    path = [prefix strCell2Str(list, filesep)];
                 end
             end
         end
