@@ -106,7 +106,7 @@ function goGPS(ini_settings, use_gui, flag_online)
     if core.state.isLogOnFile()
         log.newLine();
         log.enableFileOut();
-        log.setOutFile([core.state.getOutDir '/goGPS_run_${NOW}.log']); % <= to enable project logging
+        log.setOutFile(fullfile(core.state.getOutDir, 'log', 'goGPS_run_${NOW}.log')); % <= to enable project logging
         % log.setOutFile(); <= to enable system logging (save into system folder)
         log.disableFileOut();
         fnp = File_Name_Processor();
