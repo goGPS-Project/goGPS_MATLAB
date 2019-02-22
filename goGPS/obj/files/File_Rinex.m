@@ -296,7 +296,7 @@ classdef File_Rinex < Exportable
                     first_epoch = GPS_Time();
                 end
             else
-                if this.state.isRinexSession
+                if Core.getState.isRinexSession
                     if this.is_valid_list(session)
                         id_ss = cumsum(this.is_valid_list);
                         first_epoch = this.first_epoch.getEpoch(id_ss(session));
@@ -321,7 +321,7 @@ classdef File_Rinex < Exportable
                     last_epoch = GPS_Time();
                 end
             else
-                if this.state.isRinexSession
+                if Core.getState.isRinexSession
                     if this.is_valid_list(session)
                         id_ss = cumsum(this.is_valid_list);
                         last_epoch = this.last_epoch.getEpoch(id_ss(session));

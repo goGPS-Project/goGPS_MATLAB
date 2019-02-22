@@ -1226,6 +1226,7 @@ classdef LS_Manipulator < handle
         
         %------------------------------------------------------------------------
         function [x, res, s0, Cxx, l_fixed, av_res] = solve(this)
+            av_res = [];
             l_fixed = 0;
             Cxx = [];
             % if N_ep if empty call A
