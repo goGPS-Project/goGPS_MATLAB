@@ -285,7 +285,8 @@ classdef File_Rinex < Exportable
         end
         
         function first_epoch = getFirstEpoch(this, session)
-            %  get the first epoch of a session
+            % Get the first epoch of a session
+            %
             % SYNTAX
             %   first_epoch = this.getFirstEpoch(session)
             if nargin == 1
@@ -295,17 +296,22 @@ classdef File_Rinex < Exportable
                     first_epoch = GPS_Time();
                 end
             else
-                if this.is_valid_list(session)
-                    id_ss = cumsum(this.is_valid_list);
-                    first_epoch = this.first_epoch.getEpoch(id_ss(session));
+                if this.state.isRinexSession
+                    if this.is_valid_list(session)
+                        id_ss = cumsum(this.is_valid_list);
+                        first_epoch = this.first_epoch.getEpoch(id_ss(session));
+                    else
+                        first_epoch = GPS_Time();
+                    end
                 else
-                    first_epoch = GPS_Time();
+                    first_epoch = this.state.getSessionLimits(8).first;
                 end
             end
         end
 
         function last_epoch = getLastEpoch(this, session)
-            %  get the last epoch of a session
+            % Get the last epoch of a session
+            %
             % SYNTAX
             %   first_epoch = this.getFirstEpoch(session)
             if nargin == 1
@@ -315,11 +321,15 @@ classdef File_Rinex < Exportable
                     last_epoch = GPS_Time();
                 end
             else
-                if this.is_valid_list(session)
-                    id_ss = cumsum(this.is_valid_list);
-                    last_epoch = this.last_epoch.getEpoch(id_ss(session));
+                if this.state.isRinexSession
+                    if this.is_valid_list(session)
+                        id_ss = cumsum(this.is_valid_list);
+                        last_epoch = this.last_epoch.getEpoch(id_ss(session));
+                    else
+                        last_epoch = GPS_Time();
+                    end
                 else
-                    last_epoch = GPS_Time();
+                    last_epoch = this.state.getSessionLimits(8).last;
                 end
             end
         end
