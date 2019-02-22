@@ -2108,16 +2108,18 @@ end
                     end
                     end
                 end
-              
-                xlim([max(sss_strt.getMatlabTime, y_strt) min(sss_stop.getMatlabTime, y_stop)]);
+                x_lims = [max(sss_strt.getMatlabTime - 1, y_strt) min(sss_stop.getMatlabTime +1, y_stop)];
+                months_time = months_time(months_time > x_lims(1) & months_time < x_lims(2));
+                xlim(x_lims);
                 ylim([0 n_rec + 1]);
                 h = ylabel('STATION'); h.FontWeight = 'bold';
                 ax = gca(); ax.YTick = 1:n_rec;
                 ax.YTickLabel = sta_name;
                 set(ax,'XGrid','on')
                 title(sprintf('Rinex data avaliability %d',year));
-                
+                if ~isempty(months_time)
                 ax.XTick = months_time;
+                end
                 datetick('x','dd/mm/yyyy HH','keepticks');
                 ax.XTickLabelRotation = 45;
             end
