@@ -620,7 +620,13 @@ classdef Parallel_Manager < Com_Interface
                             tmp.work.flag_currupted = true;
                         else
                             job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
-                            tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                            try
+                                tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                            catch
+                                pause(1); % due to sync problems the file could not be immediately ready,
+                                % try to read it again
+                                tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                            end
                         end
                         if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
                             this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
