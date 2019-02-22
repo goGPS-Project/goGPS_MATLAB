@@ -7754,6 +7754,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             
                             this.detectOutlierMarkCycleSlip();
+                            this.remShortArc(this.state.getMinArc); 
+
                             this.coarseAmbEstimation();
                             this.pp_status = true;
                         end
@@ -8079,7 +8081,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
                 for a = unique(noNaN(amb_idx_rec))'
                     sat = find(sum(amb_idx_rec == a)>0); % sta
-                    ep = true_epoch; % epoch of the recievrr
+                    ep_sol = find(amb_idx_rec(:,sat) == a); % ep of the ls adjustemtn
+                    ep = true_epoch(ep_sol); % epoch of the recievrr
                     col_cur_f = this.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
                     a_f = noNaN(amb_idx_f(ep,col_cur_f));
                     if length(a_f) > 0
