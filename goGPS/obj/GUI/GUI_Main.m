@@ -2098,12 +2098,14 @@ end
                 f = figure; f.Name = sprintf('%03d: Daily RINEX File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
                   line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
                 for r = 1 : n_rec
+                    if fr{r}.is_valid
                     central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
                     central_time = central_time(central_time >= y_strt & central_time <= y_stop);
                     line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
                     plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 15, 'Color', Core_UI.getColor(r, n_rec));
                     if ~isempty(fr{r}.first_epoch) && ~isempty(fr{r}.last_epoch)
                         plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 3);
+                    end
                     end
                 end
               
