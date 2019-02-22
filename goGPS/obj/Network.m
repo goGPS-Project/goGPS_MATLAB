@@ -119,38 +119,45 @@ classdef Network < handle
             if nargin < 4
                 reduce_iono = false;
             end
-             if nargin < 5
+            if nargin < 5
                 export_clk = false;
             end
-            % if iono reduction is requested take off single frequency
-            % receiver
-            if reduce_iono
-                r = 1;
-                while (r <= length(this.rec_list))
-                    if ~this.rec_list(r).work.isMultiFreq
-                        this.log.addWarning(sprintf('Receiver %s is not multi frequency, removing it from network processing.',this.rec_list(r).getMarkerName4Ch));
-                        this.rec_list(r) = [];
-                        id_ref(id_ref == r) = [];
-                        id_ref(id_ref > r) = id_ref(id_ref > r) -1;
-                        
-                    else
-                        r = r +1;
+            
+            is_empty_recs = ~this.rec_list.hasPhases_mr;
+            n_valid_rec = sum(~is_empty_recs);
+            n_valid_ref = sum(~is_empty_recs(id_ref));
+            if n_valid_ref < numel(id_ref)
+                this.log.addError('One or more reference stations for Network solution are missing! Skipping NET');
+            elseif (n_valid_rec < 2)
+                this.log.addError('Not enough receivers (< 2), skipping network solution');
+            else
+                % if iono reduction is requested take off single frequency
+                % receiver
+                if reduce_iono
+                    r = 1;
+                    while (r <= length(this.rec_list))
+                        if ~this.rec_list(r).work.isMultiFreq
+                            this.log.addWarning(sprintf('Receiver %s is not multi frequency, removing it from network processing.',this.rec_list(r).getMarkerName4Ch));
+                            this.rec_list(r) = [];
+                            id_ref(id_ref == r) = [];
+                            id_ref(id_ref > r) = id_ref(id_ref > r) -1;
+                        else
+                            r = r +1;
+                        end
                     end
                 end
-            end
-            
-            % set up the the network adjustment
-            if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
-                lid_ref = true(size(this.net_id));
-            else
-                % convert to logical
-                lid_ref = false(numel(this.rec_list),1);
-                [~, id_ref] = intersect(this.net_id, id_ref);
-                lid_ref(id_ref) = true;
-            end
-            l_fixed = 0; % nothing is fixed
-            is_empty_recs = this.rec_list.isEmptyWork_mr;
-            if sum(~is_empty_recs) > 1
+                
+                % set up the the network adjustment
+                if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
+                    lid_ref = true(size(this.net_id));
+                else
+                    % convert to logical
+                    lid_ref = false(numel(this.rec_list),1);
+                    [~, id_ref] = intersect(this.net_id, id_ref);
+                    lid_ref(id_ref) = true;
+                end
+                l_fixed = 0; % nothing is fixed
+                
                 e = find(is_empty_recs);
                 if ~isempty(e)
                     this.rec_list(e) = [];
@@ -425,8 +432,6 @@ classdef Network < handle
                     %this.rec_list(i).work.pushResult();
                     this.rec_list(i).work.updateErrTropo();
                 end
-            else
-                this.log.addWarning('Not enough receivers (< 2), skipping network solution');
             end
             
         end
