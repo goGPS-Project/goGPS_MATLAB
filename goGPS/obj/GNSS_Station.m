@@ -525,6 +525,21 @@ classdef GNSS_Station < handle
                 is_empty(r) =  sta_list(r).work.isEmpty() && sta_list(r).out.isEmpty();
             end
         end
+        
+        function has_phases = hasPhases_mr(sta_list)
+            % Return if the object does not cantain any observations (work) or results (out)
+            %
+            % SYNTAX
+            %   is_empty = this.isEmpty_mr();
+            %
+            % SEE ALSO
+            %   isEmptyOut_mr isEmptyWork_mr
+            has_phases = false(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                has_phases(r) =  ~sta_list(r).work.isEmpty() && sta_list(r).work.hasPhases();
+            end
+        end
+        
 
         function is_empty = isEmptyWork_mr(sta_list)
             % Return if the object work does not cantains any observation
@@ -1653,7 +1668,7 @@ classdef GNSS_Station < handle
             [lat, lon] = cart2geod(sta_list.getMedianPosXYZ());
 
             plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;            
-            % Labal BG (in background w.r.t. the point)
+            % Label BG (in background w.r.t. the point)
             for r = 1 : numel(sta_list)
                 name = upper(sta_list(r).getMarkerName4Ch());
                 t = text(lon(r)./pi*180, lat(r)./pi*180, ['                '], ...
@@ -1664,7 +1679,7 @@ classdef GNSS_Station < handle
             end
             
             for r = 1 : numel(sta_list)
-                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list))); hold on;
+                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
             end
             plot(lon(:)./pi*180, lat(:)./pi*180, '.k', 'MarkerSize', 5);
             plot(lon(:)./pi*180, lat(:)./pi*180, 'ko', 'MarkerSize', 15, 'LineWidth', 2);
@@ -1690,7 +1705,7 @@ classdef GNSS_Station < handle
 
             for r = 1 : numel(sta_list)
                 name = upper(sta_list(r).getMarkerName4Ch());
-                t = text(lon(r)./pi*180, lat(r)./pi*180, ['   ' name ''], ...
+                t = text(lon(r)./pi*180, lat(r)./pi*180, ['   ' name], ...
                     'FontWeight', 'bold', 'FontSize', 15, 'Color', [0 0 0], ...
                     ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
