@@ -2664,6 +2664,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             has_apr = this.rf.hasAPriori(this.parent.getMarkerName4Ch);
         end
         
+        function has_ph = hasPhases(this)
+            % Return true if there are observations of phases
+            % It does not check if the data are really present or not
+            %
+            % has_ph = this.hasPhases()
+            has_ph = ~isempty(this.findObservableByFlag('L'));
+        end
+        
+        function has_pr = hasPseudoRanges(this)
+            % Return true if there are observations of pseudo ranges
+            % It does not check if the data are really present or not
+            %
+            % has_pr = this.hasPseudoRanges()
+            has_pr = ~isempty(this.findObservableByFlag('C'));
+        end
+        
         function n_obs = getNumObservables(this)
             % get the number of observables stored in the object
             % SYNTAX n_obs = this.getNumObservables()
