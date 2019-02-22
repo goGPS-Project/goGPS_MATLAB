@@ -107,6 +107,15 @@ classdef Core_Sky < handle
     
     methods % Public Access
         
+        function is_empty = isEmpty(this)
+            % Return true if the core_sky object does not contains data
+            % At the momenth check for coord only
+            %
+            % SYNTAX
+            %   sky.isEmpty
+            is_empty = isempty(this.coord);
+        end
+        
         function initSession(this, start_date, stop_date)
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
