@@ -2038,7 +2038,7 @@ classdef GNSS_Station < handle
             % SYNTAX f_handles = this.plotSNR(sys_c)
 
             % SNRs
-            if nargin c 2
+            if nargin < 2
                 type = 'snr';
             end
 
