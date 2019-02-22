@@ -41,7 +41,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-core = Core.getInstance;
+core = Core.getCurrentCore();
 rec = core.rec;
 
 log = Core.getLogger();
