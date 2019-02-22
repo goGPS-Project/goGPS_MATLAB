@@ -829,7 +829,7 @@ classdef Core < handle
                     end
                                         
                     % Init Meteo and Sky objects
-                    if ~this.state.isNoResources() && (session ~= this.preloaded_session)
+                    if ~this.state.isNoResources() && ((session ~= this.preloaded_session) || this.sky.isEmpty)
                         this.initSkySession(time_lim_large);
                         this.log.newLine();
                         if this.state.isMet()
