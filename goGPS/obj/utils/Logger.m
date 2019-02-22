@@ -76,12 +76,12 @@ classdef Logger < handle
             end
             if isunix
                 if ismac % is Mac
-                    this.out_file_path = '~/Library/Logs/goGPS/go_gps ${NOW}.log';
+                    this.out_file_path = '~/Library/Logs/goGPS/go_gps_${NOW}.log';
                 else     % is Linux
-                    this.out_file_path = './logs/go_gps ${NOW}.log';
+                    this.out_file_path = './logs/go_gps_${NOW}.log';
                 end
             elseif ispc  % is Windows
-                this.out_file_path = './logs/go_gps ${NOW}.log';
+                this.out_file_path = './logs/go_gps_${NOW}.log';
             end
         end
     end
@@ -106,7 +106,7 @@ classdef Logger < handle
         % Out status ------------------------------------------------------
         
         function is_active = isScreenOut(this)
-            % Show log on screen
+            % Return show log on screen status
             %
             % SYNTAX
             %   is_active = isScreenOut(this)
@@ -116,7 +116,7 @@ classdef Logger < handle
         end
 
         function is_active = isFileOut(this)
-            % Save log on file
+            % Return status of save into log on file
             %
             % SYNTAX
             %   is_active = isFileOut(this)
