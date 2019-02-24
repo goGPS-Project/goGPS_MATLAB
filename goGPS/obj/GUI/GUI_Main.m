@@ -58,7 +58,7 @@ classdef GUI_Main < handle
         menu        % Handle of the menu
         
         info_g      % Info group
-        rec_list    % Receiver list
+        rec_tbl     % Receiver table
         session_panel % panel of the session definition 
         session_info    % Session info
         session_summary % summary of the session
@@ -1534,7 +1534,6 @@ end
             h_title.Widths = [95 -1 50  -1 40];
             
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
-            Core_UI.insertHBarDark(this.info_g);
             
             v_text.Heights = [5, 23, -1];
             
@@ -1542,17 +1541,15 @@ end
                 'Padding', 0, ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
             
-            this.rec_list = uicontrol('Parent', rec_g, ...
-                'Style', 'Text', ...
-                'String', 'No receivers loaded', ...
-                'ForegroundColor', Core_UI.WHITE, ...
-                'HorizontalAlignment', 'left', ...
-                'FontName', 'Courier New', ...
-                'FontSize', Core_UI.getFontSize(9), ...
-                'FontWeight', 'bold', ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
-            
-            this.info_g.Heights = [30 5 -1];
+            this.rec_tbl = uitable('Parent', rec_g);
+            this.rec_tbl.RowName = {}; 
+            this.rec_tbl.ColumnName = {'N'; 'Name'; 'OK'; 'KO'};
+            colTypes = {'char', 'char', 'short g', 'short g'};
+            this.rec_tbl.ColumnFormat = colTypes;
+            this.rec_tbl.ColumnEditable = [false false false false];
+            this.rec_tbl.ColumnWidth = {45, 45, 45, 45};
+
+            this.info_g.Heights = [35 -1];
             % this.updateRecList(); % this is done at the end of interface loading
         end
         
@@ -2047,19 +2044,21 @@ end
             rec_path = state.getRecPath;
             str = '';
             
+            color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
+            this.rec_tbl.Data = cell(1,4);
             for r = 1 : n_rec
                 name = File_Name_Processor.getFileName(rec_path{r}{1});
                 this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
                 fr = File_Rinex(rec_path{r}, 100);
                 n_ok = sum(fr.is_valid_list);
                 n_ko = sum(~fr.is_valid_list);
-                str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
-            end
-            if n_rec == 0
-                str = 'No receivers found';
+                
+                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
+                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+                this.rec_tbl.Data{r,3} = n_ok;
+                this.rec_tbl.Data{r,4} = n_ko;
             end
             this.log.addMessage('File availability checked');
-            this.rec_list.String = str;
         end
         
         function updateAndPlotRecList(this, caller, event)
@@ -2073,7 +2072,6 @@ end
             state.updateObsFileName;
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
-            str = '';
             fr = {};
             sta_name = {};
             for r = 1 : n_rec
@@ -2096,16 +2094,16 @@ end
                 y_strt = y_strt.getMatlabTime();
                 y_stop = y_stop.getMatlabTime();
                 f = figure; f.Name = sprintf('%03d: Daily RINEX File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
-                  line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
+                line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
                 for r = 1 : n_rec
                     if fr{r}.is_valid
-                    central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
-                    central_time = central_time(central_time >= y_strt & central_time <= y_stop);
-                    line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
-                    plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 15, 'Color', Core_UI.getColor(r, n_rec));
-                    if ~isempty(fr{r}.first_epoch) && ~isempty(fr{r}.last_epoch)
-                        plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 3);
-                    end
+                        central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
+                        central_time = central_time(central_time >= y_strt & central_time <= y_stop);
+                        line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
+                        plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 15, 'Color', Core_UI.getColor(r, n_rec));
+                        if ~isempty(fr{r}.first_epoch) && ~isempty(fr{r}.last_epoch)
+                            plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], ':', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 3);
+                        end
                     end
                 end
                 x_lims = [max(sss_strt.getMatlabTime - 1, y_strt) min(sss_stop.getMatlabTime +1, y_stop)];
@@ -2124,7 +2122,6 @@ end
                 ax.XTickLabelRotation = 45;
             end
             this.log.addMessage('File availability plotted');
-            this.rec_list.String = str;
         end
         
         function createNewProject(this, caller, event)
@@ -2261,6 +2258,13 @@ end
             %
             % SYNTAX:
             %   this.updateRecList
+            try
+                this.rec_tbl.Data{1,1} = 1;
+            catch ex
+                % probably deleted object
+                return
+            end
+            
             state = Core.getCurrentSettings();
             state.updateObsFileName;
             n_rec = state.getRecCount;
@@ -2296,7 +2300,9 @@ end
                 end
                 available_files = [available_files{:}];
             end
-                        
+            
+            color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
+            this.rec_tbl.Data = cell(1, 4);
             for r = 1 : n_rec
                 if ~isempty(rec_path{r})
                     name = File_Name_Processor.getFileName(rec_path{r}{1});
@@ -2311,7 +2317,7 @@ end
                 if ~isempty(available_files)
                     for s = 1 : numel(rec_path{r})
                         [~, file_name, ext] = fileparts(rec_path{r}{s});
-                        if (~isempty(strfind(available_files, [file_name ext])))
+                        if instr(available_files, [file_name ext])
                             n_ok = n_ok + 1;
                         else
                             n_ko = n_ko + 1;
@@ -2327,25 +2333,14 @@ end
                     end
                 end
                 
-                %fr = File_Rinex(rec_path{r}, 100);
-                %n_ok = sum(fr.is_valid_list);
-                %n_ko = sum(~fr.is_valid_list);
-                str = sprintf('%s%02d %s  %4d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
-                %else
-                %    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
-                %end
+                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
+                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+                this.rec_tbl.Data{r,3} = n_ok;
+                this.rec_tbl.Data{r,4} = n_ko;
             end
-            
+                        
             if toc(t0) > 1
                 this.log.addMessage('Receiver files checked');
-            end
-            if n_rec == 0
-                str = 'No receivers found';
-            end
-            try
-                this.rec_list.String = str;
-            catch ex
-                % probably deleted object
             end
         end
         
