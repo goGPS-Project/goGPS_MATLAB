@@ -215,6 +215,13 @@ classdef GUI_Chalmers < handle
             str = sprintf('%s\n%s', str, '// Station list for ocean loading computation');
             str = sprintf('%s\n%s',str, '//------------------------------------------------------------------------');
             
+            new_only = true;
+            if new_only
+                station_code = GUI_Chalmers.getLoadingStationCode();
+            else
+                has_blq = false;
+            end
+            
             switch mode
                 case {'rinex', 'RINEX'}
                     rec_path = Core.getState.getRecPath();
@@ -230,9 +237,15 @@ classdef GUI_Chalmers < handle
                         if fr.isValid()
                             name = fr.marker_name{1};
                             name = name(1:min(4, numel(name)));
-                            xyz = median(fr.coo.getXYZ,1,'omitnan');                            
-                            if ~isempty(xyz)
-                                str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', name, xyz(1), xyz(2),xyz(3)));
+                            
+                            if new_only
+                                has_blq = ~isempty(find(station_code == Core_Utils.code4Char2Num(name), 1, 'first'));
+                            end
+                            if ~has_blq
+                                xyz = median(fr.coo.getXYZ,1,'omitnan');
+                                if ~isempty(xyz)
+                                    str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', name, xyz(1), xyz(2),xyz(3)));
+                                end
                             end
                         end
                     end
@@ -241,16 +254,22 @@ classdef GUI_Chalmers < handle
                     sta_list = core.rec;
                     for r = 1 : size(sta_list, 2)
                         rec = sta_list(~sta_list(:,r).isEmpty, r);
-                        if ~isempty(rec)
-                            xyz = rec.out.getMedianPosXYZ();
-                            if isempty(xyz)
-                                xyz = rec.work.getMedianPosXYZ();
+                            if new_only
+                                has_blq = ~isempty(find(rec.getMarkerName4Ch == Core_Utils.code4Char2Num(name), 1, 'first'));
                             end
-                            str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3)));
+                            if ~has_blq
+                                if ~isempty(rec)
+                                    xyz = rec.out.getMedianPosXYZ();
+                                    if isempty(xyz)
+                                        xyz = rec.work.getMedianPosXYZ();
+                                    end
+                                    str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3)));
+                                end
+                            end
                         end
                     end
             end
-                    str = sprintf('%s\n%s', str,  '//------------------------------------------------------------------------');
+            str = sprintf('%s\n%s', str,  '//------------------------------------------------------------------------');
         end
         
         function txt = insertBoldText(parent, title, font_size, color, alignment)
@@ -323,7 +342,56 @@ classdef GUI_Chalmers < handle
             j_chalmers.setEditable(0);
         end
 
+        function station_code = getLoadingStationCode(this)
+            % Get numeric 4char marker names present in the ocean loading file
+            %
+            % SYNTAX
+            %   station_code = this.getLoadingStationCode();
             
+            ocean_file = Core.getState.getOceanFile;
+            %ocean_file = '/Users/Andrea/Repositories/goGPS_MATLAB/data/project/Japan/station/ocean/ocean_loading.blq';
+            
+            % open RINEX observation file
+            fid = fopen(ocean_file,'r');
+            if fid > 0
+                txt = fread(fid,'*char')';
+                % try to see if carriage return is present in the file (Windows stupid standard)
+                % On Windows file lines ends with char(13) char(10)
+                % instead of just using char(10)
+                if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
+                    has_cr = true;  % The file has carriage return - I hate you Bill!
+                else
+                    has_cr = false;  % The file is UNIX standard
+                end
+                % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  (numel(txt) - double(has_cr))
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                lim = [lim (lim(:,2) - lim(:,1) + 1)];
+                while lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % removing empty lines at end of file
+                min_line_width = 6;
+                lim(lim(1:end,3) < min_line_width,:) = [];
+                
+                % removing commented lines
+                lim(txt(lim(:,1)) == '$', :) = [];
+                
+                %txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))
+                
+                % Convert 4ch marker to num
+                station_code = Core_Utils.code4Char2Num(txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1)));
+            else
+                station_code = [];
+            end
+        end
     end
     %% METHODS getters
     % ==================================================================================================================================================
