@@ -3595,8 +3595,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if ~iscell(this.obs_name)
                 this.obs_name = {this.obs_name};
             end
+            home_dir = this.getHomeDir(); % cache home dir name
             for i = 1 : numel(this.obs_name)
-                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i}), this.getHomeDir()), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                path_list = fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i}), home_dir);
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(path_list, this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
 
