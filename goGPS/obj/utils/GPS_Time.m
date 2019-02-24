@@ -1296,13 +1296,18 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   [year, doy] = getDOY(this)
-            utc_time = this.getCopy();
-            utc_time.toGps();
-            utc_time.toMatlabTime();
+            if this.isUTC
+                time = this.getCopy();
+                time.toGps();
+            else
+                time = this;
+            end
             
-            [year, ~] = datevec(utc_time.mat_time);
-            doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
-            sod = floor((utc_time.mat_time - datenum(year,1,1) - doy +1)*86400) ; % days from the beginning of the year
+            mat_time = time.getMatlabTime;
+            [year, ~] = datevec(mat_time);
+            time = mat_time - datenum(year,1,1);
+            doy = floor(time) + 1; % days from the beginning of the year
+            sod = floor((time - doy +1) * 86400); % days from the beginning of the year
         end
         
         function [year, month, day, hour, minute, second] = getCalEpoch(this, idx)
