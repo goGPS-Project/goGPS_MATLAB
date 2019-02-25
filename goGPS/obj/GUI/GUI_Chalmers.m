@@ -57,9 +57,9 @@ classdef GUI_Chalmers < handle
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window 
-        win         % Handle to this window        
-    end    
+        w_main      % Handle of the main window
+        win         % Handle to this window
+    end
     
     %% PROPERTIES STATUS
     % ==================================================================================================================================================
@@ -77,7 +77,7 @@ classdef GUI_Chalmers < handle
                 this.w_main = w_main;
             end
         end
-    end    
+    end
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -106,11 +106,11 @@ classdef GUI_Chalmers < handle
                 win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-                        
+            
             try
                 main_vb = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GRAY_BG);                
+                    'BackgroundColor', Core_UI.DARKER_GRAY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
@@ -142,7 +142,7 @@ classdef GUI_Chalmers < handle
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
             axis off;
-                        
+            
             Core_UI.insertEmpty(left_tbv, logo_GUI.BG_COLOR);
             left_tbv.Heights = [82 -1];
             
@@ -150,7 +150,7 @@ classdef GUI_Chalmers < handle
             right_tvb = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_GUI.BG_COLOR);
-
+            
             top_bh.Widths = [106 -1];
             
             title = uix.HBox('Parent', right_tvb, ...
@@ -169,21 +169,21 @@ classdef GUI_Chalmers < handle
             Core_UI.insertEmpty(right_tvb, logo_GUI.BG_COLOR)
             txt = this.insertText(right_tvb, {'Ocean loading computation must be required manually:', ...
                 'go to Chalmers website and request a BLQ file using ocean tide model FES2004', ...
-                ... % 'select also to compensate the values for the motion'... 
+                ... % 'select also to compensate the values for the motion'...
                 },  8, [], 'left');
             this.insertLink(right_tvb, 'holt.oso.chalmers.se/loading/', ...
                 'Link:', Core_UI.WHITE, ...
                 'http://holt.oso.chalmers.se/loading/', 8, Core_UI.LBLUE, 'left');
-                        
+            
             right_tvb.Heights = [20 3 -1 20];
             
             string_bh = uix.VBox('Parent', main_vb, ...
                 'Padding', 10, ...
                 'BackgroundColor', GUI_Chalmers.BG_COLOR);
-                       
+            
             txt = this.insertText(string_bh, {'Use the following string for the station locations:'},  9, [], 'left');
             txt.BackgroundColor = logo_GUI.BG_COLOR;
-
+            
             %Core_UI.insertEmpty(string_bh);
             
             j_chalmers = this.insertChalmersBox(string_bh);
@@ -195,11 +195,11 @@ classdef GUI_Chalmers < handle
             % IMPORTANT NOTE:
             % If you are a contributor and your name is not in this list feel free to add your name
             
-            % Manage dimension -------------------------------------------------------------------------------------------            
+            % Manage dimension -------------------------------------------------------------------------------------------
             main_vb.Heights = [100 -1];
             string_bh.Heights = [23 -1 23];
-
-            this.win.Visible = 'on';            
+            
+            this.win.Visible = 'on';
         end
     end
     
@@ -211,7 +211,7 @@ classdef GUI_Chalmers < handle
                 mode = 'rinex';
             end
             
-            str = sprintf('//------------------------------------------------------------------------');     
+            str = sprintf('//------------------------------------------------------------------------');
             str = sprintf('%s\n%s', str, '// Station list for ocean loading computation');
             str = sprintf('%s\n%s',str, '//------------------------------------------------------------------------');
             
@@ -231,9 +231,9 @@ classdef GUI_Chalmers < handle
                         has_no_coo = true;
                         while (i < numel(file_list) && has_no_coo)
                             i = i + 1;
-                            fr = File_Rinex(file_list(i), 100);
+                            fr = File_Rinex(file_list(i), 100, true);
                             has_no_coo = isempty(fr.coo.getXYZ) || all(fr.coo.getXYZ == 0);
-                        end                        
+                        end
                         if fr.isValid()
                             name = fr.marker_name{1};
                             name = name(1:min(4, numel(name)));
@@ -254,17 +254,16 @@ classdef GUI_Chalmers < handle
                     sta_list = core.rec;
                     for r = 1 : size(sta_list, 2)
                         rec = sta_list(~sta_list(:,r).isEmpty, r);
-                            if new_only
-                                has_blq = ~isempty(find(rec.getMarkerName4Ch == Core_Utils.code4Char2Num(name), 1, 'first'));
-                            end
-                            if ~has_blq
-                                if ~isempty(rec)
-                                    xyz = rec.out.getMedianPosXYZ();
-                                    if isempty(xyz)
-                                        xyz = rec.work.getMedianPosXYZ();
-                                    end
-                                    str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3)));
+                        if new_only
+                            has_blq = ~isempty(find(rec.getMarkerName4Ch == Core_Utils.code4Char2Num(name), 1, 'first'));
+                        end
+                        if ~has_blq
+                            if ~isempty(rec)
+                                xyz = rec.out.getMedianPosXYZ();
+                                if isempty(xyz)
+                                    xyz = rec.work.getMedianPosXYZ();
                                 end
+                                str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3)));
                             end
                         end
                     end
@@ -288,7 +287,7 @@ classdef GUI_Chalmers < handle
                 'FontWeight', 'bold', ...
                 'BackgroundColor', GUI_Chalmers.BG_COLOR);
         end
-
+        
         function txt = insertText(parent, title, font_size, color, alignment)
             if nargin < 4 || isempty(color)
                 color = Core_UI.WHITE;
@@ -316,7 +315,7 @@ classdef GUI_Chalmers < handle
                 round(color(1) * 255), round(color(2) * 255), round(color(3) * 255), link_label);
             j_label = javaObjectEDT('javax.swing.JLabel', label_str);
             bg_color = num2cell(GUI_Chalmers.BG_COLOR);
-            j_label.setBackground(java.awt.Color(bg_color{:})); 
+            j_label.setBackground(java.awt.Color(bg_color{:}));
             [hj_label, h_container] = javacomponent(j_label, [10,10,250,20], parent);
             
             % Modify the mouse cursor when hovering on the label
@@ -329,7 +328,7 @@ classdef GUI_Chalmers < handle
             set(hj_label, 'MouseClickedCallback', @(h,e)web(['http://' url], '-browser'))
         end
         
-        function j_chalmers = insertChalmersBox(container)            
+        function j_chalmers = insertChalmersBox(container)
             j_chalmers = com.mathworks.widgets.SyntaxTextPane;
             %codeType = j_chalmers.M_MIME_TYPE;  % j_chalmers.contentType='text/m-MATLAB'
             %j_chalmers.setContentType(codeType);
@@ -341,7 +340,7 @@ classdef GUI_Chalmers < handle
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], container);
             j_chalmers.setEditable(0);
         end
-
+        
         function station_code = getLoadingStationCode(this)
             % Get numeric 4char marker names present in the ocean loading file
             %
@@ -400,6 +399,6 @@ classdef GUI_Chalmers < handle
     
     %% METHODS EVENTS
     % ==================================================================================================================================================
-    methods (Access = public)         
+    methods (Access = public)
     end
 end
