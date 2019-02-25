@@ -1173,6 +1173,7 @@ classdef GNSS_Station < handle
             %                - pwv
             %   rate        rate in seconds, nearest to closest observation 
             %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %   flag_show   if true show debug images
             %
             % SYNTAX
             %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)

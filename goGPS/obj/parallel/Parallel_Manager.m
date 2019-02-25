@@ -615,8 +615,9 @@ classdef Parallel_Manager < Com_Interface
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         if isempty(job_file)
                             tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
-                            this.log.addError(sprintf('Worker %d completed its job with no results',worker_id));
-                            job_id = worker2job(str2double(worker_id));
+                            worker_id_num = str2double(regexp(worker_id, [ '(?<=' Go_Slave.SLAVE_READY_PREFIX ')[0-9]*'], 'match', 'once'));
+                            this.log.addError(sprintf('Worker %d completed its job with no results', worker_id_num));
+                            job_id = worker2job(worker_id_num);
                             tmp.work.flag_currupted = true;
                         else
                             job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
