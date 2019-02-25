@@ -214,28 +214,28 @@ end
             
             
             % Main Panel > tab1 settings
-            this.j_settings = this.insertEditSettings(tab_panel);
+            this.j_settings = this.insertTabEditSettings(tab_panel);
             
             % Main Panel > tab2 remote resource ini
             enable_rri = true;
             if enable_rri
-                this.insertRemoteResource(tab_panel)
+                this.insertTabRemoteResource(tab_panel)
             end
             
             % Main Panel > tab3 data sources
-            this.j_cmd = this.insertCommands(tab_panel);
+            this.j_cmd = this.insertTabCommands(tab_panel);
             
             % Main Panel > tab4 data sources
-            this.insertDataSources(tab_panel);            
+            this.insertTabDataSources(tab_panel);            
             
             % Main Panel > tab5 CRD of the stations
-            this.insertRecSpecificParameters(tab_panel);
+            this.insertTabRecSpecificParameters(tab_panel);
 
             % Main Panel > tab6 processing options
-            this.insertProcessing(tab_panel);
+            this.insertTabProcessing(tab_panel);
             
             % Main Panel > tab7 atmosphere options
-            this.insertAtmosphere(tab_panel);
+            this.insertTabAtmosphere(tab_panel);
             
             % Tabs settings --------------------------------------------------------------------------------------------
             
@@ -341,7 +341,7 @@ end
             this.uip.tab_res = tab;
         end
         
-        function j_cmd = insertCommands(this, container)
+        function j_cmd = insertTabCommands(this, container)
             cmd_bg = Core_UI.LIGHT_GRAY_BG;
             tab = uix.HBox('Parent', container, ...
                 'Padding', 5, ...
@@ -448,7 +448,7 @@ end
             v_left.Heights = [-2 5 -1];            
         end
         
-        function insertDataSources(this, container)
+        function insertTabDataSources(this, container)
             data_selection_bg = Core_UI.LIGHT_GRAY_BG;
             tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
@@ -608,7 +608,7 @@ end
             GUI_Chalmers;            
         end
         
-        function insertProcessing(this, container)
+        function insertTabProcessing(this, container)
             data_selection_bg = Core_UI.LIGHT_GRAY_BG;
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
@@ -690,7 +690,7 @@ end
             ppp_panel = this.insertCorrections(opt_tll); %#ok<NASGU>
                         
             % left top left right
-            pp_panel = this.insertProcessingOptions(opt_tlr);
+            pp_panel = this.insertTabProcessingOptions(opt_tlr);
             Core_UI.insertEmpty(opt_tlr);            
             coo_panel = this.insertCooOptions(opt_tlr);
 
@@ -738,7 +738,7 @@ end
             set( opt_v, 'Heights', [22 22 22] );
         end
         
-        function proc_opt = insertProcessingOptions(this, container)
+        function proc_opt = insertTabProcessingOptions(this, container)
             proc_opt = Core_UI.insertPanelLight(container, 'Options');
             opt_grid = uix.VBox('Parent', proc_opt,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
@@ -895,7 +895,7 @@ end
             opt_grid.Widths = -1;
         end
         
-        function insertRecSpecificParameters(this, container)
+        function insertTabRecSpecificParameters(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
@@ -920,6 +920,11 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             table_hbox.Widths = [-1 120];
                         
+            del_row_but = uicontrol( 'Parent', but_box, ...
+                'String', 'Clear all', ...
+                'TooltipString', 'Remove all the entries', ...
+                'Callback', @this.delCrd); %#ok<NASGU>
+
             add_row_but = uicontrol( 'Parent', but_box, ...
                 'String', 'Add a line', ...
                 'TooltipString', 'Add a new entry to CRD file', ...
@@ -959,7 +964,7 @@ end
                 'TooltipString', 'Show stations on a map', ...
                 'Callback', @this.showCrdMap); %#ok<NASGU>
 
-            but_box.Heights = [25 25 25 -1 25 25 25 15 25];
+            but_box.Heights = [25 25 25 25 -1 25 25 25 15 25];
             this.coo_tbl.Position = [25 40 250 100];
             
             this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
@@ -1144,8 +1149,13 @@ end
             this.coo_tbl.Data = [this.coo_tbl.Data; {'NAME', 0, 0, 0, Core_Reference_Frame.FLAG_STRING{1}, GPS_Time(0).toString('yyyy-mm-dd HH:MM:SS'), GPS_Time(datenum('2099/12/31')).toString('yyyy-mm-dd HH:MM:SS'), 0, 0, 0}];
         end
         
+        function delCrd(this, caller, event)
+            % Clear the CRD table            
+            this.coo_tbl.Data(:, :) = [];
+        end
+        
         function delCrdRow(this, caller, event)
-            % Add a new row to the CRD table            
+            % Del a selected row from the CRD table            
             j_scroll_table = findjobj(this.coo_tbl);
             j_ui_table =  j_scroll_table.getViewport.getView;
             this.coo_tbl.Data(j_ui_table.getSelectedRows + 1, :) = [];
@@ -1161,7 +1171,7 @@ end
             this.coo_tbl.RowName = {};
         end
         
-        function insertAtmosphere(this, container)
+        function insertTabAtmosphere(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
@@ -1246,7 +1256,7 @@ end
             this.uip.tab_atmo = tab;
         end
         
-        function insertRemoteResource(this, container)
+        function insertTabRemoteResource(this, container)
             tab = uix.Grid('Parent', container);
             
             tab_bv = uix.VBox( 'Parent', tab, ...
@@ -1553,7 +1563,7 @@ end
             % this.updateRecList(); % this is done at the end of interface loading
         end
         
-        function j_ini = insertEditSettings(this, container)
+        function j_ini = insertTabEditSettings(this, container)
             tab = uix.Grid('Parent', container);
             
             j_ini = com.mathworks.widgets.SyntaxTextPane;
