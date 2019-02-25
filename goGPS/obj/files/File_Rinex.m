@@ -70,8 +70,24 @@ classdef File_Rinex < Exportable
     end
 
     methods
-        function this = File_Rinex(file_name, verbosity_lev)
-            % Creator of File_Rinex (file_name)
+        function this = File_Rinex(file_name, verbosity_lev, flag_header_only)
+            % Creator of file_rinex simple parser            
+            %
+            % INPUT 
+            %   file_name        file path (can be a cell array)
+            %   verbosity_lev    verbosity level for logging purposes
+            %                    (default = 100)
+            %   flag_header_only if true and first/last epochs are not found 
+            %                    in header do not search them in the file
+            %                    (default = false)
+            %                    this option may leave the obj corrupted (use with care)
+            %
+            % SYNTAX
+            %   File_Rinex (file_name , verbosity_level, flag_header_only)
+            %
+            if nargin < 3 || isempty(flag_header_only)
+                flag_header_only = false;
+            end
             
             if nargin == 0
                 % Empty File_Rinex;
@@ -82,7 +98,7 @@ classdef File_Rinex < Exportable
                 end
                 this.file_name_list = {};
                 this.ext = {};
-                if nargin == 1
+                if nargin == 1 || isempty(verbosity_lev)
                     verbosity_lev = 100;
                 end
                 
@@ -100,11 +116,11 @@ classdef File_Rinex < Exportable
                     end
                 end
                 
-                if nargin == 2
+                if nargin >= 2
                     this.verbosity_lev = verbosity_lev;
                 end
                 
-                this.checkValidity();
+                this.checkValidity(flag_header_only);
             end
         end
         
@@ -134,7 +150,7 @@ classdef File_Rinex < Exportable
     end
 
     methods
-        function checkValidity(this)
+        function checkValidity(this, flag_header_only)
             % Update the status of validity of the files here pointed
             %
             % SYNTAX
@@ -210,47 +226,51 @@ classdef File_Rinex < Exportable
                             
                             this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         end
-                            this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
-                            this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                            
+                        this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
+                        this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
+                        
                         if ~isempty(date_stop)
                             this.last_epoch.addEpoch(date_stop, [], true);
+                            this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         else
-                            % go to the end of the file to search for the last epoch
-                            % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
-                            fseek(fid, -10000, 'eof');
-                            fgetl(fid); % Probably i'm not at the beginning of a line -> disregard the first reading
-                            % Start searching for a valid epoch
-                            line = fgetl(fid);
-                            time = [];
-                            loop_n = 1;
-                            while isempty(time) && ischar(line)
-                                while ischar(line)
-                                    % An epoch line has the second character containing the year of the observation
-                                    % e.g. RINEX 2:     " 15  8 23  0  0  0.0000000  0  8G05G07G28G02G06G09G30G13"
-                                    %      RINEX 2 NAV: "G01 2006 10 01 00 00 00 0.798045657575E-04 0.227373675443E-11 0.000000000000E+00"
-                                    %      RINEX 3:     "> 2016  7 18  0  1  0.0000000  0 36"
-                                    %      RINEX 3 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
-                                    %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
-                                    % this check could not work when comment are present after the header
-                                    if (numel(line) > 20) && ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
-                                        % Check that the read epoch is within 30 days from the first epoch
-                                        % (if it's further in time it's probably a misleading false epoch line)
-                                        time = GPS_Time(line(this.id_date), [], true);
-                                        time_diff = ((time - this.first_epoch.last())/86400);
-                                        if (time_diff < 30) && (time_diff > 0)
-                                            epoch_line = line;
+                            if flag_header_only
+                                this.log.addWarning('Last epoch not found in header, search in file is not enabled\nThe last epoch has not been saved within the  object', this.verbosity_lev);
+                            else
+                                % go to the end of the file to search for the last epoch
+                                % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
+                                fseek(fid, -10000, 'eof');
+                                fgetl(fid); % Probably i'm not at the beginning of a line -> disregard the first reading
+                                % Start searching for a valid epoch
+                                line = fgetl(fid);
+                                time = [];
+                                loop_n = 1;
+                                while isempty(time) && ischar(line)
+                                    while ischar(line)
+                                        % An epoch line has the second character containing the year of the observation
+                                        % e.g. RINEX 2:     " 15  8 23  0  0  0.0000000  0  8G05G07G28G02G06G09G30G13"
+                                        %      RINEX 2 NAV: "G01 2006 10 01 00 00 00 0.798045657575E-04 0.227373675443E-11 0.000000000000E+00"
+                                        %      RINEX 3:     "> 2016  7 18  0  1  0.0000000  0 36"
+                                        %      RINEX 3 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
+                                        %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
+                                        % this check could not work when comment are present after the header
+                                        if (numel(line) > 20) && ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
+                                            % Check that the read epoch is within 30 days from the first epoch
+                                            % (if it's further in time it's probably a misleading false epoch line)
+                                            time = GPS_Time(line(this.id_date), [], true);
+                                            time_diff = ((time - this.first_epoch.last())/86400);
+                                            if (time_diff < 30) && (time_diff > 0)
+                                                epoch_line = line;
+                                            end
                                         end
+                                        line = fgetl(fid);
                                     end
+                                    loop_n = loop_n + 1;
+                                    fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
                                     line = fgetl(fid);
                                 end
-                                loop_n = loop_n + 1;
-                                fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
-                                line = fgetl(fid);
+                                this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
+                                this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                             end
-                            %%
-                            this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                            this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         end
                         fclose(fid);
                         this.is_valid_list(f) = true;                        
