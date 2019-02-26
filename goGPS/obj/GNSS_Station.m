@@ -1964,7 +1964,7 @@ classdef GNSS_Station < handle
             caxis(cax); 
             %colormap(Core_UI.CMAP_51(2:end,:));
             %colormap(flipud(gat(1024, false)));
-            colormap(gat2);
+            colormap(gat2); 
             colorbar;
             set(gca, 'Ydir', 'normal');
             

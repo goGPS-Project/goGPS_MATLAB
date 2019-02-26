@@ -3,13 +3,13 @@ clear
 % min_num_epochs = 7900;
 min_num_epochs = 0;
 GNSS_ZTD = struct();
-in_dir = 'V:\goGPS_data\project\South_Africa\out';
-files = dir(in_dir);
+in_dir = 'V:\goGPS_data\project\South_Africa\out\tropo';
+files = dir(fullfile(in_dir, '*.mat'));
 % estimated relationheoght ztd
 x = [];
 y = [];
 for i = 1:length(files)
-     fname = files(i).name;
+    fname = files(i).name;
     if strfind(fname,'.mat')
         tropo_data = load([ in_dir '/' fname]);
         x = [x; tropo_data.h_ortho*ones(size(tropo_data.ztd(~isnan(tropo_data.ztd))))];
@@ -35,10 +35,10 @@ idx_rem = abs(res) > 2.5;
 A_no_out= A(~idx_rem,:);
 y_no_out = y(~idx_rem);
 p = A_no_out\y_no_out;
- figure; 
- scatter(x,y);
- hold on
- plot(x,A*p);
+figure;
+scatter(x,y);
+hold on
+plot(x,A*p);
 for i = 1:length(files)
     fname = files(i).name;
     if strfind(fname,'.mat') & (length(fname) > 4)
