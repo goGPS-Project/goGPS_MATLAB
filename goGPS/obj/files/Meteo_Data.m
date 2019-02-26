@@ -1204,6 +1204,27 @@ classdef Meteo_Data < handle
                     log.setVerbosityLev(v_lev);
                 end
             end
-        end            
+        end
+        
+        function met2Csv(file_list, file_out)
+            if ~iscell(file_list)
+                file_list = {file_list};
+            end
+            fid = fopen(file_out, 'w');
+            if (fid < 0)
+                Logger.getInstance.addError(sprintf('Not possible to open "%s" for writing', file_out));
+            else
+                fprintf(fid, 'time;temperature;pressure\n');
+                for i = 1 : numel(file_list)
+                    md = Meteo_Data(file_list{i});
+                    time = md.getTime.toString('yyyy-mm-dd HH:MM:SS');
+                    temp = num2str(md.getTemperature,'%+6.2f');
+                    pres = num2str(md.getPressure,'%7.2f');
+                    %uint8(';') = 59
+                    fprintf(fid, '%s', [time char(ones(size(time,1),1)*59) temp char(ones(size(time,1),1)*59) pres char(ones(size(time,1),1)*10)]');
+                end
+                fclose(fid);
+            end
+        end
     end
 end
