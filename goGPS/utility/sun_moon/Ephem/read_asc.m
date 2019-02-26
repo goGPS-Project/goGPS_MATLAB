@@ -9,32 +9,39 @@ if nargin < 3
 end
 
 log = Core.getLogger();
-error = 0;
+error = 1;
 if exist(fn, 'file') == 2
     % found locally
+    error = 0;
     if m.isKey(fn)
         scan = m(fn);
     else
-        EPHFILE = fopen (fn,'r');
+        log.addMessage(log.indent(sprintf('Reading %s...', fn)));
+        EPHFILE = fopen (fn, 'r');
         if EPHFILE ~= -1
             scan = textscan(EPHFILE,'%f');
-            fclose (EPHFILE);
-            scan = scan{1};
-            if length(scan) < 4
-                fprintf(2,'read_asc: Bad textscan of %s\n',fn);
-                error = 9;
+            if isempty(scan)
+                error = 1;
             else
-                if dontSave == false
-                    m(fn) = scan;
+                fclose (EPHFILE);
+                scan = scan{1};
+                if length(scan) < 4
+                    log.addWarning('read_asc: Bad textscan of %s\n',fn);
+                    error = 9;
+                else
+                    if dontSave == false
+                        m(fn) = scan;
+                    end
                 end
             end
         else
             scan = zeros(0,0);
-            fprintf(2,'read_asc: Could not open %s\n',fn);
+            log.addWarning('read_asc: Could not open %s\n',fn);
             error = 10;
         end
     end
-else
+end
+if error > 0
     if isnumeric(denum)
         denum = sprintf('%d',denum);
     end
@@ -43,8 +50,19 @@ else
     if m.isKey(url)
         scan = m(url);
     else
-        log.addMessage(sprintf('Reading %s...', url));
-        [EPHFILE,status] = urlread(url);
+        log.addMessage(log.indent(sprintf('Reading %s...', ['./reserved/JPL/' fn])));
+        % If someone needs to run goGPS from offline for the first time
+        % it can download ftp://ssd.jpl.nasa.gov/pub/eph/planets/ascii/de436/ascp01950.436 
+        % and ascp02050.436, and put them into "./reserved/JPL/"
+        fid = fopen(['./reserved/JPL/' fn], 'r'); 
+        if fid > 0            
+            EPHFILE = fread(fid, '*char')';
+            status = 1;
+            fclose(fid);
+        else
+            log.addMessage(log.indent(sprintf('File not found, downloading it,\nDownloading "%s"...', url)));
+            [EPHFILE, status] = urlread(url);
+        end
         if status == 1 && ~isempty(EPHFILE)
             scan = textscan(EPHFILE,'%f');
             scan = scan{1};
