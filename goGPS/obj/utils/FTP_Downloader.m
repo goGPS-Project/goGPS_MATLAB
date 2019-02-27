@@ -229,8 +229,8 @@ classdef FTP_Downloader < handle
                                         [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
                                         if (status == 0)
                                             status = true;
+                                            delete([fpath{1}]);
                                         end
-                                        delete([fpath{1}]);
                                     catch
                                         this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
                                         status = false;
