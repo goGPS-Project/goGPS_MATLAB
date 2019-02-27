@@ -746,6 +746,19 @@ classdef Core < handle
             log.addMessageToFile('== END OF CONFIG FILE ======================================================================');
             log.addMessageToFile('============================================================================================\n');
         end
+        
+        function exportMat(core)
+            % export the core as a .mat file
+            %
+            % SYNTAX:
+            %    core.exportMat()
+            
+            out_dir = core.state.getOutDir();
+            out_file_name = fullfile(out_dir, sprintf('core_%s.mat',core.creation_time.toString('yyyymmdd_HHMMSS')));
+            save(out_file_name, 'core');
+            core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
+            
+        end
     end
     
     %% METHODS RUN

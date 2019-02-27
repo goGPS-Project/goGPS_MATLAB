@@ -119,6 +119,7 @@ classdef Command_Interpreter < handle
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+        PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_REC_MAT   % Receiver export parameter matlab format
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
         PAR_E_TROPO_SNX % Tropo export paramter sinex format
@@ -329,6 +330,11 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.accepted_values = {};
+            
+            this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
+            this.PAR_E_CORE_MAT.descr = 'CORE_MAT          Save the core as .mat file';
+            this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
+            this.PAR_E_CORE_MAT.accepted_values = {};
                         
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
             this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
@@ -423,7 +429,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -1456,11 +1462,18 @@ classdef Command_Interpreter < handle
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
             end
-
+            
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
-            if ~found_trg
+            do_not_complain = false;
+            for t = 1 : numel(tok)
+                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_CORE_MAT.par ')*$'], 'once'))
+                    Core.getCurrentCore.exportMat();
+                    do_not_complain = true;
+                end
+            end
+            if ~found_trg & ~do_not_complain
                 this.log.addWarning('No target found -> nothing to do');
-            else                
+            else
                 for r = id_trg % different for each target
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
@@ -1504,6 +1517,7 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                             end
+                            
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
                         end
@@ -1515,14 +1529,14 @@ classdef Command_Interpreter < handle
     %
     %% METHODS UTILITIES (PRIVATE)
     % ==================================================================================================================================================
-    methods (Access = public)       
+    methods (Access = public)
         function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
             % Extract from a set of tokens the receivers to be used
             %
             % INPUT
             %   rec     list of rec objects
             %   tok     list of tokens(parameters) from command line (cell array)
-            %   type    type of receavers to search for ('T'/'R'/'M') 
+            %   type    type of receavers to search for ('T'/'R'/'M')
             %
             % SYNTAX
             %   [id_rec, found, matching_rec] = this.getMatchingRec(rec, tok, type)
@@ -1539,10 +1553,10 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [id_sss, found] = this.getMatchingSession(tok)            
-                    state = Core.getCurrentSettings(); 
-                    n_key = state.getSessionCount();
-                    [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
+            %   [id_sss, found] = this.getMatchingSession(tok)
+            state = Core.getCurrentSettings();
+            n_key = state.getSessionCount();
+            [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
         end
         
         function [id_trg, found] = getMatchingTarget(this, tok)
@@ -1552,7 +1566,7 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [id_sss, found] = this.getMatchingSession(tok)            
+            %   [id_sss, found] = this.getMatchingSession(tok)
             [id_trg, found] = getMatchingKey(this, tok, 'T', 10000); % 10000 maximum number of targets
         end
         
