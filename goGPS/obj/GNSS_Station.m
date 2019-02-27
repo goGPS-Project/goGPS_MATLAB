@@ -1161,7 +1161,7 @@ classdef GNSS_Station < handle
             [tropo, time] = sta_list.getTropoPar('zhd');
         end
 
-        function [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = getTropoMap(sta_list, par_name, rate, flag_show)
+        function [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = getTropoMap(sta_list, par_name, rate, flag_show)
             % Get interpolated map of tropospheric parameter
             % Resolution is determined by the dtm in use (2 * 0.029 degrees)
             % The map is computer only on ground (> 10m) + 1 degree of margin
@@ -1297,6 +1297,10 @@ classdef GNSS_Station < handle
             w_bar = Core.getWaitBar();
             w_bar.createNewBar('Generating maps of troposphere');
             w_bar.setBarLen(numel(epoch_list));
+            
+            tropo_clim = tropo_res + h_correction(1);
+            tropo_clim = [perc(tropo_clim(:),0.005) perc(tropo_clim(:),0.995)];
+            tropo_clim(2,:) = [perc(tropo(:),0.005) perc(tropo(:),0.995)];
 
             if flag_show
                 subplot(1,2,1);
@@ -1306,7 +1310,7 @@ classdef GNSS_Station < handle
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
-                caxis([perc(tropo(:),0.005) perc(tropo(:),0.995)]);
+                caxis(tropo_clim(1,:));
                 colorbar;
                 th = title(sprintf([par_name ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
                     
@@ -1317,7 +1321,7 @@ classdef GNSS_Station < handle
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
-                caxis([perc(tropo(:),0.005) perc(tropo(:),0.995)]);
+                caxis(tropo_clim(2,:));
                 colormap(gat);
                 colorbar;
                 th2 = title(ax2, 'at ground level', 'FontSize', 22);                
@@ -1331,7 +1335,7 @@ classdef GNSS_Station < handle
                     if strmatch(method, 'fun')
                         tmp(mask) = funInterp2(x_list, y_list, xyu(id_ok(:, epoch(e)),1), xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
                     else
-                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method);
+                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
                         tmp(mask) = finterp(x_list, y_list);
                     end
                     tropo_grid(:,:,i) = tmp + h_correction(1);
@@ -1950,7 +1954,7 @@ classdef GNSS_Station < handle
             maximizeFig(fig_handle);
             fig_handle.Visible = 'off';
 
-            [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate);
+            [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
             if flag_dtm == 1
                 tropo_grid = tropo_grid + tropo_height_correction;
             end
@@ -1960,8 +1964,8 @@ classdef GNSS_Station < handle
             end
             imh = imagesc(x_grid, y_grid, tropo_grid(:,:,1));
             imh.AlphaData = ~isnan(tropo_grid(:,:,1));
-            cax = [perc(serialize(min(min(tropo_grid))),0.005) perc(serialize(max(max(tropo_grid))),0.995)];
-            caxis(cax); 
+            %tropo_clim = [perc(serialize(min(min(tropo_grid))),0.005) perc(serialize(max(max(tropo_grid))),0.995)];
+            caxis(tropo_clim(1,:)); 
             %colormap(Core_UI.CMAP_51(2:end,:));
             %colormap(flipud(gat(1024, false)));
             colormap(gat2); 
@@ -1982,13 +1986,12 @@ classdef GNSS_Station < handle
             th = title(sprintf([par_str ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
             
             if flag_dtm == 2  
-                cax = [max(0, cax(1) + min(tropo_height_correction(:))) (cax(2) + max(tropo_height_correction(:)))];
-                caxis(cax);
+                %tropo_clim(2,:) = [max(0, tropo_clim(1) + min(tropo_height_correction(:))) (tropo_clim(2) + max(tropo_height_correction(:)))];
                 % uniform axes
                 ax2 = subplot(1,2,2);
                 imh2 = imagesc(x_grid, y_grid, tropo_grid(:,:,1) + tropo_height_correction);
                 imh2.AlphaData = ~isnan(tropo_grid(:,:,1));
-                caxis(cax);
+                caxis(tropo_clim(2,:)); 
                 %colormap(Core_UI.CMAP_51(2:end,:));
                 %colormap(flipud(gat(1024, false)));
                 colormap(gat2);                            
@@ -2010,6 +2013,7 @@ classdef GNSS_Station < handle
             Core_UI.insertLogo(fig_handle, 'SouthEast');
 
             if flag_export
+                warning off;                
                 im = {};
                 fig_handle.Visible = 'off';
                 Core.getLogger.addMarkedMessage('Exporting video');
@@ -2055,7 +2059,8 @@ classdef GNSS_Station < handle
                 fprintf('%s',char(8 * ones(1,11)));
                 close(video_out);
                 Core.getLogger.addStatusOk('Done ^_^');
-                close(fig_handle)
+                close(fig_handle);
+                warning on;
             end
         end
 
