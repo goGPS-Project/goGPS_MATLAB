@@ -754,8 +754,9 @@ classdef Core < handle
             %    core.exportMat()
             
             out_dir = core.state.getOutDir();
-            core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
             out_file_name = fullfile(out_dir, sprintf('core_%s.mat',core.creation_time.toString('yyyymmdd_HHMMSS')));
+            core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
+
             save(out_file_name, 'core', '-v7.3');
             
         end

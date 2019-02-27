@@ -2063,8 +2063,10 @@ end
                 n_ok = sum(fr.is_valid_list);
                 n_ko = sum(~fr.is_valid_list);
                 
-                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
-                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+                %this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
+                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
+                %this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
                 this.rec_tbl.Data{r,3} = n_ok;
                 this.rec_tbl.Data{r,4} = n_ko;
             end
