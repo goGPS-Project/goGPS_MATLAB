@@ -236,7 +236,7 @@ classdef GUI_Chalmers < handle
                         end
                         if fr.isValid()
                             name = fr.marker_name{1};
-                            name = name(1:min(4, numel(name)));
+                            name = upper(name(1:min(4, numel(name))));
                             
                             if new_only
                                 has_blq = ~isempty(find(station_code == Core_Utils.code4Char2Num(name), 1, 'first'));
@@ -255,7 +255,7 @@ classdef GUI_Chalmers < handle
                     for r = 1 : size(sta_list, 2)
                         rec = sta_list(~sta_list(:,r).isEmpty, r);
                         if new_only
-                            has_blq = ~isempty(find(rec.getMarkerName4Ch == Core_Utils.code4Char2Num(name), 1, 'first'));
+                            has_blq = ~isempty(find(station_code == Core_Utils.code4Char2Num(upper(rec.getMarkerName4Ch)), 1, 'first'));
                         end
                         if ~has_blq
                             if ~isempty(rec)
@@ -386,7 +386,7 @@ classdef GUI_Chalmers < handle
                 %txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))
                 
                 % Convert 4ch marker to num
-                station_code = Core_Utils.code4Char2Num(txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1)));
+                station_code = Core_Utils.code4Char2Num(upper(txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))));
             else
                 station_code = [];
             end
