@@ -2239,7 +2239,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 all_sat = [];
                 for e = 1 : n_epo
                     n_sat = this.n_spe(e);
-                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * (69 + has_cr), 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
                     sat = sat(1:n_sat * 3);
                     all_sat = [all_sat sat]; %#ok<AGROW>
                 end

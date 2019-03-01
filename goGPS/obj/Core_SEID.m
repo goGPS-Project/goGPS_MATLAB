@@ -169,8 +169,8 @@ classdef Core_SEID < handle
                     
                     % It is necessary to better sync satellites in view
                     % this part of the code needs to be improved
-                    trg_pr_gf = nan(trg(t).length, max(trg_go_id));
-                    trg_ph_gf = nan(trg(t).length, max(trg_go_id));
+                    trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
+                    trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
                     for s = 1 : numel(trg_go_id)
                         lat_sat = nan(size(id_sync{t},1), numel(ref));
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
@@ -341,7 +341,7 @@ classdef Core_SEID < handle
                     [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
                                         
                     % It is necessary to better sync satellites in view
-                    iono_trg = nan(trg(t).length, max(trg_go_id));
+                    iono_trg = nan(trg(t).time.length, max(trg_go_id));
                     for s = 1 : numel(trg_go_id)
                         lat_sat = nan(size(id_sync{t},1), numel(ref));
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
