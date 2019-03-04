@@ -1141,6 +1141,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function addOutliers(this, id_ko, remove_short_arcs)
+            % add outlier to outlier idx
+            %
+            % SYNTAX:
+            %    this.addOutlier(id_ko, remove_short_arcs)
             if nargin < 3
                 remove_short_arcs = false;
             end
@@ -6116,6 +6120,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function oceanLoading(this, sgn)
             %  add or subtract ocean loading from observations
+            % 
+            % SYNTAX:
+            %    this.oceanLoading(sgn)
             ol_corr = this.computeOceanLoading();
             if isempty(ol_corr)
                 this.log.addWarning('No ocean loading displacements matrix present for the receiver')
@@ -6450,6 +6457,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function applyAtmLoad(this)
+            % apply atmospherich loading to the measurements
+            %
+            % SYNTAX
+            %   this.applyAtmLoad()
             if this.atm_load_delay_status == 0  && this.state.isAtmLoading
                 this.log.addMarkedMessage('Applying atmospheric loading effect');
                 this.atmLoad(1);
@@ -6458,6 +6469,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remAtmLoad(this)
+            % remove atmospherich loading to the measurements
+            %
+            % SYNTAX
+            %   this.remAtmLoad()
             if this.atm_load_delay_status == 1
                 this.log.addMarkedMessage('Removing atmospheric loading effect');
                 this.atmLoad(-1);
@@ -7292,19 +7307,27 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function adjustPrAmbiguity(this)
-            % sometimes the receiver might fail to resolve the pseudorange ambifuity
+            % fix the pseudoranges ambiguity, (this is very rare but for
+            % very bad receivers like smarthphones mught happen)
+            % 
+            % SYNTAX:
+            %  this.adjustPrAmbiguity()
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs;
             dt = median(zero2nan(sensor),2,'omitnan');
             sensor = sensor - repmat(dt,1,size(pr,2));
             pr_amb = 1e-3*Core_Utils.V_LIGHT;
-            pr_amb_idx =  abs(sensor) > 1e4 & fracFNI(sensor/(pr_amb)) < 1e2;
+            pr_amb_idx =  abs(sensor) > 1e4 & fracFNI(sensor/(pr_amb)) < 5e2;
             pr(pr_amb_idx) = pr(pr_amb_idx) - round(sensor(pr_amb_idx)/pr_amb)*pr_amb;
             this.setPseudoRanges(pr, id_pr);
         end
         
         function [dpos, s0] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
+            % perform static positioning usign code measurements
+            %
+            % SYNTAX
+            %    [dpos, s0] = this.codeStaticPositioning(id_sync, cut_off, num_reweight)
             ls = LS_Manipulator(this.cc);
             if nargin < 2
                 if ~isempty(this.id_sync)
