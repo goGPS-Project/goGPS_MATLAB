@@ -79,13 +79,30 @@ classdef Core_Reference_Frame < handle
             this.is_valid = true;
             try
                 fname = this.state.getCrdFile();
-                if ~isempty(fname)
-                    fid = fopen([fname],'r');
+                this.load(fname);
+            catch
+                this.is_valid = false;
+                log = Logger.getInstance();
+                log.addError('CRD file seems to be corrupted');
+            end
+        end
+        
+         function load(this, crd_file)
+            % initilize the reference frame object loading coordinates from
+            % crd file
+            %
+            % SYNTAX:
+            % this.init()
+            
+            this.clear();
+            this.is_valid = true;
+                if ~isempty(crd_file)
+                    fid = fopen([crd_file],'r');
                     if fid == -1
-                        this.log.addWarning(sprintf('Core RF: File %s not found', fname));
+                        this.log.addWarning(sprintf('Core RF: File %s not found', crd_file));
                         return
                     end
-                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fname)));
+                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', crd_file)));
                     txt = fread(fid,'*char')';
                     fclose(fid);
                     
@@ -129,24 +146,22 @@ classdef Core_Reference_Frame < handle
                             if l > 7
                                 this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
                                 if l > 9
-                                    st_date(i) = datenum([parts{9} ' ' parts{10}], 'yyyy-mm-dd HH:MM:SS');
+                                    re_date(i) = datenum([parts{9} ' ' parts{10}]);
                                     if l > 11
-                                        en_date(i) = datenum([parts{11} ' ' parts{12}], 'yyyy-mm-dd HH:MM:SS');
+                                        st_date(i) = datenum([parts{11} ' ' parts{12}]);
+                                        if l > 13
+                                            en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                                        end
                                     end
                                 end
                             end
                         end
                     end
+                    this.ref_epoch            = GPS_Time(re_date);
                     this.start_validity_epoch = GPS_Time(st_date);
-                    this.ref_epoch = this.start_validity_epoch;
                     en_date(en_date == 0)     = datenum(2099, 1,1);
                     this.end_validity_epoch   = GPS_Time(en_date);
                 end
-            catch
-                this.is_valid = false;
-                log = Logger.getInstance();
-                log.addError('CRD file seems to be corrupted');
-            end
         end
         
         function clear(this)
