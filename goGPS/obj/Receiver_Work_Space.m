@@ -6911,7 +6911,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function applyPCV(this)
-            if (this.pcv_delay_status == 0) && this.state.isRecPCV
+            if (this.pcv_delay_status == 0)
                 this.log.addMarkedMessage('Applying PCV corrections');
                 this.applyremPCV(1);
                 this.pcv_delay_status = 1; % applied
@@ -7746,7 +7746,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                         this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                         % smooth clock estimation
-                        this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                        if perc(abs(this.dt), 0.95) > 1e-7 % 30 meters : is it only useful to realling receivers that have a large drift from the nomnila value
+                            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                        end
                         
                         % update azimuth elevation
                         this.updateAzimuthElevation();
