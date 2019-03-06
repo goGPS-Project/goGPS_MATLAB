@@ -462,13 +462,13 @@ classdef Command_Interpreter < handle
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
             this.KEY_FOR.rec = '';
-            this.KEY_FOR.key = 'S';
+            this.KEY_FOR.key = 'ST';
             this.KEY_FOR.par = [];
 
             this.KEY_PAR.name = {'PAR', 'par'};
             this.KEY_PAR.descr = ['Parallel section start (run on targets)' new_line 'use T$ as target in this section'];
             this.KEY_PAR.rec = '';
-            this.KEY_PAR.key = 'TP';
+            this.KEY_PAR.key = 'STP';
             this.KEY_PAR.par = [];
 
             this.KEY_ENDFOR.name = {'ENDFOR', 'END_FOR', 'end_for'};
@@ -643,136 +643,210 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
     methods         
-        function exec(this, rec, cmd_list, level)
+        function exec(this, core, cmd_list)
             % run a set of commands (divided in cells of cmd_list)
             %
             % SYNTAX:
-            %   this.exec(rec, cmd_list, level)
+            %   this.exec(rec, core, cmd_list)
             if nargin < 3
                 state = Core.getState();
                 cmd_list = state.getCommandList();
             end
             if ~iscell(cmd_list)
                 cmd_list = {cmd_list};
-            end            
-            [cmd_list, ~, ~, ~, trg_list, cmd_lev] = this.fastCheck(cmd_list);
-            if nargin < 4 || isempty(level)
-                level = cmd_lev;
             end
 
-            t0 = tic();
-            
-            % run each line
+            cur_session = core.getCurrentSession;
+            [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
+
+            t0 = tic();            
+            % for each command
             l = 0;
             while l < numel(cmd_list)
                 l = l + 1;
             
                 tok = regexp(cmd_list{l},'[^ ]*', 'match'); % get command tokens
+                
                 this.log.newLine();
                 this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
                 t1 = tic;
                 this.log.simpleSeparator([], [0.4 0.4 0.4]);
                 
                 % Init parallel controller when a parallel section is found
+                skip_line = false;
                 switch tok{1}
+                    % Parallel execution ---------------------------------------------------------------------------------------------------
                     case this.KEY_PAR.name 
-                        [id_pass, found] = this.getMatchingRec(rec, tok, 'P');
-                        if ~found
-                            id_pass = [];
+                        [id_pass, found] = this.getMatchingRec(core.rec, tok, 'P');
+                        [~, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
+                        [~, flag_par_session] = this.getMatchingSession(tok);
+                        
+                        if flag_par_target || flag_par_session
+                            if ~found
+                                id_pass = [];
+                            end
+                            this.core.activateParallelWorkers(flag_par_target, id_pass);
+                        else
+                            this.log.addWarning('A parallel section have been requested\n but no targets or sessions are specified');
                         end
-                        this.core.activateParallelWorkers(id_pass);
+                    % For loop -------------------------------------------------------------------------------------------------------------
+                    case this.KEY_FOR.name
+                        [id_trg, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
+                        [id_sss, flag_par_session] = this.getMatchingSession(tok);
+                                                    
+                        l = find(execution_block == execution_block(l), 1, 'last');
+                        if flag_par_target
+                            % for loop on each target
+                            for t = id_trg
+                                cmd_list_loop = cmd_list(execution_block == execution_block(l));
+                                cmd_list_loop(1) = [];
+                                for c = 1 : numel(cmd_list_loop)
+                                    % substitute $ with the current target
+                                    cmd_list_loop{c} = strrep(cmd_list_loop{c},'$', num2str(t));
+                                end
+                                this.exec(core, cmd_list_loop);
+                            end
+                            
+                            if flag_push(execution_block(l) + 1)
+                                for r = 1 : length(core.rec)
+                                    % if requested push results
+                                    core.rec(r).work.pushResult();
+                                end
+                            end
+                            skip_line = true;
+                        elseif flag_par_session
+                            % for loop on each session
+                            last_sss = 0;
+                            for s = id_sss
+                                if s ~= last_sss
+                                    is_empty = core.prepareSession(s);
+                                end
+                                
+                                last_sss = s;
+                                if ~is_empty
+                                    cmd_list_loop = cmd_list(execution_block == execution_block(l));
+                                    cmd_list_loop(1) = [];
+                                    for c = 1 : numel(cmd_list_loop)
+                                        % substitute § with the current target
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
+                                    end
+                                    this.exec(core, cmd_list_loop);
+                                    
+                                    if flag_push(execution_block(l) + 1)
+                                        for r = 1 : length(core.rec)
+                                            % if requested push results
+                                            core.rec(r).work.pushResult();
+                                        end
+                                    end
+                                    
+                                end                                
+                            end
+                            skip_line = true;
+                        else
+                            this.log.addWarning('A loop section have been requested\n but no targets or sessions are specified');
+                        end
+                    otherwise
+                        flag_par_target = false;
+                        flag_par_session = false;
                 end
                 
-                n_workers = 0;
-                if ~isempty(trg_list{l})
-                    % The user wants to go parallel, but are workers active?
-                    gom = Parallel_Manager.getInstance;
-                    n_workers = gom.getNumWorkers;
-                    if n_workers == 0
-                        this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');                        
+                if ~skip_line
+                    n_workers = 0;
+                    if flag_par_target || flag_par_session
+                        % The user wants to go parallel, but are workers active?
+                        gom = Parallel_Manager.getInstance;
+                        n_workers = gom.getNumWorkers;
+                        if n_workers == 0
+                            this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');
+                        end
                     end
-                end
-                % go parallel
-                % Get the parallel target => remove not available targets
-                tmp = trg_list{l};
-                trg_list{l} = tmp(tmp <= numel(rec));
-                
-                % find the last command of this parallel section
-                last_par_id = find((cmd_lev(l : end) - cmd_lev(l)) < 0, 1, 'first');
-                if isempty(last_par_id)
-                    last_par_id = numel(cmd_lev);
-                else
-                    last_par_id = last_par_id + l - 2;
-                end
-                par_cmd_id = (l + 1) : last_par_id;
-                
-                if n_workers > 0
-                    par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
+                    % go parallel
+                    % Get the section target => remove not available targets
+                    tmp = trg_list{l};
+                    trg_list{l} = tmp(tmp <= numel(core.rec));
                     
-                    gom.orderProcessing(par_cmd_list, trg_list{l});
-                    l = par_cmd_id(end);
-                    rec = Core.getRecList();
-                else
-                    if ~isempty(trg_list)
-                        if ~isempty(trg_list{l})
-                            rec_list = sprintf('%d%s',trg_list{l}(1), sprintf(',%d',trg_list{l}(2:end)));
-                            for c = (l + 1) : last_par_id
-                                cmd_list{c} = strrep(cmd_list{c}, '$', rec_list);
+                    % find the last command of this section
+                    last_par_id = find((level(l : end) - level(l)) < 0, 1, 'first');
+                    if isempty(last_par_id)
+                        last_par_id = numel(level);
+                    else
+                        last_par_id = last_par_id + l - 2;
+                    end
+                    par_cmd_id = (l + 1) : last_par_id;
+                    
+                    if n_workers > 0
+                        par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
+                        
+                        if flag_parallel(l) == 1 % it means parallel session (2 is parallel targets)
+                            gom.orderProcessing(par_cmd_list, 1, sss_list{l});
+                            gom.importParallelSessions();
+                            % And now I have to read the (ordered) sessions
+                        elseif flag_parallel(l) == 2
+                            gom.orderProcessing(par_cmd_list, 2, trg_list{l});
+                        end
+                        l = par_cmd_id(end);
+                    else
+                        if ~isempty(trg_list)
+                            if ~isempty(trg_list{l})
+                                rec_list = sprintf('%d%s',trg_list{l}(1), sprintf(',%d',trg_list{l}(2:end)));
+                                for c = (l + 1) : last_par_id
+                                    cmd_list{c} = strrep(cmd_list{c}, '$', rec_list);
+                                end
                             end
                         end
+                        
+                        switch upper(tok{1})
+                            case this.CMD_PINIT.name                % PINIT
+                                this.runParInit(tok(2:end));
+                            case this.CMD_PKILL.name                % PKILL
+                                this.runParKill(tok(2:end));
+                            case this.CMD_LOAD.name                 % LOAD
+                                this.runLoad(core.rec, tok(2:end));
+                            case this.CMD_EMPTY.name                % EMPTY
+                                this.runEmpty(core.rec, tok(2:end));
+                            case this.CMD_EMPTYWORK.name            % EMPTYW
+                                this.runEmptyWork(core.rec, tok(2:end));
+                            case this.CMD_EMPTYOUT.name             % EMPTYO
+                                this.runEmptyOut(core.rec, tok(2:end));
+                            case this.CMD_AZEL.name                 % AZEL
+                                this.runUpdateAzEl(core.rec, tok(2:end));
+                            case this.CMD_BASICPP.name              % BASICPP
+                                this.runBasicPP(core.rec, tok(2:end));
+                            case this.CMD_PREPRO.name               % PREP
+                                this.runPrePro(core.rec, tok(2:end));
+                            case this.CMD_CODEPP.name               % CODEPP
+                                this.runCodePP(core.rec, tok(2:end));
+                            case this.CMD_PPP.name                  % PPP
+                                this.runPPP(core.rec, tok(2:end));
+                            case this.CMD_REMSAT.name               % REM SAT
+                                this.runRemSat(core.rec, tok(2:end));
+                            case this.CMD_REMOBS.name               % REM OBS
+                                this.runRemObs(core.rec, tok(2:end));
+                            case this.CMD_NET.name                  % NET
+                                this.runNet(core.rec, tok(2:end));
+                            case this.CMD_SEID.name                 % SEID
+                                this.runSEID(core.rec, tok(2:end));
+                            case this.CMD_REMIONO.name              % REMIONO
+                                this.runRemIono(core.rec, tok(2:end));
+                            case this.CMD_KEEP.name                 % KEEP
+                                this.runKeep(core.rec.getWork(), tok(2:end));
+                            case this.CMD_SYNC.name                 % SYNC
+                                this.runSync(core.rec, tok(2:end));
+                            case this.CMD_OUTDET.name               % OUTDET
+                                this.runOutDet(core.rec, tok);
+                            case this.CMD_SHOW.name                 % SHOW
+                                this.runShow(core.rec, tok, level(l));
+                            case this.CMD_EXPORT.name               % EXPORT
+                                this.runExport(core.rec, tok, level(l));
+                            case this.CMD_PUSHOUT.name              % PUSHOUT
+                                this.runPushOut(core.rec, tok);
+                        end
                     end
-                    
-                    switch upper(tok{1})
-                        case this.CMD_PINIT.name                % PINIT
-                            this.runParInit(tok(2:end));
-                        case this.CMD_PKILL.name                % PKILL
-                            this.runParKill(tok(2:end));
-                        case this.CMD_LOAD.name                 % LOAD
-                            this.runLoad(rec, tok(2:end));
-                        case this.CMD_EMPTY.name                % EMPTY
-                            this.runEmpty(rec, tok(2:end));
-                        case this.CMD_EMPTYWORK.name            % EMPTYW
-                            this.runEmptyWork(rec, tok(2:end));
-                        case this.CMD_EMPTYOUT.name            % EMPTYO
-                            this.runEmptyOut(rec, tok(2:end));
-                        case this.CMD_AZEL.name                 % AZEL
-                            this.runUpdateAzEl(rec, tok(2:end));
-                        case this.CMD_BASICPP.name              % BASICPP
-                            this.runBasicPP(rec, tok(2:end));
-                        case this.CMD_PREPRO.name               % PREP
-                            this.runPrePro(rec, tok(2:end));
-                        case this.CMD_CODEPP.name               % CODEPP
-                            this.runCodePP(rec, tok(2:end));
-                        case this.CMD_PPP.name                  % PPP
-                            this.runPPP(rec, tok(2:end));
-                        case this.CMD_REMSAT.name               % REM SAT
-                            this.runRemSat(rec, tok(2:end));
-                        case this.CMD_REMOBS.name               % REM OBS
-                            this.runRemObs(rec, tok(2:end));
-                        case this.CMD_NET.name                  % NET
-                            this.runNet(rec, tok(2:end));
-                        case this.CMD_SEID.name                 % SEID
-                            this.runSEID(rec, tok(2:end));
-                        case this.CMD_REMIONO.name              % REMIONO
-                            this.runRemIono(rec, tok(2:end));
-                        case this.CMD_KEEP.name                 % KEEP
-                            this.runKeep(rec.getWork(), tok(2:end));
-                        case this.CMD_SYNC.name                 % SYNC
-                            this.runSync(rec, tok(2:end));
-                        case this.CMD_OUTDET.name               % OUTDET
-                            this.runOutDet(rec, tok);
-                        case this.CMD_SHOW.name                 % SHOW
-                            this.runShow(rec, tok, level(l));
-                        case this.CMD_EXPORT.name               % EXPORT
-                            this.runExport(rec, tok, level(l));
-                        case this.CMD_PUSHOUT.name              % PUSHOUT
-                            this.runPushOut(rec, tok);
+                    if toc(t1) > 1
+                        this.log.newLine();
+                        this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
+                        this.log.newLine();
                     end
-                end
-                if toc(t1) > 1
-                    this.log.newLine();
-                    this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
-                    this.log.newLine();
                 end
             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
@@ -1711,7 +1785,7 @@ classdef Command_Interpreter < handle
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
-        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push] = fastCheck(this, cmd_list)
+        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push, flag_parallel] = fastCheck(this, cmd_list)
             % Check a cmd list keeping the valid commands only
             %
             % INPUT
@@ -1744,6 +1818,8 @@ classdef Command_Interpreter < handle
             sss_list = cell(numel(cmd_list), 1);
             trg_list = cell(numel(cmd_list), 1);
             key_lev = zeros(1, numel(cmd_list));
+            is_par = 0; % is the current line in a parallel block?
+            flag_parallel = zeros(numel(cmd_list), 1);
             for c = 1 : numel(cmd_list)
                 [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
                 if (nargout > 2)
@@ -1752,20 +1828,31 @@ classdef Command_Interpreter < handle
                         sss_id_counter = sss_id_counter + 1;
                         lev = lev + 1;
                         tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
-                        sss = this.getMatchingSession(tok);
+                        [tmp, sss_found] = this.getMatchingSession(tok);
+                        if sss_found
+                            sss = tmp;
+                        end
+                        [trg, trg_found] = this.getMatchingTarget(tok);
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_PAR.id)
                         % I need to loop
                         par_id_counter = par_id_counter + 1;
                         lev = lev + 1;
                         tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
-                        trg = this.getMatchingTarget(tok);
+                        [tmp, sss_found] = this.getMatchingSession(tok);
+                        if sss_found
+                            sss = tmp;
+                        end
+                        [trg, trg_found] = this.getMatchingTarget(tok);
+                        is_par = sss_found + 2 * trg_found;                        
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_ENDPAR.id)
                         % I need to loop
+                        is_par = 0;
                         par_id_counter = par_id_counter + 1;
                         lev = lev - 1;
                         trg = [];
+                        sss = sss(end);
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
                         % I need to loop
@@ -1774,6 +1861,8 @@ classdef Command_Interpreter < handle
                         sss = sss(end);
                     end
                 end
+                
+                flag_parallel(c) = is_par;
                 
                 if err_list(c) > 0
                     this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));

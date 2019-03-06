@@ -501,6 +501,16 @@ classdef Core < handle
             core = Core.getInstance(core);
         end
 
+        function setLogger(log)
+            % Set the pointer to the Logger Object
+            %
+            % SYNTAX
+            %   Core.setLogger(log)
+            
+            core = Core.getInstance(false, true);
+            core.log = log;
+        end
+        
         function setAdvanced(mode)
             % Set the status of usage (normal/advanced)
             %
@@ -721,16 +731,17 @@ classdef Core < handle
             %this.log.setColorMode(c_mode);
         end        
         
-        function activateParallelWorkers(this, id_rec2pass)
+        function activateParallelWorkers(this, flag_par_target, id_rec2pass)
             % Call the activation of the receivers
             %
             % INPUT
-            %   id_rec2pass     id of the work receiver to broadcast to the receivers
+            %   flag_par_target  flag to indentify parallel target jobs
+            %   id_rec2pass      id of the work receiver to broadcast to the receivers
             %
             % SYNTAX
-            %   this.activateParallelWorkers(id_rec2pass)
+            %   this.activateParallelWorkers(flag_send_sky, id_rec2pass)
             this.gom = Parallel_Manager.getInstance;
-            this.gom.activateWorkers(id_rec2pass);
+            this.gom.activateWorkers(flag_par_target, id_rec2pass);
         end
     end
     
@@ -880,76 +891,33 @@ classdef Core < handle
             this.mn.initSession(time_lim.first, time_lim.last);            
         end
         
-        function go(this, session_num)
+        function go(this)
             % Run a session and execute the command list in the settings
             %
             % SYNTAX
             %   this.go(session_num)
             
             t0 = tic;
-            if nargin == 1
-                session_list = 1 : this.state.getSessionCount();
-            else
-                session_list = session_num;
-            end
+            
             % init refererecne frame object            
             this.rf.init();
             
-            [cmd_list, ~, execution_block, sss_list, ~, sss_level, flag_push] = this.cmd.fastCheck(this.state.cmd_list);
+            this.exec(this.state.cmd_list);
             
-            cmd_line = 1;
-            last_sss = 0;
-            for eb = unique(execution_block) % for each execution block
-                t1 = tic;
-                if cmd_line <= numel(sss_list)
-                    sessions = sss_list{cmd_line};
-                    this.session_list = sessions;
-                    this.net = [];
-                    for s = sessions
-                        if s ~= last_sss
-                            is_empty = this.prepareSession(s);
-                        end
-                        last_sss = s;
-                        if ~is_empty
-                            this.exec(cmd_list(execution_block == eb), sss_level(execution_block == eb));
-                            cmd_line = find(execution_block == eb, 1, 'last') + 1;
-                            
-                            % to eventually reset the Out
-                            % for r = 1 : numel(this.rec)
-                            %     this.rec(r).resetOut();
-                            % end
-                            if flag_push(eb+1)
-                                for i = 1 : length(this.rec)
-                                    this.rec(i).work.pushResult();
-                                end
-                            end
-                        end
-                    end
-                    
-                    this.log.newLine;
-                    this.log.simpleSeparator([], 'Green');
-                    if ~isempty(sessions)
-                        this.log.addMessage(sprintf('End of session loop from %d to %d in %.3f seconds', sessions(1), sessions(end), toc(t1)));
-                    end
-                end
-            end            
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
             this.log.newLine;          
         end
         
-        function exec(this, cmd_list, level)
+        function exec(this, cmd_list)
             % Execute a list of commands on the current session
             %
             % SYNTAX
-            %   this.exec(cmd_list, level)
+            %   this.exec(cmd_list)
             % 
             % EXAMPLE
             %   core.exec({'LOAD T*', 'PREPRO T*', 'PPP T*'})
-            if nargin < 3 || isempty(level)
-                level = zeros(size(cmd_list,1), 1);
-            end
-            this.cmd.exec(this.rec, cmd_list, level);
+            this.cmd.exec(this, cmd_list);
         end                    
     end
     

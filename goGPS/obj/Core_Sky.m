@@ -82,8 +82,6 @@ classdef Core_Sky < handle
     end
     
     properties (Access = private)
-        log                   % logger handler
-        state                 % state handler
         cc                    % constellation collector handler
     end
     
@@ -91,8 +89,6 @@ classdef Core_Sky < handle
         % Creator
         function this = Core_Sky(force_clean)
             % Core object creator
-            this.state = Core.getCurrentSettings();
-            this.log = Logger.getInstance();
             this.cc = Core.getCurrentSettings().getConstellationCollector;
             this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
             if nargin == 1 && force_clean
@@ -127,8 +123,8 @@ classdef Core_Sky < handle
                 start_date = start_date.first();
             end
             if ~isempty(start_date)
-                eph_f_name   = this.state.getEphFileName(start_date, stop_date);
-                clock_f_name = this.state.getClkFileName(start_date, stop_date);
+                eph_f_name   = Core.getState.getEphFileName(start_date, stop_date);
+                clock_f_name = Core.getState.getClkFileName(start_date, stop_date);
                 clock_is_present = true;
                 for i = 1:length(clock_f_name)
                     clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
@@ -146,7 +142,7 @@ classdef Core_Sky < handle
                     this.toCOM();
                     this.clearPolyCoeff();
                     this.clearSunMoon();
-                    this.log.addMarkedMessage('Importing ephemerides...');
+                    Core.getLogger.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
                         [~,name,ext] = fileparts(eph_f_name{i});
                         gps_time = getFileStTime([name ext]);
@@ -160,18 +156,18 @@ classdef Core_Sky < handle
                     this.toAPC();
                     this.clearPolyCoeff();
                     this.clearSunMoon();
-                    this.log.addMarkedMessage('Importing broadcast ephemerides...');
+                    Core.getLogger.addMarkedMessage('Importing broadcast ephemerides...');
                     this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
                     this.coord_type = 1; % antenna phase center
                 end
                 
-                if this.state.isIonoKlobuchar
-                    f_name = this.state.getIonoFileName(start_date, stop_date);
+                if Core.getState.isIonoKlobuchar
+                    f_name = Core.getState.getIonoFileName(start_date, stop_date);
                     this.importIono(f_name{1});
                 end
                 
                 if not(clock_in_eph)
-                    this.log.addMarkedMessage('Importing satellite clock files...');
+                    Core.getLogger.addMarkedMessage('Importing satellite clock files...');
                     for i = 1:length(clock_f_name)
                         [~,name,ext] = fileparts(clock_f_name{i});
                         gps_time = getFileStTime([name ext]);
@@ -184,19 +180,19 @@ classdef Core_Sky < handle
                 end
                 
                 % load PCV
-                this.log.addMarkedMessage('Loading antennas phase center variations');
-                this.loadAntPCV(this.state.getAtxFile);
+                Core.getLogger.addMarkedMessage('Loading antennas phase center variations');
+                this.loadAntPCV(Core.getState.getAtxFile);
                 % pass to antenna phase center if necessary
                 if this.coord_type == 0
                     this.toAPC();
                 end
                 
                 % load erp
-                this.log.addMarkedMessage('Importing Earth Rotation Parameters');
-                this.importERP(this.state.getErpFileName(start_date, stop_date),start_date);
+                Core.getLogger.addMarkedMessage('Importing Earth Rotation Parameters');
+                this.importERP(Core.getState.getErpFileName(start_date, stop_date),start_date);
                 
                 % load dcb
-                this.log.addMarkedMessage('Importing Differential code biases');
+                Core.getLogger.addMarkedMessage('Importing Differential code biases');
                 this.importDCB();
             end
         end
@@ -460,7 +456,7 @@ classdef Core_Sky < handle
                         str = sprintf('%s, %c%02d', str, ss(s), prn(s));
                     end
                     str = str(3:end);
-                    this.log.addWarning(sprintf('Satellite position problem:\nOne of the time bonds (%s , %s)\nfor sat %s\nis too far from valid ephemerids \nPositions might be inaccurate ',t_st.toString(0),t_end.toString(0), str));
+                    Core.getLogger.addWarning(sprintf('Satellite position problem:\nOne of the time bonds (%s , %s)\nfor sat %s\nis too far from valid ephemerids \nPositions might be inaccurate ',t_st.toString(0),t_end.toString(0), str));
                 end
             end
         end
@@ -587,10 +583,10 @@ classdef Core_Sky < handle
             f_sp3 = fopen(filename_SP3,'r');
             
             if (f_sp3 == -1)
-                this.log.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
+                Core.getLogger.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
                 
                 txt = fread(f_sp3,'*char')';
                 version = txt(2);
@@ -621,7 +617,7 @@ classdef Core_Sky < handle
                     if empty_file
                         this.coord_rate = coord_rate;
                     else
-                        this.log.addWarning(['Coord rate not match: ' num2str(coord_rate)]);
+                        Core.getLogger.addWarning(['Coord rate not match: ' num2str(coord_rate)]);
                         return
                     end
                     
@@ -753,10 +749,10 @@ classdef Core_Sky < handle
             f_clk = fopen(filename_clk,'r');
             [~, fname, ~] = fileparts(filename_clk);
             if (f_clk == -1)
-                this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
+                Core.getLogger.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_clk))));
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_clk))));
                 t0 = tic;
                 if isempty(this.clock)
                     empty_clk = true;
@@ -823,7 +819,7 @@ classdef Core_Sky < handle
                         if isempty(clk_rate)
                             clk_rate = median(diff(sat_time.getGpsTime()));
                             if not(empty_clk) & clk_rate ~= this.clock_rate
-                                this.log.addWarning('Clock rate in file different from one in Core_Sky\n Discarding old data\n');
+                                Core.getLogger.addWarning('Clock rate in file different from one in Core_Sky\n Discarding old data\n');
                                 this.clearClock();
                                 empty_clk = true;
                                 this.clock_rate = clk_rate;
@@ -852,8 +848,8 @@ classdef Core_Sky < handle
                         this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
                     end
                 end
-                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);
-                this.log.newLine(100);
+                Core.getLogger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);
+                Core.getLogger.newLine(100);
             end
         end
         
@@ -887,7 +883,7 @@ classdef Core_Sky < handle
             Xrt = [];
             Yrt = [];
             for f = 1 : length(filename)
-                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename{f}))));
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename{f}))));
                 fid = fopen(filename{f},'rt');
                 
                 if fid == -1
@@ -996,7 +992,7 @@ classdef Core_Sky < handle
         end
         
         function importDCB(this)
-            dcb_name = this.state.getDcbFile();
+            dcb_name = Core.getState.getDcbFile();
             if iscell(dcb_name)
                 dcb_name = dcb_name{1};
             end
@@ -1010,7 +1006,7 @@ classdef Core_Sky < handle
         function importCODEDCB(this)
             state = Core.getCurrentSettings();
             
-            [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, state.getCC);
+            [dcb] = load_dcb(Core.getState.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, state.getCC);
             %%% assume that CODE dcb contains only GPS and GLONASS
             %GPS C1W - C2W
             idx_w1 =  this.getGroupDelayIdx('GC1W');
@@ -1043,7 +1039,7 @@ classdef Core_Sky < handle
             % CAS MGEX DCB files
             
             % open SINEX dcb file
-            file_name = this.state.getDcbFile();
+            file_name = Core.getState.getDcbFile();
             % geteting object mean times
             time_st = this.time_ref_clock.getCopy();
             time_end = time_st.getCopy();
@@ -1054,15 +1050,15 @@ classdef Core_Sky < handle
             file_name = file_name{1};
             
             if isempty(file_name)
-                this.log.addWarning('No dcb file found');
+                Core.getLogger.addWarning('No dcb file found');
                 return
             end
             fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('Core_Sky: File %s not found', file_name));
+                Core.getLogger.addWarning(sprintf('Core_Sky: File %s not found', file_name));
                 return
             end
-            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', file_name)));
             txt = fread(fid,'*char')';
             fclose(fid);
             
@@ -1195,7 +1191,7 @@ classdef Core_Sky < handle
                         gd(end-1:end) = []; % t aking off lagrange multiplier
                     end
                     if sum(isnan(gd)) > 0 || sum(abs(gd) == Inf) > 0
-                        this.log.addWarning('Invalid set of DCB ignoring them')
+                        Core.getLogger.addWarning('Invalid set of DCB ignoring them')
                     else
                         dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
                         this.group_delays(prn, dcb_col) = - gd * Core_Utils.V_LIGHT * 1e-9;
@@ -1203,14 +1199,14 @@ classdef Core_Sky < handle
                 end
             end
             if ~isempty(bad_sat_str)
-                this.log.addWarning(sprintf('One or more DCB are missing in "%s":\n%s\nthe bias will be eliminated only using iono-free combination', File_Name_Processor.getFileName(file_name), bad_sat_str));
+                Core.getLogger.addWarning(sprintf('One or more DCB are missing in "%s":\n%s\nthe bias will be eliminated only using iono-free combination', File_Name_Processor.getFileName(file_name), bad_sat_str));
             end
             if ~isempty(bad_ant_id)
                 str = sprintf(', %c%c%c', bad_ant_id');
                 if size(bad_ant_id, 1) > 1
-                    this.log.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
                 else
-                    this.log.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
                 end
             end
         end
@@ -1289,7 +1285,7 @@ classdef Core_Sky < handle
                 if this.coord_type == 0
                     return %already ceneter of amss
                 end
-                this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
+                Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to center of mass');
                 this.COMtoAPC(-1);
                 if isempty(this.coord_pol_coeff)
                     this.computeSatPolyCoeff(10, 11);
@@ -1318,7 +1314,7 @@ classdef Core_Sky < handle
                 if this.coord_type == 1
                     return %already antennna phase center
                 end
-                this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
+                Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
                 this.COMtoAPC(1);
                 if isempty(this.coord_pol_coeff)
                     this.computeSatPolyCoeff(10, 11);
@@ -1381,7 +1377,7 @@ classdef Core_Sky < handle
             end
             
             if isempty(freq)
-                this.log.addWarning(sprintf('No PCV model for %s frequency',[ant_id(:,1) band]),100);
+                Core.getLogger.addWarning(sprintf('No PCV model for %s frequency',[ant_id(:,1) band]),100);
                 return
             end
             if this.coord_type == 0
@@ -1412,7 +1408,7 @@ classdef Core_Sky < handle
                 pcv_delay = pco_delay - pcv_val;
             else
                 pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency (receivers)
-                this.log.addWarning('Do you have PCV values for satellites that depend on az?\n Copy here the implementation of getPCV in Receiver');
+                Core.getLogger.addWarning('Do you have PCV values for satellites that depend on az?\n Copy here the implementation of getPCV in Receiver');
                 %find azimuth indexes
                 az_pcv = sat_pcv.tablePCV_azi;
                 min_az = az_pcv(1);
@@ -1532,13 +1528,23 @@ classdef Core_Sky < handle
             n_coeff_set = size(this.coord, 1) - n_obs + 1; %86400/this.coord_rate+1;
             n_sat = size(this.coord, 2);
             this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
-            for s = 1 : n_sat
-                for i = 1 : n_coeff_set
-                    for j = 1 : 3
-                        % this.coord_pol_coeff(: , j, s, i) = (A' * A) \ A' * squeeze(this.coord(i : i + n_obs - 1, s, j));
-                        this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + n_obs - 1, s, j));
-                    end
-                end
+            % There is an equivalent implementation but a lot faster => see below
+            % Keep these lines as a reference because results are slightly different (numerical differences)
+            %for s = 1 : n_sat
+            %    for i = 1 : n_coeff_set
+            %        for j = 1 : 3
+            %            % this.coord_pol_coeff(: , j, s, i) = (A' * A) \ A' * squeeze(this.coord(i : i + n_obs - 1, s, j));
+            %            this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + n_obs - 1, s, j));
+            %        end
+            %    end
+            %end
+            % Equivalent implementation but a lot faster
+            tmp_coord = permute(this.coord, [1 3 2]);
+            c_size = size(tmp_coord);
+            a_size = size(A);
+            inv_A = inv(A);
+            for i = 1 : n_coeff_set
+                this.coord_pol_coeff(: , :, :, i) = reshape(inv_A * reshape(tmp_coord(i : i + n_obs - 1, :, :), a_size(1), c_size(2) * c_size(3)), a_size(1), c_size(2), c_size(3));
             end
         end
         
@@ -1610,7 +1616,7 @@ classdef Core_Sky < handle
             %
             % DESCRIPTION: interpolate coordinates of staellites
             if isempty(this.time_ref_coord)
-                this.log.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave/nTrying to load needed data')
+                Core.getLogger.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave/nTrying to load needed data')
                 this.initSession(t.first(), t.last())
             end
             n_sat = size(this.coord, 2);
@@ -1953,7 +1959,7 @@ classdef Core_Sky < handle
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
-            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
             
             this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
             this.ant_pco = zeros(1, this.cc.getNumSat(),3);
@@ -1990,7 +1996,7 @@ classdef Core_Sky < handle
             %%% check if clock rate and coord rate are compatible
             rate_ratio=this.coord_rate/this.clock_rate;
             if abs(rate_ratio-round(rate_ratio)) > 0.00000001
-                this.log.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
+                Core.getLogger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
                 return
             end
             %%% check if sun and moon positions ahve been computed

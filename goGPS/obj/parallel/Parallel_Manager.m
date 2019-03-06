@@ -84,6 +84,7 @@ classdef Parallel_Manager < Com_Interface
             end
         end
     end
+    
     %% METHOD DESTRUCTOR
     % ==================================================================================================================================================
     methods (Access = private)
@@ -114,7 +115,7 @@ classdef Parallel_Manager < Com_Interface
             else
                 if isempty(unique_instance_gom__)
                     if nargin < 1 || isempty(com_dir)
-                        com_dir = fullfile(pwd, 'com');
+                        com_dir = Core.getState.getComDir;
                     end
                     this = Parallel_Manager(com_dir);
                     unique_instance_gom__ = this;
@@ -274,7 +275,7 @@ classdef Parallel_Manager < Com_Interface
             end
         end
         
-        function n_workers = activateWorkers(this, id_rec2pass)
+        function n_workers = activateWorkers(this, flag_send_sky, id_rec2send)
             % Get the available workers,
             % Activate them by sending state and core_sky objects
             %
@@ -283,10 +284,13 @@ classdef Parallel_Manager < Com_Interface
             %   this.worker_id  (implicit) id of the available ready workers
             %
             % SYNTAX
-            %   n_workers = this.activateWorkers();
+            %   n_workers = this.activateWorkers(flag_send_sky, id_rec2send);
             
             % Checking available slaves
             t0 = tic();
+            if nargin < 1 || isempty(flag_send_sky)
+                flag_send_sky = true;
+            end
             this.deleteMsg('*'); % delete all master massages
             this.deleteMsg(Go_Slave.MSG_DIE, true);
             this.deleteMsg(Go_Slave.MSG_ACK, true);
@@ -320,11 +324,17 @@ classdef Parallel_Manager < Com_Interface
             
             % Activate answering workers
             this.worker_id = {};
+            if flag_send_sky
+                slave_type = Go_Slave.SLAVE_TARGET_PREFIX;
+            else
+                slave_type = Go_Slave.SLAVE_SESSION_PREFIX;
+            end
+            
             for w = 1 : n_workers
                 delete(fullfile(this.getComDir, slave_list(w).name));
                 slave_id = regexp(slave_list(w).name, [Go_Slave.SLAVE_WAIT_PREFIX, '[0-9]*'], 'match');
                 slave_id = slave_id{1};
-                this.worker_id{w} = [Go_Slave.SLAVE_READY_PREFIX sprintf('%03d_', w)];
+                this.worker_id{w} = [Go_Slave.SLAVE_READY_PREFIX slave_type sprintf('%03d_', w)];
                 msg = [slave_id, '_' this.MSG_ASKWORK this.worker_id{w} '_'];
                 this.sendMsg(msg, sprintf('"%s" you will be known as "%s', slave_id, this.worker_id{w}));
             end
@@ -332,41 +342,51 @@ classdef Parallel_Manager < Com_Interface
             if n_workers == 0
                 this.log.addError('I need slaves! Please create some slaves!\nsee Parallel_Manager.createWorkers(n);');
             else
-                if ~isempty(id_rec2pass)
-                    this.sendReceiver(id_rec2pass);
+                if ~isempty(id_rec2send)
+                    this.sendReceiver(id_rec2send);
                 end
-                this.sendState();
-                this.sendSkyData();
+                this.sendState(flag_send_sky);
+                if flag_send_sky
+                    this.sendSkyData();
+                end
                 n_workers = this.waitForWorkerAck(n_workers);
                 this.deleteMsg('*');
-                this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
+                this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX, slave_type '*'], true);
                 delete(fullfile(this.getComDir, '*.mat'));
             end
             this.log.addMarkedMessage(sprintf('Parallel init took %.3f seconds', toc(t0)));
         end
         
-        function orderProcessing(this, cmd_list, trg_list)
+        function orderProcessing(this, cmd_list, par_type, list)
             % order to the slaves to execute some work
             %
             % SINTAX
-            %   orderProcessing(this, cmd_list, trg_list)
+            %   orderProcessing(this, cmd_list, sss_list, trg_list)
             %
             % EXAMLE
-            %   gom.orderProcessing(par_cmd_list, trg_list{l});
+            %   gom.orderProcessing(par_cmd_list, sss_list, trg_list{l});
+
             this.sendCommandList(cmd_list);
+            core = Core.getCurrentCore();
+            
+%             switch par_type 
+%                 case 1
+%                     sss_list = list;
+%                 case 2
+%                     trg_list = list;
+%                     % Get info on the curret session
+%                     [cur_sss, sss_list, sss_id] = Core.getCurrentSession();
+%                     log = core.getLogger();
+%             end
             
             worker_stack = this.worker_id;
             worker2job = zeros(size(worker_stack)); % keep track of which job is assigned to which worker
-            missing_job = trg_list;
+            missing_job = list;
             completed_job = [];
             active_jobs = 0;
             
-            % Get info on the curret session
-            core = Core.getCurrentCore();
-            [cur_sss, sss_list, sss_id] = Core.getCurrentSession();
-            log = core.getLogger();
             
-            while numel(completed_job) < numel(trg_list)
+            while numel(completed_job) < numel(list)
                 % Send work to slaves
                 parallel_job = 1 : min(numel(worker_stack), numel(missing_job));
                 t = 0;
@@ -376,29 +396,91 @@ classdef Parallel_Manager < Com_Interface
                     % send an order to a worker
                     msg = [worker_stack{w}, this.MSG_DO num2str(missing_job(t), '%04d') '_'];
                     this.sendMsg(msg, sprintf('"%s" process rec %d', worker_stack{w}(1 : end-1), missing_job(t)));
-                    worker2job(str2double(worker_stack{w}(8:10))) = missing_job(t);
+                    worker2job(str2double(worker_stack{w}(10:12))) = missing_job(t);
                     active_jobs = active_jobs + 1;
                 end
                 missing_job(1 : t) = []; % remove the currently executing jobs
                 worker_stack(parallel_job) = []; %  remove the active worker from the worker stack               
                 
-                % Before checking for finished job I can maybe start computeing the orbits for the next session!!!
-                test_parallel_session_load = false;
-                if (sss_id < numel(sss_list)) && test_parallel_session_load
-                    vl = log.getVerbosityLev(); log.setVerbosityLev(log.WARNING_VERBOSITY_LEV);
-                    core.prepareSession(sss_list(sss_id + 1), true);
-                    log.setVerbosityLev(vl);
-                else
+                % Before checking for finished job I can maybe start computing the orbits for the next session!!!
+                % EXPERIMENTAL: internal usage only for target parallelism
+                %test_parallel_session_load = false;
+                %if (sss_id < numel(sss_list)) && test_parallel_session_load
+                %    vl = log.getVerbosityLev(); log.setVerbosityLev(log.WARNING_VERBOSITY_LEV);
+                %    core.prepareSession(sss_list(sss_id + 1), true);
+                %    log.setVerbosityLev(vl);
+                %else
                     % wait for complete job
                     pause(0.1);
-                end
+                %end
                 
                 % check for complete jobs
-                [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack, worker2job);
+                [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack, worker2job, par_type);
             end
             delete(fullfile(this.getComDir, 'cmd_list.mat'));
             this.sendMsg(this.MSG_RESTART, 'My slaves, your job is done!\n        > There is no time for resting!\n        > Wait for other jobs!');
         end
+        
+        function importParallelSessions(this)
+            core = Core.getCurrentCore();
+            log = core.getLogger();
+            state = Core.getState();
+            n_rec = core.state.getRecCount;
+            
+            % get available computed sessions
+            sss_path = fullfile(this.getComDir, ['job*' Go_Slave.SLAVE_READY_PREFIX Go_Slave.SLAVE_SESSION_PREFIX '*.mat']);
+            sss_file = dir(sss_path);
+            % Create receiver list
+            if isempty(core.rec)
+                clear rec;
+                for r = 1 : n_rec
+                    rec(r) = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0); %#ok<AGROW>
+                end
+                core.rec = rec;
+                clear rec;
+            end
+            
+            % Assign all the new work to current rec;
+            for s = 1 : numel(sss_file)
+                %%
+                sss_id = regexp(sss_file(s).name, '(?<=job)[0-9]*', 'match', 'once');
+                if ~isempty(sss_id)
+                    sss_id = str2double(sss_id);
+                    w_id = regexp(sss_file(s).name, ['(?<=' Go_Slave.SLAVE_READY_PREFIX Go_Slave.SLAVE_SESSION_PREFIX ')[0-9]*'], 'match', 'once');
+                    if ~isempty(w_id)
+                        w_id = str2double(w_id);
+                    end
+                    
+                    tmp = load(fullfile(this.getComDir, sss_file(s).name));
+                    
+                    % Check that all the results are present in the session file
+                    if isfield(tmp, 'rec') && (numel(tmp.rec) == n_rec) && isfield(tmp, 'atmo')
+                        % Import atmosphere as computed by rec
+                        core.setAtmosphere(tmp.atmo);
+                        log.addMessage(log.indent(sprintf('Importing session %d computed by worker %d', sss_id, w_id)));
+                        for r = 1 : n_rec
+                            if core.rec(r).isEmpty
+                                % The first time (computed session) import the entire object
+                                core.rec(r) = tmp.rec(r);
+                            else
+                                core.rec(r).work = tmp.rec(r).work;
+                                core.rec(r).work.parent = core.rec(r); % reset handler to the parent object
+                            end
+                            core.rec(r).initHandles(); % reset other handles
+                            core.rec(r).work.initHandles(); % reset other handles
+                            core.rec(r).work.pushResult;
+                        end
+                    else
+                        log.addWarning(sprintf('Session %d have been computed by worker %d but seems empty or corrupted', sss_id, w_id));
+                    end
+                end
+                log.addMarkedMessage('All the parallel session present in the com folder have been imported');
+            end
+            
+            % delete all the imported files!
+            delete(sss_path);
+        end
+
     end
     
     methods (Access = private)
@@ -452,11 +534,11 @@ classdef Parallel_Manager < Com_Interface
             %   this.worker_id  (implicit) id of the available ready workers
             %
             % SYNTAX
-            %   n_workers = this.activateWorkers();
+            %   n_workers = this.testWorkers();
             
             % Checking available slaves
             t0 = tic();
-            this.deleteMsg('*'); % delete all master massages
+            this.deleteMsg('*'); % delete all master messages
             this.deleteMsg(Go_Slave.MSG_DIE, true);
             this.deleteMsg(Go_Slave.MSG_ACK, true);
             this.deleteMsg([Go_Slave.MSG_BORN, Go_Slave.SLAVE_READY_PREFIX '*'], true);
@@ -512,11 +594,15 @@ classdef Parallel_Manager < Com_Interface
             this.sendMsg(this.BRD_CMD, 'Broadcast state');
         end
         
-        function sendState(this)
+        function sendState(this, slave_type)
             % Send state to the slaves
             %
+            % INPUT
+            %   slave_type  1 for target workers
+            %               0 for session workers
+            %
             % SYNTAX
-            %   this.sendState()
+            %   this.sendState(slave_type)
             %
             
             % Save state on file
@@ -524,7 +610,7 @@ classdef Parallel_Manager < Com_Interface
             state = Core.getCurrentSettings();
             cur_session = Core.getCurrentSession();
             [rin_list, met_list] = Core.getRinLists();
-            save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
+            save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list', 'slave_type');
             this.sendMsg(this.BRD_STATE, 'Broadcast state');
         end
         
@@ -556,7 +642,6 @@ classdef Parallel_Manager < Com_Interface
             save(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
             this.sendMsg(this.BRD_REC, 'Broadcast receiver');
         end
-
         
         function n_workers = waitForWorkerAck(this, n_slaves)
             % Wait for the workers to load the state and core sky
@@ -584,8 +669,8 @@ classdef Parallel_Manager < Com_Interface
             this.log.addMarkedMessage(sprintf('%d workers ready', n_workers));
             this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
         end
-        
-        function [active_jobs, completed_job, worker_stack] = waitCompletedJob(this, active_jobs, completed_job, worker_stack, worker2job)
+                
+        function [active_jobs, completed_job, worker_stack] = waitCompletedJob(this, active_jobs, completed_job, worker_stack, worker2job, par_type)
             % Wait for the workers for sending new jobs
             %
             % INPUT
@@ -610,53 +695,66 @@ classdef Parallel_Manager < Com_Interface
                     slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_JOBREADY '*']));
                     n_job_done = numel(slave_list);
                     for j = 1 : numel(slave_list)
-                        worker_id = regexp(slave_list(j).name, [ Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
+                        worker_id = regexp(slave_list(j).name, [ Go_Slave.SLAVE_READY_PREFIX '[T|S]_[0-9]*'], 'match', 'once');
                         % get the result stored into jobXXXX_WORKER_YYYY.mat
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
-                        if isempty(job_file)
-                            tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
-                            worker_id_num = str2double(regexp(worker_id, [ '(?<=' Go_Slave.SLAVE_READY_PREFIX ')[0-9]*'], 'match', 'once'));
-                            this.log.addError(sprintf('Worker %d completed its job with no results', worker_id_num));
-                            job_id = worker2job(worker_id_num);
-                            tmp.work.flag_currupted = true;
-                        else
-                            job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
-                            try
-                                tmp = load(fullfile(this.getComDir(), job_file(1).name));
-                            catch
-                                pause(1); % due to sync problems the file could not be immediately ready,
-                                % try to read it again
-                                tmp = load(fullfile(this.getComDir(), job_file(1).name));
-                            end
-                        end
-                        if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
-                            this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
-                        else
-                            this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), tmp.rec.state.getCurSession), 9));
-                        end
-                        if core.rec(job_id).out.isEmpty
-                            % import all
-                            tmp.rec.out = core.rec(job_id).out;
-                            tmp.rec.out.parent = tmp.rec;
-                            tmp.rec.out.initHandles();
-                            core.rec(job_id) = tmp.rec;
-                            % relink singletons
-                            core.rec(job_id).log = Core.getLogger;
-                            core.rec(job_id).state = Core.getState;
-                            % import results in out
-                        else
-                            % import only work
-                            tmp.rec.work.initHandles();
-                            core.rec(job_id).work = tmp.rec.work;
-                            core.rec(job_id).work.parent = core.rec(job_id);
-                        end
-                        if core.rec(job_id).work.flag_currupted
-                            this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
+                        switch par_type
+                            case 1 % if it's a session parallelism:
+                                worker_id_num = str2double(regexp(worker_id, [ '(?<=' Go_Slave.SLAVE_READY_PREFIX '[T|S]_)[0-9]*'], 'match', 'once'));
+                                job_id = worker2job(worker_id_num);
+                                if isempty(job_file)
+                                    this.log.addError(sprintf('Worker %d completed its job with no results', worker_id_num));
+                                else
+                                    this.log.addMessage(sprintf('Worker %d completed its job %d', worker_id_num, job_id));
+                                end
+                            case 2 % if it's a target parallelism:
+                                % Start to import the processed target while data is still computed
+                                
+                                if isempty(job_file)
+                                    tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
+                                    worker_id_num = str2double(regexp(worker_id, [ '(?<=' Go_Slave.SLAVE_READY_PREFIX '[T|S]_)[0-9]*'], 'match', 'once'));
+                                    this.log.addError(sprintf('Worker %d completed its job with no results', worker_id_num));
+                                    job_id = worker2job(worker_id_num);
+                                    tmp.work.flag_currupted = true;
+                                else
+                                    job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
+                                    try
+                                        tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                                    catch
+                                        pause(1); % due to sync problems the file could not be immediately ready,
+                                        % try to read it again
+                                        tmp = load(fullfile(this.getComDir(), job_file(1).name));
+                                    end
+                                end
+                                if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
+                                    this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
+                                else
+                                    this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), tmp.rec.state.getCurSession), 9));
+                                end
+                                if core.rec(job_id).out.isEmpty
+                                    % import all
+                                    tmp.rec.out = core.rec(job_id).out;
+                                    tmp.rec.out.parent = tmp.rec;
+                                    tmp.rec.out.initHandles();
+                                    core.rec(job_id) = tmp.rec;
+                                    % relink singletons
+                                    core.rec(job_id).log = Core.getLogger;
+                                    core.rec(job_id).state = Core.getState;
+                                    % import results in out
+                                else
+                                    % import only work
+                                    tmp.rec.work.initHandles();
+                                    core.rec(job_id).work = tmp.rec.work;
+                                    core.rec(job_id).work.parent = core.rec(job_id);
+                                end
+                                if core.rec(job_id).work.flag_currupted
+                                    this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
+                                end
+                            this.log.addMessage(this.log.indent(sprintf('Deleting %s',fullfile(this.getComDir(), job_file(1).name))),200);
+                            delete(fullfile(this.getComDir(), job_file(1).name));
                         end
                         % core.rec(job_id).work.pushResult();
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
-                        delete(fullfile(this.getComDir(), job_file(1).name));
-                        this.log.addMessage(this.log.indent(sprintf('Deleting %s',fullfile(this.getComDir(), job_file(1).name))),200);
                         completed_job = [completed_job; job_id]; %#ok<AGROW>
                         worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
                     end
@@ -682,6 +780,10 @@ classdef Parallel_Manager < Com_Interface
         end
         
         function killThemAll(this)
+            % Send a kill message to close all the parallel workers/slaves
+            % 
+            % SYNTAX
+            %   this.killThemAll
             this.sendMsg(this.MSG_KILLALL, 'As the mad king said: Kill them all!!!');
             pause(1);
             this.deleteMsg(Go_Slave.MSG_DIE, true);
@@ -690,6 +792,11 @@ classdef Parallel_Manager < Com_Interface
         end
         
         function resurgit(this, n_workers, verbosity)
+            % Try to revive crashed and idle workers -> free them 
+            % and put them back into the stack of slaves
+            %
+            % SYNTAX
+            %   this.resurgit(n_workers, verbosity)
             if nargin < 3 || isempty(verbosity)
                 verbosity = true;
             end
@@ -708,19 +815,19 @@ classdef Parallel_Manager < Com_Interface
                     this.log.addMessage(this.log.indent('Unuseful scum restart your life!'));
                 end
             end
-                this.sendMsg(this.MSG_RESTART, iif(verbosity, 'There is no time for resting!\n          Wait for other jobs!', ''));
-                if n_workers == 0
-                    % Wait for slaves whos id have been deleted, but they're still alive
-                    pause(0.2);
-                end
-                n_workers = n_workers + n_old_slaves;
+            this.sendMsg(this.MSG_RESTART, iif(verbosity, 'There is no time for resting!\n          Wait for other jobs!', ''));
+            if n_workers == 0
+                % Wait for slaves whos id have been deleted, but they're still alive
+                pause(0.2);
+            end
+            n_workers = n_workers + n_old_slaves;
             this.waitForSlaves(n_workers, 1);
             this.deleteMsg(Go_Slave.MSG_DIE, true);
             this.deleteMsg('*');
         end
     end
     %
-    %% METHODS INIT
+    %% METHOD INIT
     % ==================================================================================================================================================
     methods
         function initHandles(this)
