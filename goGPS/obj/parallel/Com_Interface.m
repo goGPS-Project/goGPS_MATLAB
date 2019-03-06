@@ -57,6 +57,7 @@ classdef Com_Interface < handle
 
     properties
         COM_DIR = './com';
+        working_dir = '';
     end    
 
     methods  (Abstract)
@@ -73,7 +74,7 @@ classdef Com_Interface < handle
             %   com_dir = this.getComDir()
             %
             if isempty(this.COM_DIR)
-                com_dir = fullfile(pwd, 'com');
+                com_dir = Core.getState.getComDir();
             else
                 com_dir = this.COM_DIR;
             end
@@ -125,7 +126,7 @@ classdef Com_Interface < handle
             if ~exist(this.getComDir, 'file')
                 mkdir(this.getComDir);
             end
-            fid = fopen(fullfile(this.getComDir, [msg, this.id]), 'w');
+            fid = fopen(fullfile(this.getComDir, this.working_dir, [msg, this.id]), 'w');
             if fid > 0
                 fclose(fid);
                 if nargin > 2 && ~isempty(msg_feedback)
@@ -175,7 +176,7 @@ classdef Com_Interface < handle
                     msg_type = [msg_type this.id];
                 end
                 msg_type = strrep(msg_type, '**', '*');
-                delete(fullfile(this.getComDir, msg_type));
+                delete(fullfile(this.getComDir, this.working_dir, msg_type));
             end            
         end
 
