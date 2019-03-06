@@ -124,9 +124,18 @@ classdef Network < handle
                 export_clk = false;
             end
             
-            is_empty_recs = ~this.rec_list.hasPhases_mr;
+           
+            if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
+                lid_ref = true(size(this.net_id));
+            else
+                % convert to logical
+                lid_ref = false(numel(this.rec_list),1);
+                [~, id_ref] = intersect(this.net_id, id_ref);
+                lid_ref(id_ref) = true;
+            end
+             is_empty_recs = ~this.rec_list.hasPhases_mr;
             n_valid_rec = sum(~is_empty_recs);
-            n_valid_ref = sum(~is_empty_recs(id_ref));
+            n_valid_ref = sum(~is_empty_recs(lid_ref));
             if n_valid_ref < numel(id_ref)
                 this.log.addError('One or more reference stations for Network solution are missing! Skipping NET');
             elseif (n_valid_rec < 2)
@@ -345,7 +354,7 @@ classdef Network < handle
                     this.pushBackInReceiver(s0, res, ls, l_fixed);
                     %%% from widelane l1 to l1 l2
                     if this.state.getAmbFixNET > 1 && false
-                        this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb);
+                        this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
                     end
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
@@ -718,7 +727,7 @@ classdef Network < handle
             % intilaize a matrix to store the widelanes
             this.wl_mats = {};
             for r = 1 : n_r
-                this.wl_mats{r} = nan(this.rec_list(r).work.length,n_sat_tot);
+                this.wl_mats{r} = nan(this.rec_list(r).work.time.length,n_sat_tot);
             end
             
             for sys_c = sys_cs
@@ -786,7 +795,7 @@ classdef Network < handle
                         rec_with_no_cod2 = sum(b2code_aval(:,:,1),2) == 0;
                         rec_excluded = rec_with_no_cod1 | rec_with_no_cod2;
                         if sum(rec_excluded) > 0
-                            for r = find(rec_excluded)
+                            for r = serialize(find(rec_excluded))'
                                 log_str = sprintf('Receiver %s excluded from widelane fixing because does not have:', this.rec_list(r).getMarkerName4Ch);
                                 if rec_with_no_cod1(r)
                                     log_str = [log_str sprintf(' code %s on band %s', track_1,b1)];

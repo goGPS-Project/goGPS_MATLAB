@@ -7909,7 +7909,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         ls.Astack2Nstack();
                         [x, res, s0, ~, l_fixed] = ls.solve();
                     end
-                    if this.state.getAmbFixPPP
+                    if this.state.getAmbFixPPP && false
                         this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1), ls.wl_amb, ls.amb_idx, ls.go_id_amb,ls.true_epoch);
                         %pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
                     end

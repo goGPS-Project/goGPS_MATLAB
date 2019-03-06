@@ -1730,8 +1730,10 @@ classdef LS_Manipulator < handle
                     for i = 1 : n_amb
                         sat = this.sat_go_id(this.sat(this.A_idx(:,this.param_class == this.PAR_AMB) == i+n_coo));
                         idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,this.param_class == this.PAR_AMB)== i+n_coo));
-                        amb_wl(i) = this.wl_amb(idx(1));
-                        amb_wl_fixed(i)=  this.wl_fixed(idx(1));
+                        if ~isempty( this.wl_fixed) % case local single frequency PPP
+                            amb_wl(i) = this.wl_amb(idx(1));
+                            amb_wl_fixed(i)=  this.wl_fixed(idx(1));
+                        end
                         n_ep_wl(i) = length(idx);
                         amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
                         

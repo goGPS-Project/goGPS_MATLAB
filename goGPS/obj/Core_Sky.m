@@ -678,10 +678,12 @@ classdef Core_Sky < handle
                 t_line = find(txt(lim(:,1)) == '*');
                 % find the length of the time string (it should of this format: yyyy mm dd HH MM SS.00000000)
                 % but sometimes it has 4 digits for seconds :-/ i.e. igs102664.sp3
-                time_len = find(txt(repmat(lim(t_line(1),1),1,29) + repmat(3:31, 1, 1)) == char(10));
-                string_time = txt(repmat(lim(t_line,1),1,time_len) + repmat(2 + (1:time_len), length(t_line), 1))';
+                % or has spaces at the end of the time line esa20341.sp3
+                time_len = length(strtrim(txt((lim(t_line(1),1)+1):lim(t_line(1),2)))) + 1;
+                string_time = txt(repmat(lim(t_line,1),1,time_len) + repmat(2 + (1:time_len), length(t_line), 1));
+                %string_time = [string_time repmat(' ',size(string_time,1),1)];
                 % import it as a GPS_Time obj
-                sp3_times = GPS_Time.fromString(string_time);
+                sp3_times = GPS_Time.fromString(string_time');
                 if version == 'a'
                     go_ids_s = this.cc.getGoIds();
                     go_ids_s = reshape(sprintf('%2d',go_ids_s),2,length(go_ids_s))';                    
