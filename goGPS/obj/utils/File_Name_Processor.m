@@ -371,7 +371,12 @@ classdef File_Name_Processor < handle
                         i = i + 1;
                     end
                     if (n_dir_base -i) > 0
-                        list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+                        if i > 0
+                            list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];                            
+                        elseif isempty(prefix)
+                            prefix = filesep;
+                        end
+                        
                     else
                         list_path = list_path(i+1:end);
                     end
