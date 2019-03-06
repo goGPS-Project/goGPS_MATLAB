@@ -1013,7 +1013,7 @@ classdef Meteo_Data < handle
             hum = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
             
             data = [pres temp hum];
-            if any(data)
+            if sum(any(data))
                 id_ok = (sum(isnan(data)) < time.length());
                 data = data(:, id_ok);
                 type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];

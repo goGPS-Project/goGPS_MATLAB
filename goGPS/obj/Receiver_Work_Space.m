@@ -3314,7 +3314,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     T = this.meteo_data.getTemperature(time);
                     H = this.meteo_data.getHumidity(time);
                     
-                    if any(isnan(P)) || any(isnan(T))
+                    if any(isnan(P)) || any(isnan(T)) || isempty(P)  || isempty(T) 
                         this.updateCoordinates();
                         time = time.getGpsTime();
                         if this.isStatic()
