@@ -8563,6 +8563,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function pushResult(this)
+            if isempty(this.parent.out)
+                this.parent.out = Receiver_Output(this.cc, this.parent);
+            end            
             this.parent.out.injectResult(this);
         end
         
