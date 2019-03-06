@@ -953,7 +953,7 @@ classdef Core_Utils < handle
             i = 1;
             j = 1;
             tot = 1;
-            while  i <=  l1 || j <= l2
+            while  i <=  l1 && j <= l2
                 if abs(double_1(i) - double_2(j)) < threshold
                     idx1(i) = tot;
                     idx2(j) = tot;
