@@ -21,7 +21,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea, ...
+%  Contributors:     Gatti Andrea, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -445,7 +445,7 @@ end
 
             % --------------------------------------------------------
             
-            v_left.Heights = [-2 5 -1];            
+            v_left.Heights = [-4 5 -3];
         end
         
         function insertTabDataSources(this, container)
