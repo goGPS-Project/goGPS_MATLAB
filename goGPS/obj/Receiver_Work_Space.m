@@ -3330,7 +3330,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     if any(isnan(H))
                         % Fall back to std values
-                        H(isnan(H)) = atmo.STD_HUMI; % * exp(-0.0006396*this.h_ortho);
+                        H(isnan(H)) = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
                     end
             end
             if use_id_sync
