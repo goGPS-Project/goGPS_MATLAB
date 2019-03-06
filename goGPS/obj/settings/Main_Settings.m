@@ -63,6 +63,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     properties (Constant, Access = 'private')
         
         % IO ---------------------------------------------------------------------------------------------------------------------------------------------------
+        % PARALLELISM
+        COM_DIR = fullfile(pwd, 'com');
+        
         % PROJECT
         PRJ_NAME = 'Default PPP project';  % Name of the project
         PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_PPP' filesep]; % Location of the project <relative path from goGPS folder>
@@ -386,6 +389,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % values and redefine them. So the values are also
     % stored here as parameters used for a specific processing
     properties (SetAccess = public, GetAccess = public)
+        %------------------------------------------------------------------
+        % PARALLELISM
+        %------------------------------------------------------------------
+        
+        % Location of the communication dir for parallel message passing interface
+        com_dir = Main_Settings.COM_DIR;
+
         %------------------------------------------------------------------
         % PROJECT
         %------------------------------------------------------------------
@@ -716,6 +726,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor;
             
             if isa(state, 'Ini_Manager')
+                % PARALLELISM
+                com_dir = state.getData('com_dir');
+                if isempty(com_dir)
+                    this.com_dir = fnp.getFullDirPath(this.COM_DIR,  pwd, this.COM_DIR);
+                else
+                    this.com_dir = fnp.getFullDirPath(state.getData('com_dir'),  pwd, this.COM_DIR);
+                end
+
                 % PROJECT
                 this.prj_name   = fnp.checkPath(state.getData('prj_name'), this.getHomeDir());
                 if isempty(fnp.getPath(state.file_name))
@@ -891,6 +909,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_out_res = state.getData('flag_out_res');              % residuals
                 this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
             else
+                % PARALLELISM
+                this.com_dir = state.com_dir;
+                
                 % PROJECT
                 this.prj_name   = state.prj_name;
                 this.prj_home   = state.prj_home;
@@ -1065,6 +1086,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
 
             fnp = File_Name_Processor();
+            str = [str '---- PARALLELISM ----------------------------------------------------------' 10 10];
+            str = [str sprintf(' Path to communication dir for custom MPI:         %s\n\n', fnp.getFullDirPath(this.com_dir, pwd))];
             
             str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
@@ -1476,6 +1499,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 str_cell = {};
             end
 
+            str_cell = Ini_Manager.toIniStringSection('PARALLELISM', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Location of the communication dir for parallel message passing interface',str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute or relative to execution path',str_cell);
+            
+            str_cell = Ini_Manager.toIniString('com_dir', File_Name_Processor.getRelDirPath(this.com_dir, pwd), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
             str_cell = this.exportIO_project(str_cell);
             str_cell = this.exportIO_session(str_cell);
             str_cell = this.exportIO_station(str_cell);
@@ -1997,6 +2028,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             EMPTY_IS_VALID = true;
             EMPTY_IS_NOT_VALID = false;
             CHECK_EXISTENCE = 1;
+
+            this.checkPathField('com_dir', EMPTY_IS_NOT_VALID);
 
             this.checkStringField('prj_name', EMPTY_IS_NOT_VALID);
             is_existing = this.checkStringField('prj_home', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
@@ -2643,6 +2676,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             file_dir = File_Name_Processor.getFullDirPath(this.prj_home);
         end
 
+        function com_dir = getComDir(this)
+            % Get the communication directory for the custom 
+            % MPI implementation
+            %
+            % SYNTAX
+            %   com_dir = getComDir(this)
+            com_dir = File_Name_Processor.getFullDirPath(this.com_dir);
+        end
+        
         function remote_source_file = getRemoteSourceFile(this)
             % get remote source files
             %

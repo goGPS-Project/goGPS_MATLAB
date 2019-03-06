@@ -214,7 +214,7 @@ end
             
             
             % Main Panel > tab1 settings
-            this.j_settings = this.insertTabEditSettings(tab_panel);
+            this.j_settings = this.insertTabAdvanced(tab_panel);
             
             % Main Panel > tab2 remote resource ini
             enable_rri = true;
@@ -240,7 +240,7 @@ end
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
             else
                 tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
             end
@@ -1563,8 +1563,17 @@ end
             % this.updateRecList(); % this is done at the end of interface loading
         end
         
-        function j_ini = insertTabEditSettings(this, container)
+        function j_ini = insertTabAdvanced(this, container)
             tab = uix.Grid('Parent', container);
+            
+            com_box = Core_UI.insertPanelLight(tab, 'Parallelism');
+            [~, this.edit_texts{end+1}] = Core_UI.insertDirBox(com_box, 'Communication dir', 'com_dir', @this.onEditChange, [160 -1 25]);
+
+            settings_box = Core_UI.insertPanelLight(tab, 'Raw settings file');
+            setting_grid =  uix.HBox('Parent', settings_box, ...
+                    'Spacing', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+
             
             j_ini = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_ini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
@@ -1574,12 +1583,12 @@ end
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_ini);
             % Inject edit box with the Java Scroll Pane into the main_window
-            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], tab);
+            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], setting_grid);
             
             set(j_ini, 'FocusLostCallback', @this.refreshIni);
             set(j_ini, 'FocusGainedCallback', @this.refreshIni);
             
-            tab1_bvr = uix.VButtonBox( 'Parent', tab, ...
+            tab1_bvr = uix.VButtonBox( 'Parent', setting_grid, ...
                 'Spacing', 5, ...
                 'VerticalAlignment', 'top', ...
                 'HorizontalAlignment', 'center', ...
@@ -1594,7 +1603,8 @@ end
                 'String', 'Check receiver files', ...
                 'Callback', @this.updateAndCheckRecList);
             
-            tab.Widths = [-1 128];
+            setting_grid.Widths = [-1 128];
+            tab.Heights = [50 -1];
         end
     end
     %% METHODS getters
