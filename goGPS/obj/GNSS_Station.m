@@ -137,8 +137,32 @@ classdef GNSS_Station < handle
             this.work.importRinexFileList(rin_list, time_start, time_stop, rate);
         end
 
-        function init(this)
+        function clearHandles(this)
+            % Clear handles
+            %
+            % SYNTAX
+            %   this.clearHandles();
+
+            this.log = [];
+            this.state = [];
+
+            this.w_bar = [];
+        end
+        
+        function initHandles(this)
             % Reload handles
+            % 
+            % SYNTAX
+            %   this.initHandles
+            
+            this.log = Core.getLogger();
+            this.state = Core.getState();
+
+            this.w_bar = Go_Wait_Bar.getInstance();
+        end
+        
+        function init(this)
+            % Reset handles
             %
             % SYNTAX
             %   this.init();

@@ -128,7 +128,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     methods
-        
+
+        function clearHandles(this)
+            this.log = [];
+            this.state = [];
+            this.cc = [];
+            this.rf = [];
+            this.w_bar = [];
+        end
+
         function initHandles(this)
             this.log = Core.getLogger();
             this.state = Core.getState();
