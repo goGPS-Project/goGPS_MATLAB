@@ -77,6 +77,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         system         % char id of the satellite system corresponding to the row_id
         
         obs_code       % obs code for each line of the data matrix obs
+        aligned        % boolean field to check if the code has been aligned to the others , (i.e. DCB(external or estimated from network) applied  
         obs            % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
         synt_ph;       % syntetic phases
         
@@ -280,6 +281,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.system     = '';         % char id of the satellite system corresponding to the row_id
             
             this.obs_code   = [];         % obs code for each line of the data matrix obs
+            this.aligned    = [];         % pseudorange measurements aligned or not
             this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
@@ -310,6 +312,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system     = '';         % char id of the satellite system corresponding to the row_id
                 
                 this.obs_code   = [];         % obs code for each line of the data matrix obs
+                this.aligned    = [];         % alignement of the pseudorange measurements
                 this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
                 this.n_spe = [];              % number of sat per epoch
                 this.xyz          = [];  % approximate position of the receiver (XYZ geocentric)
@@ -528,6 +531,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.go_id    = [this.go_id   ; rec.go_id(i)];
                         this.system      = [this.system      rec.system(i)];
                         this.obs_code = [this.obs_code; rec.obs_code(i,:)];
+                        this.aligned = [this.aligned; rec.aligned];
                     end
                 end
             else
@@ -540,6 +544,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.go_id    = rec.go_id;
                 this.system   = rec.system;
                 this.obs_code = rec.obs_code;
+                this.aligned  = rec.aligned;
                 this.n_spe      = rec.n_spe;
                 this.xyz = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
@@ -2276,6 +2281,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 n_ss = numel(sys_c); % number of satellite system
                 
                 this.obs_code = [];
+                this.aligned = [];
                 this.prn = [];
                 this.system = [];
                 this.f_id = [];
@@ -2288,11 +2294,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
                     % transform in n_code x 3
                     obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                    
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    
+                    aligned  = false(size(obs_code,1),1);
                     this.obs_code = [this.obs_code; obs_code];
+                    this.aligned = [this.aligned; aligned];
                     prn_ss = repmat(prn.(sys)', n_code, 1);
                     this.prn = [this.prn; prn_ss];
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
@@ -2486,6 +2494,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs = zeros(n_obs, n_true_epo);
                 
                 this.obs_code = [];
+                this.aligned = [];
                 this.prn = [];
                 this.system = [];
                 this.f_id = [];
@@ -2501,12 +2510,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    
+                    aligned = false(size(obs_code,1),1);
                     
                     prn_ss = repmat(prn.(sys)', n_code, 1);
                     % discarding satellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
                     this.prn = [this.prn; prn_ss];
                     this.obs_code = [this.obs_code; obs_code];
+                    this.aligned  = [this.aligned; aligned];
                     this.n_sat = this.n_sat + n_sat;
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                     
@@ -4119,6 +4129,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function setObs(this,obs,idx)
+            % set the observation
+            %
+            % SYNTAX
+            % this.setObs(obs,idx)
+            this.obs(idx,:) = obs;
+        end
+            
+        
         function id = findObservableByFlag(this, flag, sys_c, prn)
             % Search the id (aka row) of the obs with a certain flag
             % Supporting wildcard "?"
@@ -4468,6 +4487,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [obs_set] = getPrefGeometryFree(this,obs_type,system)
+            % get the best geometry free according to the tracking preferences
+            %
+            % SYNTAX
+            %    [obs_set] = this.getPrefGeometryFree(obs_type,system)
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
@@ -4481,7 +4504,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [obs_set] = getMelWub(this, freq1, freq2, system)
-            
+            % get melbourne wubben combinations
+            %
+            % SYNTAX
+            %    [obs_set] = this.getMelWub( freq1, freq2, system) 
             fun1 = @(wl1,wl2) 1;
             fun2 = @(wl1,wl2) -1;
             [obs_set1] = this.getWideLane(['L' freq1],['L' freq2], system); %widelane phase
@@ -4564,7 +4590,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
             wsb = Core.getCoreSky.getWSB(this.getCentralTime());
             % take off wsb
-            wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
+            wl_cycle = zero2nan(wl_cycle) + repmat(0*wsb,size(mwb.obs,1),1);
             
             [wl_cycle(~isnan(wl_cycle)), wsb_rec] = Core_Utils.getFracBias(wl_cycle(~isnan(wl_cycle)));
             % apply tyhe cycle to the widelane
@@ -7239,7 +7265,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
                         % final estimation of time of flight
                         this.updateAllAvailIndex()
-                        this.updateAllTOT();
+                        this.updateAllTOT(true);
                         i = i+1;
                     end
                     this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
@@ -8146,7 +8172,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ph_temp = ph(:,lid_f);
                 ph_temp(~isnan(amb_idx_f)) = 0; % if not fixed take off
                 ph(:,lid_f) = ph_temp;
-                this.sat.cycle_slip_ph_by_ph(:,lid_f) = false; % remove cycle slips
+                %this.sat.cycle_slip_ph_by_ph(:,lid_f) = false; % remove cycle slips
                 ff = ff +1;
                 
             end

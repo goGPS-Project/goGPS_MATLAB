@@ -63,6 +63,7 @@ classdef Network < handle
         wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
         tropo_idx        % index of the splien tropo
         tropo_g_idx      % index fo the spline tropo gradient
+        sat_wb           % staellite widelane biases
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
@@ -261,6 +262,9 @@ classdef Network < handle
                         %res = res(any(res(:,:,2)'), :, :);
                         if Core.isGReD && export_clk
                             GReD_Utility.substituteClK(av_res, ls.time);
+                            if Core.getCurrentCore.state.net_amb_fix_approach > 1
+                                GReD_Utility.substituteWSB(this.sat_wb', this.common_time.getCentralTime);
+                            end
                         end
                         
                         % cleaning -----------------------------------------------------------------------------------------------------------------------------
@@ -729,7 +733,7 @@ classdef Network < handle
             for r = 1 : n_r
                 this.wl_mats{r} = nan(this.rec_list(r).work.time.length,n_sat_tot);
             end
-            
+            this.sat_wb = zeros(this.cc.getMaxNumSat(),1);
             for sys_c = sys_cs
                 sys_idx = this.cc.SYS_C == sys_c;
                 WM = wide_laneM{sys_idx}; %% get the right widelane matrix
@@ -743,6 +747,9 @@ classdef Network < handle
                     coderin3attr2 = sys_SS.CODE_RIN3_ATTRIB{WM(w,:) == -1};
                     b1code_aval = false(n_r,n_sat, length(coderin3attr1));
                     b2code_aval = false(n_r,n_sat, length(coderin3attr2));
+                    % matrix to know if the code have been aligned
+                    aligned1 =  false(n_r,n_sat, length(coderin3attr2));
+                    aligned2 =  false(n_r,n_sat, length(coderin3attr2));
                     for r = 1 : n_r
                         % check wether both frequency are available
                         rec = this.rec_list(r).work;
@@ -756,15 +763,19 @@ classdef Network < handle
                             % going to be inporved)
                             for s = 1:n_sat
                                 idx_s = rec.obs_code(:,1) == 'C' & rec.prn == s & rec.system' == sys_c;
-                                idx_sb1 = idx_s & rec.obs_code(:,2) == b1;
-                                idx_sb2 = idx_s & rec.obs_code(:,2) == b2;
-                                track_code_b1 = rec.obs_code(idx_sb1,3);
-                                track_code_b2 = rec.obs_code(idx_sb2,3);
+                                lid_sb1 = idx_s & rec.obs_code(:,2) == b1;
+                                lid_sb2 = idx_s & rec.obs_code(:,2) == b2;
+                                id_sb1 = find(lid_sb1);
+                                id_sb2 = find(lid_sb2);
+                                track_code_b1 = rec.obs_code(lid_sb1,3);
+                                track_code_b2 = rec.obs_code(lid_sb2,3);
                                 for t = 1 : length(track_code_b1)
                                     b1code_aval(r,s,coderin3attr1 == track_code_b1(t)) = true;
+                                    aligned1(r,s,coderin3attr1 == track_code_b1(t)) = rec.aligned(id_sb1(t));
                                 end
                                 for t = 1 : length(track_code_b2)
                                     b2code_aval(r,s,coderin3attr2 == track_code_b2(t)) = true;
+                                    aligned2(r,s,coderin3attr2 == track_code_b2(t)) = rec.aligned(id_sb2(t));
                                 end
                             end
                         end
@@ -791,8 +802,8 @@ classdef Network < handle
                         this.log.addMessage(this.log.indent(sprintf('Estimating %s%s%s widelane using tracking %s on frequency %s and tracking %s on frequency %s',sys_c,b1,b2,track_1,b1,track_2,b2)));
                         b1code_aval(:,:,~nt2cb1) = [];
                         b2code_aval(:,:,~nt2cb2) = [];
-                        rec_with_no_cod1 = sum(b1code_aval(:,:,1),2) == 0;
-                        rec_with_no_cod2 = sum(b2code_aval(:,:,1),2) == 0;
+                        rec_with_no_cod1 = sum(sum(aligned1(:,:,:),3),2) == 0 & sum(b1code_aval(:,:,1),2) == 0;
+                        rec_with_no_cod2 = sum(sum(aligned2(:,:,:),3),2) == 0 & sum(b2code_aval(:,:,1),2) == 0;
                         rec_excluded = rec_with_no_cod1 | rec_with_no_cod2;
                         if sum(rec_excluded) > 0
                             for r = serialize(find(rec_excluded))'
@@ -826,6 +837,7 @@ classdef Network < handle
                         end
                         
                         [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
+                        this.sat_wb(go_ids) = sat_wb;
                         for r = 1 :n_r
                             this.wl_mats{r}(:,go_ids) = wl_mats{r};
                         end
@@ -966,6 +978,118 @@ classdef Network < handle
                     this.rec_list(i).work.add_coo = coo;
                 else
                     this.rec_list(i).work.add_coo(end + 1) = coo;
+                end
+            end
+        end
+        
+        function alignCodeObservables(this)
+            % estimate DCB from a station that contains multiple tracking on the same frequency and apply them to all the reciver of the netwrok
+            %
+            % SYNTAX:
+            %    this.alignCodeObservables()
+            n_sat_tot = this.cc.getMaxNumSat();
+            sys_cs = this.cc.getAvailableSys;
+            n_r = length(this.rec_list);
+            
+            for sys_c = sys_cs
+                n_sat = this.cc.getNumSat(sys_c);
+                sys_SS = this.cc.getSys(sys_c);
+                bands = sys_SS.CODE_RIN3_2BAND;
+                for b = 1 : length(bands)
+                    band = bands(b);
+                    coderin3attr = sys_SS.CODE_RIN3_ATTRIB{b};
+                    % fill a matrix taht contains for each receiver the
+                    % channels tracked for all satellites
+                    code_aval = false(n_r,n_sat, length(coderin3attr));
+                    bes_code_rec_idx = nan(n_r,1); % index of the best tracking availiable for the receievr
+                    for r = 1 : n_r
+                        % check wether both frequency are available
+                        rec = this.rec_list(r).work;
+                        has_fr = sum(strLineMatch(rec.obs_code(:,1:2),['C' band]));
+                        has_frs(r) = has_fr;
+                        if has_fr
+                            % fill the availability matrix for the reciever
+                            for s = 1:n_sat
+                                idx_s = rec.obs_code(:,1) == 'C' & rec.prn == s & rec.system' == sys_c;
+                                if sum(idx_s) > 0
+                                    idx_sb = idx_s & rec.obs_code(:,2) == band;
+                                    track_code = rec.obs_code(idx_sb,3);
+                                    
+                                    for t = 1 : length(track_code)
+                                        code_aval(r,s,coderin3attr == track_code(t)) = true;
+                                    end
+                                    best_code_rec_idx(r) = min(bes_code_rec_idx(r),find(code_aval(r,s,:),1,'first'));
+                                end
+                            end
+                        end
+                    end
+                    % Find the reference receiver
+                    cod_aval_no_sat = sum(permute(code_aval,[1 3 2]),3) > 0;
+                    n_code_rec = sum(cod_aval_no_sat,2);
+                    [ref_code_id] = min(best_code_rec_idx);
+                    n_code_rec(best_code_rec_idx ~= ref_code_id) = 0;
+                    [~,b_rec_idx] = max(n_code_rec); % the reciever with the best code that tracks the more channel
+                    present_code = sum(sum(permute(code_aval,[3 2 1]),3) > 0,2) >0; % code available at least at one receiver
+                    aligned_code  = false(size(present_code));
+                    aligned_code(ref_code_id) = true; %code aligned
+                    not_alignable_codes = false;
+                    this.log.addMessage(sprintf('Aligning all %s psudorange observations to tarcking %s',[sys_c band],coderin3attr(ref_code_id)));
+
+                    while sum(~aligned_code(present_code)) > 0 && ~not_alignable_codes
+                        t_best_rec = find(cod_aval_no_sat(b_rec_idx,:));
+                        trck_ref = coderin3attr(t_best_rec(1));
+                        for t = 2 : length(t_best_rec);
+                            trck = coderin3attr(t_best_rec(t));
+                            if ~aligned_code(t_best_rec(t)) % if still not aligned
+                                for ss = 1 : n_sat
+                                    [obs_ref] = this.rec_list(b_rec_idx).work.getObs(['C' band trck_ref], sys_c, ss);
+                                    [obs_cur] = this.rec_list(b_rec_idx).work.getObs(['C' band trck], sys_c, ss);
+                                    if numel(obs_ref) > 0 & numel(obs_cur) >0 % sat missing
+                                        dcb = strongMean((zero2nan(obs_cur) - zero2nan(obs_ref))');
+                                        
+                                        for rr = 1 : n_r
+                                            [obs2align, idx_obs] = this.rec_list(rr).work.getObs(['C' band trck], sys_c, ss);
+                                            obs2align = obs2align - dcb;
+                                            this.rec_list(rr).work.setObs(obs2align, idx_obs)
+                                            this.rec_list(rr).work.aligned(idx_obs) = true;
+                                        end
+                                    end
+                                end
+                                aligned_code(t_best_rec(t)) = true;
+                            end
+                        end
+                        if sum(~aligned_code(present_code)) > 0
+                            not_alignable_codes = true;
+                            for tt = find(~aligned_code&present_code)
+                                % find if a not aligned code is linkable to
+                                % the other tracking trough an other
+                                % receievr
+                                for tt2 = find(aligned_code)
+                                    if sum(cod_aval_no_sat(:,tt).*cod_aval_no_sat(:,tt2)) > 0 % if at least a receiver has both codes
+                                        b_rec_idx = find(cod_aval_no_sat(:,tt).*cod_aval_no_sat(:,tt2),1,'first');
+                                        ref_code_id = tt2;
+                                        not_alignable_codes = false;
+                                        break
+                                    end
+                                end
+                                if ~not_alignable_codes
+                                    break
+                                end
+                            end
+                            if not_alignable_codes
+                                this.log.addMessage(sprintf('Tracking %s on banf %s are not linkable to others tracking so can not be aligned',coderin3attr(~aligned_code& present_code),[sys_c band]));
+                            end
+                        end
+                    end
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 end
             end
         end
