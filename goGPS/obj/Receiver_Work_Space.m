@@ -4590,7 +4590,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
             wsb = Core.getCoreSky.getWSB(this.getCentralTime());
             % take off wsb
-            wl_cycle = zero2nan(wl_cycle) + repmat(0*wsb,size(mwb.obs,1),1);
+            wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
             
             [wl_cycle(~isnan(wl_cycle)), wsb_rec] = Core_Utils.getFracBias(wl_cycle(~isnan(wl_cycle)));
             % apply tyhe cycle to the widelane

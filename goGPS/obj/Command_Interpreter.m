@@ -848,55 +848,6 @@ classdef Command_Interpreter < handle
                                 this.runPushOut(core.rec, tok);
                         end
                     end
-                    
-                    switch upper(tok{1})
-                        case this.CMD_PINIT.name                % PINIT
-                            this.runParInit(tok(2:end));
-                        case this.CMD_PKILL.name                % PKILL
-                            this.runParKill(tok(2:end));
-                        case this.CMD_LOAD.name                 % LOAD
-                            this.runLoad(rec, tok(2:end));
-                        case this.CMD_EMPTY.name                % EMPTY
-                            this.runEmpty(rec, tok(2:end));
-                        case this.CMD_EMPTYWORK.name            % EMPTYW
-                            this.runEmptyWork(rec, tok(2:end));
-                        case this.CMD_EMPTYOUT.name            % EMPTYO
-                            this.runEmptyOut(rec, tok(2:end));
-                        case this.CMD_AZEL.name                 % AZEL
-                            this.runUpdateAzEl(rec, tok(2:end));
-                        case this.CMD_BASICPP.name              % BASICPP
-                            this.runBasicPP(rec, tok(2:end));
-                        case this.CMD_PREPRO.name               % PREP
-                            this.runPrePro(rec, tok(2:end));
-                        case this.CMD_CODEPP.name               % CODEPP
-                            this.runCodePP(rec, tok(2:end));
-                        case this.CMD_PPP.name                  % PPP
-                            this.runPPP(rec, tok(2:end));
-                        case this.CMD_REMSAT.name               % REM SAT
-                            this.runRemSat(rec, tok(2:end));
-                        case this.CMD_REMOBS.name               % REM OBS
-                            this.runRemObs(rec, tok(2:end));
-                        case this.CMD_NET.name                  % NET
-                            this.runNet(rec, tok(2:end));
-                        case this.CMD_PSRALIGN.name             % Pseudorange align
-                            this.runPseudorangeAlign(rec, tok(2:end));
-                        case this.CMD_SEID.name                 % SEID
-                            this.runSEID(rec, tok(2:end));
-                        case this.CMD_REMIONO.name              % REMIONO
-                            this.runRemIono(rec, tok(2:end));
-                        case this.CMD_KEEP.name                 % KEEP
-                            this.runKeep(rec.getWork(), tok(2:end));
-                        case this.CMD_SYNC.name                 % SYNC
-                            this.runSync(rec, tok(2:end));
-                        case this.CMD_OUTDET.name               % OUTDET
-                            this.runOutDet(rec, tok);
-                        case this.CMD_SHOW.name                 % SHOW
-                            this.runShow(rec, tok, level(l));
-                        case this.CMD_EXPORT.name               % EXPORT
-                            this.runExport(rec, tok, level(l));
-                        case this.CMD_PUSHOUT.name              % PUSHOUT
-                            this.runPushOut(rec, tok);
-                    end
                 end
             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
