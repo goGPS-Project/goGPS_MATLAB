@@ -129,12 +129,16 @@ classdef Parallel_Manager < Com_Interface
             end
         end
         
-        function killAll()
+        function killAll(com_dir)
             % Kill all the slaves
             %
             % SYNTAX
-            %   Parallel_Manager.killAll();
-            gom = Parallel_Manager.getInstance;
+            %   Parallel_Manager.killAll(com_dir);
+            if nargin >= 1
+                gom = Parallel_Manager.getInstance(com_dir);
+            else
+                gom = Parallel_Manager.getInstance;
+            end
             gom.killThemAll
         end
         
@@ -152,17 +156,22 @@ classdef Parallel_Manager < Com_Interface
             gom.resurgit([], verbose);
         end
         
-        function requestSlaves(n_slaves)
+        function requestSlaves(n_slaves, com_dir)
             % Start new sessions of matlab executing the slave worker
             %
             % INPUT
             %   n_slaves     number of slaves to launch
             %
             % SYNTAX
-            %   this.requestSlaves(n_slaves);
+            %   this.requestSlaves(n_slaves, com_dir);
             
             t0 = tic();
-            gom = Parallel_Manager.getInstance;
+            if nargin >= 2
+                gom = Parallel_Manager.getInstance(com_dir);
+            else
+                gom = Parallel_Manager.getInstance;
+            end
+            gom.log.addMessage(gom.log.indent(sprintf('Checking for slaves into "%s"', gom.getComDir)));
             n_living_slaves = gom.checkLivingSlaves();
             if n_living_slaves < n_slaves
                 gom.createSlaves(n_slaves - n_living_slaves, gom.getComDir());
@@ -173,7 +182,7 @@ classdef Parallel_Manager < Com_Interface
                 n_living_slaves = gom.waitForSlaves(n_slaves, 25);
             end
             gom.log.addMarkedMessage(sprintf('At the moment I see %d living %s ready for processing - after %.2f seconds', n_living_slaves, iif(n_living_slaves == 1, 'slave', 'slaves'), toc(t0)));
-        end        
+        end      
     end
     
     methods (Static, Access = private)
