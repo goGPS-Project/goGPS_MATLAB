@@ -66,7 +66,8 @@ classdef Parallel_Manager < Com_Interface
     end
     
     properties (GetAccess = private, SetAccess = private)
-        worker_id = {}; % list of active workers
+        worker_id = {}; % list of active workers        
+        add_time = 60; % additional wait time for fast remote answers
     end
     
     %% METHOD CREATOR
@@ -201,6 +202,7 @@ classdef Parallel_Manager < Com_Interface
             end
             gom.log.addMessage(gom.log.indent(sprintf('Checking for slaves into "%s"', gom.getComDir)));
             n_living_slaves = gom.checkLivingSlaves();
+            gom.resurgit([], false);
             gom.log.addMarkedMessage(sprintf('At the moment I see %d living %s ready for processing - after %.2f seconds', n_living_slaves, iif(n_living_slaves == 1, 'slave', 'slaves'), toc(t0)));
         end
     end
@@ -295,7 +297,7 @@ classdef Parallel_Manager < Com_Interface
             this.resurgit([], false);
             % Check for life
             this.testWorkers();
-            
+                            
             % Check for slaves
             slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN Go_Slave.SLAVE_WAIT_PREFIX '*']));
             n_slaves = numel(slave_list);
@@ -587,7 +589,7 @@ classdef Parallel_Manager < Com_Interface
                 % Wait 1 seconds for slave answers or till all the slaves have responded
                 n_workers = 0;
                 elapsed_time = 0;
-                while elapsed_time < 1 && (n_workers < n_slaves)
+                while elapsed_time < (1 + this.add_time) && (n_workers < n_slaves)
                     pause(0.1);
                     elapsed_time = elapsed_time + 0.1;
                     slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
@@ -852,7 +854,7 @@ classdef Parallel_Manager < Com_Interface
             n_workers = n_workers + n_old_slaves;
             this.waitForSlaves(n_workers, 1);
             this.deleteMsg(Go_Slave.MSG_DIE, true);
-            this.deleteMsg([this.MSG_RESTART '*']);
+            this.deleteMsg('*');
         end
     end
     %
