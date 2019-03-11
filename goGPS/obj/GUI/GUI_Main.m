@@ -532,6 +532,8 @@ end
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onSSSCheckBoxChange);
             this.check_boxes{end}.Tag = 'sss_smooth';
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Separate coordinates at boundaries', 'flag_separate_coo_at_boundary', @this.onSSSCheckBoxChange);
+            this.check_boxes{end}.Tag = 'sss_bound_coo';
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onSSSCheckBoxChange);
 
             Core_UI.insertEmpty(sss_box_v);
@@ -561,7 +563,7 @@ end
 
             sss_box_h.Widths      = [340 10 -1];
             sss_box_l.Heights     = [46 5];
-            sss_check_box.Widths  = [350 -1];
+            sss_check_box.Widths  = [300 300 -1];
             sss_box_r.Heights     = [46 5];
             sss_box_v.Heights     = [51 5 23 5 23];
             

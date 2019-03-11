@@ -7879,7 +7879,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 ls = LS_Manipulator(this.cc);
                 pos_idx = [];
-                
+                if this.state.isSepCooAtBoundaries
+                    [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits(this.state.getCurSession);
+                    pos_idx = ones(this.time.length,1);
+                    idx_bf  = this.time < ss_lim_int.first;
+                    idx_aft = this.time > ss_lim_int.last;
+                    
+                        if sum(idx_bf) > 0
+                               pos_idx = pos_idx +1;
+                            pos_idx(idx_bf) = 1;
+                            central_coo = 2;
+                        else 
+                            central_coo = 1;
+                        end
+                        pos_idx(idx_aft) = max(pos_idx) + 1;
+                end
                 order_tropo = this.state.spline_tropo_order;
                 order_tropo_g = this.state.spline_tropo_gradient_order;
                 tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
@@ -7965,11 +7979,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
                     
                     %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                    
-                    coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                    if this.state.isSepCooAtBoundaries
+                        cox = x(x(:,2) == 1,1);
+                        coy = x(x(:,2) == 2,1);
+                        coz = x(x(:,2) == 3,1);
+                        cox = cox(central_coo);
+                        coy = coy(central_coo);
+                        coz = coz(central_coo);
+                        
+                        coo = [cox coy coz];
+                    else
+                        coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                    end
                     if isempty(coo)
                         coo = [0 0 0];
                     end
+                    
                     
                     clock = x(x(:,2) == 6,1);
                     tropo = x(x(:,2) == 7,1);
@@ -8005,7 +8030,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                     end
                     if s0 < 0.5 % with over 50cm of error the results are not meaningfull
-                        if isempty(pos_idx)
+                        if isempty(pos_idx) || this.state.isSepCooAtBoundaries
                             this.xyz = this.xyz + coo;
                         else
                             this.xyz = this.xyz + coo(2,:);

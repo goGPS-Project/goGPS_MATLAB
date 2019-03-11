@@ -81,6 +81,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_FILE_BASED = false;         % is the session management file based
         SSS_DURATION = 86400;          % session duration in seconds
         SSS_BUFFER = [3600*3 3600*3];  % session overlap in seconds [left right]
+        
                 
         % STATIONS
         OBS_DIR = 'RINEX';
@@ -214,6 +215,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  2 = lambda
                                                         %  3 = bayesian
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
+        FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
          
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
@@ -423,6 +425,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         sss_buffer    = Main_Settings.SSS_BUFFER;
         
         flag_smooth_tropo_out = Main_Settings.FLAG_SMOOTH_TROPO_OUT;
+        flag_separate_coo_at_boundary = Main_Settings.FLAG_SEPARATE_COO_AT_BOUNDARY;
 
         %------------------------------------------------------------------
         % STATIONS
@@ -767,6 +770,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_buffer    = state.getData('sss_buffer');
 
                 this.flag_smooth_tropo_out  = state.getData('flag_smooth_tropo_out');
+                this.flag_separate_coo_at_boundary = state.getData('flag_separate_coo_at_boundary');
                 
                 % STATIONS
                 this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
@@ -929,6 +933,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_buffer    = state.sss_buffer;
 
                 this.flag_smooth_tropo_out = state.flag_smooth_tropo_out;
+                this.flag_separate_coo_at_boundary = state.flag_separate_coo_at_boundary;
 
                 % STATIONS
                 this.obs_dir = state.obs_dir;
@@ -1117,7 +1122,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
             str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
-            str = [str sprintf(' Smooth tropospheric outputas:                     %d\n\n', this.flag_smooth_tropo_out)];
+            str = [str sprintf(' Smooth tropospheric outputs :                     %d\n', this.flag_smooth_tropo_out)];
+            str = [str sprintf(' Separate coordinates for boundaries:              %d\n\n', this.flag_separate_coo_at_boundary)];
             
             str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
@@ -1306,6 +1312,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('To produce a smooth solution, the session from the past can be ', str_cell);
             str_cell = Ini_Manager.toIniStringComment('connected to the new one weightning the two buffered areas.', str_cell);
             str_cell = Ini_Manager.toIniString('flag_smooth_tropo_out', this.flag_smooth_tropo_out, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_separate_coo_at_boundary', this.flag_separate_coo_at_boundary, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -2493,6 +2500,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_amb_pass');
             
             this.checkLogicalField('flag_smooth_tropo_out');
+            this.checkLogicalField('flag_separate_coo_at_boundary');
             [buf_lft, buf_rgt] = this.getBuffer();
             if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
                 this.setSmoothTropoOut(false)
@@ -4147,6 +4155,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   is_smt = this.isSmoothTropoOut()
             
             is_smt = this.flag_smooth_tropo_out;            
+        end
+        
+        function is_bound_coo = isSepCooAtBoundaries(this)
+            % Should separate coordinates be estaimated at boundaries
+            %
+            % SYNTAX
+            %   is_smt = this.isSepCooAtBoundaries()
+            
+            is_bound_coo = this.flag_separate_coo_at_boundary;            
         end
 
         function need_iono = needIonoMap(this)
