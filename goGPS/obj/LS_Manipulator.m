@@ -611,7 +611,24 @@ classdef LS_Manipulator < handle
                     [pos_idx_nh, pos_idx_tc] = LS_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
                     this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                 else
-                    pos_idx_nh = [];
+                    if this.state.isSepCooAtBoundaries
+                        [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits(this.state.getCurSession);
+                        pos_idx_nh = ones(obs_set_list(i).time.length,1);
+                        idx_bf  = obs_set_list(i).time < ss_lim_int.first;
+                        idx_aft = obs_set_list(i).time > ss_lim_int.last;
+                        
+                        if sum(idx_bf) > 0
+                            pos_idx_nh = pos_idx_nh +1;
+                            pos_idx_nh(idx_bf) = 1;
+                            central_coo = 2;
+                        else
+                            central_coo = 1;
+                        end
+                        this.pos_indexs_tc{end+1} = central_coo; % to be used afterwards to push back postions
+                        pos_idx_nh(idx_aft) = max(pos_idx_nh) + 1;
+                    else
+                        pos_idx_nh = [];
+                    end
                 end
                 order_tropo = this.state.spline_tropo_order;
                 order_tropo_g = this.state.spline_tropo_gradient_order;

@@ -549,10 +549,14 @@ classdef Network < handle
                     if isempty(coo)
                         coo = [ 0 0 0];
                     end
-                        if ~isempty(this.pos_indexs_tc)
+                        if ~isempty(this.pos_indexs_tc) && ~this.state.isSepCooAtBoundaries
                             this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
                         else
-                            this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                            if this.state.isSepCooAtBoundaries && numel(coo) > 3 
+                                this.coo(i,:) = nan2zero(this.coo(i,:)) + coo(this.pos_indexs_tc{i-1},:);
+                            else
+                                this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                            end
                         end
                 else
                     this.coo(i,:) = nan2zero(this.coo(i,:));
