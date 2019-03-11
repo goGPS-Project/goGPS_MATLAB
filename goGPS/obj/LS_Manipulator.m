@@ -710,7 +710,7 @@ classdef LS_Manipulator < handle
             n_tropo = n_clocks; % number of epoch for ZTD estimation
             ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
             
-            is_fixed = rec.isFixed() || (rec.hasGoodApriori && ~phase_present) && false;
+            is_fixed = rec.isFixed() || (rec.hasGoodApriori && ~phase_present);
             n_coo_par =  ~is_fixed * 3; % number of coordinates
             
             if dynamic
