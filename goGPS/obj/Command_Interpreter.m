@@ -830,6 +830,8 @@ classdef Command_Interpreter < handle
                                 this.runRemObs(core.rec, tok(2:end));
                             case this.CMD_NET.name                  % NET
                                 this.runNet(core.rec, tok(2:end));
+                            case this.CMD_PSRALIGN.name             % Pseudorange align
+                                this.runPseudorangeAlign(core.rec, tok(2:end));
                             case this.CMD_SEID.name                 % SEID
                                 this.runSEID(core.rec, tok(2:end));
                             case this.CMD_REMIONO.name              % REMIONO
