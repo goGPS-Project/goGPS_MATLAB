@@ -1494,7 +1494,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             fr_jmp(f) = sum(cs_same_f) > 0;
                         end
                         % for each cycle slip
-                        if sum(ph_sat_cs(ce, :)) ~= length(ph_sat_cs(ce, :)) % if not everything jumps
+                        if sum(ph_sat_cs(ce, :) | isnan(ph(ce,id_sat_ph))) ~= length(ph_sat_cs(ce, :)) % if not everything jumps
                             for cs = find(ph_sat_cs(ce, :))
                                 if ce > 10 && sum(isnan(ph((ce-10):(ce-1),id_sat_ph(cs)))) < 9 % check if is the start of an arc
                                     %find a pivot -> use the one witht the
@@ -1533,7 +1533,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
                                     id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
                                     dgf = diff(gf);
-                                    if (dgf(id_jmp2-1) < 0.15*wl_jmp) || (mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
+                                    if (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
                                         this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
                                     end
                                 end
