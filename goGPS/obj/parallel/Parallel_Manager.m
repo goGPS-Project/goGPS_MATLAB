@@ -182,7 +182,27 @@ classdef Parallel_Manager < Com_Interface
                 n_living_slaves = gom.waitForSlaves(n_slaves, 25);
             end
             gom.log.addMarkedMessage(sprintf('At the moment I see %d living %s ready for processing - after %.2f seconds', n_living_slaves, iif(n_living_slaves == 1, 'slave', 'slaves'), toc(t0)));
-        end      
+        end
+        
+        function testSlaves(com_dir)
+            % Check the number of slaves available
+            %
+            % INPUT
+            %   n_slaves     number of slaves available
+            %
+            % SYNTAX
+            %   this.testSlaves(com_dir);
+            
+            t0 = tic();
+            if nargin >= 1
+                gom = Parallel_Manager.getInstance(com_dir);
+            else
+                gom = Parallel_Manager.getInstance;
+            end
+            gom.log.addMessage(gom.log.indent(sprintf('Checking for slaves into "%s"', gom.getComDir)));
+            n_living_slaves = gom.checkLivingSlaves();
+            gom.log.addMarkedMessage(sprintf('At the moment I see %d living %s ready for processing - after %.2f seconds', n_living_slaves, iif(n_living_slaves == 1, 'slave', 'slaves'), toc(t0)));
+        end
     end
     
     methods (Static, Access = private)
@@ -832,7 +852,7 @@ classdef Parallel_Manager < Com_Interface
             n_workers = n_workers + n_old_slaves;
             this.waitForSlaves(n_workers, 1);
             this.deleteMsg(Go_Slave.MSG_DIE, true);
-            this.deleteMsg('*');
+            this.deleteMsg([this.MSG_RESTART '*']);
         end
     end
     %
