@@ -107,7 +107,7 @@ classdef Go_Slave < Com_Interface
                 else
                     this = unique_instance_gos__;
                     this.init();
-                    if nargin > 1 && ~isempty(com_dir)
+                    if nargin > 0 && ~isempty(com_dir)
                         this.initComDir(com_dir);
                     end
                 end
@@ -171,6 +171,14 @@ classdef Go_Slave < Com_Interface
             is_active = false;
             reset_count = 1;
             while ~is_active
+                if msg(1) == 'S'
+                    % Check that there is my helo message!
+                    slave_list = dir(fullfile(this.getComDir, [this.MSG_BORN this.id]));
+                    if isempty(slave_list)
+                        % Resend helo message
+                        this.sendMsg(this.MSG_BORN);
+                    end
+                end
                 slave_list = dir(fullfile(this.getComDir, [Parallel_Manager.MSG_KILLALL Parallel_Manager.ID]));
                 if ~isempty(slave_list)
                     is_active = true;
@@ -197,7 +205,6 @@ classdef Go_Slave < Com_Interface
                                 reset_count = this.pause(0.1, reset_count);
                             end
                         end
-                        
                     end
                 end
             end
