@@ -71,6 +71,7 @@ classdef Command_Interpreter < handle
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
         CMD_NET         % Network undifferenced solution
+        CMD_PSRALIGN    % Pseudorange alignement
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
@@ -129,7 +130,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -395,6 +396,11 @@ classdef Command_Interpreter < handle
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
             this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK];
+            
+            this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
+            this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
+            this.CMD_PSRALIGN.rec = 'T';
+            this.CMD_PSRALIGN.par = [];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
@@ -842,10 +848,54 @@ classdef Command_Interpreter < handle
                                 this.runPushOut(core.rec, tok);
                         end
                     end
-                    if toc(t1) > 1
-                        this.log.newLine();
-                        this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
-                        this.log.newLine();
+                    
+                    switch upper(tok{1})
+                        case this.CMD_PINIT.name                % PINIT
+                            this.runParInit(tok(2:end));
+                        case this.CMD_PKILL.name                % PKILL
+                            this.runParKill(tok(2:end));
+                        case this.CMD_LOAD.name                 % LOAD
+                            this.runLoad(rec, tok(2:end));
+                        case this.CMD_EMPTY.name                % EMPTY
+                            this.runEmpty(rec, tok(2:end));
+                        case this.CMD_EMPTYWORK.name            % EMPTYW
+                            this.runEmptyWork(rec, tok(2:end));
+                        case this.CMD_EMPTYOUT.name            % EMPTYO
+                            this.runEmptyOut(rec, tok(2:end));
+                        case this.CMD_AZEL.name                 % AZEL
+                            this.runUpdateAzEl(rec, tok(2:end));
+                        case this.CMD_BASICPP.name              % BASICPP
+                            this.runBasicPP(rec, tok(2:end));
+                        case this.CMD_PREPRO.name               % PREP
+                            this.runPrePro(rec, tok(2:end));
+                        case this.CMD_CODEPP.name               % CODEPP
+                            this.runCodePP(rec, tok(2:end));
+                        case this.CMD_PPP.name                  % PPP
+                            this.runPPP(rec, tok(2:end));
+                        case this.CMD_REMSAT.name               % REM SAT
+                            this.runRemSat(rec, tok(2:end));
+                        case this.CMD_REMOBS.name               % REM OBS
+                            this.runRemObs(rec, tok(2:end));
+                        case this.CMD_NET.name                  % NET
+                            this.runNet(rec, tok(2:end));
+                        case this.CMD_PSRALIGN.name             % Pseudorange align
+                            this.runPseudorangeAlign(rec, tok(2:end));
+                        case this.CMD_SEID.name                 % SEID
+                            this.runSEID(rec, tok(2:end));
+                        case this.CMD_REMIONO.name              % REMIONO
+                            this.runRemIono(rec, tok(2:end));
+                        case this.CMD_KEEP.name                 % KEEP
+                            this.runKeep(rec.getWork(), tok(2:end));
+                        case this.CMD_SYNC.name                 % SYNC
+                            this.runSync(rec, tok(2:end));
+                        case this.CMD_OUTDET.name               % OUTDET
+                            this.runOutDet(rec, tok);
+                        case this.CMD_SHOW.name                 % SHOW
+                            this.runShow(rec, tok, level(l));
+                        case this.CMD_EXPORT.name               % EXPORT
+                            this.runExport(rec, tok, level(l));
+                        case this.CMD_PUSHOUT.name              % PUSHOUT
+                            this.runPushOut(rec, tok);
                     end
                 end
             end
@@ -1263,6 +1313,26 @@ classdef Command_Interpreter < handle
                         net.exportCrd();
                     end
                 end
+            end
+            %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
+        end
+        
+         function runPseudorangeAlign(this, rec, tok)
+            % Execute pseudorange alignement
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runPseudorangeAlign(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+               %this.log.addMarkedMessage(sprintf('Alignign pseudranges on receivers %d', id_trg));
+               net = Network(rec(id_trg));
+               net.alignCodeObservables();
             end
             %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
