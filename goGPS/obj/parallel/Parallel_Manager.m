@@ -426,7 +426,11 @@ classdef Parallel_Manager < Com_Interface
                     
                     % send an order to a worker
                     msg = [worker_stack{w}, this.MSG_DO num2str(missing_job(t), '%04d') '_'];
-                    this.sendMsg(msg, sprintf('"%s" process rec %d', worker_stack{w}(1 : end-1), missing_job(t)));
+                    if par_type == 1
+                        this.sendMsg(msg, sprintf('"%s" process session %d', worker_stack{w}(1 : end-1), missing_job(t)));
+                    else
+                        this.sendMsg(msg, sprintf('"%s" process rec %d', worker_stack{w}(1 : end-1), missing_job(t)));
+                    end
                     worker2job(str2double(worker_stack{w}(10:12))) = missing_job(t);
                     active_jobs = active_jobs + 1;
                 end
