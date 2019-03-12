@@ -447,7 +447,7 @@ classdef LS_Manipulator < handle
             end
         end
         
-        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list, coo_rate, wl_struct)
+        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list, coo_rate, wl_struct, frequency_idx)
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
             %
             % OUTPUT:
@@ -491,7 +491,7 @@ classdef LS_Manipulator < handle
                     for sys_c = work_list(i).cc.sys_c
                         f = work_list(i).getFreqs(sys_c);
                         if ~isempty(f)
-                            obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(1))], sys_c));
+                            obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(frequency_idx))], sys_c));
                         end
                     end
                     idx_ph = obs_set_list(i).obs_code(:, 2) == 'L';

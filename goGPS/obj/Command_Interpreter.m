@@ -98,6 +98,7 @@ classdef Command_Interpreter < handle
         PAR_SYNC        % Parameter sync
         PAR_IONO        % Paramter to estimate ionosphere
         PAR_CLK         % Paramter to estimate clock
+        PAR_BAND        % Paramter of the band to be used in the adjustemtn
         
         PAR_SLAVE     % number of parallel slaves to request
         
@@ -221,18 +222,25 @@ classdef Command_Interpreter < handle
             this.PAR_SLAVE.accepted_values = [];
             
             this.PAR_IONO.name = 'Reduce for ionosphere delay';
-            this.PAR_IONO.descr = 'I reduce for ionosphere delay';
+            this.PAR_IONO.descr = '-iono              reduce for ionosphere delay';
             this.PAR_IONO.par = '(-iono)|(-Iono)|(-IONO)';
             this.PAR_IONO.class = '';
             this.PAR_IONO.limits = [];
             this.PAR_IONO.accepted_values = [];
             
             this.PAR_CLK.name = 'Export clock';
-            this.PAR_CLK.descr = 'Export common paramter in network';
+            this.PAR_CLK.descr = '-clk                export common paramter in network';
             this.PAR_CLK.par = '(-clk)|(-Clk)|(-CLK)';
             this.PAR_CLK.class = '';
             this.PAR_CLK.limits = [];
             this.PAR_CLK.accepted_values = [];
+            
+            this.PAR_BAND.name = 'band';
+            this.PAR_BAND.descr = 'L<band>            band to be used for single frequency adjustment';
+            this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate= 
+            this.PAR_BAND.class = 'double';
+            this.PAR_BAND.limits = [1 5];
+            this.PAR_BAND.accepted_values = [];
 
             % Show plots
             
@@ -338,7 +346,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_CORE_MAT.accepted_values = {};
                         
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
-            this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
+            this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates Bernese .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
@@ -395,7 +403,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK this.PAR_BAND];
             
             this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
             this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
@@ -1244,6 +1252,7 @@ classdef Command_Interpreter < handle
                 iono_reduce = false;
                 clk_export = false;
                 coo_rate = [];
+                fr_id = 1;
                 [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 if found
                     coo_rate = rate;
@@ -1255,9 +1264,13 @@ classdef Command_Interpreter < handle
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_CLK.par ')*$'], 'once'))
                        clk_export = true;
                     end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
+                       fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
+                       fr_id = str2num(tok{t}(fr_id+1));
+                    end
                 end
                 %try
-                    net.adjust(id_ref, coo_rate, iono_reduce, clk_export); 
+                    net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id); 
                 %catch ex
                 %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
                 %end

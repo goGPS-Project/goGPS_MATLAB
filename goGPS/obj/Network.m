@@ -105,7 +105,7 @@ classdef Network < handle
             this.wl_comb_codes = [];
         end
         
-        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk)
+        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk, frequency_idx)
             % Adjust the GNSS network
             %
             % INPUT
@@ -212,8 +212,7 @@ classdef Network < handle
                         wl_struct.amb_mats = this.wl_mats;
                         wl_struct.combination_codes = this.wl_comb_codes;
                     end
-                    
-                    [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct);
+                    [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct,frequency_idx);
                     
                     % check wether tropo does decorrelate
                     n_rec = length(this.rec_list);
