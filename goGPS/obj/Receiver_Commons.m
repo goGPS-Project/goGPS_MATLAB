@@ -468,16 +468,29 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
-            if max(this.getIdSync) > numel(this.n_sat_ep)
-                n_sat = nan(size(this.getIdSync));
-                n_sat_ss.G = n_sat;
-            else
-                n_sat = this.n_sat_ep(this.getIdSync);
-                if ~any(n_sat)
-                    % retrieve the n_sat from residuals
-                    n_sat = sum(this.sat.res(this.getIdSync,:) ~= 0, 2);
+            if isempty(this.n_sat_ep)
+                % retrieve the n_sat from residuals
+                if this.state.isSatOut && ~isempty(this.sat.res)
+                    n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
                     for sys_c = this.cc.sys_c
-                        n_sat_ss.(sys_c) = sum(this.sat.res(this.getIdSync, this.cc.system == sys_c) ~= 0, 2);
+                        n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, this.cc.system == sys_c))), 2);
+                    end
+                else
+                    n_sat = nan(size(this.getIdSync));
+                    n_sat_ss.G = n_sat;
+                end
+            else
+                if (max(this.getIdSync) > numel(this.n_sat_ep))
+                    n_sat = nan(size(this.getIdSync));
+                    n_sat_ss.G = n_sat;
+                else
+                    n_sat = this.n_sat_ep(this.getIdSync);
+                    if ~any(n_sat)
+                        % retrieve the n_sat from residuals
+                        n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
+                        for sys_c = this.cc.sys_c
+                            n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, this.cc.system == sys_c))), 2);
+                        end
                     end
                 end
             end

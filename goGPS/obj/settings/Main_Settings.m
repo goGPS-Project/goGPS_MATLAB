@@ -4205,6 +4205,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             s_rate = this.s_rate;
         end
 
+        function flag = isSatOut(this)
+            % flag: is exporting of sat specific parameters requested?
+            %
+            % SYNTAX
+            %   flag = isSatOut(this)
+            
+            flag = this.flag_out_res; % && ... ad here other sat specific parameters when getNumSat is expanded
+        end
+                    
         function flag = isPreCleaningOn(this)
             % Try to correct cycle slips / discontinuities in the observations and increase spike variance
             %
