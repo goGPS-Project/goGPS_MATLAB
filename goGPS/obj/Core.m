@@ -627,6 +627,7 @@ classdef Core < handle
                 this.preloaded_session = 0;
                 this.state.setCurSession(0);
                 this.rec = [];
+                this.net = [];
             end
         end
 

@@ -475,6 +475,8 @@ classdef Parallel_Manager < Com_Interface
             for s = 1 : numel(sss_file)
                 %%
                 sss_id = regexp(sss_file(s).name, '(?<=job)[0-9]*', 'match', 'once');
+                                   
+
                 if ~isempty(sss_id)
                     sss_id = str2double(sss_id);
                     w_id = regexp(sss_file(s).name, ['(?<=' Go_Slave.SLAVE_READY_PREFIX Go_Slave.SLAVE_SESSION_PREFIX ')[0-9]*'], 'match', 'once');
@@ -483,7 +485,7 @@ classdef Parallel_Manager < Com_Interface
                     end
                     
                     tmp = load(fullfile(this.getComDir, sss_file(s).name));
-                    
+                    core.state.setCurSession(sss_id); % load the current session number
                     % Check that all the results are present in the session file
                     if isfield(tmp, 'rec') && (numel(tmp.rec) == n_rec) && isfield(tmp, 'atmo')
                         % Import atmosphere as computed by rec
