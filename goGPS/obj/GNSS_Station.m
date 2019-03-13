@@ -2742,13 +2742,15 @@ classdef GNSS_Station < handle
             %
             % INPUT:
             %   sta_list                 list of GNSS_Station objects
-            %   baseline_ids             n_baseline x 2 - couple of id in sta_list to be used
+            %   baseline_ids/ref_id      n_baseline x 2 - couple of id in sta_list to be used
+            %                            if this field is a single element interpret it as reference
             %   plot_relative_variation  show full baseline dimension / variation wrt the median value
             %   one_plot                 use subplots (E, N, U) or a single plot
             %
             % SYNTAX
             %   showBaselineENU(sta_list, <baseline_ids = []>, <plot_relative_variation = true>, <one_plot = false>)
-            %
+            %   showBaselineENU(sta_list, <ref_id>, <plot_relative_variation = true>, <one_plot = false>)
+            
 
             if (nargin < 4) || isempty(one_plot)
                 one_plot = false;
@@ -2765,6 +2767,12 @@ classdef GNSS_Station < handle
                 baseline_ids = GNSS_Station.getBaselineId(n_rec);
             end
 
+            if numel(baseline_ids) == 1
+                n_rec = numel(sta_list);
+                ref_rec = setdiff((1 : n_rec)', baseline_ids);
+                baseline_ids = [baseline_ids * ones(n_rec - 1, 1), ref_rec];
+            end
+            
             for b = 1 : size(baseline_ids, 1)
                 rec = sta_list(baseline_ids(b, :));
                 if ~isempty(rec(1)) && ~isempty(rec(2))
