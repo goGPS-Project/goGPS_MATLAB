@@ -119,11 +119,13 @@ classdef Core_SEID < handle
                     ph_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
                     pr_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
                     for r = 1 : numel(ref)
-                        ph_gf(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));
+                        id_ok = find(~isnan(id_sync{t}(:,r)));
+                        id_ok_ref = id_sync{t}(id_ok,r);
+                        ph_gf(id_ok, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_ok_ref, :));
                         % Import CS and outliers from receivers
                         for s = 1 : numel(ref(r).ph_idx)
-                            ph_gf(find(ref(r).sat.outliers_ph_by_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                            ph_gf(find(ref(r).sat.cycle_slip_ph_by_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
                             %
                             %                         % fill small gaps
                             %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
@@ -136,7 +138,7 @@ classdef Core_SEID < handle
                             %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
                             %                         end
                         end
-                        pr_gf(:, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_sync{t}(:,r), :));
+                        pr_gf(id_ok, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_ok_ref, :));
                     end
                     ph_gf_diff = diff(ph_gf);
                     
@@ -177,8 +179,10 @@ classdef Core_SEID < handle
                         for r = 1 : numel(ref)
                             id_sat = unique(code_gf(r).go_id) == trg_go_id(s);
                             if sum(id_sat) == 1
-                                lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
-                                lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
+                                id_ok = (~isnan(id_sync{t}(:,r)));
+                                id_ok_ref = id_sync{t}(id_ok,r);
+                                lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
+                                lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
                             end
                         end
                         trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
