@@ -527,7 +527,12 @@ classdef LS_Manipulator < handle
                 end
             end
             
-            if numel(obs_set_list.obs) == 0
+            n_obs = 0;
+            for r = 1 : n_rec
+                n_obs = n_obs + numel(obs_set_list(r).obs);
+            end
+                                
+            if n_obs == 0
                 this.log.addError('Network solution failed: no observations are flagged for usage');
                 common_time = [];
                 id_sync = [];
@@ -536,55 +541,69 @@ classdef LS_Manipulator < handle
             
             % Sync obs_sets
             sanitized = false;
-            while ~sanitized
+            id_sync = nan;
+            while ~sanitized && ~isempty(id_sync)
                 % remove short arcs and remove "empty" satellites
                 [~, id_sync] = obs_set_list.getSyncTimeExpanded();
-                id_ko = sum(~isnan(id_sync),2) < 2;
-                for r = 1 : n_rec
-                    lid_ko_rec = false(obs_set_list(r).time.length, 1);
-                    lid_ko_rec(noNaN(id_sync(id_ko, r))) = true;
-                    obs_set_list(r).remEpochs(lid_ko_rec);
-                    obs_set_list(r).remShortArc(max(this.state.getMinArc, 1));
-                    obs_set_list(r).sanitizeEmpty();
-                end
-                
-                [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
-                
-                % remove satellites arcs seen only by one receiver and sigle epochs arcs
-                common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
-                
-                id_rm = sum(~isnan(common_obs_mat),3) == 1;
-                valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
-                for i = 1 : size(id_rm,2)
-                    % get one epoch arcs
-                    [flag_intervals] = getOutliers(valid_epoch(:,i));
-                    single_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
-                    idx_sa_rm = flag_intervals(single_arcs,1);
-                    if ~isempty(idx_sa_rm)
-                        id_rm(idx_sa_rm, i) = true;
-                    end
-                end
-                % rem obs in each ob set
-                for r = 1 : n_rec
-                    id_rm_o = false(size(obs_set_list(r).obs));
-                    id_rm_o(id_sync(~isnan(id_sync(:,r)),r),:) = id_rm(~isnan(id_sync(:,r)), obs_set_list(r).go_id);
-                    obs_set_list(r).remObs(id_rm_o, false);
-                end
-                
-                
-                % keep the epochs common to at least 2 receivers and that sees more than 2 staellites
-                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) > 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
-                
-                if any(~id_ok)
-                    id_sync = id_sync(id_ok, :);
-                    % filter the observation sets
+                if ~isempty(id_sync)
+                    id_ko = sum(~isnan(id_sync),2) < 2;
                     for r = 1 : n_rec
-                        obs_set_list(r).keepEpochs(noNaN(id_sync(:,r)));
+                        lid_ko_rec = false(obs_set_list(r).time.length, 1);
+                        lid_ko_rec(noNaN(id_sync(id_ko, r))) = true;
+                        obs_set_list(r).remEpochs(lid_ko_rec);
+                        obs_set_list(r).remShortArc(max(this.state.getMinArc, 1));
+                        obs_set_list(r).sanitizeEmpty();
                     end
-                elseif sum(sum(id_rm)) == 0
-                    sanitized = true;
+                    
+                    [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
+                    if ~isempty(id_sync)
+                        
+                        % remove satellites arcs seen only by one receiver and sigle epochs arcs
+                        common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
+                        
+                        id_rm = sum(~isnan(common_obs_mat),3) == 1;
+                        valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
+                        for i = 1 : size(id_rm,2)
+                            % get one epoch arcs
+                            [flag_intervals] = getOutliers(valid_epoch(:,i));
+                            single_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
+                            idx_sa_rm = flag_intervals(single_arcs,1);
+                            if ~isempty(idx_sa_rm)
+                                id_rm(idx_sa_rm, i) = true;
+                            end
+                        end
+                        % rem obs in each ob set
+                        for r = 1 : n_rec
+                            id_rm_o = false(size(obs_set_list(r).obs));
+                            id_rm_o(id_sync(~isnan(id_sync(:,r)),r),:) = id_rm(~isnan(id_sync(:,r)), obs_set_list(r).go_id);
+                            obs_set_list(r).remObs(id_rm_o, false);
+                        end
+                        
+                        
+                        % keep the epochs common to at least 2 receivers and that sees more than 2 staellites
+                        id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) > 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
+                        
+                        if any(~id_ok)
+                            id_sync = id_sync(id_ok, :);
+                            % filter the observation sets
+                            for r = 1 : n_rec
+                                obs_set_list(r).keepEpochs(noNaN(id_sync(:,r)));
+                            end
+                        elseif sum(sum(id_rm)) == 0
+                            sanitized = true;
+                        end
+                    end
                 end
             end
+            
+            % Exit condition
+            if isempty(id_sync)
+                this.log.addError('Network solution failed: no observations are flagged for usage');
+                common_time = [];
+                id_sync = [];
+                return
+            end
+
             
             n_sat = 0;
             for r = 1 : n_rec

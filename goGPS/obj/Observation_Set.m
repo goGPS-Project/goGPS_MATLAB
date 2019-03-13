@@ -329,7 +329,11 @@ classdef Observation_Set < handle
                 p_rate = 1e-6;
                 
                 for r = 1 : numel(obs_set_list)
-                    p_rate = lcm(round(p_rate * 1e6), round(obs_set_list(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                    if obs_set_list(r).time.isEmpty
+                        p_rate = inf;
+                    else
+                        p_rate = lcm(round(p_rate * 1e6), round(obs_set_list(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                    end
                 end
             end
             
@@ -354,7 +358,9 @@ classdef Observation_Set < handle
             
             % If p_rate is specified use it
             if nargin > 1
-                t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
+                if ~isempty(t)
+                    t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
+                end
             end
             
             % Create reference time
