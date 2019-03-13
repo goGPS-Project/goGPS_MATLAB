@@ -511,9 +511,9 @@ classdef Parallel_Manager < Com_Interface
                         log.addWarning(sprintf('Session %d have been computed by worker %d but seems empty or corrupted', sss_id, w_id));
                     end
                 end
-                log.addMarkedMessage('All the parallel session present in the com folder have been imported');
             end
-            
+            log.addMarkedMessage('All the parallel session present in the com folder have been imported');
+
             % delete all the imported files!
             delete(sss_path);
         end
