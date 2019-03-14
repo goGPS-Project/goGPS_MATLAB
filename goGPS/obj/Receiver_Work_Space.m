@@ -4983,7 +4983,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function setOutLimits(this, out_start, out_end)
-            % description  set time loimits for output
+            % Sset time limits for output
             %
             % SYNTAX
             % this. setOutLimits(out_start, out_end)
@@ -5254,6 +5254,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 this.log.addMessage(this.log.indent('Apply the clock error of the receiver'));
             end
+            % do not correct anything with 5 second of time desyinc
+            abs(this.dt) > 5;
+            id_out = (abs(this.dt) > 5);
+            bk_dt = this.dt(id_out);
+            this.dt(id_out) = 0;
+            
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Utils.diffAndPred(this.dt(:,1),2)) < 1e-7);
             % lim = [lim(1) lim(end)];
@@ -5283,6 +5289,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %this.dt_pr = this.dt_pr + this.dt;
             %this.dt_ph = this.dt_ph + this.dt;
             this.dt(:)  = 0; %zeros(size(this.dt_pr));
+            this.dt(id_out) = bk_dt;
         end
         
         function [dop] = computeKinDop(this)
