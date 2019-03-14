@@ -780,14 +780,23 @@ classdef Command_Interpreter < handle
                     trg_list{l} = tmp(tmp <= numel(core.rec));
                     
                     % find the last command of this block
-                    last_par_id = find(execution_block == execution_block(l), 1, 'last');
+                    %last_par_id = find(execution_block == execution_block(l), 1, 'last');
+                    %if isempty(last_par_id)
+                    %    last_par_id = numel(execution_block);
+                    %else
+                    %    last_par_id = last_par_id + l - 2;
+                    %end
+                    %par_cmd_id = (l + 1) : last_par_id;
+                    
+                    % find the last command of this section
+                    last_par_id = find((level(l : end) - level(l)) < 0, 1, 'first');
                     if isempty(last_par_id)
-                        last_par_id = numel(execution_block);
+                        last_par_id = numel(level);
                     else
                         last_par_id = last_par_id + l - 2;
                     end
                     par_cmd_id = (l + 1) : last_par_id;
-                    
+
                     if n_workers > 0
                         par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
                         
@@ -795,20 +804,11 @@ classdef Command_Interpreter < handle
                             gom.orderProcessing(par_cmd_list, 1, sss_list{l});
                             gom.importParallelSessions();
                             % And now I have to read the (ordered) sessions
-                        elseif flag_parallel(l) == 2
+                        elseif flag_parallel(l) == 2 % it means parallel targets
                             gom.orderProcessing(par_cmd_list, 2, trg_list{l});
                         end
                         l = par_cmd_id(end);
                     else
-%                         if ~isempty(trg_list)
-%                             if ~isempty(trg_list{l})
-%                                 rec_list = sprintf('%d%s',trg_list{l+1}(1), sprintf(',%d',trg_list{l}(2:end)));
-%                                 for c = (l + 1) : last_par_id
-%                                     cmd_list{c} = strrep(cmd_list{c}, '$', rec_list);
-%                                 end
-%                             end
-%                         end
-                        
                         switch upper(tok{1})
                             case this.CMD_PINIT.name                % PINIT
                                 this.runParInit(tok(2:end));
