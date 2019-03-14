@@ -759,14 +759,16 @@ classdef Core < handle
             log.addMessageToFile('============================================================================================\n');
         end
         
-        function exportMat(core)
+        function exportMat(core, out_file_name)
             % export the core as a .mat file
             %
             % SYNTAX:
-            %    core.exportMat()
+            %    core.exportMat(<out_file_name>)
             
-            out_dir = core.state.getOutDir();
-            out_file_name = fullfile(out_dir, sprintf('core_%s.mat',core.creation_time.toString('yyyymmdd_HHMMSS')));
+            if nargin < 2 || isempty(out_file_name)
+                out_dir = core.state.getOutDir();
+                out_file_name = fullfile(out_dir, sprintf('core_%s.mat',core.creation_time.toString('yyyymmdd_HHMMSS')));
+            end
             core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
 
             save(out_file_name, 'core', '-v7.3');
