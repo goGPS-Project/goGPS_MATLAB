@@ -721,7 +721,9 @@ classdef Command_Interpreter < handle
                                 this.exec(core, cmd_list_loop);
                             end
                             
-                            if flag_push(execution_block(l) + 1)
+                            % Auto-push if no parallel sessions are present 
+                            % and if there are not push command
+                            if flag_push(execution_block(l) + 1) && ~any(flag_parallel == 1)
                                 for r = 1 : length(core.rec)
                                     % if requested push results
                                     core.rec(r).work.pushResult();
