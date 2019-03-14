@@ -8143,7 +8143,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        this.smoothAndApplyDt(0, false, false);
+                        %this.smoothAndApplyDt(0, false, false);
                         %this.pushResult();
                     end
                 end
