@@ -382,13 +382,13 @@ classdef Receiver_Output < Receiver_Commons
                 end
                 is_last_session = rec_work.time.last >= this.state.sss_date_stop;
                 % NOTE TROPO SMOOTHING.
-                % in case of tropo smoothing we keep onlt the right buffer
+                % in case of tropo smoothing we keep only the right buffer
                 % beacuse they will be used in the next session for
                 % smoothing. The time of the left buffer is the one already
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut()|| is_last_session); 
+                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session); 
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
                     initial_len = this.time.length;

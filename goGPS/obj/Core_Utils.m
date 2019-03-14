@@ -902,20 +902,6 @@ classdef Core_Utils < handle
             % we use mat time, is easier and we do not need extreme precision
             time1 = time1.getMatlabTime();
             time2 = time2.getMatlabTime();
-           
-            % Managed by using id_keep (later in the code)
-            % % data in 2 referred to epochs not present in 1 (left)
-            % prec = 1e4;
-            % [~, id_ko2] = setdiff(round(time2(1 : id_start - 1) *  86400 * prec), round(time1(1 : id_stop-1) *  86400 * prec));
-            % % data in 1 referred to epochs not present in 2 (right)
-            % [~, id_ko1] = setdiff(round(time1(id_stop : end) *  86400 * prec), round(time2(id_start : end) *  86400 * prec));
-            % 
-            % time1(id_ko1) = [];
-            % id_stop = id_stop - numel(id_ko1);
-            % time2(id_ko2) = [];
-            % id_start = id_start - numel(id_ko2);
-            % data_tosmt_lft(id_ko1) = [];
-            % data_tosmt_rgt(id_ko2) = [];
             
             [idx1, idx2, time_tot] = Core_Utils.intersectOrderedDouble(time1, time2, median([diff(time1); diff(time2)])/4); % 1/4 the rate tolerance
             

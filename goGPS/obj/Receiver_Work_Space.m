@@ -8639,7 +8639,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if crop_left && crop_right
                     keep_idx = time > this.out_start_time & time < this.out_stop_time;
                 elseif crop_left
-                    keep_idx = time > this.out_start_time;
+                    keep_idx = time >= this.out_start_time;
                 elseif crop_right
                     keep_idx = time < this.out_stop_time;
                 end
