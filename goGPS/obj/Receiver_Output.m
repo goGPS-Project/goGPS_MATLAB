@@ -513,7 +513,7 @@ classdef Receiver_Output < Receiver_Commons
                     rec_work.id_sync = id_sync_old;
                     % inject with smoothing
                     if ~basic_export && ~is_this_empty && this.state.isSmoothTropoOut()
-                        rec_work.cropIdSync4out(false, is_last_session); % if i sthe last session cut the right part of the data
+                        rec_work.cropIdSync4out(false, is_last_session); % if this is the last session cut the right part of the data
                         if is_last_session
                             idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
                         end
@@ -523,10 +523,10 @@ classdef Receiver_Output < Receiver_Commons
                         % the first epoch are marked as outlier and thus
                         % not computed.
                         new_time = rec_work.getTime();
-                        first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time,1,'first'));
+                        first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time, 1, 'first'));
                         clear new_time;
                         id_stop     = find(time_1 >= first_new_time, 1, 'first'); % The first id of the new session
-                        id_start     = find(time_2 >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_start    = find(time_2 >= first_new_time, 1, 'first'); % The first id of the new session
                         if ~isempty(id_stop)
                             if this.state.flag_out_ztd
                                 this.ztd     = Core_Utils.injectSmtData(zero2nan(this.ztd), zero2nan(rec_work.getZtd()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
@@ -545,8 +545,8 @@ classdef Receiver_Output < Receiver_Commons
                             if this.state.flag_out_res
                                 res = nan(this.time.length, size(this.sat.res, 2));
                                 res_in = rec_work.getResidual();
-                                for i = 1 : size(this.sat.res,2)
-                                    res(:,i)   = Core_Utils.injectSmtData(zero2nan(this.sat.res(:,i)), zero2nan(res_in(:,i)), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start, false);
+                                for i = 1 : size(this.sat.res, 2)
+                                    res(:,i)  = Core_Utils.injectSmtData(zero2nan(this.sat.res(:,i)), zero2nan(res_in(:,i)), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start, false);
                                 end
                                 this.sat.res = res;
                             end

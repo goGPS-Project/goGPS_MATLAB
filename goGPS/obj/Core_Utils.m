@@ -876,7 +876,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start,interpolate)
+        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time1, time2, id_stop, id_start, interpolate)
             % inject smoothed data
             % 
             % INPUT:
@@ -891,17 +891,35 @@ classdef Core_Utils < handle
             %
             % SYNTAX:
             %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
-            if nargin <9
-            interpolate = true;
+            if nargin < 9
+                interpolate = true;
             end
-            data_tosmt_lft = data_lft(idx_smt1);
-            data_tosmt_rgt = data_rgt(idx_smt2);
-            % we use mat time, is easier and we do not need extreme precision
-            time_1 = time_1.getMatlabTime();
-            time_2 = time_2.getMatlabTime();
-            [idx1, idx2, time_tot] = Core_Utils.intersectOrderedDouble(time_1, time_2, median([diff(time_1); diff(time_2)])/4); % 1/4 the rate tolerance
             
-            mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <= empirically found
+            % Get the part of data to interp
+            data_tosmt_lft = data_lft(idx_smt1);
+            data_tosmt_rgt = data_rgt(idx_smt2);            
+            
+            % we use mat time, is easier and we do not need extreme precision
+            time1 = time1.getMatlabTime();
+            time2 = time2.getMatlabTime();
+           
+            % Managed by using id_keep (later in the code)
+            % % data in 2 referred to epochs not present in 1 (left)
+            % prec = 1e4;
+            % [~, id_ko2] = setdiff(round(time2(1 : id_start - 1) *  86400 * prec), round(time1(1 : id_stop-1) *  86400 * prec));
+            % % data in 1 referred to epochs not present in 2 (right)
+            % [~, id_ko1] = setdiff(round(time1(id_stop : end) *  86400 * prec), round(time2(id_start : end) *  86400 * prec));
+            % 
+            % time1(id_ko1) = [];
+            % id_stop = id_stop - numel(id_ko1);
+            % time2(id_ko2) = [];
+            % id_start = id_start - numel(id_ko2);
+            % data_tosmt_lft(id_ko1) = [];
+            % data_tosmt_rgt(id_ko2) = [];
+            
+            [idx1, idx2, time_tot] = Core_Utils.intersectOrderedDouble(time1, time2, median([diff(time1); diff(time2)])/4); % 1/4 the rate tolerance
+            
+            mix_len = min(0.007, abs((time2(1) - time1(end)))/20); % <= empirically found
             w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot)) / mix_len))); % todo: scale to ensure [0 1]
             w1 = 1 - w2;
             n_out = size(time_tot);
@@ -915,20 +933,20 @@ classdef Core_Utils < handle
             % Interpolate missing data
             if interpolate
                 is_nan = find(isnan(data1));
-                extr_lft = is_nan(time_tot(is_nan) <= min(time_1));
-                extr_rgh = is_nan(time_tot(is_nan) >= max(time_1));
+                extr_lft = is_nan(time_tot(is_nan) <= min(time1));
+                extr_rgh = is_nan(time_tot(is_nan) >= max(time1));
                 data1(extr_lft) = data_tosmt_lft(1);
                 data1(extr_rgh) = data_tosmt_lft(end);
                 if any(~isnan(data_tosmt_lft)) &&  any(isnan(data1))
-                    data1 = simpleFill1D(data1, isnan(data1), 'linear');
+                    data1 = simpleFill1D(data1, isnan(data1), 'linear', time_tot);
                 end
                 is_nan = find(isnan(data2));
-                extr_lft = is_nan(time_tot(is_nan) <= min(time_2));
-                extr_rgh = is_nan(time_tot(is_nan) >= max(time_2));
+                extr_lft = is_nan(time_tot(is_nan) <= min(time2));
+                extr_rgh = is_nan(time_tot(is_nan) >= max(time2));
                 data2(extr_lft) = data_tosmt_rgt(1);
                 data2(extr_rgh) = data_tosmt_rgt(end);
                 if any(~isnan(data_tosmt_rgt)) && any(isnan(data2))
-                    data2 = simpleFill1D(data2, isnan(data2), 'linear');
+                    data2 = simpleFill1D(data2, isnan(data2), 'linear', time_tot);
                 end
             else
                 data1(isnan(data1)) = data2(isnan(data1));
