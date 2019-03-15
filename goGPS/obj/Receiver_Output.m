@@ -522,11 +522,11 @@ classdef Receiver_Output < Receiver_Commons
                         % the session. This is done beacause might be that
                         % the first epoch are marked as outlier and thus
                         % not computed.
-                        new_time = rec_work.getTime();
-                        first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time, 1, 'first'));
+                        new_time = rec_work.getTime().getNominalTime;
+                        first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time.getNominalTime, 1, 'first'));
                         clear new_time;
-                        id_stop     = find(time_1 >= first_new_time, 1, 'first'); % The first id of the new session
-                        id_start    = find(time_2 >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_stop     = find(time_1.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_start    = find(time_2.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
                         if ~isempty(id_stop)
                             if this.state.flag_out_ztd
                                 this.ztd     = Core_Utils.injectSmtData(zero2nan(this.ztd), zero2nan(rec_work.getZtd()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);

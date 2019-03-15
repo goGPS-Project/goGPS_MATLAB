@@ -727,6 +727,9 @@ classdef Parallel_Manager < Com_Interface
                 n_job_done = 0;
                 while (n_job_done < 1) || (active_jobs == 0)
                     pause(0.1);
+                    % To send jobs if anything goes wrong use:                     
+                    % this.sendMsg('WORKER_S_001_DO_0020_', 'helooo');
+                    % that line ask to worker 001 for the job 0020
                     elapsed_time = elapsed_time + 0.1;
                     % Search for finished jobs
                     slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_JOBREADY '*']));
