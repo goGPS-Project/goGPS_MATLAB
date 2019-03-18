@@ -106,27 +106,9 @@ classdef Core < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Core()
             % Core object creator
-            
-            % Knows if GReD utilities are available
-            this.is_gred = exist('GReD_Utility', 'class');
-            
+                        
             % init logger
-            this.log = Logger.getInstance();
-            
-            if ispc()
-                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
-                this.local_storage = [home '\AppData\Local\goGPS'];
-            else
-                home = getenv('HOME');
-                if ismac()
-                    this.local_storage = [home '/Library/Application Support/goGPS'];
-                else
-                    this.local_storage = [home '/.goGPS'];
-                end
-            end
-            if ~(exist(this.local_storage, 'dir'))
-                mkdir(this.local_storage)
-            end
+            this.log = Logger.getInstance();            
         end
     end    
     
@@ -608,9 +590,27 @@ classdef Core < handle
             
             if nargin < 2
                 force_clean = false;
-            end            
+            end        
             this.log.setOutMode([], false);                
             if ispc, fclose('all'); end
+            
+            % Knows if GReD utilities are available
+            this.is_gred = exist('GReD_Utility', 'class');
+            
+            if ispc()
+                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
+                this.local_storage = [home '\AppData\Local\goGPS'];
+            else
+                home = getenv('HOME');
+                if ismac()
+                    this.local_storage = [home '/Library/Application Support/goGPS'];
+                else
+                    this.local_storage = [home '/.goGPS'];
+                end
+            end
+            if ~(exist(this.local_storage, 'dir'))
+                mkdir(this.local_storage)
+            end
 
             cm = this.log.getColorMode();
             this.log.setColorMode(true);   

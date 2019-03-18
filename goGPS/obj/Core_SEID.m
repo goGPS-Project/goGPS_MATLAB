@@ -281,7 +281,7 @@ classdef Core_SEID < handle
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
                 log = Logger.getInstance();
                 
-                log.addMarkedMessage('Starting SEID processing')
+                log.addMarkedMessage('Starting REMIONO processing')
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
                 
                 sys_c = 'G';

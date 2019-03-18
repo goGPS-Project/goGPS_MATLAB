@@ -969,39 +969,36 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showMap(this, new_fig)
+        function showMap(sta_list, new_fig)
             if nargin < 2
                 new_fig = true;
             end
             if new_fig
-                f = Mapper();
-                if isa(f,'Mapper')
-                    f = f.fig;
-                end
+                f = figure;
             else
                 f = gcf;
                 hold on;
             end
             maximizeFig(f);
-            [lat, lon] = this.getMedianPosGeodetic();
+            [lat, lon] = sta_list.getMedianPosGeodetic();
             
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;
+            plot(lon(:), lat(:),'.k', 'MarkerSize', 5); hold on;
             % Label BG (in background w.r.t. the point)
-            for r = 1 :  numel(this)
-                text(lon(r)./pi*180, lat(r)./pi*180, '                ', ...
-                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+            for r = 1 :  numel(sta_list)
+                text(lon(r), lat(r), '               ', ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
                     'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
             end
             
             for r = 1 : numel(sta_list)
-                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 40, 'Color', Core_UI.getColor(r, numel(sta_list)));
+                plot(lon(r), lat(r), '.', 'MarkerSize', 40, 'Color', Core_UI.getColor(r, numel(sta_list)));
             end
-            plot(lon(:)./pi*180, lat(:)./pi*180, '.k', 'MarkerSize', 5);
-            plot(lon(:)./pi*180, lat(:)./pi*180, 'ko', 'MarkerSize', 13, 'LineWidth', 2);
+            plot(lon(:), lat(:), '.k', 'MarkerSize', 5);
+            plot(lon(:), lat(:), 'ko', 'MarkerSize', 13, 'LineWidth', 2);
             
-            if numel(this) == 1
+            if numel(sta_list) == 1
                 lon_lim = minMax(lon);
                 lat_lim = minMax(lat);
                 lon_lim(1) = lon_lim(1) - 0.05;
@@ -1020,10 +1017,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             xlim(lon_lim);
             ylim(lat_lim);
             
-            for r = 1 : numel(this)
-                name = upper(this(r).parent.getMarkerName4Ch());
-                text(lon(r), lat(r), [' ' name ' '], ...
-                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).parent.getMarkerName4Ch());
+                text(lon(r), lat(r), ['   ' name], ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
             end
