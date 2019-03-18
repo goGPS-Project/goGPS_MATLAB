@@ -131,8 +131,8 @@ classdef Network < handle
             else
                 % convert to logical
                 lid_ref = false(numel(this.rec_list),1);
-                [~, id_ref] = intersect(this.net_id, id_ref);
-                lid_ref(id_ref) = true;
+                [~, idx_ref] = intersect(this.net_id, id_ref);
+                lid_ref(idx_ref) = true;
             end
              is_empty_recs = ~this.rec_list.hasPhases_mr;
             n_valid_rec = sum(~is_empty_recs);
