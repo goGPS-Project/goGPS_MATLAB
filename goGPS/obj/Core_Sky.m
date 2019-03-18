@@ -606,13 +606,11 @@ classdef Core_Sky < handle
                 % coord  rate
                 coord_rate = cell2mat(textscan(txt(repmat(lim(2,1),1,11) + (26:36)),'%f'));
                 % n epochs
-                nEpochs = cell2mat(textscan(txt(repmat(lim(1,1),1,7) + (32:38)),'%f'));
+                n_epochs = cell2mat(textscan(txt(repmat(lim(1,1),1,7) + (32:38)),'%f'));
                 % find first epoch
                 string_time = txt(repmat(lim(1,1),1,28) + (3:30));
-                % convert the times into a 6 col time
-                date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.8f'));
                 % import it as a GPS_Time obj
-                sp3_first_ep = GPS_Time(date, [], true);
+                sp3_first_ep = GPS_Time(string_time, [], true);
                 if this.coord_rate ~= coord_rate
                     if empty_file
                         this.coord_rate = coord_rate;
@@ -620,23 +618,22 @@ classdef Core_Sky < handle
                         Core.getLogger.addWarning(['Coord rate not match: ' num2str(coord_rate)]);
                         return
                     end
-                    
                 end
                 if clock_flag
                     this.clock_rate = coord_rate;
                 end
                 % checking overlapping and same correct syncro
                 sp3_last_ep = sp3_first_ep.getCopy();
-                sp3_last_ep.addSeconds(coord_rate*nEpochs);
+                sp3_last_ep.addSeconds(coord_rate * n_epochs);
                 if ~empty_file
-                    idx_first = (sp3_first_ep - this.time_ref_coord)/this.coord_rate;
-                    idx_last = (sp3_last_ep - this.time_ref_coord)/this.coord_rate;
-                    memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); %check whether the extend of sp3 file intersect with the current data
+                    idx_first = (sp3_first_ep - this.time_ref_coord) / this.coord_rate;
+                    idx_last = (sp3_last_ep - this.time_ref_coord) / this.coord_rate;
+                    memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); % check whether the extend of sp3 file intersect with the current data
                     if sum(memb_idx)==0
                         empty_file = true;
                         this.clearCoord(); % <---- if new sp3 does not match the already present data clear the data and put the new ones
                         %                          else if sum(memb_idx) == 2 % <--- case new data are already in the class, (this leave out the case wether only one epoch more would be added to the current data, extremely unlikely)
-                        %                             return
+                        %                          return
                     end
                 end
                 % initialize array size
@@ -645,9 +642,9 @@ classdef Core_Sky < handle
                     if clock_flag
                         this.time_ref_clock = sp3_first_ep.getCopy();
                     end
-                    this.coord = zeros(nEpochs, this.cc.getNumSat(),3);
+                    this.coord = zeros(n_epochs, this.cc.getNumSat(),3);
                     if clock_flag
-                        this.clock = zeros(nEpochs, this.cc.getNumSat());
+                        this.clock = zeros(n_epochs, this.cc.getNumSat());
                     end
                 else
                     c_n_sat = size(this.coord,2);
@@ -680,35 +677,49 @@ classdef Core_Sky < handle
                 %string_time = [string_time repmat(' ',size(string_time,1),1)];
                 % import it as a GPS_Time obj
                 sp3_times = GPS_Time.fromString(string_time');
-                if version == 'a'
-                    go_ids_s = this.cc.getGoIds();
-                    go_ids_s = reshape(sprintf('%2d',go_ids_s),2,length(go_ids_s))';                    
+
+                % Get active constellations
+                % parse only these
+                sys_c_list = this.cc.getActiveSysChar;
+                % keep only valid lines
+                lim = lim(txt(lim(:,1)) == 'P' | txt(lim(:,1)) == '*', :);
+                
+                % Analyze data line and keep only the one with active satellites
+                d_line = find(txt(lim(:,1)) == 'P')';                
+                sat_sys_c = txt(lim(d_line,1) + 1);
+                sat_sys_c(sat_sys_c == ' ') = 'G'; % standard "a" considers only GPS and no char G is written to specify the constellation
+                % keep only data lines with satellites that I want to load
+                id_ko = regexp(sat_sys_c, ['[^' sys_c_list ']']);
+                lim(d_line(id_ko), :) = [];
+                n_spe = diff(find([txt(lim(:, 1)) '*'] == '*')) - 1; % number of satellites per epoch
+                t_line = find(txt(lim(:, 1)) == '*');
+                d_line = find(txt(lim(:,1)) == 'P')';
+                      
+                % Parse data considering 4 columns of valid observations with full size of 14chars (x4)
+                % All should be float values
+                data = reshape(sscanf(txt(bsxfun(@plus, repmat(lim(d_line,1) + 3, 1, 1 + 14*4), 1:(1 + 14*4)))', '%f'), 4, numel(d_line))';
+                
+                sys_c = txt(lim(d_line,1) + 1);
+                c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
+                sat_prn = uint8(txt(lim(d_line,1) + 2) - 48) * 10 + uint8(txt(lim(d_line,1) + 3) - 48);
+                go_id = this.cc.getIndex(sys_c, double(sat_prn))';
+                
+                id_ep = zeros(size(d_line,1),1);  id_ep(1) = 1; id_ep(cumsum(n_spe(1 : end-1)) + 1) = 1; id_ep = cumsum(id_ep);
+
+                for col = 1 : 3
+                    id = c_ep_idx(id_ep) + (go_id - 1) * size(this.coord, 1) + (col - 1) * size(this.coord, 1) * size(this.coord, 2);
+                    this.coord(id) = data(:, col) * 1e3;
                 end
-                ant_ids = this.cc.getAntennaId;
-                for i = 1 : length(ant_ids)
-                    ant_id = ant_ids{i};
-                    if version == 'a'
-                        sat_line = find(txt(lim(:,1)) == 'P'  & txt(lim(:,1)+2) == go_ids_s(i,1)& txt(lim(:,1)+3) == go_ids_s(i,2));
-                    else
-                        sat_line = find(txt(lim(:,1)) == 'P' & txt(lim(:,1)+1) == ant_id(1) & txt(lim(:,1)+2) == ant_id(2)& txt(lim(:,1)+3) == ant_id(3));
-                    end
-                    if ~isempty((sat_line))
-                        c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
-                        this.coord(c_ep_idx,i,:) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,41) + repmat(5:45, length(sat_line), 1))','%f %f %f'))*1e3;
-                        if clock_flag
-                            text = txt(repmat(lim(sat_line,1),1,14) + repmat(46:59, length(sat_line), 1));
-                            clock = cell2mat(textscan(text','%f'))/1e6;
-                            clock(clock > 0.99) = nan;
-                            this.clock(c_ep_idx,i) = clock;
-                        end
-                    else
-                    end
+                if clock_flag
+                    data(:,4) = data(:,4) / 1e6;
+                    data(data(:, 4) > 0.99, 4) = nan; % manual manage of nan (9999)
+                    this.clock(c_ep_idx(id_ep) + (go_id - 1) * size(this.coord, 1)) = data(:, 4);
                 end
             end
             clear sp3_file;
             this.coord = zero2nan(this.coord);  % <--- nan is slow for the computation of the polynomial coefficents
         end
-        
+                
         function fillClockGaps(this)
             % DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
             for i = 1 : size(this.clock,2)
