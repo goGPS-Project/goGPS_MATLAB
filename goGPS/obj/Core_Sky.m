@@ -699,17 +699,25 @@ classdef Core_Sky < handle
                 % All should be float values
                 data = reshape(sscanf(txt(bsxfun(@plus, repmat(lim(d_line,1) + 3, 1, 1 + 14*4), 1:(1 + 14*4)))', '%f'), 4, numel(d_line))';
                 
+                % character of sys_c for each line of the SP3
                 sys_c = txt(lim(d_line,1) + 1);
+                % list of epochs in this.coord to be written
                 c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
+                % prn of each line of data
                 sat_prn = uint8(txt(lim(d_line,1) + 2) - 48) * 10 + uint8(txt(lim(d_line,1) + 3) - 48);
+                % go_id of each line of data
                 go_id = this.cc.getIndex(sys_c, double(sat_prn))';
                 
+                % id in this.coord containing the index to insert
                 id_ep = zeros(size(d_line,1),1);  id_ep(1) = 1; id_ep(cumsum(n_spe(1 : end-1)) + 1) = 1; id_ep = cumsum(id_ep);
 
+                % fill this.coord
                 for col = 1 : 3
                     id = c_ep_idx(id_ep) + (go_id - 1) * size(this.coord, 1) + (col - 1) * size(this.coord, 1) * size(this.coord, 2);
                     this.coord(id) = data(:, col) * 1e3;
                 end
+                
+                % fill this.clock
                 if clock_flag
                     data(:,4) = data(:,4) / 1e6;
                     data(data(:, 4) > 0.99, 4) = nan; % manual manage of nan (9999)
