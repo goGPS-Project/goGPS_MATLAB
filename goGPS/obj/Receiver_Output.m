@@ -76,11 +76,7 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
-        function this = Receiver_Output(cc, parent)
-            if nargin < 2 || isempty(cc)
-                cc = Constellation_Collector('G');
-            end
-            this.cc = cc;
+        function this = Receiver_Output(parent)
             this.parent = parent;
             this.initHandles();
             this.reset();
@@ -332,7 +328,7 @@ classdef Receiver_Output < Receiver_Commons
             if ~isempty(this.n_sat_ep)
                 this.n_sat_ep(ep_idx) = [];
             end
-            % remove from sat struct 
+            % remove from sat struct
             if ~isempty(this.sat.outliers)
                 this.sat.outliers(ep_idx,:) = [];
             end
@@ -388,7 +384,7 @@ classdef Receiver_Output < Receiver_Commons
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session); 
+                rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
                     initial_len = this.time.length;
@@ -700,8 +696,8 @@ classdef Receiver_Output < Receiver_Commons
                 
                 color_order = handle(gca).ColorOrder;
                 t = this.getPositionTime().getMatlabTime();
-
-                plot(ax(1), t, this.quality_info.n_epochs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;                
+                
+                plot(ax(1), t, this.quality_info.n_epochs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 h = ylabel(ax(1), sprintf('# epochs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(1), 'Number of valid epochs', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
@@ -736,7 +732,7 @@ classdef Receiver_Output < Receiver_Commons
                     ax(i).FontSize = Core_UI.getFontSize(9);
                 end
                 
-                linkaxes(ax, 'x');    
+                linkaxes(ax, 'x');
             else
                 rec(1).log.addMessage('Plotting a single point is not supported');
             end
@@ -744,24 +740,25 @@ classdef Receiver_Output < Receiver_Commons
         
         function f = showResPerSat(this, res, sys_c_list)
             % Plot the residuals of phase per Satellite
-            % 
+            %
             % INPUT
             %   res     is the matrix of residuals and can be passed from e.g. NET
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.showResPerSat(res)
             
+            cc = Core.getState.getConstellationCollector;
             if nargin < 3
-                sys_c_list = this.cc.getAvailableSys;
+                sys_c_list = cc.getAvailableSys;
             end
             if nargin < 2
                 res = this.sat.res;
             end
-           
-            ss_ok = intersect(this.cc.sys_c, sys_c_list);
+            
+            ss_ok = intersect(cc.sys_c, sys_c_list);
             for sys_c = sys_c_list
                 f = figure; f.Name = sprintf('%03d: %s Res per sat', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                ss_id = find(this.cc.sys_c == sys_c);
+                ss_id = find(cc.sys_c == sys_c);
                 switch numel(ss_ok)
                     case 2
                         subplot(1,2, ss_id);
@@ -783,14 +780,14 @@ classdef Receiver_Output < Receiver_Commons
                 color = gat(256, [], false);
                 ax2 = subplot(1, 6, 5:6);
                 ax1 = subplot(1, 6, 1:4);
-                ss_id = find(this.cc.system == sys_c);
+                ss_id = find(cc.system == sys_c);
                 for s = ss_id
                     id_ok = find(~isnan(zero2nan(res(:, s))));
                     [~, id_sort] = sort(abs(res(id_ok, s)));
-                    scatter(ax1, id_ok(id_sort),  this.cc.prn(s) * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), s)), 'filled');
+                    scatter(ax1, id_ok(id_sort),  cc.prn(s) * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), s)), 'filled');
                     hold(ax1, 'on');
                     err = std(zero2nan(this.sat.res(:,s)), 'omitnan')*1e3;
-                    errorbar(ax2, mean(zero2nan(this.sat.res(:,s)), 'omitnan').*1e3, this.cc.prn(s), err, '.', 'horizontal', 'MarkerSize', 25, 'LineWidth', 2)%, 'Color', color(fun(err), :));
+                    errorbar(ax2, mean(zero2nan(this.sat.res(:,s)), 'omitnan').*1e3, cc.prn(s), err, '.', 'horizontal', 'MarkerSize', 25, 'LineWidth', 2)%, 'Color', color(fun(err), :));
                     hold(ax2, 'on');
                 end
                 cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
@@ -799,22 +796,22 @@ classdef Receiver_Output < Receiver_Commons
                     setColorMapGat(caxis(ax1), 0.99, [-5 5])
                 end
                 colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
-                prn_ss = unique(this.cc.prn(this.cc.system == sys_c));
+                prn_ss = unique(cc.prn(cc.system == sys_c));
                 xlim(ax1, [1 size(this.sat.res,1)]);
                 ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
                 h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
                 ax1.YTick = prn_ss;
                 grid(ax1, 'on');
                 h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
-                h = title(ax1, sprintf('%s %s Residuals per sat [mm]', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(ax1, sprintf('%s %s Residuals per sat [mm]', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 
                 ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
                 xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(this.sat.res(:,:)), 'omitnan'))) * 1e3, ...
-                                        max(std(zero2nan(this.sat.res(:,:)), 'omitnan')) * 1e3) + 1));
+                    max(std(zero2nan(this.sat.res(:,:)), 'omitnan')) * 1e3) + 1));
                 ax2.YTick = prn_ss; ax2.Color = [1 1 1];
                 grid(ax2, 'on');
                 xlabel(ax2, 'mean [mm]');
-                h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';      
+                h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
                 f.Position(3) = 900;
             end
@@ -824,12 +821,13 @@ classdef Receiver_Output < Receiver_Commons
             % Plot the outliers found
             % SYNTAX this.showOutliers()
             
+            cc = Core.getState.getConstellationCollector;
             if nargin == 1
-                sys_c_list = this.cc.getAvailableSys;
+                sys_c_list = cc.getAvailableSys;
             end
             f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             for sys_c = sys_c_list
-                ss_id = find(this.cc.sys_c == sys_c);
+                ss_id = find(cc.sys_c == sys_c);
                 switch numel(sys_c_list)
                     case 2
                         subplot(1,2, ss_id);
@@ -847,8 +845,8 @@ classdef Receiver_Output < Receiver_Commons
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 
-                for prn = this.cc.prn(this.cc.system == sys_c)'
-                    s = this.cc.getIndex(sys_c, prn);
+                for prn = cc.prn(cc.system == sys_c)'
+                    s = cc.getIndex(sys_c, prn);
                     cs = ep(this.sat.cycle_slip(:, s) ~= 0);
                     sat_on = ep(this.sat.az(:, s) ~= 0);
                     plot(sat_on,  prn * ones(size(sat_on)), '.', 'MarkerSize', 10, 'Color', [0.7 0.7 0.7]);
@@ -857,14 +855,14 @@ classdef Receiver_Output < Receiver_Commons
                     out = ep(this.sat.outliers(:, s) ~= 0);
                     plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
-                prn_ss = this.cc.prn(this.cc.system == sys_c);
+                prn_ss = cc.prn(cc.system == sys_c);
                 xlim([1 this.time.length]);
                 ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
                 h = ylabel('PRN'); h.FontWeight = 'bold';
                 ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
         end
         
@@ -872,9 +870,11 @@ classdef Receiver_Output < Receiver_Commons
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
             
+            cc = Core.getState.getConstellationCollector;
+            
             % SNRs
             if nargin == 1
-                sys_c_list = this.cc.getAvailableSys;
+                sys_c_list = cc.getAvailableSys;
             end
             
             for sys_c = sys_c_list
@@ -882,7 +882,7 @@ classdef Receiver_Output < Receiver_Commons
                 polarScatter([],[],1,[]);
                 hold on;
                 
-                for s = this.cc.getGoIds(sys_c)
+                for s = cc.getGoIds(sys_c)
                     az = this.sat.az(:,s);
                     el = this.sat.el(:,s);
                     
@@ -894,7 +894,7 @@ classdef Receiver_Output < Receiver_Commons
                     x = sin(az(sat_on)/180*pi) .* decl_n; x(az(sat_on) == 0) = [];
                     y = cos(az(sat_on)/180*pi) .* decl_n; y(az(sat_on) == 0) = [];
                     plot(x, y, '.', 'MarkerSize', 7, 'Color', [0.7 0.7 0.7]);
-
+                    
                     decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
                     x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
                     y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
@@ -905,7 +905,7 @@ classdef Receiver_Output < Receiver_Commons
                     y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
                     plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
             
         end

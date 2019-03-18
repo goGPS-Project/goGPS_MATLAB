@@ -65,14 +65,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         h_ellips       % ellipsoidal height
         h_ortho        % orthometric height
         
-        add_coo 
-%         = struct( ...
-%             'coo',      [], ...    % additional estimated coo
-%             'time',         [], ...    % time of the coo
-%             'rate',          [] ...    % rate of the coo
-%             )
-       
-
+        add_coo
+        %         = struct( ...
+        %             'coo',      [], ...    % additional estimated coo
+        %             'time',         [], ...    % time of the coo
+        %             'rate',          [] ...    % rate of the coo
+        %             )
+        
+        
     end
     
     % ==================================================================================================================================================
@@ -116,7 +116,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     properties (SetAccess = protected, GetAccess = public)
-        cc = Constellation_Collector('G');      % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         log                                    % handle to log
@@ -128,19 +127,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     methods
-
+        
         function clearHandles(this)
             this.log = [];
             this.state = [];
-            this.cc = [];
             this.rf = [];
             this.w_bar = [];
         end
-
+        
         function initHandles(this)
             this.log = Core.getLogger();
             this.state = Core.getState();
-            this.cc = this.state.getConstellationCollector;
             this.rf = Core.getReferenceFrame();
             this.w_bar = Go_Wait_Bar.getInstance();
         end
@@ -155,7 +152,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.h_ortho = [];
             
             this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
-
+            
             this.a_fix = [];
             this.s_rate = [];
             
@@ -168,7 +165,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.pwv  = [];
             
             this.tgn = [];
-            this.tge = [];            
+            this.tge = [];
         end
     end
     % ==================================================================================================================================================
@@ -239,7 +236,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   rate = this.getRate();
             rate = this.time.getRate;
         end
-                
+        
         function dt = getTotalDt(this)
             dt = this.getDt + this.getDtPrePro;
         end
@@ -468,12 +465,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
+            cc = Core.getState.getConstellationCollector;
+            
             if isempty(this.n_sat_ep)
                 % retrieve the n_sat from residuals
                 if this.state.isSatOut && ~isempty(this.sat.res)
                     n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
-                    for sys_c = this.cc.sys_c
-                        n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, this.cc.system == sys_c))), 2);
+                    for sys_c = cc.sys_c
+                        n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
                     end
                 else
                     n_sat = nan(size(this.getIdSync));
@@ -488,8 +487,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     if ~any(n_sat)
                         % retrieve the n_sat from residuals
                         n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
-                        for sys_c = this.cc.sys_c
-                            n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, this.cc.system == sys_c))), 2);
+                        for sys_c = cc.sys_c
+                            n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
                         end
                     end
                 end
@@ -563,7 +562,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   az = this.getAzEl();
             if isempty(this.sat.az)
-                this.sat.az = nan(this.time.length, this.cc.getNumSat);
+                cc = Core.getState.getConstellationCollector;
+                this.sat.az = nan(this.time.length, cc.getNumSat);
             end
             if nargin < 2
                 go_id = 1 : size(this.sat.az, 2);
@@ -578,7 +578,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   el = this.getEl();
             if isempty(this.sat.el)
-                this.sat.el = nan(this.time.length, this.cc.getNumSat);
+                cc = Core.getState.getConstellationCollector;
+                this.sat.el = nan(this.time.length, cc.getNumSat);
             end
             if nargin < 2
                 go_id = 1 : size(this.sat.el, 2);
@@ -612,9 +613,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %    [sys_c, prn] = this.getSysPrn(go_id)
-            [sys_c, prn] = this.cc.getSysPrn(go_id);
+            cc = Core.getState.getConstellationCollector;
+            [sys_c, prn] = cc.getSysPrn(go_id);
         end
-
+        
     end
     
     % ==================================================================================================================================================
@@ -1036,25 +1038,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % Plot residuals of the solution on polar scatter
             % SYNTAX this.plotResSkyPolar(sys_c)
             
+            cc = Core.getState.getConstellationCollector;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
                 if nargin == 1
-                    sys_c_list = unique(this.cc.system);
+                    sys_c_list = unique(cc.system);
                 end
                 
                 for sys_c = sys_c_list
-                    s = this.cc.getGoIds(sys_c);%this.go_id(this.system == sys_c);
+                    s = cc.getGoIds(sys_c);%this.go_id(this.system == sys_c);
                     res = abs(this.sat.res(:, s));
                     
-                    f = figure; f.Name = sprintf('%03d: Res P %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: Res P %s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
                     polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
                     caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
                     colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                 end
             end
         end
@@ -1062,18 +1065,19 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function showResSky_c(this, sys_c_list)
             % Plot residuals of the solution on cartesian axes
             % SYNTAX this.plotResSkyCart()
+            cc = Core.getState.getConstellationCollector;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
                 if nargin == 1
-                    sys_c_list = unique(this.cc.system);
+                    sys_c_list = unique(cc.system);
                 end
                 
                 for sys_c = sys_c_list
-                    s  = this.cc.getGoIds(sys_c);%unique(this.go_id(this.system == sys_c));
+                    s  = cc.getGoIds(sys_c);%unique(this.go_id(this.system == sys_c));
                     res = abs(this.sat.res(:, s));
                     
-                    f = figure; f.Name = sprintf('%03d: Res C %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: Res C %s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                     %this.updateAzimuthElevation()
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
@@ -1081,14 +1085,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
                     caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
                     colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                     hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
                     hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
                 end
             end
         end
         
-        function showRes(sta_list)            
+        function showRes(sta_list)
             % In a future I could use multiple tabs for each constellation
             for r = numel(sta_list)
                 work = sta_list(r);
@@ -1172,7 +1176,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if isempty(this.ztd) || ~any(sztd(:))
                 this.log.addWarning('ZTD and slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';                
+                f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
                 
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1470,7 +1474,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 if nargin < 3
                     new_fig = true;
-                end                                
+                end
                 
                 if isempty(tropo)
                     sta_list(1).log.addWarning([par_name ' and slants have not been computed']);
@@ -1587,53 +1591,54 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function showNSatSS(this)
             % Show number of satellites in view per constellation
+            cc = Core.getState.getConstellationCollector;
             if ~this.isEmpty()
                 [n_sat, n_sat_ss] = this.getNSat;
                 f = figure; f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-%                 if isfield(n_sat_ss, 'S')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'I')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.I), '.', 'MarkerSize', 35, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'C')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.C), '.', 'MarkerSize', 30, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'J')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.J), '.', 'MarkerSize', 25, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'E')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.E), '.', 'MarkerSize', 20, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'R')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.R), '.', 'MarkerSize', 15, 'LineWidth', 2); hold on;
-%                 end
-%                 if isfield(n_sat_ss, 'G')
-%                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.G), '.', 'MarkerSize', 10, 'LineWidth', 2); hold on;
-%                 end
-
+                %                 if isfield(n_sat_ss, 'S')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'I')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.I), '.', 'MarkerSize', 35, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'C')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.C), '.', 'MarkerSize', 30, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'J')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.J), '.', 'MarkerSize', 25, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'E')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.E), '.', 'MarkerSize', 20, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'R')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.R), '.', 'MarkerSize', 15, 'LineWidth', 2); hold on;
+                %                 end
+                %                 if isfield(n_sat_ss, 'G')
+                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.G), '.', 'MarkerSize', 10, 'LineWidth', 2); hold on;
+                %                 end
+                
                 % If I'm plotting more than one day smooth the number of satellites
                 if (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
-                    for sys_c = this.cc.sys_c
+                    for sys_c = cc.sys_c
                         plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
                     end
                     plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
-                else % If I'm plotting less than 24 hours of satellites number                    
+                else % If I'm plotting less than 24 hours of satellites number
                     plot(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
                 end
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
-
+                
                 sys_list = {};
-                for i = 1 : numel(this.cc.sys_c)
-                    sys_list = [sys_list, {this.cc.sys_c(i)}];
+                for i = 1 : numel(cc.sys_c)
+                    sys_list = [sys_list, {cc.sys_c(i)}];
                 end
                 legend([sys_list, {'All'}]);
                 %legend(sys_list);
                 ylim([0 (max(serialize(n_sat)) + 1)]);
                 grid minor;
                 h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
-            end            
+            end
         end
         
         function showMedianTropoPar(this, par_name, new_fig)
@@ -1872,7 +1877,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 map(n_data_map(:) > 0) = map(n_data_map(:) > 0) ./ n_data_map(n_data_map(:) > 0);
                 map(n_data_map(:) == 0) = nan;
-                               
+                
                 % Convert map in polar coordinates to allow a better interpolation
                 % In principle it is possible to compute directly this polar map
                 % This can be implemented some lines above this point
@@ -2050,7 +2055,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
             data_s = Receiver_Commons.smoothSatData([],[],data_in, [], method, spline_base);
         end
-            
+        
         function data_s = smoothSatData(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
             % Smooth a matrix column by column using method
             %   "spline"

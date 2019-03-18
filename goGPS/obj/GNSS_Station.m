@@ -82,21 +82,16 @@ classdef GNSS_Station < handle
     %% METHODS INIT - CLEAN - RESET - REM - IMPORT - EXPORT
     % ==================================================================================================================================================
     methods
-        function this = GNSS_Station(cc, flag_static)
+        function this = GNSS_Station(flag_static)
             % Creator method
             %
             % INPUT
-            %   cc           object containing info on Constellations [ Constellation Collector ]
             %   flag_static  flag is static [ boolean ]
             %
             % SYNTAX
-            %   this = GNSS_Static(cc, static)
-            if nargin <= 1 || isempty(cc)
-                cc = Constellation_Collector('G');
-            end
-            this.cc = cc;
-            this.work = Receiver_Work_Space(cc, this);
-            this.out = Receiver_Output(this.cc, this);
+            %   this = GNSS_Static(static)
+            this.work = Receiver_Work_Space(this);
+            this.out = Receiver_Output(this);
             if nargin >= 2 && ~isempty(flag_static)
                 this.static = logical(flag_static);
             end
@@ -171,7 +166,7 @@ classdef GNSS_Station < handle
             this.state = Core.getState();
 
             this.w_bar = Go_Wait_Bar.getInstance();
-            this.work = Receiver_Work_Space(this.cc, this);
+            this.work = Receiver_Work_Space(this);
         end
 
         function resetInfo(this)
@@ -203,7 +198,7 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.resetOut()
             for r = 1 : numel(sta_list)
-                sta_list(r).out = Receiver_Output(sta_list(r).cc, sta_list(r));
+                sta_list(r).out = Receiver_Output(sta_list(r));
             end
         end
 
@@ -2329,7 +2324,8 @@ classdef GNSS_Station < handle
                 else
                     tlim = [inf -inf];
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
+                        cc = Core.getState.getConstellationCollector;
+                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;

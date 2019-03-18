@@ -210,7 +210,7 @@ classdef LS_Manipulator < handle
             if nargin < 7
                 dynamic = false;
             end   
-            
+                        
             % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
             if phase_present && isempty(rec.findObservableByFlag('L'))
@@ -222,8 +222,8 @@ classdef LS_Manipulator < handle
                     obs_set = Observation_Set();
                     if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
                         
-                        % Using smoothed iono fromg geometry free
-                        for sys_c = rec.cc.sys_c
+                        % Using smoothed iono from geometry free                        
+                        for sys_c = rec.getActiveSys
                             for i = 1 : length(obs_type)
                                 if this.state.isIonoFree || ~phase_present
                                     obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
@@ -244,7 +244,7 @@ classdef LS_Manipulator < handle
                         end
                     else
                         % Using the best combination available
-                        for sys_c = rec.cc.sys_c
+                        for sys_c = rec.getActiveSys
                             f = rec.getFreqs(sys_c);
                             for i = 1 : length(obs_type)
                                 if ~isempty(f)
@@ -264,7 +264,8 @@ classdef LS_Manipulator < handle
                     obs_set.wl(:) = -1;
                 end
                 if phase_present
-                    n_sat = rec.cc.getMaxNumSat();
+                    cc = Core.getState.getConstellationCollector;
+                    n_sat = cc.getMaxNumSat();
                     rec.sat.cycle_slip = zeros(rec.time.length, n_sat);
                     rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
                     rec.sat.outliers = zeros(rec.time.length, n_sat);

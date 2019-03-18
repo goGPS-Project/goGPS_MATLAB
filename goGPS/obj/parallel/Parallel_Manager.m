@@ -469,7 +469,7 @@ classdef Parallel_Manager < Com_Interface
             if isempty(core.rec)
                 clear rec;
                 for r = 1 : n_rec
-                    rec(r) = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0); %#ok<AGROW>
+                    rec(r) = GNSS_Station(state.getDynMode() == 0); %#ok<AGROW>
                 end
                 core.rec = rec;
                 clear rec;
@@ -751,7 +751,7 @@ classdef Parallel_Manager < Com_Interface
                                 % Start to import the processed target while data is still computed
                                 
                                 if isempty(job_file)
-                                    tmp = GNSS_Station(Core.getState.getConstellationCollector(), Core.getState.getDynMode() == 0);
+                                    tmp = GNSS_Station(Core.getState.getDynMode() == 0);
                                     worker_id_num = str2double(regexp(worker_id, [ '(?<=' Go_Slave.SLAVE_READY_PREFIX '[T|S]_)[0-9]*'], 'match', 'once'));
                                     this.log.addError(sprintf('Worker %d completed its job with no results', worker_id_num));
                                     job_id = worker2job(worker_id_num);

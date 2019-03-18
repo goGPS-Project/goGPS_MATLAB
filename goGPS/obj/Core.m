@@ -834,18 +834,18 @@ classdef Core < handle
                     for r = 1 : this.state.getRecCount()
                         this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
                         if (numel(rec) < r) || rec(r).isEmpty
-                            rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0);
+                            rec(r) = GNSS_Station(this.state.getDynMode() == 0);
                         else
                             buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
                             if buf == 0
                                 rec(r).work.resetWorkSpace();
-                                rec(r).old_work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                                rec(r).old_work = Receiver_Work_Space(rec(r).work.parent);
                             else
                                 % keep the old work
                                 rec(r).old_work = rec(r).work;
                                 rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
                                 % reset the new work
-                                rec(r).work = Receiver_Work_Space(rec(r).work.cc, rec(r).work.parent);
+                                rec(r).work = Receiver_Work_Space(rec(r).work.parent);
                             end
                         end
                     end
