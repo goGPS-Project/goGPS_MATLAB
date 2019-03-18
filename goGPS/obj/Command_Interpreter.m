@@ -341,7 +341,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
-            this.PAR_E_CORE_MAT.descr = 'CORE_MAT          Save the core as .mat file';
+            this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
             this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
             this.PAR_E_CORE_MAT.accepted_values = {};
                         
@@ -1583,8 +1583,10 @@ classdef Command_Interpreter < handle
                     do_not_complain = true;
                 end
             end
-            if ~found_trg & ~do_not_complain
-                this.log.addWarning('No target found -> nothing to do');
+            if ~found_trg
+                if ~do_not_complain
+                    this.log.addWarning('No target found -> nothing to do');
+                end
             else
                 for r = id_trg % different for each target
                     this.log.newLine();
