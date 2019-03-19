@@ -7339,6 +7339,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     s0 = coarsePositioning(this, obs_set);
                 else
                     s0 = 5;
+                    this.xyz = Core.getReferenceFrame.getCoo(this.parent.getMarkerName4Ch,this.time.getCentralTime);
                 end
                 
                 if s0 > 0
