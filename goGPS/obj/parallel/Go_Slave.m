@@ -235,6 +235,7 @@ classdef Go_Slave < Com_Interface
                     core = Core.getCurrentCore(); % Init Core
                     core.clearSingletons();
                     core.initSimpleHandlers();
+                    core.initLocalPath();
                     this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                     tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list', 'slave_type');
                     this.slave_type = tmp.slave_type;

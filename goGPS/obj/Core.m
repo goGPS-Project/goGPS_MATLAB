@@ -577,7 +577,7 @@ classdef Core < handle
     
     %% METHODS INIT
     % ==================================================================================================================================================
-    methods
+    methods        
         function init(this, force_clean)
             % Get instances for:
             %   - Settings
@@ -591,27 +591,11 @@ classdef Core < handle
             if nargin < 2
                 force_clean = false;
             end        
-            this.log.setOutMode([], false);                
+            this.log.setOutMode([], false);
+            this.initLocalPath();
+            
             if ispc, fclose('all'); end
             
-            % Knows if GReD utilities are available
-            this.is_gred = exist('GReD_Utility', 'class');
-            
-            if ispc()
-                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
-                this.local_storage = [home '\AppData\Local\goGPS'];
-            else
-                home = getenv('HOME');
-                if ismac()
-                    this.local_storage = [home '/Library/Application Support/goGPS'];
-                else
-                    this.local_storage = [home '/.goGPS'];
-                end
-            end
-            if ~(exist(this.local_storage, 'dir'))
-                mkdir(this.local_storage)
-            end
-
             cm = this.log.getColorMode();
             this.log.setColorMode(true);   
             
@@ -629,6 +613,28 @@ classdef Core < handle
                 this.rec = [];
                 this.net = [];
             end
+        end
+
+        function initLocalPath()
+            % Renew local path properties
+            
+            % Knows if GReD utilities are available
+            this.is_gred = exist('GReD_Utility', 'class');
+            
+            if ispc()
+                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
+                this.local_storage = [home '\AppData\Local\goGPS'];
+            else
+                home = getenv('HOME');
+                if ismac()
+                    this.local_storage = [home '/Library/Application Support/goGPS'];
+                else
+                    this.local_storage = [home '/.goGPS'];
+                end
+            end
+            if ~(exist(this.local_storage, 'dir'))
+                mkdir(this.local_storage)
+            end            
         end
 
         function initSimpleHandlers(this)
