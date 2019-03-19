@@ -1193,15 +1193,22 @@ end
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);
+            tropo_opt_est_grid = uix.HBox('Parent', tropo_opt_grid,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_grid, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
+
             
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
             tropo_opt_grid.Heights = [20 * ones(5,1); -1];
-            
+            tropo_opt_est_grid.Widths = [150; -1];
+
             Core_UI.insertEmpty(tab);
             
             %%% TROPO ADV
