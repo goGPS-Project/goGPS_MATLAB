@@ -857,7 +857,13 @@ classdef Constellation_Collector < Settings_Interface
                 %                 if s == 'J' %% WARNING PATCH FIX  --> consider set prn of QZSS as the others
                 %                     p = p + 192;
                 %                 end
-                index(i) = this.index((this.system == s)' & this.prn == p);
+                id = this.index((this.system == s)' & this.prn == p);
+                if isempty(id)
+                    % Unrecognized satellite
+                    index(i) = nan;
+                else
+                    index(i) = id;
+                end
             end
         end
         

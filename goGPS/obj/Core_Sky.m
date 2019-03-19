@@ -705,11 +705,20 @@ classdef Core_Sky < handle
                 c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
                 % prn of each line of data
                 sat_prn = uint8(txt(lim(d_line,1) + 2) - 48) * 10 + uint8(txt(lim(d_line,1) + 3) - 48);
-                % go_id of each line of data
-                go_id = this.cc.getIndex(sys_c, double(sat_prn))';
                 
                 % id in this.coord containing the index to insert
                 id_ep = zeros(size(d_line,1),1);  id_ep(1) = 1; id_ep(cumsum(n_spe(1 : end-1)) + 1) = 1; id_ep = cumsum(id_ep);
+
+                % go_id of each line of data
+                go_id = this.cc.getIndex(sys_c, double(sat_prn))';
+                
+                % remove unvalid PRNs
+                id_ko = isnan(go_id);                
+                sat_prn(id_ko) = [];
+                data(id_ko,:) = [];
+                go_id(id_ko) = [];
+                d_line(id_ko) = [];
+                id_ep(id_ko) = [];
 
                 % fill this.coord
                 for col = 1 : 3
