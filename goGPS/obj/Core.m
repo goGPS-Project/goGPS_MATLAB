@@ -1145,6 +1145,28 @@ classdef Core < handle
             end
         end
         
+        function updateReferenceFrame(this, mode)
+            % update reference frame object with computed coordiantes
+            %
+            % SYNTAX
+            %   this.updateReferenceFrame(this, <mode>)
+            rf = this.getReferenceFrame;
+            n_rec = length(this.rec);
+            if nargin < 2
+                mode = 'out';
+            end
+            if strcmp(mode,'work')
+                for i =1 : n_rec
+                    rf.setCoo(this.rec(i).getMarkerName4Ch, this.rec(i).work.xyz, 2,[0 0 0], GPS_Time([1900 1 1 0 0 0]), GPS_Time([2900 1 1 0 0 0]));
+                end
+            else
+                for i =1 :  n_rec
+                    rf.setCoo(this.rec(i).getMarkerName4Ch, this.rec(i).out.getMedianPosXYZ,2,[0 0 0], GPS_Time([1900 1 1 0 0 0]), GPS_Time([2900 1 1 0 0 0]));
+                end
+            end
+            
+        end
+        
         function [n_ok, n_ko] = updateMetFileList(this, force_update, verbosity)
             % Update and check met RINEX list
             %
