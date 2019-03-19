@@ -214,22 +214,8 @@ classdef Network < handle
                     end
                     [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate, wl_struct,frequency_idx);
                     
-                    % check wether tropo does decorrelate
-                    n_rec = length(this.rec_list);
-                    distance_M = zeros(n_rec,n_rec);
-                    for  r1 = 1 : n_rec
-                        [lon1, lat1] = this.rec_list(r1).work.getGeodCoord();
-                        for r2 = r1 : n_rec
-                            [lon2, lat2] = this.rec_list(r2).work.getGeodCoord();
-                            distance_M(r1,r2) = sphericalDistance(lat1, lon1, lat2, lon2);
-                        end
-                    end
-                    max_dist = max(max(distance_M));
-                    if max_dist > 80/(6371*2*pi)/pi*180 % ~80 km
-                        this.is_tropo_decorrel = true;
-                    else
-                        this.is_tropo_decorrel = false;
-                    end
+
+                    this.is_tropo_decorrel = this.state.isReferenceTropoEnabled;
                     if isempty(this.rec_time_indexes)
                         return
                     else

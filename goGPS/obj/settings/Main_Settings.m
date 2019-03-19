@@ -234,6 +234,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ATMOSPHERE
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
         FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
+        FLAG_FREE_NET_TROPO = false;                    % Flag for enabling free network of ztd in network estimation
         IONO_MANAGEMENT = 1;                            % Flag for enabling the usage of iono-free combination
         IONO_MODEL = 2;                                 % Ionospheric model to be used (1: none, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 1: no model
@@ -631,6 +632,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_tropo = Main_Settings.FLAG_TROPO;
         % Flag for enabling the estimation of tropospheric delay
         flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
+        % Flag for enabling no constain on the ztd estimation in network
+        % mode
+        flag_free_net_tropo = Main_Settings.FLAG_FREE_NET_TROPO;
 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
         iono_model = Main_Settings.IONO_MODEL;
@@ -880,6 +884,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ATMOSPHERE
                 this.flag_tropo = state.getData('flag_tropo');
                 this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
+                this.flag_free_net_tropo = state.getData('flag_free_net_tropo');
                 this.iono_management = state.getData('iono_management');
                 this.iono_model = state.getData('iono_model');
                 this.zd_model = state.getData('zd_model');
@@ -1033,6 +1038,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ATMOSPHERE
                 this.flag_tropo = state.flag_tropo;
                 this.flag_tropo_gradient = state.flag_tropo_gradient;
+                this.flag_free_net_tropo = state.flag_free_net_tropo;
                 this.iono_management = state.iono_management;
                 this.iono_model = state.iono_model;
                 this.zd_model = state.zd_model;
@@ -1214,7 +1220,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Estimate tropospheric delay                       %d\n', this.flag_tropo)];
-            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
+            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n', this.flag_tropo_gradient)];
+            str = [str sprintf(' No reference for tropospheric paramters           %d\n\n', this.flag_free_net_tropo)];
             str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model})];
             str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
             str = [str sprintf(' A-priori Zenith model                             %s\n', this.ZD_SMODE{this.zd_model})];
@@ -1666,6 +1673,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
             str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
             str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_free_net_tropo', this.flag_free_net_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('A-priori zenith delay model', str_cell);
             str_cell = Ini_Manager.toIniString('zd_model', this.zd_model, str_cell);
@@ -2324,6 +2332,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.flag_tropo = 1;            % compute troposphere
             this.flag_tropo_gradient = 1;   % compute troposphere
+            this.flag_free_net_tropo = 0;   % no reference in tropo est 
             
             this.zd_model = 2;              % Use VMF for a-priori
             this.mapping_function = 2;      % Use VMF grids
@@ -2407,6 +2416,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.flag_tropo = 1;            % compute troposphere
             this.flag_tropo_gradient = 1;   % compute troposphere
+            this.flag_free_net_tropo = 0;
             
             this.zd_model = 1;              % Use Saastamoinen for a-priori
             this.mapping_function = 1;      % Use GMF grids
@@ -2444,6 +2454,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.flag_tropo = 0;            % do not compute troposphere
             this.flag_tropo_gradient = 0;   % do not compute tropospheric gradients
+            this.flag_free_net_tropo = 0;
 
             this.flag_out_pwv = 0;
             this.flag_out_zwd = 0;
@@ -2529,6 +2540,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
             this.checkLogicalField('flag_tropo');
             this.checkLogicalField('flag_tropo_gradient');
+            this.checkLogicalField('flag_free_net_tropo');
             if this.flag_tropo_gradient && ~this.flag_tropo
                 this.flag_tropo_gradient = false;
                 this.log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
@@ -4195,6 +4207,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_tropo_gradient = this.isTropoGradientEnabled();
             is_tropo_gradient = this.flag_tropo_gradient;
+        end
+        
+        function is_reference_tropo = isReferenceTropoEnabled(this)
+            % Check whether the tropospheric delay gradient estimation is enabled
+            %
+            % SYNTAX
+            %   is_reference_tropo = this.isReferenceTropoEnabled();
+            is_reference_tropo = this.flag_free_net_tropo;
         end
 
         function s_rate = getSolutionRate(this)
