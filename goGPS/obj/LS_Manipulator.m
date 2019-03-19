@@ -133,12 +133,13 @@ classdef LS_Manipulator < handle
     end
     
     methods
-        function this = LS_Manipulator()
+        function this = LS_Manipulator(cc)
             % Creator Brahma
             this.init();
-            
-            this.cc = Core.getState.getConstellationCollector;
-            
+            if nargin < 1
+                cc = Core.getState.getConstellationCollector;
+            end
+            this.cc = cc;
         end
         
         function init(this)

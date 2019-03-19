@@ -7458,8 +7458,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %    [dpos, s0] = this.codeStaticPositioning(id_sync, cut_off, num_reweight)
-            cc = Core.getState.getConstellationCollector;
-            ls = LS_Manipulator(cc);
+            ls = LS_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
@@ -7476,7 +7475,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             ls.setUpCodeSatic( this, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s0] = ls.solve();
-            
+            cc = Core.getState.getConstellationCollector;
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
             for i = 1 : num_reweight
@@ -7521,7 +7520,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function [dpos, s0, ls] = codeDynamicPositioning(this, id_sync, cut_off)
             cc = Core.getState.getConstellationCollector;
-            ls = LS_Manipulator(cc);
+            ls = LS_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
