@@ -289,6 +289,27 @@ classdef Core_SEID < handle
                     % combine code and phase
                     iono_ref(r) = ref(r).getPrefGeometryFree('L',sys_c);
                     gf_pr = ref(r).getPrefGeometryFree('C',sys_c);
+                    
+                    % sync pr with ph
+                    [~, id_ko] = setdiff(gf_pr.go_id, iono_ref(r).go_id);
+                    if ~isempty(id_ko)
+                        % remove pseudoranges not present as phases 
+                        gf_pr.obs(:,id_ko) = [];
+                        gf_pr.obs_code(id_ko, :) = [];
+                        gf_pr.wl(id_ko) = [];
+                        gf_pr.el(:,id_ko) = [];
+                        gf_pr.az(:,id_ko) = [];
+                        gf_pr.prn(id_ko) = [];
+                        if ~isempty(gf_pr.snr)
+                            gf_pr.snr(:,id_ko) = [];
+                        end
+                        if ~isempty(gf_pr.cycle_slip)
+                            gf_pr.cycle_slip(:,id_ko) = [];
+                        end
+                        gf_pr.go_id(id_ko) = [];
+                        gf_pr.sigma(id_ko) = [];
+                    end
+                    
                     idx_nan = iono_ref(r).obs == 0;
 
                     el = iono_ref(r).el / 180 * pi;
