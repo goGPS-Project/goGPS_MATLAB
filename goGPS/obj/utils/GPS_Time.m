@@ -1480,6 +1480,37 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function setEpoch(this, id, gps_time)
+            % Overloading of the operator index (getEpoch)
+            % get a copy of the obj containing only the selected epoch id of time
+            %
+            % SYNTAX
+            %   this.getEpoch(id)
+            
+            if islogical(id)
+                max_id = find(id == true, 1, 'last');
+            else
+                max_id = max(id);
+            end
+            
+            if max_id < this.length()
+      
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        gps_time.toMatlabTime();
+                        this.mat_time(id) = gps_time.mat_time;
+                    case 1 % I'm in UNIX TIME
+                        gps_time.toUnixTime();
+                        this.unix_time(id) = gps_time.unix_time;
+                        this.unix_time_f(id) = gps_time.unix_time_f;
+                    case 2 % I'm in REF TIME
+                        gps_time = gps_time.getRefTime(this.ref_time);
+                        this.time_diff(id) = gps_time.time_diff;
+                        
+                end
+            end
+        end
+        
         function time = getCentralTime(this)
             % return the central epoch time stored in the a receiver
             %
