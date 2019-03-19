@@ -529,7 +529,7 @@ classdef Network < handle
                 end
                 % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
                 idx_rec = x(:,3) == i;
-                if i > 1 % coordiantes are always zero on first receiver
+                if i > 0 % coordiantes are always zero on first receiver
                     coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
                     if isempty(coo)
                         coo = [ 0 0 0];
@@ -859,7 +859,7 @@ classdef Network < handle
             
             % --- push back the results in the receivers
             for i = 1 : n_rec
-                this.rec_list(i).work.xyz = this.coo(i,:);
+                 this.rec_list(i).work.xyz = this.coo(i,:);
                 idx_res_av = ~isnan(this.clock(:, i));
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
