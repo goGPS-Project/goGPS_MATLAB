@@ -615,7 +615,7 @@ classdef Core < handle
             end
         end
 
-        function initLocalPath()
+        function initLocalPath(this)
             % Renew local path properties
             
             % Knows if GReD utilities are available
