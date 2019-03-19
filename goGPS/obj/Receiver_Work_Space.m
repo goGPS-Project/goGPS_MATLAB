@@ -194,7 +194,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             cc = Core.getState.getConstellationCollector;
             this.loaded_sys = cc.getActiveSysChar;
-            this.active_sys = cc.getActiveSysChar;
+            this.setActiveSys(cc.getActiveSysChar);
         end
         
         function reset(this)
@@ -399,26 +399,51 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.add_coo               = [];
         end
         
-        function load(this, t_start, t_stop, rate)
+        function load(this, t_start, t_stop, rate, ss_list)
             % Load the rinex file linked to this receiver
             %
+            % INPUT
+            %   t_start     first epoch to load [GPS_Time]
+            %   t_stop      last epoch to load [GPS_Time]
+            %   rate        rate of load in seconds [double]
+            %   ss_list     satellite system list ([char array])
+            %
             % SYNTAX
-            %   this.load(<t_start>, <t_stop>, <rate>)
-            %   this.load(<rate>);
+            %   this.load(<t_start>, <t_stop>, <rate>, <ss_list>)
+            %   this.load(<rate>, <ss_list>);
             
             cc = Core.getState.getConstellationCollector;
             if ~isempty(this.rinex_file_name)
                 % Reset loaded and active sys
                 this.loaded_sys = cc.getActiveSysChar;
-                this.active_sys = cc.getActiveSysChar;
+                this.setActiveSys(cc.getActiveSysChar);
                 
-                if nargin > 3
-                    this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
-                elseif nargin == 2 % the only parameter is rate
-                    rate = t_start;
-                    this.importRinex(this.rinex_file_name, [], [], rate);
-                else
-                    this.importRinex(this.rinex_file_name);
+                switch nargin
+                    case 1 % this.load()
+                        this.importRinex(this.rinex_file_name);
+                    case 2 % this.load(rate)
+                        if ~isa(t_start, 'GPS_Time')
+                            rate = t_start;
+                            this.importRinex(this.rinex_file_name, [], [], rate);
+                        else
+                        	this.log.addError('Expected rec.load(rate [double])\nfound rec.load(t_start [GPS_Time])');
+                        end
+                    case 3
+                        if ~isa(t_start, 'GPS_Time')
+                            rate = t_start;           
+                            ss_list = t_stop;
+                            this.setActiveSys(ss_list);
+                            this.importRinex(this.rinex_file_name, [], [], rate, ss_list);                              
+                        elseif ~isa(t_stop, 'GPS_Time')
+                            this.importRinex(this.rinex_file_name, t_start, t_stop);
+                        else                            
+                        	this.log.addError('Expected rec.load check input parameters\n');
+                        end
+                    case 4
+                        this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
+                    case 5
+                        this.setActiveSys(ss_list);
+                        this.importRinex(this.rinex_file_name, t_start, t_stop, rate, ss_list);
                 end
                 this.importAntModel();
             end
@@ -448,7 +473,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.remObs(id_obs);
         end
         
-        function importRinexFileList(this, rin_list, time_start, time_stop, rate)
+        function importRinexFileList(this, rin_list, time_start, time_stop, rate, sys_c_list)
             % imprt a list of rinex files
             %
             % SYNTAX:
@@ -463,6 +488,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
+            this.setActiveSys(sys_c_list);
             for i = 1 : n_files
                 tmp = time_stop.getCopy;
                 if tmp > rin_list.last_epoch.getEpoch(i)
@@ -479,7 +505,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  this.appendRinex(rinex_file_name,time_start, time_stop)
             rec = Receiver_Work_Space(this.parent);
             rec.rinex_file_name = rinex_file_name;
-            rec.load(time_start, time_stop, rate);
+            rec.load(time_start, time_stop, rate, this.getActiveSys);
             
             if this.state.flag_amb_pass && ~isempty(this.parent.old_work) && ~this.parent.old_work.isEmpty
                 [ph, wl, id_ph] = rec.getPhases();
@@ -1676,14 +1702,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function importRinex(this, file_name, t_start, t_stop, rate)
+        function importRinex(this, file_name, t_start, t_stop, rate, sys_c_list)
             % Parses RINEX observation files.
             %
             % SYNTAX
-            %   this.importRinex(file_name, <t_start>, <t_stop>, <rate>)
+            %   this.importRinex(file_name, <t_start>, <t_stop>, <rate>, <ss_list>)
             %
             % INPUT
             %   filename = RINEX observation file(s)
+            %   t_start     first epoch to load [GPS_Time]
+            %   t_stop      last epoch to load [GPS_Time]
+            %   rate        rate of load in seconds [double]
+            %   sys_c_list  satellite system list ([char array])
             %
             % OUTPUT
             %   pr1 = code observation (L1 carrier)
@@ -1714,9 +1744,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 rate = [];
             end
             
+            cc = Core.getState.getConstellationCollector;
+            if nargin < 6 || isempty(sys_c_list)
+                sys_c_list = cc.getActiveSysChar;
+            end
+            
             t0 = tic;
             
-            cc = Core.getState.getConstellationCollector;
             this.log.addMarkedMessage('Reading observations...');
             this.log.newLine();
             
@@ -1760,10 +1794,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 if (this.rin_type < 3)
                     % considering rinex 2
-                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate);
+                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c_list);
                 else
                     % considering rinex 3
-                    this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate);
+                    this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate, sys_c_list);
                 end
                 
                 % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
@@ -2196,9 +2230,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function parseRin2Data(this, txt, has_cr, lim, eoh, t_start, t_stop, rate)
+        function parseRin2Data(this, txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX this.parseRin2Data(txt, lim, eoh, <t_start>, <t_stop>)
+            % SYNTAX this.parseRin2Data(txt, lim, eoh, <t_start>, <t_stop>, <rate>, <sys_c>)
             % remove comment line from lim
             if nargin < 6
                 t_start = GPS_Time(0);
@@ -2208,6 +2242,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 rate = [];
             end
             cc = Core.getState.getConstellationCollector;
+            
             comment_pos = repmat(lim(:,1),1,7) + repmat(60:66, size(lim,1), 1);
             % avoid searching out of txt boundaries
             id_ko = find(comment_pos(:,end) > numel(txt), 1, 'first');
@@ -2273,20 +2308,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sbs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'S', 2 : 3)', '%2d'));
                 prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
                 
-                % update the maximum number of rows to store
-                n_obs = cc.gps.isActive * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                    cc.glo.isActive * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                    cc.gal.isActive * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                    cc.qzs.isActive * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                    cc.bds.isActive * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                    cc.irn.isActive * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                    cc.sbs.isActive * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
+                % Get logical list of active constellations
+                [~, id] = intersect(cc.SYS_C, sys_c); 
+                ss_id = zeros(1, numel(cc.SYS_C)); ss_id(id) = 1;
+                
+                % update the maximum number of rows to store                
+                n_obs = ss_id(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
+                    ss_id(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
+                    ss_id(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
+                    ss_id(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
+                    ss_id(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
+                    ss_id(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
+                    ss_id(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
                 % order of storage
                 % sat_system / obs_code / satellite
-                sys_c = char(cc.sys_c);
                 n_ss = numel(sys_c); % number of satellite system
                 
                 this.obs_code = [];
@@ -2295,7 +2333,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system = [];
                 this.f_id = [];
                 this.wl = [];
-                ss_id = find(cc.getActive);
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
@@ -2403,7 +2440,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.obs = obs;
         end
         
-        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop, rate)
+        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop, rate, sys_c)
             if nargin < 6
                 t_start = GPS_Time(0);
                 t_stop = GPS_Time(800000); % 2190/04/28 an epoch very far away
@@ -2475,6 +2512,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
                 sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
                 
+                % Remove unexpected satellite (PRN too high)
                 gps_prn(gps_prn > cc.gps.N_SAT(1)) = [];
                 glo_prn(glo_prn > cc.glo.N_SAT(1)) = [];
                 gal_prn(gal_prn > cc.gal.N_SAT(1)) = [];
@@ -2485,20 +2523,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
                 
+                % Get logical list of active constellations
+                [~, id] = intersect(cc.SYS_C, sys_c); 
+                ss_id = zeros(1, numel(cc.SYS_C)); ss_id(id) = 1;
+                
                 % update the maximum number of rows to store
-                n_obs = cc.gps.isActive * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                    cc.glo.isActive * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                    cc.gal.isActive * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                    cc.qzs.isActive * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                    cc.bds.isActive * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                    cc.irn.isActive * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                    cc.sbs.isActive * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
+                n_obs = ss_id(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
+                    ss_id(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
+                    ss_id(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
+                    ss_id(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
+                    ss_id(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
+                    ss_id(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
+                    ss_id(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
                 % order of storage
                 % sat_system / obs_code / satellite
-                sys_c = char(cc.sys_c);
                 n_ss = numel(sys_c); % number of satellite system
                 
                 % init datasets
@@ -2779,8 +2820,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         function go_id = getActiveGoIds(this)
             % return go_id present in the receiver of the active constellations
             % SYNTAX go_id = this.getActiveGoIds()
-            cc = Core.getState.getConstellationCollector;
-            go_id = unique(this.go_id(regexp(this.system, ['[' cc.sys_c ']?'])));
+            go_id = unique(this.go_id(regexp(this.system, ['[' this.active_sys ']?'])));
         end
         
         function go_id = getGoId(this, sys, prn)

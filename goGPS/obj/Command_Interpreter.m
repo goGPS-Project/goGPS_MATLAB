@@ -907,29 +907,29 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
+                state = Core.getState();
+                if ~sys_found
+                    sys_list = state.cc.getActiveSysChar;
+                end
                 for r = id_trg
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
-                    state = Core.getState();
-                    if sys_found
-                        state.cc.setActive(sys_list);
-                    end
                     [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                     if ~found
                         rate = []; % get the rate of the RINEX
                     end
                     cur_session = Core.getCurrentSession();
                     if state.isRinexSession()
-                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, cur_session), rate);
+                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, cur_session), rate, sys_list);
                         rec(r).work.loaded_session = this.core.getCurSession();
                     else
                         [session_limits, out_limits] = state.getSessionLimits(cur_session);
-                        if out_limits.length < 2 || ~this.core.rin_list(r).hasObsInSession(out_limits.first, out_limits.last);
+                        if out_limits.length < 2 || ~this.core.rin_list(r).hasObsInSession(out_limits.first, out_limits.last)
                             this.log.addMessage(sprintf('No observations are available for receiver %s in session %d', rec(r).getMarkerName4Ch, cur_session));
                         else
-                            rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate);
+                            rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate, sys_list);
                             rec(r).work.loaded_session = cur_session;
                             rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                         end
