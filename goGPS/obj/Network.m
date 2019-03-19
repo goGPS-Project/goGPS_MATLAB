@@ -185,7 +185,7 @@ classdef Network < handle
                 end
                 
                 while n_clean >= 0
-                    ls = LS_Manipulator(this.rec_list(1).cc);
+                    ls = LS_Manipulator();
                     
                     if this.state.flag_amb_pass && this.state.getCurSession > 1 && ~isempty(this.apriori_info)
                         f_time = GPS_Time.now();

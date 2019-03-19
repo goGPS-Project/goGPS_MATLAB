@@ -133,12 +133,12 @@ classdef LS_Manipulator < handle
     end
     
     methods
-        function this = LS_Manipulator(cc)
+        function this = LS_Manipulator()
             % Creator Brahma
             this.init();
-            if nargin > 0
-                this.cc = cc;
-            end
+            
+            this.cc = Core.getState.getConstellationCollector;
+            
         end
         
         function init(this)
@@ -462,7 +462,7 @@ classdef LS_Manipulator < handle
             for i = 1 : n_rec
                 obs_set_list(i) = Observation_Set();
                 if ~isempty(wl_struct)%% case multi frequency
-                    for sys_c = rec_list(i).work.cc.sys_c
+                    for sys_c = this.cc.sys_c
                         if this.state.isIonoFree
                             if this.state.getAmbFixNET > 1 % use the same tracking used in the computation of the widelane
                                 trcks = wl_struct.combination_codes(wl_struct.combination_codes(:,1) == sys_c,2:end);
