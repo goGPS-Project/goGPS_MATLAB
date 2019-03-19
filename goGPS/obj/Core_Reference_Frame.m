@@ -46,7 +46,6 @@ classdef Core_Reference_Frame < handle
         xyz
         vxvyvz
         
-        ref_epoch
         end_validity_epoch
         start_validity_epoch
         
@@ -117,13 +116,6 @@ classdef Core_Reference_Frame < handle
                         lim(end,:) = [];
                     end
                     header_line = find(txt(lim(:,1)) == '#');
-                    for i = header_line
-                        line = txt(lim(i,1):lim(i,2));
-                        idx = strfind(line,'Reference epoch');
-                        if ~isempty(idx)
-                            this.ref_epoch = GPS_Time( sscanf(line((idx+15):end),'%f %f %f %f %f %f')');
-                        end
-                    end
                     lim(header_line,:) = [];
                     %initilaize array
                     n_sta = size(lim,1);
@@ -146,18 +138,14 @@ classdef Core_Reference_Frame < handle
                             if l > 7
                                 this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
                                 if l > 9
-                                    re_date(i) = datenum([parts{9} ' ' parts{10}]);
+                                    st_date(i) = datenum([parts{9} ' ' parts{10}]);
                                     if l > 11
-                                        st_date(i) = datenum([parts{11} ' ' parts{12}]);
-                                        if l > 13
-                                            en_date(i) = datenum([parts{13} ' ' parts{14}]);
-                                        end
+                                        en_date(i) = datenum([parts{11} ' ' parts{12}]);
                                     end
                                 end
                             end
                         end
                     end
-                    this.ref_epoch            = GPS_Time(re_date);
                     this.start_validity_epoch = GPS_Time(st_date);
                     en_date(en_date == 0)     = datenum(2099, 1,1);
                     this.end_validity_epoch   = GPS_Time(en_date);
@@ -176,7 +164,6 @@ classdef Core_Reference_Frame < handle
             this.flag = [];
             this.start_validity_epoch = [];
             this.end_validity_epoch = [];
-            this.ref_epoch = [];
         end
         
         function [xyz, is_valid] = getCoo(this, sta_name, epoch)
@@ -204,13 +191,65 @@ classdef Core_Reference_Frame < handle
                         epoch_gps = epoch.getGpsTime();
                         idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
                         idx_sta = idx_sta(idx_sta2);
-                        dt = epoch - this.ref_epoch.getEpoch(idx_sta);
+                        dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
                         xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
                         is_valid = true;
                     end
                 end
             end
         end
+        
+        function setCoo(this, sta_name, xyz, flag, vxvyvz, start_validity_epoch, end_validity_epoch)
+            % set the coordiates at the reference epoch
+            %
+            % SYNTAX:
+            %  this.setCoo(sta_name, xyz)
+             % load RF if not loaded
+            if ~this.isValid()
+                if exist(Core.getState.getCrdFile, 'file') == 2
+                    this.init();
+                end
+            end
+            
+                
+                if length(sta_name) == 4
+                    idx_sta = find(strcmpi(this.station_code, sta_name));
+                    if sum(idx_sta) > 0
+                        this.xyz(idx_sta,:) = xyz;
+                        if nargin > 3 && ~isempty(flag)
+                            this.flag(idx_sta) = flag;
+                        end
+                        if nargin > 4 && ~isempty(vxvyvz)
+                            this.vxvyvz(idx_sta,:) = vxvyvz;        
+                        end
+                        
+                        if nargin > 5 && ~isempty(start_validity_epoch)
+                            this.start_validity_epoch.setEpoch(idx_sta,start_validity_epoch);
+                        end
+                        if nargin > 6 && ~isempty(end_validity_epoch)
+                            this.end_validity_epoch.setEpoch(idx_sta,end_validity_epoch);
+                        end
+                    else
+                        this.xyz = [this.xyz; xyz];
+                        this.station_code{end+1} = sta_name;
+                        this.flag = [this.flag; flag];
+                        this.vxvyvz = [this.vxvyvz; vxvyvz];
+                        if isempty(this.start_validity_epoch)
+                            this.start_validity_epoch = start_validity_epoch;
+                        else
+                            this.start_validity_epoch.append(start_validity_epoch);
+                            
+                        end
+                        if isempty(this.end_validity_epoch)
+                            this.end_validity_epoch = end_validity_epoch;
+                        else
+                            this.end_validity_epoch.append(end_validity_epoch);
+                            
+                        end
+                    end
+                end
+        end
+            
         
         function crx_list = getEntryCell(this)
             % Get the list of CORD entries in the format:
@@ -346,7 +385,6 @@ classdef Core_Reference_Frame < handle
                     end
                 end
                 this.start_validity_epoch = GPS_Time(date');
-                this.ref_epoch = this.start_validity_epoch;
 
                 date = [];
                 for i = 1 : size(data,1)
