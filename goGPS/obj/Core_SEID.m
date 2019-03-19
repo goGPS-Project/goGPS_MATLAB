@@ -286,7 +286,7 @@ classdef Core_SEID < handle
                 
                 sys_c = 'G';
                 for r = 1 : numel(ref)
-                    % comine code and phase
+                    % combine code and phase
                     iono_ref(r) = ref(r).getPrefGeometryFree('L',sys_c);
                     gf_pr = ref(r).getPrefGeometryFree('C',sys_c);
                     idx_nan = iono_ref(r).obs == 0;
@@ -302,7 +302,7 @@ classdef Core_SEID < handle
                     %iono_ref(r).obs = ref(r).applyMF(iono_ref(r).obs, iono_ref(r).mf, 1);
                     %iono_ref(r).obs(idx_nan) = nan;
 
-                    iono_ref(r).obs = ref(r).smoothSatData([], [], zero2nan(iono_ref(r).obs), false(size(iono_ref(r).cycle_slip)), [], 300 / iono_ref(r).time.getRate); % <== supposing no more cycle slips
+                    %iono_ref(r).obs = ref(r).smoothSatData([], [], zero2nan(iono_ref(r).obs), false(size(iono_ref(r).cycle_slip)), [], 300 / iono_ref(r).time.getRate); % <== supposing no more cycle slips
                 end
                 
                 max_sat = 0;
@@ -320,24 +320,31 @@ classdef Core_SEID < handle
                     end
                     
                     % DIFF: 
-                    iono_diff = diff(nan2zero(iono_sync));
+                    % Simple approach ---------------------------------------------
+                    % iono_diff = diff(nan2zero(iono_sync)); % deprecate ("loses one epoch")
+                    % Complex approach --------------------------------------------
+                    % Compute median iono (to reduce the signal)
+                    iono_diff = nan(size(iono_sync));
+                    for r = 1: numel(iono_ref)
+                        tmp = Core_Utils.diffAndPred(zero2nan(iono_sync(:,:,r)));
+                        mm_tmp = movmedian(tmp, 3);
+                        id_ko = abs(tmp - mm_tmp) > 0.03;
+                        tmp(id_ko) = mm_tmp(id_ko);
+                        iono_diff(:,:,r) = tmp;
+                    end
+                    
+                    % Reduce the iono signal by a smoothed median iono diff
+                    med_iono_diff = median(iono_diff, 3, 'omitnan');
+                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 300 / p_time(t).getRate); % <== supposing no more cycle slips
+                    for r = 1: numel(iono_ref)
+                        iono_diff(:,:,r) = iono_diff(:,:,r) - med_iono_diff;
+                    end
+                    % -------------------------------------------------------------
                     
                     % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
                     % pierce_point(r).lat could have different size receiver by receiver
-                    % indexes convarsion is id = phase_gf(r).go_id
-                    
-                    % % DEBUG: plot
-                    % hold off;
-                    % for r = 1 : numel(ref)
-                    %     % Id of non nan values
-                    %     id_ok = reshape(~isnan(pierce_point(r).lon(:)) & ~isnan(serialize(pr_gf(:, phase_gf(r).go_id, r))), size(pierce_point(r).lat, 1), size(pierce_point(r).lat, 2));
-                    %     tmp = ph_gf_diff(:, phase_gf(r).go_id, r);
-                    %     id_ok(end, :) = false;
-                    %     lat_lim = minMax(pierce_point(r).lat / pi * 180); lat_lim(1) = lat_lim(1) - 0.5; lat_lim(2) = lat_lim(2) + 0.5;
-                    %     lon_lim = minMax(pierce_point(r).lon / pi * 180); lon_lim(1) = lon_lim(1) - 0.5; lon_lim(2) = lon_lim(2) + 0.5;
-                    %     prettyScatter(tmp(id_ok(2 : end, :)), pierce_point(r).lat(id_ok) / pi * 180, pierce_point(r).lon(id_ok) / pi * 180, lat_lim(1), lat_lim(2), lon_lim(1), lon_lim(2), '10m'); hold on; colormap(jet);
-                    % end
-                    
+                    % indexes conversion is id = phase_gf(r).go_id
+                                                           
                     [ph1, id_ph] = trg(t).getObs('L1','G');
                     [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
                     ph1_goid = trg(t).go_id(id_ph)';
@@ -356,13 +363,13 @@ classdef Core_SEID < handle
                                 lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
                             end
                         end
-                        % DIFF: 
-                        iono_trg(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(iono_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
-                        %iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(iono_sync(:, trg_go_id(s), :)), lat_pp(id_sync{t}(:, t + numel(ref)), s), lon_pp(id_sync{t}(:, t + numel(ref)), s));
+                        % DIFF:
+                        tmp = Core_SEID.satDataInterp(lat_sat(:, :), lon_sat(:, :), squeeze(iono_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
+                        tmp(abs(tmp) > 0.1) = nan; % remove outliers
+                        iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = tmp + med_iono_diff(:, trg_go_id(s));
                     end
                     
                     % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
-                    iono_trg(abs(iono_trg) > 0.5) = nan; % remove outliers
                     inan = isnan(iono_trg);
                     iono_trg = cumsum(nan2zero(iono_trg));
                     iono_trg(inan) = nan;
