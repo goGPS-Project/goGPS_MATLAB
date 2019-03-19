@@ -456,7 +456,6 @@ classdef LS_Manipulator < handle
             n_rec = length(rec_list);
             obs_set_list  = Observation_Set.empty(n_rec,0);
             work_list = [rec_list.work];
-            this.cc = rec_list(1).cc;
             
             %--- for each receiver get one observation set
             for i = 1 : n_rec
