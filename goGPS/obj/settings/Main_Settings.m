@@ -181,7 +181,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 10;                       % Threshold on the maximum residual of code observations [m]
-        PP_MAX_PHASE_ERR_THR = 0.02;                    % Threshold on the maximum residual of phase observations [m]
+        PP_MAX_PHASE_ERR_THR = 0.10;                    % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
         FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
@@ -2298,8 +2298,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.cut_off = 7;
             this.snr_thr = 0;
             this.min_arc = 10;
-            this.pp_max_code_err_thr = 5;
-            this.pp_max_phase_err_thr = 0.09;
+            this.pp_max_code_err_thr = 10;
+            this.pp_max_phase_err_thr = 0.10;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -2380,8 +2380,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.cut_off = 7;
             this.snr_thr = 28;
             this.min_arc = 10;
-            this.pp_max_code_err_thr = 5;
-            this.pp_max_phase_err_thr = 0.05;
+            this.pp_max_code_err_thr = 10;
+            this.pp_max_phase_err_thr = 0.10;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
