@@ -109,6 +109,7 @@ classdef LS_Manipulator < handle
         sat_jmp_idx         % satellite jmp index
         
         pos_indexs_tc = {}  % to which index of the sampled time the progessive index correspond
+        central_coo         % index of the central coordinate
         
         apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
         x_float
@@ -644,7 +645,8 @@ classdef LS_Manipulator < handle
                         else
                             central_coo = 1;
                         end
-                        this.pos_indexs_tc{end+1} = central_coo; % to be used afterwards to push back postions
+                        this.pos_indexs_tc{end+1} = unique([ones(sum(idx_bf) > 0) central_coo ones(sum(idx_aft) > 0)+central_coo])'; % to be used afterwards to push back postions
+                        this.central_coo(end+1) = central_coo;
                         pos_idx_nh(idx_aft) = max(pos_idx_nh) + 1;
                     else
                         pos_idx_nh = [];
@@ -1516,17 +1518,44 @@ classdef LS_Manipulator < handle
                 B = B - rNcomm*B_comm;  % B1r = N1 - N21 * inv(N22) * B2
                 
                 % resolve the rank deficency
-                % ALL paramters has a rank deficency beacause the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
+                % ALL paramters has a rank deficency because the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
                 % 2) remove coordinates and tropo paramters of the first receiver
                 % we can do that because tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
-                idx_rec_x = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_X));
-                idx_rec_y = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Y));
-                idx_rec_z = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Z));
+
                 idx_rec_isb = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_ISB));
                 idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
                 idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
-                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_isb;];%
+                idx_rm = [idx_rec_isb;];%idx_rec_x; idx_rec_y; idx_rec_z;
+                if true
+                    % strong regularize the mean of the coordinates to zero
+                    % for each time span of coordinate find the index of
+                    % the paranter
+                    idx_rec_x = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
+                    idx_rec_y = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
+                    idx_rec_z = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
+                    for rr = 1:n_rec
+                        idx_rec_xtmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_X));
+                        idx_rec_ytmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_Y));
+                        idx_rec_ztmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_Z));
+                        
+                        idx_rec_x(this.pos_indexs_tc{rr},rr) = idx_rec_xtmp;
+                        idx_rec_y(this.pos_indexs_tc{rr},rr) = idx_rec_ytmp;
+                        idx_rec_z(this.pos_indexs_tc{rr},rr) = idx_rec_ztmp;
+                    end
+                    % set the mean regularization
+                    for ss = 1 : size(idx_rec_x,1)
+                        if sum(idx_rec_x(ss,:)) > 0
+                            idx_rec_xtmp = noZero(idx_rec_x(ss,:));
+                            N(idx_rec_xtmp,idx_rec_xtmp) = N(idx_rec_xtmp,idx_rec_xtmp) + 10*ones(length(idx_rec_xtmp));
+                            idx_rec_ytmp = noZero(idx_rec_y(ss,:));
+                            N(idx_rec_ytmp,idx_rec_ytmp) = N(idx_rec_ytmp,idx_rec_ytmp) + 10*ones(length(idx_rec_ytmp));
+                            idx_rec_ztmp = noZero(idx_rec_z(ss,:));
+                            N(idx_rec_ztmp,idx_rec_ztmp) = N(idx_rec_ztmp,idx_rec_ztmp) + 10*ones(length(idx_rec_ztmp));
+                        end
+                    end
+                    
+                end
                 if ~this.is_tropo_decorrel
                     idx_rm = [idx_rm ; idx_rec_t; idx_rec_tn; idx_rec_te];
                 end

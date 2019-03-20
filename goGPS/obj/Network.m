@@ -58,6 +58,7 @@ classdef Network < handle
         amb              % {n_rec} recievers ambiguity
         log
         pos_indexs_tc    % index for subpositions
+        central_coo      % index of the central coordinate
         id_ref
         wl_mats          % widelane matrices
         wl_comb_codes    % codes of the widelanes (e.g. G12 B27) these are the rinex3 codes
@@ -509,7 +510,11 @@ classdef Network < handle
             n_time = this.common_time.length;
             n_rec = length(this.rec_list);
             n_set_coo = length(ls.getCommonPosIdx);
+            if this.state.isSepCooAtBoundaries
+                n_set_coo = 1;
+            end
             this.pos_indexs_tc = ls.pos_indexs_tc;
+            this.central_coo = ls.central_coo;
             this.clock = zeros(n_time, n_rec);
             this.coo = nan(n_rec, 3, n_set_coo);
             this.ztd = nan(n_time, n_rec);
@@ -535,10 +540,10 @@ classdef Network < handle
                         coo = [ 0 0 0];
                     end
                         if ~isempty(this.pos_indexs_tc) && ~this.state.isSepCooAtBoundaries
-                            this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
+                            this.coo(i,:,this.pos_indexs_tc{i}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i})) + permute(coo, [3 2 1]);
                         else
                             if this.state.isSepCooAtBoundaries && numel(coo) > 3 
-                                this.coo(i,:) = nan2zero(this.coo(i,:)) + coo(this.pos_indexs_tc{i-1},:);
+                                this.coo(i,:) = nan2zero(this.coo(i,:)) + coo(this.central_coo(i),:);
                             else
                                 this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
                             end
@@ -600,7 +605,7 @@ classdef Network < handle
             % ALL OF THIS MAKES NO SENSE TO ME (Andrea). Now it should ;) (Giulio)
             %--- transform the result in the desired free network
             
-            if ~isnan(id_ref(1)) && ~(length(id_ref) == 1 && id_ref == 1)
+            if ~isnan(id_ref(1)) 
                 
                 S = zeros(n_rec);
                 S(:, id_ref) = - 1 / numel(id_ref);
