@@ -8054,11 +8054,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     
                     % Remove outliers > threshold has requested in max phase error threshold (see settings/GUI)
-                    flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
-                    if flag_recompute
-                        ls.Astack2Nstack();
-                        [x, res, s0, ~, l_fixed] = ls.solve();
+                    flag_recompute = true;
+                    ok_factor = 1; % accept a thr exactly as the one from UI
+                    while (flag_recompute && any(abs(res(:)) > (ok_factor * Core.getState.getMaxPhaseErrThr())))
+                        flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
+                        if flag_recompute
+                            ls.Astack2Nstack();
+                            [x, res, s0, ~, l_fixed] = ls.solve();
+                            ok_factor = ok_factor * 1.5; % accept a thr 1.5 greater than the previous
+                        end
                     end
+                    
                     if this.state.getAmbFixPPP && false
                         this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1), ls.wl_amb, ls.amb_idx, ls.go_id_amb,ls.true_epoch);
                         %pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
