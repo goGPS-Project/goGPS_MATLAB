@@ -1276,6 +1276,7 @@ classdef LS_Manipulator < handle
             idx_rec_common_l = this.param_flag == 2;
             N = [];
             B = [];
+            N2A_idx = [];
             A2N_idx_tot = [];
             x_rec = [];
             for r = u_r(:)'
