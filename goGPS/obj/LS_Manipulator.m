@@ -1532,9 +1532,9 @@ classdef LS_Manipulator < handle
                     % strong regularize the mean of the coordinates to zero
                     % for each time span of coordinate find the index of
                     % the paranter
-                    idx_rec_x = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
-                    idx_rec_y = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
-                    idx_rec_z = zeros(max(max(cell2mat(this.pos_indexs_tc)))+1,n_rec);
+                    idx_rec_x = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
+                    idx_rec_y = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
+                    idx_rec_z = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
                     for rr = 1:n_rec
                         idx_rec_xtmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_X));
                         idx_rec_ytmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_Y));
