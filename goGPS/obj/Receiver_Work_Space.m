@@ -8879,7 +8879,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for s = 1 : n_sat
                 ph = ph_mat(:,s);
                 pr = pr_mat(:,s);
-                if sum(~isnan(pr)) > 0
+                if any(~isnan(ph) & ~isnan(pr)) & any(amb_idx_mat(:,s))
                     amb_idx = amb_idx_mat(:,s);
                     amb_idx = amb_idx - min(amb_idx) + 1;
                     n_amb = max(amb_idx);

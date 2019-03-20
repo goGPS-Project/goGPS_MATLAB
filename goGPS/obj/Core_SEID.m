@@ -357,7 +357,7 @@ classdef Core_SEID < handle
                     
                     % Reduce the iono signal by a smoothed median iono diff
                     med_iono_diff = median(iono_diff, 3, 'omitnan');
-                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 900 / p_time(t).getRate); % <== supposing no more cycle slips
+                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 900 / p_time(t).getRate, 5); % <== supposing no more cycle slips
                     for r = 1: numel(iono_ref)
                         d_tmp =iono_diff(:,:,r) - med_iono_diff;
                         d_tmp(abs(d_tmp) > 0.015) = nan;
