@@ -68,6 +68,7 @@ classdef Network < handle
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
+        is_coo_decorrel   % are station decorrelated enough
     end
     
     methods
@@ -106,7 +107,7 @@ classdef Network < handle
             this.wl_comb_codes = [];
         end
         
-        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk, frequency_idx)
+        function adjust(this, id_ref, coo_rate, reduce_iono, export_clk, frequency_idx, free_net)
             % Adjust the GNSS network
             %
             % INPUT
@@ -125,6 +126,11 @@ classdef Network < handle
             if nargin < 5
                 export_clk = false;
             end
+            
+             if nargin < 7
+                free_net = false;
+            end
+            
             
            
             if nargin < 2 || any(isnan(id_ref)) || isempty(id_ref)
@@ -217,6 +223,7 @@ classdef Network < handle
                     
 
                     this.is_tropo_decorrel = this.state.isReferenceTropoEnabled;
+                    this.is_coo_decorrel = free_net;
                     if isempty(this.rec_time_indexes)
                         return
                     else
@@ -241,6 +248,7 @@ classdef Network < handle
                             end                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
+                        ls.is_coo_decorrel = this.is_coo_decorrel;
                         [x, res, s0, Cxx, l_fixed, av_res] = ls.solve;
                         this.tropo_idx = ls.tropo_idx;
                         this.tropo_g_idx = ls.tropo_g_idx;

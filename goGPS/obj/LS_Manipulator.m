@@ -116,6 +116,7 @@ classdef LS_Manipulator < handle
         Cxx_amb
         
         is_tropo_decorrel % are tropo paramter decorrelated enough
+        is_coo_decorrel % are coo paramter decorrelated enough
         
         ant_mp_est = false;  % estimate antenna multipath
     end
@@ -1526,8 +1527,8 @@ classdef LS_Manipulator < handle
                 idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
                 idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
-                idx_rm = [idx_rec_isb;];%idx_rec_x; idx_rec_y; idx_rec_z;
-                if true
+                idx_rm = [idx_rec_isb;];%
+                if ~this.is_coo_decorrel
                     % strong regularize the mean of the coordinates to zero
                     % for each time span of coordinate find the index of
                     % the paranter
