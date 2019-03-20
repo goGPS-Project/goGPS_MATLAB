@@ -5950,13 +5950,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
             [gn ,ge] = this.getGradient();
             [mfh, mfw] = this.getSlantMF();
-            if any(ge(:))
-                for g = go_id
-                    this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
-                end
-            else
-                for g = go_id
-                    this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+            if any(mfh(:)) && any(mfw(:))
+                if any(ge(:))
+                    for g = go_id
+                        this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                    end
+                    
+                else
+                    for g = go_id
+                        this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
+                    end
                 end
             end
         end
@@ -7428,7 +7431,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
             sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
+            sat_mean = mean(abs(sensor),'omitnan');
+            median_sat_mean = median(sat_mean,'omitnan');
+            bad_sat = sat_mean > 10*median_sat_mean;
             bad_track = abs(sensor) > 1e5;
+            bad_track(:,bad_sat) = true;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
             %ph(bad_track) = 0;

@@ -1530,7 +1530,7 @@ classdef LS_Manipulator < handle
                 idx_rm = [idx_rec_isb;];%
                 if ~this.is_coo_decorrel
                     % strong regularize the mean of the coordinates to zero
-                    % for each time span of coordinate find the index of
+                   % for each time span of coordinate find the index of
                     % the paranter
                     idx_rec_x = zeros(max([serializeCell(this.pos_indexs_tc);1])+1,n_rec);
                     idx_rec_y = zeros(max([serializeCell(this.pos_indexs_tc);1])+1,n_rec);
