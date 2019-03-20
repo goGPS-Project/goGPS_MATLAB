@@ -173,6 +173,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     methods
+        function cc = getCC(this);
+            cc = Core.getState.getConstellationCollector;
+        end
         function toStringPos(this)
             % Display on screen information about the receiver position
             % SYNTAX this.toStringPos();
@@ -279,6 +282,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        % position
         function [lat, lon, h_ellips, h_ortho] = getPosGeodetic(this)
             % Return the positions computed for the receiver
             %
@@ -394,6 +398,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        % tropo
         function ztd = getZtd(this)
             % get ztd
             %
@@ -465,7 +470,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
-            cc = Core.getState.getConstellationCollector;
+            cc = this.getCC;
             
             if isempty(this.n_sat_ep)
                 % retrieve the n_sat from residuals
@@ -562,7 +567,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   az = this.getAzEl();
             if isempty(this.sat.az)
-                cc = Core.getState.getConstellationCollector;
+                cc = this.getCC;
                 this.sat.az = nan(this.time.length, cc.getNumSat);
             end
             if nargin < 2
@@ -578,7 +583,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   el = this.getEl();
             if isempty(this.sat.el)
-                cc = Core.getState.getConstellationCollector;
+                cc = this.getCC;
                 this.sat.el = nan(this.time.length, cc.getNumSat);
             end
             if nargin < 2
@@ -613,7 +618,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %    [sys_c, prn] = this.getSysPrn(go_id)
-            cc = Core.getState.getConstellationCollector;
+            cc = this.getCC;
             [sys_c, prn] = cc.getSysPrn(go_id);
         end
         
@@ -1038,7 +1043,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % Plot residuals of the solution on polar scatter
             % SYNTAX this.plotResSkyPolar(sys_c)
             
-            cc = Core.getState.getConstellationCollector;
+            cc = this.getCC;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
@@ -1065,7 +1070,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function showResSky_c(this, sys_c_list)
             % Plot residuals of the solution on cartesian axes
             % SYNTAX this.plotResSkyCart()
-            cc = Core.getState.getConstellationCollector;
+            cc = this.getCC;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
@@ -1095,6 +1100,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function showRes(sta_list)
             % In a future I could use multiple tabs for each constellation
             for r = numel(sta_list)
+                cc = sta_list(r).getCC;
                 work = sta_list(r);
                 if ~work.isEmpty
                     
@@ -1130,7 +1136,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
                         uicontrol('Parent', single_sat(s), ...
                             'Style', 'Text', ...
-                            'String', sprintf('Satellite %s', work.cc.getSatName(s)), ...
+                            'String', sprintf('Satellite %s', cc.getSatName(s)), ...
                             'ForegroundColor', Core_UI.BLACK, ...
                             'HorizontalAlignment', 'center', ...
                             'FontSize', Core_UI.getFontSize(7), ...
@@ -1376,7 +1382,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if isempty(rec)
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, rec(1).cc.sys_c); f.NumberTitle = 'off';
+                cc = this.getCC;
+                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, cc.sys_c); f.NumberTitle = 'off';
                 t = rec(:).getTime.getMatlabTime;
                 
                 sztd = rec(:).getSlantZTD(rec(1).parent.slant_filter_win);
@@ -1472,6 +1479,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 log = Logger.getInstance();
                 log.addError('No valid troposphere is present in the receiver list');
             else
+                cc = Core.getState.getConstellationCollector;
                 if nargin < 3
                     new_fig = true;
                 end
@@ -1480,7 +1488,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     sta_list(1).log.addWarning([par_name ' and slants have not been computed']);
                 else
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, sta_list(1).cc.sys_c); f.NumberTitle = 'off';
+                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;
@@ -1591,7 +1599,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function showNSatSS(this)
             % Show number of satellites in view per constellation
-            cc = Core.getState.getConstellationCollector;
+            cc = this.getCC;
             if ~this.isEmpty()
                 [n_sat, n_sat_ss] = this.getNSat;
                 f = figure; f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
@@ -1671,7 +1679,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
+                    cc = this.getCC;
+                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
@@ -1785,8 +1794,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             figure
             plot(zero2nan(this.sat.res),'.');
         end
-    end
-    
+    end    
     %% METHODS UTILITIES FUNCTIONS
     % ==================================================================================================================================================
     
@@ -1807,6 +1815,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   [snr_map, snr_map_fill, snr_mask, n_data_map, out_map] = this.getMeanMapSNR(<step = 0.5>, <size_conv = 21>, <snr_thr = 45>, <sys_c_list>);
             
             use_work = false;
+            cc = rec.getCC;
             
             if nargin < 2 || isempty(step)
                 step = 0.5;
@@ -1817,7 +1826,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             log = Core.getLogger();
             if nargin < 4 || isempty(sys_c)
-                sys_c = rec(r).cc.getAvailableSys;
+                sys_c = rec(r).getAvailableSys;
                 sys_c = sys_c(1);
             end
             
@@ -1836,7 +1845,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if sys_c == 'A'
                 id_keep = 1 : numel(sys);
             else
-                [sys, prn] = rec.cc.getSysPrn(1:size(data,2));
+                [sys, prn] = cc.getSysPrn(1:size(data,2));
                 id_keep = false(size(sys));
                 for i = 1 : numel(sys)
                     id_keep(i) = contains(sys_c, sys(i));

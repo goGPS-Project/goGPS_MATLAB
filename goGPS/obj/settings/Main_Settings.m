@@ -2299,7 +2299,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.snr_thr = 0;
             this.min_arc = 10;
             this.pp_max_code_err_thr = 5;
-            this.pp_max_phase_err_thr = 0.05;
+            this.pp_max_phase_err_thr = 0.09;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -3284,7 +3284,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   [sss_ext_lim, sss_lim] = getSessionLimits(this, <n>)
             if nargin < 2
-                n = 1;
+                n = this.getCurSession();
             end
             [buf_lft, but_rgt] = this.getBuffer();
             sss_lim = this.getSessionsStart;

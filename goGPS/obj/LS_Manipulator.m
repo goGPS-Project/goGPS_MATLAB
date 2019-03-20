@@ -502,7 +502,7 @@ classdef LS_Manipulator < handle
                 
                 if this.state.flag_amb_pass && this.state.getCurSession > 1
                     % remove the left buffer it is necessary only to determine if a cycle slip ha occured in the first useful epoch
-                    [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
+                    [~,limc] = this.state.getSessionLimits();
                     idx_rm = obs_set_list(i).time < limc.first;
                     obs_set_list(i).remEpochs(idx_rm);
                     % remove the first epoch
@@ -622,7 +622,7 @@ classdef LS_Manipulator < handle
             
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
-            [sss_lim, ~] = this.state.getSessionLimits(this.state.getCurSession());
+            [sss_lim, ~] = this.state.getSessionLimits();
             st_time = sss_lim.first;
             this.tropo_time_start = common_time.first;
             for i = 1 : n_rec
@@ -632,7 +632,7 @@ classdef LS_Manipulator < handle
                     this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                 else
                     if this.state.isSepCooAtBoundaries
-                        [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits(this.state.getCurSession);
+                        [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits();
                         pos_idx_nh = ones(obs_set_list(i).time.length,1);
                         idx_bf  = obs_set_list(i).time < ss_lim_int.first;
                         idx_aft = obs_set_list(i).time > ss_lim_int.last;

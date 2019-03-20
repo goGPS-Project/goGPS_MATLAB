@@ -7990,7 +7990,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls = LS_Manipulator(cc);
                 pos_idx = [];
                 if this.state.isSepCooAtBoundaries
-                    [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits(this.state.getCurSession);
+                    [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits();
                     pos_idx = ones(this.time.length,1);
                     idx_bf  = this.time < ss_lim_int.first;
                     idx_aft = this.time > ss_lim_int.last;
@@ -8325,22 +8325,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             % compute a static PPP solution
             %
             % SYNTAX
-            %   this.parent.staticPPP(<sys_list>, <id_sync>)
+            %   this.parent.dynamicPPP(<sys_list>, <id_sync>)
             %
             % EXAMPLE:
             %   Use the full dataset to compute a PPP solution
-            %    - this.parent.staticPPP();
+            %    - this.parent.dynamicPPP();
             %
             %   Use just GPS + GLONASS + Galileo to compute a PPP solution
             %   using epochs from 501 to 2380
-            %    - this.parent.staticPPP('GRE', 501:2380);
+            %    - this.parent.dynamicPPP('GRE', 501:2380);
             %
             %   Use all the available satellite system to compute a PPP solution
             %   using epochs from 501 to 2380
-            %    - this.parent.staticPPP([], 500:2380);
+            %    - this.parent.dynamicPPP([], 500:2380);
             
             if this.isEmpty()
-                this.log.addError('staticPPP failed The receiver object is empty');
+                this.log.addError('dynamicPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
                 if (this.quality_info.s0_ip < Inf)
                     this.log.addError('Pre-Processing is required to compute a PPP solution');

@@ -192,7 +192,7 @@ classdef Network < handle
                         f_time.addSeconds(1e9);
                         rate = 0;
                         for i = 1 : length(this.rec_list)
-                            [~,limc] = this.state.getSessionLimits(this.state.getCurSession);
+                            [~,limc] = this.state.getSessionLimits();
                             idx_fv = find(this.rec_list(i).work.time >= limc.first,1,'first');
                             f_time = min(this.rec_list(i).work.time.getEpoch(idx_fv), f_time);
                             rate = max(rate,this.rec_list(i).work.time.getRate);
@@ -391,7 +391,7 @@ classdef Network < handle
                 
                 % additional coordinate rate
                 if this.state.flag_coo_rate
-                    [sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
+                    [sss_lim] = this.state.getSessionLimits();
                     st_time = sss_lim.first;
                     for i = 1 : 3
                         if this.state.coo_rates(i) ~= 0
@@ -1097,9 +1097,9 @@ classdef Network < handle
                 en_time = this.common_time.last;
                 coo = this.coo;
             else
-                st_time = this.state.getSessionLimits(this.state.getCurSession).first;
+                st_time = this.state.getSessionLimits.first;
                 st_time.addSeconds(this.coo_rate * (size(this.coo,3) - 1));
-                en_time = this.state.getSessionLimits(this.state.getCurSession).first;
+                en_time = this.state.getSessionLimits.first;
                 en_time.addSeconds(this.coo_rate * size(this.coo,3));
                 coo = this.coo(:,:,end);
             end

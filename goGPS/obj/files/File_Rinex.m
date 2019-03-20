@@ -324,7 +324,7 @@ classdef File_Rinex < Exportable
                         first_epoch = GPS_Time();
                     end
                 else
-                    first_epoch = this.state.getSessionLimits(8).first;
+                    first_epoch = this.state.getSessionLimits(session).first;
                 end
             end
         end
@@ -349,7 +349,7 @@ classdef File_Rinex < Exportable
                         last_epoch = GPS_Time();
                     end
                 else
-                    last_epoch = this.state.getSessionLimits(8).last;
+                    last_epoch = this.state.getSessionLimits(session).last;
                 end
             end
         end
