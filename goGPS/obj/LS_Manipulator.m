@@ -1532,17 +1532,22 @@ classdef LS_Manipulator < handle
                     % strong regularize the mean of the coordinates to zero
                     % for each time span of coordinate find the index of
                     % the paranter
-                    idx_rec_x = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
-                    idx_rec_y = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
-                    idx_rec_z = zeros(max(serializeCell(this.pos_indexs_tc))+1,n_rec);
+                    idx_rec_x = zeros(max([serializeCell(this.pos_indexs_tc);1])+1,n_rec);
+                    idx_rec_y = zeros(max([serializeCell(this.pos_indexs_tc);1])+1,n_rec);
+                    idx_rec_z = zeros(max([serializeCell(this.pos_indexs_tc);1])+1,n_rec);
                     for rr = 1:n_rec
                         idx_rec_xtmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_X));
                         idx_rec_ytmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_Y));
                         idx_rec_ztmp =  unique(this.A_idx(this.receiver_id == rr,this.param_class == this.PAR_Z));
-                        
-                        idx_rec_x(this.pos_indexs_tc{rr},rr) = idx_rec_xtmp;
-                        idx_rec_y(this.pos_indexs_tc{rr},rr) = idx_rec_ytmp;
-                        idx_rec_z(this.pos_indexs_tc{rr},rr) = idx_rec_ztmp;
+                        if ~isempty(this.pos_indexs_tc)
+                            idx_rec_x(this.pos_indexs_tc{rr},rr) = idx_rec_xtmp;
+                            idx_rec_y(this.pos_indexs_tc{rr},rr) = idx_rec_ytmp;
+                            idx_rec_z(this.pos_indexs_tc{rr},rr) = idx_rec_ztmp;
+                        else
+                            idx_rec_x(1,rr) = idx_rec_xtmp;
+                            idx_rec_y(1,rr) = idx_rec_ytmp;
+                            idx_rec_z(1,rr) = idx_rec_ztmp;
+                        end
                     end
                     % set the mean regularization
                     for ss = 1 : size(idx_rec_x,1)
