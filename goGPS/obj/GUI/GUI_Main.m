@@ -2146,7 +2146,7 @@ end
                 ax.YTickLabel = sta_name;
                 set(ax,'XGrid','on')
                 title(sprintf('Rinex data avaliability %d',year));
-                if ~isempty(months_time)
+                if numel(months_time) > 1
                 ax.XTick = months_time;
                 end
                 datetick('x','dd/mm/yyyy HH','keepticks');
