@@ -7435,9 +7435,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
             sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
             sensor_bad_sat = bsxfun(@minus,sensor',median(sensor',2, 'omitnan'))';
-            sat_mean = mean(abs(sensor_bad_sat),'omitnan');
+            n_col = size(sensor_bad_sat,2);
+            sat_mean = nan(1,n_col);
+            for i = 1:n_col
+                sat_mean(i) = perc(noNaN(abs(sensor_bad_sat(:,i))),0.9);
+            end
             median_sat_mean = median(sat_mean,'omitnan');
-            bad_sat = sat_mean > 10*median_sat_mean;
+            bad_sat = sat_mean > 10*max(median_sat_mean,10);
             bad_track = abs(sensor) > 1e5;
             if sum(bad_sat)
                 id_pr = find(lid_pr);
