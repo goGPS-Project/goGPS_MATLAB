@@ -7427,7 +7427,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function remBadTracking(this) %%% important check!! if ph obervation with no code are deleted elsewhere
             % requires approximate position and approx clock estimate
-            [pr, id_pr] = this.getPseudoRanges;
+            [pr, lid_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
             sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
@@ -7435,11 +7435,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             median_sat_mean = median(sat_mean,'omitnan');
             bad_sat = sat_mean > 10*median_sat_mean;
             bad_track = abs(sensor) > 1e5;
+            if sum(bad_sat)
+                id_pr = find(lid_pr);
+                sat_string = serialize([this.getAntennaId( this.go_id(id_pr(bad_sat))') repmat(' ',sum(bad_sat),1)]')';
+                this.log.addWarning(sprintf('Removing sat %s: anomalous values in data or ephemeris',sat_string));
+            end
             bad_track(:,bad_sat) = true;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
             %ph(bad_track) = 0;
-            this.setPseudoRanges(pr, id_pr);
+            this.setPseudoRanges(pr, lid_pr);
             %this.setPhases(ph, wl, id_ph);
         end
         
