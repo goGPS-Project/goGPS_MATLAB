@@ -1852,6 +1852,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % GALILEO L1 -> L1A
                 idx = this.findObservableByFlag('L1 ','E');
                 this.obs_code(idx,:) = repmat('L1A',length(idx),1);
+                % BEIDOU 1 -> 2
+                idx = this.findObservableByFlag('?1?','C'); %some times band 2 rinex 3 is incorrectly written as band 1
+                this.obs_code(idx,2) = '2';
                 % other flags to be investiagated
                 
                 this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
