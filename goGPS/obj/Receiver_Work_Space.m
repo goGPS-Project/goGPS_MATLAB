@@ -7434,7 +7434,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
             sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
-            sat_mean = mean(abs(sensor),'omitnan');
+            sensor_bad_sat = bsxfun(@minus,sensor',median(sensor',2, 'omitnan'))';
+            sat_mean = mean(abs(sensor_bad_sat),'omitnan');
             median_sat_mean = median(sat_mean,'omitnan');
             bad_sat = sat_mean > 10*median_sat_mean;
             bad_track = abs(sensor) > 1e5;
