@@ -286,7 +286,7 @@ classdef Core_SEID < handle
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
                 
                 sys_c = 'G';
-                for r = 1 : numel(ref)
+                for r = 1 : numel(ref)                    
                     % combine code and phase
                     iono_ref(r) = ref(r).getPrefGeometryFree('L',sys_c);
                     gf_pr = ref(r).getPrefGeometryFree('C',sys_c);
@@ -334,6 +334,11 @@ classdef Core_SEID < handle
                                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
+                    % trimming the target receiver to mach the id_sync of the reference stations
+                    log.addMessage(log.indent(sprintf('Keeping only the epochs in common between "%s" and the reference stations', trg(t).parent.getMarkerName4Ch) ));
+                    trg(t).keepEpochs(id_sync{t}(:,numel(ref) + t));
+                    id_sync{t}(:,numel(ref) + t) = 1 : size(id_sync{t}, 1);
+                                        
                     log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
                     
                     iono_sync = nan(size(id_sync{t}, 1), max_sat, numel(ref));
@@ -395,46 +400,81 @@ classdef Core_SEID < handle
                     iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], 900 / p_time(t).getRate, 5); % <== supposing no more cycle slips
                     iono_trg(id_sync{t}(:, t + numel(ref)), :) = iono_trg(id_sync{t}(:, t + numel(ref)), :) + med_iono_diff;
 
-                    %%
+                    
                     % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
                     inan = isnan(iono_trg);
                     iono_trg = cumsum(nan2zero(iono_trg));
                     iono_trg(inan) = nan;
-                    
-                    %iono_trg(:, trg_go_id) = zero2nan(trg(t).applyMF(iono_trg(:, trg_go_id), 1 ./ zero2nan(iono_mf), 1));
-                        
-                    % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
-                    
+
+                    %% SEID approach => Synth L2
+                    % wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                    % wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                    % ph2 = nan(size(ph1));
+                    % % L1 * wl1 - L2 * wl2 = gf
+                    % % L2 = (L1 * wl1 - gf) / wl2;
+                    % ph2 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))') / wl2;
+                    % 
+                    % [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                    % [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                    % pr1_goid = trg(t).go_id(id_pr);
+                    % % C2 - C1 = gf
+                    % % C2 = C1 + gf
+                    % pr2 = pr1 + iono_trg(:, trg(t).go_id(id_pr))';
+                    % 
+                    % % Remove the L2 stored in the object
+                    % [ph_old, id_ph] = trg(t).getObs('L2','G');
+                    % if ~isempty(id_ph)
+                    %     log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
+                    %     trg(t).remObs(id_ph);
+                    % end
+                    % [pr_old, id_pr] = trg(t).getObs('C2','G');
+                    % if ~isempty(id_pr)
+                    %     log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
+                    %     trg(t).remObs(id_pr);
+                    % end
+                    % 
+                    % % Inject the new synthesised phase
+                    % log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
+                    % trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
+                    % trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
+
+                    %% REMIONO approach => rem I
                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
-                    ph2 = nan(size(ph1));
-                    % L1 * wl1 - L2 * wl2 = gf
-                    % L2 = (L1 * wl1 - gf) / wl2;
-                    ph2 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))') / wl2;
                     
+                    alpha = wl1^2 / (wl1^2 - wl2^2);
+                    
+                    % Correct phase 1 for iono delay
                     [~, ~, ~, flag] = trg(t).getBestCodeObs();
                     [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
                     pr1_goid = trg(t).go_id(id_pr);
-                    % C2 - C1 = gf
-                    % C2 = C1 + gf
-                    pr2 = pr1 + iono_trg(:, trg(t).go_id(id_pr))';
-                    
-                    % Remove the L2 stored in the object
-                    [ph_old, id_ph] = trg(t).getObs('L2','G');
-                    if ~isempty(id_ph)
-                        log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                        trg(t).remObs(id_ph);
-                    end
-                    [pr_old, id_pr] = trg(t).getObs('C2','G');
-                    if ~isempty(id_pr)
-                        log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                        trg(t).remObs(id_pr);
-                    end
+                    pr1 = pr1 + iono_trg(:, trg(t).go_id(id_pr))' * (wl1^2 / (wl1^2 - wl2^2));
+                    %pr2 = pr2 + iono_trg(:, trg(t).go_id(id_pr))' * (wl2^2 / (wl1^2 - wl2^2));
+                    %ph1 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1^2 / (wl1^2 - wl2^2))) / wl1;
+                    ph1 = ph1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1 / (wl1^2 - wl2^2));
+                    %ph2 = ph2 - iono_trg(:, trg(t).go_id(id_ph))' * (wl2 / (wl1^2 - wl2^2));
                     
                     % Inject the new synthesised phase
-                    log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
-                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
+                    log.addMessage(log.indent(sprintf('Injecting iono reduced observations into target receiver %d / %d', t, numel(trg))));
+                    trg(t).obs(id_pr, :) = nan2zero(pr1);
+                    trg(t).obs(id_ph, :) = nan2zero(ph1);
+                    
+                    % Remove the all the other frequency stored into the receiver
+                    % Bacause now L1 are inconsistent with the other bands
+                    % A different approach could be to correct all the other bands
+                    for f = 2:8
+                        band = num2str(f);
+                        [~, id_ph] = trg(t).getObs(['L' band],'G');
+                        if ~isempty(id_ph)
+                            log.addMessage(log.indent(sprintf('Removing L%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                            trg(t).remObs(id_ph);
+                        end
+                        [~, id_pr] = trg(t).getObs(['C' band],'G');
+                        if ~isempty(id_pr)
+                            log.addMessage(log.indent(sprintf('Removing C%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                            trg(t).remObs(id_pr);
+                        end
+                    end
                     
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                     trg(t).updateDetectOutlierMarkCycleSlip();

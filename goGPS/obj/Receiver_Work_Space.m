@@ -4907,7 +4907,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
-                [range, xs_loc_t] = this.getSyntObs( go_id);
+                [range, xs_loc_t] = this.getSyntObs(go_id);
                 idx_obs = obs_set.obs(:, i) ~= 0;
                 idx_obs_r = idx_ep_obs(idx_obs); % <- to which epoch in the receiver the observation of the satellites in obesrvation set corresponds?
                 idx_obs_r_l = false(size(range)); % get the logical equivalent
