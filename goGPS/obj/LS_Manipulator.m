@@ -251,7 +251,9 @@ classdef LS_Manipulator < handle
                             f = rec.getFreqs(sys_c);
                             for i = 1 : length(obs_type)
                                 if ~isempty(f)
-                                    obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                                    c_o_s = rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c);
+                                    c_o_s.sigma = c_o_s.sigma + rec.getResidualIonoError;
+                                    obs_set.merge(c_o_s);
                                 end
                             end
                         end
