@@ -265,13 +265,15 @@ classdef Core_SEID < handle
                 log.addMarkedMessage('Syncing times, computing reference time');
             end
         end               
-        
+                
         function remIono(ref, trg)
             % Compute Ionosphere from reference receivers and remove it from the observations in target
             %
             % SYNTAX
             %   Core_SEID.remIono(ref, trg)
             %%
+            
+            spline_smooth_time = 900;
             ref = ref(~ref.isEmpty_mr);
             trg = trg(~trg.isEmpty_mr);
             if ~isempty(trg)
@@ -288,39 +290,39 @@ classdef Core_SEID < handle
                 sys_c = 'G';
                 for r = 1 : numel(ref)                    
                     % combine code and phase
-                    iono_ref(r) = ref(r).getPrefGeometryFree('L',sys_c);
-                    gf_pr = ref(r).getPrefGeometryFree('C',sys_c);
+                    phase_gf(r) = ref(r).getPrefGeometryFree('L',sys_c);
+                    code_gf = ref(r).getPrefGeometryFree('C',sys_c);
                     
                     % sync pr with ph
-                    [~, id_ko] = setdiff(gf_pr.go_id, iono_ref(r).go_id);
+                    [~, id_ko] = setdiff(code_gf.go_id, phase_gf(r).go_id);
                     if ~isempty(id_ko)
                         % remove pseudoranges not present as phases 
-                        gf_pr.obs(:,id_ko) = [];
-                        gf_pr.obs_code(id_ko, :) = [];
-                        gf_pr.wl(id_ko) = [];
-                        gf_pr.el(:,id_ko) = [];
-                        gf_pr.az(:,id_ko) = [];
-                        gf_pr.prn(id_ko) = [];
-                        if ~isempty(gf_pr.snr)
-                            gf_pr.snr(:,id_ko) = [];
+                        code_gf.obs(:,id_ko) = [];
+                        code_gf.obs_code(id_ko, :) = [];
+                        code_gf.wl(id_ko) = [];
+                        code_gf.el(:,id_ko) = [];
+                        code_gf.az(:,id_ko) = [];
+                        code_gf.prn(id_ko) = [];
+                        if ~isempty(code_gf.snr)
+                            code_gf.snr(:,id_ko) = [];
                         end
-                        if ~isempty(gf_pr.cycle_slip)
-                            gf_pr.cycle_slip(:,id_ko) = [];
+                        if ~isempty(code_gf.cycle_slip)
+                            code_gf.cycle_slip(:,id_ko) = [];
                         end
-                        gf_pr.go_id(id_ko) = [];
-                        gf_pr.sigma(id_ko) = [];
+                        code_gf.go_id(id_ko) = [];
+                        code_gf.sigma(id_ko) = [];
                     end
                     
-                    idx_nan = iono_ref(r).obs == 0;
+                    idx_nan = phase_gf(r).obs == 0;
 
-                    el = iono_ref(r).el / 180 * pi;
-                    az = iono_ref(r).az / 180 * pi;
-                    [iono_ref(r).obs] = ref(r).ionoCodePhaseSmt(zero2nan(gf_pr.obs), gf_pr.sigma.^2, zero2nan(iono_ref(r).obs), iono_ref(r).sigma.^2, iono_ref(r).getAmbIdx(), 0.01, el);
+                    el = phase_gf(r).el / 180 * pi;
+                    az = phase_gf(r).az / 180 * pi;
+                    [phase_gf(r).obs] = ref(r).ionoCodePhaseSmt(zero2nan(code_gf.obs), code_gf.sigma.^2, zero2nan(phase_gf(r).obs), phase_gf(r).sigma.^2, phase_gf(r).getAmbIdx(), 0.01, el);
                     
                     % Apply mapping function
                     [lat, lon, ~, h_ortho] = ref(r).getMedianPosGeodetic;
                     [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), 350*1e3);
-                    iono_ref(r).obs(idx_nan) = nan;
+                    phase_gf(r).obs(idx_nan) = nan;
                     %iono_ref(r).obs = ref(r).applyMF(iono_ref(r).obs, iono_ref(r).mf, 1);
                     %iono_ref(r).obs(idx_nan) = nan;
 
@@ -329,7 +331,7 @@ classdef Core_SEID < handle
                 
                 max_sat = 0;
                 for r = 1 : numel(ref)
-                    max_sat = max(max_sat, max(iono_ref(r).go_id));
+                    max_sat = max(max_sat, max(phase_gf(r).go_id));
                 end
                                 
                 % Extract syncronized C4 L4 diff
@@ -343,7 +345,24 @@ classdef Core_SEID < handle
                     
                     iono_sync = nan(size(id_sync{t}, 1), max_sat, numel(ref));
                     for r = 1 : numel(ref)
-                        iono_sync(:, iono_ref(r).go_id, r) = zero2nan(iono_ref(r).obs(id_sync{t}(:,r), :));% - mean(iono_ref(r).obs(id_sync{t}(:,r), :), 1, 'omitnan');
+                        id_ok = find(~isnan(id_sync{t}(:,r)));
+                        id_ok_ref = id_sync{t}(id_ok,r);
+                        iono_sync(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));% - mean(iono_ref(r).obs(id_sync{t}(:,r), :), 1, 'omitnan');
+                        for s = 1 : numel(ref(r).ph_idx)
+                            iono_sync(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            iono_sync(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                            %
+                            %                         % fill small gaps
+                            %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
+                            %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
+                            %                         idx = false(size(ph_gf, 1), 1);
+                            %                         for l = 1 : size(lim, 1)
+                            %                             idx(lim(l, 1) : lim(l, 2)) = true;
+                            %                         end
+                            %                         if sum(idx) > 0
+                            %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
+                            %                         end
+                        end
                     end
                     
                     % DIFF: 
@@ -352,7 +371,7 @@ classdef Core_SEID < handle
                     % Complex approach --------------------------------------------
                     % Compute median iono (to reduce the signal)
                     iono_diff = nan(size(iono_sync));
-                    for r = 1: numel(iono_ref)
+                    for r = 1: numel(phase_gf)
                         tmp = Core_Utils.diffAndPred(zero2nan(iono_sync(:,:,r)));
                         mm_tmp = movmedian(tmp, 3);
                         id_ko = abs(tmp - mm_tmp) > 0.03;
@@ -362,10 +381,10 @@ classdef Core_SEID < handle
                     
                     % Reduce the iono signal by a smoothed median iono diff
                     med_iono_diff = median(iono_diff, 3, 'omitnan');
-                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 300 / p_time(t).getRate, 6); % <== supposing no more cycle slips
-                    for r = 1: numel(iono_ref)
-                        d_tmp =iono_diff(:,:,r) - med_iono_diff;
-                        d_tmp(abs(d_tmp) > 0.015) = nan;
+                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], spline_smooth_time / p_time(t).getRate, 6); % <== supposing no more cycle slips
+                    for r = 1: numel(phase_gf)
+                        d_tmp = iono_diff(:,:,r) - med_iono_diff;
+                        d_tmp(abs(d_tmp) > 0.015) = nan;                        
                         iono_diff(:,:,r) = d_tmp;
                     end
                     % -------------------------------------------------------------
@@ -386,7 +405,7 @@ classdef Core_SEID < handle
                         lat_sat = nan(size(id_sync{t},1), numel(ref));
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
                         for r = 1 : numel(ref)
-                            id_sat = unique(iono_ref(r).go_id) == trg_go_id(s);
+                            id_sat = unique(phase_gf(r).go_id) == trg_go_id(s);
                             if sum(id_sat) == 1
                                 lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
                                 lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
@@ -397,7 +416,7 @@ classdef Core_SEID < handle
                         tmp(abs(tmp) > 0.1) = nan; % remove outliers
                         iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = tmp;
                     end
-                    iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], 300 / p_time(t).getRate, 6); % <== supposing no more cycle slips
+                    iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], spline_smooth_time / p_time(t).getRate, 6); % <== supposing no more cycle slips
                     iono_trg(id_sync{t}(:, t + numel(ref)), :) = iono_trg(id_sync{t}(:, t + numel(ref)), :) + med_iono_diff;
 
                     
@@ -407,75 +426,93 @@ classdef Core_SEID < handle
                     iono_trg(inan) = nan;
 
                     %% SEID approach => Synth L2
-                    % wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
-                    % wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
-                    % ph2 = nan(size(ph1));
-                    % % L1 * wl1 - L2 * wl2 = gf
-                    % % L2 = (L1 * wl1 - gf) / wl2;
-                    % ph2 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))') / wl2;
-                    % 
-                    % [~, ~, ~, flag] = trg(t).getBestCodeObs();
-                    % [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
-                    % pr1_goid = trg(t).go_id(id_pr);
-                    % % C2 - C1 = gf
-                    % % C2 = C1 + gf
-                    % pr2 = pr1 + iono_trg(:, trg(t).go_id(id_pr))';
-                    % 
-                    % % Remove the L2 stored in the object
-                    % [ph_old, id_ph] = trg(t).getObs('L2','G');
-                    % if ~isempty(id_ph)
-                    %     log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                    %     trg(t).remObs(id_ph);
-                    % end
-                    % [pr_old, id_pr] = trg(t).getObs('C2','G');
-                    % if ~isempty(id_pr)
-                    %     log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                    %     trg(t).remObs(id_pr);
-                    % end
-                    % 
-                    % % Inject the new synthesised phase
-                    % log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                    % trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
-                    % trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
-
-                    %% REMIONO approach => rem I
-                    wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
-                    wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
-                    
-                    alpha = wl1^2 / (wl1^2 - wl2^2);
-                    
-                    % Correct phase 1 for iono delay
-                    [~, ~, ~, flag] = trg(t).getBestCodeObs();
-                    [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
-                    pr1_goid = trg(t).go_id(id_pr);
-                    pr1 = pr1 + iono_trg(:, trg(t).go_id(id_pr))' * (wl1^2 / (wl1^2 - wl2^2));
-                    %pr2 = pr2 + iono_trg(:, trg(t).go_id(id_pr))' * (wl2^2 / (wl1^2 - wl2^2));
-                    %ph1 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1^2 / (wl1^2 - wl2^2))) / wl1;
-                    ph1 = ph1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1 / (wl1^2 - wl2^2));
-                    %ph2 = ph2 - iono_trg(:, trg(t).go_id(id_ph))' * (wl2 / (wl1^2 - wl2^2));
-                    
-                    % Inject the new synthesised phase
-                    log.addMessage(log.indent(sprintf('Injecting iono reduced observations into target receiver %d / %d', t, numel(trg))));
-                    trg(t).obs(id_pr, :) = nan2zero(pr1);
-                    trg(t).obs(id_ph, :) = nan2zero(ph1);
-                    
-                    % Remove the all the other frequency stored into the receiver
-                    % Bacause now L1 are inconsistent with the other bands
-                    % A different approach could be to correct all the other bands
-                    for f = 2:8
-                        band = num2str(f);
-                        [~, id_ph] = trg(t).getObs(['L' band],'G');
-                        if ~isempty(id_ph)
-                            log.addMessage(log.indent(sprintf('Removing L%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
-                            trg(t).remObs(id_ph);
+                    seid_approach = true;
+                    if seid_approach
+                        wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                        wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                        ph2 = nan(size(ph1));
+                        % L1 * wl1 - L2 * wl2 = gf
+                        % L2 = (L1 * wl1 - gf) / wl2;
+                        ph2 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))') / wl2;
+                        
+                        % Also remove Iono
+                        ph1 = ph1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1 / (wl1^2 - wl2^2));
+                        trg(t).obs(id_ph, :) = nan2zero(ph1);
+                        ph2 = ph2 - iono_trg(:, trg(t).go_id(id_ph))' * (wl2 / (wl1^2 - wl2^2));
+                        
+                        [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                        [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                        pr1_goid = trg(t).go_id(id_pr);
+                        % C2 - C1 = gf
+                        % C2 = C1 + gf
+                        pr2 = pr1 + iono_trg(:, trg(t).go_id(id_pr))';
+                        
+                        % Also remove Iono
+                        pr1 = pr1 + iono_trg(:, trg(t).go_id(id_pr))' * (wl1^2 / (wl1^2 - wl2^2));
+                        trg(t).obs(id_pr, :) = nan2zero(pr1);
+                        pr2 = pr2 + iono_trg(:, trg(t).go_id(id_pr))' * (wl2^2 / (wl1^2 - wl2^2));
+                        
+                        % Remove the all the other frequency stored into the receiver
+                        % Bacause now L1 are inconsistent with the other bands
+                        % A different approach could be to correct all the other bands
+                        for f = 2:8
+                            band = num2str(f);
+                            [~, id_ph] = trg(t).getObs(['L' band],'G');
+                            if ~isempty(id_ph)
+                                log.addMessage(log.indent(sprintf('Removing L%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                                trg(t).remObs(id_ph);
+                            end
+                            [~, id_pr] = trg(t).getObs(['C' band],'G');
+                            if ~isempty(id_pr)
+                                log.addMessage(log.indent(sprintf('Removing C%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                                trg(t).remObs(id_pr);
+                            end
                         end
-                        [~, id_pr] = trg(t).getObs(['C' band],'G');
-                        if ~isempty(id_pr)
-                            log.addMessage(log.indent(sprintf('Removing C%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
-                            trg(t).remObs(id_pr);
+                        
+                        % Inject the new synthesised phase
+                        log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
+                        trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
+                        trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
+                    else %% REMIONO approach => rem I                        
+                        trg(t).setDefaultRIE('rem_iono');
+                        
+                        wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                        wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                        
+                        alpha = wl1^2 / (wl1^2 - wl2^2);
+                        
+                        % Correct phase 1 for iono delay
+                        [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                        [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                        pr1_goid = trg(t).go_id(id_pr);
+                        pr1 = pr1 + iono_trg(:, trg(t).go_id(id_pr))' * (wl1^2 / (wl1^2 - wl2^2));
+                        %pr2 = pr2 + iono_trg(:, trg(t).go_id(id_pr))' * (wl2^2 / (wl1^2 - wl2^2));
+                        %ph1 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1^2 / (wl1^2 - wl2^2))) / wl1;
+                        ph1 = ph1 - iono_trg(:, trg(t).go_id(id_ph))' * (wl1 / (wl1^2 - wl2^2));
+                        %ph2 = ph2 - iono_trg(:, trg(t).go_id(id_ph))' * (wl2 / (wl1^2 - wl2^2));
+                        
+                        % Inject the new synthesised phase
+                        log.addMessage(log.indent(sprintf('Injecting iono reduced observations into target receiver %d / %d', t, numel(trg))));
+                        trg(t).obs(id_pr, :) = nan2zero(pr1);
+                        trg(t).obs(id_ph, :) = nan2zero(ph1);
+                        
+                        % Remove the all the other frequency stored into the receiver
+                        % Bacause now L1 are inconsistent with the other bands
+                        % A different approach could be to correct all the other bands
+                        for f = 2:8
+                            band = num2str(f);
+                            [~, id_ph] = trg(t).getObs(['L' band],'G');
+                            if ~isempty(id_ph)
+                                log.addMessage(log.indent(sprintf('Removing L%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                                trg(t).remObs(id_ph);
+                            end
+                            [~, id_pr] = trg(t).getObs(['C' band],'G');
+                            if ~isempty(id_pr)
+                                log.addMessage(log.indent(sprintf('Removing C%d observations already present in the target receiver %d / %d', f, t, numel(trg))));
+                                trg(t).remObs(id_pr);
+                            end
                         end
                     end
-                    
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                     trg(t).updateDetectOutlierMarkCycleSlip();
                 end       
