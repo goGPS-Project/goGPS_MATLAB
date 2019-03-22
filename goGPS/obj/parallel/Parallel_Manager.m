@@ -827,6 +827,7 @@ classdef Parallel_Manager < Com_Interface
             this.sendMsg(this.MSG_KILLALL, 'As the mad king said: Kill them all!!!');
             pause(1);
             this.deleteMsg(Go_Slave.MSG_DIE, true);
+            this.deleteMsg(Go_Slave.MSG_HELO, true);
             this.deleteMsg('*');
             delete(fullfile(this.COM_DIR,'*.mat'));
         end
