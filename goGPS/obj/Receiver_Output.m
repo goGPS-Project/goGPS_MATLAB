@@ -178,13 +178,12 @@ classdef Receiver_Output < Receiver_Commons
             
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);
-                
                 if ~isempty(rec)
                     if nargin == 2
-                        tmp = rec.cc.getMaxNumSat(sys_c);
+                        tmp = rec.getCC.getMaxNumSat(sys_c);
                         n_sat(r) = iif(isempty(tmp), 0, tmp);
                     else
-                        tmp = rec.cc.getMaxNumSat();
+                        tmp = rec.getCC.getMaxNumSat();
                         n_sat(r) = iif(isempty(tmp), 0, tmp);
                     end
                 end

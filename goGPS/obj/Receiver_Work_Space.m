@@ -9132,7 +9132,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.showDataAvailability();
             this.showSNR_p();
             this.showDt();
+            dockAllFigures();
+            this.showResPerSat()
             this.showAll@Receiver_Commons();
+            dockAllFigures();
         end
         
         function showDt(this)
@@ -9152,8 +9155,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 plot(t, rec.getDtPh .* nans(this.getIdSync), ':', 'LineWidth', 2);
                 plot(t, (rec.getDtPrePro - rec.getDtPr) .* nans(this.getIdSync), '-', 'LineWidth', 2);
                 plot(t, rec.getDtPrePro .* nans(this.getIdSync), '-', 'LineWidth', 2);
-                if any(rec.getDt)
-                    plot(t, rec.getDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                if any(rec.getDt) || any(rec.getDtPh)
+                    if any(rec.getDt)
+                        plot(t, (rec.getDt + rec.getDtPh) .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                    else
+                        plot(t, rec.getDtPh .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                    end
                     plot(t, rec.getTotalDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
                 else
@@ -9596,10 +9603,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             max_pr_prn = [];
             s = 0;
             fprintf('\n');
-            fprintf('      |  PR                                       |  PH                                   |\n');
-            fprintf('      |-----------------------------------------------------------------------------------|\n');
-            fprintf('      |   median  |      std |      min |     max |   median |    std |     min |     max |\n');
-            fprintf('      |-----------------------------------------------------------------------------------|\n');
+            fprintf('      |  PR                                            |  PH                                   |\n');
+            fprintf('      |----------------------------------------------------------------------------------------|\n');
+            fprintf('      |   median  |        std |        min |      max |   median |    std |     min |     max |\n');
+            fprintf('      |----------------------------------------------------------------------------------------|\n');
             std_stat = zeros(numel(unique(this.system)), 9, 2); % N const, n bands, pr/ph
             sys_full_name = {};
             cc = Core.getState.getConstellationCollector;
@@ -9659,7 +9666,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 for b = 1 : size(mean_pr_prn, 2)
                     if ~isnan(mean(zero2nan(mean_pr_prn(:, b, s)), 'omitnan'))
-                        fprintf(' %c L%d | %9.2f | %8.2f | %8.2f | %7.2f | %8.2f | %6.2f | %7.2f | %7.2f |\n', ...
+                        fprintf(' %c L%d | %9.2f | %10.2f | %10.2f | %7.2f | %8.2f | %6.2f | %7.2f | %7.2f |\n', ...
                             sys_c(1), b, ...
                             mean(zero2nan(mean_pr_prn(:, b, s)), 'omitnan'), ...
                             mean(zero2nan(std_pr_prn(:, b, s)), 'omitnan'), ...
