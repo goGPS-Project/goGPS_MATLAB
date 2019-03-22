@@ -2178,7 +2178,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
                 if ~isempty(strfind(this.rin_obs_code.C, '1'))
-                    this.rin_obs_code.c(this.rin_obs_code.C == '1') = '2';
+                    this.rin_obs_code.C(this.rin_obs_code.C == '1') = '2';
                     this.log.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
                 end
             end
@@ -7244,8 +7244,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             
-            ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-            pr = bsxfun(@minus, pr, dt_pr .* 299792458);
+            ph = bsxfun(@minus, ph, dt_ph .* Core_Utils.V_LIGHT);
+            pr = bsxfun(@minus, pr, dt_pr .* Core_Utils.V_LIGHT);
             
             % Saving dt into the object properties
             this.dt_ph = dt_ph; %#ok<PROP>
