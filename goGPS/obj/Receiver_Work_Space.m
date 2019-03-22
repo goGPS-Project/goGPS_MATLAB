@@ -2860,7 +2860,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        
         function res = getResidual(this)
             if size(this.sat.res,1) < max(this.id_sync)
                 res = nan(numel(this.id_sync), cc.getMaxNumSat());
@@ -5309,14 +5308,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.smoothAndApplyDt();
         end
         
-        function smoothAndApplyDt(this, smoothing_win, are_pr_jumping, are_ph_jumping)
+        function smoothAndApplyDt(this, smoothing_win, are_pr_jumping, are_ph_jumping, mode)
             % Smooth dt * c correction computed from init-positioning with a spline with base 3 * rate,
             % apply the smoothed dt to pseudo-ranges and phases
             %
             % INPUT
-            %   smoothing_win   moving window to smooth dt (spline base)
+            %   smoothing_win    moving window to smooth dt (spline base) in seconds
             %   are_pr_jumping   are the pr jumping?
             %   are_ph_jumping   are the pr jumping?
+            %   mode             1 / none PREPRO
+            %   mode             2 PPP
             %
             % SYNTAX
             %   this.smoothAndApplyDt(smoothing_win, is_pr_jumping, is_ph_jumping)
@@ -5334,7 +5335,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             % do not correct anything with 5 second of time desyinc
             abs(this.dt) > 5;
-            id_out = (abs(this.dt) > 5);
+            id_out = (abs(this.dt) > 0.5 * this.time.getRate);
             bk_dt = this.dt(id_out);
             this.dt(id_out) = 0;
             
@@ -5346,8 +5347,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             dt_pr([1 end] ) = [];
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
-                    if lim(i,2) - lim(i,1) > 5
-                        dt_pr(lim(i,1) : lim(i,2)) = splinerMat([], dt_pr(lim(i,1) : lim(i,2)), smoothing_win(1));
+                    if diff(this.time.getEpoch([lim(i,1) lim(i,2)]).getRefTime) > smoothing_win(1)
+                        dt_pr(lim(i,1) : lim(i,2)) = splinerMat(this.time.getEpoch(lim(i,1) : lim(i,2)).getRefTime, dt_pr(lim(i,1) : lim(i,2)), smoothing_win(1));
                     end
                 end
             end
@@ -5365,7 +5366,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             this.applyDtRec(dt_pr, dt_ph)
             %this.dt_pr = this.dt_pr + this.dt;
-            %this.dt_ph = this.dt_ph + this.dt;
+            if nargin == 5 && ~isempty(mode) && mode == 2
+                this.dt_ph = this.dt_ph + this.dt;
+            end
             this.dt(:)  = 0; %zeros(size(this.dt_pr));
             this.dt(id_out) = bk_dt;
         end
@@ -7913,7 +7916,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                         this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                         % smooth clock estimation
-                        if perc(abs(this.dt), 0.95) > 1e-7 % 30 meters : is it only useful to realling receivers that have a large drift from the nomnila value
+                        if perc(abs(this.dt), 0.95) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
                             this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                         end
                         
@@ -8284,7 +8287,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        %this.smoothAndApplyDt(0, false, false);
+                        this.smoothAndApplyDt(0, false, false, 2);
                         %this.pushResult();
                     end
                 end
@@ -9543,7 +9546,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %dockAllFigures;
             
             % remove phases clock
-            dt_ph = cumsum(median(Core_Utils.diffAndPred(zero2nan(ph)-zero2nan(phs)), 2, 'omitnan'));
+            dt_ph = cumsum(nan2zero(median(Core_Utils.diffAndPred(ph_diff), 2, 'omitnan')));
             
             id = (1 : numel(dt_ph))';
             dt_ph_drift = Core_Utils.interp1LS(id, dt_ph, 5, id);

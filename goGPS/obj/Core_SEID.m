@@ -362,7 +362,7 @@ classdef Core_SEID < handle
                     
                     % Reduce the iono signal by a smoothed median iono diff
                     med_iono_diff = median(iono_diff, 3, 'omitnan');
-                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 900 / p_time(t).getRate, 5); % <== supposing no more cycle slips
+                    med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], 300 / p_time(t).getRate, 6); % <== supposing no more cycle slips
                     for r = 1: numel(iono_ref)
                         d_tmp =iono_diff(:,:,r) - med_iono_diff;
                         d_tmp(abs(d_tmp) > 0.015) = nan;
@@ -395,9 +395,9 @@ classdef Core_SEID < handle
                         % DIFF:
                         tmp = Core_SEID.satDataInterp(lat_sat(:, :), lon_sat(:, :), squeeze(iono_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
                         tmp(abs(tmp) > 0.1) = nan; % remove outliers
-                        iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = tmp + 0*med_iono_diff(:, trg_go_id(s));
+                        iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = tmp;
                     end
-                    iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], 900 / p_time(t).getRate, 5); % <== supposing no more cycle slips
+                    iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], 300 / p_time(t).getRate, 6); % <== supposing no more cycle slips
                     iono_trg(id_sync{t}(:, t + numel(ref)), :) = iono_trg(id_sync{t}(:, t + numel(ref)), :) + med_iono_diff;
 
                     
