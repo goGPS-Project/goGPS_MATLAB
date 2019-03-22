@@ -1477,101 +1477,101 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     id_sat_pr = find(go_id_pr == g);
-                    pr_sat = pr(:,id_sat_pr);
-                    pr_sat_code = this.obs_code(id_pr(id_sat_pr),:);
-                    ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
-                    lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
-                    id_cs_ep = find(lid_cs_ep);
-                    n_epoch = size(this.sat.cycle_slip_ph_by_ph,1);
-                    for ce = id_cs_ep' % for each epoch with a cycle slip
-                        % 1) for each frequency check all tracking if one
-                        % has jumped and the other no check if was really a
-                        % cycle slip and repair
-                        for f  = u_fr_ph'
-                            id_fr_sat = find(ph_sat_code(:,2) == f);
-                            cs_same_f = ph_sat_cs(ce,id_fr_sat) & isnan(ph(ce, id_sat_ph(id_fr_sat)));
-                            if sum(cs_same_f) < length(cs_same_f) && sum(cs_same_f) > 0 % if not all have jumped
-                                id_not_cs = find(~cs_same_f);
-                                for s = find(cs_same_f)'
-                                    cs_f = find(ph_sat_cs(:,id_fr_sat(s)));
-                                    notcs_f = find(ph_sat_cs(:,id_not_cs(1))); % using first good frequency
-                                    cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
-                                    cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
-                                    id_1 = id_sat_ph(id_fr_sat(s));
-                                    id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
-                                    jmp = mean(ph(ce:cs_aft,id_1) - ph(ce:cs_aft,id_2) ,'omitnan') - mean(ph(cs_bf:(ce-1),id_1) - ph(cs_bf:(ce-1),id_2),'omitnan');
-                                    i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
-                                    if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
-                                        this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
-                                        if i_jmp ~= 0
-                                            ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
+                    % If I don't really have code for this satellite do nothing
+                    if ~isempty(id_sat_pr)
+                        pr_sat_code = this.obs_code(id_pr(id_sat_pr),:);
+                        ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
+                        lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
+                        id_cs_ep = find(lid_cs_ep);
+                        n_epoch = size(this.sat.cycle_slip_ph_by_ph,1);
+                        for ce = id_cs_ep' % for each epoch with a cycle slip
+                            % 1) for each frequency check all tracking if one
+                            % has jumped and the other no check if was really a
+                            % cycle slip and repair
+                            for f  = u_fr_ph'
+                                id_fr_sat = find(ph_sat_code(:,2) == f);
+                                cs_same_f = ph_sat_cs(ce,id_fr_sat) & isnan(ph(ce, id_sat_ph(id_fr_sat)));
+                                if sum(cs_same_f) < length(cs_same_f) && sum(cs_same_f) > 0 % if not all have jumped
+                                    id_not_cs = find(~cs_same_f);
+                                    for s = find(cs_same_f)'
+                                        cs_f = find(ph_sat_cs(:,id_fr_sat(s)));
+                                        notcs_f = find(ph_sat_cs(:,id_not_cs(1))); % using first good frequency
+                                        cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
+                                        cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
+                                        id_1 = id_sat_ph(id_fr_sat(s));
+                                        id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
+                                        jmp = mean(ph(ce:cs_aft,id_1) - ph(ce:cs_aft,id_2) ,'omitnan') - mean(ph(cs_bf:(ce-1),id_1) - ph(cs_bf:(ce-1),id_2),'omitnan');
+                                        i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
+                                        if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
+                                            this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                                            if i_jmp ~= 0
+                                                ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
+                                            end
                                         end
                                     end
                                 end
                             end
                         end
-                    end
-                    ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
-                    lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
-                    id_cs_ep = find(lid_cs_ep);
-                    %2) check the geometry free and the melbourne
-                    % wubbena if one of the two detec a cycle slip then
-                    % is really a cycle slip otherwise remove it
-                    for ce = id_cs_ep'
-                        fr_jmp = false(size(u_fr_ph));
-                        for f  = 1 : length(u_fr_ph)
-                            id_fr_sat = find(ph_sat_code(:,2) == f);
-                            cs_same_f = ph_sat_cs(ce, id_fr_sat);
-                            fr_jmp(f) = sum(cs_same_f) > 0;
-                        end
-                        % for each cycle slip
-                        if sum(ph_sat_cs(ce, :) | isnan(ph(ce,id_sat_ph))) ~= length(ph_sat_cs(ce, :)) % if not everything jumps
-                            for cs = find(ph_sat_cs(ce, :))
-                                if ce > 10 && sum(isnan(ph((ce-10):(ce-1),id_sat_ph(cs)))) < 9 % check if is the start of an arc
-                                    %find a pivot -> use the one witht the
-                                    %wavelength closer to the cycle slip
-                                    idx_n_jmp = find(~ph_sat_cs(ce, :));
-                                    wl_n_jmp = wl(id_sat_ph(idx_n_jmp));
-                                    wl_jmp = wl(id_sat_ph(cs));
-                                    wl_n_jmp(wl_n_jmp == wl_jmp ) = 1e9;
-                                    [~,id_pv] = min(abs(wl_n_jmp- wl_jmp));
-                                    wl_n_jmp = wl(id_sat_ph(id_pv));
-                                    % find cs before and after
-                                    cs_f = find(ph_sat_cs(:,cs));
-                                    notcs_f = find(ph_sat_cs(:,id_pv)); % using first good frequency
-                                    cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
-                                    cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
-                                    id_1 = id_sat_ph(cs);
-                                    id_2 = id_sat_ph(id_pv);
-                                    % build geom free and mlw wubb
-                                    gf = ph(cs_bf:cs_aft,id_1) - ph(cs_bf:cs_aft,id_2);
-                                    % find pseudoranges of the same frequencies
-                                    % and use the one with the betst code
-                                    ids_pr1 = find(pr_sat_code(:,2) == pr_sat_code(cs,2));
-                                    ids_pr2 = find(pr_sat_code(:,2) == pr_sat_code(id_pv,2));
-                                    bnd_1_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == pr_sat_code(cs,2));
-                                    bnd_2_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == pr_sat_code(id_pv,2));
-                                    id_pr1 = length(ids_pr1);
-                                    for i1 = ids_pr1'
-                                        id_pr1 = min(id_pr1, find(bnd_1_prf{1} == pr_sat_code(i1,3)));
-                                    end
-                                    id_pr2 = length(ids_pr2);
-                                    for i2 = ids_pr2'
-                                        id_pr2 = min(id_pr2, find(bnd_2_prf{1} == pr_sat_code(i2,3)));
-                                    end
-                                    id_pr1 = id_sat_pr(id_pr1);
-                                    id_pr2 = id_sat_pr(id_pr2);
-                                    mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
-                                    id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
-                                    dgf = diff(gf);
-                                    if (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
-                                        this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                        ph_sat_cs = this.sat.cycle_slip_ph_by_ph(:,id_sat_ph);
+                        lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
+                        id_cs_ep = find(lid_cs_ep);
+                        %2) check the geometry free and the melbourne
+                        % wubbena if one of the two detec a cycle slip then
+                        % is really a cycle slip otherwise remove it
+                        for ce = id_cs_ep'
+                            fr_jmp = false(size(u_fr_ph));
+                            for f  = 1 : length(u_fr_ph)
+                                id_fr_sat = find(ph_sat_code(:,2) == f);
+                                cs_same_f = ph_sat_cs(ce, id_fr_sat);
+                                fr_jmp(f) = sum(cs_same_f) > 0;
+                            end
+                            % for each cycle slip
+                            if sum(ph_sat_cs(ce, :) | isnan(ph(ce,id_sat_ph))) ~= length(ph_sat_cs(ce, :)) % if not everything jumps
+                                for cs = find(ph_sat_cs(ce, :))
+                                    if ce > 10 && sum(isnan(ph((ce-10):(ce-1),id_sat_ph(cs)))) < 9 % check if is the start of an arc
+                                        %find a pivot -> use the one witht the
+                                        %wavelength closer to the cycle slip
+                                        idx_n_jmp = find(~ph_sat_cs(ce, :));
+                                        wl_n_jmp = wl(id_sat_ph(idx_n_jmp));
+                                        wl_jmp = wl(id_sat_ph(cs));
+                                        wl_n_jmp(wl_n_jmp == wl_jmp ) = 1e9;
+                                        [~,id_pv] = min(abs(wl_n_jmp- wl_jmp));
+                                        wl_n_jmp = wl(id_sat_ph(id_pv));
+                                        % find cs before and after
+                                        cs_f = find(ph_sat_cs(:,cs));
+                                        notcs_f = find(ph_sat_cs(:,id_pv)); % using first good frequency
+                                        cs_bf = max([1; cs_f(cs_f < ce); notcs_f(notcs_f< ce)]);
+                                        cs_aft = min([cs_f(cs_f > ce); notcs_f(notcs_f > ce); n_epoch]);
+                                        id_1 = id_sat_ph(cs);
+                                        id_2 = id_sat_ph(id_pv);
+                                        % build geom free and mlw wubb
+                                        gf = ph(cs_bf:cs_aft,id_1) - ph(cs_bf:cs_aft,id_2);
+                                        % find pseudoranges of the same frequencies
+                                        % and use the one with the betst code
+                                        ids_pr1 = find(pr_sat_code(:,2) == pr_sat_code(cs,2));
+                                        ids_pr2 = find(pr_sat_code(:,2) == pr_sat_code(id_pv,2));
+                                        bnd_1_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == pr_sat_code(cs,2));
+                                        bnd_2_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == pr_sat_code(id_pv,2));
+                                        id_pr1 = length(ids_pr1);
+                                        for i1 = ids_pr1'
+                                            id_pr1 = min(id_pr1, find(bnd_1_prf{1} == pr_sat_code(i1,3)));
+                                        end
+                                        id_pr2 = length(ids_pr2);
+                                        for i2 = ids_pr2'
+                                            id_pr2 = min(id_pr2, find(bnd_2_prf{1} == pr_sat_code(i2,3)));
+                                        end
+                                        id_pr1 = id_sat_pr(id_pr1);
+                                        id_pr2 = id_sat_pr(id_pr2);
+                                        mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
+                                        id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
+                                        dgf = diff(gf);
+                                        if (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
+                                            this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
+                                        end
                                     end
                                 end
                             end
                         end
-                        
-                        
                     end
                 end
                 this.setPhases(ph,wl,lid_ph); % ste back phases
