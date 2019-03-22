@@ -7435,6 +7435,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
             sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
             sensor_bad_sat = bsxfun(@minus,sensor',median(sensor',2, 'omitnan'))';
+            tmp = abs(sensor_bad_sat);
+            id_ko = tmp > max(1e4, 2 * perc(noNaN(tmp(1:100)), 0.99));
+            pr(id_ko) = nan;
+            sensor(id_ko) = nan;
+            sensor_bad_sat(id_ko) = nan;
+            if any(id_ko(:))
+                this.log.addWarning(sprintf('Removing %d single anomalous values in data or ephemeris', sum(id_ko(:))));
+            end
             n_col = size(sensor_bad_sat,2);
             sat_mean = nan(1,n_col);
             for i = 1:n_col
@@ -7445,15 +7453,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             bad_track = abs(sensor) > 1e5;
             if sum(bad_sat)
                 id_pr = find(lid_pr);
-                sat_string = serialize([this.getAntennaId( this.go_id(id_pr(bad_sat))') repmat(' ',sum(bad_sat),1)]')';
-                this.log.addWarning(sprintf('Removing sat %s: anomalous values in data or ephemeris',sat_string));
+                go_id = unique(this.go_id(id_pr(bad_sat)));
+                sat_string = serialize([this.getAntennaId(go_id') repmat(' ',numel(go_id),1)]')';
+                this.log.addWarning(sprintf('Removing sat %s: anomalous values in data or ephemeris', sat_string(1 : end-1)));
             end
             bad_track(:,bad_sat) = true;
             bad_track = flagExpand(bad_track, 2);
-            pr(bad_track) = 0;
-            %ph(bad_track) = 0;
+            pr(bad_track) = nan;
             this.setPseudoRanges(pr, lid_pr);
-            %this.setPhases(ph, wl, id_ph);
+            if any(bad_sat) && ~any(serialize(pr(:,bad_sat)))
+                % If I have no valid pseudo ranges observations for a certain satellite
+                % Delete all the observations of it!
+                this.remSat(go_id);
+            end
         end
         
         function adjustPrAmbiguity(this)
