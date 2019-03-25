@@ -632,9 +632,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             go_out = this.go_id(intersect(1 : size(this.go_id, 1), id_obs));
             this.go_id(intersect(1 : size(this.go_id, 1), id_obs)) = [];
-            go_out = setdiff(go_out, unique(this.go_id));
+            go_out = setdiff(go_out, unique(this.go_id(this.obs_code(:,1) == 'L')));
             
             id_out = [];
+            if isempty(this.ph_idx)
+                this.ph_idx = find(this.obs_code(:,1) == 'L');
+            end
             for i = 1 : numel(id_obs)
                 id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
             end
@@ -642,7 +645,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if isempty(this.obs_code)
                     this.ph_idx = [];
                 else
-                    this.ph_idx = find(this.obs_code(1,:) == 'L');
+                    this.ph_idx = find(this.obs_code(:,1) == 'L');
                 end
             end
             
@@ -1004,7 +1007,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         function remEmptyObs(this)
             % remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
-            this.remObs(find(empty_sat));
+            id_ko = find(empty_sat);
+            if ~isempty(id_ko)
+                this.remObs(id_ko);
+            end
         end
         
         function remBad(this)
