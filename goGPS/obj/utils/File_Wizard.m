@@ -608,6 +608,12 @@ classdef File_Wizard < handle
                             end
                         end                        
                         dcb_ok = Core_Utils.aria2cDownloadUncompress(aria_file_list, f_ext_lst, dcb_ok, [], this.state.getDcbDir());
+                        if any(~dcb_ok)
+                            id_ko = find(dcb_ok == 0);
+                            for i = id_ko'
+                                this.log.addWarning(sprintf('download of %s from %s failed, file not found or not accessible', [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path], names{i}));
+                            end
+                        end
                     catch ex
                         this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
                         for i = 1 : length(file_list)
