@@ -607,14 +607,19 @@ classdef Core < handle
             this.atmo = Atmosphere();
             this.rf = Core_Reference_Frame();
             this.cmd = Command_Interpreter(this);
-            this.preloaded_session = 0;
             if force_clean
+                this.preloaded_session = 0;
                 this.state.setCurSession(0);
                 this.rec = [];
                 this.net = [];
             end
         end
 
+        function initPreloadSession(this)
+            % Reset preloaded session
+            this.preloaded_session = 0;            
+        end
+        
         function initLocalPath(this)
             % Renew local path properties
             
