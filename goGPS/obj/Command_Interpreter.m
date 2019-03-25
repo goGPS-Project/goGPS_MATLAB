@@ -1917,9 +1917,11 @@ classdef Command_Interpreter < handle
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
                         % I need to loop
-                        sss_id_counter = sss_id_counter + 1;
+                        if ~(c > 1 && flag_parallel(c - 1))
+                            sss_id_counter = sss_id_counter + 1;
+                            sss = sss(end);
+                        end
                         lev = lev - 1;
-                        sss = sss(end);
                     end
                 end
                 
