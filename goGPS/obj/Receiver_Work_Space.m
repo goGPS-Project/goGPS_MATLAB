@@ -6007,6 +6007,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.updateErrTropo();
         end
         
+        function setTropo2Zero(this)
+            % reset the ztd to zero
+            %
+            % SYNTAX: this.setTropo2Zero()
+            
+            this.zwd(:) = 0;
+            this.ztd(:) = 0;
+            this.apr_zhd(:) = 0;
+            this.apr_zwd(:) = 0;
+            this.sat.err_tropo(:) = 0;
+        end
+        
         
         function updateAmbIdx(this)
             % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation and save them into this.sat.amb_idx
