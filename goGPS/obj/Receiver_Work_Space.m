@@ -2824,7 +2824,11 @@ classdef Receiver_Work_Space < Receiver_Commons
         function go_id = getActiveGoIds(this)
             % return go_id present in the receiver of the active constellations
             % SYNTAX go_id = this.getActiveGoIds()
-            go_id = unique(this.go_id(regexp(this.system, ['[' this.active_sys ']?'])));
+            if isempty(this.active_sys) || isempty(this.system)
+                go_id = [];
+            else
+                go_id = unique(this.go_id(regexp(this.system, ['[' this.active_sys ']?'])));
+            end
         end
         
         function go_id = getGoId(this, sys, prn)
