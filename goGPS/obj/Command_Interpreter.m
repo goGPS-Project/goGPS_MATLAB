@@ -719,7 +719,7 @@ classdef Command_Interpreter < handle
                         l = find(execution_block == execution_block(l), 1, 'last');
                         if flag_par_target
                             % for loop on each target
-                            for t = id_trg
+                            for t = id_trg                                
                                 cmd_list_loop = cmd_list(execution_block == execution_block(l));
                                 cmd_list_loop(1) = [];
                                 for c = 1 : numel(cmd_list_loop)
@@ -748,10 +748,19 @@ classdef Command_Interpreter < handle
                                 
                                 last_sss = s;
                                 if ~is_empty
-                                    cmd_list_loop = cmd_list(execution_block == execution_block(l));
-                                    cmd_list_loop(1) = [];
+                                    % Get all the commands in this session for
+                                    id = find(execution_block == execution_block(l));
+                                    lev0 = level(id);
+                                    id_list = [];
+                                    i = id + 1;
+                                    while i <= numel(cmd_list) && (level(i) >= lev0)
+                                        id_list = [id_list; i];
+                                        i = i + 1;
+                                    end
+                                    
+                                    cmd_list_loop = cmd_list(id_list);                                    
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute § with the current target
+                                        % substitute § with the current session
                                         cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
                                     end
                                     this.exec(core, cmd_list_loop);
