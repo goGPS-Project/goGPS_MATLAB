@@ -493,7 +493,7 @@ classdef LS_Manipulator < handle
                     end
                     
                 else
-                    for sys_c = work_list(i).cc.sys_c
+                    for sys_c = intersect(this.cc.getAvailableSys, work_list(i).getAvailableSys)
                         f = work_list(i).getFreqs(sys_c);
                         if ~isempty(f)
                             obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(frequency_idx))], sys_c));
@@ -889,12 +889,12 @@ classdef LS_Manipulator < handle
                 obs(lines_stream) = ep_p_idx(id_ok_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
-                if this.state.getWeigthingStrategy == 1
+                if (this.state.getWeigthingStrategy == 1) || ~any(el_stream)
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 elseif this.state.getWeigthingStrategy == 2
-                     variance(lines_stream) =  (obs_set.sigma(s)./3.*sin(el_stream)).^2;
+                    variance(lines_stream) =  (obs_set.sigma(s)./3.*sin(el_stream)).^2;
                 else
-                     variance(lines_stream) =  obs_set.sigma(s)^2;
+                    variance(lines_stream) =  obs_set.sigma(s)^2;
                 end
                 % ----------- FILL IMAGE MATRIX ------------
                 % ----------- coordinates ------------------
