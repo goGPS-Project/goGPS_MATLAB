@@ -233,6 +233,7 @@ classdef Go_Slave < Com_Interface
                     
                     % Creating worker
                     core = Core.getCurrentCore(); % Init Core
+                    core.initPreloadSession();
                     core.clearSingletons();
                     core.initSimpleHandlers();
                     core.initLocalPath();
@@ -265,6 +266,7 @@ classdef Go_Slave < Com_Interface
                     else
                         core.atmo = Atmosphere();
                     end
+                    
                     % Check for receiver to load
                     msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
                     rec_pass = [];
@@ -281,7 +283,7 @@ classdef Go_Slave < Com_Interface
                     
                     active_ps = true;
                     while active_ps
-                         try
+                        try
                             msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
                             if isnumeric(msg)
                                 active_ps = false;

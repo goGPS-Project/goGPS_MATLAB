@@ -398,7 +398,6 @@ classdef Parallel_Manager < Com_Interface
             %   gom.orderProcessing(par_cmd_list, sss_list, trg_list{l});
 
             this.sendCommandList(cmd_list);
-            core = Core.getCurrentCore();
             
 %             switch par_type 
 %                 case 1
@@ -415,7 +414,6 @@ classdef Parallel_Manager < Com_Interface
             missing_job = list;
             completed_job = [];
             active_jobs = 0;
-            
             
             while numel(completed_job) < numel(list)
                 % Send work to slaves
@@ -480,7 +478,6 @@ classdef Parallel_Manager < Com_Interface
                 %%
                 sss_id = regexp(sss_file(s).name, '(?<=job)[0-9]*', 'match', 'once');
                                    
-
                 if ~isempty(sss_id)
                     sss_id = str2double(sss_id);
                     w_id = regexp(sss_file(s).name, ['(?<=' Go_Slave.SLAVE_READY_PREFIX Go_Slave.SLAVE_SESSION_PREFIX ')[0-9]*'], 'match', 'once');
