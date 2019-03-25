@@ -112,15 +112,20 @@ classdef Core_Sky < handle
             is_empty = isempty(this.coord);
         end
         
-        function initSession(this, start_date, stop_date)
+        function initSession(this, start_date, stop_date, cc)
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
             
             %%% load Epehemerids
-            if nargin == 2
+            if nargin == 2 
                 stop_date = start_date.last();
                 start_date = start_date.first();
+            end
+            if nargin < 3 || isempty(cc)
+                this.cc = Core.getState.getConstellationCollector;
+            else
+                this.cc = cc;
             end
             if ~isempty(start_date)
                 eph_f_name   = Core.getState.getEphFileName(start_date, stop_date);
@@ -2575,8 +2580,8 @@ classdef Core_Sky < handle
                         [Eph_G, iono_G] = Core_Sky.loadNavParameters(filename, cc);
                         if(~only_iono), log.addStatusOk(); end
                     else
-                        log.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
-                        cc.deactivateGPS();
+                        log.addWarning('GPS navigation file not found. GPS positioning may not work. \n');
+                        % cc.deactivateGPS();
                     end
                 end
                 
@@ -2587,8 +2592,8 @@ classdef Core_Sky < handle
                         [Eph_R, iono_R] = Core_Sky.loadNavParameters([filename(1:end-1) 'g'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
-                        log.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
-                        cc.deactivateGLONASS();
+                        log.addWarning('GLONASS navigation file not found. GLONASS positioning may not work. \n');
+                        % cc.deactivateGLONASS();
                     end
                 end
                 
@@ -2599,8 +2604,8 @@ classdef Core_Sky < handle
                         [Eph_E, iono_E] = Core_Sky.loadNavParameters([filename(1:end-1) 'l'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
-                        log.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
-                        cc.deactivateGalileo();
+                        log.addWarning('Galileo navigation file not found. Galileo positioning may not work. \n');
+                        % cc.deactivateGalileo();
                     end
                 end
                 
@@ -2611,8 +2616,8 @@ classdef Core_Sky < handle
                         [Eph_C, iono_C] = Core_Sky.loadNavParameters([filename(1:end-1) 'c'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
-                        log.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
-                        cc.deactivateBeiDou();
+                        log.addWarning('BeiDou navigation file not found. BeiDou positioning may not work. \n');
+                        % cc.deactivateBeiDou();
                     end
                 end
                 
@@ -2623,8 +2628,8 @@ classdef Core_Sky < handle
                         [Eph_J, iono_J] = Core_Sky.loadNavParameters([filename(1:end-1) 'q'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
-                        log.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
-                        cc.deactivateQZSS();
+                        log.addWarning('QZSS navigation file not found. QZSS positioning may not work. \n');
+                        % cc.deactivateQZSS();
                     end
                 end
                 
@@ -2635,8 +2640,8 @@ classdef Core_Sky < handle
                         [Eph_I, iono_I] = Core_Sky.loadNavParameters([filename(1:end-1) 'i'], cc);
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
-                        log.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
-                        cc.deactivateIRNSS();
+                        log.addWarning('IRNSS navigation file not found. QZSS positioning may not work. \n');
+                        % cc.deactivateIRNSS();
                     end
                 end
                 

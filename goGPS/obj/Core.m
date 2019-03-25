@@ -895,7 +895,7 @@ classdef Core < handle
                 this.sky = Core_Sky();
             end
             if ~this.state.isNoResources()
-                this.sky.initSession(time_lim.first, time_lim.last);
+                this.sky.initSession(time_lim.first, time_lim.last, this.getState.getConstellationCollector);
             end
         end
         
