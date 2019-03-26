@@ -474,6 +474,14 @@ classdef Core < handle
             core = Core.getInstance(false, true);
         end
         
+        function cc = getConstellationCollector()
+            % get current constalltion collector
+            %
+            % SYNTAX
+            %   cc = Core.getConstellationCollector()
+            cc = Core.getState.getConstellationCollector;
+        end
+        
         function core = setCurrentCore(core)
             % Set the pointer to the actual Core instance
             %
