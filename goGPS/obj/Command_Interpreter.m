@@ -749,7 +749,7 @@ classdef Command_Interpreter < handle
                                 last_sss = s;
                                 if ~is_empty
                                     % Get all the commands in this session for
-                                    id = find(execution_block == execution_block(l));
+                                    id = find(execution_block == execution_block(l),1,'first');
                                     lev0 = level(id);
                                     id_list = [];
                                     i = id + 1;
