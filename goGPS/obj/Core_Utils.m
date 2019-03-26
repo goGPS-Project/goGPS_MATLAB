@@ -126,6 +126,37 @@ classdef Core_Utils < handle
         function num = round_odd(num)
            num = round((num-1)/2)*2+1;
         end
+        
+        
+        function r = xcorr(x)
+            % compute cross correlation
+            %
+            % SYNTAX:
+            % xcorr = Core_Utils.xcorr(x)
+            %
+            % NOTE:
+            % thank you Amro https://stackoverflow.com/questions/3949324/calculate-autocorrelation-using-fft-in-matlab
+            len = length(x);
+            
+            % autocorrelation
+            nfft = 2^nextpow2(2*len-1);
+            r = ifft( fft(x,nfft) .* conj(fft(x,nfft)) );
+            % rearrange and keep values corresponding to lags: -(len-1):+(len-1)
+            r = [r(end-len+2:end) ; r(1:len)];
+        end
+        
+        function s = semivariogram1d(x)
+            % compute 1 d semivariogram
+            %
+            % SYNTAX:
+            %     s = Core_Utils.semivariogram1d(x)
+            max_lag = length(x)-1;
+            s = nan(max_lag,1);
+            for l = 1 : max_lag
+                s(l) = mean(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+            end
+        end
+            
 
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
@@ -1476,6 +1507,50 @@ classdef Core_Utils < handle
             
             
         end
+        
+        function x = despline(x,spline_base)
+            % despline signal x 
+            %
+            % SYNTAX:
+            %   x = despline(x,<spline_base>)
+            if nargin <2
+                spline_base = round(size(x,1)/7);
+            end
+            for i = 1: size(x,2)
+                x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
+            end
+        end
+%         
+%           function [idx, val] = 4DCubicSpline(x, y, z, k)
+%             % give the index of the hemisphere spline idx
+%             % first the equator then the first parallel then the second
+%             % parallel
+%             %
+%             % SYNTAX:
+%             %  [idx] = hemisphereSpline(n_az,n_el,az,el)
+%                    
+%             t_x = rem(x/x_step);
+%             t_y = rem(y/y_step);
+%             t_z = rem(z/z_step);
+%             t_k = rem(k/k_step);
+%             
+%             i_x = floor(x/x_step);
+%             i_y = floor(y/y_step);
+%             i_z = floor(z/z_step);
+%             i_k = floor(k/k_step);
+%             
+%             val_x = Core_Utils.cubicSpline(t_x);
+%             val_y = Core_Utils.cubicSpline(t_y);
+%             val_z = Core_Utils.cubicSpline(t_z);
+%             val_k = Core_Utils.cubicSpline(t_k);
+%             
+%             
+%             
+%             
+%             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
+%             
+%             
+%         end
         
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
