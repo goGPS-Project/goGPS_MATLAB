@@ -6985,35 +6985,32 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             min_zen = zen_pcv(1);
             max_zen = zen_pcv(end);
-            d_zen = (max_zen - min_zen)/(length(zen_pcv)-1);
-            zen_float = (zen - min_zen)/d_zen + 1;
+            d_zen = (max_zen - min_zen)/(length(zen_pcv) - 1);
             if nargin < 4 || isempty(pcv.tablePCV_azi) % no azimuth change
                 pcv_val = pcv.tableNOAZI(:,:,idx); % extract the right frequency
                 %pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
                 
                 % Use polynomial interpolation to smooth PCV
-                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);
+                pcv_delay = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,numel(pcv_val)), zen);
             else
                 % find azimuth indexes
                 az_pcv = pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
                 d_az = (max_az - min_az)/(length(az_pcv)-1);
-                az_float = (mod(az, 360) - min_az)/d_az;
                 az_idx = min(max(floor((mod(az,360) - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(mod(az, 360) - (az_idx-1)*d_az, 0)/d_az, 1);
-                
+                d_f_r_az = min(max(mod(az, 360) - (az_idx-1)*d_az, 0)/d_az, 1);                
                 
                 if strcmp(method, 'polyLS')
                     % Polynomial interpolation in elevation and griddedInterpolant in az
                     % filter PCV values in elevetion - slower
                     %%
-                    pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
+                    pcv_val = pcv.tablePCV(:,:,idx)'; % extract the right frequency
                     step = 0.25;
-                    zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen)/d_zen + 1;
+                    zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen);
                     
                     % Interpolate with a 7th degree polinomial in elevation
-                    pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val', min(8,size(pcv_val, 2)), zen_interp);
+                    pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,size(pcv_val, 1)), zen_interp);
                     
                     n_az = size(pcv_val, 2);
                     b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
@@ -7025,7 +7022,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % Using scattered interpolant for azimuth to have a smooth interpolation
                     [zen_m, az_m] = ndgrid(zen_interp, az_val);
                     fun = griddedInterpolant(zen_m, az_m, pcv_val);
-                    pcv_delay = fun(zen_float, mod(az, 360));
+                    pcv_delay = fun(zen, mod(az, 360));
                 elseif strcmp(method, 'minterp')
                     % Interpolation with griddedInterpolant
                     % leinear interpolation - faster
@@ -7058,7 +7055,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
                     pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
                     %interpolate alogn azimtuh
-                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
+                    pcv_delay = (1 - d_f_r_az) .* pcv_delay_lf + d_f_r_az .* pcv_delay1_rg;
                 end
             end
         end
