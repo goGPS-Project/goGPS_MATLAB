@@ -1508,6 +1508,50 @@ classdef Core_Utils < handle
             
         end
         
+        function x = despline(x,spline_base)
+            % despline signal x 
+            %
+            % SYNTAX:
+            %   x = despline(x,<spline_base>)
+            if nargin <2
+                spline_base = round(size(x,1)/7);
+            end
+            for i = 1: size(x,2)
+                x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
+            end
+        end
+%         
+%           function [idx, val] = 4DCubicSpline(x, y, z, k)
+%             % give the index of the hemisphere spline idx
+%             % first the equator then the first parallel then the second
+%             % parallel
+%             %
+%             % SYNTAX:
+%             %  [idx] = hemisphereSpline(n_az,n_el,az,el)
+%                    
+%             t_x = rem(x/x_step);
+%             t_y = rem(y/y_step);
+%             t_z = rem(z/z_step);
+%             t_k = rem(k/k_step);
+%             
+%             i_x = floor(x/x_step);
+%             i_y = floor(y/y_step);
+%             i_z = floor(z/z_step);
+%             i_k = floor(k/k_step);
+%             
+%             val_x = Core_Utils.cubicSpline(t_x);
+%             val_y = Core_Utils.cubicSpline(t_y);
+%             val_z = Core_Utils.cubicSpline(t_z);
+%             val_k = Core_Utils.cubicSpline(t_k);
+%             
+%             
+%             
+%             
+%             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
+%             
+%             
+%         end
+        
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
             % much faster than computing the whole inverse in case of very sparse
