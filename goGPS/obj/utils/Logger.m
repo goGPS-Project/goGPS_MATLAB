@@ -242,8 +242,8 @@ classdef Logger < handle
                 out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd_HHMMSS'));
                 this.fid = fopen(out_file_path, file_out_mode);
                 if this.fid <= 0
-                    this.fid = 0;
-                    error('Unable to open logging at %s', out_file_path);
+                    this.fid = 0;                    
+                    error('Unable to open logging at %s, check file permissions', out_file_path);
                 else
                     this.out_file_path = out_file_path;
                 end
