@@ -126,6 +126,37 @@ classdef Core_Utils < handle
         function num = round_odd(num)
            num = round((num-1)/2)*2+1;
         end
+        
+        
+        function r = xcorr(x)
+            % compute cross correlation
+            %
+            % SYNTAX:
+            % xcorr = Core_Utils.xcorr(x)
+            %
+            % NOTE:
+            % thank you Amro https://stackoverflow.com/questions/3949324/calculate-autocorrelation-using-fft-in-matlab
+            len = length(x);
+            
+            % autocorrelation
+            nfft = 2^nextpow2(2*len-1);
+            r = ifft( fft(x,nfft) .* conj(fft(x,nfft)) );
+            % rearrange and keep values corresponding to lags: -(len-1):+(len-1)
+            r = [r(end-len+2:end) ; r(1:len)];
+        end
+        
+        function s = semivariogram1d(x)
+            % compute 1 d semivariogram
+            %
+            % SYNTAX:
+            %     s = Core_Utils.semivariogram1d(x)
+            max_lag = length(x)-1;
+            s = nan(max_lag,1);
+            for l = 1 : max_lag
+                s(l) = mean(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+            end
+        end
+            
 
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
