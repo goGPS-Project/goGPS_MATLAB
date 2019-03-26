@@ -192,6 +192,10 @@ classdef Fixer < handle
             end
             [zfixed,sqnorm] = ssearch(da,L,D,n_cand);
             p_sols = exp(-1/2*sqnorm);
+            if ~any(p_sols)
+                p_sols(:) = 1;
+                Core.getLogger.addWarning('Best integer equivariant found integer set probabilities too low')
+            end
             p_sols = p_sols./sum(p_sols);
             bie = sum(zfixed.*repmat(p_sols,size(zfixed,1),1),2);
             bie = iZt*bie;
