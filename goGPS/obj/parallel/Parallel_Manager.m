@@ -67,7 +67,7 @@ classdef Parallel_Manager < Com_Interface
     
     properties (GetAccess = private, SetAccess = private)
         worker_id = {}; % list of active workers        
-        add_time = 60; % additional wait time for fast remote answers
+        timeout = 15; % additional wait time for fast remote answers
     end
     
     %% METHOD CREATOR
@@ -343,7 +343,7 @@ classdef Parallel_Manager < Com_Interface
             % Wait 2 seconds max for slave answers or till all the slaves have responded
             n_workers = 0;
             elapsed_time = 0;
-            while elapsed_time < (2 + this.add_time) && (n_workers < n_slaves)
+            while elapsed_time < (2 + this.timeout) && (n_workers < n_slaves)
                 pause(0.1);
                 elapsed_time = elapsed_time + 0.1;
                 slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
@@ -592,7 +592,7 @@ classdef Parallel_Manager < Com_Interface
                 % Wait 1 seconds for slave answers or till all the slaves have responded
                 n_workers = 0;
                 elapsed_time = 0;
-                while elapsed_time < (1 + this.add_time) && (n_workers < n_slaves)
+                while elapsed_time < (1 + this.timeout) && (n_workers < n_slaves)
                     pause(0.1);
                     elapsed_time = elapsed_time + 0.1;
                     slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
@@ -694,7 +694,7 @@ classdef Parallel_Manager < Com_Interface
             % Wait 10 seconds for slave answers or till all the slaves have responded
             n_workers = 0;
             elapsed_time = 0;
-            while elapsed_time < (10 + this.add_time) && (n_workers < n_slaves)
+            while elapsed_time < (10 + this.timeout) && (n_workers < n_slaves)
                 pause(0.1);
                 elapsed_time = elapsed_time + 0.1;
                 slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
