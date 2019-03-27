@@ -49,9 +49,27 @@ classdef Core_Utils < handle
     
     methods (Static)
         function exportCurFig(out_path)
+            % Eport Current Figure
+            %
             % EXAMPLE
-            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
-            fh = gcf; fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
+            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))            
+            Core_Utilis.exportFig(gcf, out_path);
+        end
+        
+        function exportFig(fh, out_path)
+            % Export Figure
+            %
+            % SYNTAX
+            %   Core_Utils.exportFig(<fh>, out_path)
+            %   Core_Utils.exportFig(out_path)
+            %
+            % EXAMPLE
+            %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))            
+            if nargin == 1
+                out_path = fh;
+                fh = gcf;
+            end
+            fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
         end
         
         function diff_data = diffAndPred(data, n_order, t_ref)
