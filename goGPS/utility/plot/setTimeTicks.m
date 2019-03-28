@@ -54,6 +54,11 @@ function setTimeTicks(num,format,ax)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
+    if nargin == 0
+        num = 4;
+        format = 'dd/mm/yyyy HH:MMPM';
+    end
+
     if (nargin == 3)
         h = num;
         num = format;
