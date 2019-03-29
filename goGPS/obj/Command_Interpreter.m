@@ -739,6 +739,16 @@ classdef Command_Interpreter < handle
                             end
                             skip_line = true;
                         elseif flag_par_session
+                            % Get all the commands in this session for
+                            id = find(execution_block == execution_block(l),1,'first');
+                            lev0 = level(id);
+                            id_list = [];
+                            i = id + 1;
+                            while i <= numel(cmd_list) && (level(i) >= lev0)
+                                id_list = [id_list; i]; %#ok<AGROW>
+                                i = i + 1;
+                            end
+                            
                             % for loop on each session
                             last_sss = 0;
                             for s = id_sss
@@ -748,17 +758,7 @@ classdef Command_Interpreter < handle
                                 
                                 last_sss = s;
                                 if ~is_empty
-                                    % Get all the commands in this session for
-                                    id = find(execution_block == execution_block(l),1,'first');
-                                    lev0 = level(id);
-                                    id_list = [];
-                                    i = id + 1;
-                                    while i <= numel(cmd_list) && (level(i) >= lev0)
-                                        id_list = [id_list; i];
-                                        i = i + 1;
-                                    end
-                                    
-                                    cmd_list_loop = cmd_list(id_list);                                    
+                                    cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
                                         % substitute § with the current session
                                         cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
@@ -774,6 +774,7 @@ classdef Command_Interpreter < handle
                                     
                                 end                                
                             end
+                            l = id_list(end);
                             skip_line = true;
                         else
                             this.log.addWarning('A loop section have been requested\n but no targets or sessions are specified');
