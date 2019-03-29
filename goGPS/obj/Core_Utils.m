@@ -53,7 +53,7 @@ classdef Core_Utils < handle
             %
             % EXAMPLE
             %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))            
-            Core_Utilis.exportFig(gcf, out_path);
+            Core_Utils.exportFig(gcf, out_path);
         end
         
         function exportFig(fh, out_path)
