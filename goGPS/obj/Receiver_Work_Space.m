@@ -7394,7 +7394,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
-                    s0 = coarsePositioning(this, obs_set);
+                    s0 = this.coarsePositioning(obs_set);
                 else
                     s0 = 5;
                     this.xyz = Core.getReferenceFrame.getCoo(this.parent.getMarkerName4Ch,this.time.getCentralTime);
@@ -7410,12 +7410,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.log.addMessage(this.log.indent('Improving estimation'))
                     
+                    this.remBadTracking();
                     this.codeStaticPositioning(this.id_sync, this.state.cut_off);
                     %                 %----- NEXUS DEBUG
                     %                 this.adjustPrAmbiguity();
                     %                 this.codeStaticPositioning(this.id_sync, 15);
                     %------
-                    this.remBadTracking();
                     
                     this.updateAllTOT();
                     this.log.addMessage(this.log.indent('Final estimation'))
@@ -7484,11 +7484,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate position and approx clock estimate
             [pr, lid_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT;
-            sensor = bsxfun(@minus,sensor,median(sensor,2, 'omitnan'));
-            sensor_bad_sat = bsxfun(@minus,sensor',median(sensor',2, 'omitnan'))';
-            tmp = abs(sensor_bad_sat);
-            id_ko = tmp > max(1e4, 2 * perc(noNaN(tmp(1:100)), 0.99));
+            sensor = (pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
+            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+            sensor_bad_sat = bsxfun(@minus, sensor, median(sensor, 1, 'omitnan'));
+            sensor_diff = Core_Utils.diffAndPred(sensor);
+            sensor2 = bsxfun(@minus,sensor_diff, median(sensor_diff,2, 'omitnan'));
+            sensor_bad_sat2 = bsxfun(@minus,sensor2, median(sensor2,1, 'omitnan'));
+            tmp2 = abs(sensor_bad_sat); thr = noNaN(tmp2(:)); thr = perc(thr(1:100), 0.99);
+            tmp2 = abs(sensor_bad_sat2); thr2 = noNaN(tmp2(:)); thr2 = perc(thr2(1:10:end), 0.99);
+            id_ko = (tmp2 > max(1e4, 2 * thr)) | (tmp2 > max(25, 2 * thr2));
             pr(id_ko) = nan;
             sensor(id_ko) = nan;
             sensor_bad_sat(id_ko) = nan;
@@ -7497,12 +7501,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             n_col = size(sensor_bad_sat,2);
             sat_mean = nan(1,n_col);
-            for i = 1:n_col
+            for i = 1 : n_col
                 sat_mean(i) = perc(noNaN(abs(sensor_bad_sat(:,i))),0.9);
             end
             median_sat_mean = median(sat_mean,'omitnan');
-            bad_sat = sat_mean > 10*max(median_sat_mean,10);
+            bad_sat = sat_mean > 7 * max(median_sat_mean,10);
             bad_track = abs(sensor) > 1e5;
+            
+            % the mean of the sensor cannot be too far from the others
+            sensor = bsxfun(@minus, sensor, cumsum(median(sensor_diff, 2, 'omitnan')));
+            bad_sat = bad_sat | abs(median(sensor, 1, 'omitnan')) > 1e3; % if above 1Km
+            
             if sum(bad_sat)
                 id_pr = find(lid_pr);
                 go_id = unique(this.go_id(id_pr(bad_sat)));
