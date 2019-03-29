@@ -786,7 +786,7 @@ classdef Core < handle
             
             if nargin < 2 || isempty(out_file_name)
                 out_dir = core.state.getOutDir();
-                out_file_name = fullfile(out_dir, sprintf('core_%s.mat',core.creation_time.toString('yyyymmdd_HHMMSS')));
+                out_file_name = fullfile(out_dir, sprintf('core_%s.mat',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
             end
             core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
 
