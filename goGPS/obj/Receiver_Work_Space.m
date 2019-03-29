@@ -531,7 +531,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  this.injestReceiver(rec);
             
             % Remove duplicate epochs, epochs in the receiver that are read again
-            [~, id_ko] = intersect(round(this.time.getMatlabTime * this.time.getRate/5/86400), round(rec.time.getMatlabTime * this.time.getRate/5/86400));
+            [~, id_ko] = intersect(round(this.time.getMatlabTime*86400 /this.time.getRate), round(rec.time.getMatlabTime * 86400/this.time.getRate));
             rec.remEpochs(id_ko);
             
             n_obs = size(rec.obs,1);
