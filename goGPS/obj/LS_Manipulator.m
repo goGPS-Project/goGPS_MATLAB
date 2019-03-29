@@ -1668,7 +1668,7 @@ classdef LS_Manipulator < handle
                             %                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
                             %                             g = g +1;
                             %                         end
-                            idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
+                            %idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
                             if ~isempty(idx_amb_rec)
                                 
                                 
@@ -1677,7 +1677,8 @@ classdef LS_Manipulator < handle
                                      idx_amb_rec = [];
                                      u_idx_isb = unique(idx_isb)';
                                      for uii = u_idx_isb
-                                         idx_amb_rec = [idx_amb_rec; mode(idx_amb_rect(idx_isb == uii))];
+                                         idx_amb_rectt = Core_Utils.remBFromA(idx_amb_rect(idx_isb == uii),idx_amb_rm);
+                                         idx_amb_rec = [idx_amb_rec; mode(idx_amb_rectt)];
                                      end
                                  else
                                      idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));

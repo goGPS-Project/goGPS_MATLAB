@@ -1434,6 +1434,9 @@ classdef Core_Utils < handle
             %
             % SYNTAX:
             %  [Amp,Phase,f] = Core_Utils.compute_spectrum(y,smpl_rate);
+            if nargin < 2
+                smpl_rate = 1;
+            end
             Y = fft(y);
             
             L = length(y);

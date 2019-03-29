@@ -4933,7 +4933,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 range_idx = range ~= 0;
                 xs_idx = idx_obs_r_l(range_idx);
                 synt_obs(idx_obs, i) = range(idx_obs_r);
-                xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
+                if ~isempty(xs_idx)
+                    xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
+                end
             end
         end
         
