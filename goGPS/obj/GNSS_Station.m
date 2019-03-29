@@ -2851,5 +2851,114 @@ classdef GNSS_Station < handle
 
             end
         end
+        
+        function showBaselinePlanarUp(sta_list, baseline_ids, plot_relative_variation)
+            % Function to plot baseline between 2 or more stations
+            %
+            % INPUT:
+            %   sta_list                 list of GNSS_Station objects
+            %   baseline_ids/ref_id      n_baseline x 2 - couple of id in sta_list to be used
+            %                            if this field is a single element interpret it as reference
+            %   plot_relative_variation  show full baseline dimension / variation wrt the median value
+            %
+            % SYNTAX
+            %   sta_list.showBaselinePlanarUp(<baseline_ids = []>, <plot_relative_variation = true>)
+            %   sta_list.showBaselinePlanarUp(<ref_id>, <plot_relative_variation = true>)
+            
+            if (nargin < 3) || isempty(plot_relative_variation)
+                plot_relative_variation = true;
+            end
+
+            if nargin < 2 || isempty(baseline_ids)
+                % remove empty receivers
+                sta_list = sta_list(~sta_list.isEmpty_mr);
+
+                n_rec = numel(sta_list);
+                baseline_ids = GNSS_Station.getBaselineId(n_rec);
+            end
+
+            if numel(baseline_ids) == 1
+                n_rec = numel(sta_list);
+                ref_rec = setdiff((1 : n_rec)', baseline_ids);
+                baseline_ids = [baseline_ids * ones(n_rec - 1, 1), ref_rec];
+            end
+            
+            for b = 1 : size(baseline_ids, 1)
+                rec = sta_list(baseline_ids(b, :));
+                if ~isempty(rec(1)) && ~isempty(rec(2))
+                    [enu, time] = rec.getPosENU_mr();
+                    if size(enu, 1) > 1
+                        rec(1).log.addMessage('Plotting positions');
+
+                        % prepare data
+                        baseline = diff(enu, 1, 3);
+                        if plot_relative_variation
+                            baseline = bsxfun(@minus, baseline, median(baseline, 'omitnan')) * 1e3;
+                        end
+                        t = time.getMatlabTime();
+
+                        f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+
+                        subplot(3,1,1:2)
+                        
+                        % plot circles
+                        
+                        %plot parallel
+                        max_e = ceil(max(abs(minMax(baseline(:, 1))))/5) * 5;
+                        max_n = ceil(max(abs(minMax(baseline(:, 1))))/5) * 5;
+                        max_r = ceil(sqrt(max_e^2 + max_n^2) / 5) * 5;
+                        
+                        % Plot circles of precision
+                        az_l = 0 : pi/200: 2*pi;
+                        % dashed
+                        id_dashed = serialize(bsxfun(@plus, repmat((0:20:395)',1,5), (1:5)));
+                        az_l(id_dashed) = nan;
+                        decl_s = ((10 : 10 : max_r));
+                        for d = decl_s
+                            x = cos(az_l).*d;
+                            y = sin(az_l).*d;
+                            plot(x,y,'color',[0.6 0.6 0.6], 'LineWidth', 2); hold on;
+                            x = cos(az_l).*(d-5);
+                            y = sin(az_l).*(d-5);
+                            plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
+                        end
+                        
+                        plot(baseline(:, 2), baseline(:, 1), 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        %scatter(baseline(:, 2), baseline(:, 1), 20, t, 'filled'); hold on; colormap(Core_UI.getColor(1:numel(t), numel(t)));
+
+                        axis equal;
+                        if plot_relative_variation
+                            h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                            h = xlabel('North [mm]'); h.FontWeight = 'bold';
+                            ylim(max_r * [-1 1]);
+                            xlim(max_r * [-1 1]);
+                        else
+                            h = ylabel('East [m]'); h.FontWeight = 'bold';
+                            h = ylabel('North [m]'); h.FontWeight = 'bold';
+                        end
+                        grid on;
+                        h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+
+                        subplot(3,1,3);
+                        plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if plot_relative_variation
+                            h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        else
+                            h = ylabel('Up [m]'); h.FontWeight = 'bold';
+                        end
+
+                        grid minor;
+                    else
+                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
+                    end
+                end
+            end
+        end
     end
 end
