@@ -1870,6 +1870,15 @@ classdef GPS_Time < Exportable & handle
             this = GPS_Time(GPS_Time.GPS_ZERO, gps_time, true, 2);
         end
         
+        function this = fromUnixTime(unix_time)
+            % construct gpstime from UNIX time (in seconds)
+            %
+            % SYNTAX
+            %  this = GPS_Time.fromUnixTime(unix_time)
+            this = GPS_Time();
+            this.GPS_Time_unix(uint32(floor(unix_time)), unix_time - floor(unix_time), false);
+        end
+        
         function this = fromWeekSow(week, sow)
             % construct gpstime from week and second of week 
             %[date, ~, ~] = GPS_Time.gps2date(week, sow);
