@@ -7510,7 +7510,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % the mean of the sensor cannot be too far from the others
             sensor = bsxfun(@minus, sensor, cumsum(median(sensor_diff, 2, 'omitnan')));
-            bad_sat = bad_sat | abs(median(sensor, 1, 'omitnan')) > 1e3; % if above 1Km
+            median_sat = mean(abs(sensor), 1, 'omitnan');
+            bad_sat = bad_sat | median_sat > max(1e3,7*median(median_sat)); % if above 1Km
             
             if sum(bad_sat)
                 id_pr = find(lid_pr);
