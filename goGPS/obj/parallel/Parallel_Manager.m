@@ -297,12 +297,14 @@ classdef Parallel_Manager < Com_Interface
             this.resurgit([], false);
             % Check for life
             this.testWorkers();
-                            
+            if isunix() && ~ismac()
+                pause(1);
+            end
             % Check for slaves
             slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN Go_Slave.SLAVE_WAIT_PREFIX '*']));
             n_slaves = numel(slave_list);
             if n_slaves > 0
-                this.log.addMessage(this.log.indent(sprintf('I alredy have %d living %s', n_slaves, iif(n_slaves == 1, 'slave', 'slaves'))));
+                this.log.addMessage(this.log.indent(sprintf('I already have %d living %s', n_slaves, iif(n_slaves == 1, 'slave', 'slaves'))));
             end
         end
         

@@ -892,7 +892,7 @@ classdef LS_Manipulator < handle
                 if (this.state.getWeigthingStrategy == 1) || ~any(el_stream)
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 elseif this.state.getWeigthingStrategy == 2
-                    variance(lines_stream) =  (obs_set.sigma(s)./3.*sin(el_stream)).^2;
+                    variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^2;
                 else
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 end
