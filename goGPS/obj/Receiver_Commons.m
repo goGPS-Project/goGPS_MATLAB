@@ -1792,7 +1792,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function plotResidual(this)
             figure
-            plot(zero2nan(this.sat.res),'.');
+            id_ok = any(this.sat.res);
+            plot(zero2nan(this.sat.res(:,id_ok)),'.');
+            cc = Core.getConstellationCollector();
+            ant_ids = cc.getAntennaId();
+            legend(ant_ids(id_ok));
+            
         end
     end    
     %% METHODS UTILITIES FUNCTIONS
