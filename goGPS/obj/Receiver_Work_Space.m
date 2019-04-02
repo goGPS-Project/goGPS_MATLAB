@@ -136,6 +136,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             'outliers',         [], ...    % outlier    processing to be saved in result
             'cycle_slip',          [], ...    % cycle slip processing to be saved in result
             'outliers_ph_by_ph',   [], ...    % logical index of outliers
+            'outliers_pr_by_pr',   [], ...    % logical index of outliers
             'cycle_slip_ph_by_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
             'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
@@ -7429,6 +7430,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.updateAllTOT(true);
                         i = i+1;
                     end
+                    % a bit of outlier detection does not hurt nobody
+                    sensor = this.sat.res;
+                    for s = 1 : size(sensor,2)
+                        sensor(:,s)  = zero2nan(sensor(:,s)) - median(sensor(:,s));
+                    end
+                    thr = max(mean(abs(noNaN(sensor))),3);
+                    id_ko = Core_Utils.snoopGatt(sensor,7*thr,2*thr);
+                    [pr , id_pr] = this.getPseudoRanges;
+                    for i = 1 : size(id_ko,2)
+                        pr(id_ko(:,i),this.go_id(id_pr) == i) = 0;
+                    end
+                    this.setPseudoRanges(pr, id_pr);
+                    [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
                     this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
                 end
             end
