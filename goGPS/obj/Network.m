@@ -1200,7 +1200,7 @@ classdef Network < handle
                 [~,rec_gi_idx, goids_idx2] = intersect(go_ids, mel_wub_mat(r).go_id ); %idx of the go id in the obervation set
                 cy = zero2nan(cy(:,goids_idx2)) - rec_wb(r) - repmat(sat_wb(rec_gi_idx),mel_wub_mat(r).time.length,1);
                 wl_amb_mat{r} = nan(mel_wub_mat(r).time.length,length(go_ids));
-                [~,wl_amb_mat{r}(:,goids_idx2)]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
+                [~,wl_amb_mat{r}(:,rec_gi_idx)]  = Core_Utils.estimateFracBias(cy, mel_wub_mat(r).cycle_slip(:,goids_idx2));
             end
             % OPTIONAL ->refine the bias estimation with a LS adjustemtn
         end
