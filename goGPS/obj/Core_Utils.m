@@ -1468,6 +1468,18 @@ classdef Core_Utils < handle
             
         end
         
+        function [id_ko] = snoopGatt(ssat_err, thr, thr_propagate)
+            % mark the residual after one thresdol till their mov max  reenter the
+            % secodn threshold
+            %
+            % SYNTAX:
+            %    [w] = Core_Utils.snoopGatt(res, thr, thr_propagate)
+            id_ko = false(size(ssat_err));
+            for s = 1 : size(id_ko, 2)
+                id_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
+            end
+        end
+        
         function [val] = cubicSpline(t)
             % Compute matrix entry for cubic spline 
             %
