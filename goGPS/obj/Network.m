@@ -406,7 +406,7 @@ classdef Network < handle
                         if this.state.coo_rates(i) ~= 0
                             this.coo_rate = this.state.coo_rates(i);
                             ls.pos_indexs_tc = {};
-                            for j = 2 : n_rec
+                            for j = 1 : n_rec
                                 [pos_idx_nh, pos_idx_tc] = LS_Manipulator.getPosIdx(this.common_time.getEpoch(~isnan(this.rec_time_indexes(:,j))), st_time, this.state.coo_rates(i));
                                 ls.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                                 r2c = ~isnan(this.rec_time_indexes(:,j));

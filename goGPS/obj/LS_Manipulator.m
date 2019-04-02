@@ -631,7 +631,7 @@ classdef LS_Manipulator < handle
             this.tropo_time_start = common_time.first;
             for i = 1 : n_rec
                 % get the position idx
-                if ~isempty(coo_rate) && i~=1 % first receiver do not need any sub rate since is the reference
+                if ~isempty(coo_rate) % first receiver do not need any sub rate since is the reference
                     [pos_idx_nh, pos_idx_tc] = LS_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
                     this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
                 else
