@@ -2099,9 +2099,6 @@ classdef Core_Sky < handle
             if switch_back
                 this.toAPC();
             end
-            
-            
-            
         end
         
         function writeHeader(this, fid, prec)

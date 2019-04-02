@@ -354,8 +354,7 @@ classdef Coordinates < Exportable & handle
             z = (N * (1 - this.E2) + h_ellips) .* sin(lat);
 
             this.setPosXYZ(x, y, z);
-        end
-        
+        end                    
     end
     
     % =========================================================================

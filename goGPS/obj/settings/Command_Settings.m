@@ -45,7 +45,7 @@ classdef Command_Settings < Settings_Interface
     
     % Default values for each field - useful to restore corrupted fields
     properties (Constant, GetAccess = public)
-        CMD_LIST = {'PREPRO T*'};
+        CMD_LIST = {};
     end
 
     properties (Constant, GetAccess = protected)
@@ -71,11 +71,15 @@ classdef Command_Settings < Settings_Interface
     % =========================================================================
     methods
         function importPlainCommands(this, txt)
-            log = Core.getLogger();
-            ci = Core.getCommandInterpreter();
-            n_cmd = size(txt, 1);
-            [cmd, err_list] = ci.fastCheck(txt);
-            this.cmd_list = cmd;
+            if isempty(txt)
+                this.cmd_list = [];
+            else
+                log = Core.getLogger();
+                ci = Core.getCommandInterpreter();
+                n_cmd = size(txt, 1);
+                [cmd, err_list] = ci.fastCheck(txt);
+                this.cmd_list = cmd;
+            end
         end
         
         function import(this, settings)
@@ -222,9 +226,10 @@ classdef Command_Settings < Settings_Interface
             %   this.check();
             %
                 this.cmd_list = this.CMD_LIST;
-                this.log.addWarning(sprintf('Command list seems to be empty, using default values\n %s', this.cmdToString));
+                this.log.addWarning(sprintf('Command list seems to be empty\n'));
+            else
+                this.cmd_list = Core.getCommandInterpreter.fastCheck(this.cmd_list);
             end
-            this.cmd_list = Core.getCommandInterpreter.fastCheck(this.cmd_list);
         end
     end
     

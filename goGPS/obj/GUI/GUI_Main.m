@@ -1896,8 +1896,13 @@ end
         end
         
         function refreshCmdList(this, caller, event)
-            txt = textscan(strrep(char(this.j_cmd.getText()),'%','#'),'%s','Delimiter', '\n');
-            this.state.importPlainCommands(txt{1});
+            txt = char(this.j_cmd.getText());
+            if ~isempty(txt)
+                txt = textscan(strrep(txt,'%','#'),'%s','Delimiter', '\n');
+                this.state.importPlainCommands(txt{1});
+            else
+                this.state.importPlainCommands('');
+            end
             this.updateUI();
         end
         
