@@ -496,18 +496,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if tmp > rin_list.last_epoch.getEpoch(i)
                     tmp = rin_list.last_epoch.getEpoch(i).getCopy;
                 end
-                this.appendRinex(rin_list.getFileName(i),time_start, time_stop, rate)
+                this.appendRinex(rin_list.getFileName(i),time_start, time_stop, rate, sys_c_list)
             end
         end
         
-        function appendRinex(this, rinex_file_name, time_start, time_stop, rate)
+        function appendRinex(this, rinex_file_name, time_start, time_stop, rate, sys_c_list)
             % append a rinex files
             %
             % SYNTAX:
             %  this.appendRinex(rinex_file_name,time_start, time_stop)
             rec = Receiver_Work_Space(this.parent);
             rec.rinex_file_name = rinex_file_name;
-            rec.load(time_start, time_stop, rate, this.getActiveSys);
+            rec.load(time_start, time_stop, rate, sys_c_list);
             
             if this.state.flag_amb_pass && ~isempty(this.parent.old_work) && ~this.parent.old_work.isEmpty
                 [ph, wl, id_ph] = rec.getPhases();
