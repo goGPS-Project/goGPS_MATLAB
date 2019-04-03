@@ -714,7 +714,7 @@ classdef Network < handle
                 0  1 -1;];
             wide_laneM{2} = [ 1 -1 0; %% GLONASS
                 0  1 -1;];
-            wide_laneM{3} = [ 1 0  -1  0 0; %% GALILEO
+            wide_laneM{3} = [ 1 -1  0  0 0; %% GALILEO
                 0  1 0  0 -1;
                 0  1  -1 0 0;
                 0  0  1 -1 0; ] ;
@@ -790,6 +790,10 @@ classdef Network < handle
                     b2code_aval(~full_rec_lid,:,:) = [];
                     b1code_aval(:,~full_sat_lid,:) = [];
                     b2code_aval(:,~full_sat_lid,:) = [];
+                    aligned1(~full_rec_lid,:,:) = [];
+                    aligned2(~full_rec_lid,:,:) = [];
+                    aligned1(:,~full_sat_lid,:) = [];
+                    aligned2(:,~full_sat_lid,:) = [];
                     % remove code that are not observed by more than one
                     % receiver
                     nt2cb1 = sum(sum(squeeze(sum(b1code_aval,1)>1)),1)> 0;
@@ -827,12 +831,13 @@ classdef Network < handle
                         %% get the melbourne wubbena combination for the selected combination
                         mel_wubs = [];
                         i = 1;
-                        for r = find(~rec_excluded)'
+                        usable_rec = find(~rec_excluded)';
+                        for r = usable_rec
                             fun1 = @(wl1,wl2) 1;
                             fun2 = @(wl1,wl2) -1;
                             [ph_wl] = this.rec_list(r).work.getWideLane(['L' b1 ],['L' b2 ], sys_c); %widelane phase
                             this.wl_comb_codes = [this.wl_comb_codes; [ph_wl.obs_code(1,[1 3 4 6 7])]]; % we have to make sure that the same tracking is also used when forming the phase ionofree combinations afterwards, 
-                            [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1 track_1],['C'  b2 track_2], sys_c); %narrowlane code
+                            [pr_nl] = this.rec_list(r).work.getNarrowLane(['C' b1],['C'  b2], sys_c); %narrowlane code
                             [mw] =  this.rec_list(r).work.getTwoFreqComb(ph_wl, pr_nl, fun1, fun2);
                             mel_wubs = [mel_wubs mw];
                             i = i + 1;
@@ -840,7 +845,7 @@ classdef Network < handle
                         
                         [rec_wb, sat_wb, wl_mats, go_ids] = this.estimateWideLaneAndBias(mel_wubs);
                         this.sat_wb(go_ids) = sat_wb;
-                        for r = 1 :n_r
+                        for r = 1 :length(usable_rec)
                             this.wl_mats{r}(:,go_ids) = wl_mats{r};
                         end
                     end
@@ -1003,11 +1008,11 @@ classdef Network < handle
                     % fill a matrix taht contains for each receiver the
                     % channels tracked for all satellites
                     code_aval = false(n_r,n_sat, length(coderin3attr));
-                    bes_code_rec_idx = nan(n_r,1); % index of the best tracking availiable for the receievr
+                    best_code_rec_idx = nan(n_r,1); % index of the best tracking availiable for the receievr
                     for r = 1 : n_r
                         % check wether both frequency are available
                         rec = this.rec_list(r).work;
-                        has_fr = sum(strLineMatch(rec.obs_code(:,1:2),['C' band]));
+                        has_fr = sum(strLineMatch(rec.obs_code(rec.system == sys_c,1:2),['C' band])) > 0;
                         has_frs(r) = has_fr;
                         if has_fr
                             % fill the availability matrix for the reciever
@@ -1020,11 +1025,12 @@ classdef Network < handle
                                     for t = 1 : length(track_code)
                                         code_aval(r,s,coderin3attr == track_code(t)) = true;
                                     end
-                                    best_code_rec_idx(r) = min(bes_code_rec_idx(r),find(code_aval(r,s,:),1,'first'));
+                                    best_code_rec_idx(r) = min(best_code_rec_idx(r),find(code_aval(r,s,:),1,'first'));
                                 end
                             end
                         end
                     end
+                    if sum(has_fr) >0
                     % Find the reference receiver
                     cod_aval_no_sat = sum(permute(code_aval,[1 3 2]),3) > 0;
                     n_code_rec = sum(cod_aval_no_sat,2);
@@ -1036,7 +1042,7 @@ classdef Network < handle
                     aligned_code(ref_code_id) = true; %code aligned
                     not_alignable_codes = false;
                     this.log.addMessage(sprintf('Aligning all %s psudorange observations to tarcking %s',[sys_c band],coderin3attr(ref_code_id)));
-
+                    
                     while sum(~aligned_code(present_code)) > 0 && ~not_alignable_codes
                         t_best_rec = find(cod_aval_no_sat(b_rec_idx,:));
                         trck_ref = coderin3attr(t_best_rec(1));
@@ -1066,7 +1072,7 @@ classdef Network < handle
                                 % find if a not aligned code is linkable to
                                 % the other tracking trough an other
                                 % receievr
-                                for tt2 = find(aligned_code)
+                                for tt2 = find(aligned_code)'
                                     if sum(cod_aval_no_sat(:,tt).*cod_aval_no_sat(:,tt2)) > 0 % if at least a receiver has both codes
                                         b_rec_idx = find(cod_aval_no_sat(:,tt).*cod_aval_no_sat(:,tt2),1,'first');
                                         ref_code_id = tt2;
@@ -1082,6 +1088,7 @@ classdef Network < handle
                                 this.log.addMessage(sprintf('Tracking %s on banf %s are not linkable to others tracking so can not be aligned',coderin3attr(~aligned_code& present_code),[sys_c band]));
                             end
                         end
+                    end
                     end
                     
                     
