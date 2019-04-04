@@ -90,25 +90,38 @@ classdef File_Name_Processor < handle
             if (nargin < 4)
                 session = '0';
             end
-            [gps_week, gps_sow, gps_dow] = date.getGpsWeek();
-            file_name_out = strrep(file_name, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
-            file_name_out = strrep(file_name_out, this.GPS_WD, sprintf('%04d%01d', gps_week(1), gps_dow(1)));
-            file_name_out = strrep(file_name_out, this.GPS_DOW, sprintf('%01d', gps_dow(1)));
-            file_name_out = strrep(file_name_out, this.GPS_3H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3*3600))*3));
-            file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
-            file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
-            file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
-            file_name_out = strrep(file_name_out, this.GPS_5M, sprintf('%02d', mod(5 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(300)), 60)));
-            [year, doy] = date.getDOY();
-            file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
-            file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
-            file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
-            file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
-            file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
-            [date] = datevec(date.getMatlabTime());
-            file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
-            file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
-            file_name_out = strrep(file_name_out, this.GPS_1D, sprintf('%d', date(3)));
+            file_name_out = file_name;
+            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{Y|(DOY)', 'once'))
+                [year, doy] = date.getDOY();
+                file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
+                file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
+                file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
+                file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
+            end
+            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(WWWW)|(WD)|(DOW)|(3H)|(6H)|(HH)|(QQ)|(5M)\}', 'once'))
+                [gps_week, gps_sow, gps_dow] = date.getGpsWeek();
+                file_name_out = strrep(file_name_out, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
+                if any(file_name_out == '$')
+                    file_name_out = strrep(file_name_out, this.GPS_DOW, sprintf('%01d', gps_dow(1)));
+                end
+                if any(file_name_out == '$')
+                    file_name_out = strrep(file_name_out, this.GPS_WD, sprintf('%04d%01d', gps_week(1), gps_dow(1)));
+                    file_name_out = strrep(file_name_out, this.GPS_3H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3*3600))*3));
+                    file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
+                    file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
+                    file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
+                    file_name_out = strrep(file_name_out, this.GPS_5M, sprintf('%02d', mod(5 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(300)), 60)));
+                end
+            end
+            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(MM)|DD)|(1D)\}', 'once'))
+                [date] = datevec(date.getMatlabTime());
+                file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
+                file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
+                file_name_out = strrep(file_name_out, this.GPS_1D, sprintf('%d', date(3)));
+            end            
+            if any(file_name_out == '$')
+                file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
+            end
         end
 
         function step_sec = getStepSec(this, file_name)
