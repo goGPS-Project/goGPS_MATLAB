@@ -1,13 +1,13 @@
-%   CLASS File_Rinex
+%   CLASS File_Rinex_Old
 % =========================================================================
 %
 % DESCRIPTION
 %   Class to store file_paths for RINEX files
 %
 % EXAMPLE
-%   fr = File_Rinex(file_name, verbosity_lev);
+%   fr = File_Rinex_Old(file_name, verbosity_lev);
 %
-% FOR A LIST OF CONSTANTS and METHODS use doc File_Rinex
+% FOR A LIST OF CONSTANTS and METHODS use doc File_Rinex_Old
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -40,7 +40,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef File_Rinex < Exportable
+classdef File_Rinex_Old < Exportable
 
     properties (SetAccess = protected, GetAccess = protected)
         log = Logger.getInstance(); % Handler to the log object
@@ -70,8 +70,8 @@ classdef File_Rinex < Exportable
     end
 
     methods
-        function this = File_Rinex(file_name, verbosity_lev, flag_header_only)
-            % Creator of file_rinex simple parser            
+        function this = File_Rinex_Old(file_name, verbosity_lev, flag_header_only)
+            % Creator of File_Rinex_Old simple parser            
             %
             % INPUT 
             %   file_name        file path (can be a cell array)
@@ -83,14 +83,14 @@ classdef File_Rinex < Exportable
             %                    this option may leave the obj corrupted (use with care)
             %
             % SYNTAX
-            %   File_Rinex (file_name , verbosity_level, flag_header_only)
+            %   File_Rinex_Old (file_name , verbosity_level, flag_header_only)
             %
             if nargin < 3 || isempty(flag_header_only)
                 flag_header_only = false;
             end
             
             if nargin == 0
-                % Empty File_Rinex;
+                % Empty File_Rinex_Old;
             else
                 % fill the path with the imported file names
                 if ~iscellstr(file_name)
@@ -126,26 +126,26 @@ classdef File_Rinex < Exportable
         
         function copy = getCopy(this)
             for r = numel(this):-1:1
-                copy(r) = File_Rinex();
+                copy(r) = File_Rinex_Old();
                 copy(r).copyFrom(this(r));
             end
         end
         
-        function copyFrom(this, file_rinex)
+        function copyFrom(this, File_Rinex_Old)
             % Copy from an object of the same type
             %
             % SYNTAX
             %   this.copyFrom(time)
-            this.is_valid       = file_rinex.is_valid;
-            this.base_dir       = file_rinex.base_dir;
-            this.file_name_list = file_rinex.file_name_list;
-            this.ext            = file_rinex.ext;
-            this.is_valid_list  = file_rinex.is_valid_list ;
-            this.is_composed    = file_rinex.is_composed;
-            this.first_epoch    = file_rinex.first_epoch;
-            this.last_epoch     = file_rinex.last_epoch;
-            this.verbosity_lev  = file_rinex.verbosity_lev;
-            this.eoh            = file_rinex.eoh;
+            this.is_valid       = File_Rinex_Old.is_valid;
+            this.base_dir       = File_Rinex_Old.base_dir;
+            this.file_name_list = File_Rinex_Old.file_name_list;
+            this.ext            = File_Rinex_Old.ext;
+            this.is_valid_list  = File_Rinex_Old.is_valid_list ;
+            this.is_composed    = File_Rinex_Old.is_composed;
+            this.first_epoch    = File_Rinex_Old.first_epoch;
+            this.last_epoch     = File_Rinex_Old.last_epoch;
+            this.verbosity_lev  = File_Rinex_Old.verbosity_lev;
+            this.eoh            = File_Rinex_Old.eoh;
         end
     end
 
@@ -228,7 +228,7 @@ classdef File_Rinex < Exportable
                         end
                         this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
                         this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                                                
+                        
                         if ~isempty(date_stop)
                             this.last_epoch.addEpoch(date_stop, [], true);
                             this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
@@ -239,44 +239,36 @@ classdef File_Rinex < Exportable
                                 % go to the end of the file to search for the last epoch
                                 % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
                                 fseek(fid, -10000, 'eof');
-                                txt = fread(fid, 10000,'*char')';
-                                
+                                fgetl(fid); % Probably i'm not at the beginning of a line -> disregard the first reading
                                 % Start searching for a valid epoch
+                                line = fgetl(fid);
                                 time = [];
-                                loop_n = 1;                                
-                                while isempty(time) && ~isempty(txt)
-                                    if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
-                                        has_cr = true;  % The file has carriage return - I hate you Bill!
-                                    else
-                                        has_cr = false;  % The file is UNIX standard
-                                    end
-
-                                    % get new line separators
-                                    nl = regexp(txt, '\n')';
-                                    if nl(end) <  (numel(txt) - double(has_cr))
-                                        nl = [nl; numel(txt)];
-                                    end
-                                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                                    lim = [lim lim(:,2) - lim(:,1)];
-                                    lim(lim(:,3) < 20, :) = [];                                                                        
-
-                                    l = size(lim, 1);
-                                    while (l >= 1) && isempty(time)
-                                        line = txt(lim(l,1) : lim(l,2));
-                                        if ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
+                                loop_n = 1;
+                                while isempty(time) && ischar(line)
+                                    while ischar(line)
+                                        % An epoch line has the second character containing the year of the observation
+                                        % e.g. RINEX 2:     " 15  8 23  0  0  0.0000000  0  8G05G07G28G02G06G09G30G13"
+                                        %      RINEX 2 NAV: "G01 2006 10 01 00 00 00 0.798045657575E-04 0.227373675443E-11 0.000000000000E+00"
+                                        %      RINEX 3:     "> 2016  7 18  0  1  0.0000000  0 36"
+                                        %      RINEX 3 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
+                                        %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
+                                        % this check could not work when comment are present after the header
+                                        if (numel(line) > 20) && ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
                                             % Check that the read epoch is within 30 days from the first epoch
                                             % (if it's further in time it's probably a misleading false epoch line)
                                             time = GPS_Time(line(this.id_date), [], true);
+                                            time_diff = ((time - this.first_epoch.last())/86400);
+                                            if (time_diff < 30) && (time_diff > 0)
+                                                epoch_line = line;
+                                            end
                                         end
-                                        l = l - 1;
+                                        line = fgetl(fid);
                                     end
-                                    if isempty(time) || time.isEmpty()
-                                        loop_n = loop_n + 1;
-                                        fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
-                                        txt = fread(fid, 10000,'*char')';
-                                    end
-                                end 
-                                this.last_epoch.append(time);
+                                    loop_n = loop_n + 1;
+                                    fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
+                                    line = fgetl(fid);
+                                end
+                                this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
                                 this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                             end
                         end
