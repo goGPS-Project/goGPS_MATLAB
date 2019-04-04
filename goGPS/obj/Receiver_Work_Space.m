@@ -549,7 +549,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     obs_idx = strLineMatch(this.obs_code, rec.obs_code(i,:));
                     obs_idx = obs_idx & sat_idx;
                     if sum(obs_idx) > 0 % if the observation os already present
-                        this.obs(obs_idx,(old_length+1):end) = rec.obs(i,:);
+                        this.obs(obs_idx, (old_length + 1) : end) = rec.obs(i,:);
                     else
                         % expand all the fields
                         this.obs = [this.obs; zeros(1,new_length)];
@@ -559,28 +559,28 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.f_id     = [this.f_id    ; rec.f_id(i)];
                         this.prn      = [this.prn     ; rec.prn(i)];
                         this.go_id    = [this.go_id   ; rec.go_id(i)];
-                        this.system      = [this.system      rec.system(i)];
+                        this.system   = [this.system rec.system(i)];
                         this.obs_code = [this.obs_code; rec.obs_code(i,:)];
-                        this.aligned = [this.aligned; rec.aligned];
+                        this.aligned  = [this.aligned; rec.aligned];
                     end
                 end
             else
-                this.time = rec.time.getCopy();
-                this.obs = rec.obs;
+                this.time       = rec.time.getCopy();
+                this.obs        = rec.obs;
                 this.active_ids = rec.active_ids;
-                this.wl       = rec.wl;
-                this.f_id     = rec.f_id;
-                this.prn      = rec.prn;
-                this.go_id    = rec.go_id;
-                this.system   = rec.system;
-                this.obs_code = rec.obs_code;
-                this.aligned  = rec.aligned;
+                this.wl         = rec.wl;
+                this.f_id       = rec.f_id;
+                this.prn        = rec.prn;
+                this.go_id      = rec.go_id;
+                this.system     = rec.system;
+                this.obs_code   = rec.obs_code;
+                this.aligned    = rec.aligned;
                 this.n_spe      = rec.n_spe;
-                this.xyz = rec.xyz;
+                this.xyz        = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
-                this.ph_shift = rec.ph_shift;
-                this.pcv = rec.pcv;
-                this.rate = rec.rate;
+                this.ph_shift   = rec.ph_shift;
+                this.pcv        = rec.pcv;
+                this.rate       = rec.rate;
                 this.file            = rec.file;
                 this.rinex_file_name = rec.rinex_file_name;
                 this.rin_type        = rec.rin_type;
@@ -2612,8 +2612,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.wl = [this.wl; wl];
                 end
                 
-                this.w_bar.createNewBar(' Parsing epochs...');
-                this.w_bar.setBarLen(n_epo);
+                if n_epo > 3600
+                    this.w_bar.createNewBar(' Parsing epochs...');
+                    this.w_bar.setBarLen(n_epo);
+                end
                 
                 mask = repmat('         0.00000',1 ,60);
                 data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,60);
@@ -2636,7 +2638,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         %data = textscan(line, '%14.3f%1d%1d');
                         %obs(obs_line(1:numel(data{1})), e) = data{1};
                     end
-                    this.w_bar.go(e);
+                    if n_epo > 3600
+                        this.w_bar.go(e);
+                    end
                 end
                 
                 if n_epo > n_true_epo
