@@ -310,7 +310,7 @@ end
             left_bv.Heights = [82 session_height -1];
             top_bh.Widths = [210 -1];
             bottom_bh.Widths = [60 -1 260];
-            this.updateUI;
+            this.updateUI();
             
             tab_panel.Selection = 3;
             this.w_main.Visible = 'on';
@@ -1841,14 +1841,18 @@ end
             else
                 this.state.setProperty(caller.UserData, str2num(caller.String));
             end
+            
             this.state.check();
-            caller.String = this.state.getProperty(caller.UserData);
+            caller.String = this.state.getProperty(caller.UserData);            
             this.updateINI();
             
             if strcmp(caller.UserData, 'crd_name') || strcmp(caller.UserData, 'crd_dir')
                 rf = Core.getReferenceFrame;
                 rf.init(this.state.getCrdFile);
                 this.updateCooTable();
+            end
+            if strcmp(caller.UserData, 'obs_name') || strcmp(caller.UserData, 'obs_dir')
+                this.updateRecList()
             end
         end
         
@@ -2276,7 +2280,6 @@ end
                 this.updateCooTable();
                 this.updateCmdList();
                 this.ini_path.String = this.state.getIniPath();
-                this.updateRecList();
                 this.updateSessionGUI();
                 this.updateSessionSummary()
                 this.updateSessionFromState();
@@ -2286,14 +2289,20 @@ end
                 this.updateEditArraysFromState();
                 this.updatePopUpsState();
                 this.updateResourcePopUpsState();
+                this.updateRecList();
             end
         end
         
-        function updateRecList(this)
+        function updateRecList(this, flag_force)
             % Get file name list
             %
             % SYNTAX:
             %   this.updateRecList
+            
+            if nargin < 2 || isnan(flag_force)
+                flag_force = false;
+            end
+            
             try
                 this.rec_tbl.Data{1,1} = 1;
             catch ex
@@ -2314,30 +2323,64 @@ end
                 max_sss = max(max_sss, numel(rec_path{r}));
             end
             
-            % If I need to check a lot of file use as a method to check
-            % dir list, otherwise use exist
+            % If I need to check a lot of files use as a method to check
+            % dir list, otherwise use existent cache
+            persistent unique_dir dir_list 
+            
+            % If last check is older than 5 minutes ago
+            % force_check
+            persistent last_check
+            if isempty(last_check) || (now - last_check) > (300 / 86400)
+                last_check = now;                    
+                flag_force = true;
+            end
+            
             available_files = [];
-            if max_sss * n_rec > 1000
-                % Get all the folders in wich the receivers are stored
-                i = 0;
-                for r = 1 : numel(rec_path)
-                    for s = 1 : numel(rec_path{r})
-                        i = i + 1;
-                        [dir_path{i}] = fileparts(rec_path{r}{s});
+            % Get all the folders in wich the receivers are stored
+            i = 0;
+            for r = 1 : numel(rec_path)
+                for s = 1 : numel(rec_path{r})
+                    i = i + 1;
+                    dir_path{i} = fileparts(rec_path{r}{s});
+                end
+            end
+            
+            % Remove duplicates
+            unique_dir = unique(dir_path);
+            
+            dirty_cache = isempty(dir_list);
+            if ~flag_force
+                % Check if the cache is for the same set of folders
+                cur_unique_dir = unique(dir_path);
+                if numel(unique_dir) == numel(cur_unique_dir)
+                    for d = 1 : numel(unique_dir)
+                        dirty_cache = dirty_cache || ~(strcmp(unique_dir{d}, cur_unique_dir{d}));
                     end
                 end
+                if (dirty_cache)
+                    Core.getLogger.addMessage('Dirty cache found for updateRecList', 100);
+                end
+                unique_dir = cur_unique_dir;
+                clear cur_unique_dir;
+                flag_force = dirty_cache;
+            end
                 
-                % Remove duplicates
-                unique_dir = unique(dir_path);
-                
-                for d = 1 : numel(unique_dir)
-                    dir_list = dir(fullfile(unique_dir{d}, '*.*'));
-                    available_files = [available_files {dir_list.name}];
+            % If the number of files to check is > 366 or the cache is clean
+            if (max_sss * n_rec > 366) || ~dirty_cache
+                if flag_force
+                    log = Core.getLogger;
+                    log.addMessage(log.indent('Checking Receivers data directories'));
+                    for d = 1 : numel(unique_dir)
+                        dir_list{d} = dir(fullfile(unique_dir{d}, '*.*'));
+                    end
+                end
+                    
+                for d = 1 : numel(unique_dir)                   
+                    available_files = [available_files {dir_list{d}.name}];
                 end
                 available_files = [available_files{:}];
             end
             
-            color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
             this.rec_tbl.Data = cell(1, 4);
             for r = 1 : n_rec
                 if ~isempty(rec_path{r})
