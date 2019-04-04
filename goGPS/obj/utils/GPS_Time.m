@@ -149,7 +149,7 @@ classdef GPS_Time < Exportable & handle
                 end
                 if (date(1) < 1980) || (date(1) > 2070)
                     % fallback to datenum
-                    this.GPS_Time_mat(datenum(date), is_gps);
+                    this.GPS_Time_mat(datenummx(date), is_gps);
                 else
                     this.GPS_Time_6col(date, is_gps);
                 end
@@ -168,7 +168,7 @@ classdef GPS_Time < Exportable & handle
                 else
                     if (date(1) < 1980) || (date(1) > 2070)
                         % fallback to datenum
-                        this.GPS_Time_mat(datenum(date), is_gps);
+                        this.GPS_Time_mat(datenummx(date), is_gps);
                     else
                         this.GPS_Time_6col(date, is_gps);
                     end                    
@@ -297,7 +297,7 @@ classdef GPS_Time < Exportable & handle
                 end
                 if (date(1) < 1980) || (date(1) > 2070)
                     % fallback to datenum
-                    this.appendMatTime(datenum(date), is_gps);
+                    this.appendMatTime(datenummx(date), is_gps);
                 else
                     this.append6ColDate(date, is_gps);
                 end
@@ -316,7 +316,7 @@ classdef GPS_Time < Exportable & handle
                 else
                     if (date(1) < 1980) || (date(1) > 2070)
                         % fallback to datenum
-                        this.appendMatTime(datenum(date), is_gps);
+                        this.appendMatTime(datenummx(date), is_gps);
                     else
                         this.append6ColDate(date, is_gps);
                     end
@@ -1187,8 +1187,12 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   [gps_week, gps_sow, gps_dow] = this. getGpsWeek()
-            gps_time = this.getCopy();
-            gps_time.toGps();
+            if this.isUTC
+                gps_time = this.getCopy();
+                gps_time.toGps();
+            else
+                gps_time = this;
+            end
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
             if nargin == 2
                 unix_time = unix_time(id);
@@ -1305,7 +1309,7 @@ classdef GPS_Time < Exportable & handle
             
             mat_time = time.getMatlabTime;
             [year, ~] = datevec(mat_time);
-            time = mat_time - datenum(year,1,1);
+            time = mat_time - datenummx(year,1,1);
             doy = floor(time) + 1; % days from the beginning of the year
             sod = floor((time - doy +1) * 86400); % days from the beginning of the year
         end
@@ -1893,7 +1897,7 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   this = GPS_Time.fromDoySod(year, doy, sod)
-            unix_s = uint32((datenum(year , 1, doy)  - datenum(1970,1,1))*86400) + uint32(floor(sod));
+            unix_s = uint32((datenummx(year , 1, doy)  - datenummx(1970,1,1))*86400) + uint32(floor(sod));
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
         end
@@ -1908,7 +1912,7 @@ classdef GPS_Time < Exportable & handle
             week = floor(deltat/7);
             sec_of_week = (deltat - week*7)*86400;
             tow = round(sec_of_week);
-            v_datenum = tow/(3600*24) + 7*(week) + datenum([1980,1,6,0,0,0]);
+            v_datenum = tow/(3600*24) + 7*(week) + datenummx([1980,1,6,0,0,0]);
             this = GPS_Time(v_datenum);
         end
     end
