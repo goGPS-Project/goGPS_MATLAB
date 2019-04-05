@@ -2369,7 +2369,7 @@ end
             if (max_sss * n_rec > 366) || ~dirty_cache
                 if flag_force
                     log = Core.getLogger;
-                    log.addMessage(log.indent('Checking Receivers data directories'));
+                    log.addMessage(log.indent('Checking receivers data directories'));
                     for d = 1 : numel(unique_dir)
                         dir_list{d} = dir(fullfile(unique_dir{d}, '*.*'));
                     end

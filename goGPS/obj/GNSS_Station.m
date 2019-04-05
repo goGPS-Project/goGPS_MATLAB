@@ -2320,7 +2320,10 @@ classdef GNSS_Station < handle
                 if nargin < 4
                     sub_plot_nsat = false;
                 end
-
+                
+                tmp = sta_list.getNumSat; 
+                sub_plot_nsat = sub_plot_nsat && any([tmp{:}]);
+                
                 if isempty(tropo)
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
                 else

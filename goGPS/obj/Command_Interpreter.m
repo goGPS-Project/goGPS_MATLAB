@@ -1679,7 +1679,11 @@ classdef Command_Interpreter < handle
             if nargin == 2
                 type = 'T';
             end
-            [id_rec, found] = getMatchingKey(this, tok, type, numel(rec));
+            n_rec = numel(rec);
+            if n_rec == 0
+                n_rec = numel(Core.getState.getRecCount());
+            end
+            [id_rec, found] = getMatchingKey(this, tok, type, n_rec);
         end
         
         function [id_sss, found] = getMatchingSession(this, tok)
