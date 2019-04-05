@@ -367,7 +367,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2)))
+            if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isnan(rec_work.quality_info.s0) )))
                 % set the id_sync only to time in between out times
                 basic_export = false;
                 id_sync_old = rec_work.getIdSync();
@@ -520,8 +520,13 @@ classdef Receiver_Output < Receiver_Commons
                         new_time = rec_work.getTime().getNominalTime;
                         first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time.getNominalTime, 1, 'first'));
                         clear new_time;
+                        if ~isempty(time_1) && ~isempty(time_2)
                         id_stop     = find(time_1.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
                         id_start    = find(time_2.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
+                        no_smooth = false;
+                        else
+                            id_stop = [];
+                        end
                         if ~isempty(id_stop)
                             if this.state.flag_out_ztd
                                 this.ztd     = Core_Utils.injectSmtData(zero2nan(this.ztd), zero2nan(rec_work.getZtd()), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
