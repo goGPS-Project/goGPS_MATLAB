@@ -278,6 +278,92 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
+        function xyz = getIGSXYZ(this, mode)
+            % get the official IGS solution fro eiether daily of weekly igs
+            % combinations
+            %
+            % SYNTAX:
+            %    xyz = getIGSSolutions(this, mode)
+            if nargin < 2
+                mode = 'daily';
+            end
+            xyz = nan(size(this.xyz));
+            if strcmpi(mode,'daily')
+                fnp = File_Name_Processor();
+                for e = 1: this.time_pos.length
+                    c_time = this.time_pos.getEpoch(e);
+                    filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc',Core.getState.getGeoidDir),c_time);
+                    if exist(filename, 'file') == 2
+                        [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        if ~isempty(cmdout) 
+                        nl_id = find(cmdout==char(10));
+                        x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        nl_id = find(cmdout==char(10));
+                        y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        nl_id = find(cmdout==char(10));
+                        z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        xyz(e,:) =[x y z];
+                        end
+                    end
+                end
+            end
+        end
+        
+        function [ztd, gn ,ge] = getIGSTropo(this,mode)
+            % get the official IGS solution fro tropospheric paramters
+            %
+            % SYNTAX:
+            %    xyz = getIGSSolutions(this, mode)
+            if nargin < 2
+                mode = 'value'
+            end
+            ztd = nan(size(this.ztd));
+            gn = nan(size(this.tgn));
+            ge = nan(size(this.tge));
+            fnp = File_Name_Processor();
+            tsc = Tropo_Sinex_Compare();
+            [mjd] = floor(this.time.getMJD);
+            sta_name = this.parent.getMarkerName4Ch;
+            missing_days = [];
+            for d = unique(mjd)'
+                c_time = GPS_Time.fromMJD(d);
+                [year, doy] = c_time.getDOY();
+                filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/TROPO/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd',Core.getState.getGeoidDir,lower(sta_name)),c_time);
+                if ~(exist(filename, 'file') == 2)
+                    missing_days = [missing_days d];
+                else
+                    tsc.addTropoSinexFile(filename);
+                end
+            end
+            lid_excl = false(this.time.length,1);
+            for d = missing_days
+                d1 = GPS_Time.fromMJD(d);
+                d2 = d1.getCopy();
+                d2.addSeconds(86400);
+                lid_excl = lid_excl | (this.time> d1 & this.time < d2);
+            end
+            if numel(fieldnames(tsc.results)) == 0
+                this.log.addWarning(sprintf('No IGS solutions found for station %s',sta_name));
+            else
+                if strcmpi(mode,'value')
+                    ztd  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).ztd,this.time.getMatlabTime,'linear');
+                    gn  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tgn,this.time.getMatlabTime,'linear');
+                    ge  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tge,this.time.getMatlabTime,'linear');
+                    ztd(lid_excl) = nan;
+                    gn(lid_excl) = nan;
+                    ge(lid_excl) = nan;
+                elseif strcmpi(mode,'difference')
+                    ztd = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).ztd, this.time.getMatlabTime, this.ztd,'aggregate');
+                    gn = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).tgn, this.time.getMatlabTime, this.tgn,'aggregate');
+                    ge = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).tge, this.time.getMatlabTime, this.tge,'aggregate');
+                    
+                end
+            end
+        end
+        
+        
         function remEpoch(this, ep_idx)
             % remove epochs from the results
             %

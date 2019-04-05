@@ -2855,6 +2855,128 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showIGSComparison(sta_list)
+            % Function to show the comparison between results stored in the
+            % rec and official igs solutions
+            %
+            % SYNTAX
+            %   sta_list.showIGSComparison()
+            n_rec = length(sta_list);
+            east_stat = nan(n_rec,2);
+            north_stat = nan(n_rec,2);
+            up_stat = nan(n_rec,2);
+            ztd_stat = nan(n_rec,2);
+            gn_stat = nan(n_rec,2);
+            ge_stat = nan(n_rec,2);
+            sta_names = {};
+            for r = 1:n_rec
+                if ~sta_list(r).out.isEmpty
+                xyz_diff = sta_list(r).out.xyz - sta_list(r).out.getIGSXYZ;
+                enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ,xyz_diff);
+                east_stat(r,:) = [mean(enu_diff(:,1),'omitnan'),perc(abs(enu_diff(:,1) - mean(enu_diff(:,1),'omitnan')),0.95)]*1e3;
+                north_stat(r,:) = [mean(enu_diff(:,2),'omitnan'),perc(abs(enu_diff(:,2) - mean(enu_diff(:,2),'omitnan')),0.95)]*1e3;
+                up_stat(r,:) = [mean(enu_diff(:,3),'omitnan'),perc(abs(enu_diff(:,3) - mean(enu_diff(:,3),'omitnan')),0.95)]*1e3;
+                [ztd_diff, gn_diff, ge_diff] =  sta_list(r).out.getIGSTropo('difference');
+                ztd_stat(r,:) = [mean(ztd_diff,'omitnan'),perc(abs(ztd_diff - mean(ztd_diff,'omitnan')),0.95)]*1e3;
+                gn_stat(r,:) = [mean(gn_diff,'omitnan'),perc(abs(gn_diff - mean(gn_diff,'omitnan')),0.95)]*1e3;
+                ge_stat(r,:) = [mean(ge_diff,'omitnan'),perc(abs(ge_diff - mean(ge_diff,'omitnan')),0.95)]*1e3;
+                end
+                sta_names{end+1} = lower(sta_list(r).getMarkerName4Ch);
+            end
+            % sort by bet on the east axis
+            %[~,idx] = sort(abs(east_stat(:,1)));
+            [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
+            east_stat = east_stat(idx,:);
+            north_stat = north_stat(idx,:);
+            up_stat = up_stat(idx,:);
+            ztd_stat = ztd_stat(idx,:);
+            gn_stat = gn_stat(idx,:);
+            ge_stat = ge_stat(idx,:);
+            sta_names = sta_names(idx);
+            
+            figure;
+            subplot(3,1,1)
+            errorbar(1:n_rec,east_stat(:,1),2.5*east_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(1,6))
+            ylabel('[mm]')
+            title('East')
+            ax = gca;
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            set(gca, 'YTick', [-30 -10 0 10 30])
+            ylim([-30 30])
+            set(gca, 'XTickLabels', {})    
+            set(gca,'fontweight','bold','fontsize',12)
+            setAllLinesWidth(1.3)
+            
+            subplot(3,1,2)
+            errorbar(1:n_rec,north_stat(:,1),2.5*north_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(2,6))
+            ax = gca;
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            set(gca, 'YTick', [-30 -10 0 10 30])
+            ylim([-30 30])
+            set(gca, 'XTickLabels', {})
+            ylabel('[mm]')
+            set(gca,'fontweight','bold','fontsize',12)
+            title('North')
+            
+            subplot(3,1,3)
+            errorbar(1:n_rec,up_stat(:,1),2.5*up_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(3,6))
+            ax = gca;
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            ylim([-50 50]);
+            set(gca, 'YTick', [-50 -20 0 20 50])
+            set(gca, 'XTick', [1:28])
+            set(gca, 'XTickLabels', sta_names)
+            ylabel('[mm]')
+            title('Up')
+            set(gca, 'XTickLabelRotation', 45)
+            set(gca,'fontweight','bold','fontsize',12)
+            
+            
+            
+            
+            figure
+            subplot(3,1,1)
+            errorbar(1:n_rec,ztd_stat(:,1),2.5*ztd_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(4,6))
+            ylabel('[mm]')
+            set(gca, 'XTickLabels', {})
+            ylim([-50 50])
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            set(gca, 'YTick', [-50 -20 0 20 50])
+            set(gca,'fontweight','bold','fontsize',12)
+            title('ZTD')
+            
+            subplot(3,1,2)
+            errorbar(1:n_rec,gn_stat(:,1),2.5*gn_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(5,6))
+            ylabel('[mm]')
+            set(gca, 'XTickLabels', {})
+            ylim([-12 12])
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            set(gca, 'YTick', [-10 -3 0 3 10])
+            set(gca,'fontweight','bold','fontsize',12)
+            title('North gradient')
+            
+            subplot(3,1,3)
+            errorbar(1:n_rec,ge_stat(:,1),2.5*ge_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(6,6))
+            ylabel('[mm]')
+             ylim([-12 12])
+            ax.YGrid = 'on';
+            ax.GridLineStyle = '-';
+            set(gca, 'YTick', [-10 -3 0 3 10])
+            set(gca, 'XTickLabels', {})
+            title('East gradient')
+            set(gca, 'XTick', [1:28])
+            set(gca, 'XTickLabels', sta_names)
+            set(gca, 'XTickLabelRotation', 45)
+            set(gca,'fontweight','bold','fontsize',12)
+            
+            
+        end
+        
         function showBaselinePlanarUp(sta_list, baseline_ids, plot_relative_variation)
             % Function to plot baseline between 2 or more stations
             %
