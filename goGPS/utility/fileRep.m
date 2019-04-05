@@ -1,8 +1,8 @@
-function fileRep(base_dir, expression, replace)
+function fileRep(base_dir, expression, replace, filter)
 % SYNTAX:
-%    fileRep( base_dir, expression, replace)
+%    fileRep( base_dir, expression, replace, <filter = '*.m'>)
 % EXAMPLE:
-%    fileRep('.','expression', 'replace phrase');
+%    fileRep('.','expression', 'replace phrase', '*.m');
 %
 % DESCRIPTION:
 %    Replace an exprassion in all the '.m' files under base_dir - it requires a unix system
@@ -37,6 +37,10 @@ function fileRep(base_dir, expression, replace)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
+if nargin < 4 || isempty(filter)
+    filter = '*.m';
+end
+
 % find all the m files in goGPS directory
 if isempty(base_dir)
     base_dir = '.';
@@ -49,9 +53,11 @@ if ~exist(base_dir, 'dir')
         list = {base_dir};
     end
 else
-    [~, list] = dos(['find ' base_dir ' -name \*.m']);
-    list = textscan(list,'%s','Delimiter','\n','whitespace','');
-    list = list{1};
+    [~, list] = dos(['find ' base_dir ' -name \' filter]);
+    if ~isempty(list)
+        list = textscan(list,'%s','Delimiter','\n','whitespace','');
+        list = list{1};
+    end
 end
 tic
 for i = 1 : length(list)
