@@ -2345,17 +2345,16 @@ end
                 end
             end
             
-            % Remove duplicates
-            unique_dir = unique(dir_path);
-            
             dirty_cache = isempty(dir_list);
-            if ~flag_force
+            if ~flag_force || (max_sss * n_rec > 366)
                 % Check if the cache is for the same set of folders
                 cur_unique_dir = unique(dir_path);
                 if numel(unique_dir) == numel(cur_unique_dir)
                     for d = 1 : numel(unique_dir)
                         dirty_cache = dirty_cache || ~(strcmp(unique_dir{d}, cur_unique_dir{d}));
                     end
+                else
+                    dirty_cache = true;
                 end
                 if (dirty_cache)
                     Core.getLogger.addMessage('Dirty cache found for updateRecList', 100);
@@ -2363,10 +2362,13 @@ end
                 unique_dir = cur_unique_dir;
                 clear cur_unique_dir;
                 flag_force = dirty_cache;
+            else                
+                % Remove duplicates            
+                unique_dir = unique(dir_path);
             end
-                
+
             % If the number of files to check is > 366 or the cache is clean
-            if (max_sss * n_rec > 366) || ~dirty_cache
+            if (max_sss * n_rec > 366) || dirty_cache
                 if flag_force
                     log = Core.getLogger;
                     log.addMessage(log.indent('Checking receivers data directories'));
