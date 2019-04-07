@@ -1,11 +1,14 @@
-%   CLASS Colormap
+%   CLASS Cmap
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to manages colormaps, specifically written to include matplotlib
-%   default colormaps for compatibility reasons.   
+%   Class to manage colormaps, specifically written to include matplotlib
+%   default colormaps for compatibility reasons 
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Colormap
+% NOTE: for some functionalities this class requires splinerMat.m
+%       - https://github.com/goGPS-Project/goGPS_MATLAB/blob/goGPS_1.0_beta/goGPS/utility/flagAndFilters/splinerMat.m
+%
+% FOR A LIST OF CONSTANTs and METHODS use doc Cmap
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -38,12 +41,13 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Colormap    
+classdef Cmap    
     
     %% PROPERTIES MAP NAMES
     % ==================================================================================================================================================
     properties (Constant, Access = private)
-        CUSTOM = {'gat', 'gat2'};
+        % Custum colormaps implemented within this library
+        CUSTOM = {'gat', 'gat2', 'c51'};
         MATLAB = {'parula'};
         
         PERCEPTUALLY_UNIFORM = {'viridis', 'plasma', 'inferno', 'magma', 'cividis'};
@@ -54,21 +58,21 @@ classdef Colormap
         QUALITATIVE = {'Pastel1', 'Pastel2', 'Pairred', 'Accent', 'Dark2', 'Set1', 'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c'};
         MISCELLANEOUS = {'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern', 'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'};
 
-        MPL_MAPS = [Colormap.PERCEPTUALLY_UNIFORM(:); ...
-            Colormap.SEQUENTIAL(:); ...
-            Colormap.SEQUENTIAL2(:); ...
-            Colormap.DIVERGING(:); ...
-            Colormap.CYCLIC(:); ...
-            Colormap.QUALITATIVE(:); ...
-            Colormap.MISCELLANEOUS(:)];
+        MPL_MAPS = [Cmap.PERCEPTUALLY_UNIFORM(:); ...
+            Cmap.SEQUENTIAL(:); ...
+            Cmap.SEQUENTIAL2(:); ...
+            Cmap.DIVERGING(:); ...
+            Cmap.CYCLIC(:); ...
+            Cmap.QUALITATIVE(:); ...
+            Cmap.MISCELLANEOUS(:)];
         
-        ALL_MAPS = [Colormap.CUSTOM(:); Colormap.MATLAB(:); Colormap.MPL_MAPS(:)];
+        ALL_MAPS = [Cmap.CUSTOM(:); Cmap.MATLAB(:); Cmap.MPL_MAPS(:)];
     end
     
     %% MAPS VALUES
     % ==================================================================================================================================================
     properties (Constant, Access = private)
-        % Colormaps as imported from matplotlib files:
+        % Cmaps as imported from matplotlib files:
 
         MPL_CMAP = reshape([ uint8(cumsum([68 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 2 0 1 0 2 0 2 0 2 0 1 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 3 0 2 0 2 0 2 0 3 0 2 0 2 0 2 0 3 0 2 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 3 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 2 0 3 0 ])); ...
             uint8(cumsum([1 0 1 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 1 0 2 0 1 0 1 0 2 0 1 0 1 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 2 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 1 0 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 ])); ...
@@ -317,36 +321,88 @@ classdef Colormap
             uint8(cumsum([0 0 7 0 7 0 7 0 8 0 7 0 7 0 8 0 7 0 7 0 7 0 8 0 7 0 7 0 -6 0 -7 0 -7 0 -7 0 -6 0 -7 0 -7 0 -7 -7 0 -6 0 -7 0 -7 0 -7 0 -6 0 14 0 14 0 14 0 14 0 14 0 14 0 14 0 14 0 15 0 14 0 14 0 14 0 14 0 9 0 5 0 5 0 4 0 4 0 5 0 4 0 5 0 4 0 4 0 5 0 4 0 5 0 4 0 4 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 -3 0 -4 0 -4 0 -4 0 -3 0 -4 0 -4 0 -4 0 -3 0 -4 0 -4 0 -4 0 -3 0 3 0 3 0 3 0 4 0 3 0 3 0 3 0 4 0 3 0 3 0 3 0 4 3 0 3 0 3 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -2 0 -3 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -2 0 -3 0 -8 0 -8 0 -8 0 -8 0 -8 0 -9 0 -8 0 -8 0 -8 0 -8 0 -9 0 -8 0 -8 0 -8 0 -5 0 -5 0 -4 0 -5 0 -5 0 -5 0 -4 0 -5 0 -5 0 -5 0 -4 0 -5 0 -5 0 -5 0 -4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 3 0 4 0 3 0 4 0 3 0 4 0 3 0 3 0 4 0 3 0 4 0 3 0 6 0 6 0 6 0 6 0 6 0 6 0 6 0 6 0 5 0 6 0 6 0 6 0 6 0 6 0 5 0 4 0 5 0 5 0 4 5 0 4 0 5 0 5 0 4 0 5 0 5 0 4 0 5 0 5 0 4 0 5 0 4 0 5 0 5 0 4 0 5 0 5 0 4 0 5 0 4 0 ])); ...
             uint8(cumsum([128 0 -10 0 -9 0 -10 0 -9 0 -10 0 -9 0 -9 0 -10 0 -9 0 -10 0 -9 0 -9 0 -10 0 17 0 16 0 17 0 17 0 16 0 17 0 16 0 17 17 0 16 0 17 0 17 0 16 0 17 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 -6 0 -7 0 -6 0 -7 0 -6 0 -7 0 -6 0 -7 0 -7 0 -6 0 -7 -6 0 -7 0 -6 0 -7 0 -10 0 -11 0 -10 0 -11 0 -10 0 -11 0 -10 0 -10 0 -11 0 -10 0 -11 0 -10 0 -11 0 -10 0 -10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -4 0 -3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 17 0 18 0 18 17 0 18 0 18 0 17 0 18 0 18 0 18 0 17 0 18 0 18 0 18 0 3 0 4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 -1 0 -1 0 -1 0 -1 0 -2 0 -1 0 -1 0 -1 0 -1 0 -2 0 -1 0 -1 0 -1 0 -1 0 0 0 1 0 1 0 0 0 1 0 0 1 0 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 ])); ...
             ]', 506, 3, 82);
+        
+        CMAP_51 = [      0                         0                         0
+            1         0.901960784313726                         1
+            1         0.843137254901961                         1
+            1         0.784313725490196                         1
+            0.96078431372549         0.705882352941177          0.96078431372549
+            0.901960784313726         0.627450980392157         0.901960784313726
+            0.862745098039216         0.549019607843137         0.862745098039216
+            0.803921568627451         0.470588235294118         0.803921568627451
+            0.745098039215686         0.352941176470588         0.745098039215686
+            0.686274509803922         0.235294117647059         0.686274509803922
+            0.588235294117647         0.176470588235294         0.588235294117647
+            0.549019607843137                         0         0.549019607843137
+            0.549019607843137                         0         0.431372549019608
+            0.549019607843137                         0         0.274509803921569
+            0.549019607843137                         0                         0
+            0.627450980392157                         0                         0
+            0.725490196078431                         0                         0
+            0.784313725490196                         0                         0
+            0.843137254901961                         0                         0
+            0.894117647058824                         0                         0
+            0.941176470588235                         0                         0
+            1                         0                         0
+            1         0.156862745098039                         0
+            1         0.274509803921569                         0
+            1         0.392156862745098                         0
+            1         0.509803921568627                         0
+            1         0.627450980392157                         0
+            1         0.725490196078431                         0
+            1         0.823529411764706                         0
+            1         0.901960784313726                         0
+            1                         1                         0
+            0.949019607843137                         1                         0
+            0.901960784313726                         1                         0
+            0.823529411764706                         1                         0
+            0.549019607843137                         1                         0
+            0                         1                         0
+            0         0.901960784313726                         0
+            0         0.823529411764706                         0
+            0         0.745098039215686                         0
+            0         0.647058823529412                         0
+            0         0.588235294117647         0.117647058823529
+            0         0.529411764705882         0.274509803921569
+            0         0.470588235294118         0.470588235294118
+            0         0.411764705882353         0.647058823529412
+            0         0.352941176470588         0.823529411764706
+            0         0.392156862745098         0.980392156862745
+            0         0.509803921568627         0.980392156862745
+            0         0.705882352941177         0.980392156862745
+            0         0.862745098039216         0.980392156862745
+            0.313725490196078         0.941176470588235         0.980392156862745
+            0.705882352941177         0.980392156862745         0.980392156862745];
     end
         
     %% MAIN FUNCTIONS
     % ==================================================================================================================================================
     methods (Static)
-        function [cmap, found] = get(map_name, n_color, flag_smooth)
+        function [cmap, found] = get(map_name, n_col, flag_smooth)
             % Getter function, get any of the colormap stored / implemented 
             % into this class.
             % To show all the implemented colormaps use any of the "show" methods
             %
             % INPUT
             %   map_name    name of the colormap function
-            %   n_color     number of color requested
+            %   n_col       number of color requested
             %               could be empty, in this case the default number of color is provided
             %   flag_smooth if it is true (default choice) smooths the colormap in out,
             %               requires goGPS splinerMat function
             %
             % SYNTAX
-            %   [cmap, found] = Colormap.get(map_name, <n_color>, <flag_smooth = true>)
+            %   [cmap, found] = Cmap.get(map_name, <n_col>, <flag_smooth = true>)
             %
             if nargin < 3 || isempty(flag_smooth)
                 flag_smooth = false;
             end
                         
             % Set default to parula
-            tmp = strfind(Colormap.MPL_MAPS, map_name); 
-            id = find((~cellfun(@isempty, tmp)) & (cellfun(@length, Colormap.MPL_MAPS) == numel(map_name)));
+            tmp = strfind(Cmap.MPL_MAPS, map_name); 
+            id = find((~cellfun(@isempty, tmp)) & (cellfun(@length, Cmap.MPL_MAPS) == numel(map_name)));
             found = ~isempty(id);
             if found
-                source_cmap = Colormap.MPL_CMAP(:, :, id);
+                source_cmap = Cmap.MPL_CMAP(:, :, id);
                 
                 % Do not smooth flag or prism colormaps
                 if strcmp(map_name, 'flag') || strcmp(map_name, 'prism')
@@ -356,7 +412,7 @@ classdef Colormap
                 end
                 
                 % Find qualitative maps that needs to be interpolated with nearest neighbour
-                tmp = strfind(Colormap.QUALITATIVE, map_name);
+                tmp = strfind(Cmap.QUALITATIVE, map_name);
                 is_qualitative = any(~cellfun(@isempty, tmp));
                 if is_qualitative
                     method = 'nearest';
@@ -367,16 +423,16 @@ classdef Colormap
                     source_cmap = double(source_cmap) / 256;
                     method = 'linear';
                     if flag_smooth
-                        source_cmap = Colormap.smoothMap(source_cmap);
+                        source_cmap = Cmap.smoothMap(source_cmap);
                     end
                 end
                 source_n_col = size(source_cmap,1);
                 
-                if nargin < 1 || isempty(n_color)
+                if nargin < 2 || isempty(n_col)
                     cmap = source_cmap;
                 else
-                    cmap = zeros(n_color, 3);
-                    c_pos = floor(((0 : (n_color - 1)) / (n_color)) * (source_n_col)) + 1;
+                    cmap = zeros(n_col, 3);
+                    c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
                     for c = 1 : 3
                         cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
                     end
@@ -384,36 +440,43 @@ classdef Colormap
             else
                 switch map_name
                     case 'gat'
-                        if nargin == 1 || isempty(n_color)
-                            cmap = gat(1024, false);
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.gat(1024, false);
                         else
-                            cmap = gat(n_color, false);
+                            cmap = Cmap.gat(n_col, false);
                         end
                         found = true;
                     case 'gat2'
-                        if nargin == 1 || isempty(n_color)
-                            cmap = gat2();
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.gat2();
                         else
-                            cmap = gat2(n_color);
+                            cmap = Cmap.gat2(n_col);
+                        end
+                        found = true;
+                    case 'c51'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.c51();
+                        else
+                            cmap = Cmap.c51(n_col, flag_smooth);
                         end
                         found = true;
                     case 'parula'
-                        if nargin == 1 || isempty(n_color)
+                        if nargin == 1 || isempty(n_col)
                             cmap = parula();
                         else
-                            cmap = parula(n_color);
+                            cmap = parula(n_col);
                         end
                         found = true;
                 end
             end
             
             if ~found
-                if nargin == 1 || isempty(n_color)
+                if nargin == 1 || isempty(n_col)
                     cmap = parula();
                 else
-                    cmap = parula(n_color);
+                    cmap = parula(n_col);
                 end
-                fprintf('Colormap %s not found\n', map_name);            
+                fprintf('Cmap %s not found\n', map_name);            
             end
         end
                 
@@ -421,11 +484,10 @@ classdef Colormap
             % Given a colormap smooth it with splines in the RGB color space
             % This function can be triggered automatically by the get function
             %
-            % The function can be useful since the original colormaps were 
-            % imported from image files
+            % The function requires splinerMat.m
             %
             % SYNTAX
-            %   smooth_cmap = Colormap.smoothMap(cmap)
+            %   smooth_cmap = Cmap.smoothMap(cmap)
             %
             % SEE ALSO
             %   splinerMat
@@ -446,9 +508,20 @@ classdef Colormap
     %% CUSTOM MAPS
     % ==================================================================================================================================================
     methods (Static)        
-        function cmap = gat(n_color, flag_zero_center, flag_use_white)
+        function cmap = gat(n_col, flag_zero_center, flag_use_white)
+            % gat colormap build for enhancing  differences around zero have to be highlighted
+            % 
+            % INPUT
+            %   n_col               number of colors
+            %   flag_zero_center    when true and use caxis to center white to the zero of the axes
+            %   flag_use_white      use white as a central value (useful for enhancing differences
+            %
+            % SYNTAX
+            %   cmap = Cmap.gat(n_col, <flag_zero_center = true>, <flag_use_white  = true>)
+            %
+            
             if nargin < 1
-                n_color = 255;
+                n_col = 255;
             end
             if nargin < 2
                 flag_zero_center = 1;
@@ -463,22 +536,22 @@ classdef Colormap
                 flag_zero_center = 0;
             end
             if flag_zero_center
-                center = round(clim(2)*n_color/(clim(2)-clim(1)));
+                center = round(clim(2)*n_col/(clim(2)-clim(1)));
                 N = 2*center;
             else
-                N = n_color;
-                center = round(n_color/2);
+                N = n_col;
+                center = round(n_col/2);
             end
             
-            if n_color == 0
+            if n_col == 0
                 cmap = [];
                 return
             end
             
             try
-                L = ones(n_color,1)*100;
-                a = ones(n_color,1)*0;
-                b = ones(n_color,1)*0;
+                L = ones(n_col,1)*100;
+                a = ones(n_col,1)*0;
+                b = ones(n_col,1)*0;
                 
                 % RED     100  128  128
                 % VIOLET  100  128 -128
@@ -544,7 +617,7 @@ classdef Colormap
                 end
                 
                 if flag_zero_center
-                    N = 2*(n_color-center);
+                    N = 2*(n_col-center);
                 end
                 
                 if N > 0
@@ -606,7 +679,7 @@ classdef Colormap
                     %nVal = floor(N*4/32);
                     Lab1 = [40 128 -128];
                     Lab2 = [25 10 -20];
-                    step = 1/(n_color-s);
+                    step = 1/(n_col-s);
                     L(s:end) = interp1([0 1]', [Lab1(1) Lab2(1)], (0:step:1)','linear');
                     a(s:end) = interp1([0 1]', [Lab1(2) Lab2(2)], (0:step:1)','linear');
                     b(s:end) = interp1([0 1]', [Lab1(3) Lab2(3)], (0:step:1)','linear');
@@ -614,22 +687,31 @@ classdef Colormap
                 
                 %L = [[0:100/(nColors/2-1):100]' ; flipud([0:100/(nColors/2-1):100]')];
                 %L = flipud([0:100/(nColors-1):100]');
-                cmap = flipud(Colormap.lab2RGB(L, a, b )./255);
+                cmap = flipud(Cmap.lab2RGB(L, a, b )./255);
             catch
-                cmap = jet(n_color);
+                cmap = jet(n_col);
             end
         end       
         
-        function cmap = gat2(n_color)
+        function cmap = gat2(n_col)
+            % gat2 colormap build as a MATLAB parula buth with a greyscale conversion for printing
+            % 
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SYNTAX
+            %   cmap = Cmap.gat2(n_col)
+            %
+            
             if nargin < 1
-                n_color = 255;
+                n_col = 255;
             end
             
-            N = n_color;
+            N = n_col;
             
-            L = ones(n_color,1)*100;
-            a = ones(n_color,1)*0;
-            b = ones(n_color,1)*0;
+            L = ones(n_col,1)*100;
+            a = ones(n_col,1)*0;
+            b = ones(n_col,1)*0;
             
             % RED     100  128  128
             % VIOLET  100  128 -128
@@ -674,134 +756,331 @@ classdef Colormap
             
             Lab1 = Lab2;
             Lab2 = [10 27 -80];
-            step = 1/(n_color-s+1);
+            step = 1/(n_col-s+1);
             L(s:end) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','linear');
             a(s:end) = interp1([0 1]', [Lab1(2) Lab2(2)], (step:step:1)','linear');
             b(s:end) = interp1([0 1]', [Lab1(3) Lab2(3)], (step:step:1)','linear');
             
             %L = [[0:100/(nColors/2-1):100]' ; flipud([0:100/(nColors/2-1):100]')];
             %L = flipud([25:(100-25)/(nColors-1):100]');
-            cmap = flipud(Colormap.lab2RGB(L, a, b )./255);
+            %step = 1 / (n_col - 1);
+            %L(1:end) = interp1([0 1]', [L(1) L(end)], (0:step:1)','linear');
+            cmap = flipud(Cmap.lab2RGB(L, a, b )./255);
+            for c = 1 : 3
+                %first_nz = find(cmap(1:(s - 1), c) > 0, 1, 'first');
+                id_map =  1 : size(L, 1);
+                cmap(id_map, c) = Cmap.interp1LS(id_map, cmap(id_map, c), 7);
+            end
+            
+            % Smooth luminosity of the map 
+            % -> to have a regular grayscale
+            w = (sum(cmap,2) ./ Cmap.interp1LS(1 : size(cmap, 1), sum(cmap,2), 2)');
+            cmap = cmap ./ repmat(w, 1, 3);
+            % rescale cmap if smoothing makes it > 1
+            cmap = max(0, cmap ./ repmat(max(1, max(cmap)), size(cmap, 1), 1));
+        end
+        
+        function cmap = c51(n_col, flag_smooth)
+            % c51 it's a colormap for rain precipitations
+            % the first element of the map is always black
+            % 
+            % INPUT
+            %   n_col           number of colors (default 51)
+            %   flag_smooth     flag to smooth the colormap 
+            %                   (it does a little difference for this map)
+            %
+            % SYNTAX
+            %   cmap = Cmap.gat2(n_col)
+            %
+            if nargin < 2 || isempty(flag_smooth)
+                flag_smooth = false;
+            end
+            source_cmap = Cmap.CMAP_51(2 : end, :);
+            source_n_col = size(source_cmap, 1);
+            method = 'linear';
+            if flag_smooth && ~((nargin < 1) || isempty(n_col) || (n_col == 51))
+                source_cmap = Cmap.smoothMap(source_cmap);
+            end
+            
+            if nargin < 1 || isempty(n_col)
+                cmap = source_cmap;
+            else
+                n_col = n_col - 1;
+                cmap = zeros(n_col, 3);
+                c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
+                for c = 1 : 3
+                    cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
+                end
+            end
+            
+            cmap = [0, 0, 0; cmap];
         end
     end
     
     %% SHOW
     % ==================================================================================================================================================
     methods  (Static)
+        function listAllByClass()
+            % Display the list of colormaps available
+            %
+            % SINTAX
+            %   Cmap.listAllByClass()
+
+            name_list = Cmap.CUSTOM;
+            fprintf('      Custom colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.MATLAB;
+            fprintf('      MATLAB colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.PERCEPTUALLY_UNIFORM;
+            fprintf('      Perceptually uniform colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.SEQUENTIAL;
+            fprintf('      Sequential colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.SEQUENTIAL2;
+            fprintf('      Sequential2 colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.DIVERGING;
+            fprintf('      Diverging colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.CYCLIC;
+            fprintf('      Cyclic colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.QUALITATIVE;
+            fprintf('      Qualitative colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end
+            name_list = Cmap.MISCELLANEOUS;
+            fprintf('      Miscellaneous colormaps\n');
+            for c = 1 : numel(name_list)
+                fprintf('       - "%s"\n', name_list{c});
+            end            
+        end
+        
         function fh = showAll(n_col)
+            % Display in a unique window all the colormaps available
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showAll(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.ALL_MAPS, n_col);
+            fh = Cmap.showMap(Cmap.ALL_MAPS, n_col);
             title(fh.Children(end), 'All the colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function showAllByClass(n_col)
+            % Display all the classes of colormaps in a window
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showAllByClass(n_col)
             if nargin < 1
                 n_col = [];
             end
             
-            Colormap.showPerceptuallyUniform(n_col);
-            Colormap.showSequential(n_col);
-            Colormap.showSequential2(n_col);
-            Colormap.showDiverging(n_col);
-            Colormap.showCyclic(n_col);
-            Colormap.showQualitative(n_col);
-            Colormap.showMiscellaneous(n_col);
+            Cmap.showCustom(n_col);
+            Cmap.showPerceptuallyUniform(n_col);
+            Cmap.showSequential(n_col);
+            Cmap.showSequential2(n_col);
+            Cmap.showDiverging(n_col);
+            Cmap.showCyclic(n_col);
+            Cmap.showQualitative(n_col);
+            Cmap.showMiscellaneous(n_col);
         end
-        
-        function fh = showPerceptuallyUniform(n_col)
+
+        function fh = showCustom(n_col)
+            % Display Custom and imported MATLAB colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showCustom(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.PERCEPTUALLY_UNIFORM, n_col);
+            fh = Cmap.showMap([Cmap.CUSTOM Cmap.MATLAB], n_col);
+            title(fh.Children(end), sprintf('%d Custom + %d MATLAB colormaps', numel(Cmap.CUSTOM), numel(Cmap.MATLAB)), 'FontSize', 18, 'FontWeight', 'bold')
+        end
+        
+        function fh = showPerceptuallyUniform(n_col)
+            % Display Perceptually Uniform colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showPerceptuallyUniform(n_col)
+            if nargin < 1
+                n_col = [];
+            end
+            fh = Cmap.showMap(Cmap.PERCEPTUALLY_UNIFORM, n_col);
             title(fh.Children(end), 'Perceptually Uniform colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showSequential(n_col)
+            % Display Sequential colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showSequential(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.SEQUENTIAL, n_col);
+            fh = Cmap.showMap(Cmap.SEQUENTIAL, n_col);
             title(fh.Children(end), 'Sequential colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showSequential2(n_col)
+            % Display Sequential2 colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showSequential2(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.SEQUENTIAL2, n_col);
+            fh = Cmap.showMap(Cmap.SEQUENTIAL2, n_col);
             title(fh.Children(end), 'Sequential2 colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showDiverging(n_col)
+            % Display Diverging colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showDiverging(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.DIVERGING, n_col);
+            fh = Cmap.showMap(Cmap.DIVERGING, n_col);
             title(fh.Children(end), 'Diverging colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showCyclic(n_col)
+            % Display Cyclic colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showCyclic(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.CYCLIC, n_col);
+            fh = Cmap.showMap(Cmap.CYCLIC, n_col);
             title(fh.Children(end), 'Cyclic colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showQualitative(n_col)
+            % Display Qualitative colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showQualitative(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.QUALITATIVE, n_col);
+            fh = Cmap.showMap(Cmap.QUALITATIVE, n_col);
             title(fh.Children(end), 'Qualitative colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
         function fh = showMiscellaneous(n_col)
+            % Display Miscellaneous colormaps
+            %
+            % INPUT
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showMiscellaneous(n_col)
             if nargin < 1
                 n_col = [];
             end
-            fh = Colormap.showMapSetAll(Colormap.MISCELLANEOUS, n_col);
+            fh = Cmap.showMap(Cmap.MISCELLANEOUS, n_col);
             title(fh.Children(end), 'Miscellaneous colormaps', 'FontSize', 18, 'FontWeight', 'bold')
         end
         
-        function fh = showMapSetAll(map_set, n_col)
+        function fh = showMap(map_set, n_col)
+            % Display one of multiple colormaps
+            %
+            % INPUT
+            %   map_set list colormap names (string cell array)
+            %   n_col	number of colors
+            %
+            % SINTAX
+            %   Cmap.showMiscellaneous(n_col)
             if nargin < 1 || isempty(map_set)
-                map_set = Colormap.ALL_MAPS;
+                map_set = Cmap.ALL_MAPS;
             end
             if nargin < 2
                 n_col = [];
             end
-            fh = figure;
+            if ~iscell(map_set)
+                map_set = {map_set};
+            end
+            fh = figure('Visible', 'off');
+            % If it is not docked maximize the figure
+            if strcmp(fh.WindowStyle, 'normal')
+                set(fh, 'units','normalized', 'outerposition',[0 0 1 1]);
+            end
             n_cm = numel(map_set);
             
             for m = 1 : n_cm
-                ax = subplot(n_cm, 2, (m - 1) * 2 + 1);
-                cmap = reshape(Colormap.get(map_set{m}, n_col),1, n_col,3);
+                ax_l(m) = subplot(n_cm, 2, (m - 1) * 2 + 1); %#ok<AGROW>
+                cmap = reshape(Cmap.get(map_set{m}, n_col),1, n_col,3);
                 image(cmap);
-                ax.XTickLabel = [];
-                ax.YTickLabel = [];
-                ax.XTick = [];
-                ax.YTick = [];
+                ax_l(m).XTickLabel = []; %#ok<AGROW>
+                ax_l(m).YTickLabel = []; %#ok<AGROW>
+                ax_l(m).XTick = []; %#ok<AGROW>
+                ax_l(m).YTick = []; %#ok<AGROW>
                 ylabel(map_set{m}, 'FontWeight', 'Bold', 'Rotation',0, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right', 'interpreter', 'none');
             end
             
             for m = 1 : n_cm
-                ax = subplot(n_cm, 2, m * 2);
-                cmap = repmat(sum(reshape(Colormap.get(map_set{m}, n_col),1, n_col,3), 3) / 3, 1, 1, 3);
+                ax_r(m) = subplot(n_cm, 2, m * 2); %#ok<AGROW>
+                cmap = repmat(sum(reshape(Cmap.get(map_set{m}, n_col),1, n_col,3), 3) / 3, 1, 1, 3);
                 image(cmap);
-                ax.XTickLabel = [];
-                ax.YTickLabel = [];
-                ax.XTick = [];
-                ax.YTick = [];
+                ax_r(m).XTickLabel = []; %#ok<AGROW>
+                ax_r(m).YTickLabel = []; %#ok<AGROW>
+                ax_r(m).XTick = []; %#ok<AGROW>
+                ax_r(m).YTick = []; %#ok<AGROW>
                 ylabel([map_set{m} ' BW'], 'FontWeight', 'Bold', 'Rotation',0, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right', 'interpreter', 'none');
             end
             
-            % If it is not docked maximize the figure
-            if strcmp(fh.WindowStyle, 'normal')
-                maximizeFig(fh);
+            for m = 1 : n_cm
+                % linkaxes([ax_l(m) ax_r(m)], 'x');
             end
+            fh.Visible = 'on';
         end
     end
     
@@ -818,8 +1097,8 @@ classdef Colormap
             %   r, g, b     arrays of primary color components
             %
             % SYNTAX
-            %   [r, g, b] = Colormap.Lab2RGB(L, a, b)
-            %   [rgb] = Colormap.Lab2RGB(L, a, b)
+            %   [r, g, b] = Cmap.Lab2RGB(L, a, b)
+            %   [rgb] = Cmap.Lab2RGB(L, a, b)
             
             y = ( L + 16 ) ./ 116;
             x = a ./ 500 + y;
@@ -875,12 +1154,74 @@ classdef Colormap
                 r = [r,g,b];
             end            
         end
-        
-        function cmap = getMatPlotLibMaps()
-            % Import colormap from matplotlib PNG
-            %% 
+                
+        function y_out = interp1LS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 1D dataset
+            % Copy of a function in Core_Utils here only
+            % to make this Class independent from Core_Utils
+            %
+            % INPUT
+            %   x_in    obs coordinte
+            %   y_in    obs value
+            %   degree  degree of the polynomial
+            %   x_out   interpolation coordinate, if empty = x_in
+            %
+            % SYNTAX
+            %   y_out = interp1LS(x_in, y_in, degree, <x_out = x_in>)
             
-            matplotlib_fig_path = './obj/utils/colormaps';
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                if size(y_in, 1) == 1
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~isnan(x_in(:));
+                x_tmp = x_in(id_ok);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = numel(x_tmp);
+                A = zeros(n_obs, degree + 1);
+                A(:, 1) = ones(n_obs, 1);
+                for d = 1 : degree
+                    A(:, d + 1) = x_tmp .^ d;
+                end
+                
+                if (nargin < 4) && numel(x_out) == numel(x_tmp)
+                    A2 = A;
+                else
+                    n_out = numel(x_out);
+                    A2 = zeros(n_out, degree + 1);
+                    A2(:, 1) = ones(n_out, 1);
+                    for d = 1 : degree
+                        A2(:, d + 1) = x_out .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')
+            end
+        end
+        
+        function cmap = getMatPlotLibMaps(matplotlib_fig_path)
+            % Import colormap from matplotlib PNG
+            % (for internal use) 
+            %
+            % SYNTAX
+            %   cmap = getMatPlotLibMaps(matplotlib_fig_path)
+            
+            if nargin == 0 || isempty(matplotlib_fig_path)
+                matplotlib_fig_path = './obj/utils/colormaps';
+            end
             cmap_files = dir(fullfile(matplotlib_fig_path, '*.png'));
             
             all_cmap = [];
@@ -888,7 +1229,7 @@ classdef Colormap
                 img = imread(fullfile(matplotlib_fig_path, cmap_files(id).name));
                 
                 % detector = sum(img, 3); detector(detector == 255*3) = 0; figure; plot(sum(detector))
-                % Colormaps are from pixel 113 to 543
+                % Cmaps are from pixel 113 to 543
                 id_x = 129 : 634;
                 
                 detector = sum(img(:, id_x, :), 3); detector(detector == 255*3) = 0; detector(1:21, :) = 0;
@@ -905,7 +1246,7 @@ classdef Colormap
             end
             cmap = all_cmap;
             clc
-            fprintf('%% Colormaps as imported from file:\n\n');
+            fprintf('%% Cmaps as imported from file:\n\n');
             str = '';
             for m = 1 : size(cmap, 1)
                 for c = 1 : 3
