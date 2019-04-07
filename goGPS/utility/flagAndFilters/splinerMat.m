@@ -59,7 +59,7 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
         regFactor = 0;
     end
     if isempty(x)
-        x = 1:numel(y);
+        x = 1:size(y, 1);
     end
     
     inan = isnan(y);

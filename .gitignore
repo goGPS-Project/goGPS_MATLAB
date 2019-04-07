@@ -163,3 +163,5 @@ remote_data
 \.fuse_hidden0000392c00000002
 
 *.asv
+
+goGPS/obj/utils/colormaps\.zip
