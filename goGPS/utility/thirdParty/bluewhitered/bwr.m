@@ -125,4 +125,4 @@ end
 % 
 % % set(gcf, 'colormap', newmap), colorbar
 % 
-% Adding parameter no_lim 9/11/2018 by Gatti Andrea for goGPS software
+% Adding parameter no_lim 9/11/2018 by Andrea Gatti for goGPS software

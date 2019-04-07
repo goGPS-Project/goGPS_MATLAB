@@ -42,7 +42,7 @@ function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF,
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

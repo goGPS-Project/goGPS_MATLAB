@@ -51,7 +51,7 @@ function [N_stim_slip, N_stim_born, var_N_slip, var_N_born] = ambiguity_init(XR_
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

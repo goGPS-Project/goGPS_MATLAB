@@ -18,9 +18,9 @@
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea, ...
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -760,8 +760,8 @@ classdef Command_Interpreter < handle
                                 if ~is_empty
                                     cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute ยง with the current session
-                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ยง', num2str(s));
+                                        % substitute ÿ with the current session
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
                                     end
                                     this.exec(core, cmd_list_loop);
                                     

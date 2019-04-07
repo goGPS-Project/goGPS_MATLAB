@@ -22,7 +22,7 @@ function [iodp_mask, prn_mask] = ems2prnmask(msg)
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
 %  Contributors:     Giuliano Sironi 2011, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

@@ -80,7 +80,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

@@ -43,7 +43,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     Damianop Triglione,
 %                    Stefano Caldera,

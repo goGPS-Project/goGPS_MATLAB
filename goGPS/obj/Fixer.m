@@ -18,7 +18,7 @@
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:                    Andrea Gatti, Giulio Tagliaferro
 %  On the basis of the work of:   Andrea Nardo (on the LAMBDA approach), 
 %  Contributors:                  Eugenio Realini and Hendy F. Suhandri

@@ -23,7 +23,7 @@ function [EAST, NORTH, utm_zone] = geod2plan(lat, lon)
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     ...
 %  Other Contributors: Laboratorio di Geomatica, Polo Regionale di Como,

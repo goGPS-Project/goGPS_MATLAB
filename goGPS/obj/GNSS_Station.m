@@ -17,8 +17,8 @@
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       Gatti Andrea, Giulio Tagliaferro ...
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -2265,7 +2265,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [Â°C]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);

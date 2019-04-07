@@ -36,7 +36,7 @@ function [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Stefano Caldera 22.05.2014
 %  Contributors:     Stefano Caldera,
 %                    Andrea Gatti 08.12.2016 ( speedup improvements )

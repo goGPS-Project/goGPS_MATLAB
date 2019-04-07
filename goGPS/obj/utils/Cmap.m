@@ -19,8 +19,8 @@
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %

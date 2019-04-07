@@ -25,7 +25,7 @@ function [ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
 %  Contributors:     Giuliano Sironi 2011,
 %                    Eugenio Realini 2013, ...

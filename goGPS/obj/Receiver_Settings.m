@@ -16,9 +16,9 @@
 %    |___/                    v 1.0 beta 2
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giulio Tagliaferro
-%  Contributors:     Giulio Tagliaferro, Gatti Andrea,, ...
+%  Contributors:     Giulio Tagliaferro, Andrea Gatti,, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
