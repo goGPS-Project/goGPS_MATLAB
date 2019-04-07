@@ -6,7 +6,7 @@
 %   default colormaps for compatibility reasons 
 %
 % NOTE: for some functionalities this class requires splinerMat.m
-%       - https://github.com/goGPS-Project/goGPS_MATLAB/blob/goGPS_1.0_beta/goGPS/utility/flagAndFilters/splinerMat.m
+%       - http://bit.ly/goGPS_splinerMat
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Cmap
 
