@@ -395,6 +395,68 @@ classdef Cmap
     %% MAIN FUNCTIONS
     % ==================================================================================================================================================
     methods (Static)
+        
+        function color = getColor(color_id, n_col, map_name, mode)
+            % get a color at a specific id of the colormap
+            %
+            % INPUT
+            %   color_id    id within the cmap matrix of the colors to extract
+            %   n_col       number of colors requested for a specific colormap
+            %   map_name    name of colormap to be used (default = 'pltd')
+            %   mode        mode of color request
+            %                == 'repeat'  -> the sequence of colors is repeated 
+            %                                after the n_col (default)
+            %                == 'linear'  -> color_id is <= n_col
+            % SYNTAX:
+            %   color = Cmap.getColor(color_id, <n_col>, <map_name = 'pltd'>, <mode = 'repeat'>);            
+            %
+            % EXAMPLE
+            %   color = Cmap.getColor(1 : 19, 25, 'linspaced');
+            %   figure; 
+            %   for i = 1:size(color, 1)
+            %       plot(i + 0.1 * randn(100, 1), '.-', 'Color', color(i, :), 'LineWidth', 3);
+            %       hold on;
+            %   end
+            %
+            
+            if (nargin < 1) || isempty(color_id)
+                color = [];
+            else
+                % Define default colormap to pltd 
+                % (default sequence of colors of MATLAB plots)
+                if nargin < 3 || isempty(map_name)
+                    map_name = 'pltd';
+                end
+                
+                % if mode is not specified use 'repeat'
+                if nargin < 4 || isempty(mode)
+                    mode = 'repeat';
+                end
+                
+                if nargin == 1 || isempty(n_col)
+                    % if the number of colors is not specified use the default size of the colormaps
+                    if nargin < 4 || isempty(mode)
+                        cmap = Cmap.get(map_name);
+                    else
+                        cmap = Cmap.get(map_name, max(color_id));
+                    end
+                else
+                    cmap = Cmap.get(map_name, n_col);
+                end
+                
+                n_col = size(cmap, 1);
+                switch mode
+                    case {'linear'}
+                        color = cmap(min(color_id, n_col), :);
+                    otherwise
+                        color = zeros(numel(color_id),3);
+                        for c = 1 : numel(color_id)
+                            color(c, :) = cmap(mod(color_id(c) - 1, n_col) + 1, :);
+                        end
+                end
+            end
+        end
+        
         function [cmap, found] = get(map_name, n_col, flag_smooth)
             % Getter function, get any of the colormap stored / implemented 
             % into this class.
