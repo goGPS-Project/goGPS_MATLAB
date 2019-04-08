@@ -5,8 +5,9 @@
 %   Class to manage colormaps, specifically written to include matplotlib
 %   default colormaps for compatibility reasons 
 %
-% NOTE: for some functionalities this class requires splinerMat.m
-%       - http://bit.ly/goGPS_splinerMat
+% NOTE: for some functionalities this class requires 
+%       splinerMat.m  - http://bit.ly/goGPS_splinerMat
+%       linspecer.m   - http://bit.ly/linspacer
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Cmap
 
@@ -47,7 +48,7 @@ classdef Cmap
     % ==================================================================================================================================================
     properties (Constant, Access = private)
         % Custum colormaps implemented within this library
-        CUSTOM = {'gat', 'gat2', 'c51'};
+        CUSTOM = {'c51', 'gat', 'linspaced', 'gat2'};
         MATLAB = {'parula'};
         
         PERCEPTUALLY_UNIFORM = {'viridis', 'plasma', 'inferno', 'magma', 'cividis'};
@@ -72,8 +73,24 @@ classdef Cmap
     %% MAPS VALUES
     % ==================================================================================================================================================
     properties (Constant, Access = private)
-        % Cmaps as imported from matplotlib files:
 
+        WHITE = ones(3, 1);
+        BLACK = zeros(3, 1);
+        BLUE = [0 0 1];
+        RED  = [1 0 0];
+        GREEN = [0 1 0];
+        LBLUE = [0 163 222]/255;
+        
+        COLOR_ORDER = [ ...
+            0     0.447 0.741;
+            0.85  0.325 0.098;
+            0.929 0.694 0.125;
+            0.494 0.184 0.556;
+            0.466 0.674 0.188;
+            0.301 0.745 0.933;
+            0.635 0.078 0.184];
+
+        % Colormaps as imported from matplotlib files:
         MPL_CMAP = reshape([ uint8(cumsum([68 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 2 0 1 0 2 0 2 0 2 0 1 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 3 0 2 0 2 0 2 0 3 0 2 0 2 0 2 0 3 0 2 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 0 3 0 3 0 2 3 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 2 0 3 0 3 0 2 0 3 0 2 0 3 0 2 0 3 0 2 0 2 0 3 0 ])); ...
             uint8(cumsum([1 0 1 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 2 0 1 0 1 0 2 0 1 0 1 0 2 0 1 0 1 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 2 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 2 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 1 0 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0 ])); ...
             uint8(cumsum([84 0 1 0 2 0 1 0 2 0 1 0 1 0 2 0 1 0 2 0 1 0 1 0 2 0 1 0 1 0 2 0 1 0 1 0 1 0 2 0 1 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 0 0 -1 0 0 0 -1 0 0 0 -1 0 0 0 0 -1 0 0 0 -1 0 -1 0 0 0 -1 0 0 0 -1 0 -1 0 0 0 -1 0 -1 0 0 0 -1 0 -1 0 -1 0 0 0 -1 0 -1 0 -1 0 -1 0 0 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -2 0 -1 0 -1 0 -1 0 -1 0 -1 0 -2 -1 0 -1 0 -1 0 -2 0 -1 0 -1 0 -2 0 -1 0 -2 0 -1 0 -1 0 -2 0 -1 0 -2 0 -1 0 -2 0 -1 0 -2 0 -2 0 -1 0 -2 0 -1 0 -2 0 -2 0 -1 0 -2 0 -2 0 -2 0 -1 0 -2 0 -2 0 -1 0 -2 0 -2 0 -2 0 -1 0 -2 0 -2 0 -1 0 -2 0 -2 0 -1 0 -2 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 1 0 1 0 2 0 1 0 2 0 1 0 2 0 ])); ...
@@ -453,6 +470,13 @@ classdef Cmap
                             cmap = Cmap.gat2(n_col);
                         end
                         found = true;
+                    case 'linspaced'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.linspaced();
+                        else
+                            cmap = Cmap.linspaced(n_col);
+                        end
+                        found = true;
                     case 'c51'
                         if nargin == 1 || isempty(n_col)
                             cmap = Cmap.c51();
@@ -508,6 +532,42 @@ classdef Cmap
     %% CUSTOM MAPS
     % ==================================================================================================================================================
     methods (Static)        
+        function cmap = c51(n_col, flag_smooth)
+            % c51 it's a colormap for rain precipitations
+            % the first element of the map is always black
+            % 
+            % INPUT
+            %   n_col           number of colors (default 51)
+            %   flag_smooth     flag to smooth the colormap 
+            %                   (it does a little difference for this map)
+            %
+            % SYNTAX
+            %   cmap = Cmap.c51(n_col, flag_smooth)
+            %
+            if nargin < 2 || isempty(flag_smooth)
+                flag_smooth = false;
+            end
+            source_cmap = Cmap.CMAP_51(2 : end, :);
+            source_n_col = size(source_cmap, 1);
+            method = 'linear';
+            if flag_smooth && ~((nargin < 1) || isempty(n_col) || (n_col == 51))
+                source_cmap = Cmap.smoothMap(source_cmap);
+            end
+            
+            if nargin < 1 || isempty(n_col)
+                cmap = source_cmap;
+            else
+                n_col = n_col - 1;
+                cmap = zeros(n_col, 3);
+                c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
+                for c = 1 : 3
+                    cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
+                end
+            end
+            
+            cmap = [0, 0, 0; cmap];
+        end
+        
         function cmap = gat(n_col, flag_zero_center, flag_use_white)
             % gat colormap build for enhancing  differences around zero have to be highlighted
             % 
@@ -693,6 +753,26 @@ classdef Cmap
             end
         end       
         
+        function cmap = linspaced(n_col)
+            % linearly spaced colors to maximize distance
+            %
+            % INPUT
+            %   n_col           number of colors (default 51)
+            %
+            % SYNTAX
+            %   cmap = Cmap.linspaced(n_col)
+            %
+            if nargin == 0 || isempty(n_col)
+                n_col = 256;
+            end
+            try
+                cmap = linspecer(n_col, 'sequential');
+            catch
+                fprintf('WARNING: To use linspaced colormap you need to download\n         linspacer.m from http://bit.ly/linspacer\n         switching to "jet"');
+                cmap = jet(n_col);
+            end
+        end
+        
         function cmap = gat2(n_col)
             % gat2 colormap build as a MATLAB parula buth with a greyscale conversion for printing
             % 
@@ -779,42 +859,7 @@ classdef Cmap
             % rescale cmap if smoothing makes it > 1
             cmap = max(0, cmap ./ repmat(max(1, max(cmap)), size(cmap, 1), 1));
         end
-        
-        function cmap = c51(n_col, flag_smooth)
-            % c51 it's a colormap for rain precipitations
-            % the first element of the map is always black
-            % 
-            % INPUT
-            %   n_col           number of colors (default 51)
-            %   flag_smooth     flag to smooth the colormap 
-            %                   (it does a little difference for this map)
-            %
-            % SYNTAX
-            %   cmap = Cmap.gat2(n_col)
-            %
-            if nargin < 2 || isempty(flag_smooth)
-                flag_smooth = false;
-            end
-            source_cmap = Cmap.CMAP_51(2 : end, :);
-            source_n_col = size(source_cmap, 1);
-            method = 'linear';
-            if flag_smooth && ~((nargin < 1) || isempty(n_col) || (n_col == 51))
-                source_cmap = Cmap.smoothMap(source_cmap);
-            end
-            
-            if nargin < 1 || isempty(n_col)
-                cmap = source_cmap;
-            else
-                n_col = n_col - 1;
-                cmap = zeros(n_col, 3);
-                c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
-                for c = 1 : 3
-                    cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
-                end
-            end
-            
-            cmap = [0, 0, 0; cmap];
-        end
+                
     end
     
     %% SHOW
