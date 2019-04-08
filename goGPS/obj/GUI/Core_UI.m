@@ -1456,10 +1456,9 @@ classdef Core_UI < handle
             %   Core_UI.getColor(id);
             %
             if (nargin == 2) && (color_num > 7)
-                color = linspecer(color_num, 'sequential');
-                color = color(color_id, :);
+                color = Cmap.getColor(color_id, color_num, 'linspaced');
             else
-                color = Core_UI.COLOR_ORDER(mod(color_id - 1, size(Core_UI.COLOR_ORDER, 1)) + 1, :);
+                color = Cmap.getColor(color_id, color_num);
             end
         end
         

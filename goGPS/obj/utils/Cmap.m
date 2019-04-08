@@ -49,7 +49,7 @@ classdef Cmap
     properties (Constant, Access = private)
         % Custum colormaps implemented within this library
         CUSTOM = {'c51', 'gat', 'linspaced', 'gat2'};
-        MATLAB = {'parula'};
+        MATLAB = {'parula', 'pltd'};
         
         PERCEPTUALLY_UNIFORM = {'viridis', 'plasma', 'inferno', 'magma', 'cividis'};
         SEQUENTIAL = {'Greys', 'Purple', 'Blues', 'Greens', 'Oranges', 'Reds', 'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu', 'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn'};
@@ -456,18 +456,18 @@ classdef Cmap
                 end
             else
                 switch map_name
+                    case 'c51'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.c51();
+                        else
+                            cmap = Cmap.c51(n_col, flag_smooth);
+                        end
+                        found = true;
                     case 'gat'
                         if nargin == 1 || isempty(n_col)
                             cmap = Cmap.gat(1024, false);
                         else
                             cmap = Cmap.gat(n_col, false);
-                        end
-                        found = true;
-                    case 'gat2'
-                        if nargin == 1 || isempty(n_col)
-                            cmap = Cmap.gat2();
-                        else
-                            cmap = Cmap.gat2(n_col);
                         end
                         found = true;
                     case 'linspaced'
@@ -477,11 +477,18 @@ classdef Cmap
                             cmap = Cmap.linspaced(n_col);
                         end
                         found = true;
-                    case 'c51'
+                    case 'gat2'
                         if nargin == 1 || isempty(n_col)
-                            cmap = Cmap.c51();
+                            cmap = Cmap.gat2();
                         else
-                            cmap = Cmap.c51(n_col, flag_smooth);
+                            cmap = Cmap.gat2(n_col);
+                        end
+                        found = true;
+                    case 'pltd'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.pltd();
+                        else
+                            cmap = Cmap.pltd(n_col);
                         end
                         found = true;
                     case 'parula'
@@ -532,13 +539,43 @@ classdef Cmap
     %% CUSTOM MAPS
     % ==================================================================================================================================================
     methods (Static)        
+        function cmap = pltd(n_col)
+            % plot default MATLAB sequence (7 colors)
+            % 
+            % INPUT
+            %   n_col           number of colors (default 7)
+            %
+            % SYNTAX
+            %   cmap = Cmap.pltd(n_col)
+            %
+
+            source_cmap = Cmap.COLOR_ORDER;
+            source_n_col = size(source_cmap, 1);
+            method = 'linear';
+            
+            if nargin < 1 || isempty(n_col)
+                cmap = source_cmap;
+            else
+                if n_col <= source_n_col
+                    % do not interpolate, just extract
+                    cmap = source_cmap(1 : n_col, :);
+                else
+                    cmap = zeros(n_col, 3);
+                    c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
+                    for c = 1 : 3
+                        cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
+                    end
+                end
+            end            
+        end
+
         function cmap = c51(n_col, flag_smooth)
             % c51 it's a colormap for rain precipitations
             % the first element of the map is always black
-            % 
+            %
             % INPUT
             %   n_col           number of colors (default 51)
-            %   flag_smooth     flag to smooth the colormap 
+            %   flag_smooth     flag to smooth the colormap
             %                   (it does a little difference for this map)
             %
             % SYNTAX
@@ -567,7 +604,7 @@ classdef Cmap
             
             cmap = [0, 0, 0; cmap];
         end
-        
+
         function cmap = gat(n_col, flag_zero_center, flag_use_white)
             % gat colormap build for enhancing  differences around zero have to be highlighted
             % 
