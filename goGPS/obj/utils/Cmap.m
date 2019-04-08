@@ -1173,7 +1173,13 @@ classdef Cmap
                 x_out = x_in;
             end
             
-            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+            if (min(size(y_in)) == 1)
+                n = 1;
+            else
+                n = size(y_in, 2);
+            end
+            
+            for c = 1 : n
                 if size(y_in, 1) == 1
                     y_tmp = y_in';
                 else
