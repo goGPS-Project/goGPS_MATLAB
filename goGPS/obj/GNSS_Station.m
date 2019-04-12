@@ -2873,15 +2873,26 @@ classdef GNSS_Station < handle
                 if ~sta_list(r).out.isEmpty
                 xyz_diff = sta_list(r).out.xyz - sta_list(r).out.getIGSXYZ;
                 enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ,xyz_diff);
+                sensor= enu_diff - repmat(median(enu_diff,'omitnan'),size(enu_diff,1),1);
+                out_idx = sum((abs(sensor) > 0.05),2) >0;
+                enu_diff(out_idx,:) =[];
                 east_stat(r,:) = [mean(enu_diff(:,1),'omitnan'),perc(abs(enu_diff(:,1) - mean(enu_diff(:,1),'omitnan')),0.95)]*1e3;
                 north_stat(r,:) = [mean(enu_diff(:,2),'omitnan'),perc(abs(enu_diff(:,2) - mean(enu_diff(:,2),'omitnan')),0.95)]*1e3;
                 up_stat(r,:) = [mean(enu_diff(:,3),'omitnan'),perc(abs(enu_diff(:,3) - mean(enu_diff(:,3),'omitnan')),0.95)]*1e3;
-                [ztd_diff, gn_diff, ge_diff] =  sta_list(r).out.getIGSTropo('difference');
+                [ztd_diff, gn_diff, ge_diff] =  sta_list(r).out.getIGSTropo('value');
+                ztd_diff = ztd_diff - sta_list(r).out.ztd;               
+                gn_diff = gn_diff - sta_list(r).out.tgn;
+                ge_diff = ge_diff - sta_list(r).out.tge;
+                out_idx = abs(ztd_diff) >0.05 | abs(gn_diff) >0.01 | abs(ge_diff) > 0.01;
+                ztd_diff(out_idx) = [];
+                gn_diff(out_idx) = [];
+                ge_diff(out_idx) = [];
                 ztd_stat(r,:) = [mean(ztd_diff,'omitnan'),perc(abs(ztd_diff - mean(ztd_diff,'omitnan')),0.95)]*1e3;
                 gn_stat(r,:) = [mean(gn_diff,'omitnan'),perc(abs(gn_diff - mean(gn_diff,'omitnan')),0.95)]*1e3;
                 ge_stat(r,:) = [mean(ge_diff,'omitnan'),perc(abs(ge_diff - mean(ge_diff,'omitnan')),0.95)]*1e3;
                 end
                 sta_names{end+1} = lower(sta_list(r).getMarkerName4Ch);
+                r
             end
             % sort by bet on the east axis
             %[~,idx] = sort(abs(east_stat(:,1)));
@@ -2895,8 +2906,8 @@ classdef GNSS_Station < handle
             sta_names = sta_names(idx);
             
             figure;
-            subplot(3,1,1)
-            errorbar(1:n_rec,east_stat(:,1),2.5*east_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(1,6))
+            subplot(6,1,1)
+            errorbar(1:n_rec,east_stat(:,1),east_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(1,6))
             ylabel('[mm]')
             title('East')
             ax = gca;
@@ -2908,8 +2919,8 @@ classdef GNSS_Station < handle
             set(gca,'fontweight','bold','fontsize',12)
             setAllLinesWidth(1.3)
             
-            subplot(3,1,2)
-            errorbar(1:n_rec,north_stat(:,1),2.5*north_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(2,6))
+            subplot(6,1,2)
+            errorbar(1:n_rec,north_stat(:,1),north_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(2,6))
             ax = gca;
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
@@ -2920,53 +2931,55 @@ classdef GNSS_Station < handle
             set(gca,'fontweight','bold','fontsize',12)
             title('North')
             
-            subplot(3,1,3)
-            errorbar(1:n_rec,up_stat(:,1),2.5*up_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(3,6))
+            subplot(6,1,3)
+            errorbar(1:n_rec,up_stat(:,1),up_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(3,6))
             ax = gca;
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
             ylim([-50 50]);
             set(gca, 'YTick', [-50 -20 0 20 50])
-            set(gca, 'XTick', [1:28])
-            set(gca, 'XTickLabels', sta_names)
+            %set(gca, 'XTick', [1:28])
+            set(gca, 'XTickLabels', {})
             ylabel('[mm]')
             title('Up')
             set(gca, 'XTickLabelRotation', 45)
             set(gca,'fontweight','bold','fontsize',12)
-            
-            
-            
-            
-            figure
-            subplot(3,1,1)
-            errorbar(1:n_rec,ztd_stat(:,1),2.5*ztd_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(4,6))
+
+            subplot(6,1,4)
+            errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(4,6))
             ylabel('[mm]')
             set(gca, 'XTickLabels', {})
-            ylim([-50 50])
+            ylim([-25 25])
+                        ax = gca;
+
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-50 -20 0 20 50])
+            set(gca, 'YTick', [-25 -10 0 10 25])
             set(gca,'fontweight','bold','fontsize',12)
             title('ZTD')
             
-            subplot(3,1,2)
-            errorbar(1:n_rec,gn_stat(:,1),2.5*gn_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(5,6))
+            subplot(6,1,5)
+            errorbar(1:n_rec,gn_stat(:,1),gn_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(5,6))
             ylabel('[mm]')
             set(gca, 'XTickLabels', {})
-            ylim([-12 12])
+            ylim([-4 4])
+                        ax = gca;
+
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-10 -3 0 3 10])
+            set(gca, 'YTick', [-4 -1 0 1 4])
             set(gca,'fontweight','bold','fontsize',12)
             title('North gradient')
             
-            subplot(3,1,3)
-            errorbar(1:n_rec,ge_stat(:,1),2.5*ge_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(6,6))
+            subplot(6,1,6)
+            errorbar(1:n_rec,ge_stat(:,1),ge_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(6,6))
             ylabel('[mm]')
-             ylim([-12 12])
+            ylim([-4 4])
+            ax = gca;
+
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-10 -3 0 3 10])
+            set(gca, 'YTick', [-4 -1 0 1 4])
             set(gca, 'XTickLabels', {})
             title('East gradient')
             set(gca, 'XTick', [1:28])
