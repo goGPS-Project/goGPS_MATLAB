@@ -6897,7 +6897,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sat_idx = this.sat.avail_index(:, s);
                         el = this.sat.el(sat_idx, s);
                         az = this.sat.az(sat_idx, s);
-                        neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                        enu_los = [sind(az).*cosd(el) cosd(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
                         if sum(obs_idx) > 0 && (this.pcv.n_frequency > 0)
