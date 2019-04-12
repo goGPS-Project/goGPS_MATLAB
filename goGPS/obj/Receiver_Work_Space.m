@@ -6897,7 +6897,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sat_idx = this.sat.avail_index(:, s);
                         el = this.sat.el(sat_idx, s);
                         az = this.sat.az(sat_idx, s);
-                        neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                        enu_los = [sind(az).*cosd(el) cosd(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
                         if sum(obs_idx) > 0 && (this.pcv.n_frequency > 0)
@@ -6910,7 +6910,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 [pco, pco_idx] = this.getPCO(f,sys(1));
                                 if ~isempty(pco)
                                     
-                                    pco_delays = neu_los * (pco + [fliplr(this.parent.ant_delta_en) this.parent.ant_delta_h]');
+                                    pco_delays = enu_los * (pco + [this.parent.ant_delta_en this.parent.ant_delta_h]');
                                     pcv_delays = pco_delays - this.getPCV(pco_idx, el, az);
                                     for o = find(obs_idx_f)'
                                         pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~= 0; % find which correction to apply
