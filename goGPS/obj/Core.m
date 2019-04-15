@@ -446,7 +446,7 @@ classdef Core < handle
                 core.state = Main_Settings();
             end
             if nargin == 1 && ~isempty(ini_settings_file)
-                this.state.importIniFile(ini_settings_file);
+                core.state.importIniFile(ini_settings_file);
             end
             % Return the handler to the object containing the current settings
             state = handle(core.state);
