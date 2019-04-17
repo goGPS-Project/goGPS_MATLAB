@@ -5178,7 +5178,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function updateTOT(this, obs, go_id)
+        function updateTOT(this, obs, go_id, apply_dt)
             % SYNTAX
             %   this.updateTOT(time_rx, dt);
             %
@@ -5193,10 +5193,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             %              ^                 ^                    ^
             %
             %         (sat speed) (earth rot at sat orbit) (speed of light)
+            if nargin < 4
+                apply_dt = true;
+            end
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            if isempty(this.dt_ip) || ~any(this.dt_ip)
+            if ~this.isPreProcessed() && apply_dt% this has to be done beacuse dt from phase measurement might be off of an intger number of ambiguities and thus be completely not representative of the actual time offset
                 this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Core_Utils.V_LIGHT - this.dt(:, 1));  %<---- check dt with all the new dts field
             else
                 this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Core_Utils.V_LIGHT);  %<---- check dt with all the new dts field
@@ -5213,11 +5216,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if nargin == 1 % obs based
                     c_obs = this.obs(sat_idx,:);
                     c_l_obs = colFirstNonZero(c_obs); % all best obs one each line %% CONSIDER USING ONLY 1 FREQUENCY FOR mm CONSISTENCY
+                    this.updateTOT(c_l_obs, i); % update time of travel
+
                 elseif synt_based % use the synteetc observation to get Time of flight
                     c_l_obs = this.getSyntObs(i);
+                    this.updateTOT(c_l_obs, i, false); % update time of travel
+
                 end
                 %update time of flight times
-                this.updateTOT(c_l_obs, i); % update time of travel
             end
         end
         
