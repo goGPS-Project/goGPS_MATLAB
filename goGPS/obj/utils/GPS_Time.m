@@ -1889,7 +1889,7 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   this = GPS_Time.fromWeekSow(week, sow)
-            this = GPS_Time.fromWeekDow(week, (dow) / 86400);
+            this = GPS_Time.fromWeekDow(week, (sow) / 86400);
         end
         
         function this = fromDoySod(year, doy, sod)
