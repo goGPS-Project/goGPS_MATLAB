@@ -2265,7 +2265,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);
@@ -2321,8 +2321,16 @@ classdef GNSS_Station < handle
                     sub_plot_nsat = false;
                 end
                 
+                nsat_is_empty = false;
                 tmp = sta_list.getNumSat; 
-                sub_plot_nsat = sub_plot_nsat && any([tmp{:}]);
+                if iscell(tmp)
+                    for i = 1 : numel(tmp)
+                        nsat_is_empty = nsat_is_empty || ~any(tmp{i});
+                    end
+                else
+                    nsat_is_empty = ~any(tmp);
+                end
+                sub_plot_nsat = sub_plot_nsat && ~nsat_is_empty;
                 
                 if isempty(tropo)
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
