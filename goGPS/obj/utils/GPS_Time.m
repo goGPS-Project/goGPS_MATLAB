@@ -136,42 +136,47 @@ classdef GPS_Time < Exportable & handle
                is_gps = true;
             end
             % str = regexprep(string_time(:)','[^0-9.]',' '); % sanityse string -> most of the time is not needed (consider to put it externally)
-            str = string_time(:)';
-            date = sscanf(str,'%f%f%f%f%f%f')';
-            
-            if numel(date) <= 3
-                % fallback to datevec
-                date_format = 'yyyy mm dd';
-                date = datevec(string_time, date_format);
-                if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
-                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
-                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
-                end
-                if (date(1) < 1980) || (date(1) > 2070)
-                    % fallback to datenum
-                    this.GPS_Time_mat(datenummx(date), is_gps);
-                else
-                    this.GPS_Time_6col(date, is_gps);
-                end
+            if isempty(strtrim(string_time(:)))
+                % no time = > empty GPS_Time
             else
-                date_format = 'yyyy mm dd HH MM SS';
-                try
-                    tmp = reshape(date, 6, numel(date) / 6)';
-                    date = tmp;
-                catch
+                str = string_time(:)';
+                date = sscanf(str,'%f%f%f%f%f%f')';
+                
+                
+                if numel(date) <= 3
+                    % fallback to datevec
+                    date_format = 'yyyy mm dd';
                     date = datevec(string_time, date_format);
-                end
-                if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
-                    date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
-                    date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
-                    this.GPS_Time_6col(date, is_gps);
-                else
+                    if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
+                        date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                        date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                    end
                     if (date(1) < 1980) || (date(1) > 2070)
                         % fallback to datenum
                         this.GPS_Time_mat(datenummx(date), is_gps);
                     else
                         this.GPS_Time_6col(date, is_gps);
-                    end                    
+                    end
+                else
+                    date_format = 'yyyy mm dd HH MM SS';
+                    try
+                        tmp = reshape(date, 6, numel(date) / 6)';
+                        date = tmp;
+                    catch
+                        date = datevec(string_time, date_format);
+                    end
+                    if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
+                        date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+                        date(date(:,1) < 100, 1) = date(date(:,1) < 100, 1) + 1900;
+                        this.GPS_Time_6col(date, is_gps);
+                    else
+                        if (date(1) < 1980) || (date(1) > 2070)
+                            % fallback to datenum
+                            this.GPS_Time_mat(datenummx(date), is_gps);
+                        else
+                            this.GPS_Time_6col(date, is_gps);
+                        end
+                    end
                 end
             end
         end
@@ -1057,15 +1062,19 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   [mat_time] = getMatlabTime(this)
-            switch this.time_type
-                case 0 % I'm already in MAT TIME
-                    mat_time = this.mat_time;
-                case 1 % I'm in UNIX TIME
-                    % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
-                    mat_time = ((double(this.unix_time) + this.unix_time_f) / 86400 + 719529);
-                case 2 % I'm in REF TIME
-                    mat_time = this.time_ref + this.time_diff / 86400;
+            mat_time = [];
+            for t = 1 : size(this(:),1)
+                switch this(t).time_type
+                    case 0 % I'm already in MAT TIME
+                        mat_time_tmp = this(t).mat_time;
+                    case 1 % I'm in UNIX TIME
+                        % constants in matlab are slower than copied values :-( switching to values
+                        % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
+                        mat_time_tmp = ((double(this(t).unix_time) + this(t).unix_time_f) / 86400 + 719529);
+                    case 2 % I'm in REF TIME
+                        mat_time_tmp = this(t).time_ref + this(t).time_diff / 86400;
+                end
+                mat_time = [mat_time; mat_time_tmp]; %#ok<AGROW>
             end
         end
         
