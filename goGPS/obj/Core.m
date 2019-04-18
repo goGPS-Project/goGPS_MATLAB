@@ -329,7 +329,7 @@ classdef Core < handle
             atmo = core.atmo;
             if isempty(atmo)
                 atmo = Atmosphere();
-                core.mn = atmo;
+                core.atmo = atmo;
             end            
         end
         
