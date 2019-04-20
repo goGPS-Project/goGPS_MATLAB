@@ -6887,6 +6887,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 XR_sat = - this.getXSLoc();
                 
                 % Receiver PCV correction
+                this.obs = this.obs';  % Transpose for speed-up
                 if ~isempty(this.ant) && this.state.isRecPCV()
                     f_code_cache = []; % save f_code checked to print only one time the warning message
                     pco_cache = {}; % PCO cache
@@ -6930,12 +6931,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
                                     pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
                                     for o = find(obs_idx_f)'
-                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~= 0; % find which correction to apply
-                                        o_idx = this.obs(o, :) ~= 0; % find where apply corrections
+                                        pcv_idx = this.obs(this.sat.avail_index(:, s), o) ~= 0; % find which correction to apply
+                                        o_idx = this.obs(:, o) ~= 0; % find where apply corrections
                                         if  this.obs_code(o, 1) == 'L'
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o);
+                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
                                         else
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
+                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
                                         end
                                     end
                                 end
@@ -6978,13 +6979,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                                
                                 obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                                 for o = find(obs_idx_f)'
-                                    pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
+                                    pcv_idx = this.obs(az_idx, o) ~= 0; %find which correction to apply
                                     if sum(pcv_idx) > 0
-                                        o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
+                                        o_idx = this.obs(:, o) ~=0 & az_idx; %find where apply corrections
                                         if  this.obs_code(o,1) == 'L'
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus
+                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o); % is it a plus
                                         else
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
+                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
                                         end
                                     end
                                 end
@@ -6993,7 +6994,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                 end
-           end
+            end
+            this.obs = this.obs'; % Transpose for speed-up
+
         end
                 
         function [pco, f_id] = getPCO(this, f_code)
