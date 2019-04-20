@@ -38,6 +38,7 @@ classdef Core_Sky < handle
         
         coord                  % Ephemerides [times x num_sat x 3]
         coord_type             % 0: Center of Mass 1: Antenna Phase Center
+        poly_type              % 0: Center of Mass 1: Antenna Phase Center
         clock                  % clocks of ephemerides [times x num_sat]
         
         coord_rate = 900;
@@ -71,11 +72,11 @@ classdef Core_Sky < handle
         %    SABS    -> Iono free linear combination
         group_delays_times           % 77x1 GPS_Time
         
-        ant_pco               % satellites antenna phase center offset
-        ant_pcv               % satellites antenna phase center variations
+        ant_pco1              % satellites antenna phase center offset for the first frequency (used in toCOM toAPC)
         
         avail                 % availability flag
-        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
+        coord_pol_coeff_apc   % coefficient of the polynomial interpolation for coordinates of the approximate antenna phase center  [11, 3, num_sat, num_coeff_sets]
+        coord_pol_coeff_com   % coefficient of the polynomial interpolation for coordinates of the center of mass [11, 3, num_sat, num_coeff_sets]
         
         wsb                   % widelane satellite biases (only cnes orbits)
         wsb_date              % widelane satellite biases time
@@ -90,7 +91,7 @@ classdef Core_Sky < handle
         function this = Core_Sky(force_clean)
             % Core object creator
             this.cc = Core.getCurrentSettings().getConstellationCollector;
-            this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
+            this.ant_pco1 = zeros(1, this.cc.getNumSat(), 3);
             if nargin == 1 && force_clean
                 this.clearOrbit();
             end
@@ -143,8 +144,9 @@ classdef Core_Sky < handle
                     this.clearOrbit(to_clear_date);
                 end
                 
+                this.poly_type = this.coord_type;
                 if  instr(lower(eph_f_name{1}), '.sp3') || instr(lower(eph_f_name{1}), '.eph') || instr(lower(eph_f_name{1}), '.pre') % assuming all files have the same extensions
-                    this.toCOM();
+                    this.toCOM(); % be sure to be in COM before adding new coordinates
                     this.clearPolyCoeff();
                     this.clearSunMoon();
                     Core.getLogger.addMarkedMessage('Importing ephemerides...');
@@ -156,15 +158,19 @@ classdef Core_Sky < handle
                             this.addSp3(eph_f_name{i}, clock_in_eph);
                         end
                         this.coord_type = 0; % center of mass
+                        this.poly_type = 0; % center of mass
                     end
                 else %% if not sp3 assume is a rinex navigational file
-                    this.toAPC();
+                    this.toAPC(); % be sure to be in APC before adding new coordinates
                     this.clearPolyCoeff();
                     this.clearSunMoon();
                     Core.getLogger.addMarkedMessage('Importing broadcast ephemerides...');
                     this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
                     this.coord_type = 1; % antenna phase center
+                    this.poly_type = 1;  % antenna phase center
                 end
+                Core.getLogger.addMarkedMessage('Precomputing satellite polynomial coefficients...');
+                this.computeSatPolyCoeff();
                 
                 if Core.getState.isIonoKlobuchar
                     f_name = Core.getState.getIonoFileName(start_date, stop_date);
@@ -182,14 +188,6 @@ classdef Core_Sky < handle
                         end
                         
                     end
-                end
-                
-                % load PCV
-                Core.getLogger.addMarkedMessage('Loading antennas phase center variations');
-                this.loadAntPCV(Core.getState.getAtxFile);
-                % pass to antenna phase center if necessary
-                if this.coord_type == 0
-                    this.toAPC();
                 end
                 
                 % load erp
@@ -224,7 +222,8 @@ classdef Core_Sky < handle
                     n_ep = min(floor((gps_date - this.time_ref_coord)/this.coord_rate), size(this.coord,1));
                     this.coord(1:n_ep,:,:)=[];
                     this.time_ref_coord.addSeconds(n_ep*this.coord_rate);
-                    this.coord_pol_coeff = []; %!!! the coefficient have to been recomputed
+                    this.coord_pol_coeff_apc = []; %!!! the coefficient have to been recomputed
+                    this.coord_pol_coeff_com = []; %!!! the coefficient have to been recomputed
                     
                     % deleate also sun e moon data
                     if not(isempty(this.X_sun))
@@ -240,7 +239,8 @@ classdef Core_Sky < handle
             else
                 this.coord=[];
                 this.time_ref_coord = [];
-                this.coord_pol_coeff = [];
+                this.coord_pol_coeff_apc = [];
+                this.coord_pol_coeff_com = [];
             end
         end
         
@@ -283,7 +283,8 @@ classdef Core_Sky < handle
         
         function clearPolyCoeff(this)
             % DESCRIPTION : clear the precomupetd poly coefficent
-            this.coord_pol_coeff = [];
+            this.coord_pol_coeff_apc = [];
+            this.coord_pol_coeff_com = [];
             this.sun_pol_coeff = [];
             this.moon_pol_coeff = [];
         end
@@ -382,18 +383,20 @@ classdef Core_Sky < handle
             thr = 4.9*pi/180*ones(time.length,size(this.coord,2)); % if we do not know put a conservative value
             
             shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < (GPS_SS.ELL_A + 200000); % 200 Km buffer to be on the safe side
+            atx = Core.getAntennaManager();
+            sat_type = atx.getSatAntennaType(this.cc.getAntennaId, time.getCentralTime);
             if this.cc.isGpsActive
-                for i = 1:32 % only gps implemented
-                    sat_type = this.ant_pcv(i).sat_type;
-                    
-                    if (~isempty(strfind(sat_type,'BLOCK IIA')))
-                        thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
-                    elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
-                        thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-                        %shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
-                    elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
-                        thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
-                        %shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                for i = 1 : size(sat_type, 1) % only gps implemented
+                    if length(sat_type{i}) > 8
+                        if (strcmp(sat_type{i}(1:9),'BLOCK IIA'))
+                            thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+                        elseif (strcmp(sat_type{i}(1:9),'BLOCK IIR'))
+                            thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+                            % shadowCrossing(:,i) = false;  % shadow crossing affects only BLOCK IIA satellites in gps
+                        elseif (strcmp(sat_type{i}(1:9),'BLOCK IIF'))
+                            thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+                            % shadowCrossing(:,i) = false;  % shadow crossing affects only BLOCK IIA satellites in gps
+                        end
                     end
                 end
             end
@@ -1312,62 +1315,40 @@ classdef Core_Sky < handle
             end
         end
         
-        function toCOM(this)
+        function toCOM(this, force)
             %DESCRIPTION : convert coord to center of mass
             if ~isempty(this.coord)
-                if this.coord_type == 0
-                    return %already ceneter of amss
+                if isempty(this.coord_pol_coeff_apc)
+                    this.computeSatPolyCoeff();
                 end
-                Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to center of mass');
-                this.COMtoAPC(-1);
-                if isempty(this.coord_pol_coeff)
-                    this.computeSatPolyCoeff(10, 11);
+                if isempty(this.coord_pol_coeff_com)
+                    if this.coord_type == 1 % is APC
+                        Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to center of mass');
+                        this.COMtoAPC(-1);
+                        this.coord_type = 0;
+                    end
+                    this.computeSatPolyCoeff();
                 end
-                this.coord_type = 0;
+                this.poly_type = 0;
             end
         end
         
-        function coord = getCOM(this)
-            if this.coord_type == 0
-                coord = this.coord; %already ceneter of amss
-            else
-                [i, j, k] = this.getSatFixFrame(this.getCoordTime());
-                sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
-                sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
-                sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-                coord = this.coord - cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
-                    , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                    , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
-            end
-        end
-        
-        function toAPC(this)
+        function toAPC(this, force)
             %DESCRIPTION : convert coord to center of antenna phase center
             if ~isempty(this.coord)
-                if this.coord_type == 1
-                    return %already antennna phase center
+                if isempty(this.coord_pol_coeff_com)
+                    this.computeSatPolyCoeff();
                 end
-                Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
-                this.COMtoAPC(1);
-                if isempty(this.coord_pol_coeff)
-                    this.computeSatPolyCoeff(10, 11);
+                if isempty(this.coord_pol_coeff_apc)
+                    if this.coord_type == 0
+                        Core.getLogger.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
+                        this.COMtoAPC(1);
+                        this.coord_type = 1;
+                    end
+                    this.computeSatPolyCoeff();
                 end
-                this.coord_type = 1;
+                this.poly_type = 1;
             end
-        end
-        
-        function coord = getAPC(this)
-            if this.coord_type == 1
-                coord = this.coord; %already antennna phase center
-            end
-            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
-            sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
-            sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
-            sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-            coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
-            
         end
         
         function [wsb] = getWSB(this,time)
@@ -1384,128 +1365,41 @@ classdef Core_Sky < handle
         end
         
         function COMtoAPC(this, direction)
+            if isempty(this.ant_pco1) || ~any(this.ant_pco1(:))
+                % load PCV
+                Core.getLogger.addMarkedMessage('Loading antennas phase center offset');
+                %this.loadAntPCO();
+            end
             [i, j, k] = this.getSatFixFrame(this.getCoordTime());
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
             sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
             sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco, size(this.coord,1), 1, 1) .* sx , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
+            % This is an approximation pco are different for various frequencies, in this way we move to the antenna center of L1!
+            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco1, size(this.coord,1), 1, 1) .* sx , 3) ...
+                , sum(repmat(this.ant_pco1,size(this.coord,1),1,1) .* sy , 3) ...
+                , sum(repmat(this.ant_pco1,size(this.coord,1),1,1) .* sz , 3));
         end
-        
-        function pcv_delay = getPCV(this, band, ant_id, el, az)
-            % DESCRIPTION: get the pcv correction for a given satellite and a given
-            % azimuth and elevations using linear or bilinear interpolation
-            
-            pcv_delay = zeros(size(el));
-            
-            ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
-            
-            ant_idx = sum(ant_names == repmat(ant_id,size(ant_names,1),1),2) == 3;
-            sat_pcv = this.ant_pcv(ant_idx);
-            
-            freq = find(this.cc.getSys(ant_id(:,1)).CODE_RIN3_2BAND == num2str(band));
-            if ~isempty(freq)
-                freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
-            end
-            
-            if isempty(freq)
-                Core.getLogger.addWarning(sprintf('No PCV model for %s frequency',[ant_id(:,1) band]),100);
-                return
-            end
-            if this.coord_type == 0
+                
+        function pcv_delay = getPCV(this, ant, f_code, el, az)
+            % Get the pcv correction for a given satellite antenna
+            %
+            % INPUT
+            %   ant     Antenna object relative to the satellite
+            %   f_code  frequency code for the PCV to extract
+            %   el      elevation [deg]
+            %   az      azimuth [deg]
+            if this.poly_type == 0
                 % if coordinates refers to center of mass apply also pco
-                sat_pco = permute(this.ant_pco(:,ant_idx,:),[ 3 1 2]);
+                sat_pco = ant.getPCO(f_code) * 1e-3;
                 neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                 pco_delay = neu_los*sat_pco;
             else
                 pco_delay = zeros(size(el));
             end
-            %tranform el in zen
-            zen = 90 - el;
-            % get el idx
-            zen_pcv = sat_pcv.tablePCV_zen;                
-            min_zen = zen_pcv(1);
-            max_zen = zen_pcv(end);
-            d_zen = (max_zen - min_zen)/(length(zen_pcv) - 1);
-            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) % no azimuth change (satellites)
-                pcv_val = sat_pcv.tableNOAZI(:,:,freq); % extract the right frequency
-                
-                % Use polynomial interpolation to smooth PCV
-                pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,numel(pcv_val)), zen);
-                pcv_delay = pco_delay - pcv_val;
-            else                
-                % find azimuth indexes
-                az_pcv = sat_pcv.tablePCV_azi;
-                                             
-                method = 'polyLS';
-                switch method
-                    case 'polyLS'
-                        % Polynomial interpolation in elevation and griddedInterpolant in az
-                        % filter PCV values in elevetion - slower
-                        %%
-                        pcv_val = sat_pcv.tablePCV(:,:,freq)'; % extract the right frequency
-                        step = 1;
-                        zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen);
-                        
-                        % Interpolate with a 7th degree polinomial in elevation
-                        pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,size(pcv_val, 1)), zen_interp);
-                        
-                        n_az = size(pcv_val, 2);
-                        b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                        b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                        % replicate border for azimuth periodicity
-                        pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                        az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                        
-                        % Using scattered interpolant for azimuth to have a smooth interpolation
-                        [zen_m, az_m] = ndgrid(zen_interp, az_val);
-                        fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                        pcv_delay = fun(zen, mod(az, 360));
-                    case 'minterp'
-                        %% Interpolation with griddedInterpolant
-                        % linear interpolation - faster
-                        pcv_val = sat_pcv.tablePCV(:,:,freq)'; % extract the right frequency
-                        
-                        n_az = size(pcv_val, 2);
-                        b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                        b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                        % replicate border for azimuth periodicity
-                        pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                        az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                        
-                        % Using scattered interpolant for azimuth to have a smooth interpolation
-                        [zen_m, az_m] = ndgrid(zen_pcv', az_val);
-                        fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                        pcv_delay = fun(zen, mod(az, 360));
-                    case 'lin'                        
-                        % linear interpolation between consecutive values
-                        % bad performance
-                        %%
-                        min_az = az_pcv(1);
-                        max_az = az_pcv(end);
-                        d_az = (max_az - min_az)/(length(az_pcv)-1);
-                        az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                        d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1);
-
-                        zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
-                        d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
-                        pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency
-                        
-                        %interpolate along zenital angle
-                        idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
-                        idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
-                        pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                        idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
-                        idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
-                        pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                        %interpolate alogn azimtuh
-                        pcv_delay = (1 - d_f_r_az) .* pcv_delay_lf + (d_f_r_az) .* pcv_delay1_rg;
-                end
-                pcv_delay = pco_delay - pcv_delay;
-            end
+            pcv_delay = ant.getPCV(f_code, el, az) * 1e-3;            
+            pcv_delay = pco_delay - pcv_delay;
         end
-        
+
         function [dts] = clockInterpolate(this, time, sat_in)
             % SYNTAX:
             %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
@@ -1604,7 +1498,7 @@ classdef Core_Sky < handle
             end
             n_coeff_set = size(this.coord, 1) - n_obs + 1; %86400/this.coord_rate+1;
             n_sat = size(this.coord, 2);
-            this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
+            coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
             % There is an equivalent implementation but a lot faster => see below
             % Keep these lines as a reference because results are slightly different (numerical differences)
             %for s = 1 : n_sat
@@ -1621,13 +1515,19 @@ classdef Core_Sky < handle
             a_size = size(A);
             inv_A = inv(A);
             for i = 1 : n_coeff_set
-                this.coord_pol_coeff(: , :, :, i) = reshape(inv_A * reshape(tmp_coord(i : i + n_obs - 1, :, :), a_size(1), c_size(2) * c_size(3)), a_size(1), c_size(2), c_size(3));
+                coord_pol_coeff(: , :, :, i) = reshape(inv_A * reshape(tmp_coord(i : i + n_obs - 1, :, :), a_size(1), c_size(2) * c_size(3)), a_size(1), c_size(2), c_size(3));
+            end
+            
+            if this.coord_type == 1 % APC
+                this.coord_pol_coeff_apc = coord_pol_coeff;
+            else % COM
+                this.coord_pol_coeff_com = coord_pol_coeff;
             end
         end
         
         function computeSat11PolyCoeff(this)
             % SYNTAX:
-            %   this.computeSatPolyCoeff();
+            %   this.computeSat11PolyCoeff();
             %
             % INPUT:
             %
@@ -1644,13 +1544,19 @@ classdef Core_Sky < handle
             end
             n_coeff_set = size(this.coord, 1) - 10; %86400/this.coord_rate+1;
             n_sat = size(this.coord, 2);
-            this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
+            coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
             for s = 1 : n_sat
                 for i = 1 : n_coeff_set
                     for j = 1 : 3
-                        this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + 10, s, j));
+                        coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + 10, s, j));
                     end
                 end
+            end
+            
+            if this.coord_type == 1 % APC
+                this.coord_pol_coeff_apc = coord_pol_coeff;
+            else % COM
+                this.coord_pol_coeff_com = coord_pol_coeff;
             end
         end
         
@@ -1682,16 +1588,46 @@ classdef Core_Sky < handle
             end
         end
         
+        function [coord_pol_coeff, flag_update] = getPolyCoeff(this)
+            % Get polynomial coefficients of the orbits
+            %
+            % SYNTAX
+            %   [coord_pol_coeff, flag_update] = this.getPolyCoeff()
+            flag_update = false;
+            
+            if this.poly_type == 1 % APC
+                if isempty(this.coord_pol_coeff_apc)
+                    flag_update = true;
+                    if this.coord_type == 0 % COM
+                        this.toAPC
+                    else
+                        this.computeSatPolyCoeff();
+                    end
+                end
+                coord_pol_coeff = this.coord_pol_coeff_apc;
+            else % COM
+                if isempty(this.coord_pol_coeff_com)
+                    flag_update = true;
+                    if this.coord_type == 1 % APC
+                        this.toCOM
+                    else
+                        this.computeSatPolyCoeff();
+                    end
+                end
+                coord_pol_coeff = this.coord_pol_coeff_com;
+            end
+        end
+        
         function [X_sat, V_sat] = coordInterpolate(this, t, sat)
-            % SYNTAX:
-            %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
+            % Interpolate coordinates of staellites
             %
             % INPUT:
             %    t = vector of times where to interpolate
             %    sat = satellite to be interpolated (optional)
-            % OUTPUT:
             %
-            % DESCRIPTION: interpolate coordinates of staellites
+            % SYNTAX:
+            %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
+            
             if isempty(this.time_ref_coord)
                 Core.getLogger.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave/nTrying to load needed data')
                 this.initSession(t.first(), t.last())
@@ -1703,30 +1639,24 @@ classdef Core_Sky < handle
                 sat_idx = sat;
             end
             
-            poly_order = 10;
-            n_poly_obs = poly_order + 1;
-            
-            if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff(poly_order, n_poly_obs);
-            end
-            
             n_sat = length(sat_idx);
-            poly_order = size(this.coord_pol_coeff,1) - 1;
-            n_border = ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2);
+            poly = this.getPolyCoeff;
+            poly_order = size(poly,1) - 1;
+            n_border = ((size(this.coord, 1) - size(poly, 4)) / 2);
             
             % Find the polynomial id at the interpolation time
             pid_floor = floor((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
             pid_floor(pid_floor < 1) = 1;
-            pid_floor(pid_floor > size(this.coord_pol_coeff, 4)) = size(this.coord_pol_coeff, 4);
+            pid_floor(pid_floor > size(this.getPolyCoeff, 4)) = size(this.getPolyCoeff, 4);
             pid_ceil = ceil((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
             pid_ceil(pid_ceil < 1) = 1;
-            pid_ceil(pid_ceil > size(this.coord_pol_coeff, 4)) = size(this.coord_pol_coeff, 4);
+            pid_ceil(pid_ceil > size(this.getPolyCoeff, 4)) = size(this.getPolyCoeff, 4);
             
             c_times = this.getCoordTime();
             c_times = c_times - this.time_ref_coord;
             t_diff = t - this.time_ref_coord;
             
-            poly = permute(this.coord_pol_coeff(:,:,sat_idx, :),[1 3 2 4]);
+            poly = permute(poly(:,:,sat_idx, :),[1 3 2 4]);
             
             W_poly = zeros(t.length, 1);
             w = zeros(t.length, 1);
@@ -1781,17 +1711,14 @@ classdef Core_Sky < handle
                 sat_idx = sat;
             end
             
-            if isempty(this.coord_pol_coeff)
-                this.computeSat11PolyCoeff();
-            end
             n_sat = length(sat_idx);
             nt = t.length();
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
-            
-            c_idx = round((t - this.time_ref_coord) / this.coord_rate) + 1 - ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2);
+            poly = this.getPolyCoeff;
+            c_idx = round((t - this.time_ref_coord) / this.coord_rate) + 1 - ((size(this.coord, 1) - size(poly, 4)) / 2);
             
             c_idx(c_idx < 1) = 1;
-            c_idx(c_idx > size(this.coord_pol_coeff,4)) = size(this.coord_pol_coeff, 4);
+            c_idx(c_idx > size(poly,4)) = size(poly, 4);
             
             c_times = this.getCoordTime();
             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
@@ -1807,7 +1734,7 @@ classdef Core_Sky < handle
             for id = un_idx
                 t_idx = c_idx == id;
                 times = t_diff(t_idx);
-                t_fct =  (times -  c_times(id + ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2)))/this.coord_rate;
+                t_fct =  (times -  c_times(id + ((size(this.coord, 1) - size(poly, 4)) / 2)))/this.coord_rate;
                 
                 %%%% compute position
                 t_fct2 = t_fct .* t_fct;
@@ -1830,7 +1757,7 @@ classdef Core_Sky < handle
                     t_fct8 ...
                     t_fct9 ...
                     t_fct10];
-                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(:,:,sat_idx,id),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
+                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(poly(:,:,sat_idx,id),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
                 A_pol_eval(t_idx,:) = A_pol_eval(t_idx,:) + eval_vec;
                 %%% compute velocity
                 eval_vec = [ ...
@@ -1844,7 +1771,7 @@ classdef Core_Sky < handle
                     8*t_fct7 ...
                     9*t_fct8 ...
                     10*t_fct9];
-                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,id),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
+                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(poly(2:end,:,sat_idx,id),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
             end
             if size(X_sat,2)==1
                 X_sat = squeeze(X_sat);
@@ -2033,21 +1960,20 @@ classdef Core_Sky < handle
             this.computeSMPolyCoeff();
         end
                 
-        function loadAntPCV(this, filename_pcv)
-            % Loading antenna's phase center variations and offsets
-            fnp = File_Name_Processor();
-            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
+        function loadAntPCO(this)
+            % Loading antenna's phase center offsets
             
-            this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
-            this.ant_pco = zeros(1, this.cc.getNumSat(),3);
-            %this.satType = cell(1,size(this.ant_pcv,2));
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Reading antenna PCV/PCO of %s constellation/s', this.cc.getActiveSysChar)));
+            atx = Core.getAntennaManager();
+            ant = atx.getAntenna('', this.cc.getAntennaId(), this.time_ref_coord, 100);
+            
+            this.ant_pco1 = zeros(1, this.cc.getNumSat(), 3);
             if isempty(this.avail)
-                this.avail = zeros(size(this.ant_pcv,2),1);
+                this.avail = zeros(this.cc.getNumSat(), 1);
             end
-            for sat = 1 : size(this.ant_pcv,2)
-                if (this.ant_pcv(sat).n_frequency ~= 0)
-                    this.ant_pco(:,sat,:) = this.ant_pcv(sat).offset(:,:,1);
-                    %this.satType{1,sat} = this.ant_pcv(sat).sat_type;
+            for sat = 1 : size(ant(:),1)
+                if ~ant(sat).isEmpty()
+                    this.ant_pco1(:,sat,:) = ant(sat).getPCO([ant(sat).f_code(1) '01'])' * 1e-3;
                 else
                     this.avail(sat) = 0;
                 end
@@ -2082,7 +2008,7 @@ classdef Core_Sky < handle
             end
             %%% compute center of mass position (X_sat - PCO)
             switch_back = false;
-            if this.coord_type == 1
+            if this.poly_type == 1
                 this.toCOM();
                 switch_back = true;
             end

@@ -93,7 +93,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         ocean_load_disp = [];        % ocean loading displacemnet for the station , -1 if not found
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
-        pcv = []                     % phase center corrections for the receiver
+        ant                          % Antenna PCO/PCV object
         
         pp_status = false;      % flag is pre-proccesed / not pre-processed
         iono_status           = 0; % flag to indicate if measurements ahave been corrected by an external ionpheric model
@@ -506,6 +506,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             %  this.appendRinex(rinex_file_name,time_start, time_stop)
             rec = Receiver_Work_Space(this.parent);
+            rec.ant = this.ant; % set the same antenna
             rec.rinex_file_name = rinex_file_name;
             rec.load(time_start, time_stop, rate, sys_c_list);
             
@@ -537,6 +538,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             n_obs = size(rec.obs,1);
             old_length = this.time.length;
+            if isempty(this.ant)
+                this.ant = rec.ant;
+            end
             
             if ~isempty(this.obs)
                 %expand the times and the obs
@@ -579,7 +583,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.xyz        = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
                 this.ph_shift   = rec.ph_shift;
-                this.pcv        = rec.pcv;
                 this.rate       = rec.rate;
                 this.file            = rec.file;
                 this.rinex_file_name = rec.rinex_file_name;
@@ -1905,22 +1908,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Load and parse the antenna (ATX) file as specified into settings
             % SYNTAX
             %   this.importAntModel
-            filename_pcv = this.state.getAtxFile;
-            fnp = File_Name_Processor();
-            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
-            pcv =  Core_Utils.readAntennaPCV(filename_pcv, {this.parent.ant_type});
-            if pcv.available == 0
-                ant_parts = strsplit(this.parent.ant_type);
-                if ~isempty(ant_parts{1})
-                    ant_parts{2} = 'NONE';
-                    ant_name = repmat(' ',1,20);
-                    ant_name(1:length(ant_parts{1})) = ant_parts{1};
-                    ant_name((end +1 -length(ant_parts{2})):end) = ant_parts{2};
-                    this.log.addMessage(this.log.indent(sprintf('looking for antenna without radome: %s',ant_name)));
-                    pcv = Core_Utils.readAntennaPCV(filename_pcv, {ant_name});
-                end
+            if isempty(this.ant)
+                this.ant = Core.getAntennaManager.getAntenna(this.parent.ant_type, '', this.time.getCentralTime);
             end
-            this.pcv = pcv;
         end
         
         function importOceanLoading(this)
@@ -6816,7 +6806,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sh_delays = this.computeShapirodelay(s);
                         for o = find(obs_idx_f)'
                             pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
-                            if sum(pcv_idx) >0
+                            if sum(pcv_idx) > 0
                                 o_idx = this.obs(o, :) ~=0; %find where apply corrections
                                 if  this.obs_code(o,1) == 'L'
                                     this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
@@ -6888,36 +6878,57 @@ classdef Receiver_Work_Space < Receiver_Commons
         % -------------------------------------------------------
         
         function applyremPCV(this, sgn)
-            %  correct measurement for PCV both of receiver
+            % correct measurement for PCV both of receiver
             % antenna and satellite antenna
             cs = Core.getCoreSky;
-            if ~isempty(this.pcv) || ~isempty(cs.ant_pcv)
+            if ~isempty(this.ant)
                 % this.updateAllAvailIndex(); % not needed?
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
                 % Receiver PCV correction
-                if ~isempty(this.pcv) && ~isempty(this.pcv.name) && this.state.isRecPCV()
-                    f_code_history = []; % save f_code checked to print only one time the warning message
+                if ~isempty(this.ant) && this.state.isRecPCV()
+                    f_code_cache = []; % save f_code checked to print only one time the warning message
+                    pco_cache = {}; % PCO cache
+                    f_id_cache = [];
+                    c = 0; % cache counter
                     for s = unique(this.go_id)'
                         sat_idx = this.sat.avail_index(:, s);
                         el = this.sat.el(sat_idx, s);
                         az = this.sat.az(sat_idx, s);
-                        enu_los = [sind(az).*cosd(el) cosd(az).*cosd(el) sind(el)];
+                        % Extract ENU component of the PCV
+                        neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
-                        if sum(obs_idx) > 0 && (this.pcv.n_frequency > 0)
-                            freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                        if sum(obs_idx) > 0 && (~this.ant.isEmpty)
+                            freqs = unique(str2num(this.obs_code(obs_idx, 2)));
                             for f = freqs'
                                 obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                                 sys = this.system(obs_idx_f);
                                 f_code = [sys(1) sprintf('%02d',f)];
                                 
-                                [pco, pco_idx] = this.getPCO(f,sys(1));
-                                if ~isempty(pco)
+                                if isempty(f_code_cache) || ~sum(strLineMatch(f_code_cache, f_code))
+                                    % if not in cache
+                                    % cache is also used to avoid multiple warnings for the same frequency
+                                    [pco, f_id] = this.getPCO(f_code);
+                                    c = c + 1;
+                                    pco_cache{c} = pco; %#ok<AGROW>
+                                    f_id_cache = [f_id_cache; f_id]; %#ok<AGROW>
+                                    f_code_cache = [f_code_cache; f_code]; %#ok<AGROW>
+                                    if isempty(pco)
+                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
+                                    end
+                                else
+                                    %  get from cache
+                                    id_cache = strLineMatch(f_code_cache, f_code);
+                                    pco = pco_cache{id_cache};
+                                    f_id = f_id_cache(c);
+                                end
                                     
-                                    pco_delays = enu_los * (pco + [this.parent.ant_delta_en this.parent.ant_delta_h]');
-                                    pcv_delays = pco_delays - this.getPCV(pco_idx, el, az);
+                                if ~isempty(pco)
+                                    % get los PCO component
+                                    pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
+                                    pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
                                     for o = find(obs_idx_f)'
                                         pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~= 0; % find which correction to apply
                                         o_idx = this.obs(o, :) ~= 0; % find where apply corrections
@@ -6927,11 +6938,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                                             this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
                                         end
                                     end
-                                else
-                                    if isempty(f_code_history) || ~sum(strLineMatch(f_code_history, f_code))
-                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
-                                        f_code_history = [f_code_history;f_code];
-                                    end
                                 end
                             end
                         end
@@ -6939,7 +6945,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Satellite PCV correction
-                if ~isempty(cs.ant_pcv)
+                atx = Core.getAntennaManager();
+                if ~isempty(atx)
                     % getting satellite reference frame for each epoch
                     [x, y, z] = cs.getSatFixFrame(this.time);
                     sat_ok = unique(this.go_id)';
@@ -6959,15 +6966,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
                         if sum(obs_idx) > 0
-                            freqs = str2num(unique(this.obs_code(obs_idx,2)));
-                            for f = freqs'
+                            az_idx = ~isnan(az(:,s));
+                            az_tmp = az(az_idx,s) / pi * 180;
+                            el_idx = ~isnan(el(:,s));
+                            el_tmp = el(el_idx,s) / pi * 180;
+                            ant_id = this.getAntennaId(s);
+                            ant = atx.getAntenna('', ant_id, this.time.getCentralTime);
+                            freqs = unique(this.obs_code(obs_idx,2))';
+                            for f = freqs
+                                pcv_delays = cs.getPCV(ant, [ant_id(1) '0' f], el_tmp, az_tmp);
+                               
                                 obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                                az_idx = ~isnan(az(:,s));
-                                az_tmp = az(az_idx,s) / pi * 180;
-                                el_idx = ~isnan(el(:,s));
-                                el_tmp = el(el_idx,s) / pi * 180;
-                                ant_id = this.getAntennaId(s);
-                                pcv_delays = cs.getPCV( f, ant_id, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
                                     if sum(pcv_idx) > 0
@@ -6984,128 +6993,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                 end
-            end
+           end
         end
-        
-        function pcv_delay = getPCV(this, idx, el, az, method)
-            % get the pcv correction for a given satellite and a given
-            % azimuth and elevations using linear or bilinear interpolation
-            
-            if (nargin < 5)
-                method = 'minterp';
-            end
-            pcv_delay = zeros(size(el));
-            
-            pcv = this.pcv;
-            
-            % transform el in zen
-            zen = 90 - el;
-            % get el idx
-            zen_pcv = pcv.tablePCV_zen;
-            
-            min_zen = zen_pcv(1);
-            max_zen = zen_pcv(end);
-            d_zen = (max_zen - min_zen)/(length(zen_pcv) - 1);
-            if nargin < 4 || isempty(pcv.tablePCV_azi) % no azimuth change
-                pcv_val = pcv.tableNOAZI(:,:,idx); % extract the right frequency
-                %pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
                 
-                % Use polynomial interpolation to smooth PCV
-                pcv_delay = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,numel(pcv_val)), zen);
-            else
-                % find azimuth indexes
-                az_pcv = pcv.tablePCV_azi;
-                min_az = az_pcv(1);
-                max_az = az_pcv(end);
-                d_az = (max_az - min_az)/(length(az_pcv)-1);
-                az_idx = min(max(floor((mod(az,360) - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(mod(az, 360) - (az_idx-1)*d_az, 0)/d_az, 1);                
-                
-                if strcmp(method, 'polyLS')
-                    % Polynomial interpolation in elevation and griddedInterpolant in az
-                    % filter PCV values in elevetion - slower
-                    %%
-                    pcv_val = pcv.tablePCV(:,:,idx)'; % extract the right frequency
-                    step = 0.25;
-                    zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen);
-                    
-                    % Interpolate with a 7th degree polinomial in elevation
-                    pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,size(pcv_val, 1)), zen_interp);
-                    
-                    n_az = size(pcv_val, 2);
-                    b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                    b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                    % replicate border for azimuth periodicity
-                    pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                    az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                    
-                    % Using scattered interpolant for azimuth to have a smooth interpolation
-                    [zen_m, az_m] = ndgrid(zen_interp, az_val);
-                    fun = griddedInterpolant(zen_m, az_m, pcv_val);
-                    pcv_delay = fun(zen, mod(az, 360));
-                elseif strcmp(method, 'minterp')
-                    % Interpolation with griddedInterpolant
-                    % leinear interpolation - faster
-                    pcv_val = pcv.tablePCV(:,:,idx)'; % extract the right frequency
-                    
-                    n_az = size(pcv_val, 2);
-                    b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                    b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                    % replicate border for azimuth periodicity
-                    pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                    az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                    
-                    % Using scattered interpolant for azimuth to have a smooth interpolation
-                    [zen_m, az_m] = ndgrid(zen_pcv, az_val);
-                    fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                    pcv_delay = fun(zen, az);
-                elseif strcmp(method, 'lin')
-                    
-                    % linear interpolation between consecutive values
-                    % bad performance
-                    %%
-                    zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
-                    d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
-                    pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
-                    %interpolate along zenital angle
-                    idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
-                    idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
-                    pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                    idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
-                    idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
-                    pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                    %interpolate alogn azimtuh
-                    pcv_delay = (1 - d_f_r_az) .* pcv_delay_lf + d_f_r_az .* pcv_delay1_rg;
-                end
-            end
-        end
-        
-        
-        function [pco, pco_idx] = getPCO(this, freq, sys)
+        function [pco, f_id] = getPCO(this, f_code)
             % get pco
-            if ~isempty(this.pcv)
-                f_code = [sys sprintf('%02d',freq)];
-                pco_idx = strLineMatch(this.pcv.frequency_name, f_code);
-                if sum(pco_idx)
-                    pco = this.pcv.offset(:, :, pco_idx)';
-                else
-                    cc = Core.getState.getConstellationCollector;
-                    % find closer gps frequency
-                    gps_idx_l = this.pcv.frequency_name(:,1) == 'G';
-                    gps_idx = find(gps_idx_l);
-                    aval_frq = char(this.pcv.frequency_name(gps_idx,3));
-                    fr_gps = zeros(size(aval_frq));
-                    for i = 1 : length(aval_frq)
-                        ava_frq_idx = cc.getGPS.CODE_RIN3_2BAND == aval_frq(i);
-                        fr_gps(i) = cc.getGPS.F_VEC(ava_frq_idx);
-                    end
-                    trg_frq_idx = cc.getSys(sys).CODE_RIN3_2BAND == num2str(freq);
-                    fr_trg = cc.getSys(sys).F_VEC(trg_frq_idx);
-                    [~,idx_near] = min(abs(fr_gps-fr_trg));
-                    pco = this.pcv.offset(:, :, gps_idx(idx_near))';
-                    this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s, usign %s instead',this.parent.ant_type, f_code,this.pcv.frequency_name(gps_idx(idx_near),:))));
-                    pco_idx(gps_idx(idx_near)) = true;
-                end
+            if ~isempty(this.ant)
+                 [pco, f_id] = this.ant.getPCO(f_code);
+                 % Switch from NEU to ENU
+                 if numel(pco) == 3
+                    pco = pco([2 1 3]) * 1e-3; % Convert into meters
+                 end
             else
                 pco = [];
             end
@@ -7189,7 +7087,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.correctTimeDesync()
             this.log.addMarkedMessage('Correct for time desync');
-            if nargin < 2 | isempty(disable_dt_correction)
+            if nargin < 2 || isempty(disable_dt_correction)
                 disable_dt_correction = true; % Skip to speed-up processing
             end
             
@@ -7992,6 +7890,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if this.getNumPrEpochs == 0
                     this.log.addError('Pre-Processing failed: the receiver object is empty');
                 else
+                    enable_sat_pco = true;
+                    if enable_sat_pco
+                        % Switch satellite coordinates to Antenna phase center apply basic PCO)
+                        Core.getCoreSky.toAPC();
+                    end
                     s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
                     if (s02 == 0)
                         this.log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
@@ -8020,8 +7923,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
                         if flag_apply_corrections
                             % apply various corrections
-                            Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-                            
+                            if enable_sat_pco
+                                Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                            end
+                   
                             this.updateAzimuthElevation();
                             if this.state.isAprIono || this.state.getIonoManagement == 3
                                 this.updateErrIono();

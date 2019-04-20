@@ -1790,10 +1790,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function plotResidual(this)
+        function plotResidual(this, flag_smooth)
+            % Legacy plot residuals
+            %
+            % INPUT
+            %   flag_smooth ift can be logical or a value (for spline_base_size) 
+            %
+            % SYNTAX
+            %   this.plotResidual(flag_smooth)
             figure
             id_ok = any(this.sat.res);
-            plot(zero2nan(this.sat.res(:,id_ok)),'.');
+            if nargin == 2 && flag_smooth
+                if islogical(flag_smooth)
+                    n_spline = 1800/30;
+                else
+                    n_spline = flag_smooth;
+                end
+                plot(this.smoothMat(zero2nan(this.sat.res(:,id_ok)), 'spline', n_spline),'.-');
+            else
+                plot(zero2nan(this.sat.res(:,id_ok)),'.');
+            end
             cc = Core.getConstellationCollector();
             ant_ids = cc.getAntennaId();
             legend(ant_ids(id_ok));
