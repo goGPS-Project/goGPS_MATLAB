@@ -138,7 +138,7 @@ function goGPS(ini_settings, use_gui, flag_online)
         end
         
         %% Closing all
-        if ~use_gui
+        if ~use_gui && isdeployed
             close all;
         end
     end
