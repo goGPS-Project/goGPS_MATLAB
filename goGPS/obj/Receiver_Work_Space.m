@@ -5243,12 +5243,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 cc = Core.getState.getConstellationCollector;
                 this.sat.avail_index = false(this.time.length, cc.getMaxNumSat);
             end
+            data_row = (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+            go_id = this.go_id(data_row);
+            datachk = (this.obs(data_row, :))' ~= 0;
             for s = unique(this.go_id)'
-                obs_idx = this.go_id == s & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
-                if sum(obs_idx) > 0
-                    av_idx = colFirstNonZero(this.obs(obs_idx,:)) ~= 0 ;
-                    this.sat.avail_index(:,s) = av_idx;
-                end
+                av_idx = any(datachk(:,go_id == s), 2);
+                this.sat.avail_index(:,s) = av_idx;
             end
         end
         
