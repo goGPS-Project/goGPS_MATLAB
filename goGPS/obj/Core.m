@@ -764,6 +764,7 @@ classdef Core < handle
             end
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             %this.log.setColorMode(c_mode);
+            this.initAntennaManager(this.state.getAtxFile);
         end        
         
         function activateParallelWorkers(this, flag_par_target, id_rec2pass)

@@ -1365,10 +1365,10 @@ classdef Core_Sky < handle
         end
         
         function COMtoAPC(this, direction)
-            if isempty(this.ant_pco1) || ~any(this.ant_pco1(:))
+            if isempty(this.ant_pco1) || ~any(this.ant_pco1(:)) || size(this.ant_pco1, 2) ~= size(this.coord, 2)
                 % load PCV
                 Core.getLogger.addMarkedMessage('Loading antennas phase center offset');
-                %this.loadAntPCO();
+                this.loadAntPCO();
             end
             [i, j, k] = this.getSatFixFrame(this.getCoordTime());
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
