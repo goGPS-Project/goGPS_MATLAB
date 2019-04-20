@@ -78,6 +78,7 @@ classdef Core < handle
         
         state       % state
         sky         % Core_Sky handler
+        atx         % antenna manager (stores all the antennas available)
         atmo        % Atmosphere handler
         mn          % Meteorological Network handler
         rf          % Reference Frame handler
@@ -330,6 +331,20 @@ classdef Core < handle
             if isempty(atmo)
                 atmo = Atmosphere();
                 core.atmo = atmo;
+            end            
+        end
+        
+        function atx = getAntennaManager()
+            % Return the pointer to the Atmosphere Object
+            %
+            % SYNTAX
+            %   atx = Core.getAntennaManager()
+            
+            core = Core.getInstance(false, true);
+            atx = core.atx;
+            if isempty(atx)
+                atx = Core_Antenna.fromAntex(core.getState.getAtxFile);
+                core.atx = atx;
             end            
         end
         
@@ -899,12 +914,32 @@ classdef Core < handle
         
         function initSkySession(this, time_lim)
             % Init sky for this session
+            %
+            % INPUT
+            %   time_lim  2 epochs GPS_Time
+            %
+            % SYNTAX
+            %   this.initSkySession(time_lim)
             if isempty(this.sky)
                 this.sky = Core_Sky();
             end
             if ~this.state.isNoResources()
                 this.sky.initSession(time_lim.first, time_lim.last, this.getState.getConstellationCollector);
             end
+        end
+        
+        function initAntennaManager(this, atx_file_name)
+            % Init antenna for this session
+            %
+            % INPUT
+            %   atx_file_name   path to the ATX file
+            %
+            % SYNTAX
+            %   this.initAntennaManager(atx_file_name)
+            if isempty(this.atx) || isempty(this.atx.list)
+                this.atx = Core_Antenna();
+            end
+            this.atx.init(atx_file_name);            
         end
         
         function initMeteoNetwork(this, time_lim)
