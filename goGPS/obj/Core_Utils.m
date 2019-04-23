@@ -69,7 +69,13 @@ classdef Core_Utils < handle
                 out_path = fh;
                 fh = gcf;
             end
-            fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
+            %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
+            col = fh.Color;
+            fh.Color = [1 1 1]; 
+            fh.WindowStyle = 'normal'; 
+            export_fig(fh, out_path, '-transparent', '-r150'); 
+            fh.WindowStyle = 'docked';
+            fh.Color = col; 
         end
         
         function diff_data = diffAndPred(data, n_order, t_ref)

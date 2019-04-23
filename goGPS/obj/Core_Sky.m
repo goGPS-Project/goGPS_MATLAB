@@ -1380,120 +1380,6 @@ classdef Core_Sky < handle
                 , sum(repmat(this.ant_pco1,size(this.coord,1),1,1) .* sz , 3));
         end
                 
-        function pcv_delay = getPCV_old(this, band, ant_id, el, az)
-            % DESCRIPTION: get the pcv correction for a given satellite and a given
-            % azimuth and elevations using linear or bilinear interpolation
-            
-            pcv_delay = zeros(size(el));
-            load reserved/tmp.mat ant_pcv ant_pco
-
-            ant_names = reshape([ant_pcv.name]',3,size(ant_pcv,2))';
-            
-            ant_idx = sum(ant_names == repmat(ant_id,size(ant_names,1),1),2) == 3;
-            sat_pcv = ant_pcv(ant_idx);
-            
-            freq = find(this.cc.getSys(ant_id(:,1)).CODE_RIN3_2BAND == num2str(band));
-            if ~isempty(freq)
-                freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
-            end
-            
-            if isempty(freq)
-                Core.getLogger.addWarning(sprintf('No PCV model for %s frequency',[ant_id(:,1) band]),100);
-                return
-            end
-            if this.poly_type == 0
-                % if coordinates refers to center of mass apply also pco
-                sat_pco = permute(ant_pco(:,ant_idx,:), [3 1 2]);
-                neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
-                pco_delay = neu_los*sat_pco;
-            else
-                pco_delay = zeros(size(el));
-            end
-            %tranform el in zen
-            zen = 90 - el;
-            % get el idx
-            zen_pcv = sat_pcv.tablePCV_zen;                
-            min_zen = zen_pcv(1);
-            max_zen = zen_pcv(end);
-            d_zen = (max_zen - min_zen)/(length(zen_pcv) - 1);
-            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) % no azimuth change (satellites)
-                pcv_val = sat_pcv.tableNOAZI(:,:,freq); % extract the right frequency
-                
-                % Use polynomial interpolation to smooth PCV
-                pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,numel(pcv_val)), zen);
-                pcv_delay = pco_delay - pcv_val;
-            else                
-                % find azimuth indexes
-                az_pcv = sat_pcv.tablePCV_azi;
-                                             
-                method = 'polyLS';
-                switch method
-                    case 'polyLS'
-                        % Polynomial interpolation in elevation and griddedInterpolant in az
-                        % filter PCV values in elevetion - slower
-                        %%
-                        pcv_val = sat_pcv.tablePCV(:,:,freq)'; % extract the right frequency
-                        step = 1;
-                        zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen);
-                        
-                        % Interpolate with a 7th degree polinomial in elevation
-                        pcv_val = Core_Utils.interp1LS(zen_pcv', pcv_val, min(8,size(pcv_val, 1)), zen_interp);
-                        
-                        n_az = size(pcv_val, 2);
-                        b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                        b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                        % replicate border for azimuth periodicity
-                        pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                        az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                        
-                        % Using scattered interpolant for azimuth to have a smooth interpolation
-                        [zen_m, az_m] = ndgrid(zen_interp, az_val);
-                        fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                        pcv_delay = fun(zen, mod(az, 360));
-                    case 'minterp'
-                        %% Interpolation with griddedInterpolant
-                        % linear interpolation - faster
-                        pcv_val = sat_pcv.tablePCV(:,:,freq)'; % extract the right frequency
-                        
-                        n_az = size(pcv_val, 2);
-                        b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
-                        b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
-                        % replicate border for azimuth periodicity
-                        pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
-                        az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
-                        
-                        % Using scattered interpolant for azimuth to have a smooth interpolation
-                        [zen_m, az_m] = ndgrid(zen_pcv', az_val);
-                        fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                        pcv_delay = fun(zen, mod(az, 360));
-                    case 'lin'                        
-                        % linear interpolation between consecutive values
-                        % bad performance
-                        %%
-                        min_az = az_pcv(1);
-                        max_az = az_pcv(end);
-                        d_az = (max_az - min_az)/(length(az_pcv)-1);
-                        az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                        d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1);
-
-                        zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
-                        d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
-                        pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency
-                        
-                        %interpolate along zenital angle
-                        idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
-                        idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
-                        pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                        idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
-                        idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
-                        pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                        %interpolate alogn azimtuh
-                        pcv_delay = (1 - d_f_r_az) .* pcv_delay_lf + (d_f_r_az) .* pcv_delay1_rg;
-                end
-                pcv_delay = pco_delay - pcv_delay;
-            end
-        end
-        
         function pcv_delay = getPCV(this, ant, f_code, el, az)
             % Get the pcv correction for a given satellite antenna
             %
@@ -2076,6 +1962,10 @@ classdef Core_Sky < handle
                 
         function loadAntPCO(this)
             % Loading antenna's phase center offsets
+            % for code solution
+            %
+            % SYNTAX
+            %   this.loadAntPCO
             
             Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Reading antenna PCV/PCO of %s constellation/s', this.cc.getActiveSysChar)));
             atx = Core.getAntennaManager();
