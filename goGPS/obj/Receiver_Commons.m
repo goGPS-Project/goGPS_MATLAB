@@ -173,9 +173,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     methods
-        function cc = getCC(this);
+        function cc = getCC(this)
+            % Get Constellation collector
+            %
+            % SYNTAX
+            %   cc = this.getCC()
             cc = Core.getState.getConstellationCollector;
         end
+        
         function toStringPos(this)
             % Display on screen information about the receiver position
             % SYNTAX this.toStringPos();

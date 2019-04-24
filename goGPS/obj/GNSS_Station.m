@@ -190,7 +190,7 @@ classdef GNSS_Station < handle
             %   this.resetWork()
             for r = 1 : numel(sta_list)
                 sta_list(r).work.resetWorkSpace();
-                sta_list(r).old_work = Receiver_Work_Space(sta_list(r).cc, sta_list(r));
+                sta_list(r).old_work = Receiver_Work_Space(sta_list(r));
             end
         end
 
@@ -393,7 +393,7 @@ classdef GNSS_Station < handle
 
                     rec = sta_list(r);
                     tmp_work = rec.work; % back-up current out
-                    rec.work = Receiver_Work_Space(sta_list(r).cc, rec);
+                    rec.work = Receiver_Work_Space(rec);
                     save(fname, 'rec');
                     rec.work = tmp_work;
 
@@ -434,6 +434,14 @@ classdef GNSS_Station < handle
             end
         end
 
+        function cc = getCC(this)
+            % Get Constellation collector
+            %
+            % SYNTAX
+            %   cc = this.getCC()
+            cc = Core.getState.getConstellationCollector;
+        end
+        
         function id = getStationId(sta_list, marker_name)
             % Given a marker_name get the sequencial id of a station
             %
@@ -2183,39 +2191,49 @@ classdef GNSS_Station < handle
             end
         end
 
-        function showResMap(sta_list, step)
+        function showResMap(sta_list, step, sys_c_list)
             % Plot Satellite Residuals as a map
             %
             % SYNTAX
             %   sta_list.showResMap(step)
-            if nargin == 1
+            if nargin < 2 || isempty(step)
                 step = 0.5;
             end
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(r);
                 if ~isempty(rec)
                     if ~rec.out.isEmpty
-                        [map, map_fill, ~, az_g, el_g] = rec.out.getResMap(step, 3, rec.cc.getActiveSysChar);
+                        cc = rec.out.getCC;
                     else
-                        [map, map_fill, ~, az_g, el_g] = rec.work.getResMap(step, 3, rec.cc.getActiveSysChar);
+                        cc = rec.work.getCC;
                     end
-                    figure;
-                    % restore the original mean data where observations are present
-                    %map_fill(~isnan(map)) = map(~isnan(map));
-                    % image
-                    img = imagesc(az_g, el_g, circshift(abs(map_fill), size(map_fill, 2) / 2, 2));
-                    set(gca,'YDir','normal');
-                    grid on
-                    % image alpha  = 0.3 everywhere 1 where obs are present
-                    img.AlphaData = (~isnan(circshift(abs(map), size(map, 2) / 2, 2)) * 0.7) + 0.3;
-                    %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);
-
-                    caxis([min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
-                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', rec.getMarkerName4Ch, rec.cc.getActiveSysChar),'interpreter', 'none');
-                    h.FontWeight = 'bold';
-                    hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
-                    hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                    if nargin < 3 || isempty(sys_c_list)
+                        sys_c_list = cc.getActiveSysChar;
+                    end
+                    for ss = sys_c_list
+                        if ~rec.out.isEmpty
+                            [map, map_fill, ~, az_g, el_g] = rec.out.getResMap(step, 3, ss);
+                        else
+                            [map, map_fill, ~, az_g, el_g] = rec.work.getResMap(step, 3, ss);
+                        end
+                        figure;
+                        % restore the original mean data where observations are present
+                        map_fill(~isnan(map)) = map(~isnan(map));
+                        % image
+                        img = imagesc(az_g, el_g, 1e3 * circshift(abs(map_fill), size(map_fill, 2) / 2, 2));
+                        set(gca,'YDir','normal');
+                        grid on
+                        % image alpha  = 0.3 everywhere 1 where obs are present
+                        img.AlphaData = (~isnan(circshift(abs(map), size(map, 2) / 2, 2)) * 0.7) + 0.3;
+                        %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);
+                        
+                        caxis(1e3 * [min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
+                        colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
+                        h = title(sprintf('Satellites residuals [mm] - receiver %s - %c', ss, rec.getMarkerName4Ch, ss),'interpreter', 'none');
+                        h.FontWeight = 'bold';
+                        hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                        hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                    end
                 end
             end
         end
@@ -2244,7 +2262,7 @@ classdef GNSS_Station < handle
             [pressure, temperature, humidity, p_time, id_sync] = sta_list.getPTH_mr();
 
             f = figure;
-            f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
+            f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
             set(f,'defaultAxesColorOrder', Core_UI.getColor(1 : numel(sta_list), numel(sta_list)));
             ax(1) = subplot(3,1,1);
             plot(p_time.getMatlabTime, pressure, '.');
@@ -2647,7 +2665,7 @@ classdef GNSS_Station < handle
                 sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
