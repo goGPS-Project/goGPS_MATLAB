@@ -1959,7 +1959,7 @@ classdef Command_Interpreter < handle
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);
             key_lev = key_lev(~err_list);
-            if nargout > 3 && sss_id_counter == 0 % no FOR found
+            if nargout > 3 && ~any(flag_parallel == 1) && sss_id_counter == 0 % no FOR found
                 for s = 1 : numel(sss_list)
                     sss_list{s} = 1 : state.getSessionCount();
                 end

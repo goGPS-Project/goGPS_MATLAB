@@ -1858,6 +1858,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             % Create an el/az grid
             [phi_g, az_g] = getGrid(step);
+            az_g = sort(mod(az_g, 360));
             el_g = phi_g(phi_g > 0);
             
             % [num_occur] = hist(id_map, unique(id_map));
@@ -1869,6 +1870,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             data = abs(rec.getResidual());
             if sys_c == 'A'
+                [sys, prn] = cc.getSysPrn(1:size(data,2));
                 id_keep = 1 : numel(sys);
             else
                 [sys, prn] = cc.getSysPrn(1:size(data,2));
