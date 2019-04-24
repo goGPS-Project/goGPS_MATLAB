@@ -701,7 +701,7 @@ classdef Command_Interpreter < handle
                     case this.KEY_PAR.name 
                         [id_pass, found] = this.getMatchingRec(core.rec, tok, 'P');
                         [~, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
-                        [~, flag_par_session] = this.getMatchingSession(tok);
+                        [id_sss, flag_par_session] = this.getMatchingSession(tok);
                         
                         if flag_par_target || flag_par_session
                             if ~found
@@ -760,8 +760,8 @@ classdef Command_Interpreter < handle
                                 if ~is_empty
                                     cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute ÿ with the current session
-                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
+                                        % substitute ยง with the current session
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ยง', num2str(s));
                                     end
                                     this.exec(core, cmd_list_loop);
                                     
@@ -821,7 +821,7 @@ classdef Command_Interpreter < handle
                         par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
                         
                         if flag_parallel(l) == 1 % it means parallel session (2 is parallel targets)
-                            gom.orderProcessing(par_cmd_list, 1, sss_list{l});
+                            gom.orderProcessing(par_cmd_list, 1, id_sss);
                             gom.importParallelSessions();
                             % And now I have to read the (ordered) sessions
                         elseif flag_parallel(l) == 2 % it means parallel targets
