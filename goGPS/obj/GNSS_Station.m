@@ -2191,7 +2191,7 @@ classdef GNSS_Station < handle
             end
         end
 
-        function showResMap(sta_list, step, sys_c_list)
+        function showResMap(sta_list, step, sys_c_list, mode)
             % Plot Satellite Residuals as a map
             %
             % SYNTAX
@@ -2221,7 +2221,9 @@ classdef GNSS_Station < handle
                         
                         f = figure;
                         f.Name = sprintf('%03d: ResMap %s@%c', f.Number, rec.getMarkerName4Ch, ss); f.NumberTitle = 'off';                        
-                        mode = 'cart';                        
+                        if (nargin < 4) || isempty(mode)
+                            mode = 'cart';
+                        end
                         switch mode
                             case 'cart'
                                 %% Cartesian projection
@@ -2234,8 +2236,9 @@ classdef GNSS_Station < handle
                                 img.AlphaData = (~isnan(map) * (1 - image_alpha)) + image_alpha;
                                 %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);
                                 
-                                caxis(1e3 * [min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
-                                colormap(Cmap.get('viridis', 256));
+                                %caxis(1e3 * [min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
+                                caxis(1e3 * perc(abs(map(:)), 0.99) * [-1 1]);
+                                colormap(Cmap.get('PuOr', 256));
                                 f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
                                 h = title(sprintf('Satellites residuals [mm] - receiver %s - %c', ss, rec.getMarkerName4Ch, ss),'interpreter', 'none');
                                 h.FontWeight = 'bold';
@@ -2246,21 +2249,25 @@ classdef GNSS_Station < handle
                                 %ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
                             case '3D'
                                 %% 3D projection
-                                clf
-                                polarplot3d(map_fill, 'PlotType', 'surf', 'RadialRange',[-180 180] / 180 * pi, ...
+%                                 clf
+%                                 polarplot3d(1e3 * map_fill(1:2:end, 1:2:end),  'RadialRange',[-180 180] / 180 * pi, ...
+%                                     'AxisLocation', 0, 'InterpMethod', 'cubic', ...
+%                                     'PlotType', 'surfn', 'tickspacing', 15, ...
+%                                     'GridColor', [0.7 0.7 0.7]);
+                                polarplot3d(1e3 * map_fill, ...
                                     'AxisLocation', 0, 'InterpMethod', 'cubic', ...
                                     'PlotType', 'surfn', 'tickspacing', 15, ...
                                     'GridColor', [0.7 0.7 0.7]);
-                                
-                                %caxis(perc(abs(map(:)), 0.99) * [-1 1]);                                
-                                colormap(Cmap.get('viridis', 256));
+                                caxis(1e3 * perc(abs(map(:)), 0.95) * [-1 1]);
+                                colormap(Cmap.get('RdGy', 256));
                                 colorbar();
                                 ax = gca;
                                 ax.PlotBoxAspectRatio = [1 1 1];
                                 ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
-                                %smap = ax.Children(end);
-                                %smap.AlphaData = ~isnan(map);
-                                %smap.FaceAlpha = 'flat';
+                                smap = ax.Children(end);
+                                smap.AlphaData = double(~isnan(map));
+                                smap.AlphaData(smap.AlphaData == 0) = smap.AlphaData(smap.AlphaData == 0) + 0.5;
+                                smap.FaceAlpha = 'flat';
                         end
                         
                     end

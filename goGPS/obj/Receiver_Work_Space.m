@@ -3681,16 +3681,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [snr_bt, snr_code] = getTrackingSNR(this)
+        function [snr_bt, snr_code] = getElTrackingSNR(this)
             % Get one single "mean" SNR per tracking/band
             % Defined as a polynomial of degree 2 in sin(el) space
             % Estimated in [0 : 90] degree
             %
             % SYNTAX
-            %   [snr_bt, snr_code] = this.getTrackingSNR();
+            %   [snr_bt, snr_code] = this.getElTrackingSNR();
             %
             % EXAMPLE
-            %   [snr_bt, snr_code] = rec(1).work.getTrackingSNR();
+            %   [snr_bt, snr_code] = rec(1).work.getElTrackingSNR();
             %   figure; clf; a=gca; a.ColorOrder = Core_UI.getColor(1 : size(snr_bt,2), size(snr_bt,2)); hold on; plot(0 : 90, snr_bt); legend(snr_code); setAllLinesWidth(2);
             
             i = 0;
@@ -3713,7 +3713,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         elbt = el(:,this.go_id(id_snr(idb(idbt))));
                         snr_bt_all = snr(:, idb(idbt));
                         id_ok = ~isnan(zero2nan(snr_bt_all));
-                        snr_bt(:, i) = Core_Utils.interp1LS([sind(elbt(id_ok)); 2-sind(elbt(id_ok))], [snr_bt_all(id_ok); snr_bt_all(id_ok)], 2, sind(0 : 90));
+                        snr_bt(:, i) = Core_Utils.interp1LS([sind(elbt(id_ok)); 2-sind(elbt(id_ok))], [snr_bt_all(id_ok); snr_bt_all(id_ok)], 9, sind(0 : 90));
                         %figure; plot(elbt, zero2nan(ssnr(:, idb(idbt))), '.');
                         %hold on; plot(0:90, snr_bt, 'k.-', 'LineWidth', 2);
                         snr_code(i, :) = [sys_c ' ' b t];

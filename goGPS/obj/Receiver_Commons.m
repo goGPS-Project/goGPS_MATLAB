@@ -1868,7 +1868,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             rec.w_bar.createNewBar('Computing map');
             rec.w_bar.setBarLen(numel(rec));
             
-            data = abs(rec.getResidual());
+            data = (rec.getResidual());
             if sys_c == 'A'
                 [sys, prn] = cc.getSysPrn(1:size(data,2));
                 id_keep = 1 : numel(sys);
