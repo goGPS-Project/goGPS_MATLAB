@@ -644,9 +644,10 @@ classdef Parallel_Manager < Com_Interface
             % Save state on file
             geoid = Core.getRefGeoid();
             state = Core.getCurrentSettings();
+            atx = Core.getAntennaManager();
             cur_session = Core.getCurrentSession();
             [rin_list, met_list] = Core.getRinLists();
-            save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list', 'slave_type');
+            save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'atx', 'cur_session', 'rin_list', 'met_list', 'slave_type');
             this.sendMsg(this.BRD_STATE, 'Broadcast state');
         end
         
@@ -661,6 +662,7 @@ classdef Parallel_Manager < Com_Interface
             sky = Core.getCoreSky();
             atmo = Core.getAtmosphere();
             mn = Core.getMeteoNetwork();
+            atx = Core.getAntennaManager();
             save(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
             this.sendMsg(this.BRD_SKY, 'Broadcast core sky');
         end
