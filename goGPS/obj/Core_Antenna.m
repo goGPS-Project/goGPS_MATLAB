@@ -224,7 +224,9 @@ classdef Core_Antenna < handle
                     cmp_str = [this.type this.serial];
                     ant_name = [type{a} serial{a}];
                 end
-                
+                tmp = ant_name;
+                ant_name = char(32*ones(1,20));
+                ant_name(1:length(tmp)) = tmp;
                 if (numel(ant_name) >= 4) && Core_Utils.code4Char2Num(ant_name(1:4)) == none_code
                     % ignoring antenna type == 'NONE'
                 else
