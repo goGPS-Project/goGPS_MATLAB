@@ -52,6 +52,10 @@
 /data/reference/Geoid/*
 !/data/reference/Geoid/.gitignore
 !/data/reference/Geoid/geoid_EGM2008_05.mat
+!/data/reference/JPL
+/data/reference/JPL/*
+!/data/reference/JPL/.gitignore
+!/data/reference/JPL/de436.bin
 !/data/reference/IGRF
 /data/reference/IGRF/*
 !/data/reference/IGRF/.gitignore

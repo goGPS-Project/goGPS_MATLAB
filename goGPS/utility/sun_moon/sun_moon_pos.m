@@ -21,11 +21,17 @@ go_dir = Core.getGlobalConfig().getLocalStorageDir();
 
 %if the binary JPL ephemeris file is not available, generate it
 if (exist(fullfile(go_dir, 'de436.bin'),'file') ~= 2)
-    fprintf('Warning: file "de436.bin" not found in at %s\n         ... generating a new "de436.bin" file\n',fullfile(go_dir, 'de436.bin'));
-    fprintf('         (this procedure may take a while, but it will be done only once on each installation):\n')
-    fprintf('-------------------------------------------------------------------\n\n')
-    asc2eph(436, {'ascp01950.436', 'ascp02050.436'}, fullfile(go_dir, 'de436.bin'));
-    fprintf('-------------------------------------------------------------------\n\n')
+    success = 0;
+    if (exist(fullfile('..', 'data', 'reference', 'JPL', ephname),'file') == 2)
+        success = copyfile(fullfile('..', 'data', 'reference', 'JPL', ephname), fullfile(go_dir, ephname), 'f');
+    end
+    if ~success
+        fprintf('Warning: file "de436.bin" not found in at %s\n         ... generating a new "de436.bin" file\n',fullfile(go_dir, 'de436.bin'));
+        fprintf('         (this procedure may take a while, but it will be done only once on each installation):\n')
+        fprintf('-------------------------------------------------------------------\n\n')
+        asc2eph(436, {'ascp01950.436', 'ascp02050.436'}, fullfile(go_dir, 'de436.bin'));
+        fprintf('-------------------------------------------------------------------\n\n')
+    end
 end
 
 sun_ECEF = zeros(3,length(year));
