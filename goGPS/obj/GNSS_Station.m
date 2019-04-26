@@ -1351,7 +1351,7 @@ classdef GNSS_Station < handle
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
                 caxis(tropo_clim(2,:));
-                colormap(gat);
+                colormap(Cmap.get('viridis', 32));
                 colorbar;
                 th2 = title(ax2, 'at ground level', 'FontSize', 22);                
             end
@@ -1367,7 +1367,7 @@ classdef GNSS_Station < handle
                         finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
                         tmp(mask) = finterp(x_list, y_list);
                     end
-                    tropo_grid(:,:,i) = tmp + h_correction(1);
+                    tropo_grid(:,:,i) = single(tmp) + h_correction(1);
                     if flag_show                        
                         imh.CData = tropo_grid(:,:,i);
                         imh.AlphaData = ~isnan(tropo_grid(:,:,i));
@@ -1997,7 +1997,7 @@ classdef GNSS_Station < handle
             caxis(tropo_clim(1,:)); 
             %colormap(Core_UI.CMAP_51(2:end,:));
             %colormap(flipud(gat(1024, false)));
-            colormap(gat2); 
+            colormap(Cmap.get('viridis', 32));
             colorbar;
             set(gca, 'Ydir', 'normal');
             
