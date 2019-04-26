@@ -1298,7 +1298,7 @@ classdef GNSS_Station < handle
 
             % Get DTM tropospheric correction
             dtm(dtm < 0) = 0; % do not consider bathimetry
-            if nargout < 5
+            if nargout < 5 && nargin < 3
                 h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, 0);
             else
                 h_list = 0 : max(ceil(dtm(:)));
@@ -1316,7 +1316,7 @@ classdef GNSS_Station < handle
             epoch = 1 : s_time.length();
             epoch_list = 1 : ss_rate : numel(epoch);
             
-            tropo_grid = nan(size(mask,1), size(mask,2), numel(epoch_list)); 
+            tropo_grid = nan(size(mask,1), size(mask,2), numel(epoch_list), 'single'); 
             
             if flag_show
                 % IMAGE DEBUG: 
