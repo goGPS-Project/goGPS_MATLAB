@@ -1876,7 +1876,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 [sys, prn] = cc.getSysPrn(1:size(data,2));
                 id_keep = false(size(sys));
                 for i = 1 : numel(sys)
-                    id_keep(i) = contains(sys_c, sys(i));
+                    id_keep(i) = instr(sys_c, sys(i));
                 end
                 data = data(:, id_keep);
             end
