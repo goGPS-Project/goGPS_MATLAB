@@ -7418,7 +7418,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             %[ph, wl, id_ph] = this.getPhases;
             sensor = (pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
             sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-            sensor_bad_sat = bsxfun(@minus, sensor, median(sensor, 1, 'omitnan'));
+            cc =  Core.getConstellationCollector();
+                            sensor_bad_sat = sensor;
+            for s = cc.getActiveSysChar
+                id_sys = this.system(lid_pr) == s;
+                sensor_bad_sat(:,id_sys) = sensor_bad_sat(:,id_sys) - median(noNaN(sensor(:,id_sys)));
+            end
+            %sensor_bad_sat = bsxfun(@minus, sensor, median(sensor, 1, 'omitnan'));
             sensor_diff = Core_Utils.diffAndPred(sensor);
             sensor2 = bsxfun(@minus,sensor_diff, median(sensor_diff,2, 'omitnan'));
             sensor_bad_sat2 = bsxfun(@minus,sensor2, median(sensor2,1, 'omitnan'));
@@ -7427,7 +7433,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             id_ko = (tmp2 > max(1e4, 2 * thr)) | (tmp2 > max(25, 2 * thr2));
             pr(id_ko) = nan;
             sensor(id_ko) = nan;
-            sensor_bad_sat(id_ko) = nan;
             if any(id_ko(:))
                 this.log.addWarning(sprintf('Removing %d single anomalous values in data or ephemeris', sum(id_ko(:))));
             end
@@ -7437,7 +7442,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sat_mean(i) = perc(noNaN(abs(sensor_bad_sat(:,i))),0.9);
             end
             median_sat_mean = median(sat_mean,'omitnan');
-            bad_sat = sat_mean > 7 * max(median_sat_mean,10);
+            bad_sat = sat_mean > 5 * max(median_sat_mean,5);
             bad_track = abs(sensor) > 1e5;
             
             % the mean of the sensor cannot be too far from the others
