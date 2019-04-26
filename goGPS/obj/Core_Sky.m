@@ -57,7 +57,7 @@ classdef Core_Sky < handle
             'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
             'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; 'EC6A'; 'EC6B'; 'EC6C'; 'EC6X'; 'EC6Z';...          % GALILEO codes
             'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
-            'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ...                                                       % BeiDou codes
+            'CC2I' ; 'CC2Q' ; 'CC2X' ; 'CC7I' ; 'CC7Q' ; 'CC7X' ; 'CC6I' ; 'CC6Q' ; 'CC6X' ; ...                                                       % BeiDou codes
             'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
             'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
             ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
@@ -516,6 +516,12 @@ classdef Core_Sky < handle
                             idx_c2p = this.getGroupDelayIdx('EC5I');
                             this.group_delays(s,idx_c1p) = -GD * Core_Utils.V_LIGHT;
                             f = this.cc.getGalileo().F_VEC; % frequencies
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Core_Utils.V_LIGHT;
+                        case 'C'
+                            idx_c1p = this.getGroupDelayIdx('CC2I');
+                            idx_c2p = this.getGroupDelayIdx('CC7I');
+                            this.group_delays(s,idx_c1p) = -GD * Core_Utils.V_LIGHT;
+                            f = this.cc.getBeiDou().F_VEC; % frequencies
                             this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Core_Utils.V_LIGHT;
                             
                     end
