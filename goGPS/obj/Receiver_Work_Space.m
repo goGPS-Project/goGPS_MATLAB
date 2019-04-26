@@ -5246,7 +5246,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             data_row = (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
             go_id = this.go_id(data_row);
             datachk = (this.obs(data_row, :))' ~= 0;
-            for s = unique(this.go_id)'
+            for s = unique(go_id)'
                 av_idx = any(datachk(:,go_id == s), 2);
                 this.sat.avail_index(:,s) = av_idx;
             end
@@ -6881,13 +6881,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             % correct measurement for PCV both of receiver
             % antenna and satellite antenna
             cs = Core.getCoreSky;
+            this.obs = this.obs';  % Transpose for speed-up
             if ~isempty(this.ant)
                 % this.updateAllAvailIndex(); % not needed?
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
                 % Receiver PCV correction
-                this.obs = this.obs';  % Transpose for speed-up
+                
                 if ~isempty(this.ant) && this.state.isRecPCV()
                     f_code_cache = []; % save f_code checked to print only one time the warning message
                     pco_cache = {}; % PCO cache
