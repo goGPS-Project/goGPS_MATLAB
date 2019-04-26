@@ -6899,7 +6899,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         el = this.sat.el(sat_idx, s);
                         az = this.sat.az(sat_idx, s);
                         % Extract ENU component of the PCV
-                        enu_los = [sind(az).*cosd(el) cosd(az).*cosd(el) sind(el)];
                         neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
@@ -6922,7 +6921,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
                                     end
                                 else
-                                    [pco0, f_id0] = this.getPCO(f_code);
                                     %  get from cache
                                     id_cache = strLineMatch(f_code_cache, f_code);
                                     pco = pco_cache{id_cache};
