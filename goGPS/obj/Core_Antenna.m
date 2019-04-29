@@ -222,7 +222,7 @@ classdef Core_Antenna < handle
                     else
                         n_ant = size(ant_start, 1);
                         % import PCO
-                        serial_pco = reshape(sscanf(serialize(txt(lim(pco_id, 1) + (41:64))')', '%f'), 3, 2 * n_ant)'  * 1e3;
+                        serial_pco = reshape(sscanf(serialize(txt(repmat(lim(pco_id, 1), 1, 24) + repmat(41:64, size(pco_id, 1), 1))')', '%f'), 3, 2 * n_ant)'  * 1e3;
                         for a = 1 : n_ant
                             % PCO in the geonet config file is in meters => convert it in mm (*1e3)
                             pco{a} = [{serial_pco(2*a -1,:)} {serial_pco(2*a,:)}]; %#ok<AGROW> 
@@ -262,7 +262,7 @@ classdef Core_Antenna < handle
                         % Sinex_code
                         sinex_code = cell(n_ant, 1);
                         for a = cal_flag
-                            sinex_code{a} = txt(repmat(lim(ant_start(a), 1), 1, 10) + repmat(79:88, n_ant, 1));
+                            sinex_code{a} = txt(repmat(lim(ant_start(a), 1), 1, 10) + repmat(79:88, 1, 1));
                         end                        
                         
                         % Read PCV
