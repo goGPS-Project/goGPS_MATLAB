@@ -266,7 +266,7 @@ classdef Antenna < handle
                     end
                 end                    
             end
-        end    
+        end        
     end
     
     %% METHODS INIT
@@ -297,7 +297,48 @@ classdef Antenna < handle
             this.pco = {};
             this.pcv_noaz = {};
             this.pcv = {};            
-        end        
+        end
+        
+        function import(this, type, num, cal_date, dazi, az_grid, zen1, zen2, dzen, n_freq, f_code, start, stop, sinex_code, pco, pcv_noaz, pcv)
+            % Function to import all the parameters to fill the antenna
+            %
+            % INPUT
+            % type       char [20]          - type
+            % num        char [20]          - num
+            % cal_data   GPS_Time           - calibration date
+            % dazi       double             - delta azimuth
+            % az_grid    double array       - azimut grid values
+            % zen1       double             - first zenith value
+            % zen2       double             - last zenith value
+            % dzen       double             - delta zenith
+            % n_freq     double             - number of stored frequencies
+            % f_code     char [nfreq x 3]   - frequency code (e.g. G01, G02, E01, ...)
+            % start      GPS_Time           - first day of validity
+            % stop       GPS_Time           - last day of validiti
+            % sinex_code char [20]          - sinex code
+            % pco        cell array [nfreq] - Phase Center Offset
+            % pcv_noaz   cell array [nfreq] - Phase Center Variation non azimuth dependent
+            % pcv        cell_array [nfreq] - Phase Center Variation azimuth dependent (table)
+            %
+            % SYNTAX
+            %  this.import(type, num, cal_data, dazi, az_grid, zen1, zen2, dzen, n_freq, f_code, start, stop, sinex_code, pco, pcv_noaz, pcv)
+            this.type = type;
+            this.num = num;
+            this.cal_date = cal_date;
+            this.dazi = dazi;
+            this.az_grid = az_grid;
+            this.zen1 = zen1;
+            this.zen2 = zen2;
+            this.dzen = dzen;
+            this.n_freq = n_freq;
+            this.f_code = f_code;
+            this.start = start;
+            this.stop = stop;
+            this.sinex_code = sinex_code;
+            this.pco = pco;
+            this.pcv_noaz = pcv_noaz;
+            this.pcv = pcv;
+        end
     end
     
     %% METHODS UTILITIES
