@@ -52,7 +52,7 @@ classdef GNSS_Station < handle
 
         % ANTENNA ----------------------------------
 
-        ant            % antenna number
+        ant_serial     % antenna number
         ant_type       % antenna type
         ant_delta_h    % antenna height from the ground [m]
         ant_delta_en   % antenna east/north offset from the ground [m]

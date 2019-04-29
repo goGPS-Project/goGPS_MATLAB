@@ -250,7 +250,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.file = [];             % file rinex object
             this.rin_type = 0;          % rinex version format
             
-            this.parent.ant          = 0;       % antenna number
+            this.parent.ant_serial   = 0;       % antenna number
             this.parent.ant_type     = '';      % antenna type
             this.parent.ant_delta_h  = 0;       % antenna height from the ground [m]
             this.parent.ant_delta_en = [0 0];   % antenna east/north offset from the ground [m]
@@ -1905,11 +1905,29 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function importAntModel(this)
-            % Load and parse the antenna (ATX) file as specified into settings
+            % Automatically set the link to the right antenna calibration
+            %
             % SYNTAX
-            %   this.importAntModel
-            if isempty(this.ant)
-                this.ant = Core.getAntennaManager.getAntenna(this.parent.ant_type, '', this.time.getCentralTime);
+            %   this.importAntModel()
+            
+            if isempty(this.ant) || (this.ant.isEmpty)
+                % Serach for the receiver into the monument table
+                [type, found] = Core.getAntennaManager.getTypeFromMarker(this.parent.getMarkerName4Ch, this.time.getCentralTime, 110);
+                if found
+                    % Try custom antenna first
+                    ant_serial = 'CUSTOM              ';
+                    this.ant = Core.getAntennaManager.getAntenna(type, ant_serial, this.time.getCentralTime);
+                    if isempty(this.ant) || this.ant.isEmpty
+                        this.ant = Core.getAntennaManager.getAntenna(type, '', this.time.getCentralTime);
+                    end
+                    if ~(isempty(this.ant) || this.ant.isEmpty)
+                        Core.getLogger.addMarkedMessage(sprintf('Using calibrated antenna "%s" for receiver "%s"', type, this.parent.getMarkerName4Ch))
+                        this.parent.ant_type = type; % setting the right antenna into receiver!
+                    end
+                end
+                if isempty(this.ant) || this.ant.isEmpty
+                    this.ant = Core.getAntennaManager.getAntenna(this.parent.ant_type, '', this.time.getCentralTime);
+                end
             end
         end
         
@@ -2067,10 +2085,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             % 6) 'ANT # / TYPE'
             fln = find(line2head == 6, 1, 'first'); % get field line
             if isempty(fln)
-                this.parent.ant = '';
+                this.parent.ant_serial = '';
                 this.parent.ant_type = '';
             else
-                this.parent.ant = strtrim(txt(lim(fln, 1) + (0:19)));
+                this.parent.ant_serial = strtrim(txt(lim(fln, 1) + (0:19)));
                 this.parent.ant_type = strtrim(txt(lim(fln, 1) + (20:39)));
             end
             % 7) 'APPROX POSITION XYZ'
@@ -8658,7 +8676,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             txt = sprintf('%sRINEX FILE EXPORTED BY goGPS OPEN SOURCE SOFTWARE           COMMENT\n', txt);
             txt = sprintf('%sREFERENCE DEV SITE: https://github.com/goGPS-Project        COMMENT\n', txt);
             txt = sprintf('%s%-20s%-20s%-20sREC # / TYPE / VERS\n', txt, this.parent.number, this.parent.type, this.parent.version);
-            txt = sprintf('%s%-20s%-20s                    ANT # / TYPE\n', txt, this.parent.ant, this.parent.ant_type);
+            txt = sprintf('%s%-20s%-20s                    ANT # / TYPE\n', txt, this.parent.ant_serial, this.parent.ant_type);
             xyz = this.getAPrioriPos();
             if ~any(xyz)
                 xyz = this.getMedianPosXYZ();
