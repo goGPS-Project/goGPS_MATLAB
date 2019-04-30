@@ -82,6 +82,7 @@ classdef Command_Interpreter < handle
         CMD_PUSHOUT     % push results in output
         CMD_REMSAT      % remove satellites from receivers
         CMD_REMOBS      % Remove some observations from the receiver (given the obs code)
+        CMD_REMTMP      % Remove temporary data not used later for pushout
             
         CMD_PINIT       % parallel request slaves
         CMD_PKILL       % parallel kill slaves
@@ -132,7 +133,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -480,6 +481,12 @@ classdef Command_Interpreter < handle
             this.CMD_REMOBS.rec = 'T';
             this.CMD_REMOBS.key = 'O'; % fake not used key, indicate thet there's one mandatory parameter
             this.CMD_REMOBS.par = [];
+
+            this.CMD_REMTMP.name = {'REMTMP', 'remtmp'};
+            this.CMD_REMTMP.descr = ['Remove data used during computation but no more necessary to push the results out'];
+            this.CMD_REMTMP.rec = 'T';
+            this.CMD_REMTMP.key = '';
+            this.CMD_REMTMP.par = [];
 
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
@@ -856,6 +863,8 @@ classdef Command_Interpreter < handle
                                 this.runRemSat(core.rec, tok(2:end));
                             case this.CMD_REMOBS.name               % REM OBS
                                 this.runRemObs(core.rec, tok(2:end));
+                            case this.CMD_REMTMP.name               % REM OBS
+                                this.runRemTmp(core.rec, tok(2:end));
                             case this.CMD_NET.name                  % NET
                                 this.runNet(core.rec, tok(2:end));
                             case this.CMD_PSRALIGN.name             % Pseudorange align
@@ -1239,6 +1248,46 @@ classdef Command_Interpreter < handle
             end
         end
 
+        function runRemTmp(this, rec, tok)
+            % Remove data no more needed for pushout
+            % This function corrupts the work object and cannot be used for further processing
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.runRemTmp(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    if ~isempty(rec(r)) && ~(rec(r).isEmptyWork_mr)
+                        if rec(r).state.flag_out_quality
+                            id_rem = rec(1).work.obs_code(:,1) ~= 'S';
+                            rec(r).work.obs(id_rem, :) = [];
+                            rec(r).work.obs_code = [rec(1).work.obs_code(rec(1).work.obs_code(:,1) == 'S', :); ...
+                                rec(1).work.obs_code(rec(1).work.obs_code(:,1) ~= 'S', :)];
+                        else
+                            rec(r).work.obs = [];
+                        end
+                        rec(r).work.synt_ph = [];
+                        rec(r).work.sat.avail_index = [];
+                        rec(r).work.sat.outliers_ph_by_ph = [];
+                        rec(r).work.sat.outliers_pr_by_pr = [];
+                        rec(r).work.sat.cycle_slip_ph_by_ph = [];
+                        rec(r).work.sat.err_tropo = [];
+                        rec(r).work.sat.slant_td = [];
+                        rec(r).work.sat.err_iono = [];
+                        rec(r).work.sat.solid_earth_corr = [];
+                        rec(r).work.sat.tot = [];
+                        rec(r).work.sat.amb_idx = [];
+                        rec(r).work.sat.amb_mat = [];
+                    end
+                end
+            end
+        end
+        
         function runNet(this, rec, tok)
             % Execute Network undifferenced solution
             %
@@ -1248,13 +1297,13 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPPP(rec, tok)
-%             if true
-%                 rec.netPrePro();
-%             end
+            %             if true
+            %                 rec.netPrePro();
+            %             end
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-%             if true
-%                 rec(id_trg).netPrePro();
-%             end
+            %             if true
+            %                 rec(id_trg).netPrePro();
+            %             end
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
@@ -1280,21 +1329,21 @@ classdef Command_Interpreter < handle
                 end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_IONO.par ')*$'], 'once'))
-                       iono_reduce = true;
+                        iono_reduce = true;
                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_CLK.par ')*$'], 'once'))
-                       clk_export = true;
+                        clk_export = true;
                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_FREE_NET.par ')*$'], 'once'))
-                       free_network = true;
+                        free_network = true;
                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
-                       fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
-                       fr_id = str2num(tok{t}(fr_id+1));
+                        fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
+                        fr_id = str2num(tok{t}(fr_id+1));
                     end
                 end
                 %try
-                    net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network); 
+                net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
                 %catch ex
                 %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
                 %end
@@ -1307,7 +1356,7 @@ classdef Command_Interpreter < handle
             %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
         
-         function runPseudorangeAlign(this, rec, tok)
+        function runPseudorangeAlign(this, rec, tok)
             % Execute pseudorange alignement
             %
             % INPUT

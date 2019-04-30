@@ -3695,7 +3695,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (nargin >= 2) && ~isempty(sys_c)
                     id_snr = id_snr & (this.system == sys_c)';
                 end
-                snr = zero2nan(this.obs(id_snr, :)');
+                if isempty(this.obs)
+                    snr = [];
+                else
+                    snr = zero2nan(this.obs(id_snr, :)');
+                end
             end
         end
         
