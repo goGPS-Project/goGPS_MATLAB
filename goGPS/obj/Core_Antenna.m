@@ -542,6 +542,7 @@ classdef Core_Antenna < handle
                 end
             end
             if ~found
+                log = Core.getLogger();
                 if (nargin > 4)
                     log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name), log_lev);
                 else
