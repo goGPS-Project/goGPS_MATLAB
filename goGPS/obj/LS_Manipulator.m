@@ -271,9 +271,9 @@ classdef LS_Manipulator < handle
                 if phase_present
                     cc = Core.getState.getConstellationCollector;
                     n_sat = cc.getMaxNumSat();
-                    rec.sat.cycle_slip = zeros(rec.time.length, n_sat);
+                    rec.sat.cycle_slip = false(rec.time.length, n_sat);
                     rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
-                    rec.sat.outliers = zeros(rec.time.length, n_sat);
+                    rec.sat.outliers = false(rec.time.length, n_sat);
                     dual_freq = size(obs_set.obs_code,2) > 5;
                     [~, ~, ph_idx] = rec.getPhases();
                     obs_code_ph = rec.obs_code(ph_idx,:);
@@ -330,12 +330,14 @@ classdef LS_Manipulator < handle
                 if phase_present && min_arc > 1
                     amb_idx = obs_set.getAmbIdx();
                     % amb_idx = n_coo + n_iob + amb_idx;
-                    amb_idx = zero2nan(amb_idx);
                     
                     % remove short arcs
                     
                     % ambiguity number for each satellite
                     amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
+                    if any(amb_idx(:) == 0)
+                        amb_obs_count(1) = [];
+                    end
                     assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
                     id = 1 : numel(amb_obs_count);
                     ko_amb_list = id(amb_obs_count < min_arc);
@@ -430,7 +432,7 @@ classdef LS_Manipulator < handle
                     for i = 1: (length(amb_set_jmp_bnd)-1)
                         %clock_const(amb_set_jmp_bnd(i)+1) = 1;
                         amb_const = zeros(1,n_amb);
-                        amb_idx_const = noNaN(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
+                        amb_idx_const = noZero(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
                         amb_idx_const = mode(amb_idx_const);
                         amb_const(amb_idx_const) = 1;
                         G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
@@ -443,7 +445,6 @@ classdef LS_Manipulator < handle
                     this.D = D;
                 end
                 if phase_present
-                    %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                     fprintf('#### DEBUG #### \n');
                     [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]]
                     this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
@@ -734,7 +735,7 @@ classdef LS_Manipulator < handle
             
             if obs_set.hasPhase()
                 amb_idx = obs_set.getAmbIdx();
-                n_amb = max(max(amb_idx));
+                n_amb = double(max(max(amb_idx)));
                 
                 amb_flag = 1;
             else
@@ -1025,7 +1026,7 @@ classdef LS_Manipulator < handle
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
                 this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg];
             if obs_set.hasPhase()
-                amb_set_jmp = find(sum(diff(nan2zero(amb_idx)) < 0, 2) == sum(~isnan(amb_idx(1 : end - 1, :)),2) | sum(diff(nan2zero(amb_idx)) > 0,2) == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
+                amb_set_jmp = find(sum(diff(int32(amb_idx)) < 0, 2) == sum((amb_idx(1 : end - 1, :)) > 0, 2) | sum(diff(int32(amb_idx)) > 0, 2) == sum((amb_idx(2 : end, :)) > 0,2)) + 1;
             else
                 amb_set_jmp = [];
             end
@@ -2070,7 +2071,7 @@ classdef LS_Manipulator < handle
             this.rw(idx_obs) = [];
             this.res(idx_obs) = [];
             this.y(idx_obs) = [];
-            this.amb_idx(inearInd) = nan;
+            this.amb_idx(inearInd) = 0;
             
             param_actual = unique(this.A_idx);
             %change paramter indexes

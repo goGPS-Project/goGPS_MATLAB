@@ -490,7 +490,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             else
                 if (max(this.getIdSync) > numel(this.n_sat_ep))
-                    n_sat = nan(size(this.getIdSync));
+                    n_sat = nan(size(this.getIdSync), 'single');
                     n_sat_ss.G = n_sat;
                 else
                     n_sat = this.n_sat_ep(this.getIdSync);
@@ -511,7 +511,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   zwd = this.getZwd()
             if max(this.getIdSync) > numel(this.zwd)
-                zwd = nan(size(this.getIdSync));
+                zwd = nan(size(this.getIdSync), 'single');
             else
                 zwd = this.zwd(this.getIdSync);
                 if isempty(zwd) || all(isnan(zero2nan(zwd)))
@@ -526,7 +526,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   pwv = this.getPwv()
             if max(this.getIdSync) > numel(this.pwv)
-                pwv = nan(size(this.getIdSync));
+                pwv = nan(size(this.getIdSync), 'single');
             else
                 pwv = this.pwv(this.getIdSync);
             end
@@ -536,17 +536,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             % [gn ,ge, time] = getGradient(this)
             if isempty(this.tgn)
-                gn = nan(length(this.getIdSync),1);
+                gn = nan(length(this.getIdSync),1, 'single');
             else
                 gn = this.tgn(this.getIdSync);
             end
             if isempty(this.tgn)
-                ge = nan(length(this.getIdSync),1);
+                ge = nan(length(this.getIdSync),1, 'single');
             else
                 ge = this.tge(this.getIdSync);
             end
-            time = this.time.getSubSet(this.getIdSync);
-            
+            time = this.time.getSubSet(this.getIdSync);            
         end
         
         function [apr_zwd, time] = getAprZwd(this)
@@ -573,7 +572,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   az = this.getAzEl();
             if isempty(this.sat.az)
                 cc = this.getCC;
-                this.sat.az = nan(this.time.length, cc.getNumSat);
+                this.sat.az = nan(this.time.length, cc.getNumSat, 'single');
             end
             if nargin < 2
                 go_id = 1 : size(this.sat.az, 2);
@@ -589,7 +588,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   el = this.getEl();
             if isempty(this.sat.el)
                 cc = this.getCC;
-                this.sat.el = nan(this.time.length, cc.getNumSat);
+                this.sat.el = nan(this.time.length, cc.getNumSat, 'single');
             end
             if nargin < 2
                 go_id = 1 : size(this.sat.el, 2);

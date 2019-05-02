@@ -237,7 +237,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cycle_slip           = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
-            this.sat.amb_idx           = [];
+            this.sat.amb_idx           = uint16([]);
             this.sat.amb               = [];
             this.add_coo               = [];
         end
@@ -395,7 +395,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
-            this.sat.amb_idx           = [];
+            this.sat.amb_idx           = uint16([]);
             this.sat.amb               = [];
             
             this.add_coo               = [];
@@ -597,13 +597,13 @@ classdef Receiver_Work_Space < Receiver_Commons
         function initTropo(this)
             % initialize tropo variables
             n_epoch = this.time.length;
-            this.ztd = nan(n_epoch, 1);
-            this.apr_zhd = nan(n_epoch, 1);
-            this.zwd = nan(n_epoch, 1);
-            this.apr_zwd = nan(n_epoch, 1);
-            this.pwv = nan(n_epoch, 1);
-            this.tge = nan(n_epoch, 1);
-            this.tgn = nan(n_epoch, 1);
+            this.ztd = nan(n_epoch, 1, 'single');
+            this.apr_zhd = nan(n_epoch, 1, 'single');
+            this.zwd = nan(n_epoch, 1, 'single');
+            this.apr_zwd = nan(n_epoch, 1, 'single');
+            this.pwv = nan(n_epoch, 1, 'single');
+            this.tge = nan(n_epoch, 1, 'single');
+            this.tgn = nan(n_epoch, 1, 'single');
         end
         
         function subSample(this, id_sync)
@@ -3467,7 +3467,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
                 case 2 %% vmf gridded
                     atmo = Core.getAtmosphere();
-                    this.apr_zhd = atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
+                    this.apr_zhd = single(atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips));
             end
             
         end
@@ -4702,7 +4702,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [wl_cycle(~isnan(wl_cycle)), wsb_rec] = Core_Utils.getFracBias(wl_cycle(~isnan(wl_cycle)));
             % apply tyhe cycle to the widelane
             wl =  this.getWideLane('L1','L2','G');
-            amb_idx = nan(size(wl.obs,1),cc.getGPS.N_SAT);
+            amb_idx = zeros(size(wl.obs,1),cc.getGPS.N_SAT, 'uint16');
             amb_idx(:, wl.go_id) = wl.getAmbIdx();
             n_amb = max(max(amb_idx));
             widelane_amb_mat = nan(size(mwb.obs,1),cc.getGPS.N_SAT);
@@ -6020,7 +6020,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.updateAprTropo();
             
             zwd = nan2zero(this.getZwd);
-            apr_zhd = this.getAprZhd;
+            apr_zhd = single(this.getAprZhd);
             cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
             cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
             sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
@@ -6068,7 +6068,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             % this.updateAmbIdx()
             
-            amb_idx = ones(size(this.sat.cycle_slip_ph_by_ph));
+            amb_idx = ones(size(this.sat.cycle_slip_ph_by_ph), 'uint16');
             n_epochs = size(amb_idx,1);
             n_stream = size(amb_idx,2);
             for s = 1:n_stream
@@ -6080,7 +6080,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
                 end
             end
-            amb_idx = zero2nan(amb_idx .* (this.getPhases ~= 0));
+            amb_idx = amb_idx .* uint16(this.getPhases ~= 0);
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
             this.sat.amb_idx      = amb_idx;
             this.sat.amb_val      = nan(max(max(amb_idx)),1);
@@ -8138,25 +8138,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_sync = ls.true_epoch;
                     
                     if isempty(this.zwd) || all(isnan(this.zwd))
-                        this.zwd = zeros(this.time.length(), 1);
+                        this.zwd = zeros(this.time.length(), 1, 'single');
                     end
                     if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
-                        this.apr_zhd = zeros(this.time.length(),1);
+                        this.apr_zhd = zeros(this.time.length(),1, 'single');
                     end
                     if isempty(this.ztd) || all(isnan(this.ztd))
-                        this.ztd = zeros(this.time.length(),1);
+                        this.ztd = zeros(this.time.length(),1, 'single');
                     end
                     
                     n_sat = size(this.sat.el,2);
                     if isempty(this.sat.slant_td)
-                        this.sat.slant_td = zeros(this.time.length(), n_sat);
+                        this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
                     end
                     
                     
                     
                     this.id_sync = id_sync;
                     
-                    this.sat.res = zeros(this.time.length, n_sat);
+                    this.sat.res = zeros(this.time.length, n_sat, 'single');
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                     this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
                     
@@ -8184,7 +8184,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     % saving matrix of float ambiguities
                     amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
-                    id_ok = ~isnan(ls.amb_idx);
+                    id_ok = ls.amb_idx > 0;
                     amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
                     this.sat.amb_mat = nan(this.length, cc.getMaxNumSat);
                     this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
@@ -8195,7 +8195,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     valid_ep = ls.true_epoch;
                     this.dt(valid_ep, 1) = clock / Core_Utils.V_LIGHT;
-                    this.sat.amb_idx = nan(this.length, cc.getMaxNumSat);
+                    this.sat.amb_idx = zeros(this.length, cc.getMaxNumSat, 'uint16');
                     this.sat.amb_idx(id_sync,ls.go_id_amb(ls.phase_idx)) = ls.amb_idx;
                     this.if_amb = amb; % to test ambiguity fixing
                     this.quality_info.s0 = s0;
@@ -8334,7 +8334,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             amb_idx_rec = nan(size(wl_amb_mat));
             amb_idx_rec(true_epoch,go_id_ambs) = amb_idx;
             l1_amb_mat =nan(size(amb_idx_rec));
-            n_a_r = max(max(noNaN(amb_idx)));
+            n_a_r = max(max(noZero(amb_idx)));
             for a = 1:n_a_r
                 l1_amb_mat(amb_idx_rec == a) = x_l1(a + n_a_prec);
             end
@@ -8435,18 +8435,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 time = this.time.getSubSet(id_sync);
                 
                 if isempty(this.zwd) || all(isnan(this.zwd))
-                    this.zwd = zeros(this.time.length(), 1);
+                    this.zwd = zeros(this.time.length(), 1, 'single');
                 end
                 if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
-                    this.apr_zhd = zeros(this.time.length(),1);
+                    this.apr_zhd = zeros(this.time.length(), 1, 'single');
                 end
                 if isempty(this.ztd) || all(isnan(this.ztd))
-                    this.ztd = zeros(this.time.length(),1);
+                    this.ztd = zeros(this.time.length(), 1, 'single');
                 end
                 
                 n_sat = size(this.sat.el,2);
                 if isempty(this.sat.slant_td)
-                    this.sat.slant_td = zeros(this.time.length(), n_sat);
+                    this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
                 end
                 
                 rate = time.getRate();
@@ -8554,7 +8554,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_set =  this.getGeometryFree('C2W','C1W','G');
             obs_set_temp =  this.getIonoFree('L1','L2','G');
             geom_free(:,obs_set.go_id) = obs_set.obs;
-            amb_idx = nan(this.time.length, cc.getMaxNumSat);
+            amb_idx = zeros(this.time.length, cc.getMaxNumSat, 'uint16');
             amb_idx(:,obs_set_temp.go_id) = obs_set_temp.getAmbIdx;
             n_amb  = max(max(amb_idx));
             iono_elong = geom_free / ( 1 -gamma); % Eq (2)
@@ -8576,7 +8576,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             l1_amb = zeros(1,n_amb);
             l2_amb = zeros(1,n_amb);
-            for i =1 : n_amb;
+            for i =1 : n_amb
                 l1_amb(i) = median(n1_tilde(amb_idx == i),'omitnan');
                 l2_amb(i) = median(n2_tilde(amb_idx == i),'omitnan');
             end
@@ -8585,7 +8585,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             l1_amb_round(isnan(l1_amb_round)) = 0;
             l2_amb_round = round(l2_amb);
             l2_amb_round(isnan(l2_amb_round)) = 0;
-            for i =1 : n_amb;
+            for i =1 : n_amb
                 idx_amb = amb_idx == i;
                 L1(idx_amb) = L1(idx_amb) + l1_amb_round(i);
                 L2(idx_amb) = L2(idx_amb) + l2_amb_round(i);
