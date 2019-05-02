@@ -1456,9 +1456,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             
-            this.sat.outliers_ph_by_ph = ((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
-            n_out = sum(this.sat.outliers_ph_by_ph(:));
-            this.sat.cycle_slip_ph_by_ph = double(sparse(poss_slip_idx));
+            this.sat.outliers_ph_by_ph = sparse((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
+            n_out = full(sum(this.sat.outliers_ph_by_ph(:)));
+            this.sat.cycle_slip_ph_by_ph = sparse(poss_slip_idx);
             % Remove short arcs
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
             if this.isMultiFreq % if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
@@ -1595,7 +1595,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.setPhases(ph,wl,lid_ph); % ste back phases
                 
             end
-            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
+            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
         end
         
         function cycleSlipPPPres(this)
@@ -3441,8 +3441,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         function updateAprTropo(this)
             % update arpiori z tropo delays
             if isempty(this.tge) || all(isnan(this.tge))
-                this.tge = zeros(this.length,1);
-                this.tgn = zeros(this.length,1);
+                this.tge = zeros(this.length,1, 'single');
+                this.tgn = zeros(this.length,1, 'single');
             end
             if this.state.zd_model == 1 % sastamoinen + met
                 [P,T,H] = this.getPTH();
@@ -3483,10 +3483,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                         [P, T, H] = this.getPTH();
                     end
                     h = this.h_ortho;
-                    this.apr_zwd = Atmosphere.saast_wet(T,H,h);
+                    this.apr_zwd = single(Atmosphere.saast_wet(T,H,h));
                 case 2 %% vmf gridded
                     atmo = Core.getAtmosphere();
-                    this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
+                    this.apr_zwd = single(atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips));
             end
         end
         
@@ -8232,7 +8232,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx)), 1)), 2);
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
-                            this.pwv = nan(size(this.zwd));
+                            this.pwv = nan(size(this.zwd), 'single');
                             if ~isempty(this.meteo_data)
                                 degCtoK = 273.15;
                                 [~,Tall, H] = this.getPTH();

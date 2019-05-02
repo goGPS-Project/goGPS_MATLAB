@@ -273,7 +273,8 @@ classdef LS_Manipulator < handle
                     n_sat = cc.getMaxNumSat();
                     rec.sat.cycle_slip = false(rec.time.length, n_sat);
                     rec.sat.cycle_slip(:,obs_set.go_id) = obs_set.cycle_slip;
-                    rec.sat.outliers = false(rec.time.length, n_sat);
+                    rec.sat.cycle_slip = sparse(rec.sat.cycle_slip);
+                    rec.sat.outliers = sparse(false(rec.time.length, n_sat));
                     dual_freq = size(obs_set.obs_code,2) > 5;
                     [~, ~, ph_idx] = rec.getPhases();
                     obs_code_ph = rec.obs_code(ph_idx,:);
