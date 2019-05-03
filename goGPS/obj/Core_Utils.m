@@ -169,15 +169,24 @@ classdef Core_Utils < handle
             r = [r(end-len+2:end) ; r(1:len)];
         end
         
-        function s = semivariogram1d(x)
+        function s = semivariogram1d(x,mode)
             % compute 1 d semivariogram
             %
             % SYNTAX:
             %     s = Core_Utils.semivariogram1d(x)
+            if nargin < 2
+                mode = 'mean';
+            end
             max_lag = length(x)-1;
             s = nan(max_lag,1);
-            for l = 1 : max_lag
-                s(l) = mean(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+            if strcmpi(mode,'mean')
+                for l = 1 : max_lag
+                    s(l) = mean(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+                end
+            else
+                for l = 1 : max_lag
+                    s(l) = median(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+                end
             end
         end
             

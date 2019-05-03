@@ -1664,10 +1664,12 @@ classdef Command_Interpreter < handle
                     this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
+                    not_exported = true;
                     for t = 1 : numel(tok)
                         try
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_RIN.par ')*$'], 'once'))
                                 rec(r).work.exportRinex3();
+                                not_exported = false;
                             else
                                 if sss_lev == 0 % run on all thw results (out)
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
@@ -1687,18 +1689,24 @@ classdef Command_Interpreter < handle
                                             end
                                         end
                                         rec(r).out.exportTropoSINEX(export_par);
+                                        not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                         rec(r).out.exportTropoMat();
+                                        not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
                                         rec(r).exportMat();
+                                        not_exported = false;
                                     end
                                 else % run in single session mode (work)
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
                                         rec(r).work.exportTropoSINEX();
+                                        not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                         rec(r).work.exportTropoMat();
+                                        not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
                                         rec(r).work.exportMat();
+                                        not_exported = false;
                                     end
                                 end
                             end
@@ -1706,6 +1714,9 @@ classdef Command_Interpreter < handle
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
                         end
+                    end
+                    if not_exported
+                        this.log.addWarning('Unrecognized export parameter')
                     end
                 end
             end
