@@ -1391,7 +1391,142 @@ classdef GNSS_Station < handle
             end
             w_bar.close();
         end
+        
+        function [tropo_out, tropo_height_correction, time] = getTropoInterp(sta_list, par_name, dlat_out, dlon_out, h_out)
+            % Get interpolated map of tropospheric parameter
+            % Resolution is determined by the dtm in use (2 * 0.029 degrees)
+            % The map is computer only on ground (> 10m) + 1 degree of margin
+            %
+            % INPUT
+            %   par_name    type of tropospheric parameter:
+            %                - ztd
+            %                - zwd
+            %                - pwv
+            %   rate        rate in seconds, nearest to closest observation 
+            %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %   flag_show   if true show debug images
+            %
+            % SYNTAX
+            %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)
+            
+            % Defining interpolation
+            method = 'natural';
+            fun = @(dist) 0.2 * exp(-(dist)*1e1) + 0*exp(-(dist*5e1).^2);
+            %fun = @(dist) 1./(dist+1e-5);
+            
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            switch lower(par_name)
+                case 'ztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                case 'zwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                case 'gn'
+                    [~, s_time, ~, ~, tropo] = sta_list.getZwd_mr();
+                case 'ge'
+                    [~, s_time, ~, tropo, ~]  = sta_list.getZwd_mr();
+                case 'dir'
+                    [~, s_time, ~, ge, gn]  = sta_list.getZwd_mr();
+                    tropo = atan2d(gn, ge) - 90;
+                case 'pwv'
+                    [tropo, s_time] = sta_list.getPwv_mr();
+                case 'zhd'
+                case 'nsat'
+            end
+            tropo = tropo * 1e2;
+            
+            time = s_time; % s_time.getEpoch(1 : s_time.length());
+            med_tropo = mean(tropo, 1, 'omitnan')';
 
+            degree = 4;
+            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
+            [lat, lon, up, h_o] = coo.getGeodetic;
+            
+            xyu = [dlon_out, dlat_out, h_out];
+            
+            % Remove missing stations
+            id_ok = ~isnan(tropo'); % logical matrix of valid tropo
+                                                
+            % Correct data for height
+            tropo_height = Core_Utils.interp1LS(h_o, med_tropo, degree);
+            tropo_res = bsxfun(@minus, tropo', tropo_height)';            
+
+            h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, [0; h_out(:)]);
+            
+            % Compute map of tropo corrections for height displacements
+            tropo_height_correction = h_correction(2:end) - h_correction(1);
+                        
+            % List of valide epochs (opening an aproximate window around the points)
+            x_list = lon ./ pi * 180;
+            y_list = lat ./ pi * 180;
+            
+            epoch = 1 : s_time.length();
+            epoch_list = 1 : numel(epoch);
+            
+            tropo_out = nan(size(dlat_out,1), numel(epoch_list), 'single'); 
+                     
+            w_bar = Core.getWaitBar();
+            w_bar.createNewBar('Generating maps of troposphere');
+            w_bar.setBarLen(numel(epoch_list));
+            
+            for i = 1 : numel(epoch_list)
+                e = epoch_list(i);
+                if sum(id_ok(:, epoch(e))) > 2
+                    if strmatch(method, 'fun')
+                        tmp = funInterp2(dlon_out, dlat_out, x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
+                    else
+                        finterp = scatteredInterpolant(x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
+                        tmp = finterp(dlon_out, dlat_out);
+                    end
+                    tropo_out(:,i) = single(tmp) + h_correction(1);
+                else
+                    if i > 1
+                        tropo_out(:,i) = tropo_out(:,i) - 1;
+                    end
+                end
+                w_bar.goTime(i);
+            end
+            w_bar.close();
+            tropo_out = tropo_out';
+        end
+
+        function [id_rec, dist_3d, dist_up] = getCloserRec(sta_list, lat, lon, h_o)
+            % Get the id and 3D distance of the closest station w.r.t. a given point
+            %
+            % INPUT 
+            %   lat, lon    [degree]
+            %   h_o         [m] orthometric height
+            %
+            % OUTPUT
+            %   id_rec      id of the closest GNSS station
+            %   dist_3d     minimum distance 3D [m] w.r.t. the requested coordinates
+            %   dist_up     minimum distance up [m] w.r.t. the requested coordinates
+            %
+            % SYNTAX
+            %   [id_rec, dist_3d, dist_up] = sta_list.getCloserRec(lat, lon, h_o)
+            
+            if nargin == 3
+                h_o = 0;
+            end
+            
+            sta_xyz = sta_list.getMedianPosXYZ;
+            out_coo = Coordinates.fromGeodetic(lat / 180 * pi, lon / 180 * pi, [], h_o);
+            out_xyz = out_coo.getXYZ;
+            
+            n_out = size(out_xyz, 1);
+            n_sta = size(sta_xyz, 1);
+            
+            % check all the distances
+            d2 = (repmat(sta_xyz(:,1), 1, n_out) - repmat(out_xyz(:,1)', n_sta, 1)) .^2 + ...
+                (repmat(sta_xyz(:,2), 1, n_out) - repmat(out_xyz(:,2)', n_sta, 1)) .^2 + ...
+                (repmat(sta_xyz(:,3), 1, n_out) - repmat(out_xyz(:,3)', n_sta, 1)) .^2;
+            
+            % Keep the closest station
+            [d2_min, id_rec] = min(d2);
+            dist_3d = sqrt(d2_min);
+            [~, ~, ~, h_ortho] = sta_list(id_rec).getMedianPosGeodetic();
+            dist_up = h_ortho - h_o;
+        end
+        
         function rec_works = getWork(sta_list, id)
             % Return the working receiver for a GNSS station array
             %
