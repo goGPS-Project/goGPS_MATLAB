@@ -1224,7 +1224,12 @@ classdef GNSS_Station < handle
                 case 'zwd'
                     [tropo, s_time] = sta_list.getZwd_mr();
                 case 'gn'
+                    [~, s_time, ~, ~, tropo] = sta_list.getZwd_mr();
                 case 'ge'
+                    [~, s_time, ~, tropo, ~]  = sta_list.getZwd_mr();
+                case 'dir'
+                    [~, s_time, ~, ge, gn]  = sta_list.getZwd_mr();
+                    tropo = atan2d(gn, ge) - 90;
                 case 'pwv'
                     [tropo, s_time] = sta_list.getPwv_mr();
                 case 'zhd'
@@ -1347,11 +1352,13 @@ classdef GNSS_Station < handle
                 imh2 = imagesc(x_grid, y_grid, tropo_height_correction);
                 if FTP_Downloader.checkNet()
                     plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+                    %plot_google_map('alpha', 0.65, 'MapType', 'roadmap');
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
                 caxis(tropo_clim(2,:));
-                colormap(Cmap.get('viridis', 32));
+                cmap = Cmap.get('c51', 501);
+                colormap(flipud(cmap(2:end,:)));
                 colorbar;
                 th2 = title(ax2, 'at ground level', 'FontSize', 22);                
             end
