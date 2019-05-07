@@ -163,7 +163,7 @@ classdef GPS_Time < Exportable & handle
                         tmp = reshape(date, 6, numel(date) / 6)';
                         date = tmp;
                     catch
-                        date = datevec(string_time, date_format);
+                        date = datevec(datenum(string_time));
                     end
                     if isempty(regexp(str(3),'[0-9]', 'once')) % 2 digits year
                         date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
