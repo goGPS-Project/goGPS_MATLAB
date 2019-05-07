@@ -278,26 +278,37 @@ classdef Logger < handle
             catch % file is not open => try to create it or open it
                 out_file_path = this.out_file_path;
                 [f_dir, ~, ~] = fileparts(out_file_path);
+                path_ok = true;
                 if ~isempty(f_dir) && ~(exist(f_dir, 'file') == 7) % if it is not an existing folder
-                    mkdir(f_dir); % create the missing folder
+                    try
+                        mkdir(f_dir); % create the missing folder
+                    catch ex
+                        path_ok = false;                    
+                    end
                 end
                 
                 try fclose(this.fid); catch; end % if is not open do nothing
-                               
-                out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
-                this.fid = fopen(out_file_path, 'a+');
-                if this.fid <= 0
-                    this.fid = 0;
-                    error('Unable to open logging at %s\n', out_file_path);
+                if path_ok
+                    out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
+                    this.fid = fopen(out_file_path, 'a+');
+                    if this.fid <= 0
+                        this.fid = 0;
+                        this.disableFileOut();
+                        this.addError(sprintf('Unable to open logging at %s\n', out_file_path));
+                    else
+                        this.out_file_path = out_file_path;
+                    end
                 else
-                    this.out_file_path = out_file_path;
+                    this.disableFileOut();
+                    this.fid = 0;
                 end
             end
             if this.fid <= 0
                 this.fid = 0;
-                error('Unable to open logging at %s', this.out_file_path);
+                this.disableFileOut();
+                this.addError(sprintf('ERROR: Unable to open logging at %s', this.out_file_path));
             end
-            fid = this.fid;            
+            fid = this.fid;
         end
 
     end
@@ -434,8 +445,10 @@ classdef Logger < handle
                 if this.isScreenOut % Screen
                     fprintf(' %s\n', text);
                 end
-                if this.isFileOut % File
-                    fprintf(this.getOutFId, ' %s\n', text);
+                if this.isFileOut % file
+                    if (this.getOutFId > 0)
+                        fprintf(this.getOutFId, ' %s\n', text);
+                    end
                 end                
             end
         end
