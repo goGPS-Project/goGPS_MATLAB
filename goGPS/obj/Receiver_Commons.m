@@ -386,7 +386,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             for r = 1 : numel(this)
                 xyz = this(r).getPosXYZ();
                 xyz = median(xyz, 1);
-                if ~isempty(this(r))
+                if ~isempty(xyz) && ~isempty(this(r))
                     [lat_d(r), lon_d(r), h_ellips(r)] = cart2geod(xyz);
                     if nargout == 4
                         ondu = getOrthometricCorr(lat_d(r), lon_d(r), Core.getRefGeoid());
