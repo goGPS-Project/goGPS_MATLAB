@@ -784,21 +784,21 @@ classdef GNSS_Station < handle
             %   xyz     XYZ coordinates synced matrix (n_epoch, 3, n_rec)
             %
             % SYNTAX
-            %   [xyz, p_time = sta_list.getPosENU()
+            %   [xyz, p_time, sta_ok] = sta_list.getPosXYZ_mr()
 
-            sta_ok = ~sta_list.isEmpty_mr();
+            sta_ok = find(~sta_list.isEmptyOut_mr());
             [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list(sta_ok), [], true);
 
             id_ok = any(~isnan(id_sync),2);
             id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
-
-            n_rec = sum(sta_ok);
+            
+            n_rec = numel(sta_list);
             xyz = nan(size(id_sync, 1), 3, n_rec);
-            for r = 1 : n_rec
+            for r = 1 : numel(sta_ok)                
                 xyz_rec = sta_list(sta_ok(r)).out.getPosXYZ();
                 id_rec = id_sync(:,r);
-                xyz(~isnan(id_rec), :, r) = xyz_rec(id_rec(~isnan(id_rec)), :);
+                xyz(~isnan(id_rec), :, sta_ok(r)) = xyz_rec(id_rec(~isnan(id_rec)), :);
             end
         end
 
@@ -825,7 +825,7 @@ classdef GNSS_Station < handle
             end
         end
 
-        function [enu, p_time] = getPosENU_mr(sta_list)
+        function [enu, p_time, sta_ok] = getPosENU_mr(sta_list)
             % return the positions computed for n receivers
             % multi_rec mode (synced)
             %
@@ -833,22 +833,22 @@ classdef GNSS_Station < handle
             %   enu     enu synced coordinates
             %
             % SYNTAX
-            %   enu = sta_list.getPosENU_mr()
-            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list, [], true);
+            %   [enu, p_time, sta_ok] = sta_list.getPosENU_mr()
+            
+            sta_ok = find(~sta_list.isEmptyOut_mr());
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list(sta_ok), [], true);
 
             id_ok = any(~isnan(id_sync),2);
             id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
-
+            
             n_rec = numel(sta_list);
             enu = nan(size(id_sync, 1), 3, n_rec);
-            for r = 1 : n_rec
-                enu_rec = sta_list(r).out.getPosENU();
-                if any(enu_rec)
-                    id_rec = id_sync(:,r);
-                    enu(~isnan(id_rec), :, r) = enu_rec(id_rec(~isnan(id_rec)), :);
-                end
-            end
+            for r = 1 : numel(sta_ok)                
+                enu_rec = sta_list(sta_ok(r)).out.getPosENU();
+                id_rec = id_sync(:,r);
+                enu(~isnan(id_rec), :, sta_ok(r)) = enu_rec(id_rec(~isnan(id_rec)), :);
+            end            
         end
 
         function xyz = getMedianPosXYZ(this)
