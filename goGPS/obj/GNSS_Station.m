@@ -1268,6 +1268,7 @@ classdef GNSS_Station < handle
             
             % I don't really need full resolution (maybe in a future)
             k = ceil(sqrt(numel(dtm)) / dtm_size);
+            %k = 1;
             dtm = dtm(1:k:end, 1:k:end);
             lat = lat(1:k:end);
             lon = lon(1:k:end);
@@ -1885,8 +1886,8 @@ classdef GNSS_Station < handle
             plot(lon(:), lat(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
 
             if numel(sta_list) == 1
-                lon_lim = minMax(lon/pi*180);
-                lat_lim = minMax(lat/pi*180);
+                lon_lim = minMax(lon);
+                lat_lim = minMax(lat);
                 lon_lim(1) = lon_lim(1) - 0.05;
                 lon_lim(2) = lon_lim(2) + 0.05;
                 lat_lim(1) = lat_lim(1) - 0.05;
@@ -2085,7 +2086,7 @@ classdef GNSS_Station < handle
             %               the video file will be saved in the out folder specified in the project
             %
             % SYNTAX
-            %   sta_list.showMapTropoInterp(par_name, <new_fig>, <rate>, <flag_dtm>, <flag_export>);
+            %   sta_list.showAniMapTropoInterp(par_name, <new_fig>, <rate>, <flag_dtm>, <flag_export>);
             
             switch lower(par_name)
                 case 'ztd'
@@ -2124,6 +2125,7 @@ classdef GNSS_Station < handle
 
             maximizeFig(fig_handle);
             fig_handle.Visible = 'off';
+            fig_handle.Color = [1 1 1];
 
             [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
             if flag_dtm == 1
@@ -2165,8 +2167,9 @@ classdef GNSS_Station < handle
                 caxis(tropo_clim(2,:)); 
                 %colormap(Core_UI.CMAP_51(2:end,:));
                 %colormap(flipud(gat(1024, false)));
-                colormap(gat2);                            
-                colorbar;
+                %colormap(gat2);                            
+                cmap = Cmap.get('c51');colorbar;
+                colormap(flipud(cmap(2:end,:)));
                 set(ax2, 'Ydir', 'normal');
                 ax2.FontSize = 20;
                 ax2.FontWeight = 'bold';
@@ -2198,7 +2201,7 @@ classdef GNSS_Station < handle
                     video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.avi']));
                 end
                 video_out.FrameRate = 30;
-                video_out.Quality = 91;
+                video_out.Quality = 66;
                 open(video_out);
             else
                 fig_handle.Visible = 'on';
