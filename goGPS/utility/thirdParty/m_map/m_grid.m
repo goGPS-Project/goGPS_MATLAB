@@ -42,7 +42,7 @@ function m_grid(varargin)
 % 16/4/07  - sorted ticklabels when user-specified (prevents an odd problem near in
 %            azimuthal projections).
 % 4/DEc/11 - isstr to ischar
-% 7/Dec/11 - Octave 3.2.3 compatibility
+% 7/Dec/11 - cd /ocean/rich/home/matlab 3.2.3 compatibility
 % 8/Sep/13 - added 'tickstyle' parameter
 % 27/Sep/13 - matlab 2013b out, includes graphic bug. Workaround provided by
 %             Corinne Bassin.
@@ -55,9 +55,13 @@ function m_grid(varargin)
 %             the way he fixed it. Also improved consistency of "lake"
 %             handling with non-white background colours, and more Octave
 %             compatibility.
+%  8/Feb/18  - changed ^o to char(176) in labels. (thanks Brian Dushaw)
+%  21/06/2018 added axes option to specify the axes to draw the grid on (instead of
+%              gca) - thanks to Yoann Ladroit.
+%  23/12/2018 - aesthetic improvement to mollweide projection.
 
-
-% Note that much of the work in generating line data
+%
+% Note that much of the work in generating line data 
 % is done by calls to the individual projections - 
 % most of M_GRID is concerned with the mechanics of plotting
 
@@ -83,6 +87,15 @@ m_coord(MAP_PROJECTION.coordsystem.name);
 
 % Default parameters for grid
 
+ax_idx=find(strcmpi('axes',varargin));
+if isempty(ax_idx)
+    ax=gca;
+else
+    ax=varargin{ax_idx+1};
+end
+
+ 
+
 xtick=6;
 ytick=6;
 xlabels=NaN;
@@ -91,14 +104,14 @@ gcolor='k';
 ggridcolor=[];
 gbackcolor='w'; %%get(gcf,'color');
 glinestyle=':';
-glinewidth=get(gca,'linewidth');
-gbox='on';
-gfontsize=get(gca,'fontsize');
-gfontname=get(gca,'fontname');
-gxaxisloc=get(gca,'xaxislocation');
-gyaxisloc=get(gca,'yaxislocation');
-gtickdir=get(gca,'tickdir');
-gticklen=get(gca,'ticklength'); gticklen=gticklen(1);
+glinewidth=get(ax,'linewidth');
+gbox='on'; 
+gfontsize=get(ax,'fontsize');
+gfontname=get(ax,'fontname');
+gxaxisloc=get(ax,'xaxislocation'); 
+gyaxisloc=get(ax,'yaxislocation');
+gtickdir=get(ax,'tickdir'); 
+gticklen=get(ax,'ticklength'); gticklen=gticklen(1); 
 gxticklabeldir='middle';
 gyticklabeldir='end';
 gtickstyle='dm';
@@ -132,7 +145,7 @@ while k<=length(varargin)
     case 'col'
       gcolor=varargin{k+1};
     case 'gri'
-      ggridcolor=varargin{k+1};
+      ggridcolor=varargin{k+1};      
     case 'bac'
       gbackcolor=varargin{k+1};
     case 'lin'
@@ -160,9 +173,10 @@ while k<=length(varargin)
         case 'tickd'
            gtickdir=varargin{k+1};
 	    case 'ticks'
-	       gtickstyle=varargin{k+1};
+	       gtickstyle=varargin{k+1};   
       end
     case {'get','usa'}
+      disp('      ''axes'',( gca | axis handle)');
       disp('      ''box'',( ''on'' | ''fancy'' | ''off'' )');
       disp('      ''xtick'',( num | [value1 value2 ...])');
       disp('      ''ytick'',( num | [value1 value2 ...])');
@@ -172,7 +186,7 @@ while k<=length(varargin)
       disp('      ''ylabeldir'', ( ''end'' | ''middle'' )');
       disp('      ''ticklength'',value');
       disp('      ''tickdir'',( ''in'' | ''out'' )');
-      disp('      ''tickstyle'',(''dm'' | ''dd'' )');  % deg-min or decimal-deg
+      disp('      ''tickstyle'',(''dm'' | ''da'' | ''dd''  )');  % deg-min or abbreviated deg-min or decimal-deg
       disp('      ''color'',colorspec');
       disp('      ''gridcolor'',colorspec');
       disp('      ''backgroundcolor'',colorspec');
@@ -184,6 +198,7 @@ while k<=length(varargin)
       disp('      ''YaxisLocation'',( ''left'' | ''middle'' | ''right'' ) ');
       return;
     case 'set'
+      disp(['      axes = ' ax]);
       disp(['      box = ' gbox]);
       disp(['      xtick = ' num2str(xtick)]);
       disp(['      ytick = ' num2str(ytick)]);
@@ -204,7 +219,7 @@ while k<=length(varargin)
       return;
   end
   k=k+2;
-end
+end   
 
 if isempty(ggridcolor)
     ggridcolor=gcolor;
@@ -220,29 +235,29 @@ end
 
 [X,Y]=feval(MAP_PROJECTION.routine,'box');
 
-% These color parts make Octave fail so I moved them here, otherwise
+% These color parts make Octave fail so I moved them here, otherwise 
 % they should be before this if block
     
 % If there are lakes around, make them the backgroundcolor..
-hh=get(gca,'children');
+hh=get(ax,'children');
 hh_tags=get(hh,'tag');
 if length(hh)==1, hh_tags={hh_tags}; end
 for i=1:length(hh_tags)
    if ~isempty(strfind(hh_tags{i},'_lake')) && strcmp(get(hh(i),'type'),'patch')
-     set(hh(i),'facecolor',gbackcolor);
+     set(hh(i),'facecolor',gbackcolor);     
    end
-end
+end    
 
 % Set the axes colour so lakes get coloured right (if a coastline added
 % next)
 
-set(gca,'color',gbackcolor');
+set(ax,'color',gbackcolor');
      
 
 if MAP_PROJECTION.IsOctave
 
 
-  %  Ocatve handling here all provided by Jamie Tsao
+  %  Octave handling here all provided by Jamie Tsao
 
   % Note that both gnuplot and fltk doesn't really work well with the z-axis,
   % so here we simply ignore it.
@@ -250,7 +265,9 @@ if MAP_PROJECTION.IsOctave
   % The tag is important for M_COAST to catch the correct underlying color.
   % As a result, though, M_COAST should be called after M_GRID.
   
-  if strcmp(graphics_toolkit(), 'gnuplot')
+  
+  % IN 2018, this workaround no longer needed.
+  if 0,%strcmp(graphics_toolkit(), 'gnuplot')
     % Unfortunately, gnuplot also has a bug with using patch, where a linestyle
     % of 'none' would cause it to barf. This bug has been reported since 2013,
     % but apparently it is still not fixed. It may have something to do with
@@ -260,17 +277,17 @@ if MAP_PROJECTION.IsOctave
     % work exactly as intended. If there is no problems, then I can refactor
     % this part, assuming ftlk doesn't barf on a zero linewidth.    
     patch('xdata', X(:), 'ydata', Y(:), 'facecolor', gbackcolor, ...
-          'edgecolor', 'k', 'linewidth', 0, 'tag', 'm_grid_color');
+          'edgecolor', 'k', 'linewidth', 0, 'tag', 'm_grid_color','parent',ax);
   else
      
     patch('xdata', X(:), 'ydata', Y(:), 'facecolor', gbackcolor, ...
-          'edgecolor', 'k', 'linestyle', 'none', 'tag', 'm_grid_color');
+          'edgecolor', 'k', 'linestyle', 'none', 'tag', 'm_grid_color','parent',ax);
   end
 
   % Now I set it at the bottom of the children list so it gets drawn first
   % (i.e. doesn't cover anything)
 
-  % A bug in Octave 3.8.1 makes set(gca, 'children', -) insert the new
+  % A bug in Octave 3.8.1 makes set(ax, 'children', -) insert the new
   % permutation before the old one instead of replacing it. This only occurs
   % when the ShowHiddenHandles flag is set to on instead of off. Although fltk
   % is not affected, gnuplot still is. Combined with fltk's lack of support for
@@ -280,9 +297,9 @@ if MAP_PROJECTION.IsOctave
   show = get(0, 'ShowHiddenHandles');
   set(0, 'ShowHiddenHandles', 'on');
 
-  hh = get(gca,'children');
+  hh = get(ax,'children');
   htags = get(hh,'tag');
-  k = strmatch('m_grid_color', htags);
+  k = strcmp('m_grid_color', htags);
   hht = hh;
   hh(k) = [];
   hh = [hh;hht(k)];
@@ -292,16 +309,19 @@ if MAP_PROJECTION.IsOctave
   % hidden handles, set them to be visible, turn off flag, reorder, then set
   % them back as hidden, as noted below.
 
-  hht_inv = strmatch('off', get(hht, 'HandleVisibility'));
+  hht_inv = strcmp('off', get(hht, 'HandleVisibility'));
   set(hht(hht_inv), 'HandleVisibility', 'on');
-  set(0, 'ShowHiddenHandles', 'off');
-  set(gca,'children',hh);
+  set(0, 'ShowHiddenHandles', 'off'); 
+  set(ax,'children',hh);
   set(hht(hht_inv), 'HandleVisibility', 'off');
 
   set(0, 'ShowHiddenHandles', show);
- 
-
-else   % For MATLAB
+  
+  % Patch clipping does not work correctly in Octave, so I have to
+  % manually set the Z-limits to that fancy boxes (with 3D patches)
+  % works correctly.
+  zlim([-1 MAP_PROJECTION.LARGVAL]);
+else   % For MATLAB    
     
   
      
@@ -309,7 +329,7 @@ else   % For MATLAB
    % PATCH objects and CONTOURF objects does not work correctly in the Painters renderer -
    % this is true in all versions up to 7.7 at least. Patches with large negative Z just
    % don't get drawn under contourgroup patches.
-   %
+   % 
    % There are several possible workarounds:
    %
    %  1) Make sure you use the 'v6' option in contourf calls (see m_contourf.m to see
@@ -343,28 +363,28 @@ else   % For MATLAB
     
    if ~MAP_PROJECTION.newgraphics
         patch('xdata',X(:),'ydata',Y(:),'zdata',-MAP_PROJECTION.LARGVAL*ones(size(X(:))),'facecolor',gbackcolor,...
-	   'edgecolor','k','linestyle','none','tag','m_grid_color');
+	   'edgecolor','k','linestyle','none','tag','m_grid_color','Parent',ax);
 	  % Now I set it at the bottom of the children list so it gets drawn first (i.e. doesn't
 	  % cover anything)
 	 show=get(0, 'ShowHiddenHandles');
 	 set(0, 'ShowHiddenHandles', 'on');
-	 hh=get(gca,'children');
+	 hh=get(ax,'children');
 	 htags = get(hh,'tag');
-	 k = strmatch('m_grid_color',htags);
+	 k = strcmp('m_grid_color',htags);
 	 hht = hh;
 	 hh(k) = [];
 	 hh = [hh;hht(k)];
-	 set(gca,'children',hh);
+	 set(ax,'children',hh);
 	 set(0, 'ShowHiddenHandles', show);
      
    else  % after 2014b
        
      patch('xdata',X(:),'ydata',Y(:),'zdata',-MAP_PROJECTION.LARGVAL*ones(size(X(:))),'facecolor',gbackcolor,...
-             'edgecolor','k','linestyle','none','tag','m_grid_color');
+             'edgecolor','k','linestyle','none','tag','m_grid_color','parent',ax);
 %     patch('xdata',X(:),'ydata',Y(:),'facecolor',gbackcolor,...
 %             'edgecolor','k','linestyle','none','tag','m_grid_color');
-	 set(gca,'sortmethod','childorder');
-     uistack(findobj(gca,'tag','m_grid_color'),'bottom');
+	 set(ax,'sortmethod','childorder');
+     uistack(findobj(ax,'tag','m_grid_color'),'bottom');
 
    end
 
@@ -381,11 +401,11 @@ if ~isempty(xtick)
  % and then changing it back again later.
  fudge_north='n';fudge_south='n';
  if ~isempty(ytick) && length(ytick)>1
-  if MAP_VAR_LIST.lats(2)==90
+  if MAP_VAR_LIST.lats(2)==90 
     fudge_north='y';
     MAP_VAR_LIST.lats(2)=ytick(end);
   end
-  if MAP_VAR_LIST.lats(1)==-90
+  if MAP_VAR_LIST.lats(1)==-90 
     fudge_south='y';
     MAP_VAR_LIST.lats(1)=ytick(1);
   end
@@ -400,7 +420,7 @@ if ~isempty(xtick)
 
  [n,m]=size(X);
  line(reshape([X;NaN+ones(1,m)],(n+1)*m,1),reshape([Y;NaN+ones(1,m)],(n+1)*m,1),...
-      'linestyle',glinestyle,'color',ggridcolor,'linewidth',0.1,'tag','m_grid_xgrid');
+      'linestyle',glinestyle,'color',ggridcolor,'linewidth',0.1,'tag','m_grid_xgrid','parent',ax);
 
  % Get the tick data
  [ltx,lty,utx,uty]=maketicks(X,Y,gticklen,gtickdir);
@@ -441,25 +461,25 @@ if ~isempty(xtick)
             yy=repmat(mean(yy),size(yy));    % Put them all on the same y-value.
          else
             rotang = zeros(size(rotang))+90;  % upright
-         end
-     end
+         end 
+     end    
  end
  
  
  if strcmp(gbox,'fancy')
     if gtickdir(1)=='i'
-      fancybox(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle);
+      fancybox(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle,ax); 
       drawticks=0;
-    else
-      fancybox2(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle);
+    else    
+      fancybox2(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle,ax); 
     end
- end
+ end    
  if drawticks
    [n,m]=size(ltx);
    line(reshape([ltx;NaN+ones(1,m)],(n+1)*m,1),reshape([lty;NaN+ones(1,m)],(n+1)*m,1),...
-        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_xticks-lower','clipping','off');
+        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_xticks-lower','clipping','off','parent',ax);
    line(reshape([utx;NaN+ones(1,m)],(n+1)*m,1),reshape([uty;NaN+ones(1,m)],(n+1)*m,1),...
-        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_xticks-upper','clipping','off');
+        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_xticks-upper','clipping','off','parent',ax);
  end
 
  % Add the labels! (whew)
@@ -470,7 +490,7 @@ if ~isempty(xtick)
    [rotang(k), horizk, vertk] = upright(rotang(k), horiz, vert);
    text(xx(k),yy(k),labs{k},'horizontalalignment',horizk,'verticalalignment',vertk, ...
         'rotation',rotang(k),'fontsize',gfontsize*scl(k),'color',gcolor,...
-        'tag','m_grid_xticklabel','fontname',gfontname);
+        'tag','m_grid_xticklabel','fontname',gfontname,'parent',ax);
  end
 
  if fudge_north=='y'
@@ -491,7 +511,7 @@ if ~isempty(ytick)
  % Draw the grid
  [n,m]=size(X);
  line(reshape([X;NaN+ones(1,m)],(n+1)*m,1),reshape([Y;NaN+ones(1,m)],(n+1)*m,1),...
-      'linestyle',glinestyle,'color',ggridcolor,'linewidth',0.1,'tag','m_grid_ygrid');
+      'linestyle',glinestyle,'color',ggridcolor,'linewidth',0.1,'tag','m_grid_ygrid','parent',ax);
 
  % Get the tick data
  [ltx,lty,utx,uty]=maketicks(X,Y,gticklen,gtickdir);
@@ -521,20 +541,30 @@ if ~isempty(ytick)
   end
  end
 
+ % Added special case for latitudes. Dec/2018
+ if any(strcmp(MAP_PROJECTION.name,{'Mollweide'}) )
+     if strcmp(gyaxisloc,'left')
+         rotang=-lt;
+     elseif strcmp(gyaxisloc,'right')
+         rotang=lt;
+     end
+ end
+ 
+ 
  if strcmp(gbox,'fancy')
     if gtickdir(1)=='i'
-      fancybox(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle);
+      fancybox(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle,ax); 
       drawticks=0;
-    else
-      fancybox2(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle);
+    else    
+      fancybox2(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle,ax); 
     end
- end
+ end    
  if drawticks
    [n,m]=size(ltx);
    line(reshape([ltx;NaN+ones(1,m)],(n+1)*m,1),reshape([lty;NaN+ones(1,m)],(n+1)*m,1),...
-        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_yticks-left','clipping','off');
+        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_yticks-left','clipping','off','parent',ax);
    line(reshape([utx;NaN+ones(1,m)],(n+1)*m,1),reshape([uty;NaN+ones(1,m)],(n+1)*m,1),...
-        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_yticks-right','clipping','off');
+        'linestyle','-','color',gcolor,'linewidth',glinewidth,'tag','m_grid_yticks-right','clipping','off','parent',ax);
  end
 
  % Finally - the labels!
@@ -544,7 +574,7 @@ if ~isempty(ytick)
    [rotang(k), horizk, vertk] = upright(rotang(k), horiz, vert);
    text(xx(k),yy(k),labs{k},'horizontalalignment',horizk,'verticalalignment',vertk,...
         'rotation',rotang(k),'fontsize',gfontsize*scl(k),'color',gcolor,...
-	'tag','m_grid_yticklabel','fontname',gfontname);
+	'tag','m_grid_yticklabel','fontname',gfontname,'parent',ax);
  end
 
 end
@@ -554,33 +584,36 @@ end
 
 if strcmp(gbox,'on')
   [X,Y]=feval(MAP_PROJECTION.routine,'box');
-  line(X(:),Y(:),'linestyle','-','linewidth',glinewidth,'color',gcolor,'tag','m_grid_box','clipping','off');
+  line(X(:),Y(:),'linestyle','-','linewidth',glinewidth,'color',gcolor,'tag','m_grid_box','clipping','off','parent',ax);
 end
 
 % Give a 1-1 aspect ratio and get rid of the matlab-provided axes stuff.
 
 
 if isempty(strfind(version,'R2013b'))  % 27/Sept/13 - Handling for 2013b provided by CB.
-set(gca,'visible','off',...
-        'dataaspectratio',[1 1 1],...
-        'xlim',MAP_VAR_LIST.xlims,...
-        'ylim',MAP_VAR_LIST.ylims);
+    set(ax,'visible','off',...
+            'dataaspectratio',[1 1 1],...
+            'xlim',MAP_VAR_LIST.xlims,...
+            'ylim',MAP_VAR_LIST.ylims);
 else
-set(gca,'visible','off',...
-        'dataaspectratio',[1 1 1e16],...
-        'xlim',MAP_VAR_LIST.xlims,...
-        'ylim',MAP_VAR_LIST.ylims);
-
+    set(ax,'visible','off',...
+            'dataaspectratio',[1 1 1e16],...
+            'xlim',MAP_VAR_LIST.xlims,...
+            'ylim',MAP_VAR_LIST.ylims);
 end
 
+set(ax,'tag',['m_grid_' MAP_PROJECTION.name]);
 
-set(get(gca,'title'),'visible','on');
-set(get(gca,'xlabel'),'visible','on');
-set(get(gca,'ylabel'),'visible','on');
+set(get(ax,'title'),'visible','on');
+set(get(ax,'xlabel'),'visible','on');
+set(get(ax,'ylabel'),'visible','on');
 
 % Set coordinate system back
 
 m_coord(Currentmap.name);
+
+end
+ 
 
 
 %-------------------------------------------------------------
@@ -611,12 +644,13 @@ switch vert(1)
    case 'b'
       vert = 'top';
 end
-  
+
+end
 
 %--------------------------------------------------------------------------
 function [L,fs]=m_labels(dir,vals,uservals,tickstyle)
 % M_LONLABEL creates longitude labels
-%         Default values are calculated automatically when the grid is
+%         Default values are calculated automatically when the grid is 
 %         generated. However, the user may wish to specify the labels
 %         as either numeric values or as strings (in the usual way
 %         for axes).
@@ -637,7 +671,7 @@ end
 % If the user has specified strings, we merely need to make
 % sure that there are enough to cover all ticks.
 
-if any(ischar(uservals))
+if any(ischar(uservals)) 
   L=cellstr( uservals((rem([0:length(vals)-1],length(uservals))+1),:) );
   fs=1.0*ones(length(L),1);
   return;
@@ -657,20 +691,25 @@ else                                       % or ones provided
 end
 
 % longitudes and latitudes have some differences....
-if findstr(dir,'lat')
+% and keep a label for 0 or 180 where we don't want a letter
+if strfind(dir,'lat') 
   labname=['S';'N';' '];
 else
   labname=['W';'E';' '];
   vals=rem(vals+540,360)-180;
 end
 
-i=[vals<0;vals>0;vals==0];  % get the 'names' (i.e. N/S or E/W)
-vals=abs(vals);             % Convert to +ve values
+%i=[vals<0;vals>0;vals==0];  % get the 'names' (i.e. N/S or E/W)
+%modified by Changyong He the label for 0 or +/-180 will not show the
+%an E or W.
+i=[-180~=vals & vals<0; 180~=vals & vals>0; vals==0 | abs(vals) == 180];
+
 
 L=cell(length(vals),1);
 fs=ones(length(vals),1);
 
 if strcmp(tickstyle,'dm')
+   vals=abs(vals);             % Convert to +ve values
 
    % For each label we have different options:
    %  1 - even degrees are just labelled as such.
@@ -681,7 +720,7 @@ if strcmp(tickstyle,'dm')
    for k=1:length(vals)
      if rem(vals(k),1)==0
        nam=find(i(:,k));
-       L{k}=sprintf([' %3.0f^o' labname(nam) ' '],vals(k));
+       L{k}=sprintf([' %3.0f' char(176) labname(nam) ' '],vals(k));
      elseif abs(vals*60-round(vals*60))<.01
        L{k}=sprintf([' %2.0f'' '],rem(vals(k),1)*60);
        fs(k)=0.75;
@@ -695,15 +734,16 @@ if strcmp(tickstyle,'dm')
    % but for very small regions (<1 degree in size) this won't happen so we
    % want to force one label to show degrees *and* minutes.
 
-   if ~any(fs==1)
+   if ~any(fs==1)  
     k=round(length(vals)/2);
     nam=find(i(:,k));
-    L{k}={sprintf([' %3.0f^o' labname(nam) ' '],fix(vals(k))),...
+    L{k}={sprintf([' %3.0f' char(176) labname(nam) ' '],fix(vals(k))),...
 	  sprintf([' %2.2f'' '],rem(vals(k),1)*60)};
     fs(k)=1;
    end
-
-elseif strcmp(tickstyle,'dd')
+   
+elseif strcmp(tickstyle,'da')
+   % Abbreviated option suggested by Brooke Jones - Dec/2018
    % For each label we have different options:
    %  1 - even degrees are just labelled as such.
    %  2 - 2 decimal place intervals use 2 decimal places
@@ -711,7 +751,38 @@ elseif strcmp(tickstyle,'dd')
    for k=1:length(vals)
      if rem(vals(k),1)==0
        nam=find(i(:,k));
-       L{k}=sprintf([' %3.0f^o' labname(nam) ' '],vals(k));
+       L{k}=sprintf([' %4.0f '],vals(k));
+     elseif abs(vals*100-round(vals*100))<0.01
+       L{k}=sprintf([' %2.0f'' '],rem(abs(vals(k)),1)*60);
+       fs(k)=0.6;
+     else
+       L{k}=sprintf([' %2.2f'' '],rem(abs(vals(k)),1)*60);
+       fs(k)=0.6;
+     end
+   end
+
+   % In most cases, the map will have at least one tick with an even degree label,
+   % but for very small regions (<1 degree in size) this won't happen so we
+   % want to force one label to show degrees *and* minutes.
+
+   if ~any(fs==1)  
+    k=round(length(vals)/2);
+    nam=find(i(:,k));
+    L{k}={sprintf([' %4.0f    '],fix(vals(k))),...
+	  sprintf([' %2.2f'' '],abs(rem(vals(k),1))*60)};
+    fs(k)=1;
+   end
+   
+elseif strcmp(tickstyle,'dd')
+   vals=abs(vals);             % Convert to +ve values
+   % For each label we have different options:
+   %  1 - even degrees are just labelled as such.
+   %  2 - 2 decimal place intervals use 2 decimal places
+   %  3 - the rest fo to 4
+   for k=1:length(vals)
+     if rem(vals(k),1)==0
+       nam=find(i(:,k));
+       L{k}=sprintf([' %3.0f' char(176) labname(nam) ' '],vals(k));
      elseif abs(vals*100-round(vals*100))<0.01
        L{k}=sprintf([' %2.2f'],vals(k));
        fs(k)=0.75;
@@ -721,10 +792,10 @@ elseif strcmp(tickstyle,'dd')
      end
    end
 
-  
+
   % write code.
 end
-
+end
 
 %---------------------------------------------------------
 function [ltx,lty,utx,uty]=maketicks(X,Y,gticklen,gtickdir)
@@ -758,10 +829,10 @@ else
   utx=[X(end,:);X(end,:)+tlen*(X(end-1,:)-X(end,:))./lx];
   uty=[Y(end,:);Y(end,:)+tlen*(Y(end-1,:)-Y(end,:))./lx];
 end
-
+end
 
 %---------------------------------------------------------
-function fancybox(vals,lims,gridarg1,gridarg2,dpatch,gticklen,gridarg3);
+function fancybox(vals,lims,gridarg1,gridarg2,dpatch,gticklen,gridarg3,ax);
 %
 %  FANCYBOX  - draws fancy outlines for either top/bottom or left/right sides,
 %              depending on calling parameters.
@@ -802,23 +873,24 @@ kk=[0:(dpatch*4):px-3]'*ones(1,dpatch*2+2);
 kk=kk+ones(size(kk,1),1)*[1 2:2:(dpatch*2+2) (dpatch*2+1):-2:3];
 patch(reshape(u2x(kk),size(kk,1),size(kk,2))',...
       reshape(u2y(kk),size(kk,1),size(kk,2))',...
-      repmat(MAP_PROJECTION.LARGVAL  ,size(kk,2),size(kk,1)),'w','edgecolor','k','clipping','off','tag','m_grid_fancybox1');
+      repmat(MAP_PROJECTION.LARGVAL  ,size(kk,2),size(kk,1)),'w','edgecolor','k','clipping','off','tag','m_grid_fancybox1','parent',ax);
 patch(reshape(l2x(kk),size(kk,1),size(kk,2))',...
       reshape(l2y(kk),size(kk,1),size(kk,2))',...
-      repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),'k','clipping','off','tag','m_grid_fancybox1');
+      repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),'k','clipping','off','tag','m_grid_fancybox1','parent',ax);
 
 kk=[dpatch*2:(dpatch*4):px-3]'*ones(1,dpatch*2+2);
 kk=kk+ones(size(kk,1),1)*[1 2:2:(dpatch*2+2) (dpatch*2+1):-2:3];
 patch(reshape(l2x(kk),size(kk,1),size(kk,2))',...
       reshape(l2y(kk),size(kk,1),size(kk,2))',...
-      repmat(MAP_PROJECTION.LARGVAL  ,size(kk,2),size(kk,1)),'w','edgecolor','k','clipping','off','tag','m_grid_fancybox1');
+      repmat(MAP_PROJECTION.LARGVAL  ,size(kk,2),size(kk,1)),'w','edgecolor','k','clipping','off','tag','m_grid_fancybox1','parent',ax);
 patch(reshape(u2x(kk),size(kk,1),size(kk,2))',...
       reshape(u2y(kk),size(kk,1),size(kk,2))',...
-      repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),'k','clipping','off','tag','m_grid_fancybox1');
+      repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),'k','clipping','off','tag','m_grid_fancybox1','parent',ax);
+end
 
 
 %---------------------------------------------------------
-function fancybox2(vals,lims,gridarg1,gridarg2,dpatch,gticklen,gridarg3)
+function fancybox2(vals,lims,gridarg1,gridarg2,dpatch,gticklen,gridarg3,ax)
 %
 %  FANCYBOX  - draws fancy outlines for either top/bottom or left/right sides,
 %              depending on calling parameters.
@@ -840,7 +912,11 @@ xval=[xval(:);lims(2)];
 [X2,Y2,lg2,lgI2]=feval(MAP_PROJECTION.routine,gridarg1,xval,gridarg2,gridarg3);
 [l2x,l2y,u2x,u2y]=maketicks(X2,Y2,gticklen,'in');
 	
-if gridarg1(1)=='x', sig=1; else sig=-1; end
+if gridarg1(1)=='x'
+    sig=1; 
+else
+    sig=-1;
+end
 
 id=[1:dpatch size(l2x,2)+[-dpatch+1:0]];
 dx=diff(l2x(:,id));
@@ -860,25 +936,24 @@ kk=kk+ones(size(kk,1),1)*[1 2:2:(dpatch*2+2) (dpatch*2+1):-2:3];
  patch(reshape(l2x(kk),size(kk,1),size(kk,2))',...
        reshape(l2y(kk),size(kk,1),size(kk,2))',...
        repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),...
-       'w','edgecolor','k','clipping','off','linewidth',.2,'tag','m_grid_fancybox2');
+       'w','edgecolor','k','clipping','off','linewidth',.2,'tag','m_grid_fancybox2','parent',ax);
  patch(reshape(u2x(kk),size(kk,1),size(kk,2))',...
        reshape(u2y(kk),size(kk,1),size(kk,2))',...
        repmat(MAP_PROJECTION.LARGVAL-1,size(kk,2),size(kk,1)),...
-       'w','edgecolor','k','clipping','off','linewidth',.2,'tag','m_grid_fancybox2');
-
+       'w','edgecolor','k','clipping','off','linewidth',.2,'tag','m_grid_fancybox2','parent',ax);
 kk=[0:(dpatch*2):size(l2x,2)-dpatch-1]'*ones(1,dpatch+1);
 kk=(kk+ones(size(kk,1),1)*[1:dpatch+1])';
 [k1,k2]=size(kk);
 line(reshape(mean(l2x(:,kk)),k1,k2),reshape(mean(l2y(:,kk))',k1,k2),...
-     repmat(MAP_PROJECTION.LARGVAL,k1,k2),'color','k','clipping','off','tag','m_grid_fancybox2');
+     repmat(MAP_PROJECTION.LARGVAL,k1,k2),'color','k','clipping','off','tag','m_grid_fancybox2','parent',ax);
 
 kk=[dpatch:(dpatch*2):size(l2x,2)-dpatch-1]'*ones(1,dpatch+1);
 kk=(kk+ones(size(kk,1),1)*[1:dpatch+1])';
 [k1,k2]=size(kk);
 line(reshape(mean(u2x(:,kk))',k1,k2),reshape(mean(u2y(:,kk))',k1,k2),...
-     repmat(MAP_PROJECTION.LARGVAL,k1,k2),'color','k','clipping','off','tag','m_grid_fancybox2');
-
-
+     repmat(MAP_PROJECTION.LARGVAL,k1,k2),'color','k','clipping','off','tag','m_grid_fancybox2','parent',ax);
+ 
+end
 
 
 

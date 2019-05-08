@@ -1,6 +1,6 @@
 function [hp, ht] = m_vec(s, x, y, varargin)  % and color, etc
 % M_VEC Draws fancy arrows/quiverplots on a map.
-%    [HP, HT]=M_VEC(S,LONG,LAT,VARARGIN) draws arrows as a patch
+%    [HP, HT]=M_VEC(S,LONG,LAT,VARARGIN) draws arrows as a patch 
 %    object on a map created by the M_Map package.
 %      HP: handle to the patch object
 %      HT: handle to text object if this is a key; see below.

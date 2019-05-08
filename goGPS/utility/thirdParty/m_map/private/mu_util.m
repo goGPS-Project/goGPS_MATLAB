@@ -127,7 +127,7 @@ function gval=m_getinterval(gmin,gmax,gtick,gtickstyle)
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 2/Apr/1997
 %
 % 9/Apr/98 - changed things so that max/min limits are not automatically
-%            added (this feature made map corners messy sometimes)
+%            added (this feature made map corners messy sometimes) 
 
 % If ticks are specified, we just make sure they are within the limits
 % of the map.
@@ -142,15 +142,16 @@ else
     
     exactint=(gmax-gmin)/(gtick-1)*60; %interval in minutes
 
-    if strcmp(gtickstyle,'dm')
+    if strcmp(gtickstyle,'dm') || strcmp(gtickstyle,'da')
        % These are the intervals which we will allow (they are "nice" in the sense
        % that they come to various even multiples of minutes or degrees)
-       niceints=[0.1 0.2 0.25 0.5 ...
+       niceints=[0.01 0.02    0.05 ...
+                 0.1 0.2 0.25 0.5 ...
         	 1 2 3 4 5 6 10 12 15 20 30 ...
         	 60*[1 2 3 4 5 6 8 9 10 12 15 18 20 25 30 40 50 60 100 120 180]];
     elseif strcmp(gtickstyle,'dd')
        % these are decimal intervals
-       niceints=60*[1/500 1/400 1/250 1/200 1/100 ...
+       niceints=60*[1/1000 1/500 1/400 1/250 1/200 1/100 ...
 		     1/50 1/40 1/25 1/20 1/10 1/5 1/4 1/3 1/2 ...
 		     1 2 3 4 5 6 8 9 10 12 15 18 20 25 30 40 50 60 100 120 180];
     else
@@ -215,8 +216,8 @@ if strcmp(MAP_VAR_LIST.rectbox,'on') ||  strcmp(MAP_VAR_LIST.rectbox,'circle')
  % that an entire column might be NaN...so in this case make up something just
  % slight non-zero. (31/Mar/04)
  
- i3=find(iend==0);
- if any(i3), istart(i3)=1; iend(i3)=1; end
+ i3=find(iend==0); 
+ if any(i3), istart(i3)=1; iend(i3)=1; end 
 
  % do same fix for istart (thanks Ben Raymond for finding this bug)
  i3=find(istart>prod(size(X)));
@@ -247,7 +248,7 @@ if strcmp(MAP_VAR_LIST.rectbox,'on') ||  strcmp(MAP_VAR_LIST.rectbox,'circle')
   % the tansformations back and forth. It is for this line that I need to make
   % long-lims just a tad less than 360 when really they should be 360 (in m_lllimits)
 
-  lge(lge<=lgs)=lge(lge<=lgs)+360;
+  lge(lge<=lgs)=lge(lge<=lgs)+360; 
 
   [X,Y]=feval(MAP_PROJECTION.routine,'ll2xy',lgs(ones(Ny2,1),:)+[0:1/Ny21:1]'*(lge-lgs),...
               vals(ones(Ny2,1),:),'clip','on');
@@ -322,8 +323,8 @@ if isfinite(px(1)), MAP_VAR_LIST.lats(1)=-90; end
 if isfinite(px(2)), MAP_VAR_LIST.lats(2)= 90; end
 
 if any(isfinite(px))
-  MAP_VAR_LIST.longs=[-179.9 180]+exp(1); % we add a weird number (exp(1)) to get away from
-                         % anything that might conceivably be desired as a
+  MAP_VAR_LIST.longs=[-179.99 180]+exp(1); % we add a weird number (exp(1)) to get away from 
+                         % anything that might conceivably be desired as a 
                          % boundary - it makes grid generation easier.
                          % Also make the limits just a little less than 180, this
                          % is necessary because I have to have the first and last points
@@ -357,7 +358,7 @@ switch MAP_VAR_LIST.rectbox
     Y=[MAP_VAR_LIST.ylims(ones(1,npts)) Y  MAP_VAR_LIST.ylims(2*ones(1,npts)) fliplr(Y)];
   case 'off'
     lg=MAP_VAR_LIST.longs(1)+diff(MAP_VAR_LIST.longs)*[0:1/n1:1];
-    lg=[lg MAP_VAR_LIST.longs(2*ones(1,npts)) fliplr(lg) MAP_VAR_LIST.longs(ones(1,npts))]';
+    lg=[lg MAP_VAR_LIST.longs(2*ones(1,npts)) fliplr(lg) MAP_VAR_LIST.longs(ones(1,npts))]'; 
     lt=MAP_VAR_LIST.lats(1)+diff(MAP_VAR_LIST.lats)*[0:1/n1:1];
     lt=[MAP_VAR_LIST.lats(ones(1,npts)) lt  MAP_VAR_LIST.lats(2*ones(1,npts)) fliplr(lt)]';
     [X,Y]=feval(MAP_PROJECTION.routine,'ll2xy',lg,lt,'clip','off');

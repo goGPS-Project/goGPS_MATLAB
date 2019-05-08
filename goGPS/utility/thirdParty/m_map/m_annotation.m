@@ -28,22 +28,22 @@ function h = m_annotation( varargin )
 %   specified in normalized figure coordinates by the vectors LON and LAT
 %   ANNOTATION('arrow',LON,LAT) creates an arrow annotation with endpoints
 %   specified in normalized figure coordinates by the vectors LON and LAT. 
-%   LON(1) and LAT(1) specify the position of the tail end of the arrow
+%   LON(1) and LAT(1) specify the position of the tail end of the arrow 
 %   and LON(2) and LAT(2) specify the position at the tip of the arrow head.
 %   ANNOTATION('doublearrow',LON,LAT) creates a doublearrow annotation with
 %   endpoints specified in normalized figure coordinates by the vectors LON
 %   and LAT.
 %   ANNOTATION('textarrow',LON,LAT) creates a textarrow annotation with
 %   endpoints specified in normalized figure coordinates by the vectors LON
-%   and LAT. LON(1) and LAT(1) specify the position of the tail end of the
-%   arrow and LON(2) and LAT(2) specify the position at the tip of the arrow
+%   and LAT. LON(1) and LAT(1) specify the position of the tail end of the 
+%   arrow and LON(2) and LAT(2) specify the position at the tip of the arrow 
 %   head.
 %
 %   You should (optionally) call ORIENT first, and then WYSIWYG to see how
 %   the printed version will look, because otherwise the location of the
 %   annotation may not look right.
 %
-%   M_ANNOTATION(HANDLE,...) creates the annotation in the  AXES specified
+%   M_ANNOTATION(HANDLE,...) creates the annotation in the  AXES specified 
 %   by HANDLE (note - ANNOTATION requires a FIGURE handle)
 %
 %   H=M_ANNOTATION(...) returns a handle to the annotation object
@@ -53,10 +53,10 @@ function h = m_annotation( varargin )
 %   POSITION arguments to ANNOTATION can be omitted entirely, and all
 %   properties specified using parameter/value pairs.
 %
-%   Examples: rh=annotation('rectangle',[-123 48 .3 .3]);
+%   Examples: rh=annotation('rectangle',[-123 48 .3 .3]); 
 %             ah=annotation('arrow',[10 30],[-5 10],'Color','r');
 %             th=annotation('textarrow',[-50 -30],[-89 -70],'String','ABC');
-%
+% 
 
 % R. Pawlowicz Nov/2017
 %
@@ -72,14 +72,14 @@ if isempty(MAP_PROJECTION)
 end
 
 % Is first argument an axis handle?
-if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1})
+if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1}) 
    if  strcmp(get(varargin{1},'type'),'axes')
       useax=varargin{1};
       varargin(1)=[];
    else
       error(['map: ' mfilename ':invalidAxesHandle'],...
             ' First argument must be an axes handle ');
-   end
+   end   
 else
     useax=gca;
 end
@@ -89,7 +89,7 @@ figH=get(useax,'parent');
 
 annotype=[varargin{1} '   '];
 
-switch lower(annotype(1:5))
+switch lower(annotype(1:5)) 
    case {'recta','ellip','textb'}
        POS=varargin{2};
        LON=POS(1);

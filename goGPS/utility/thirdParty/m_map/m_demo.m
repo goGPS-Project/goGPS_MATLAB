@@ -23,7 +23,7 @@ function m_demo(index)
 
 global MAP_PROJECTION
 
-N_EXAMPLES=13;
+N_EXAMPLES=15;
 
 if nargin==0
  index=1:N_EXAMPLES;
@@ -55,7 +55,7 @@ switch i
   case 3
 
     m_proj('stereographic','lat',90,'long',30,'radius',25);
-    m_elev('contour',[-3500:1000:-500],'edgecolor','b');
+    m_elev('contour',[-3500:1000:-500],'linecolor','b');
     m_grid('xtick',12,'tickdir','out','ytick',[70 80],'linestyle','-');
     m_coast('patch',[.7 .7 .7],'edgecolor','r');
     xlabel('Polar Stereographic Projection with bathymetry','visible','on');
@@ -63,10 +63,12 @@ switch i
   case 4
   
     subplot(211);
-    Slongs=[-100 0;-75 25;-5 45; 25 145;45 100;145 295;100 290];
+    Slongs=[-100 0;-75 25;0  45; 25 145;45 100;145 295;100 295];
     Slats= [  8 80;-80  8; 8 80;-80   8; 8  80;-80   0;  0  80];
     for l=1:7
      m_proj('sinusoidal','long',Slongs(l,:),'lat',Slats(l,:));
+   %  colormap(m_colmap('blues'));caxis([-6000 0]);
+   %  m_elev('shadedrelief');
      m_grid('fontsize',6,'xticklabels',[],'xtick',[-180:30:360],...
             'ytick',[-80:20:80],'yticklabels',[],'linestyle','-','color',[.9 .9 .9]);
      m_coast('patch','g');
@@ -80,8 +82,11 @@ switch i
     Slats= [  0  90;-90  0;-90   0; 0  90;-90   0;  0  90];
     for l=1:6
      m_proj('mollweide','long',Slongs(l,:),'lat',Slats(l,:));
+   %  colormap(m_colmap('blues'));caxis([-6000 0]);
+   %  m_elev('shadedrelief');
      m_grid('fontsize',6,'xticklabels',[],'xtick',[-180:30:360],...
             'ytick',[-80:20:80],'yticklabels',[],'linestyle','-','color','k');
+
      m_coast('patch',[.6 .6 .6]);
     end
     xlabel('Interrupted Mollweide Projection of World Oceans');
@@ -129,13 +134,13 @@ switch i
   
     m_proj('lambert','lon',[-10 20],'lat',[33 48]);
     if MAP_PROJECTION.IsOctave
-       [CS,CH]=m_tbase('contourf',[-5000:500:3000]);
+       [CS,CH]=m_etopo2('contourf',[-5000:500:0 250:250:3000],'linecolor','none'); 
     else
-       [CS,CH]=m_tbase('contourf',[-5000:500:3000],'edgecolor','none');
+       [CS,CH]=m_etopo2('contourf',[-5000:500:0 250:250:3000],'edgecolor','none');
     end
     m_grid('linestyle','none','tickdir','out','linewidth',3);
 
-    colormap([ m_colmap('blues',40); m_colmap('greens',25)]);
+    colormap([ m_colmap('blues',80); m_colmap('gland',48)]);
     brighten(.5);
     
     ax=m_contfbar(1,[.5 .8],CS,CH);
@@ -213,7 +218,7 @@ switch i
     dates=datenum(1997,10,23,15,1:41,zeros(1,41));
 
     m_track(lons,lats,dates,'ticks',0,'times',4,'dates',8,...
-           'clip','off','color','r','orient','upright');
+           'clip','off','color','r','orient','upright');  
            
   case 11
   
@@ -243,7 +248,7 @@ switch i
 
     m_grid('linewidth',2,'linestyle','none');
     title({'Speckled Boundaries','for nice B&W presentation','(best in postscript format)'});
-    m_text(-128,48,5,{'Pacific','Ocean'},'fontsize',18);
+    m_text(-128,48,{'Pacific','Ocean'},'fontsize',18);
         
   case 13
   
@@ -265,10 +270,69 @@ switch i
       m_text(ln(end),lt(end),sprintf('%s - %d km',cities{k},round(range)));
     end
     
-    %% set(gcf,'color','w');  % To defeat the tendency of print to turn white into black
+    % set(gcf,'color','w');  % To defeat the tendency of print to turn white into black
     
     title('Great Circle Routes','fontsize',12,'fontweight','bold');
-       
+     
+    case 14
+        clf
+        m_proj('lambert','long',[-130 -122],'lat',[48 52.5],'rect','on');
+        if MAP_PROJECTION.IsOctave
+           [CS,CH]=m_elev('contourf',[-3000:500:-500 -200 -100 -50 -1 2 20 50 100 250:250:2000],'linecolor','none');
+        else
+           [CS,CH]=m_etopo2('contourf',[-3000:500:-500 -200 -100 -50 -1 2 20 50 100 250:250:2000],'edgecolor','none');
+        end
+             
+        m_grid('linewi',2,'tickdir','out','yaxisloc','right');
+         
+     
+        if MAP_PROJECTION.IsOctave
+            ax=m_contfbar(-.03,[.5 .8],CS,CH,'linecolor','none');
+        else
+            ax=m_contfbar(-.03,[.5 .8],CS,CH,'edgecolor','none');
+        end
+        title(ax,{'meters',''}); % Move up by inserting a blank line
+      
+        colormap([m_colmap('blues',96);m_colmap('gland',64)]);  
+        caxis([-3000 2000]);
+         
+    case 15
+        clf; 
+        m_proj('azimuthal equal-area','radius',156,'lat',-46,'long',-95,'rot',30);
+
+        ax1=subplot(2,2,1,'align');
+        m_coast('patch','r');
+        m_grid('xticklabel',[],'yticklabel',[],'linestyle','-','ytick',[-60:30:60]);
+        
+        ax2=subplot(2,2,2,'align');
+        if MAP_PROJECTION.IsOctave
+            m_elev('contourf',[-7000:1000:0 500:500:3000],'linecolor','none');
+        else
+             m_elev('contourf',[-7000:1000:0 500:500:3000],'edgecolor','none');
+        end
+        colormap(ax2,[m_colmap('blues',70);m_colmap('gland',30)]);  
+        caxis(ax2,[-7000 3000]);       
+        m_grid('xticklabel',[],'yticklabel',[],'linestyle','-','ytick',[-60:30:60]);
+
+        
+        ax3=subplot(2,2,3,'align');
+        colormap(ax3,[m_colmap('blues',70);m_colmap('gland',30)]);  
+        caxis(ax3,[-7000 3000]);       
+        m_elev('image');
+        m_grid('xticklabel',[],'yticklabel',[],'linestyle','-','ytick',[-60:30:60]);
+
+        
+        ax4=subplot(2,2,4,'align');
+        colormap(ax4,[m_colmap('blues')]);  
+        caxis(ax4,[-8000 000]);       
+        m_elev('shadedrelief','gradient',.5);
+        m_coast('patch',[.7 .7 .7],'edgecolor','none');
+        m_grid('xticklabel',[],'yticklabel',[],'linestyle','-','ytick',[-60:30:60]);
+
+        ha = axes('Position',[0 0 1 1],'Xlim',[0 1],'Ylim',[0  1],'Box','off','Visible','off','Units','normalized', 'clipping' , 'off');
+        text(0.5, 0.98,'This projection shows all oceans connected to each other','horiz','center','fontsize',20);
+        
+        
 end
   
  if i<length(index)

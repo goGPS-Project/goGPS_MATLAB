@@ -109,7 +109,7 @@
 %   DIIAR - Politecnico di Milano
 %   2013-12-19
 %
-function prettyMap(map, phiGrid, lambdaGrid, phiMin, phiMax, lambdaMin, lambdaMax, projection, shape, lineCol)
+function h = prettyMap(map, phiGrid, lambdaGrid, phiMin, phiMax, lambdaMin, lambdaMax, projection, shape, lineCol)
 
 %shape = 'coast';
 %shape = 'fill';
@@ -426,7 +426,7 @@ if sum(diff(lambdaGrid)<-200)
     lambdaGrid(lambdaGrid<0)=lambdaGrid(lambdaGrid<0)+360;
 end
 % plot the map
-m_pcolor(lambdaGrid,phiGrid, map);
+h = m_pcolor(lambdaGrid, phiGrid, map);
 
 % set the light
 shading flat;
@@ -450,7 +450,7 @@ if (~strcmp(shape,'none'))
         	phiC = M.ncst{k}(:,2);
         	[x,y] = m_ll2xy(lamC,phiC);
         	if sum(~isnan(x))>1
-            	x(find(abs(diff(x))>=abs(xMax-xMin)*0.90)+1) = nan; % Romove lines that occupy more than th 90% of the plot
+            	x(find(abs(diff(x))>=abs(xMax-xMin)*0.90)+1) = nan; % Remove lines that occupy more than th 90% of the plot
 	            line(x,y,'color', lineCol);
     	    end
         end

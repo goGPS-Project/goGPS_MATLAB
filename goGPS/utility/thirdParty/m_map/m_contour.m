@@ -39,7 +39,7 @@ data(i)=NaN;
                  % And then recompute positions without clipping. THis
                  % is necessary otherwise contouring fails (X/Y with NaN
                  % is a no-no. 
-if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','off'); end
+if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','off'); end 
 
 if any(~i(:))
  [cs,h]=contour(X,Y,data,varargin{:});

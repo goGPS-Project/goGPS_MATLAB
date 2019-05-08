@@ -5,7 +5,7 @@ function [cs,h]=m_contourf(long,lat,data,varargin)
 %    filled, areas below are left blank or are filled by a lower level.
 %    NaN's in the data leave holes in the filled plot/
 %
-%    [CS,H] = M_CONTOURF(...) returns contour matrix C as described in
+%    [CS,H] = M_CONTOURF(...) returns contour matrix C as described in 
 %    CONTOURC and a vector H of handles to PATCH objects (for use by
 %    CLABEL).
 %
@@ -22,7 +22,7 @@ function [cs,h]=m_contourf(long,lat,data,varargin)
 % Apr/06  - workaround for v7 bug in contourf.
 
 
-global MAP_PROJECTION
+global MAP_PROJECTION 
 
 % Have to have initialized a map first
 
@@ -45,7 +45,7 @@ data(i)=NaN;
                  % is a no-no. Note that this only clips properly down
                  % columns of long/lat - not across rows. In general this
                  % means patches may nto line up properly a right/left edges.
-if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','patch'); end
+if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','patch'); end  
 
 if any(~i(:))
 

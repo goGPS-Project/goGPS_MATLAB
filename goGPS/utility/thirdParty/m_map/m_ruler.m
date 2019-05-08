@@ -5,7 +5,7 @@ function h=m_ruler(posx,posy,varargin)
 %   in the range 0 to 1.  
 %   M_RULER(X1,[Y1 Y2]) draws a vertical scalebar
 %   M_RULER(...,NINTS) draws the scalebar with NINTS intervals
-%   if NINTS is a scalar (default 4).  Distances of each interval are
+%   if NINTS is a scalar (default 4).  Distances of each interval are 
 %   chosen to be 'nice'. If NINTS is a vector it is understood to be
 %   the distances to be used (in meters)
 %
@@ -24,10 +24,15 @@ function h=m_ruler(posx,posy,varargin)
 % R. Pawlowicz rich@eos.ubc.ca  8/Nov/2006
 % 7/Dec/11 - Octave 3.2.3 compatibility
 %   Nov/17 - some changes in look for new matlab graphics
-
+%   Jan/18 - patch colours must be double not logical! (no longer the same)
 
 global MAP_PROJECTION
 
+
+if isempty(MAP_PROJECTION)
+   disp('No Map Projection initialized - call M_PROJ first!');
+   return;
+end
 
 
 
@@ -40,7 +45,7 @@ if length(varargin)>0
    varargin=varargin(2:end);
    fixticks=1;
  end
-end
+end    
 
  
 gcolor='k';
@@ -48,8 +53,8 @@ glinestyle='-';
 glinewidth=3;
 gfontsize=get(gca,'fontsize');
 gfontname=get(gca,'fontname');
-gticklen=get(gca,'ticklength'); gticklen=gticklen(1);
-gtickdir=get(gca,'tickdir');
+gticklen=get(gca,'ticklength'); gticklen=gticklen(1); 
+gtickdir=get(gca,'tickdir'); 
  
 if MAP_PROJECTION.newgraphics
  gticklen=gticklen*3;
@@ -102,9 +107,11 @@ while k<=length(varargin)
       disp(['      fontsize = ' num2str(gfontsize)]);
       disp(['      fontname = ' gfontname]);
        return;
+      otherwise
+       disp([' Unknown option: ' varargin{k}]);     
   end
   k=k+2;
-end
+end   
 
  
 % Need earth radius, in m.
@@ -167,8 +174,10 @@ end
 
 if max(log10(dist(2:end)))>=3
    numfac=1000;
+   units=' km';
 else
    numfac=1;
+   units= ' m';
 end
       
 if horiz
@@ -187,17 +196,17 @@ if horiz
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end
-    else
+    else  
       line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end
+    end	 
   else
    
     patch(posx(1)+[dist(1:end-1);dist(1:end-1);dist(2:end);dist(2:end)]/scfac,...
            posy(1)+diff(ylm)*gticklen*[-1;1;1;-1]*ones(1,nints),...
 	   repmat(MAP_PROJECTION.LARGVAL  ,4,nints),...
-           reshape(rem(rem(0:nints*3-1,nints),2)==0,1,nints,3),...
+           reshape(double(rem(rem(0:nints*3-1,nints),2)==0),1,nints,3),...
 	 'linewidth',glinewidth/3,'linestyle',glinestyle,...
          'clipping','off','tag','m_ruler');
 
@@ -205,18 +214,18 @@ if horiz
    
   if nints>1
     for k=1:nints+1
-      text(posx(1)+dist(k)/scfac,posy(1)-diff(ylm)*gticklen,sprintf('%d',dist(k)/numfac), ...
+      text(posx(1)+dist(k)/scfac,posy(1)-diff(ylm)*gticklen,num2str(dist(k)/numfac), ...
           'fontsize',gfontsize,'fontname',gfontname,...
          'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
     end
   %  text(posx(1)+dist(nints+1)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d km',dist(end)/numfac),...
   %        'fontsize',gfontsize,'fontname',gfontname,...
   %        'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
-    text(posx(1)+diff(posx)/2,posy(1)+diff(ylm)*gticklen,'km',...
+    text(posx(1)+diff(posx)/2,posy(1)+diff(ylm)*gticklen,units,...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','bottom','horizontalalignment','center','tag','m_ruler_label');
-  else
-    text(posx(1)+mean(dist)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d km',dist(end)/numfac),...
+  else 
+    text(posx(1)+mean(dist)/scfac,posy(1)-diff(ylm)*gticklen*2,[num2str(dist(end)/numfac) units],...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
   end
@@ -237,17 +246,17 @@ else
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end
-    else
+    else  
        line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end
+    end	 
   else
    
     patch(posx(1)+diff(xlm)*gticklen*[-1;1;1;-1]*ones(1,nints),...
           posy(1)+[dist(1:end-1);dist(1:end-1);dist(2:end);dist(2:end)]/scfac,...
 	   repmat(MAP_PROJECTION.LARGVAL  ,4,nints),...
-           reshape(rem(rem(0:nints*3-1,nints),2)==0,1,nints,3),...
+           reshape(double(rem(rem(0:nints*3-1,nints),2)==0),1,nints,3),...
 	 'linewidth',glinewidth/3,'linestyle',glinestyle,...
          'clipping','off','tag','m_ruler');
 
@@ -255,15 +264,15 @@ else
 
   if nints>1
     for k=1:nints
-      text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(k)/scfac,sprintf('%d',dist(k)/numfac), ...
+      text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(k)/scfac,num2str(dist(k)/numfac), ...
           'fontsize',gfontsize,'fontname',gfontname,...
          'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
     end
-    text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(nints+1)/scfac,sprintf('%d km',dist(end)/numfac),...
+    text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(nints+1)/scfac,[num2str(dist(end)/numfac) units],...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
-  else
-    text(posx(1)+diff(xlm)*gticklen*2,posy(1)+mean(dist)/scfac,sprintf('%d km',dist(end)/numfac),...
+  else  
+    text(posx(1)+diff(xlm)*gticklen*2,posy(1)+mean(dist)/scfac,[num2str(dist(end)/numfac) units],...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
   end

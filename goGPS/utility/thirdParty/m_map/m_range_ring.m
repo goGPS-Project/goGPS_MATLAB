@@ -12,7 +12,7 @@ function h=m_range_ring(long,lat,range,varargin)
 %    The appearance of lines can be modified using the usual
 %    line properties thus:
 %    M_RANGE_RING(LONG,LAT,RANGE, <line property/value pairs>)
-%
+%    
 %    Sometimes you may need to adjust the number of points plotted
 %    in each range ring (this can happen if the ring is at the extreme
 %    edge of certian projections). THis can be done using
@@ -30,6 +30,13 @@ function h=m_range_ring(long,lat,range,varargin)
 % 7/Dec/11 - Octave 3.2.3 compatibility
 
 global MAP_PROJECTION MAP_VAR_LIST
+
+
+if isempty(MAP_PROJECTION)
+  disp('No Map Projection initialized - call M_PROJ first!');
+  return;
+end
+
 
 pi180=pi/180;
 earth_radius=6378.137;
@@ -75,7 +82,7 @@ for k=1:length(long)
   [XX,YY]=m_ll2xy([X,X2,X3],[Y,Y(:,kk),Y(:,kk)],'clip','on');
   
   % Get rid of 2-point lines (these are probably clipped lines spanning the window)
-  fk=isfinite(XX(:));
+  fk=isfinite(XX(:));        
   st=find(diff(fk)==1)+1;
   ed=find(diff(fk)==-1);
   if length(st)<length(ed), st=[1;st]; end
@@ -87,7 +94,7 @@ for k=1:length(long)
      for k2=1:size(XX,2)
          h=[h;line(XX(:,k2),YY(:,k2),varargin{:},'tag','m_range_ring')];
      end
-  else
+  else   
      h=[h;line(XX,YY,varargin{:},'tag','m_range_ring')];
   end
   

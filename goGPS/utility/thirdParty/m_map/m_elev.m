@@ -1,10 +1,17 @@
 function [values,longs,lats]=m_elev(varargin)
 % M_ELEV Contour elevation onto a map using a 1-degree database
 %        M_ELEV contours elevations at 1000m intervals for the map.
-%        M_ELEV(OPTN (,LEVELS) (,ARGS,...) ) lets you change various options.
-%        if OPTN=='contour', contour lines are drawn. For OPTN=='contourf',
-%        filled contours are drawn. LEVELS are the levels used, and ARGS
-%        are optional patch arguments of line types, colors, etc. 
+%        M_ELEV(OPTN) where OPTN is one of the following strings lets
+%        you draw a particular background:
+%        OPTN: 'contour' -  contour lines are drawn.
+%              'contourf' -  filled contours are drawn. 
+%                               LEVELS are the levels used, and ARGS
+%                               are optional patch arguments of line types, 
+%                               colors, etc. 
+%              'pcolor'    - pcolor call
+%              'image'     - displays pixellated image
+%              'shadedrelief' - shaded relief map.
+%        M_ELEV(OPTN,args,...) lets you pass arguments to the OPTN call.
 %
 %        [CS,H]=M_ELEV(...) allows access to the return arguments of the
 %        contour/contourf call.
@@ -27,33 +34,36 @@ function [values,longs,lats]=m_elev(varargin)
 % 4/DEc/11 - isstr to ischar
 % 30/Aug/13 - hack edge-handling in azimuthal projections that wrap
 %             around.
+% Mar/20/2019 - changed call sequence, other stuff for shaded relief.
 
-global MAP_PROJECTION MAP_VAR_LIST
+global MAP_PROJECTION MAP_VAR_LIST 
 
-% Have to have initialized a map first
 
-draw_map=1;
+% First case if we just want to extract dat, otherwise we are drawing.
 if nargin==1 && ~ischar(varargin{1}) && length(varargin{1})==4
   draw_map=0;
-end
-
-
-if draw_map==1 && isempty(MAP_PROJECTION)
-  disp('No Map Projection initialized - call M_PROJ first!');
-  return;
-end
-
-if MAP_PROJECTION.IsOctave
-  disp('The elevation database called by ''m_elev.m'' does not exist in Octave');
-  return;
-end
+else
+  draw_map=1;
+  optn='contour';
+  levels=[-7000:1000:-1000 1000:1000:5000];
   
-% Set current projection to geographic
-Currentmap=m_coord('set');
-m_coord('geographic');
+  if nargin>=1 && ischar(varargin{1})
+     optn=varargin{1};
+     varargin(1)=[];
+  end
+end
+
+
+   
 
 if draw_map
 
+  % Have to have initialized a map first
+  if isempty(MAP_PROJECTION)
+      disp('No Map Projection initialized - call M_PROJ first!');
+      return;
+  end
+    
   blat=max(floor(MAP_VAR_LIST.lats(1)+.5),-89)-.5;
   tlat=min(ceil(MAP_VAR_LIST.lats(2)+.5),90)-.5;
   llong=floor(MAP_VAR_LIST.longs(1)+.5)-.5;
@@ -68,7 +78,14 @@ else
 
 end
 
-load topo
+% Extract topographhy for the desired lat/long limits
+
+
+% Replace the matlab topography with one I have derived.
+currloc=mfilename('fullpath');  % Octave has problems finding the file 
+load([currloc(1:end-6) 'private/m_topo.mat']);
+%%load private/m_topo
+%load topo
 
 if rlong>360, rlong=rlong-360; llong=llong-360; end
 if llong<-360, rlong=rlong+360; llong=llong+360; end
@@ -82,9 +99,10 @@ lgs=(llong:rlong);
 % want to get data past the map edges (so we can clip to map boundaries),
 % but if there is a 'wrap' then this creates patches that overlap on
 % themselves, which (when filled) show up in the background colour.
-if strcmp(MAP_PROJECTION.routine,'mp_azim') && length(lgs)==362
+if exist('MAP_PROJECTION.routine') && strcmp(MAP_PROJECTION.routine,'mp_azim') && length(lgs)==362 && ...
+   strcmp(optn,'contourf')
   lgs=lgs(1:361);
-  rlong=lgs(end);
+  rlong=lgs(end); 
 end
   
 
@@ -97,60 +115,61 @@ else
 end
 
  
+% ...and draw if required
+
 if draw_map
 
-  if nargin==0
-   levels=[-7000:1000:-1000 1000:1000:5000];
-   optn='contour';
-   n_opt=1;
-  else
-   if ischar(varargin{1})
-     optn=varargin{1};
-   end
-   if nargin==1
-     levels=[-7000:1000:-1000 1000:1000:5000];
-     n_opt=2;
-   else
-     if ischar(varargin{2})
-       levels=[-7000:1000:-1000 1000:1000:5000];
-       n_opt=2;
-    else
-       levels=varargin{2};
-       n_opt=3;
-     end
-   end
-  end
-
-  [lg,lt]=meshgrid(lgs,lts);
-  %[X,Y]=m_ll2xy(lg,lt,'clip','on');
-
+  % Set current projection to geographic
+  Currentmap=m_coord('set');
+  m_coord('geographic');
 
   hold on;
   switch optn
    case 'contour'
-      [values,longs]=m_contour(lg,lt,topo,levels);
-   case 'contourf'
-      [values,longs]=m_contourf(lg,lt,topo,levels);
-   case 'pcolor'
-      [longs]=m_pcolor(lg,lt,topo);
-  end
-
-  set(longs,'tag','m_elev');
-  if n_opt<length(varargin)
-      for l=1:length(longs)
-          set(longs(l),varargin{n_opt:end});
+       if ~isempty(varargin) && ~ischar(varargin{1})
+           levels=varargin{1};
+           varargin(1)=[];
+       end
+      [values,longs]=m_contour(lgs,lts,topo,levels);
+      if ~isempty(varargin)
+          for l=1:length(longs) 
+              set(longs(l),varargin{:}); 
+          end 
       end
-  end
+   case 'contourf'
+       if ~isempty(varargin) && ~ischar(varargin{1})
+           levels=varargin{1};
+           varargin(1)=[];
+       end
+      [values,longs]=m_contourf(lgs,lts,topo,levels);
+      if ~isempty(varargin)
+          for l=1:length(longs) 
+              set(longs(l),varargin{:}); 
+          end 
+      end
+   case 'pcolor'
+      [longs]=m_pcolor(lgs,lts,topo,varargin{:});
+   case 'image'
+      [longs]=m_image(lgs,lts,topo,varargin{:});
+   case 'shadedrelief'
+       [Im,X,Y]=m_image(lgs,lts,topo);
+       [longs]=m_shadedrelief(X,Y,Im,'coords','map','gradient',1,varargin{:});
+   otherwise
+      error(['m_elev:Unrecognized option: ' optn]);       
+  end  
 
-else
+  set(longs,'tag','m_elev');  
+  
+  % Reset map coords
+  m_coord(Currentmap.name);
+ 
+else  % Just the data ma'am...
 
   [longs,lats]=meshgrid(lgs,lts);
   values=topo;
 
 end
 
-% Reset map coords
-m_coord(Currentmap.name);
 
 if nargout==0
  clear values lats longs

@@ -1,5 +1,5 @@
 function [ ax,h ] = m_contfbar( varargin )
-% M_CONTFBAR Draws a colour bar for contourf plots
+% M_CONTFBAR Draws a colour bar for contourf plots 
 %    M_CONTFBAR([X1,X2],Y,DATA,LEVELS) draws a horizontal colourbar
 %    between the normalized coordinates (X1,Y) and (X2,Y) where
 %    X/Y are both in the range 0 to 1 across the current axes.
@@ -9,7 +9,7 @@ function [ ax,h ] = m_contfbar( varargin )
 %    colour patches exactly corresponding to levels provided by
 %    CONTOURF(DATA,LEVELS) instead of showing the whole continuous
 %    colourmap, the parent axis is not resized, the axis can be made
-%    as large or small as desired, and the presence of values
+%    as large or small as desired, and the presence of values 
 %    above/below contoured levels is indicated by triangular pieces
 %    (MATLAB 2014b or later).
 %
@@ -42,10 +42,14 @@ function [ ax,h ] = m_contfbar( varargin )
 %    the contourobject H. This is useful to add titles, xlabels, etc.
 %
 %    M_CONTFBAR(BAX,...) where BAX is an axis handle draws the colourbar
-%    for that axis. Note that if you call COLORMAP(BAX,...) to give a
-%    colormap for axis BAX, then you also have to call M_CONTFBAR(BAX,...),
-%    but if you call COLORMAP without specifying an axes then you must
-%    call M_CONTFBAR without specifying an axes.
+%    for that axis.
+%
+%    Note that if you assign a colormap to the specific axes BAX for which
+%    you want a colorbar by calling COLORMAP(BAX,...), then in order to 
+%    import that colormap to the colorbar you must use M_CONTFBAR(BAX,...). 
+%    However, if you call COLORMAP without specifying an axes (which sets 
+%    the figure colormap) then you must call M_CONTFBAR without specifying 
+%    an axis.
 %
 %    Calling M_CONTFBAR a second time will replace the first colourbar.
 %    Calling M_CONTFBAR without arguments will erase a colourbar.
@@ -55,7 +59,7 @@ function [ ax,h ] = m_contfbar( varargin )
 
 % R. Pawlowicz Nov/2017
 %     Dec/2017 - inherit colormaps from the source axes.
-%
+%     Dec/2018 - if no axis specified, inherit colors from gca
 
 % if users enters a '0' or a '1' as the first argument it can
 % easily be interpreted as a figure handle - make sure this
@@ -65,18 +69,18 @@ if nargin>0 && length(varargin{1})==1 && (varargin{1}==0 || varargin{1}==1 )
 end
  
 % Is first argument an axis handle?
-if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1})
+if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1}) 
    if  strcmp(get(varargin{1},'type'),'axes')
       savax=varargin{1};
       varargin(1)=[];
-      inheritcolormap=true;
+    %  inheritcolormap=true;
    else
       error(['map: ' mfilename ':invalidAxesHandle'],...
             ' First argument must be an axes handle ');
-   end
+   end   
 else
     savax=gca;
-    inheritcolormap=false;
+   % inheritcolormap=false;
 end
 
 % Delete any existing colorbars associated with savax
@@ -85,7 +89,7 @@ if ~isempty(oldax) && ishandle(oldax) && strcmp('m_contfbar',get(oldax,'tag'))
     delete(oldax);
 end
 
-if length(varargin)==0  % No input arguments? - exit immediately after deleting old colorbar.
+if isempty(varargin)  % No input arguments? - exit immediately after deleting old colorbar.
     return
 elseif length(varargin)>=4
     posx=varargin{1};
@@ -124,7 +128,7 @@ while k<=length(varargin)
                     sublevels=true;
             end
             varargin([k k+1])=[];
-        case 'edg'
+        case {'edg','lin'}
             edgeargs=varargin([k k+1]);
             varargin([k k+1])=[];
         otherwise
@@ -178,7 +182,7 @@ if minD<Clevel(1) && endpiece
     fakex=[1;1]*[Clevel(1)-.1*dC Clevel(1)];
     fakey=[1 2;1 0];
     leftpatch=true;
-else
+else    
     fakedata=[1;1]*[Clevel(1) ];
     fakex=[1;1]*[Clevel(1)];
     fakey=[2;0];
@@ -190,7 +194,7 @@ if maxD>Clevel(end) && endpiece
     fakex=[fakex [1;1]*[Clevel(end) Clevel(end)+.1*dC] ];
     fakey=[fakey [2 1;0 1]];
 
-else
+else    
     fakedata=[ fakedata [1;1]*[Clevel(end)]];
     fakex=[fakex [1;1]*[Clevel(end)] ];
     fakey=[fakey [2 ;0 ]];
@@ -210,13 +214,13 @@ elseif  ( length(posx)==1 && length(posy)==2)
     cpos=[ axpos(1)+(posx-1/2*axfrac)*axpos(3) ...
          axpos(2)+posy(1)*axpos(4) ...
          axfrac*axpos(3) ...
-         diff(posy)*axpos(4) ];
+         diff(posy)*axpos(4) ];  
     tmp=fakex;
     fakex=fakey;
     fakey=tmp;
 end
 
-ax=axes('position',cpos);
+ax=axes('position',cpos);  
 
 if leftpatch   % If a left triangle is being drawn, colour a "behind"
     if horiz
@@ -231,7 +235,8 @@ end
 [~,h]=contourf(fakex,fakey,fakedata,Levels,'clipping','off',edgeargs{:});
 set(h,'clipping','off');   % Makes endpieces show in 2014b and later
 
-line(fakex',fakey','color','k');
+line(fakex',fakey','color','k'); % long sides 
+line(fakex,fakey,'color','k');
 
 if horiz
     set(ax,'xlim',Clevel([1 end]),'ytick',[],'clipping','off',...
@@ -242,14 +247,20 @@ else
      'xlim',[0 2],'xcolor','w');
     if posx>0.5, set(ax,'yaxislocation','right'); end
 end
-  
+
 set(ax,'tickdir','out','box','off','layer','bottom',...
     'ticklength',[.03 .03],'tag','m_contfbar',varargin{:});
 
 % Inherit the colormap. - fix Dec/28/2017
-if inheritcolormap
+%if inheritcolormap
+   drawnow;  % Update all properties - if this is missing
+             % then we might be loading a default colormap
+             % simply because the correct one is in  a'pending'
+             % stack of graphics requests.  For colorbars there
+             % appears to be 'peer' property that is perhaps
+             % associated with handling this property.
    colormap(ax,colormap(savax));
-end
+%end
 
 
 % Tuck away the info that there is a colorbar

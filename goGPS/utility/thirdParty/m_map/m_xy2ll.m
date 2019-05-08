@@ -13,6 +13,11 @@ function [long,lat]=m_xy2ll(X,Y)
 
 global MAP_PROJECTION MAP_COORDS
 
+if isempty(MAP_PROJECTION)
+  disp('No Map Projection initialized - call M_PROJ first!');
+  return;
+end
+
 if nargin==0 || ischar(X)
   disp(' Usage:');
   disp(' [LONGITUDE,LATITUDE]=m_xy2ll(X,Y);');
@@ -22,8 +27,8 @@ else
     if strcmp(MAP_COORDS.name,'geographic')
       [long,lat]=mc_coords('mag2geo',long,lat);
     else
-      [long,lat]=mc_coords('geo2mag',long,lat);
-    end
+      [long,lat]=mc_coords('geo2mag',long,lat);      
+    end 
   end
 end
 

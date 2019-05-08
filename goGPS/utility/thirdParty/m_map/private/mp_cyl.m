@@ -21,10 +21,14 @@ function  [X,Y,vals,labI]=mp_cyl(optn,varargin)
 % Mercator - conformal
 % Miller - "looks" nice.
 % Equidistant - basically plotting by lat/long, with distances stretched.
-
-
+%
+%  Jan/18 - added option to put map into units of meters by specifying spheroid.
+%  May/18 - rescaled equidistant projection so it does distances properly
+%           (multiplied x by cos(lat) instead of dividing y by that value).
 
 global MAP_PROJECTION MAP_VAR_LIST
+
+MAP_ELLIP=mc_ellips;
 
 name={'Mercator','Miller Cylindrical','Equidistant Cylindrical'};
 
@@ -39,15 +43,20 @@ switch optn
 
   case {'usage','set'}
 
+     m_names=fieldnames(MAP_ELLIP);
+
      X=char({['     ''' varargin{1} ''''],...
               '     <,''lon<gitude>'',( [min max] | center)>',...
-              '     <,''lat<itude>'',( maxlat | [min max]>'});
+              '     <,''lat<itude>'',( maxlat | [min max]>',...
+              '     <,''sph<ere>'', one of',...
+           reshape(sprintf('         %6s',m_names{:}),15,length(m_names))'} );
 
   case 'get'
 
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ],...
-            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ]);
+            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...  
+            [' sphere: ' MAP_VAR_LIST.ellipsoid ]);
 
   case 'initialize'
 
@@ -58,19 +67,28 @@ switch optn
     MAP_VAR_LIST.clong=0;
     MAP_VAR_LIST.rectbox='off'; %always...(this is because we actually want lat/long grids
                                 % to include the edges; this is turned off in rectboxes).
+    MAP_VAR_LIST.ellipsoid = 'normal';
+    MAP_VAR_LIST.aussiemode=false;
+    
     k=2;
     while k<length(varargin)
       switch varargin{k}(1:3)
          case 'lon'
            if length(varargin{k+1})>1
-             MAP_VAR_LIST.ulongs=varargin{k+1};
+             MAP_VAR_LIST.ulongs=varargin{k+1}(:)';
              MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
            else
              MAP_VAR_LIST.clong=varargin{k+1};
              MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];
            end
          case 'lat'
-           MAP_VAR_LIST.ulats=varargin{k+1};
+           MAP_VAR_LIST.ulats=varargin{k+1}(:)';
+         case 'sph'
+           MAP_VAR_LIST.ellipsoid=varargin{k+1};
+	 case 'aus' % aussiemode - my joke
+	   if strcmp(varargin{k+1},'on')
+	     MAP_VAR_LIST.aussiemode=true;
+	   end   
          otherwise
            disp(['Unknown option: ' varargin{k}]);
       end
@@ -80,6 +98,11 @@ switch optn
      if length(MAP_VAR_LIST.ulats)==1
        MAP_VAR_LIST.ulats=[-1 1]*abs(MAP_VAR_LIST.ulats(1));
      end
+     
+    if ~isfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid)
+       MAP_VAR_LIST.ellipsoid = 'normal';
+    end
+    MAP_VAR_LIST.ellip=getfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid);
 
      mu_util('xylimits');
 
@@ -101,28 +124,35 @@ switch optn
         [lat,long]=mu_util('clip',varargin{4},lat,MAP_VAR_LIST.lats(2),lat>MAP_VAR_LIST.lats(2),long);
     end
 
-    X=(long-MAP_VAR_LIST.clong)*pi180;
 
     switch MAP_PROJECTION.name
       case name(1)
-        Y=atanh(sin(lat*pi180));
+        X=MAP_VAR_LIST.ellip(1)*(long-MAP_VAR_LIST.clong)*pi180;
+        Y=MAP_VAR_LIST.ellip(1)*atanh(sin(lat*pi180));
       case name(2)
-        Y=atanh(sin(lat*pi180*0.8))/0.8;
+        X=MAP_VAR_LIST.ellip(1)*(long-MAP_VAR_LIST.clong)*pi180;
+        Y=MAP_VAR_LIST.ellip(1)*atanh(sin(lat*pi180*0.8))/0.8;
       case name(3)
-        Y=lat*pi180/cos(mean(MAP_VAR_LIST.lats)*pi180);
+        X=MAP_VAR_LIST.ellip(1)*(long-MAP_VAR_LIST.clong)*pi180*cos(mean(MAP_VAR_LIST.lats)*pi180);
+        Y=MAP_VAR_LIST.ellip(1)*lat*pi180;
     end
-
-  case 'xy2ll'
+    if MAP_VAR_LIST.aussiemode, Y=-Y; X=-X; end;
     
-    X=varargin{1}/pi180+mean(MAP_VAR_LIST.longs);
+  case 'xy2ll'
+  
+    if MAP_VAR_LIST.aussiemode, varargin{2}=-varargin{2};varargin{1}=-varargin{1};  end;
+    
 
     switch MAP_PROJECTION.name
       case name(1)
-        Y=90-2/pi180*atan(exp(-varargin{2}));
+        X=varargin{1}/MAP_VAR_LIST.ellip(1)/pi180+mean(MAP_VAR_LIST.longs);
+        Y=90-2/pi180*atan(exp(-varargin{2}/MAP_VAR_LIST.ellip(1)));
       case name(2)
-        Y=(2/pi180*atan(exp(varargin{2}*0.8))-90)/0.8;
+        X=varargin{1}/MAP_VAR_LIST.ellip(1)/pi180+mean(MAP_VAR_LIST.longs);
+        Y=(2/pi180*atan(exp(varargin{2}/MAP_VAR_LIST.ellip(1)*0.8))-90)/0.8;
       case name(3)
-        Y=varargin{2}*cos(mean(MAP_VAR_LIST.lats)*pi180)/pi180;
+        X=varargin{1}/MAP_VAR_LIST.ellip(1)/pi180/cos(mean(MAP_VAR_LIST.lats)*pi180)+mean(MAP_VAR_LIST.longs);
+        Y=varargin{2}/MAP_VAR_LIST.ellip(1)/pi180;
     end
         
   case 'xgrid'

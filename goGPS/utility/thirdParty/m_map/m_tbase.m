@@ -55,7 +55,7 @@ if efid==-1
    m_elev(varargin{:});
  elseif nargout==2
    [values,longs]=m_elev(varargin{:});
- elseif nargout==3
+ elseif nargout==3	
    [values,longs,lats]=m_elev(varargin{:});
  end
  return;
@@ -179,7 +179,7 @@ if draw_map
       [values,longs]=m_contour(lgs,lts,topo,levels);
    case 'contourf'
       [values,longs]=m_contourf(lgs,lts,topo,levels);
-  end
+  end  
   set(longs,'tag','m_tbase');
   if n_opt<length(varargin)
     for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end

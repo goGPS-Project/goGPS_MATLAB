@@ -19,6 +19,8 @@ function  [X,Y,vals,labI]=mp_omerc(optn,varargin)
 % forth.
 % Oblique Mercator - cylindrical conformal
 
+%  22/Mar/2019 - handled longitudes in inverse mapping better (off by
+%                360 issues)
 
 global MAP_PROJECTION MAP_VAR_LIST
 
@@ -46,7 +48,7 @@ switch optn
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs)],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
             [' Aspect ratio: ' num2str(MAP_VAR_LIST.aspect)],...
-            [' Baseline direction ' MAP_VAR_LIST.direc]);
+            [' Baseline direction ' MAP_VAR_LIST.direc]); 
 
   case 'initialize'
 
@@ -58,8 +60,9 @@ switch optn
     MAP_VAR_LIST.direc='ver';
     MAP_VAR_LIST.rectbox='on';  % THis is always the case for this projection; it's just
                                 % too difficult to comtemplate the other possibility
+    MAP_VAR_LIST.ellipsoid='normal';
     k=2;
-    while k<length(varargin)
+    while k<length(varargin)   
       switch varargin{k}(1:3)
          case 'lon'
            MAP_VAR_LIST.ulongs=varargin{k+1};
@@ -86,7 +89,7 @@ switch optn
             -cos(rulats(1))*sin(rulats(2))*sin(rulongs(1)) );
     MAP_VAR_LIST.rpolelat=atan(-cos(MAP_VAR_LIST.rpolelong-rulongs(1))/ ...
                                  tan(rulats(1)));
-
+    
     % Now get the map X/Y limits in the transformed plane
     switch MAP_VAR_LIST.direc(1:3)
       case 'hor'
@@ -100,7 +103,7 @@ switch optn
     end
   
     % For further use, it is useful to have the max/min lat/longs in the visible area
-
+ 
     mu_util('lllimits');
     
   case 'll2xy'
@@ -148,7 +151,17 @@ switch optn
                 +cos(MAP_VAR_LIST.rpolelat)*sin(varargin{2})./cosh(-varargin{1}) )/pi180;
          X=(l_0+atan2( sin(MAP_VAR_LIST.rpolelat)*sin(varargin{2}) ...
                      -cos(MAP_VAR_LIST.rpolelat)*sinh(-varargin{1}), cos(varargin{2}) ) )/pi180;
-     end
+     end  
+     
+     % If we input in negative longitudes, the answer might come back wrapped 360
+ %   if mean(MAP_VAR_LIST.ulongs)<0
+ %      X(X>0)=X(X>0)-360;
+ %    end
+     % Get longitudes in the range of inputs. Better handling of 360 wraps - Mar/2019
+     ii=(X-mean(MAP_VAR_LIST.ulongs))>180;
+     if any(ii) X(ii)=X(ii)-360;  end
+     ii=(X-mean(MAP_VAR_LIST.ulongs))<-180;
+     if any(ii) X(ii)=X(ii)+360; end
         
   case 'xgrid'
    

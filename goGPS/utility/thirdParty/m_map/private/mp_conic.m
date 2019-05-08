@@ -22,6 +22,12 @@ function [X,Y,vals,labI]=mp_conic(optn,varargin)
 %  3/4/02 - added error if parallels are equidistant from equator (i.e. not conic projection really)
 %  24/10/08 - added ellipsoidal earth computations for lambert conformal conic projection
 %  16/10/09 - added ellipsoidal earth computations for albers conic projection
+%  06/03/17 - changed 'false_origin' to 'origin' as option name, also it
+%             didn't work correctly with the 'normal' spheroid so this was
+%             fixed, AND changed the default parallels so they were at 25%
+%             and 75% limits instead of being a single parallel at the
+%             center to prevent blowups with the albers ellipsoidal
+%             projection AND made it work with SPHERE ellipsoid.
 
 global MAP_PROJECTION MAP_VAR_LIST
 
@@ -50,7 +56,7 @@ switch optn
               '     <,''ell<ipsoid>'', one of',...
     reshape(sprintf('         %6s',m_names{:}),15,length(m_names))',...
         '                               >',...
-	      '     <,''fal<se_origin>'', [long lat]>'});
+	      '     <,''ori<gin>'', [long lat]>'});
 
   case 'get'
 
@@ -60,7 +66,7 @@ switch optn
             [' standard parallels: ' num2str(MAP_VAR_LIST.parallels) ],...
             [' Rectangular border: ' MAP_VAR_LIST.rectbox ],...
             [' ellipsoid: ' MAP_VAR_LIST.ellipsoid ],...
-            [' false_origin: ' num2str(MAP_VAR_LIST.false) ]);
+            [' origin: ' num2str(MAP_VAR_LIST.origin) ]);
 
   case 'initialize'
 
@@ -70,48 +76,64 @@ switch optn
     MAP_VAR_LIST.ulats=[10 85];
     MAP_VAR_LIST.parallels=NaN;
     MAP_VAR_LIST.clong=NaN;
-    MAP_VAR_LIST.false=NaN;
+    MAP_VAR_LIST.origin=NaN;
     MAP_VAR_LIST.rectbox='off';
     MAP_VAR_LIST.ellipsoid = 'normal';
+    MAP_VAR_LIST.aussiemode=false;
     k=2;longs_def=0;
     while k<length(varargin)
       switch varargin{k}(1:3)
          case 'lon'
-           MAP_VAR_LIST.ulongs=varargin{k+1};longs_def=1;
+           MAP_VAR_LIST.ulongs=varargin{k+1}(:)';longs_def=1;
            if MAP_VAR_LIST.ulongs(1)>MAP_VAR_LIST.ulongs(2)
               MAP_VAR_LIST.ulongs=MAP_VAR_LIST.ulongs([2 1]);
            end
          case 'clo'
            MAP_VAR_LIST.clong=varargin{k+1};
          case 'lat'
-           MAP_VAR_LIST.ulats=varargin{k+1};
+           MAP_VAR_LIST.ulats=varargin{k+1}(:)';
          case 'par'
            MAP_VAR_LIST.parallels=varargin{k+1};
          case 'rec'
-           MAP_VAR_LIST.rectbox=varargin{k+1};
+             switch lower(varargin{k+1}(1:2))
+                 case {'on','bo'}
+                    MAP_VAR_LIST.rectbox='on';
+                 case 'of'
+                    MAP_VAR_LIST.rectbox='on';
+                 otherwise
+                     error(['m_proj: Unrecognized box option: ' varargin{k+1}]);
+             end
          case 'ell'
            MAP_VAR_LIST.ellipsoid=varargin{k+1};
+         case 'ori'
+           MAP_VAR_LIST.origin=varargin{k+1};
          case 'fal'
-           MAP_VAR_LIST.false=varargin{k+1};
+           error(' FALSE_ORIGIN option has been renamed to ORIGIN - Change your m_proj call! ');
+	 case 'aus'  % aussiemode - my joke
+	   if strcmp(varargin{k+1},'on')
+	     MAP_VAR_LIST.aussiemode=true;
+	   end   
          otherwise
            disp(['Unknown option: ' varargin{k}]);
       end
        k=k+2;
     end
     if isnan(MAP_VAR_LIST.clong)
-      if isnan(MAP_VAR_LIST.false)
-         MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
+      if isnan(MAP_VAR_LIST.origin)
+         MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs); 
       else
-         MAP_VAR_LIST.clong=MAP_VAR_LIST.false(1);
-      end
-    elseif ~longs_def, MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];  end
-    if isnan(MAP_VAR_LIST.parallels), MAP_VAR_LIST.parallels=mean(MAP_VAR_LIST.ulats)*[1 1]; end
-    if isnan(MAP_VAR_LIST.false), MAP_VAR_LIST.false=[MAP_VAR_LIST.clong mean(MAP_VAR_LIST.parallels)]; end
+         MAP_VAR_LIST.clong=MAP_VAR_LIST.origin(1);
+      end 	 
+    elseif  ~longs_def
+        MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];  
+    end
+    if isnan(MAP_VAR_LIST.parallels), MAP_VAR_LIST.parallels=mean(MAP_VAR_LIST.ulats)*[1 1]+diff(MAP_VAR_LIST.ulats)*[-1/6 1/6]; end % change default mar/2017
+    if isnan(MAP_VAR_LIST.origin), MAP_VAR_LIST.origin=[MAP_VAR_LIST.clong mean(MAP_VAR_LIST.parallels)]; end
 
     MAP_VAR_LIST.rlongs=MAP_VAR_LIST.ulongs*pi180;
     MAP_VAR_LIST.rlats=MAP_VAR_LIST.ulats*pi180;
     MAP_VAR_LIST.rparallels=MAP_VAR_LIST.parallels*pi180;
-    MAP_VAR_LIST.rfalse=MAP_VAR_LIST.false*pi180;
+    MAP_VAR_LIST.rorigin=MAP_VAR_LIST.origin*pi180;
 
     MAP_VAR_LIST.ellip=getfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid);
     
@@ -119,21 +141,27 @@ switch optn
 
     switch MAP_PROJECTION.name
       case name(1)
-        if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
+        if MAP_VAR_LIST.ellip(2)==0 % spherical
            MAP_VAR_LIST.n=sum(sin(MAP_VAR_LIST.rparallels))/2;
-	   if MAP_VAR_LIST.n==0, error('Your parallels are equidistant from the equator - use a cylindrical projection!'); end
+           if MAP_VAR_LIST.n==0
+               error('Your parallels are equidistant from the equator - use a cylindrical projection!'); 
+           end
            MAP_VAR_LIST.C=cos(MAP_VAR_LIST.rparallels(1)).^2+2*MAP_VAR_LIST.n*sin(MAP_VAR_LIST.rparallels(1));
-           MAP_VAR_LIST.rho0=sqrt(MAP_VAR_LIST.C-2*MAP_VAR_LIST.n*sin(mean(MAP_VAR_LIST.rlats)))/MAP_VAR_LIST.n;
+           MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-2*MAP_VAR_LIST.n*sin( MAP_VAR_LIST.rorigin(2)   ))/MAP_VAR_LIST.n;
         else
- 	   e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
-	   m12=cos(MAP_VAR_LIST.rparallels)./sqrt(1-(e.*sin(MAP_VAR_LIST.rparallels)).^2);
-	   q12=(1-e.^2)*(sin(MAP_VAR_LIST.rparallels)./(1-(e.*sin(MAP_VAR_LIST.rparallels)).^2) - ...
-	        1./(2*e)*log((1-e.*sin(MAP_VAR_LIST.rparallels))./(1+e.*sin(MAP_VAR_LIST.rparallels))) );
-	   q0= (1-e.^2)*(sin(MAP_VAR_LIST.rfalse(2))./(1-(e.*sin(MAP_VAR_LIST.rfalse(2))).^2) - ...
-	        1./(2*e)*log((1-e.*sin(MAP_VAR_LIST.rfalse(2)))./(1+e.*sin(MAP_VAR_LIST.rfalse(2)))) );
-	   MAP_VAR_LIST.n=-diff(m12.^2)/diff(q12);
-	   MAP_VAR_LIST.C=m12(1).^2 + MAP_VAR_LIST.n.*q12(1);
-	   MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q0)/MAP_VAR_LIST.n;
+ 	       e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
+	       m12=cos(MAP_VAR_LIST.rparallels)./sqrt(1-(e.*sin(MAP_VAR_LIST.rparallels)).^2);
+	       q12=(1-e.^2)*(sin(MAP_VAR_LIST.rparallels)./(1-(e.*sin(MAP_VAR_LIST.rparallels)).^2) - ...
+	            1./(2*e)*log((1-e.*sin(MAP_VAR_LIST.rparallels))./(1+e.*sin(MAP_VAR_LIST.rparallels))) );
+	       q0= (1-e.^2)*(sin(MAP_VAR_LIST.rorigin(2))./(1-(e.*sin(MAP_VAR_LIST.rorigin(2))).^2) - ...
+	            1./(2*e)*log((1-e.*sin(MAP_VAR_LIST.rorigin(2)))./(1+e.*sin(MAP_VAR_LIST.rorigin(2)))) );
+           if diff( MAP_VAR_LIST.rparallels )==0
+	          MAP_VAR_LIST.n=sin(MAP_VAR_LIST.rparallels(1));
+           else
+	          MAP_VAR_LIST.n=-diff(m12.^2)/diff(q12);
+           end
+	       MAP_VAR_LIST.C=m12(1).^2 + MAP_VAR_LIST.n.*q12(1);
+	       MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q0)/MAP_VAR_LIST.n;	
         end
       case name(2)
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
@@ -144,20 +172,20 @@ switch optn
            end
            MAP_VAR_LIST.F=cos(MAP_VAR_LIST.rparallels(1))/MAP_VAR_LIST.n* ...
                 	  tan(pi/4+MAP_VAR_LIST.rparallels(1)/2).^MAP_VAR_LIST.n;
-           MAP_VAR_LIST.rho0=MAP_VAR_LIST.F/tan(pi/4+mean(MAP_VAR_LIST.rlats)/2).^MAP_VAR_LIST.n;
+           MAP_VAR_LIST.rho0=MAP_VAR_LIST.F/tan(pi/4+ MAP_VAR_LIST.rorigin(2)/2).^MAP_VAR_LIST.n;
         else
  	      e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
 	      m12=cos(MAP_VAR_LIST.rparallels)./sqrt(1-(e.*sin(MAP_VAR_LIST.rparallels)).^2);
 	      t12=tan(pi/4-MAP_VAR_LIST.rparallels/2)./( (1-e*sin(MAP_VAR_LIST.rparallels))./(1+e*sin(MAP_VAR_LIST.rparallels)) ).^(e/2);
-	      tF=tan(pi/4-MAP_VAR_LIST.rfalse(2)/2)./( (1-e*sin(MAP_VAR_LIST.rfalse(2)))./(1+e*sin(MAP_VAR_LIST.rfalse(2))) ).^(e/2);
+	      tF=tan(pi/4-MAP_VAR_LIST.rorigin(2)/2)./( (1-e*sin(MAP_VAR_LIST.rorigin(2)))./(1+e*sin(MAP_VAR_LIST.rorigin(2))) ).^(e/2);
 	      if diff(MAP_VAR_LIST.rparallels)==0
 	         MAP_VAR_LIST.n=sin(MAP_VAR_LIST.rparallels(1));
-          else
+          else   
              MAP_VAR_LIST.n=diff(log(m12))/diff(log(t12));
-          end
+          end   
 	      MAP_VAR_LIST.F=m12(1)/MAP_VAR_LIST.n/t12(1).^MAP_VAR_LIST.n;
 	      MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*MAP_VAR_LIST.F*tF.^MAP_VAR_LIST.n;
-        end
+        end  
     end
 
     % check for a valid ellipsoid. if not, use the normalized sphere
@@ -190,15 +218,15 @@ switch optn
     end
 
     switch MAP_PROJECTION.name
-      case name(1)
-        if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
-           rho=sqrt(MAP_VAR_LIST.C-2*MAP_VAR_LIST.n*sin(lat*pi180))/MAP_VAR_LIST.n;
+      case name(1)  
+        if MAP_VAR_LIST.ellip(2)==0   % spherical
+           rho=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-2*MAP_VAR_LIST.n*sin(lat*pi180))/MAP_VAR_LIST.n;
         else
 	       e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
 	       q= (1-e.^2)*(sin(lat*pi180)./(1-(e.*sin(lat*pi180)).^2) - ...
 	            1./(2*e)*log((1-e.*sin(lat*pi180))./(1+e.*sin(lat*pi180))) );
 	       rho=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q)/MAP_VAR_LIST.n;
-        end
+        end  
       case name(2)
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
            lat(lat==-90)=-89.999; % Prevents /0 problems in next line
@@ -207,11 +235,11 @@ switch optn
 	       e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
 	       t=tan(pi/4-lat*pi180/2)./( (1-e*sin(lat*pi180))./(1+e*sin(lat*pi180)) ).^(e/2);
 	       rho=MAP_VAR_LIST.ellip(1)*MAP_VAR_LIST.F*t.^MAP_VAR_LIST.n;
-        end
+        end 
     end
-    theta=MAP_VAR_LIST.n*(long-MAP_VAR_LIST.false(1))*pi180;
+    theta=MAP_VAR_LIST.n*(long-MAP_VAR_LIST.origin(1))*pi180;
 
-    X=real(rho.*sin(theta));
+    X=real(rho.*sin(theta));    
     Y=real(MAP_VAR_LIST.rho0-rho.*cos(theta));
 
     % Clip out-of-range values (rectangular box)
@@ -224,29 +252,39 @@ switch optn
         [Y,X]=mu_util('clip',varargin{4},Y,MAP_VAR_LIST.ylims(1),Y<MAP_VAR_LIST.ylims(1),X);
         [Y,X]=mu_util('clip',varargin{4},Y,MAP_VAR_LIST.ylims(2),Y>MAP_VAR_LIST.ylims(2),X);
     end
+    if MAP_VAR_LIST.aussiemode, Y=-Y; X=-X; end
 
 
   case 'xy2ll'
 
-    pi180=pi/180;
+    pi180=pi/180; 
     
+    if MAP_VAR_LIST.aussiemode, varargin{2}=-varargin{2}; varargin{1}=-varargin{1}; end
     switch MAP_PROJECTION.name
-      case name(1)
+      case name(1)   
         rho=sqrt(varargin{1}.^2+(MAP_VAR_LIST.rho0-varargin{2}).^2);
         theta=atan(varargin{1}./(MAP_VAR_LIST.rho0-varargin{2}));
-        if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
-           Y=asin((MAP_VAR_LIST.C-(rho*MAP_VAR_LIST.n).^2)/(2*MAP_VAR_LIST.n))/pi180;
-	else
-	   e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
-           q=(MAP_VAR_LIST.C - (rho.*MAP_VAR_LIST.n/MAP_VAR_LIST.ellip(1)).^2)./MAP_VAR_LIST.n;
-	   % Y is computed iteratively
-	   Y=asin(q/2);
-	   for k=1:4
-	     Y=Y+(1-(e.*sin(Y)).^2).^2./(2*cos(Y)).*( q./(1-e.^2) - sin(Y)./(1-(e.*sin(Y)).^2) + ...
-	         1./(2*e)*log( (1-e*sin(Y))./(1+e*sin(Y)) ) );
-       end
-	   Y=Y/pi180;
+        if  MAP_VAR_LIST.ellip(2)==0
+           Y=asin((MAP_VAR_LIST.C-(rho*MAP_VAR_LIST.n/MAP_VAR_LIST.ellip(1)).^2)/(2*MAP_VAR_LIST.n))/pi180;
+        else
+	       e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
+           q=(MAP_VAR_LIST.C - (rho.*MAP_VAR_LIST.n/MAP_VAR_LIST.ellip(1)).^2)./MAP_VAR_LIST.n;	  
+	       % Y is computed iteratively
+	       Y=asin(q/2);
+	       for k=1:4
+	          Y=Y+(1-(e.*sin(Y)).^2).^2./(2*cos(Y)).*( q./(1-e.^2) - sin(Y)./(1-(e.*sin(Y)).^2) + ...
+	             1./(2*e)*log( (1-e*sin(Y))./(1+e*sin(Y)) ) );
+           end
+	       Y=Y/pi180; 
         end
+        % The pole is an arc in this projection, so for points inside that
+        % arc there is no inverse. If so, the math above can return complex
+        % values - instead set these to NaN
+        if ~isreal(Y)
+           Y(imag(Y)>1e-7)=NaN;
+           Y=real(Y); 
+        end
+        
       case name(2)
         rho=sign(MAP_VAR_LIST.n)*sqrt(varargin{1}.^2+(MAP_VAR_LIST.rho0-varargin{2}).^2);
         theta=atan(varargin{1}./(MAP_VAR_LIST.rho0-varargin{2}));
@@ -259,12 +297,12 @@ switch optn
 	       Y=pi/2 - 2*atan(tp);
 	       for k=1:4
 	         Y=pi/2 - 2*atan(tp.*((1-e*sin(Y))./(1+e*sin(Y))).^(e/2) );
-           end
+           end  
 	       Y=Y/pi180;
-        end
+        end   
     end
     % Clip out-of-range values (lat/long box)
-    X=MAP_VAR_LIST.false(1)+(theta/MAP_VAR_LIST.n)/pi180;
+    X=MAP_VAR_LIST.origin(1)+(theta/MAP_VAR_LIST.n)/pi180;
 
   case 'xgrid'
    

@@ -53,7 +53,7 @@ switch optn
             g11=-1728;
             h11=5186;
             longOUT.name='IGRF2000-geomagnetic';
-            longOUT.lambda=  atan(h11/g11);
+            longOUT.lambda=  atan(h11/g11);         
             longOUT.phi   =  atan((g11*cos(longOUT.lambda)+h11*sin(longOUT.lambda))/g10);
 
         case 'IGRF2011-geomagnetic' %ADDED 2012-11-02 Joe Kinrade, Uni. of Bath
@@ -61,10 +61,10 @@ switch optn
             g11=-1585.9;  %2nd order
             h11=4945.1;   %3rd order
             longOUT.name='IGRF2011-geomagnetic';
-            longOUT.lambda=  atan(h11/g11);
+            longOUT.lambda=  atan(h11/g11);         
             longOUT.phi   =  atan((g11*cos(longOUT.lambda)+h11*sin(longOUT.lambda))/g10);
 
-      otherwise
+      otherwise	
         error('Unrecognized coordinate system');
     end
     return;
@@ -79,7 +79,7 @@ switch optn
 		 
      Ty=[ cos(phi)  0   -sin(phi) ;
             0       1      0     ;
-          sin(phi)  0   cos(phi) ];
+          sin(phi)  0   cos(phi) ]; 
      T=Ty*Tz;
 
   case 'mag2geo'
@@ -92,7 +92,7 @@ switch optn
 		 
      Ty=[ cos(-phi)  0   -sin(-phi) ;
             0        1         0     ;
-          sin(-phi)  0    cos(-phi) ];
+          sin(-phi)  0    cos(-phi) ]; 
      T=Tz*Ty;
      
   

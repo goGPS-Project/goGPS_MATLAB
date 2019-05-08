@@ -5,7 +5,7 @@ function  [image_data,vlat,vlon] = mygrid_sand2(region,ssfname)
 %    resolution.
 %
 %
-% WARNING: change ssfname and ssversion to the correct one for
+% WARNING: change ssfname and ssversion to the correct one for 
 %          your machine
 %
 %                                               Catherine de Groot-Hedlin
@@ -47,7 +47,7 @@ elon = region(2);
 blat = region(3);
 tlat = region(4);
 
-% Setup the parameters for reading Sandwell data version
+% Setup the parameters for reading Sandwell data version 
 if ssversion<9
    db_res         = 2/60;          % 2 minute resolution
    db_loc         = [-72.006 72.006 0.0 360-db_res];
@@ -55,8 +55,8 @@ if ssversion<9
 else
    db_res         = 1/60;          % 1 minute resolution
    db_loc         = [-80.738  80.738 0.0 360-db_res];
-   db_size        = [17280 21600];
-end
+   db_size        = [17280 21600];    
+end   
 nbytes_per_lat = db_size(2)*2;  % 2-byte integers
 
 % Check ranges

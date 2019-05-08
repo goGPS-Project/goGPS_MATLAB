@@ -1,6 +1,6 @@
 function [xi,yi,x,y]=m_hatch(lon,lat,varargin)
 % M_HATCH Draws hatched or speckled interiors to a patch
-%
+%       
 %    M_HATCH(LON,LAT,STYL,ANGLE,STEP,...line parameters);
 %
 % INPUTS:
@@ -9,15 +9,15 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin)
 %     ANGLE,STEP - parameters for style
 %
 %     E.g.
-%
-%      'single',45,5  - single cross-hatch, 45 degrees,  5 points apart
+%                 
+%      'single',45,5  - single cross-hatch, 45 degrees,  5 points apart 
 %      'cross',40,6   - double cross-hatch at 40 and 90+40, 6 points apart
 %      'speckle',7,1  - speckled (inside) boundary of width 7 points, density 1
 %                               (density >0, .1 dense 1 OK, 5 sparse)
 %      'outspeckle',7,1 - speckled (outside) boundary of width 7 points, density 1
 %                               (density >0, .1 dense 1 OK, 5 sparse)
 %
-%
+%     
 %      H=M_HATCH(...) returns handles to hatches/speckles.
 %
 %      [XI,YI,X,Y]=MHATCH(...) does not draw lines - instead it returns
@@ -33,7 +33,7 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin)
 %
 
 %
-% Hatch Algorithm originally by K. Pankratov, with a bit stolen from
+% Hatch Algorithm originally by K. Pankratov, with a bit stolen from 
 % Iram Weinsteins 'fancification'. Speckle modifications by R. Pawlowicz.
 %
 % R Pawlowicz (rich@ocgy.ubc.ca) 15/Dec/2005
@@ -46,17 +46,24 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin)
 
 global MAP_PROJECTION
 
+
+if isempty(MAP_PROJECTION)
+   disp('No Map Projection initialized - call M_PROJ first!');
+   return;
+end
+
+
 styl='speckle';
 angle=7;
 step=1/2;
 
 if ~isempty(varargin) && ischar(varargin{1})
   styl=varargin{1};
-  varargin(1)=[];
+  varargin(1)=[];  
 end
 if ~isempty(varargin) && ~ischar(varargin{1})
   angle=varargin{1};
-  varargin(1)=[];
+  varargin(1)=[];  
 end
 if ~isempty(varargin) && ~ischar(varargin{1})
   step=varargin{1};
@@ -95,7 +102,7 @@ if any(ii)
       case {'speckle','outspeckle'}
          xi=line(xi,yi,'marker','.','linestyle','none','markersize',2,varargin{:});
     end
-  end
+  end 
   
   return;
 end
@@ -108,7 +115,7 @@ end
  
 %% plot(x,y,'color','r');%%pause;
   
-if x(end)~=x(1) || y(end)~=y(1)  % & to
+if x(end)~=x(1) || y(end)~=y(1)  % & to |
   x=x([1:end 1]);
   y=y([1:end 1]);
   I=I([1:end 1]);
@@ -143,7 +150,7 @@ switch lower(styl)
   [xi,yi]=drawhatch(x,y,angle,step,xsc,ysc,0);
   if nargout<2
     xi=line(xi,yi,varargin{:});
-  end
+  end 
  case 'cross'
   [xi,yi]=drawhatch(x,y,angle,step,xsc,ysc,0);
   [xi2,yi2]=drawhatch(x,y,angle+90,step,xsc,ysc,0);
@@ -151,7 +158,7 @@ switch lower(styl)
   yi=[yi,yi2];
   if nargout<2
     xi=line(xi,yi,varargin{:});
-  end
+  end 
  case 'speckle'
   [xi,yi ]  =drawhatch(x,y,45,   step,xsc,ysc,angle);
   [xi2,yi2 ]=drawhatch(x,y,45+90,step,xsc,ysc,angle);
@@ -165,9 +172,9 @@ switch lower(styl)
         xi=NaN;yi=NaN;
       else
         xi=gobjects(1);yi=gobjects(1);
-      end
-    end
-  end
+      end		
+    end    
+  end 
  case 'outspeckle'
   [xi,yi ]  =drawhatch(x,y,45,   step,xsc,ysc,-angle);
   [xi2,yi2 ]=drawhatch(x,y,45+90,step,xsc,ysc,-angle);
@@ -184,8 +191,8 @@ switch lower(styl)
          xi=gobjects(1);yi=gobjects(1);
       else
          xi=NaN;yi=NaN;
-      end
-    end
+      end		
+    end   
   end
     
 end
@@ -208,7 +215,7 @@ angle=angle*pi/180;
 % 'points' being the units in x.
 % Center it for "good behavior".
 ca = cos(angle); sa = sin(angle);
-x0 = mean(x); y0 = mean(y);
+x0 = mean(x); y0 = mean(y);   
 x = (x-x0)*xsc; y = (y-y0)*ysc;
 yi = x*ca+y*sa;              % Rotation
 y = -x*sa+y*ca;

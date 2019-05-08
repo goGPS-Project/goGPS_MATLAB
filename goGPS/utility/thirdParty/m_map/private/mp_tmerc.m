@@ -89,7 +89,7 @@ switch optn
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ' (centered at ' num2str(MAP_VAR_LIST.clong) ')'],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
-            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]);
+            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]); 
 
   case 'initialize'
 
@@ -114,23 +114,29 @@ switch optn
     end
     MAP_VAR_LIST.clong=NaN;
     MAP_VAR_LIST.rectbox='off';
+    MAP_VAR_LIST.ellipsoid='normal';
+    MAP_VAR_LIST.aussiemode=false;
     k=2;longs_def=0;
     while k<length(varargin)
       switch varargin{k}(1:3)
          case 'lon'
-           MAP_VAR_LIST.ulongs=varargin{k+1};longs_def=1;
+           MAP_VAR_LIST.ulongs=varargin{k+1}(:)';longs_def=1;
          case 'clo'
            MAP_VAR_LIST.clong=varargin{k+1};
          case 'lat'
-           MAP_VAR_LIST.ulats=varargin{k+1};
+           MAP_VAR_LIST.ulats=varargin{k+1}(:)';
          case 'rec'
            MAP_VAR_LIST.rectbox=varargin{k+1};
+	 case 'aus' % aussiemode - my joke
+	   if strcmp(varargin{k+1},'on')
+	     MAP_VAR_LIST.aussiemode=true;
+	   end   
          otherwise
            disp(['Unknown option: ' varargin{k}]);
       end
        k=k+2;
     end
-    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
+    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs); 
     elseif ~longs_def, MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];   end
     
     MAP_VAR_LIST.clat=mean(MAP_VAR_LIST.ulats);
@@ -178,7 +184,7 @@ switch optn
 	%   cos(theta) changed to cos(2*theta) -thanks Zhigang Xu! Dec 2006.
 	%
 	%The program has a divide by zero
-	%error when theta= ÿ(pi/2).  I've introduced the variable "notpoles"
+	%error when theta= ±(pi/2).  I've introduced the variable "notpoles"
 	%to handle this exception, although there are certainly other ways to
 	% deal with the special cases = Kevin Lewis Feb 2011
 	% (my note - I'm just taking this as is)
@@ -192,7 +198,7 @@ switch optn
           theta(notpoles)=theta(notpoles)+dt(notpoles);  % fixed May 2012
           dt=-(2*theta+sin(2*theta)-pi*sin(lat*pi180))./(1+cos(2*theta))/2;
           k=k+1;
- %% fprintf('%f %f\n',max(theta(:))/pi180,max(abs(dt(:))));
+ % fprintf('%f %f\n',max(theta(:))/pi180,max(abs(dt(:))));
         end
         if k==15, warning('Iterative coordinate conversion is not converging!'); end
         theta(notpoles)=theta(notpoles)+dt(notpoles);  % fixed May 2012
@@ -216,9 +222,11 @@ switch optn
         [Y,X]=mu_util('clip',varargin{4},Y,MAP_VAR_LIST.ylims(1),Y<MAP_VAR_LIST.ylims(1),X);
         [Y,X]=mu_util('clip',varargin{4},Y,MAP_VAR_LIST.ylims(2),Y>MAP_VAR_LIST.ylims(2),X);
     end
+    if MAP_VAR_LIST.aussiemode, Y=-Y; X=-X; end;
 
   case 'xy2ll'
     
+    if MAP_VAR_LIST.aussiemode, varargin{2}=-varargin{2}; varargin{1}=-varargin{1}; end;
     switch MAP_PROJECTION.name
       case name(1)
         D=varargin{2}+MAP_VAR_LIST.clat*pi180;
@@ -229,7 +237,7 @@ switch optn
         X=MAP_VAR_LIST.clong+(varargin{1}-MAP_VAR_LIST.clong*pi180)./cos(varargin{2})/pi180;
       case name(3)
         X=varargin{1}/cos(45*pi180)/pi180 + MAP_VAR_LIST.clong;
-        Y=asin(varargin{2}*cos(45*pi180))/pi180;
+        Y=asin(varargin{2}*cos(45*pi180))/pi180; 
       case name(4)
         z=sqrt(1-(varargin{1}/4).^2-(varargin{2}/2).^2);
         X=MAP_VAR_LIST.clong+2*atan2(z.*varargin{1},2*(2*z.^2-1))/pi180;
@@ -240,7 +248,7 @@ switch optn
         X=(varargin{1}*90-MAP_VAR_LIST.clong)./cos(theta)+MAP_VAR_LIST.clong;
       case name(6)
         Y=interp1(Robscal(:,3),Robscal(:,1),varargin{2}/pi);
-	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clong;
+	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clong;	
     end
         
   case 'xgrid'

@@ -11,7 +11,7 @@ function m_track(lon,lat,varargin)
 %	M_TRACK (lon,lat,navtimes) draws a line, with tick marks every
 %	hour, time labels every four hours, and date labels every twelve
 %	hours. navtimes is in MatLab "serial date numbers," representing the
-%	number of days since January 1, 0000. By convention, ticks and
+%	number of days since January 1, 0000. By convention, ticks and 
 %	time labels are drawn on the starboard side, dates on the port.
 %
 %	M_TRACK (lon,lat,navtime, 'string', property/value pairs) can be
@@ -52,7 +52,7 @@ global MAP_PROJECTION MAP_VAR_LIST
 
 % Have to have initialized a map first
 
-if isempty (MAP_PROJECTION)
+if isempty(MAP_PROJECTION)
    disp ('No Map Projection initialized - call M_PROJ first!');
    return;
 end
@@ -175,7 +175,7 @@ nt = length(ttim);
 
 % where do the time labels go?
 
-if TIMES < 0
+if TIMES < 0				
    ltim=zeros(1,nt);			% no time lables
 elseif TIMES == 0
    ltim=ones(1,nt);			% time label every tick

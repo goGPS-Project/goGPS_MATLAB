@@ -27,6 +27,11 @@ function [X,Y,I]=m_ll2xy(varargin)
 global MAP_PROJECTION MAP_COORDS
 
 
+if isempty(MAP_PROJECTION)
+   disp('No Map Projection initialized - call M_PROJ first!');
+   return;
+end
+
 
 if nargin==0 || ischar(varargin{1})
   disp(' Usage');
@@ -49,8 +54,8 @@ else
      [X,Y,I]=feval(MAP_PROJECTION.routine,'ll2xy',LONG,LAT,args{:});
      
    else
-     error('m_ll2xy: Unrecognized coordinate system');
-  end
+     error('m_ll2xy: Unrecognized coordinate system');   
+  end 
 end
 
 if nargout==0
