@@ -6117,11 +6117,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 1 % no model
                     this.sat.err_iono(:, go_id) = 0;
                 case 2 % Klobuchar model
-                    if ~isempty(cs.iono)
+                    if ~isempty(cs.iono) && any(cs.iono)
                         for s = go_id(:)'
                             idx = this.sat.avail_index(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
-                            this.sat.err_iono(idx,s) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, cs.iono);
+                            this.sat.err_iono(idx,s) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, cs.iono)./GPS_SS.L_VEC(1)^2;
                         end
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed');
@@ -7958,7 +7958,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                    
                             this.updateAzimuthElevation();
-                            if this.state.isAprIono || this.state.getIonoManagement == 3
+                            if this.state.isAprIono || this.state.getIonoManagement >= 2
                                 this.updateErrIono();
                                 this.applyIonoModel();
                             end
