@@ -181,16 +181,110 @@ classdef Core_Utils < handle
             s = nan(max_lag,1);
             if strcmpi(mode,'mean')
                 for l = 1 : max_lag
-                    s(l) = mean(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+                    s(l) = mean((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
                 end
+            elseif strcmpi(mode,'fft')
+                A = Core_Utils.compute_spectrum(x,1);
+                cova = ifft(A.^2);
+                s = var(x) - cova;
             else
                 for l = 1 : max_lag
-                    s(l) = median(abs(x((l+1):end) - x(1:(end-l))),'omitnan')/2;
+                    s(l) = median((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
                 end
             end
         end
+        
+        function [gh11,nh11] =variofl(x1,icode)
+            % SOURCE : Marcotte, Denis. "Fast variogram computation with FFT." Computers & Geosciences 22.10 (1996): 1175-1186.
+            % 
+            % function [gh11,nh11l=variofl(x1,icode);
+            %
+            % function to compute variograms or covariograms, in 1D or 2D
+            % the data are on a (possibly incomplete) regular grid.
+            % the program computes variograms in the frequency domain by
+            % using 2D-FFT.
+            %
+            % input: x1: data matrix. Missing values are indicated by NaN
+            %
+            %icode: a code to indicate which function to compute
+            %=l : variogram
+            %
+            % =2 : covariogram
+            %
+            %
+            % gh11: variogram or covariogram depending on icode.
+            % output:
+            % nh11: number of pairs available
+            %
+            %
+            % this program uses the functions FFT2, IFFTZ, FFTlSHIFT and CONJ which are
+            % standard MATLAB functions.
+            [n,p]=size(x1);
+            nrows=2*n-1;
+            ncols=2*p-1;
+            % dimensions of data matrix
+            % find the closest multiple of 8 to obtain a good compromise between
+            % speed (a power of 2) and memory required
+            approx = 8;
+            nr2=ceil(nrows/approx)*approx;
+            nc2=ceil(ncols/approx)*approx;
+            % form an indicator matrix:
+            %      l's for all data values
+            %      O's for missing values
+            %
+            % in data matrix, replace missing values by 0;
+            x1id=~isnan(x1);
+            x1(~x1id)=zeros(sum(sum(-x1id)),1); % 1 for a data value; 0 for missing
+            % missing replaced by 0
+            fx1=fft2(x1,nr2,nc2); % fourier transform of x1
+            if icode==1
+                fx1_x1=fft2(x1.*x1,nr2,nc2);
+            end
+            clear x1;
+            fx1id=fft2(x1id,nr2,nc2);
+            clear x1id
+            % fourier transform of x1*x1
+            % fourier transform of the indicator matrix
+            % compute number of pairs at all lags
+            nh11=round(real(ifft2(conj(fx1id).*fx1id)));
+            % compute the different structural functions according to icode
+            if icode==1
+                % variogram is computed
+                gh11=real(ifft2(conj(fx1id).*fx1_x1+conj(fx1_x1).*fx1id-2*conj(fx1).*fx1));
+                gh11=gh11./max(nh11,1)/2;
+            else
+                % covariogram is computed
+                ml=real(ifft2(conj(fx1).*fx1id))./max(nh11,1);
+                m2=real(ifft2(conj(fx1id).*fx1))./max(nh11,1);
+                clear fx1id
+                gh11=real(ifft2(conj(fx1).*fx1));
+                gh11=gh11./max(nh11,1)-ml.*m2;
+            end
+            % compute tail mean
+            % compute head mean
+            clear fx1 fx1id fx1_fx1
+            % reduce matrix to required size and shift so that the 0 lag appears at the center of each matrix
+            nh11 = [nh11(1:n,1:p) nh11(1:n,nc2-p+2:nc2); nh11(nr2-n+2,1:p) nh11(nr2-n+2:nr2,nc2-p+2:nc2)];
+            gh11 = [gh11(1:n,1:p) gh11(1:n,nc2-p+2:nc2); gh11(nr2-n+2,1:p) gh11(nr2-n+2:nr2,nc2-p+2:nc2)];
             
-
+%             gh11=fftshift(gh11);
+%             nh11=fftshift(nh11);
+        end
+        
+        function s = remPeriod(s,p)
+            % remove signal for a given period
+            %
+            % SYNTAX:
+            %     s = Core_Utils.remPeriod(s,p)
+            ph = (1:numel(s))'/p*2*pi;
+            A = [cos(ph) sin(ph)];
+            N = A'*A; % less stable but faster
+            B = A'*s;
+            x = N\B;
+            s = s - A*x;
+        end
+        
+        
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
             % SYNTAX

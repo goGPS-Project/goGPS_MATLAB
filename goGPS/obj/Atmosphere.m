@@ -2009,7 +2009,7 @@ classdef Atmosphere < handle
             if nargout > 3
                 k = [-sin(az_rad).*cos(el_rad) ...
                     -cos(az_rad).*cos(el_rad) ...
-                    -cos(el_rad)];
+                    -sin(el_rad)];
                 % go to global system
                 k = local2globalVel2(k', lon_rad,lat_rad)';
             end
