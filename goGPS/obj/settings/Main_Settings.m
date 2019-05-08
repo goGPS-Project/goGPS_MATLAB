@@ -3418,7 +3418,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             fnp = File_Name_Processor();
                 
-            if this.isIonoBroadcast()
+            if false && this.isIonoBroadcast()
                 % Search broadcast orbits in the ephemerides folder
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name), this.getHomeDir());
             else
@@ -4068,7 +4068,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_brdc = this.isIonoBroadcast();
             
-            is_brdc = length(this.iono_name) > 4 && strcmp(this.iono_name(1:4), 'brdm');
+            is_brdc = length(this.iono_name) > 4 && this.iono_model == 2;
         end
         
         function is_iono_ext = isIonoExtModel(this)
