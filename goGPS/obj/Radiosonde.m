@@ -103,7 +103,13 @@ classdef Radiosonde < handle
             % Init out
             rds_list(numel(sta_num)) = Radiosonde();
             for s = 1 : numel(sta_num)
-                rds_list(s) = Radiosonde(region, sta_num{s}, date_start, date_stop);
+                try
+                    rds_list(s) = Radiosonde(region, sta_num{s}, date_start, date_stop);
+                catch
+                    % catch timeout
+                    pause(1 + rand(1) * 3);
+                    rds_list(s) = Radiosonde(region, sta_num{s}, date_start, date_stop);
+                end
             end
         end
     end
