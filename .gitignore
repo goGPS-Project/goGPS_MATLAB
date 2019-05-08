@@ -150,6 +150,8 @@ last_settings.ini
 /goGPS/bin
 /goGPS/com
 /goGPS/logs
+/goGPS/reference/DTM
+/goGPS/utility/thirdParty/m_map/etopo1_ice_g_i2
 /goGPS/reserved
 /goGPS/positioning/lambda/lambda_v3
 !/data/goGPSconfig

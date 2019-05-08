@@ -48,7 +48,7 @@ classdef Cmap
     % ==================================================================================================================================================
     properties (Constant, Access = private)
         % Custum colormaps implemented within this library
-        CUSTOM = {'c51', 'gat', 'linspaced', 'gat2'};
+        CUSTOM = {'c51', 'gat', 'linspaced', 'gat2', 'adaptiveTerrain'};
         MATLAB = {'parula', 'pltd'};
         
         PERCEPTUALLY_UNIFORM = {'viridis', 'plasma', 'inferno', 'magma', 'cividis'};
@@ -546,6 +546,13 @@ classdef Cmap
                             cmap = Cmap.gat2(n_col);
                         end
                         found = true;
+                    case 'adaptiveTerrain'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.adaptiveTerrain([-1000 3500]);
+                        else
+                            cmap = Cmap.adaptiveTerrain([-1000 3500], n_col);
+                        end
+                        found = true;
                     case 'pltd'
                         if nargin == 1 || isempty(n_col)
                             cmap = Cmap.pltd();
@@ -958,7 +965,39 @@ classdef Cmap
             % rescale cmap if smoothing makes it > 1
             cmap = max(0, cmap ./ repmat(max(1, max(cmap)), size(cmap, 1), 1));
         end
-                
+          
+        function cmap = adaptiveTerrain(clim, approximate_n_col)
+            % Adaptive terrain (rescale the zero to separate land and sea)
+            %
+            % INPUT (non mandatory)
+            %   clim                color limits ()e.g. clim = caxis();)
+            %   approximate_n_col   approximate n. col
+            %
+            % SYNTAX
+            %   Cmap.adaptiveTerrain(<clim>, <approximate_n_col>)
+            if nargin < 1 || isempty(clim)
+                try
+                    clim = caxis(gca);
+                catch
+                    clim = [-1000 3500];
+                end
+            end
+            if nargin < 2 || isempty(approximate_n_col)
+                approximate_n_col = 1024;
+            end
+            approximate_n_col = round(approximate_n_col * 10/8);
+            clim = clim / diff(clim); % normalize clim
+            full_map = Cmap.get('terrain', approximate_n_col);
+            terrain = full_map((end - round(approximate_n_col * 6.5/9)) : end, :);
+            if clim(1) >= 0
+                cmap = terrain;
+            else                
+                approximate_n_col = max(5,round((size(terrain, 1) / max(0.000001, clim(2)) * -min(0, clim(1))) * 10 / 1.6));
+                full_map = Cmap.get('terrain', approximate_n_col);
+                sea = full_map(1 : round(approximate_n_col * 1.6/10), :);
+                cmap = [sea; terrain];
+            end
+        end
     end
     
     %% SHOW
