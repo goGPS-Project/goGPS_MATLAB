@@ -73,6 +73,7 @@ classdef Core_Utils < handle
             col = fh.Color;
             fh.Color = [1 1 1]; 
             fh.WindowStyle = 'normal'; 
+            Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
             export_fig(fh, out_path, '-transparent', '-r150'); 
             fh.WindowStyle = 'docked';
             fh.Color = col; 
@@ -1461,11 +1462,21 @@ classdef Core_Utils < handle
                     end
                 end
                 aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'http://www.marine-geo.org/services/GridServer?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
+                Logger.getInstance().addMarkedMessage(['Executing: "' aria_call '"']);
                 dos(aria_call)
             end
             
             % Read DTM
-            [dtm, georef, lat, lon, info] = geotiffReader(fullfile(dtm_path, dtm_name));
+            try
+                [dtm, georef, lat, lon, info] = geotiffReader(fullfile(dtm_path, dtm_name));
+            catch ex
+                Logger.getInstance.addError(sprintf('Aria failed to download the required DTM file\nException: %s', ex.message));
+                dtm = zeors(2,2);
+                georef = [];
+                lat = nwse([3 1]);
+                lon = nwse([2 4]);
+                info = [];
+            end
         end
     end
 end
