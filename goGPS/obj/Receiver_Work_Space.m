@@ -7126,7 +7126,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.time = GPS_Time(nominal_time_zero, ref_time, this.time.isGPS(), 2);
             this.time.toUnixTime;
             
-            [~, id_not_empty] = intersect(ref_time, nominal_time);
+            [~, id_not_empty] = intersect(round(ref_time/this.time.getRate), round(nominal_time/this.getRate));
             id_empty = setdiff(1 : numel(nominal_time), id_not_empty);
             
             time_desync = nan(size(nominal_time));
@@ -7998,7 +7998,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
                             
-                            this.coarseAmbEstimation();
+                            %this.coarseAmbEstimation();
                             this.pp_status = true;
                         end
                     end
