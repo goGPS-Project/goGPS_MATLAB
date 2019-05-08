@@ -169,11 +169,11 @@ classdef Core_Utils < handle
             r = [r(end-len+2:end) ; r(1:len)];
         end
         
-        function s = semivariogram1d(x,mode)
+        function s = getSemivariogram1D(x,mode)
             % compute 1 d semivariogram
             %
             % SYNTAX:
-            %     s = Core_Utils.semivariogram1d(x)
+            %     s = Core_Utils.getSemivariogram1D(x)
             if nargin < 2
                 mode = 'mean';
             end
@@ -184,7 +184,7 @@ classdef Core_Utils < handle
                     s(l) = mean((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
                 end
             elseif strcmpi(mode,'fft')
-                A = Core_Utils.compute_spectrum(x,1);
+                A = Core_Utils.getSpectrum(x,1);
                 cova = ifft(A.^2);
                 s = var(x) - cova;
             else
@@ -1214,11 +1214,11 @@ classdef Core_Utils < handle
             y(idx_nan) = int_data;
         end
         
-        function [Amp,Phase,f] = compute_spectrum(y,smpl_rate)
+        function [Amp,Phase,f] = getSpectrum(y,smpl_rate)
             % compute the spectrum with fft
             %
             % SYNTAX:
-            %  [Amp,Phase,f] = Core_Utils.compute_spectrum(y,smpl_rate);
+            %  [Amp,Phase,f] = Core_Utils.getSpectrum(y,smpl_rate);
             if nargin < 2
                 smpl_rate = 1;
             end
