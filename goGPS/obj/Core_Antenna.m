@@ -455,6 +455,7 @@ classdef Core_Antenna < handle
                 ant_name(1:length(tmp)) = tmp;
                 if (numel(ant_name) >= 4) && Core_Utils.code4Char2Num(ant_name(1:4)) == none_code
                     % ignoring antenna type == 'NONE'
+                    id_ant = [];
                 else
                     % Get the antenna id containing the searched antenna file
                     id_ant = ((strfind(serialize(cmp_str')', ant_name) - 1) / size(cmp_str, 2) + 1);
