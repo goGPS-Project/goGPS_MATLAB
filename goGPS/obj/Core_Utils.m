@@ -1448,7 +1448,21 @@ classdef Core_Utils < handle
             dtm_path = fullfile(Core.getState.getHomeDir, 'reference' , 'DTM');
             dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
             if ~exist(dtm_path, 'dir')
-                mkdir(dtm_path);
+                try
+                    mkdir(dtm_path);
+                catch ex
+                    Logger.getInstance.addError(sprintf('Could not create %s\nException: %s', dtm_path, ex.message))
+                    % no write permission
+                    dtm_path = fullfile('reference' , 'DTM');
+                    dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
+                    if ~exist(dtm_path, 'dir')
+                        try
+                            mkdir(dtm_path);
+                        catch ex
+                            Logger.getInstance.addError(sprintf('Could not create %s DTM cannot be saved locally\nException: %s\n', dtm_path, ex.message))                            
+                        end
+                    end
+                end
             end
             if ~exist(fullfile(dtm_path, dtm_name), 'file')
                 if ispc()
@@ -1462,7 +1476,7 @@ classdef Core_Utils < handle
                     end
                 end
                 aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'http://www.marine-geo.org/services/GridServer?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
-                Logger.getInstance().addMarkedMessage(['Executing: "' aria_call '"']);
+                Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
                 dos(aria_call)
             end
             
