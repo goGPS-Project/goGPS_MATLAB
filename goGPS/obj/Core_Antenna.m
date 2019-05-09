@@ -541,15 +541,15 @@ classdef Core_Antenna < handle
                         type = this.mnt_tbl.type(id_marker,:);
                     end
                 end
-            end
-            if ~found
-                log = Core.getLogger();
-                if (nargin > 4)
-                    log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name), log_lev);
-                else
-                    log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name));
+                if ~found
+                    log = Core.getLogger();
+                    if (nargin > 4)
+                        log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name), log_lev);
+                    else
+                        log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name));
+                    end
                 end
-            end
+            end            
         end
     end
 end
