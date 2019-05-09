@@ -1324,8 +1324,8 @@ classdef GNSS_Station < handle
                         else
                             M = m_shaperead('countries_50m');
                         end
-                        [x_min, y_min] = m_ll2xy(min(lon), min(lat));
-                        [x_max, y_max] = m_ll2xy(max(lon), max(lat));
+                        [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                        [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
                         for k = 1 : length(M.ncst)
                             lam_c = M.ncst{k}(:,1);
                             ids = lam_c <  min(lon);
@@ -1510,6 +1510,17 @@ classdef GNSS_Station < handle
                          1 1 1 1 1 1 1; ...
                          0 1 1 1 1 1 0; ...
                          0 0 1 1 1 0 0];
+            conv_mask2 = [0 0 0 1 1 1 1 1 0 0 0; ...
+                         0 0 1 1 1 1 1 1 1 0 0; ...
+                         0 1 1 1 1 1 1 1 1 1 0; ...
+                         1 1 1 1 1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1 1 1 1 1; ...
+                         1 1 1 1 1 1 1 1 1 1 1; ...
+                         0 1 1 1 1 1 1 1 1 1 0; ...
+                         0 0 1 1 1 1 1 1 1 0 0; ...
+                         0 0 0 1 1 1 1 1 0 0 0;];
             mask = (circConv2(single(mask), conv_mask) > 0); % enlarge a bit the mask
 
             % Get DTM tropospheric correction
@@ -2169,8 +2180,8 @@ classdef GNSS_Station < handle
                     else
                         M = m_shaperead('countries_50m');
                     end
-                    [x_min, y_min] = m_ll2xy(min(lon), min(lat));
-                    [x_max, y_max] = m_ll2xy(max(lon), max(lat));
+                    [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                    [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
                     for k = 1 : length(M.ncst)
                         lam_c = M.ncst{k}(:,1);
                         ids = lam_c <  min(lon);
@@ -2305,8 +2316,8 @@ classdef GNSS_Station < handle
                     else
                         M = m_shaperead('countries_50m');
                     end
-                    [x_min, y_min] = m_ll2xy(min(lon), min(lat));
-                    [x_max, y_max] = m_ll2xy(max(lon), max(lat));
+                    [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                    [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
                     for k = 1 : length(M.ncst)
                         lam_c = M.ncst{k}(:,1);
                         ids = lam_c <  min(lon);
@@ -2440,7 +2451,7 @@ classdef GNSS_Station < handle
             end
 
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');
-            title('Receiver position\\fontsize{5} \n', 'FontSize', 16);
+            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
@@ -2456,7 +2467,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showAniMapTropo(sta_list, par_name, new_fig, epoch, flag_export)
+        function showAniMapTropoScatter(sta_list, par_name, new_fig, epoch, flag_export)
             % Show a tropo map with all the station in sta_list
             %
             % INPUT
@@ -2590,19 +2601,19 @@ classdef GNSS_Station < handle
                     writeVideo(video_out, im{i});
                 end
                 close(video_out);
-                Core.getLogger.addStatusOk('Done ^_^');
+                Core.getLogger.addStatusOk(sprintf('"%s" done ^_^', fullfile(Core.getState.getOutDir, video_out.Filename)));
                 close(fig_handle)
             end
         end
        
-        function showAniMapTropoInterp(sta_list, par_name, new_fig, rate, flag_dtm, flag_export)
+        function showAniMapTropoInterp(sta_list_full, par_name, nwse, rate, flag_dtm, flag_export)
             % Show a tropo map with all the station in sta_list
             %
             % INPUT
             %   tropo_par   accepted tropo parameter:
             %               - 'zwd'
             %               - 'ztd'
-            %   new_fig     if true or missing open a new figure
+            %   nwse        Nort West South East coordinates
             %   rate        rate in seconds, nearest to closest observation 
             %               it should be a subsample of the data rate (e.g. 300 with 30s data)
             %   flag_dtm    flag to add height_correction (default == false)
@@ -2611,6 +2622,10 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showAniMapTropoInterp(par_name, <new_fig>, <rate>, <flag_dtm>, <flag_export>);
+            %
+            % EXAMPLE
+            %   % over Japan
+            %   sta_list.showAniMapTropoInterp('ZWD', [45.8, 123.5, 23, 146.5], 200, 2, false);
             
             switch lower(par_name)
                 case 'ztd'
@@ -2626,17 +2641,10 @@ classdef GNSS_Station < handle
                     par_str_short = 'PWV';
                 case 'zhd'
                 case 'nsat'
-            end
+            end                        
+
+            fig_handle = figure;
             
-            if nargin < 3 || isempty(new_fig)
-                new_fig = true;
-            end
-            if new_fig
-                fig_handle = figure;
-            else
-                fig_handle = gcf;
-                hold on;
-            end
             if nargin < 4 || isempty(rate)
                 rate = 300;
             end
@@ -2648,69 +2656,200 @@ classdef GNSS_Station < handle
             end
 
             maximizeFig(fig_handle);
+            
             fig_handle.Visible = 'off';
             fig_handle.Color = [1 1 1];
 
+            % Set map projection / limits
+            
+            [lat, lon] = sta_list_full.getMedianPosGeodetic();
+            margin = 0.5;
+            id_ok = (lat >= (nwse(3) - margin)) & (lat <= (nwse(1) + margin)) & ...
+                (lon >= (nwse(2) - margin)) & (lon <= (nwse(4) + margin));
+            sta_list = sta_list_full(id_ok);
+            
+            if nargin < 3 || isempty(nwse)
+                
+                % set map limits
+                if numel(sta_list) == 1
+                    lon_lim = minMax(lon) + [-0.05 0.05];
+                    lat_lim = minMax(lat) + [-0.05 0.05];
+                else
+                    lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                    lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+                end
+                nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+            else
+                lon_lim = nwse([2 4]);
+                lat_lim = nwse([3 1]);                
+            end
+            clon = nwse([2 4]) + [-0.02 0.02];
+            clat = nwse([3 1]) + [-0.02 0.02];
+
+            if flag_dtm == 2
+                subplot(1,2,1);
+            end
+            
+            for i = 1 : iif(flag_dtm == 2, 2, 1)
+                if flag_dtm == 2
+                    subplot(1,2,i);
+                end
+                %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+                m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
+                axes
+                cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
+                drawnow;
+            end
+            
+            % retrieve external DTM
+            try
+                [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', 'low');
+                dtm = flipud(dtm);
+                % comment the following line to have bathimetry
+                dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
+                
+                % uncomment the following line to have colors
+                % colormap(Cmap.adaptiveTerrain(minMax(dtm(:))));
+                % drawnow;
+                
+                [shaded_dtm, x, y] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1]);
+                %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
+                %h_dtm.CData = shaded_dtm;
+                for i = 1 : iif(flag_dtm == 2, 2, 1)
+                    if flag_dtm == 2
+                        subplot(1,2,i);
+                    end
+                    m_image(lon_dtm, lat_dtm, shaded_dtm);
+                end
+            catch
+                % use ETOPO1 instead
+                for i = 1 : iif(flag_dtm == 2, 2, 1)
+                    if flag_dtm == 2
+                        subplot(1,2,i);
+                    end
+                    m_etopo2('shadedrelief','gradient', 3);
+                end
+            end
+            
+            for i = 1 : iif(flag_dtm == 2, 2, 1)
+                if flag_dtm == 2
+                    subplot(1,2,i);
+                end
+                % read shapefile
+                shape = 'none';
+                if (~strcmp(shape,'none'))
+                    if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                        if (strcmp(shape,'10m'))
+                            M = m_shaperead('countries_10m');
+                        elseif (strcmp(shape,'30m'))
+                            M = m_shaperead('countries_30m');
+                        else
+                            M = m_shaperead('countries_50m');
+                        end
+                        [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                        [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
+                        for k = 1 : length(M.ncst)
+                            lam_c = M.ncst{k}(:,1);
+                            ids = lam_c <  min(lon);
+                            lam_c(ids) = lam_c(ids) + 360;
+                            phi_c = M.ncst{k}(:,2);
+                            [x, y] = m_ll2xy(lam_c, phi_c);
+                            if sum(~isnan(x))>1
+                                x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                                line(x,y,'color', [0.3 0.3 0.3]);
+                            end
+                        end
+                    else
+                        if (strcmp(shape,'coast'))
+                            m_coast('line','color', lineCol);
+                        else
+                            m_coast('patch',lineCol);
+                        end
+                    end
+                end            
+                hold on;
+                
+                % Enable box
+                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+                drawnow
+                m_ruler([.7 1], -0.08, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            end
+                        
             [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
             if flag_dtm == 1
                 tropo_grid = tropo_grid + tropo_height_correction;
             end
             
             if flag_dtm == 2
-                subplot(1,2,1);
+               ax = subplot(1,2,1);
             end
-            imh = imagesc(x_grid, y_grid, tropo_grid(:,:,1));
-            imh.AlphaData = ~isnan(tropo_grid(:,:,1));
-            %tropo_clim = [perc(serialize(min(min(tropo_grid))),0.005) perc(serialize(max(max(tropo_grid))),0.995)];
-            caxis(tropo_clim(1,:)); 
-            %colormap(Core_UI.CMAP_51(2:end,:));
+            imh = m_pcolor(x_grid, y_grid, tropo_grid(:,:,1));
+            imh.FaceAlpha = 0.95;
+            caxis(tropo_clim(1,:));
+            cmap = Cmap.get('c51',512);
+            colormap(flipud(cmap(2:end,:)));
+            % redraw boxes
+            m_grid('box','fancy','tickdir','in', 'fontsize', 16);
             %colormap(flipud(gat(1024, false)));
-            colormap(Cmap.get('viridis', 32));
-            colorbar;
-            set(gca, 'Ydir', 'normal');
-            
-            ax = fig_handle.Children(end);
-            ax.FontSize = 20;
-            ax.FontWeight = 'bold';
-            if new_fig
-                if FTP_Downloader.checkNet()
-                    plot_google_map('alpha', 0.65, 'MapType', 'satellite');
-                end
-                xlabel('Longitude [deg]');
-                ylabel('Latitude [deg]');
+            %colormap(Cmap.get('viridis', 32));
+            if flag_dtm == 2  
+                cax = m_contfbar([.05 .55], 0, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
+            else
+                cax = m_contfbar([.15 .55], -0.05, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
             end
+            xlabel(cax,'cm','color','k');
             
-            th = title(sprintf([par_str ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
+            % ax = fig_handle.Children(end);
+            % ax.FontSize = 20;
+            % ax.FontWeight = 'bold';
+            % if new_fig
+            %     if FTP_Downloader.checkNet()
+            %         plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+            %     end
+            %     xlabel('Longitude [deg]');
+            %     ylabel('Latitude [deg]');
+            % end
+            
+            th = title(sprintf([par_str ' map @%s at sea level\\fontsize{5} \n'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
             
             if flag_dtm == 2  
                 %tropo_clim(2,:) = [max(0, tropo_clim(1) + min(tropo_height_correction(:))) (tropo_clim(2) + max(tropo_height_correction(:)))];
                 % uniform axes
                 ax2 = subplot(1,2,2);
-                imh2 = imagesc(x_grid, y_grid, tropo_grid(:,:,1) + tropo_height_correction);
-                imh2.AlphaData = ~isnan(tropo_grid(:,:,1));
+                imh2 = m_pcolor(x_grid, y_grid, tropo_grid(:,:,1) + tropo_height_correction);
+                imh2.FaceAlpha = 0.95;
                 caxis(tropo_clim(2,:)); 
                 %colormap(Core_UI.CMAP_51(2:end,:));
                 %colormap(flipud(gat(1024, false)));
                 %colormap(gat2);                            
-                cmap = Cmap.get('c51');colorbar;
+                cmap = Cmap.get('c51',512);
                 colormap(flipud(cmap(2:end,:)));
-                set(ax2, 'Ydir', 'normal');
-                ax2.FontSize = 20;
-                ax2.FontWeight = 'bold';
-                if new_fig
-                    if FTP_Downloader.checkNet()
-                        plot_google_map('alpha', 0.65, 'MapType', 'satellite');
-                    end
-                    xlabel('Longitude [deg]');
-                    ylabel('Latitude [deg]');
-                end
-                th2 = title(ax2, 'at ground level', 'FontSize', 22);
+                % redraw boxes
+                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                % ax2.FontSize = 20;
+                % ax2.FontWeight = 'bold';
+                % if new_fig
+                %    if FTP_Downloader.checkNet()
+                %        plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+                %    end
+                %    xlabel('Longitude [deg]');
+                %    ylabel('Latitude [deg]');
+                %end
+                cax2 = m_contfbar([.05 .55], 0, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
+                th2 = title(cax2, sprintf('at ground level\\fontsize{5} \n'), 'FontSize', 20);
             end
             
-            % Add logos
-            Core_UI.insertLogo(fig_handle, 'SouthEast');
+            fig_handle.Visible = 'on';
+            %Core.getLogger.addMarkedMessage('Press any key to start playing');
+            %pause
 
+            % Add logos
             if flag_export
+                fprintf('Stopped in debug mode to check the export size and position of the elements\nType dbcont to continue ')
+                % fh = gcf; fh.Units = 'pixel'; fh.Position([3 4]) = [1100 960];
+                keyboard % to check before export that everything is aligned
+                Core_UI.insertLogo(fig_handle, 'SouthEast');
                 warning off;                
                 im = {};
                 fig_handle.Visible = 'off';
@@ -2728,6 +2867,7 @@ classdef GNSS_Station < handle
                 video_out.Quality = 66;
                 open(video_out);
             else
+                Core_UI.insertLogo(fig_handle, 'SouthEast');
                 fig_handle.Visible = 'on';
             end
             drawnow
@@ -2736,10 +2876,10 @@ classdef GNSS_Station < handle
                 if any(serialize(tropo_grid(:,:,i)))
                     th.String = sprintf([par_str ' [cm] map %s at sea level'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
                     imh.CData = tropo_grid(:,:,i);
-                    imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
                     if flag_dtm == 2
                         imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
-                        imh2.AlphaData = imh.AlphaData;
+                        %imh2.AlphaData = imh.AlphaData;
                     end
                     if not(flag_export)
                         drawnow
@@ -2756,7 +2896,7 @@ classdef GNSS_Station < handle
             if flag_export
                 fprintf('%s',char(8 * ones(1,11)));
                 close(video_out);
-                Core.getLogger.addStatusOk('Done ^_^');
+                Core.getLogger.addStatusOk(sprintf('"%s" done ^_^', fullfile(Core.getState.getOutDir, video_out.Filename)));
                 close(fig_handle);
                 warning on;
             end
