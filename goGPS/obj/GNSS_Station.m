@@ -1856,6 +1856,296 @@ classdef GNSS_Station < handle
         end
 
         function showMap(sta_list, new_fig)
+            % Show Google Map of the stations
+            %
+            % SYNTAX
+            %   sta_list.showMap(new_fig);
+            if nargin < 2
+                new_fig = true;
+            end
+            sta_list.showMapGoogle(new_fig);
+        end
+
+        function showMapDtm(sta_list, new_fig, resolution)
+            % Show Map of the stations
+            % downloading the DTM and showing it
+            %
+            % SYNTAX
+            %   sta_list.showMapDtm(new_fig);
+            if nargin < 2
+                new_fig = true;
+            end
+            if new_fig
+                f = figure;
+            else
+                f = gcf;
+                hold on;
+            end
+            if (nargin < 3) || isempty(resolution)
+                resolution = 'low';
+            end
+            % check accepted values (low / high)
+            switch resolution
+                case 'high'
+                otherwise
+                    resolution = 'low';
+            end
+            Logger.getInstance.addMarkedMessage('Preparing map, please wait...');
+            
+            maximizeFig(f);
+            f.Color = [1 1 1];
+            [lat, lon] = sta_list.getMedianPosGeodetic();
+
+            % set map limits
+            if numel(sta_list) == 1
+                lon_lim = minMax(lon) + [-0.05 0.05];
+                lat_lim = minMax(lat) + [-0.05 0.05];
+            else
+                lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+            end
+            nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+            clon = nwse([2 4]) + [-0.02 0.02];
+            clat = nwse([3 1]) + [-0.02 0.02];
+
+            %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
+            axes
+            cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
+            
+            % retrieve external DTM
+            try
+                [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', resolution);
+                dtm = flipud(dtm);
+                % comment the following line to have bathimetry
+                dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
+            
+                % uncomment the following line to have colors
+                % colormap(Cmap.adaptiveTerrain(minMax(dtm(:))));
+                drawnow;
+                
+                [shaded_dtm, x, y] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1]);
+                %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
+                %h_dtm.CData = shaded_dtm;
+                m_image(lon_dtm, lat_dtm, shaded_dtm); 
+            catch
+                % use ETOPO1 instead
+                m_etopo2('shadedrelief','gradient', 3);
+            end
+
+            % read shapefile
+            shape = 'none';
+            if (~strcmp(shape,'none'))
+                if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                    if (strcmp(shape,'10m'))
+                        M = m_shaperead('countries_10m');
+                    elseif (strcmp(shape,'30m'))
+                        M = m_shaperead('countries_30m');
+                    else
+                        M = m_shaperead('countries_50m');
+                    end
+                    [x_min, y_min] = m_ll2xy(min(lon), min(lat));
+                    [x_max, y_max] = m_ll2xy(max(lon), max(lat));
+                    for k = 1 : length(M.ncst)
+                        lam_c = M.ncst{k}(:,1);
+                        ids = lam_c <  min(lon);
+                        lam_c(ids) = lam_c(ids) + 360;
+                        phi_c = M.ncst{k}(:,2);
+                        [x, y] = m_ll2xy(lam_c, phi_c);
+                        if sum(~isnan(x))>1
+                            x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                            line(x,y,'color', [0.3 0.3 0.3]);
+                        end
+                    end
+                else
+                    if (strcmp(shape,'coast'))
+                        m_coast('line','color', lineCol);
+                    else
+                        m_coast('patch',lineCol);
+                    end
+                end
+            end
+            
+            hold on;
+            
+            m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+            % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            drawnow
+            m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            [x, y] = m_ll2xy(lon, lat);
+            
+            plot(x(:), y(:),'.k', 'MarkerSize', 5); hold on;            
+            % Label BG (in background w.r.t. the point)
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
+            for r = 1 : numel(sta_list)
+                plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+            end
+            plot(x(:), y(:), '.k', 'MarkerSize', 5);
+            plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
+           
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                t = text(x(r), y(r), ['   ' name], ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                    ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+                %t.Units = 'pixels';
+                %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
+                %t.Units = 'data';
+            end
+
+            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
+            xlabel('Longitude [deg]');
+            ylabel('Latitude [deg]');
+            ax = gca; ax.FontSize = 16;
+            Logger.getInstance.addStatusOk('The map is ready ^_^');
+        end
+
+        function showMapGoogle(sta_list, new_fig)
+            % Show Google Map of the stations
+            %
+            % SYNTAX
+            %   sta_list.showMapGoogle(new_fig);
+            if nargin < 2
+                new_fig = true;
+            end
+            if new_fig
+                f = figure;
+            else
+                f = gcf;
+                hold on;
+            end
+            if (nargin < 3) || isempty(resolution)
+                resolution = 'low';
+            end
+            % check accepted values (low / high)
+            switch resolution
+                case 'high'
+                otherwise
+                    resolution = 'low';
+            end
+            Logger.getInstance.addMarkedMessage('Preparing map, please wait...');
+            
+            maximizeFig(f);
+            f.Color = [1 1 1];
+            [lat, lon] = sta_list.getMedianPosGeodetic();
+
+            % set map limits
+            if numel(sta_list) == 1
+                lon_lim = minMax(lon) + [-0.05 0.05];
+                lat_lim = minMax(lat) + [-0.05 0.05];
+            else
+                lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+            end
+            nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+            clon = nwse([2 4]) + [-0.02 0.02];
+            clat = nwse([3 1]) + [-0.02 0.02];
+
+            axes
+            xlim(lon_lim);
+            ylim(lat_lim);
+            [lon_ggl,lat_ggl, img_ggl] = plot_google_map('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
+
+            %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection                                
+            drawnow
+            m_image(lon_ggl, lat_ggl, img_ggl); 
+            
+            % read shapefile
+            shape = 'none';
+            if (~strcmp(shape,'none'))
+                if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                    if (strcmp(shape,'10m'))
+                        M = m_shaperead('countries_10m');
+                    elseif (strcmp(shape,'30m'))
+                        M = m_shaperead('countries_30m');
+                    else
+                        M = m_shaperead('countries_50m');
+                    end
+                    [x_min, y_min] = m_ll2xy(min(lon), min(lat));
+                    [x_max, y_max] = m_ll2xy(max(lon), max(lat));
+                    for k = 1 : length(M.ncst)
+                        lam_c = M.ncst{k}(:,1);
+                        ids = lam_c <  min(lon);
+                        lam_c(ids) = lam_c(ids) + 360;
+                        phi_c = M.ncst{k}(:,2);
+                        [x, y] = m_ll2xy(lam_c, phi_c);
+                        if sum(~isnan(x))>1
+                            x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                            line(x,y,'color', [0.3 0.3 0.3]);
+                        end
+                    end
+                else
+                    if (strcmp(shape,'coast'))
+                        m_coast('line','color', lineCol);
+                    else
+                        m_coast('patch',lineCol);
+                    end
+                end
+            end
+            
+            hold on;
+            
+            m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+            % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            drawnow
+            m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            [x, y] = m_ll2xy(lon, lat);
+            
+            plot(x(:), y(:),'.k', 'MarkerSize', 5); hold on;            
+            % Label BG (in background w.r.t. the point)
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+            end
+            
+            for r = 1 : numel(sta_list)
+                plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+            end
+            plot(x(:), y(:), '.k', 'MarkerSize', 5);
+            plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
+           
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName4Ch());
+                t = text(x(r), y(r), ['   ' name], ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                    ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+                %t.Units = 'pixels';
+                %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
+                %t.Units = 'data';
+            end
+
+            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
+            xlabel('Longitude [deg]');
+            ylabel('Latitude [deg]');
+            ax = gca; ax.FontSize = 16;
+            Logger.getInstance.addStatusOk('The map is ready ^_^');
+        end
+        
+        function showMapGoogleLegacy(sta_list, new_fig)
+            % Show Google Map of the stations
+            % Old version without m_map
+            %
+            % SYNTAX
+            %   sta_list.showMapGoogle(new_fig);
             if nargin < 2
                 new_fig = true;
             end
@@ -1917,9 +2207,11 @@ classdef GNSS_Station < handle
             end
 
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');
-            title('Receiver position');
+            title('Receiver position\\fontsize{5} \n', 'FontSize', 16);
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
+            ax = gca; ax.FontSize = 16;
+            Logger.getInstance.addStatusOk('The map is ready ^_^');
         end
 
         function showCMLRadarMapAniRec(sta_list)
