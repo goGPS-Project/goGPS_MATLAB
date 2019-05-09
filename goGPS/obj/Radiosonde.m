@@ -55,8 +55,9 @@ classdef Radiosonde < handle
         zwd             % zenith wet delay
     end
     
-    properties (Access = private)
-        log     % logger
+    properties (Constant)
+        JAPAN_STATION = {'47401', '47418', '47412', '47580', '47582', '47600', '47646', '47681', '47678', '47741', '47778', '47807', '47827', '47909', '47945', '47918'};
+        ITALY_STATION = {'16045', '16080', '16113', '16245', '16320', '16429', '16546'};
     end
     
     methods (Static)
@@ -64,21 +65,50 @@ classdef Radiosonde < handle
         function this = Radiosonde(region, sta_num, date_start, date_stop) %valid for one station for one month
             % Core object creator
             
-            this.log = Logger.getInstance();
+            log = Logger.getInstance();
             this.reset();
             if nargin == 0
                 % init only;
             else
                 if nargin < 4
-                    this.log.addMessage(sprintf('Error downloading the files, not enough input arguments'));
+                    log.addMessage(sprintf('Error downloading the files, not enough input arguments'));
                 else
-                    this.log.addMessage(sprintf('Downloading files for %s-%s', region, sta_num));
+                    log.addMessage(log.indent(sprintf(' - downloading files for %s-%s', region, sta_num)));
                 end
                 
                 this.download(region, sta_num, date_start, date_stop);
             end
         end
         
+        function rds_list = fromList(sta_num, date_start, date_stop)
+            % Get a list of radiosondes objects downloading data from 
+            %  - http://weather.uwyo.edu/upperair/sounding.html
+            %
+            % SINTAX
+            %   rds_list = Radiosonde.fromList(region, sta_num, date_start, date_stop)
+            %
+            % EXAMPLE
+            %   rds_list = Radiosonde.fromList(Radiosonde.JAPAN_STATION, date_start, date_stop)
+            
+            % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
+            if ~iscell(sta_num)            
+                sta_num = {sta_num};
+            end
+            region = 'europe'; % it is not really necessary
+            
+            % Init out
+            rds_list(numel(sta_num)) = Radiosonde();
+            for s = 1 : numel(sta_num)
+                try
+                    rds_list(s) = Radiosonde(region, sta_num{s}, date_start, date_stop);
+                catch
+                    % catch timeout
+                    pause(1 + rand(1) * 3);
+                    rds_list(s) = Radiosonde(region, sta_num{s}, date_start, date_stop);
+                end
+            end
+        end
+    
         function rds_list = fromJapan(date_start, date_stop)
             % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
             region = 'seasia';
@@ -175,7 +205,16 @@ classdef Radiosonde < handle
                 plot_type = 'TEXT';
                 % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
                 address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
-                char_array = webread(address);
+                try
+                    char_array = webread(address);
+                catch
+                    % try again after some seconds
+                    try
+                        pause(3 + randi(1,1) * 5);
+                        char_array = webread(address);
+                    catch
+                    end
+                end
                 char_array = regexprep(char_array,'<script.*?/script>','');
                 char_array = regexprep(char_array,'<style.*?/style>','');
                 char_array = regexprep(char_array,'<.*?>','');
