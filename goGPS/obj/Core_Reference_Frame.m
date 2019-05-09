@@ -167,7 +167,7 @@ classdef Core_Reference_Frame < handle
         end
         
         function [xyz, is_valid] = getCoo(this, sta_name, epoch)
-            % get the coordinates of the station defined by marker name at the  desidered epoch
+            % get the coordinates of the station defined by marker name at the desidered epoch
             %
             % SYNTAX:
             %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
@@ -191,6 +191,7 @@ classdef Core_Reference_Frame < handle
                         epoch_gps = epoch.getGpsTime();
                         idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
                         idx_sta = idx_sta(idx_sta2);
+                        idx_sta = idx_sta(1);
                         dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
                         xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
                         is_valid = true;
@@ -213,7 +214,7 @@ classdef Core_Reference_Frame < handle
             
                 
                 if length(sta_name) == 4
-                    idx_sta = find(strcmpi(this.station_code, sta_name));
+                    idx_sta = find(strcmpi(this.station_code, sta_name),1 , 'first');
                     if sum(idx_sta) > 0
                         this.xyz(idx_sta,:) = xyz;
                         if nargin > 3 && ~isempty(flag)
@@ -299,7 +300,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.isFixed(sta_code)
             status = false;
             if size(this.station_code) > 0
-                sta_idx = find(strcmpi(this.station_code, sta_code));
+                sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2;
                 end
@@ -314,7 +315,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.hasAPriori(sta_code)
             status = false;
             if numel(this.station_code) > 0
-                sta_idx = find(strcmpi(this.station_code, sta_code));
+                sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1  || this.flag(sta_idx) == 3;
                 end
@@ -329,7 +330,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.hasAPriori(sta_code)
             status = false;
             if numel(this.station_code) > 0
-                sta_idx = find(strcmpi(this.station_code, sta_code));
+                sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 3 || this.flag(sta_idx) == 2;
                 end
@@ -341,7 +342,7 @@ classdef Core_Reference_Frame < handle
             %
             % SYNTAX:
             %  this.setFlag(sta_code,flag)
-            sta_idx = find(strcmpi(this.station_code, sta_code));
+            sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
             if sum(sta_idx) > 0
                 this.flag(sta_idx) = flag;
             end
