@@ -2101,7 +2101,7 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f = figure('Visible', 'off');
             else
                 f = gcf;
                 hold on;
@@ -2228,10 +2228,10 @@ classdef GNSS_Station < handle
                 %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
                 %t.Units = 'data';
             end
-
+            f.Visible = 'on';
             title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
-            xlabel('Longitude [deg]');
-            ylabel('Latitude [deg]');
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
             Logger.getInstance.addStatusOk('The map is ready ^_^');
         end
@@ -2252,7 +2252,7 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f = figure('Visible', 'off');
             else
                 f = gcf;
                 hold on;
@@ -2364,10 +2364,11 @@ classdef GNSS_Station < handle
                 %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
                 %t.Units = 'data';
             end
-
+            
+            f.Visible = 'on';
             title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
-            xlabel('Longitude [deg]');
-            ylabel('Latitude [deg]');
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
             Logger.getInstance.addStatusOk('The map is ready ^_^');
         end
