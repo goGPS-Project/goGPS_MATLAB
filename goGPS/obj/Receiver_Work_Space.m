@@ -6672,7 +6672,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   this.applyAtmLoad()
-            if this.atm_load_delay_status == 0  && this.state.isAtmLoading
+            if this.atm_load_delay_status == 0  && this.state.isAtmLoading && Core.getAtmosphere.isAtmoLoadLoaded
                 this.log.addMarkedMessage('Applying atmospheric loading effect');
                 this.atmLoad(1);
                 this.atm_load_delay_status = 1; %applied
@@ -6684,7 +6684,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   this.remAtmLoad()
-            if this.atm_load_delay_status == 1
+            if this.atm_load_delay_status == 1  && Core.getAtmosphere.isAtmoLoadLoaded
                 this.log.addMarkedMessage('Removing atmospheric loading effect');
                 this.atmLoad(-1);
                 this.atm_load_delay_status = 0; %not applied

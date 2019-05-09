@@ -609,6 +609,14 @@ classdef Atmosphere < handle
                 );
         end
         
+        function is_loaded = isAtmoLoadLoaded(this)
+            % check if atmospheric  loading coefficient has been loaded
+            %
+            % SYNTAX
+            %     is_loaded = this.isAtmoLoadLoaded()
+            is_loaded = any(this.atm_load_nt.data_u);
+        end
+        
         function [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
             % get non tidal atmospheric loading corrections
             %

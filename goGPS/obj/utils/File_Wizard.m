@@ -538,7 +538,7 @@ classdef File_Wizard < handle
             if status
                 this.log.addStatusOk('Atmospheric loading files are present ^_^');
             else
-                this.log.addWarning('Not all atmospheric files founds');
+                this.log.addWarning('Not all atmospheric files founds, Atmospheric loading will not be applyied');
             end
             
         end
