@@ -112,6 +112,7 @@ classdef Core_SEID < handle
                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
+                     if any(id_sync{t})
                     log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
                     
                     max_sat_trg = max(max_sat, max(trg(t).go_id));
@@ -261,8 +262,9 @@ classdef Core_SEID < handle
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                     trg(t).updateDetectOutlierMarkCycleSlip();
                 end
-                
+                end
                 log.addMarkedMessage('Syncing times, computing reference time');
+                
             end
         end               
                 
@@ -336,6 +338,7 @@ classdef Core_SEID < handle
                                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
+                    if any(id_sync{t})
                     % trimming the target receiver to mach the id_sync of the reference stations
                     log.addMessage(log.indent(sprintf('Keeping only the epochs in common between "%s" and the reference stations', trg(t).parent.getMarkerName4Ch) ));
                     trg(t).keepEpochs(id_sync{t}(:,numel(ref) + t));
@@ -515,6 +518,7 @@ classdef Core_SEID < handle
                     end
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                     trg(t).updateDetectOutlierMarkCycleSlip();
+                    end
                 end       
                 log.addMarkedMessage('Syncing times, computing reference time');
             end            

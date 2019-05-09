@@ -1998,7 +1998,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function [p_time, id_sync] = getSyncTimeTR(sta_list, obs_type, p_rate)
             % Get the common (shortest) time among all the used receivers and the target(s)
-            % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
+            % For each target (obs_type == 0) produces a different cell array with the sync of the other receivers
             % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
             %       OUTPUT 1 sync @1Hz + 1 sync@30s
             %
