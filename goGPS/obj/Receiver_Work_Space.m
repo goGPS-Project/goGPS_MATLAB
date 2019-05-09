@@ -8948,7 +8948,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if any(~isnan(ph) & ~isnan(pr)) & any(amb_idx_mat(:,s))
                     amb_idx = amb_idx_mat(:,s);
                     amb_idx = amb_idx - min(amb_idx) + 1;
-                    n_amb = max(amb_idx);
+                    n_amb = double(max(amb_idx));
                     Apr = [speye(n_iono) sparse(n_iono, n_amb)];
                     Apr(isnan(pr),:) = [];
                     pr(isnan(pr)) = [];
