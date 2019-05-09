@@ -1064,8 +1064,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         is = st_idx(i);
                         ie = end_idx(i);
                         c_rate = cs.coord_rate;
-                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())));
-                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())));
+                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())-1));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())+1));
                         this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                     end
                 else
