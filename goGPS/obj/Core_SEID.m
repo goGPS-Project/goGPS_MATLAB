@@ -75,8 +75,18 @@ classdef Core_SEID < handle
                 rec(numel(ref) + (1 : numel(trg))) = trg;
                 obs_type(1:numel(ref)) = 2;
                 obs_type(numel(ref) + (1 : numel(trg))) = 0;
-                [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
+                %%% check if one of the target receiver does have too few
+                %%% epoch
+                [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
                 log = Logger.getInstance();
+               
+                
+                
+                
+                
+                
+                [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
+                
                 
                 log.addMarkedMessage('Starting SEID processing')
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
@@ -112,7 +122,7 @@ classdef Core_SEID < handle
                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
-                     if any(id_sync{t})
+                     if any(any(id_sync{t}))
                     log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
                     
                     max_sat_trg = max(max_sat, max(trg(t).go_id));
@@ -283,6 +293,10 @@ classdef Core_SEID < handle
                 rec(numel(ref) + (1 : numel(trg))) = trg;
                 obs_type(1:numel(ref)) = 2;
                 obs_type(numel(ref) + (1 : numel(trg))) = 0;
+                %%% check if one of the target receiver does have too few
+                %%% epoch
+                [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
+                
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
                 log = Logger.getInstance();
                 
@@ -338,7 +352,7 @@ classdef Core_SEID < handle
                                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
-                    if any(id_sync{t})
+                    if any(any(id_sync{t}))
                     % trimming the target receiver to mach the id_sync of the reference stations
                     log.addMessage(log.indent(sprintf('Keeping only the epochs in common between "%s" and the reference stations', trg(t).parent.getMarkerName4Ch) ));
                     trg(t).keepEpochs(id_sync{t}(:,numel(ref) + t));
@@ -522,6 +536,35 @@ classdef Core_SEID < handle
                 end       
                 log.addMarkedMessage('Syncing times, computing reference time');
             end            
+        end
+        
+        
+        function [rec, ref, obs_type] = removeRecWithFewObs(ref,rec,obs_type)
+            % remove refrence with few observations
+            %
+            % SYNTAX:
+            %   [rec,ref] = removeRecWithFewObs(ref,rec)
+            log = Logger.getInstance();
+            n_ep = zeros(numel(ref),1);
+            for i = 1 : numel(ref)
+                n_ep(i) = rec(i).time.length * rec(i).time.getRate;
+            end
+            idx_poss_rem = n_ep < 0.7*median(n_ep);
+            if sum(~idx_poss_rem) > 3
+                idx_poss_rem = find(idx_poss_rem);
+                
+                if any(idx_poss_rem)
+                    recs_str = [];
+                    for j = 1 : length(idx_poss_rem)
+                        recs_str = [recs_str ' ' rec(idx_poss_rem(j)).parent.getMarkerName4Ch];
+                        log.addWarning(['Receveivers' recs_str ' has to many empty epoch, the will not be used as reference']);
+                    end
+                end
+                rec(idx_poss_rem) = [];
+                ref(idx_poss_rem) = [];
+                obs_type(idx_poss_rem) = [];
+                
+            end
         end
     end
 
