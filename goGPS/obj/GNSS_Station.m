@@ -1190,12 +1190,13 @@ classdef GNSS_Station < handle
             [tropo, time] = sta_list.getTropoPar('zhd');
         end
 
-        function [m_diff, s_diff] = getRadiosondeValidation(sta_list, station_list)
+        function [m_diff, s_diff] = getRadiosondeValidation(sta_list, rds_list)
             % Compute a comparison with radiosondes from weather.uwyo.edu
             % given region list, and station id (as cell arrays)
             %
             % INPUT
-            %   station_list    cell array of string containing the radiosonde ID as used at "http://weather.uwyo.edu/upperair/sounding.html"
+            %   sta_list        list of gnss receivers
+            %   rds_list        cell array of string containing the radiosonde ID as used at "http://weather.uwyo.edu/upperair/sounding.html"
             %
             % OUTPUT
             %   m_diff          mean of the ZTD differences
@@ -1218,7 +1219,7 @@ classdef GNSS_Station < handle
             stop_time = GPS_Time(ceil(p_time.last.getMatlabTime * 2)/2);
 
             % Download radiosondes
-            rds = Radiosonde.fromList(station_list, start_time, stop_time);
+            rds = Radiosonde.fromList(rds_list, start_time, stop_time);
             
             Logger.getInstance.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
             [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
