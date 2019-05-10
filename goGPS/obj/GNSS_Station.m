@@ -1577,7 +1577,7 @@ classdef GNSS_Station < handle
             tropo_clim(2,:) = [perc(tropo(:),0.005) perc(tropo(:),0.995)];
 
             if flag_show
-                subplot(1,2,1);
+                % subplot(1,2,1);
                 imh = imagesc(x_grid, y_grid, tropo_height_correction);
                 if FTP_Downloader.checkNet()
                     plot_google_map('alpha', 0.65, 'MapType', 'satellite');
@@ -1585,22 +1585,24 @@ classdef GNSS_Station < handle
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
                 caxis(tropo_clim(1,:));
+                cmap = Cmap.get('c51',512);
+                colormap(flipud(cmap(2:end,:)));
                 colorbar;
                 th = title(sprintf([par_name ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
                     
-                ax2 = subplot(1,2,2);
-                imh2 = imagesc(x_grid, y_grid, tropo_height_correction);
-                if FTP_Downloader.checkNet()
-                    plot_google_map('alpha', 0.65, 'MapType', 'satellite');
-                    %plot_google_map('alpha', 0.65, 'MapType', 'roadmap');
-                end
-                xlabel('Longitude [deg]');
-                ylabel('Latitude [deg]');
-                caxis(tropo_clim(2,:));
-                cmap = Cmap.get('c51', 501);
-                colormap(flipud(cmap(2:end,:)));
-                colorbar;
-                th2 = title(ax2, 'at ground level', 'FontSize', 22);                
+                % ax2 = subplot(1,2,2);
+                % imh2 = imagesc(x_grid, y_grid, tropo_height_correction);
+                % if FTP_Downloader.checkNet()
+                %     plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+                %     %plot_google_map('alpha', 0.65, 'MapType', 'roadmap');
+                % end
+                % xlabel('Longitude [deg]');
+                % ylabel('Latitude [deg]');
+                % caxis(tropo_clim(2,:));
+                % cmap = Cmap.get('c51', 501);
+                % colormap(flipud(cmap(2:end,:)));
+                % colorbar;
+                % th2 = title(ax2, 'at ground level', 'FontSize', 22);                
             end
 
             for i = 1 : numel(epoch_list)
@@ -1611,15 +1613,15 @@ classdef GNSS_Station < handle
                     if strmatch(method, 'fun')
                         tmp(mask) = funInterp2(x_list, y_list, xyu(id_ok(:, epoch(e)),1), xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
                     else
-                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'linear');
+                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
                         tmp(mask) = finterp(x_list, y_list);
                     end
                     tropo_grid(:,:,i) = single(tmp) + h_correction(1);
                     if flag_show                        
                         imh.CData = tropo_grid(:,:,i);
                         imh.AlphaData = ~isnan(tropo_grid(:,:,i));
-                        imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
-                        imh2.AlphaData = ~isnan(tropo_grid(:,:,i));
+                        %imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
+                        %imh2.AlphaData = ~isnan(tropo_grid(:,:,i));
                         drawnow;
                     end
                 else
@@ -1714,7 +1716,7 @@ classdef GNSS_Station < handle
                     if strmatch(method, 'fun')
                         tmp = funInterp2(dlon_out, dlat_out, x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
                     else
-                        finterp = scatteredInterpolant(x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
+                        finterp = scatteredInterpolant(x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'linear');
                         tmp = finterp(dlon_out, dlat_out);
                     end
                     tropo_out(:,i) = single(tmp) + h_correction(1);
