@@ -302,7 +302,7 @@ classdef Core_Reference_Frame < handle
             if size(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx) == 2;
+                    status  = this.flag(sta_idx(1)) == 2;
                 end
             end
         end
@@ -317,7 +317,7 @@ classdef Core_Reference_Frame < handle
             if numel(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1  || this.flag(sta_idx) == 3;
+                    status  = this.flag(sta_idx(1)) == 2 || this.flag(sta_idx(1)) == 1  || this.flag(sta_idx(1)) == 3;
                 end
             end
         end
@@ -332,7 +332,7 @@ classdef Core_Reference_Frame < handle
             if numel(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx) == 3 || this.flag(sta_idx) == 2;
+                    status  = this.flag(sta_idx(1)) == 3 || this.flag(sta_idx(1)) == 2;
                 end
             end
         end
