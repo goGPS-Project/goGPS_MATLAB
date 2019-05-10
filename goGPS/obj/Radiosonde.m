@@ -190,7 +190,7 @@ classdef Radiosonde < handle
                 if e == size(month, 1)
                     to = sprintf('%02d%02d', date_list(end,3), date_list(end,4));
                 else
-                    switch month(e, :)
+                    switch sprintf('%02d',month(e,:))
                         case {'01', '03', '05', '07', '08', '10', '12'}
                             to = '3112';
                         case {'04', '06', '09' '11'}
@@ -204,7 +204,7 @@ classdef Radiosonde < handle
                 options.Timeout = 10;
                 plot_type = 'TEXT';
                 % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
-                address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
+                address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year(e)) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
                 try
                     char_array = webread(address);
                 catch
@@ -288,7 +288,7 @@ classdef Radiosonde < handle
                     rds_pwv(1,j).pwv = pw_vec_d;
                     rds_pwv(1,j).datetime = datetime_vec;
                     rds_pwv(1,j).sta_numer = sta_num(:,:);
-                    this.pwv = [this.pwv, rds_pwv(e,1).pwv'];
+                    this.pwv = [this.pwv, rds_pwv(e).pwv'];
                     clear datetime_vec pw_vec_d time_vec                    
                 end
                 j = j + 1;
