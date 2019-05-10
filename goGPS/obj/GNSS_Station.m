@@ -2663,13 +2663,15 @@ classdef GNSS_Station < handle
             % Set map projection / limits
             
             [lat, lon] = sta_list_full.getMedianPosGeodetic();
-            margin = 0.5;
-            id_ok = (lat >= (nwse(3) - margin)) & (lat <= (nwse(1) + margin)) & ...
-                (lon >= (nwse(2) - margin)) & (lon <= (nwse(4) + margin));
-            sta_list = sta_list_full(id_ok);
+            if nargin >= 3 && ~isempty(nwse)
+                margin = 0.5;
+                id_ok = (lat >= (nwse(3) - margin)) & (lat <= (nwse(1) + margin)) & ...
+                    (lon >= (nwse(2) - margin)) & (lon <= (nwse(4) + margin));
+                sta_list = sta_list_full(id_ok);
+            end
             
             if nargin < 3 || isempty(nwse)
-                
+                sta_list = sta_list_full;
                 % set map limits
                 if numel(sta_list) == 1
                     lon_lim = minMax(lon) + [-0.05 0.05];
@@ -2794,9 +2796,11 @@ classdef GNSS_Station < handle
             %colormap(flipud(gat(1024, false)));
             %colormap(Cmap.get('viridis', 32));
             if flag_dtm == 2  
-                cax = m_contfbar([.05 .55], 0, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
+                cax = m_contfbar([.05 .55], 0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                xlabel(cax,'cm','color','k');
             else
-                cax = m_contfbar([.15 .55], -0.05, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
+                cax = m_contfbar([.15 .55], -0.05, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                xlabel(cax,'cm','color','k');
             end
             xlabel(cax,'cm','color','k');
             
@@ -2836,8 +2840,14 @@ classdef GNSS_Station < handle
                 %    xlabel('Longitude [deg]');
                 %    ylabel('Latitude [deg]');
                 %end
-                cax2 = m_contfbar([.05 .55], 0, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);                xlabel(cax,'cm','color','k');
-                th2 = title(cax2, sprintf('at ground level\\fontsize{5} \n'), 'FontSize', 20);
+                if flag_dtm == 2
+                    cax2 = m_contfbar([.05 .55], 0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    xlabel(cax2,'cm','color','k');
+                else
+                    cax2 = m_contfbar([.15 .55], -0.05, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    xlabel(cax2,'cm','color','k');
+                end
+                th2 = title(ax2, sprintf('at ground level\\fontsize{5} \n'), 'FontSize', 20);
             end
             
             fig_handle.Visible = 'on';
