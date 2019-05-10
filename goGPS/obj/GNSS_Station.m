@@ -1450,8 +1450,12 @@ classdef GNSS_Station < handle
             if (nargin < 3) || isempty(rate)
                 rate = 300; % 5 min
             end
-            ss_rate = round(rate / s_time.getRate);
-            time = s_time.getEpoch(1 : ss_rate : s_time.length());
+            if numel(rate) == 1
+                ss_rate = round(rate / s_time.getRate);
+                time = s_time.getEpoch(1 : ss_rate : s_time.length());
+            else
+                time = s_time.getEpoch(rate);
+            end
 
             med_tropo = mean(tropo, 1, 'omitnan')';
 
@@ -1541,7 +1545,11 @@ classdef GNSS_Station < handle
             y_list = y_mg(mask);
             
             epoch = 1 : s_time.length();
-            epoch_list = 1 : ss_rate : numel(epoch);
+            if numel(rate) == 1
+                epoch_list = 1 : ss_rate : numel(epoch);
+            else
+                epoch_list = rate;
+            end
             
             tropo_grid = nan(size(mask,1), size(mask,2), numel(epoch_list), 'single'); 
             
@@ -1593,7 +1601,7 @@ classdef GNSS_Station < handle
                     if strmatch(method, 'fun')
                         tmp(mask) = funInterp2(x_list, y_list, xyu(id_ok(:, epoch(e)),1), xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
                     else
-                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'none');
+                        finterp = scatteredInterpolant(xyu(id_ok(:, epoch(e)),1),xyu(id_ok(:, epoch(e)),2), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'linear');
                         tmp(mask) = finterp(x_list, y_list);
                     end
                     tropo_grid(:,:,i) = single(tmp) + h_correction(1);
