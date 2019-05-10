@@ -1288,7 +1288,17 @@ classdef GNSS_Station < handle
             if flag_show
                 Logger.getInstance.addMarkedMessage('Preparing map, please wait...');
                 % set map limits
-                nwse = [48, 123, 22, 148];
+                lat = rds.getLat;
+                lon = rds.getLon;
+                % set map limits
+                if numel(sta_list) == 1
+                    lon_lim = minMax(lon) + [-0.05 0.05];
+                    lat_lim = minMax(lat) + [-0.05 0.05];
+                else
+                    lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                    lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+                end
+                nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
                 clon = nwse([2 4]) + [-0.02 0.02];
                 clat = nwse([3 1]) + [-0.02 0.02];
                 
