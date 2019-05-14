@@ -185,9 +185,12 @@ classdef Core_Utils < handle
                     s(l) = mean((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
                 end
             elseif strcmpi(mode,'fft')
-                A = Core_Utils.getSpectrum(x,1);
-                cova = ifft(A.^2);
-                s = var(x) - cova;
+                L = length(x);
+%                 Y = fft(x)
+%                 Ae = abs(Y);
+                A = Core_Utils.getSpectrum(x);
+                cova = ifft(([A; flipud(A(2:end))]).^2);
+                s = var(x) - cova(1:101);
             else
                 for l = 1 : max_lag
                     s(l) = median((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
