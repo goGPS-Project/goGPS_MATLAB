@@ -406,6 +406,33 @@ classdef Core_Sky < handle
             eclipsed(noonMidnightTurn) = 3;
         end
         
+        function [is_shadowed] = isShadowed(this, XYZ, time)
+            % compute weather the selected point is shadowed or not
+            % considering earth as an ellipsoid
+            %
+            % SYNATX:
+            % [is_shadowed] = isShadowed(this, XYZ, time)
+            
+            X_sun = this.sunMoonInterpolate(time, true);
+            % find the angle over the equator
+            alpha = atan2(X_sun(:,3), sqrt(sum(X_sun(:,1:2).^2,2)));
+            % find earth radius at the tangent point (2d case)
+            cc = Constellation_Collector('G');
+            a = cc.gps.ELL_A;
+            e = cc.gps.ELL_E;
+            e2 = e^2;
+            [Xi,Yi,Zi] = geod2cart(pi/2-alpha,zeros(size(alpha)),zeros(size(alpha)));
+            b = sqrt(Xi.^2 +Yi.^2 +Zi.^2);
+            % project tht epoint to be tested on the ellipse plane
+            Z_rot = rowNormalize(X_sun);
+            Y_rot = [Xi./b, Yi./b, Zi./b];
+            X_rot = cross(Y_rot,Z_rot);
+            XY_ell_plane = [sum(X_rot.*XYZ,2) sum(Y_rot.*XYZ,2)];
+            % check weather it is inside
+            is_shadowed = (XY_ell_plane(:,1)./a).^2 + (XY_ell_plane(:,2)./b).^2 < 1;
+            
+        end
+        
         function importEph(this, eph, t_st, t_end, step, clock)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
