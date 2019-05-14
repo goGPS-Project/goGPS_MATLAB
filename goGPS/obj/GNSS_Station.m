@@ -2128,6 +2128,12 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showMapDtm(new_fig, resolution);
+            
+            flag_labels = true;
+            flag_large_points = true;
+            point_size = 5;
+            point_color = [14, 25, 41]/256;
+            
             if nargin < 2
                 new_fig = true;
             end
@@ -2230,34 +2236,40 @@ classdef GNSS_Station < handle
             m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             [x, y] = m_ll2xy(lon, lat);
             
-            plot(x(:), y(:),'.k', 'MarkerSize', 5); hold on;            
-            % Label BG (in background w.r.t. the point)
-            for r = 1 : numel(sta_list)
-                name = upper(sta_list(r).getMarkerName4Ch());
-                text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
-                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
-                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                    'Margin', 2, 'LineWidth', 2, ...
-                    'HorizontalAlignment','left');
+            plot(x(:), y(:),'.', 'MarkerSize', point_size, 'Color', point_color); hold on;
+            if flag_labels
+                % Label BG (in background w.r.t. the point)
+                for r = 1 : numel(sta_list)
+                    name = upper(sta_list(r).getMarkerName4Ch());
+                    text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                end
             end
             
-            for r = 1 : numel(sta_list)
-                plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+            if flag_large_points
+                for r = 1 : numel(sta_list)
+                    plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+                end
+                plot(x(:), y(:), '.k', 'MarkerSize', 5);
+                plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
             end
-            plot(x(:), y(:), '.k', 'MarkerSize', 5);
-            plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
-           
-            for r = 1 : numel(sta_list)
-                name = upper(sta_list(r).getMarkerName4Ch());
-                t = text(x(r), y(r), ['   ' name], ...
-                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
-                    ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                    'Margin', 2, 'LineWidth', 2, ...
-                    'HorizontalAlignment','left');
-                %t.Units = 'pixels';
-                %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
-                %t.Units = 'data';
+            
+            if flag_labels
+                for r = 1 : numel(sta_list)
+                    name = upper(sta_list(r).getMarkerName4Ch());
+                    t = text(x(r), y(r), ['   ' name], ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                        ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                    %t.Units = 'pixels';
+                    %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
+                    %t.Units = 'data';
+                end
             end
             f.Visible = 'on';
             title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
