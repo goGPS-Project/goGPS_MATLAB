@@ -2108,59 +2108,10 @@ end
             %   this.updateAndPlotRecList
             
             % Get file name list
-            state = Core.getCurrentSettings();
+             state = Core.getCurrentSettings();
             state.updateObsFileName;
-            n_rec = state.getRecCount;
-            rec_path = state.getRecPath;
-            fr = {};
-            sta_name = {};
-            for r = 1 : n_rec
-                name = File_Name_Processor.getFileName(rec_path{r}{1});
-                sta_name{end+1} = name(1:4);
-                fr{r} = File_Rinex(rec_path{r}, 100);
-                name = File_Name_Processor.getFileName(rec_path{r}{1});
-            end
-            
-            sss_strt = this.state.getSessionsStartExt;
-            sss_stop = this.state.getSessionsStopExt;
-            for year = sss_strt.getDOY : sss_stop.getDOY
-                y_strt = GPS_Time([year 1 1 0 0 0]);
-                y_stop = GPS_Time([year+1 1 1 0 0 0]);
-                weeks = (y_strt.getGpsWeek: y_stop.getGpsWeek)';
-                week_time = GPS_Time.fromWeekDow(weeks,uint32(zeros(size(weeks))));
-                week_time = week_time.getMatlabTime();
-                months_time = datenum([year*ones(12,1) (1:12)' ones(12,1)]);
-                
-                y_strt = y_strt.getMatlabTime();
-                y_stop = y_stop.getMatlabTime();
-                f = figure; f.Name = sprintf('%03d: Daily RINEX File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
-                line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
-                for r = 1 : n_rec
-                    if sum(fr{r}.is_valid_list) > 0
-                        central_time = GPS_Time.getMeanTime(fr{r}.first_epoch , fr{r}.last_epoch).getMatlabTime;
-                        central_time = central_time(central_time >= y_strt & central_time <= y_stop);
-                        line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
-                        plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 20, 'Color', Core_UI.getColor(r, n_rec));
-                        if ~isempty(fr{r}.first_epoch) && ~isempty(fr{r}.last_epoch)
-                            plot([fr{r}.first_epoch.getMatlabTime  fr{r}.last_epoch.getMatlabTime], r * [1 1], '-', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 4);
-                        end
-                    end
-                end
-                x_lims = [max(sss_strt.getMatlabTime - 1, y_strt) min(sss_stop.getMatlabTime +1, y_stop)];
-                months_time = months_time(months_time > x_lims(1) & months_time < x_lims(2));
-                xlim(x_lims);
-                ylim([0 n_rec + 1]);
-                h = ylabel('STATION'); h.FontWeight = 'bold';
-                ax = gca(); ax.YTick = 1:n_rec;
-                ax.YTickLabel = sta_name;
-                set(ax,'XGrid','on')
-                title(sprintf('Rinex data avaliability %d',year));
-                if numel(months_time) > 1
-                ax.XTick = months_time;
-                end
-                datetick('x','dd/mm/yyyy HH','keepticks');
-                ax.XTickLabelRotation = 45;
-            end
+            Core.getCurrentCore.plotRecList();
+           
             this.log.addMessage('File availability plotted');
         end
         
