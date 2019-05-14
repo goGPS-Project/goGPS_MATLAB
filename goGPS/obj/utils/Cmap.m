@@ -1240,7 +1240,8 @@ classdef Cmap
             
             for m = 1 : n_cm
                 ax_l(m) = subplot(n_cm, 2, (m - 1) * 2 + 1); %#ok<AGROW>
-                cmap = reshape(Cmap.get(map_set{m}, n_col),1, n_col,3);
+                cmap = Cmap.get(map_set{m}, n_col);
+                cmap = reshape(cmap,1, numel(cmap) / 3, 3);
                 image(cmap);
                 ax_l(m).XTickLabel = []; %#ok<AGROW>
                 ax_l(m).YTickLabel = []; %#ok<AGROW>
@@ -1251,7 +1252,8 @@ classdef Cmap
             
             for m = 1 : n_cm
                 ax_r(m) = subplot(n_cm, 2, m * 2); %#ok<AGROW>
-                cmap = repmat(sum(reshape(Cmap.get(map_set{m}, n_col),1, n_col,3), 3) / 3, 1, 1, 3);
+                cmap = Cmap.get(map_set{m}, n_col);
+                cmap = repmat(sum(reshape(cmap,1, numel(cmap) / 3, 3), 3) / 3, 1, 1, 3);
                 image(cmap);
                 ax_r(m).XTickLabel = []; %#ok<AGROW>
                 ax_r(m).YTickLabel = []; %#ok<AGROW>
