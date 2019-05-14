@@ -293,7 +293,15 @@ classdef Receiver_Output < Receiver_Commons
                 for e = 1: this.time_pos.length
                     c_time = this.time_pos.getEpoch(e);
                     filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc',Core.getState.getGeoidDir),c_time);
-                    if exist(filename, 'file') == 2
+                    if exist(filename, 'file') ~= 2
+                        remote_file_name = fnp.dateKeyRep('gnss/products/${WWWW}/igs${YY}P${WWWWD}.ssc.Z',c_time);
+                        ftp_dw = FTP_Downloader('cddis.nasa.gov', 22);
+                         [pathstr, name, ext] = fileparts(filename);
+                        this.log.addMessage(this.log.indent(['Downloading ' name, ext, ' ...']));
+                        ftp_dw.downloadUncompress(remote_file_name, pathstr);
+                        this.log.addMessage('\b Done');
+                    end
+                     if exist(filename, 'file') ~= 2
                         [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
                         if ~isempty(cmdout) 
                         nl_id = find(cmdout==char(10));
@@ -306,6 +314,10 @@ classdef Receiver_Output < Receiver_Commons
                         z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
                         xyz(e,:) =[x y z];
                         end
+                     else
+                         [pathstr, name, ext] = fileparts(remote_file_name)
+                         
+                         this.log.addWarning(sprintf(' File %s not found',[name, ext]));
                     end
                 end
             end
