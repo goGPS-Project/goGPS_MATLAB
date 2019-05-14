@@ -416,12 +416,13 @@ classdef Core_Sky < handle
             X_sun = this.sunMoonInterpolate(time, true);
             % find the angle over the equator
             alpha = atan2(X_sun(:,3), sqrt(sum(X_sun(:,1:2).^2,2)));
+            lon_sun = atan2(X_sun(:,2),X_sun(:,1));
             % find earth radius at the tangent point (2d case)
             cc = Constellation_Collector('G');
             a = cc.gps.ELL_A;
             e = cc.gps.ELL_E;
             e2 = e^2;
-            [Xi,Yi,Zi] = geod2cart(pi/2-alpha,zeros(size(alpha)),zeros(size(alpha)));
+            [Xi,Yi,Zi] = geod2cart(pi/2-alpha,lon_sun -pi,zeros(size(alpha)));
             b = sqrt(Xi.^2 +Yi.^2 +Zi.^2);
             % project tht epoint to be tested on the ellipse plane
             Z_rot = rowNormalize(X_sun);
