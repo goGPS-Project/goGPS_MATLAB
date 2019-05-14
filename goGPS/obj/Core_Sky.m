@@ -427,9 +427,9 @@ classdef Core_Sky < handle
             Z_rot = rowNormalize(X_sun);
             Y_rot = [Xi./b, Yi./b, Zi./b];
             X_rot = cross(Y_rot,Z_rot);
-            XY_ell_plane = [sum(X_rot.*XYZ,2) sum(Y_rot.*XYZ,2)];
+            XYZ_ell_plane = [sum(X_rot.*XYZ,2) sum(Y_rot.*XYZ,2) sum(Z_rot.*XYZ,2)];
             % check weather it is inside
-            is_shadowed = (XY_ell_plane(:,1)./a).^2 + (XY_ell_plane(:,2)./b).^2 < 1;
+            is_shadowed = (XY_ell_plane(:,1)./a).^2 + (XY_ell_plane(:,2)./b).^2 < 1 & XY_ell_plane(:,3) < 0;
             
         end
         
