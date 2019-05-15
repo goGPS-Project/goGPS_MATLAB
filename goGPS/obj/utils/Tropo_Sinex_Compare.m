@@ -598,7 +598,7 @@ classdef Tropo_Sinex_Compare < handle
     end
     
     function [lons] = getLon(this)
-        % get longitude from sinex results
+        % get longitude from sinex results in degree
         %
         % SYNTAX
         % [lon] = this.getLon()
@@ -606,12 +606,13 @@ classdef Tropo_Sinex_Compare < handle
         n_rec = length(stas);
         lons = nan(n_rec,1);
         for i = 1 : n_rec
-            [~,lons(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+            [~,lons(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz(1,:));
+             lons(i) = lons(i)/pi*180;
         end
     end
     
     function [lats] = getLat(this)
-        % get longitude from sinex results
+        % get longitude from sinex results in degree
         %
         % SYNTAX
         % [lon] = this.getLon()
@@ -619,7 +620,8 @@ classdef Tropo_Sinex_Compare < handle
         n_rec = length(stas);
         lats = nan(n_rec,1);
         for i = 1 : n_rec
-            [lats(i),~] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+            [lats(i),~] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz(1,:));
+            lats(i) = lats(i)/pi*180;
         end
     end
     
@@ -632,7 +634,7 @@ classdef Tropo_Sinex_Compare < handle
         n_rec = length(stas);
         h = nan(n_rec,1);
         for i = 1 : n_rec
-            [lat,lon,h(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+            [lat,lon,h(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz(1,:));
             h(i) = h(i) - Coordinates.getOrthometricCorrFromLatLon(lat, lon);
         end
     end

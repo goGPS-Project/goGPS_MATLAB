@@ -1496,7 +1496,7 @@ classdef GNSS_Station < handle
                     
                     % radiosondes
                     [ztd_rds, time_rds] = tsc.getZtdSinex(s);
-                    plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 40);
+                    plot(time_rds.getMatlabTime, ztd_rds*100, '.k', 'MarkerSize', 3);
                     dockAllFigures();
                     legend({'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                         sprintf('ZTD @ %s', tsc.getName(s))}, 'location', 'northwest');
