@@ -313,7 +313,7 @@ classdef Receiver_Output < Receiver_Commons
                         xyz(e,:) =[x y z];
                         end
                      else
-                         [pathstr, name, ext] = fileparts(remote_file_name)
+                         [pathstr, name, ext] = fileparts(remote_file_name);
                          
                          this.log.addWarning(sprintf(' File %s not found',[name, ext]));
                     end

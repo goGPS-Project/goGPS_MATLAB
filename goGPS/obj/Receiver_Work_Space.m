@@ -6997,19 +6997,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                             el_tmp = el(el_idx,s) / pi * 180;
                             ant_id = this.getAntennaId(s);
                             ant = atx.getAntenna('', ant_id, this.time.getCentralTime);
-                            freqs = unique(this.obs_code(obs_idx,2))';
-                            for f = freqs
-                                pcv_delays = cs.getPCV(ant, [ant_id(1) '0' f], el_tmp, az_tmp);
-                               
-                                obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                                for o = find(obs_idx_f)'
-                                    pcv_idx = this.obs(az_idx, o) ~= 0; %find which correction to apply
-                                    if sum(pcv_idx) > 0
-                                        o_idx = this.obs(:, o) ~=0 & az_idx; %find where apply corrections
-                                        if  this.obs_code(o,1) == 'L'
-                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o); % is it a plus
-                                        else
-                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
+                            if ~ant.isEmpty()
+                                freqs = unique(this.obs_code(obs_idx,2))';
+                                for f = freqs
+                                    pcv_delays = cs.getPCV(ant, [ant_id(1) '0' f], el_tmp, az_tmp);
+                                    
+                                    obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                    for o = find(obs_idx_f)'
+                                        pcv_idx = this.obs(az_idx, o) ~= 0; %find which correction to apply
+                                        if sum(pcv_idx) > 0
+                                            o_idx = this.obs(:, o) ~=0 & az_idx; %find where apply corrections
+                                            if  this.obs_code(o,1) == 'L'
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o); % is it a plus
+                                            else
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
+                                            end
                                         end
                                     end
                                 end
