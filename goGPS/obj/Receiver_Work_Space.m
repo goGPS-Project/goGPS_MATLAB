@@ -6903,8 +6903,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % correct measurement for PCV both of receiver
             % antenna and satellite antenna
             cs = Core.getCoreSky;
-            this.obs = this.obs';  % Transpose for speed-up
+           
             if ~isempty(this.ant)
+                 this.obs = this.obs';  % Transpose for speed-up
                 % this.updateAllAvailIndex(); % not needed?
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
@@ -7017,8 +7018,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                 end
+                this.obs = this.obs'; % Transpose for speed-up
             end
-            this.obs = this.obs'; % Transpose for speed-up
+            
         end
                 
         function [pco, f_id] = getPCO(this, f_code)
