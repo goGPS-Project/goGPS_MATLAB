@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to compare tropo result whÿith external solutions
+%   Class to compare tropo result whï¿½ith external solutions
 % EXAMPLE
 %   tsc = Tropo_Sinex_Compare();
 %
@@ -94,6 +94,39 @@ classdef Tropo_Sinex_Compare < handle
                 end
             end
         end
+        
+        function [missing_days] = addIGSOfficialStation(this, sta_name, time)
+            % add IGS offical station
+            %
+            % SYNTAX
+            %     this.addIGSOfficialStation(sta_name, time)
+            
+            [mjd] = floor(time.getMJD);
+            missing_days = [];
+            fnp = File_Name_Processor();
+            
+            for d = unique(mjd)'
+                c_time = GPS_Time.fromMJD(d);
+                [year, doy] = c_time.getDOY();
+                filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/TROPO/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd',Core.getState.getGeoidDir,lower(sta_name)),c_time);
+                if exist(filename, 'file') ~= 2
+                    remote_file_name = fnp.dateKeyRep(sprintf('pub/gps/products/troposphere/zpd/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd.gz',lower(sta_name)),c_time);
+                    ftp_dw = FTP_Downloader('cddis.nasa.gov', 21);
+                    [pathstr, name, ext] = fileparts(filename);
+                    ftp_dw.downloadUncompress(remote_file_name, pathstr);
+                end
+                if ~(exist(filename, 'file') == 2)
+                    missing_days = [missing_days d];
+                    [pathstr, name, ext] = fileparts(remote_file_name)
+                    
+                    this.log.addWarning(sprintf(' File %s not found',[name, ext]));
+                else
+                    this.addTropoSinexFile(filename);
+                end
+            end
+        end
+        
+        
         function loadFilesFromFolder(this, dir_path, pattern,result_n)
             % add all sinex present in a folder that match the pattern
             %
@@ -562,6 +595,73 @@ classdef Tropo_Sinex_Compare < handle
             end
         end
     end
+    end
+    
+    function [lons] = getLon(this)
+        % get longitude from sinex results
+        %
+        % SYNTAX
+        % [lon] = this.getLon()
+        stas = fieldnames(this.results.r2);
+        n_rec = length(stas);
+        lons = nan(n_rec,1);
+        for i = 1 : n_rec
+            [~,lons(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+        end
+    end
+    
+    function [lats] = getLat(this)
+        % get longitude from sinex results
+        %
+        % SYNTAX
+        % [lon] = this.getLon()
+        stas = fieldnames(this.results.r2);
+        n_rec = length(stas);
+        lats = nan(n_rec,1);
+        for i = 1 : n_rec
+            [lats(i),~] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+        end
+    end
+    
+    function [h] = getHeightOrtho(this)
+        % get longitude from sinex results
+        %
+        % SYNTAX
+        % [lon] = this.getLon()
+        stas = fieldnames(this.results.r2);
+        n_rec = length(stas);
+        h = nan(n_rec,1);
+        for i = 1 : n_rec
+            [lat,lon,h(i)] = Coordinates.cart2geod(this.results.r2.(stas{i}).xyz);
+            h(i) = h(i) - Coordinates.getOrthometricCorrFromLatLon(lat, lon);
+        end
+    end
+    
+    function n = getNumberSinex(this)
+        % get number of sinex results
+        %
+        % SYNTAX
+        % [n] = this.getNumberSinex()
+        n = length(fieldnames(this.results.r2));
+    end
+    
+    function [ztd,time] = getZtdSinex(this,s)
+        % get ztd and time of the sth station
+        %
+        % SYNTAX
+        %  [ztd,time] = this.getZtdSinex(s)
+        stas = fieldnames(this.results.r2);
+        ztd = this.results.r2.(stas{s}).ztd;
+        time =  this.results.r2.(stas{s}).time;
+    end
+    
+    function [name] = getName(this,s)
+        % get nathe of nth station
+        %
+        % SYNTAX
+        %   [name] = this.getName(s)
+        stas = fieldnames(this.results.r2);
+        name = stas{s};
     end
     
     function plotCooDifferenceSummary(this)

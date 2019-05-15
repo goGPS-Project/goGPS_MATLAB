@@ -295,13 +295,11 @@ classdef Receiver_Output < Receiver_Commons
                     filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc',Core.getState.getGeoidDir),c_time);
                     if exist(filename, 'file') ~= 2
                         remote_file_name = fnp.dateKeyRep('gnss/products/${WWWW}/igs${YY}P${WWWWD}.ssc.Z',c_time);
-                        ftp_dw = FTP_Downloader('cddis.nasa.gov', 22);
+                        ftp_dw = FTP_Downloader('cddis.nasa.gov',21);
                          [pathstr, name, ext] = fileparts(filename);
-                        this.log.addMessage(this.log.indent(['Downloading ' name, ext, ' ...']));
                         ftp_dw.downloadUncompress(remote_file_name, pathstr);
-                        this.log.addMessage('\b Done');
                     end
-                     if exist(filename, 'file') ~= 2
+                     if exist(filename, 'file') == 2
                         [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
                         if ~isempty(cmdout) 
                         nl_id = find(cmdout==char(10));
@@ -329,26 +327,14 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX:
             %    xyz = getIGSSolutions(this, mode)
             if nargin < 2
-                mode = 'value'
+                mode = 'interp_value';
             end
             ztd = nan(size(this.ztd));
             gn = nan(size(this.tgn));
             ge = nan(size(this.tge));
-            fnp = File_Name_Processor();
             tsc = Tropo_Sinex_Compare();
-            [mjd] = floor(this.time.getMJD);
             sta_name = this.parent.getMarkerName4Ch;
-            missing_days = [];
-            for d = unique(mjd)'
-                c_time = GPS_Time.fromMJD(d);
-                [year, doy] = c_time.getDOY();
-                filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/TROPO/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd',Core.getState.getGeoidDir,lower(sta_name)),c_time);
-                if ~(exist(filename, 'file') == 2)
-                    missing_days = [missing_days d];
-                else
-                    tsc.addTropoSinexFile(filename);
-                end
-            end
+            [missing_days] = tsc.addIGSOfficialStation( sta_name, this.time)
             lid_excl = false(this.time.length,1);
             for d = missing_days
                 d1 = GPS_Time.fromMJD(d);
@@ -359,7 +345,7 @@ classdef Receiver_Output < Receiver_Commons
             if numel(fieldnames(tsc.results)) == 0
                 this.log.addWarning(sprintf('No IGS solutions found for station %s',sta_name));
             else
-                if strcmpi(mode,'value')
+                if strcmpi(mode,'interp_value')
                     ztd  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).ztd,this.time.getMatlabTime,'linear');
                     gn  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tgn,this.time.getMatlabTime,'linear');
                     ge  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tge,this.time.getMatlabTime,'linear');
