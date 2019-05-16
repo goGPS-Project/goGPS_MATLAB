@@ -20,7 +20,7 @@ function [ph_GF] = compute_geometry_free(ph1, ph2, lambda, err_iono)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

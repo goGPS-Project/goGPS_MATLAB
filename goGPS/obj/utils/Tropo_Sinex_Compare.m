@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to compare tropo result whï¿½ith external solutions
+%   Class to compare tropo result whÿith external solutions
 % EXAMPLE
 %   tsc = Tropo_Sinex_Compare();
 %
@@ -13,7 +13,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

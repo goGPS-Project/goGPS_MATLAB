@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -1120,10 +1120,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
-            str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
+            str = [str sprintf(' Name of the observation files                     %s%s\n', strCell2Str(this.obs_name(1:min(30, numel(this.obs_name))), ', '), iif(numel(this.obs_name) < 30, '', ', [... line too long ...]'))];
             str = [str sprintf(' Directory of coordinates file:                    %s\n\n', fnp.getRelDirPath(this.crd_dir, this.prj_home))];
             str = [str sprintf(' Name of coordinate (CRD) file:                    %s\n', this.crd_name)];
-            str = [str sprintf(' Name of the observation files                     %s\n', strCell2Str(this.obs_name, ', '))];
             str = [str sprintf(' Directory of meteorological data:                 %s\n', fnp.getRelDirPath(this.met_dir, this.prj_home))];
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
             str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];

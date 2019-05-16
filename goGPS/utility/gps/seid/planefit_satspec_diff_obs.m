@@ -5,7 +5,7 @@ function [til_obs] = planefit_satspec_diff_obs(diff_obs, commontime, ipp_lon, ip
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

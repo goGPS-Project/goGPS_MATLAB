@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -3424,7 +3424,7 @@ classdef GNSS_Station < handle
                     video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.avi']));
                 end
                 video_out.FrameRate = 30;
-                video_out.Quality = 66;
+                video_out.Quality = 91;
                 open(video_out);
             else
                 Core_UI.insertLogo(fig_handle, 'SouthEast');
@@ -3672,8 +3672,8 @@ classdef GNSS_Station < handle
                 tropo_diff = (tropo_grid(:,:,2 : end) - tropo_grid(:,:,1 : end - 1)) / time.getRate * 3600;
                 tropo_diff_clim = [-1 1] * perc(abs(serialize(tropo_diff)), 0.998);
                 % remove outliers
-                tropo_diff(tropo_diff > 1 * max(tropo_diff_clim)) = nan;
-                tropo_diff(tropo_diff < 1 * min(tropo_diff_clim)) = nan;
+                tropo_diff(tropo_diff > 2 * max(tropo_diff_clim)) = nan;
+                tropo_diff(tropo_diff < 2 * min(tropo_diff_clim)) = nan;
             end
             if flag_dtm == 2  
                 cax = m_contfbar([.05 .55], 0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
@@ -3754,13 +3754,19 @@ classdef GNSS_Station < handle
                 end
                 
                 video_out.FrameRate = 30;
-                video_out.Quality = 66;
+                video_out.Quality = 91;
                 open(video_out);
             else
                 Core_UI.insertLogo(fig_handle, 'SouthEast');
                 fig_handle.Visible = 'on';
             end
             drawnow
+            
+            % compute cut_mask (trim white borders)
+            frame = getframe(fig_handle);
+            id_x = find(any(sum(frame.cdata,3) ~= 765), 1, 'first'):find(any(sum(frame.cdata,3) ~= 765), 1, 'last');
+            id_y = find(any(sum(frame.cdata,3) ~= 765, 2), 1, 'first'):find(any(sum(frame.cdata,3) ~= 765, 2), 1, 'last');
+            % end of trim
             
             for i = 2 : time.length
                 if any(serialize(tropo_grid(:,:,i)))
@@ -3788,8 +3794,8 @@ classdef GNSS_Station < handle
                 if flag_export
                     fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, time.length);
                     frame = getframe(fig_handle);
-                    ss = 1; % subsample (1:2)
-                    writeVideo(video_out, frame(1:ss:end,1:ss:end,:)); 
+                    frame.cdata = frame.cdata(id_y,id_x,:);
+                    writeVideo(video_out, frame); 
                 end
             end
             
@@ -4029,7 +4035,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);

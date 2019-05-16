@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 2
+%    |___/                    v 1.0 beta 3jp
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0 beta 2';
+        GO_GPS_VERSION = '1.0 beta 3jp';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -316,7 +316,7 @@ classdef Core < handle
             wb = core.w_bar;
             if isempty(wb)
                 wb = Go_Wait_Bar.getInstance();
-                core.wb = wb;
+                core.w_bar = wb;
             end            
         end
         
