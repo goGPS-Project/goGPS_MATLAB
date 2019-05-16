@@ -1065,6 +1065,37 @@ classdef GNSS_Station < handle
             end
         end
 
+        function [ztd_res, p_time, id_sync, ztd_height] = getZtdRes_mr(sta_list, degree)
+            % Get synced data of ztd reduced by height effect
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [ztd, p_time, id_sync, ztd_height] = this.getZtd_mr()
+
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
+
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
+            n_rec = numel(sta_list);
+            ztd_res = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).out.ztd)) = nan;
+                ztd_res(~isnan(id_rec), r) = sta_list(r).out.ztd(id_rec(~isnan(id_rec)));
+            end
+            
+            med_ztd = median(ztd_res, 'omitnan')';
+            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+            if nargin < 2 || ~isempty(degree)
+                degree = 2;
+            end
+            ztd_height = Core_Utils.interp1LS(h_o, med_ztd, degree);
+            [ztd_res, p_time] = sta_list.getZtd_mr();
+            ztd_res = bsxfun(@minus, ztd_res', ztd_height)';
+        end
+        
         function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
             % Get synced data of ztd
             % MultiRec: works on an array of receivers
