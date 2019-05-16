@@ -270,7 +270,7 @@ classdef Radiosonde < handle
                         this.height = [this.height; height];
                         this.temperature = [this.temperature; temp];
                         this.rel_humidity = [this.rel_humidity; relh];
-                        [ztd1, zhd, zwd, pwv1, ztd2, pwv2, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end));
+                        [ztd1, zhd, zwd, pwv1, ztd2, pwv2, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
                         
                         if err_code
                             log = Logger.getInstance();
@@ -321,7 +321,7 @@ classdef Radiosonde < handle
     end
     
     methods (Static)
-        function [ztd, zhd, zwd, pwv, ztd_oth, pwv_2, err] = rad2ztd(temperature, relative_humidity, pressure, height)
+        function [ztd, zhd, zwd, pwv, ztd_oth, pwv_2, err] = rad2ztd(temperature, relative_humidity, pressure, height, lat)
             % Compute ZTD from RAOB (no saastamoinen)
             
             err = 0;
@@ -486,7 +486,7 @@ classdef Radiosonde < handle
                 g_2 = 9.78003;
                 rho_water = 1;
                 delta_P_2 = double(pressure(1:end-1)-pressure(2:end));
-                lat = 45.4605;%lat of station linate
+                %lat = 45.4605;%lat of station linate
                 %ZHD_saast_up = 0.002277*pressure(end)*(1+0.0026*cos(2*lat))+0.00000028*height(end);
                 ZWD_saast_up = 0.002277*(0.05+1255/(temperature(end)+degCtoK))*e_s_2(end);
                 %Tm_2 = 0.673*(temperature(end)+ degCtoK)+83.0;
