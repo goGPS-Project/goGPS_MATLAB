@@ -897,7 +897,7 @@ classdef Core_Utils < handle
                     A(:, d + 1) = x_tmp .^ d;
                 end
                 
-                if (nargin < 4) && numel(x_out) == numel(x_tmp)
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
                     A2 = A;
                 else
                     n_out = numel(x_out);
@@ -918,7 +918,129 @@ classdef Core_Utils < handle
                 warning('on')                
             end
         end
+
+        function [y_out] = interpPlaneLS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 3D dataset
+            % Estimate a plane on x, y + polynomial on z
+            % y_in is an array containing m set of data (1 set per column)
+            % e.g. degree = 2
+            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
+            %
+            % SYNTAX
+            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                % try to correct orientation of x
+                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
+                x_tmp = x_in(id_ok, :);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = size(x_tmp, 1);
+                A = zeros(n_obs, degree + 3);
+                A(:, 1) = ones(n_obs, 1);
+                A(:, 2) = x_tmp(:, 1); % y
+                A(:, 3) = x_tmp(:, 2); % x
+                for d = 1 : degree
+                    A(:, d + 3) = x_tmp(:, 3) .^ d;
+                end
+                                        
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
+                    A2 = A;
+                else
+                    n_out = size(x_out, 1);
+                    A2 = zeros(n_out, degree + 3);
+                    A2(:, 1) = ones(n_out, 1);
+                    A2(:, 2) = x_out(:, 1); % y
+                    A2(:, 3) = x_out(:, 2); % x
+                    for d = 1 : degree
+                        A2(:, d + 3) = x_out(:, 3) .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')                
+            end
+        end
         
+        function [y_out] = interp22nLS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 3D dataset
+            % Estimate a plane on x, y + polynomial on z
+            % y_in is an array containing m set of data (1 set per column)
+            % e.g. degree = 2
+            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
+            %
+            % SYNTAX
+            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                % try to correct orientation of x
+                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
+                x_tmp = x_in(id_ok, :);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = size(x_tmp, 1);
+                A = zeros(n_obs, degree + 6);
+                A(:, 1) = ones(n_obs, 1);
+                A(:, 2) = x_tmp(:, 1); % y
+                A(:, 3) = x_tmp(:, 2); % x
+                A(:, 4) = x_tmp(:, 1) .^ 2; % x^2
+                A(:, 5) = x_tmp(:, 2) .^ 2; % y^2
+                A(:, 6) = x_tmp(:, 1) .* x_tmp(:, 2); % x*y
+                for d = 1 : degree
+                    A(:, d + 6) = x_tmp(:, 3) .^ d;
+                end
+                                        
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
+                    A2 = A;
+                else
+                    n_out = size(x_out, 1);
+                    A2 = zeros(n_out, degree + 6);
+                    A2(:, 1) = ones(n_out, 1);
+                    A2(:, 2) = x_out(:, 1); % y
+                    A2(:, 3) = x_out(:, 2); % x
+                    A2(:, 4) = x_out(:, 1) .^ 2; % x^2
+                    A2(:, 5) = x_out(:, 2) .^ 2; % y^2
+                    A2(:, 6) = x_out(:, 1) .* x_out(:, 2); % x*y
+                    for d = 1 : degree
+                        A2(:, d + 6) = x_out(:, 3) .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')                
+            end
+        end
+
         function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % Interpolate values froma data on a gepgraphical grid with multiple epoch
             % data structure: 
@@ -1454,7 +1576,7 @@ classdef Core_Utils < handle
                 try
                     mkdir(dtm_path);
                 catch ex
-                    Logger.getInstance.addError(sprintf('Could not create %s\nException: %s', dtm_path, ex.message))
+                    Logger.getInstance.addWarning(sprintf('Could not create %s\nUsing local folder\nException: %s', dtm_path, ex.message))
                     % no write permission
                     dtm_path = fullfile('reference' , 'DTM');
                     dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
@@ -1488,7 +1610,7 @@ classdef Core_Utils < handle
                 [dtm, georef, lat, lon, info] = geotiffReader(fullfile(dtm_path, dtm_name));
             catch ex
                 Logger.getInstance.addError(sprintf('Aria failed to download the required DTM file\nException: %s', ex.message));
-                dtm = zeors(2,2);
+                dtm = zeros(2,2);
                 georef = [];
                 lat = nwse([3 1]);
                 lon = nwse([2 4]);
