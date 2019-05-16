@@ -306,7 +306,11 @@ classdef Logger < handle
             if this.fid <= 0
                 this.fid = 0;
                 this.disableFileOut();
-                this.addError(sprintf('ERROR: Unable to open logging at %s', this.out_file_path));
+                if this.isFileOut()
+                    this.disableFileOut();
+                else
+                    this.addError(sprintf('ERROR: Unable to open logging at %s', this.out_file_path));
+                end
             end
             fid = this.fid;
         end
