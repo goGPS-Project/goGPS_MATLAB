@@ -48,7 +48,7 @@ classdef Cmap
     % ==================================================================================================================================================
     properties (Constant, Access = private)
         % Custum colormaps implemented within this library
-        CUSTOM = {'c51', 'gat', 'linspaced', 'gat2', 'adaptiveTerrain'};
+        CUSTOM = {'c51', 'noaaRain', 'gat', 'linspaced', 'gat2', 'adaptiveTerrain'};
         MATLAB = {'parula', 'pltd'};
         
         PERCEPTUALLY_UNIFORM = {'viridis', 'plasma', 'inferno', 'magma', 'cividis'};
@@ -390,6 +390,11 @@ classdef Cmap
             0         0.862745098039216         0.980392156862745
             0.313725490196078         0.941176470588235         0.980392156862745
             0.705882352941177         0.980392156862745         0.980392156862745];
+        
+        NOAA_RAIN = reshape([ uint8(cumsum([0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 36 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 0 24 0 0 0 0 0 0 0 0 0 0 36 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -252 0 0 13 0 0 14 0 0 13 0 0 27 0 0 0 0 14 0 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 14 0 0 13 ])); ...
+            uint8(cumsum([0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 252 0 0 0 0 0 0 0 0 0 0 -252 0 0 13 0 0 14 0 0 13 0 0 27 0 0 0 0 14 0 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 14 0 0 13 ])); ...
+            uint8(cumsum([0 0 0 0 0 0 0 0 0 0 28 0 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 32 0 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 -16 0 0 0 0 0 0 0 0 0 0 -12 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 12 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 -28 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 252 0 0 0 0 0 0 0 0 0 0 -252 0 0 13 0 0 14 0 0 13 0 0 27 0 0 0 0 14 0 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 13 0 0 14 0 0 13 0 0 14 0 13 0 0 14 0 0 13 ])); ...
+            ]', 720, 3, 1);
     end
         
     %% MAIN FUNCTIONS
@@ -525,6 +530,13 @@ classdef Cmap
                             cmap = Cmap.c51(n_col, flag_smooth);
                         end
                         found = true;
+                    case 'noaaRain'
+                        if nargin == 1 || isempty(n_col)
+                            cmap = Cmap.noaaRain();
+                        else
+                            cmap = Cmap.noaaRain(n_col, flag_smooth);
+                        end
+                        found = true;                        
                     case 'gat'
                         if nargin == 1 || isempty(n_col)
                             cmap = Cmap.gat(1024, false);
@@ -596,12 +608,33 @@ classdef Cmap
             try
                 smooth_cmap = cmap;
                 for c = 1 : 3
-                    smooth_cmap(:,c) = splinerMat([], cmap(:,c), size(cmap,1) / 30);
+                    smooth_cmap(:,c) = max(0, min(1, splinerMat([], cmap(:,c), size(cmap,1) / 30)));
                 end
             catch
                 % The only reason this exception could be triggered is that
                 % splinerMat is not in matlab path -> no smoothing
             end
+        end
+        
+        function data = apply(data, cmap, clim, nan_col)
+            % apply a colormap;
+            %
+            % SYNTAX
+            %   data_out = Cmap.apply(data, cmap, clim, <nan_col>)
+            %
+            % EXAMPLE
+            %   data_out = Cmap.apply(data, Cmap.get('RdBu'), minMax(data(:)), [0, 0, 0]);
+            
+            inan = isnan(data);
+            data = data - clim(1); data = min(1, max(0, data./diff(clim)));
+            id_col = serialize(round(data * (size(cmap,1) -1)) + 1);
+            if nargin >= 3 && numel(nan_col) == 3
+                cmap = [cmap; nan_col];
+                id_col(inan) = size(cmap, 1);
+            else
+                id_col(inan) = 1;
+            end
+            data = reshape([cmap(id_col, 1); cmap(id_col, 2); cmap(id_col, 3)], size(data, 1), size(data,2) , 3);
         end
     end
     
@@ -674,6 +707,39 @@ classdef Cmap
             cmap = [0, 0, 0; cmap];
         end
 
+        function cmap = noaaRain(n_col, flag_smooth)
+            % NOAA RAIN it's a colormap for rain precipitations
+            %
+            % INPUT
+            %   n_col           number of colors (default 709) better to keep it
+            %   flag_smooth     flag to smooth the colormap
+            %
+            % SYNTAX
+            %   cmap = Cmap.noaaRain(n_col, flag_smooth)
+            %
+            if nargin < 2 || isempty(flag_smooth)
+                flag_smooth = false;
+            end
+            source_cmap = double(Cmap.NOAA_RAIN(1 : end, :)) / 256;
+            source_cmap(655:665,:) = []; % remove white jump (I don't like it)
+            source_n_col = size(source_cmap, 1);
+            method = 'linear';
+            if flag_smooth && ~((nargin < 1) || isempty(n_col) || (n_col == 51))
+                source_cmap = Cmap.smoothMap(source_cmap);
+            end
+            
+            if nargin < 1 || isempty(n_col) || n_col == source_n_col
+                cmap = source_cmap;
+            else
+                n_col = n_col - 1;
+                cmap = zeros(n_col, 3);
+                c_pos = (((0 : (n_col - 1)) / (n_col)) * (source_n_col - 1)) + 1;
+                for c = 1 : 3
+                    cmap(:, c) = interp1(1 : source_n_col, source_cmap(:, c), c_pos, method);
+                end
+            end            
+        end
+        
         function cmap = gat(n_col, flag_zero_center, flag_use_white)
             % gat colormap build for enhancing  differences around zero have to be highlighted
             % 
