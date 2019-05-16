@@ -853,6 +853,7 @@ classdef GNSS_Station < handle
 
         function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
+            % MultiRec: works on an array of receivers
             %
             % OUTPUT
             %   xyz     geocentric coordinates
@@ -869,7 +870,27 @@ classdef GNSS_Station < handle
                 end
             end
         end
-
+        
+        function enu = getMedianPosENU(sta_list)
+            % return the computed median position of the receiver
+            % MultiRec: works on an array of receivers
+            %
+            % OUTPUT
+            %   enu         UTM East North Up coordinates
+            %
+            % SYNTAX
+            %   enu = sta_list.getMedianPosENU();
+            
+            enu = nan(numel(sta_list), 3);
+            for r = 1 : numel(sta_list)
+                if sta_list(1).static
+                    enu(r,:) = sta_list(r).out.getMedianPosENU();
+                else
+                    enu(r,:) = sta_list(r).out.getMedianPosENU();
+                end
+            end
+        end
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(sta_list)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
