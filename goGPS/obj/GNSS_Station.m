@@ -1274,7 +1274,7 @@ classdef GNSS_Station < handle
             [tropo, time] = sta_list.getTropoPar('zhd');
         end
 
-        function [m_diff, s_diff] = getRadiosondeValidation(sta_list, rds_list, flag_show)
+        function [m_diff, s_diff, rds] = getRadiosondeValidation(sta_list, rds_list, flag_show)
             % Compute a comparison with radiosondes from weather.uwyo.edu
             % given region list, and station id (as cell arrays)
             %
@@ -1293,7 +1293,7 @@ classdef GNSS_Station < handle
             %  % testing geonet full network
             %  [m_diff, s_diff] = sta_list.getRadiosondeValidation(Radiosonde.JAPAN_STATION);
             %
-            % SEE ALSE
+            % SEE ALSO
             %   Radiosonde
             
             if nargin < 3
@@ -1313,6 +1313,14 @@ classdef GNSS_Station < handle
             [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
             
             
+%             [lat, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+%             [~, id_sort] = sort(lat);
+%             id_north = (lat(id_sort) / pi * 180) > 41;
+%             [ztd_n, ztd_height_correction_n] = sta_list(id_sort(id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
+%             [ztd_s, ztd_height_correction_s] = sta_list(id_sort(~id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
+%             ztd_ns(:,rds.getLat > 41) = ztd_n(:,rds.getLat > 41);
+%             ztd_ns(:,rds.getLat <= 41) = ztd_s(:,rds.getLat <= 41);
+
             % Get closer GNSS stations
             [id_rec, d3d, dup] = sta_list.getCloserRec(rds.getLat(), rds.getLon(), rds.getElevation());
             gnss_list = sta_list(id_rec);
@@ -1321,6 +1329,14 @@ classdef GNSS_Station < handle
             fprintf('---------------------------------------------------------------------\n');
             [m_diff, s_diff] = deal(nan(numel(rds), 1));
             for s = 1 : numel(rds)
+%                 if rds(s).getLat > 41
+%                     ztd = ztd_n;
+%                     ztd_height_correction = ztd_height_correction_n;
+%                 else
+%                     ztd = ztd_s;
+%                     ztd_height_correction = ztd_height_correction_s;
+%                 end
+                
                 % radiosondes
                 [ztd_rds, time_rds] = rds(s).getZtd();
                 
@@ -1357,7 +1373,7 @@ classdef GNSS_Station < handle
                     dockAllFigures();
                     legend({'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                         sprintf('Radiosonde @ %s', rds(s).getName())}, 'location', 'northwest');
-                    title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
+                    title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontName', 'Open Sans');
                     setTimeTicks; grid minor;
                     drawnow;
                     ax = gca; ax.FontSize = 16;
@@ -1485,8 +1501,12 @@ classdef GNSS_Station < handle
                 end
                 caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
                 plot(x(:), y(:), 'ko', 'MarkerSize', 28, 'LineWidth', 2);
-                
-                ax = m_contfbar(.97,[.55 .95],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
+                drawnow
+                try
+                    ax = m_contfbar(.97,[.55 .95],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
+                catch
+                    drawnow
+                end
                 xlabel(ax,'cm','color','k');
                 title(sprintf('Map of mean and std of radiosonde validation\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontSize', 16);
                 
@@ -1754,6 +1774,16 @@ classdef GNSS_Station < handle
                     [tropo, s_time] = sta_list.getZtd_mr();
                 case 'zwd'
                     [tropo, s_time] = sta_list.getZwd_mr();
+                case 'dztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
+                case 'dzwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
                 case 'gn'
                     [~, s_time, ~, ~, tropo] = sta_list.getZwd_mr();
                 case 'ge'
@@ -1896,8 +1926,10 @@ classdef GNSS_Station < handle
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
                 caxis(tropo_clim(1,:));
-                cmap = Cmap.get('c51',512);
-                colormap(flipud(cmap(2:end,:)));
+                %cmap = Cmap.get('c51',512);
+                %colormap(flipud(cmap(2:end,:)));
+                %colormap(Cmap.noaaRain);
+                colormap(flipud(Cmap.get('RdBu')));
                 colorbar;
                 th = title(sprintf([par_name ' [cm] map @%s at sea level'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 22);
                     
@@ -1973,6 +2005,121 @@ classdef GNSS_Station < handle
                     [tropo, s_time] = sta_list.getZtd_mr();
                 case 'zwd'
                     [tropo, s_time] = sta_list.getZwd_mr();
+                case 'dztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
+                case 'dzwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
+                case 'gn'
+                    [~, s_time, ~, ~, tropo] = sta_list.getZwd_mr();
+                case 'ge'
+                    [~, s_time, ~, tropo, ~]  = sta_list.getZwd_mr();
+                case 'dir'
+                    [~, s_time, ~, ge, gn]  = sta_list.getZwd_mr();
+                    tropo = atan2d(gn, ge) - 90;
+                case 'pwv'
+                    [tropo, s_time] = sta_list.getPwv_mr();
+                case 'zhd'
+                case 'nsat'
+            end
+            tropo = tropo * 1e2;
+            
+            time = s_time; % s_time.getEpoch(1 : s_time.length());
+            med_tropo = mean(tropo, 1, 'omitnan')';
+
+            degree = 4;
+            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
+            [lat, lon, up, h_o] = coo.getGeodetic;
+            
+            xyu = [dlon_out, dlat_out, h_out];
+            
+            % Remove missing stations
+            id_ok = ~isnan(tropo'); % logical matrix of valid tropo
+                                                
+            % Correct data for height
+            
+            h_correction_ztd = sta_list.getZtdReduction(2, [], false) * 1e2;
+            tropo_res = bsxfun(@minus, tropo', h_correction_ztd)';            
+            
+            tropo_height_correction = sta_list.getZtdReduction(2, [(dlon_out * (pi/180)) .* cos((dlat_out * (pi/180))), (dlat_out * (pi/180)) h_out], false) * 1e2;
+                        
+            % List of valide epochs (opening an aproximate window around the points)
+            x_list = lon ./ pi * 180;
+            y_list = lat ./ pi * 180;
+            
+            epoch = 1 : s_time.length();
+            epoch_list = 1 : numel(epoch);
+            
+            tropo_out = nan(size(dlat_out,1), numel(epoch_list), 'single'); 
+                     
+            w_bar = Core.getWaitBar();
+            w_bar.createNewBar('Generating maps of troposphere');
+            w_bar.setBarLen(numel(epoch_list));
+            
+            for i = 1 : numel(epoch_list)
+                e = epoch_list(i);
+                if sum(id_ok(:, epoch(e))) > 2
+                    if strmatch(method, 'fun')
+                        tmp = funInterp2(dlon_out, dlat_out, x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
+                    else
+                        finterp = scatteredInterpolant(x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', method, 'linear');
+                        tmp = finterp(dlon_out, dlat_out);
+                    end
+                    tropo_out(:,i) = single(tmp);
+                else
+                    if i > 1
+                        tropo_out(:,i) = tropo_out(:,i) - 1;
+                    end
+                end
+                w_bar.goTime(i);
+            end
+            w_bar.close();
+            tropo_out = tropo_out';
+        end
+
+        function [tropo_out, tropo_height_correction, time] = getTropoInterpOld(sta_list, par_name, dlat_out, dlon_out, h_out)
+            % Get interpolated map of tropospheric parameter
+            % Resolution is determined by the dtm in use (2 * 0.029 degrees)
+            % The map is computer only on ground (> 10m) + 1 degree of margin
+            %
+            % INPUT
+            %   par_name    type of tropospheric parameter:
+            %                - ztd
+            %                - zwd
+            %                - pwv
+            %   rate        rate in seconds, nearest to closest observation 
+            %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %   flag_show   if true show debug images
+            %
+            % SYNTAX
+            %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)
+            
+            % Defining interpolation
+            method = 'natural';
+            fun = @(dist) 0.2 * exp(-(dist)*1e1) + 0*exp(-(dist*5e1).^2);
+            %fun = @(dist) 1./(dist+1e-5);
+            
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            switch lower(par_name)
+                case 'ztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                case 'zwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                case 'dztd'
+                    [tropo, s_time] = sta_list.getZtd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
+                case 'dzwd'
+                    [tropo, s_time] = sta_list.getZwd_mr();
+                    s_time = s_time.getEpoch(2:s_time.length);
+                    s_time = s_time.addIntSeconds(s_time.getRate / 2);
+                    tropo = (diff(tropo, 1)*1e2) / s_time.getRate * 3600;
                 case 'gn'
                     [~, s_time, ~, ~, tropo] = sta_list.getZwd_mr();
                 case 'ge'
@@ -2002,7 +2149,7 @@ classdef GNSS_Station < handle
             % Correct data for height
             tropo_height = Core_Utils.interp1LS(h_o, med_tropo, degree);
             tropo_res = bsxfun(@minus, tropo', tropo_height)';            
-
+            
             h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, [0; h_out(:)]);
             
             % Compute map of tropo corrections for height displacements
@@ -2442,7 +2589,7 @@ classdef GNSS_Station < handle
             
             flag_labels = true;
             flag_large_points = true;
-            point_size = 5;
+            point_size = 15;
             point_color = [14, 25, 41]/256;
             
             if nargin < 2
@@ -2547,7 +2694,14 @@ classdef GNSS_Station < handle
             m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             [x, y] = m_ll2xy(lon, lat);
             
-            plot(x(:), y(:),'.', 'MarkerSize', point_size, 'Color', point_color); hold on;
+            %point_color = Cmap.get('viridis', numel(x));
+            %point_size = 25;
+            if size(point_color, 1) > 1
+                scatter(x(:), y(:), point_size, 1:numel(x), 'filled'); hold on;
+                colormap(point_color);
+            else
+                plot(x(:), y(:),'.', 'MarkerSize', point_size, 'Color', point_color); hold on;
+            end
             if flag_labels
                 % Label BG (in background w.r.t. the point)
                 for r = 1 : numel(sta_list)
@@ -2602,6 +2756,12 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showMapGoogle(new_fig);
+            
+            flag_labels = true;
+            flag_large_points = true;
+            point_size = 8;
+            point_color = [0, 255, 10]/256;
+            
             if nargin < 2
                 new_fig = true;
             end
@@ -2625,7 +2785,7 @@ classdef GNSS_Station < handle
             maximizeFig(f);
             f.Color = [1 1 1];
             [lat, lon] = sta_list.getMedianPosGeodetic();
-
+            
             % set map limits
             if numel(sta_list) == 1
                 lon_lim = minMax(lon) + [-0.05 0.05];
@@ -2637,16 +2797,16 @@ classdef GNSS_Station < handle
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
             clon = nwse([2 4]) + [-0.02 0.02];
             clat = nwse([3 1]) + [-0.02 0.02];
-
+            
             axes
             xlim(lon_lim);
             ylim(lat_lim);
             [lon_ggl,lat_ggl, img_ggl] = plot_google_map('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
-
+            
             %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
-            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection                                
+            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
             drawnow
-            m_image(lon_ggl, lat_ggl, img_ggl); 
+            m_image(lon_ggl, lat_ggl, img_ggl);
             
             % read shapefile
             shape = 'none';
@@ -2686,37 +2846,50 @@ classdef GNSS_Station < handle
             m_grid('box','fancy','tickdir','in', 'fontsize', 16);
             % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             drawnow
-            m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            %m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             [x, y] = m_ll2xy(lon, lat);
             
-            plot(x(:), y(:),'.k', 'MarkerSize', 5); hold on;            
-            % Label BG (in background w.r.t. the point)
-            for r = 1 : numel(sta_list)
-                name = upper(sta_list(r).getMarkerName4Ch());
-                text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
-                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
-                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                    'Margin', 2, 'LineWidth', 2, ...
-                    'HorizontalAlignment','left');
+            
+            %point_color = Cmap.get('viridis', numel(x));
+            %point_size = 25;
+            if size(point_color, 1) > 1
+                scatter(x(:), y(:), point_size, 1:numel(x), 'filled'); hold on;
+                colormap(point_color);
+            else
+                plot(x(:), y(:),'.', 'MarkerSize', point_size, 'Color', point_color); hold on;
+            end
+            if flag_labels
+                % Label BG (in background w.r.t. the point)
+                for r = 1 : numel(sta_list)
+                    name = upper(sta_list(r).getMarkerName4Ch());
+                    text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                end
             end
             
-            for r = 1 : numel(sta_list)
-                plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+            if flag_large_points
+                for r = 1 : numel(sta_list)
+                    plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(sta_list)));
+                end
+                plot(x(:), y(:), '.k', 'MarkerSize', 5);
+                plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
             end
-            plot(x(:), y(:), '.k', 'MarkerSize', 5);
-            plot(x(:), y(:), 'ko', 'MarkerSize', 15, 'LineWidth', 2);
-           
-            for r = 1 : numel(sta_list)
-                name = upper(sta_list(r).getMarkerName4Ch());
-                t = text(x(r), y(r), ['   ' name], ...
-                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
-                    ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                    'Margin', 2, 'LineWidth', 2, ...
-                    'HorizontalAlignment','left');
-                %t.Units = 'pixels';
-                %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
-                %t.Units = 'data';
+            if flag_labels
+                for r = 1 : numel(sta_list)
+                    name = upper(sta_list(r).getMarkerName4Ch());
+                    t = text(x(r), y(r), ['   ' name], ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                        ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                    %t.Units = 'pixels';
+                    %t.Position(1) = t.Position(1) + 20 + 10 * double(numel(sta_list) == 1);
+                    %t.Units = 'data';
+                end
             end
             
             f.Visible = 'on';
@@ -3132,8 +3305,22 @@ classdef GNSS_Station < handle
             imh = m_pcolor(x_grid, y_grid, tropo_grid(:,:,1));
             imh.FaceAlpha = 0.95;
             caxis(tropo_clim(1,:));
-            cmap = Cmap.get('c51',512);
-            colormap(flipud(cmap(2:end,:)));
+
+            switch lower(par_name)
+                case 'ztd'
+                case 'zwd'
+                    caxis([0 48]);
+                    %tropo_clim = caxis()]
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                case 'zhd'
+                case 'nsat'
+            end
+            %cmap = Cmap.get('c51',512);
+            %colormap(flipud(cmap(2:end,:)));
+            colormap(Cmap.smoothMap(Cmap.noaaRain));
+            
             % redraw boxes
             m_grid('box','fancy','tickdir','in', 'fontsize', 16);
             %colormap(flipud(gat(1024, false)));
@@ -3169,9 +3356,23 @@ classdef GNSS_Station < handle
                 caxis(tropo_clim(2,:)); 
                 %colormap(Core_UI.CMAP_51(2:end,:));
                 %colormap(flipud(gat(1024, false)));
-                %colormap(gat2);                            
-                cmap = Cmap.get('c51',512);
-                colormap(flipud(cmap(2:end,:)));
+                %colormap(gat2);       
+                
+                switch lower(par_name)
+                    case 'ztd'
+                    case 'zwd'
+                        caxis([0 48]);
+                        %tropo_clim = [tropo_clim(1,:); caxis()]; 
+                    case 'gn'
+                    case 'ge'
+                    case 'pwv'
+                    case 'zhd'
+                    case 'nsat'
+                end
+                %cmap = Cmap.get('c51',512);
+                %colormap(flipud(cmap(2:end,:)));
+                colormap(Cmap.smoothMap(Cmap.noaaRain));
+            
                 % redraw boxes
                 m_grid('box','fancy','tickdir','in', 'fontsize', 16);
                 % ax2.FontSize = 20;
@@ -3202,6 +3403,11 @@ classdef GNSS_Station < handle
                 fprintf('Stopped in debug mode to check the export size and position of the elements\nType dbcont to continue ')
                 % fh = gcf; fh.Units = 'pixel'; fh.Position([3 4]) = [1100 960];
                 keyboard % to check before export that everything is aligned
+                if flag_dtm ~= 2
+                    fh = gcf; fh.Units = 'pixel'; fh.Position([3 4]) = [1040 764];
+                    drawnow
+                    drawnow
+                end
                 Core_UI.insertLogo(fig_handle, 'SouthEast');
                 warning off;                
                 im = {};
@@ -3209,12 +3415,13 @@ classdef GNSS_Station < handle
                 Core.getLogger.addMarkedMessage('Exporting video');
                 fprintf('%5d/%5d', 0, 99999);
                 
+                file_name = sprintf('AniMap%sInterp-%s-%s-at%s', par_str_short, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), datestr(now, 'yyyymmdd_HHMMSS'));
                 if ismac() || ispc()
                     % Better compression on Mac > 10.7 and Win > 7
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.mp4']), 'MPEG-4');
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.mp4']), 'MPEG-4');
                 else
                     % Linux doesn't have mp4 compression avaiable
-                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, ['AniMap' par_str_short 'Interp.avi']));
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.avi']));
                 end
                 video_out.FrameRate = 30;
                 video_out.Quality = 66;
@@ -3227,11 +3434,351 @@ classdef GNSS_Station < handle
             
             for i = 1 : time.length
                 if any(serialize(tropo_grid(:,:,i)))
-                    th.String = sprintf([par_str ' [cm] map %s at sea level'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
+                    th.String = sprintf([par_str ' map %s at sea level'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
                     imh.CData = tropo_grid(:,:,i);
                     %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
                     if flag_dtm == 2
                         imh2.CData = tropo_grid(:,:,i) + tropo_height_correction;
+                        %imh2.AlphaData = imh.AlphaData;
+                    end
+                    if not(flag_export)
+                        drawnow
+                    end
+                end
+                if flag_export
+                    fprintf('%s%5d/%5d',char(8 * ones(1,11)), i, time.length);
+                    frame = getframe(fig_handle);
+                    ss = 1; % subsample (1:2)
+                    writeVideo(video_out, frame(1:ss:end,1:ss:end,:)); 
+                end
+            end
+            
+            if flag_export
+                fprintf('%s',char(8 * ones(1,11)));
+                close(video_out);
+                Core.getLogger.addStatusOk(sprintf('"%s" done ^_^', fullfile(Core.getState.getOutDir, video_out.Filename)));
+                close(fig_handle);
+                warning on;
+            end
+        end
+
+        function showAniMapTropoInterpAndDiff(sta_list_full, par_name, nwse, rate, flag_dtm, flag_export)
+            % Show a tropo map with all the station in sta_list
+            %
+            % INPUT
+            %   tropo_par   accepted tropo parameter:
+            %               - 'zwd'
+            %               - 'ztd'
+            %   nwse        Nort West South East coordinates
+            %   rate        rate in seconds, nearest to closest observation 
+            %               it should be a subsample of the data rate (e.g. 300 with 30s data)
+            %   flag_dtm    flag to add height_correction (default == false)
+            %   flag_export if true try to export a video (the frames are not going to be seen)
+            %               the video file will be saved in the out folder specified in the project
+            %
+            % SYNTAX
+            %   sta_list.showAniMapTropoInterpAndDiff(par_name, <new_fig>, <rate>, <flag_dtm>, <flag_export>);
+            %
+            % EXAMPLE
+            %   % over Japan
+            %   sta_list.showAniMapTropoInterpAndDiff('ZWD', [45.8, 123.5, 23, 146.5], 200, 2, false);
+            
+            switch lower(par_name)
+                case 'ztd'
+                    par_str = 'ZTD';
+                    par_str_short = 'ZTD';
+                case 'zwd'
+                    par_str = 'ZWD';
+                    par_str_short = 'ZWD';
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                    par_str = 'PWV';
+                    par_str_short = 'PWV';
+                case 'zhd'
+                case 'nsat'
+            end                        
+
+            fig_handle = figure;
+            
+            if nargin < 4 || isempty(rate)
+                rate = 300;
+            end
+            if nargin < 5
+                flag_dtm = false;
+            end
+            if nargin < 6
+                flag_export = false;
+            end
+
+            maximizeFig(fig_handle);
+            
+            fig_handle.Visible = 'off';
+            fig_handle.Color = [1 1 1];
+
+            % Set map projection / limits
+            
+            [lat, lon] = sta_list_full.getMedianPosGeodetic();
+            if nargin >= 3 && ~isempty(nwse)
+                margin = 0.5;
+                id_ok = (lat >= (nwse(3) - margin)) & (lat <= (nwse(1) + margin)) & ...
+                    (lon >= (nwse(2) - margin)) & (lon <= (nwse(4) + margin));
+                sta_list = sta_list_full(id_ok);
+            end
+            
+            if nargin < 3 || isempty(nwse)
+                sta_list = sta_list_full;
+                % set map limits
+                if numel(sta_list) == 1
+                    lon_lim = minMax(lon) + [-0.05 0.05];
+                    lat_lim = minMax(lat) + [-0.05 0.05];
+                else
+                    lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                    lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+                end
+                nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+            else
+                lon_lim = nwse([2 4]);
+                lat_lim = nwse([3 1]);                
+            end
+            clon = nwse([2 4]) + [-0.02 0.02];
+            clat = nwse([3 1]) + [-0.02 0.02];
+
+            if flag_dtm == 2
+                subplot(1,2,1);
+            end
+            
+            for i = 1 : iif(flag_dtm == 2, 2, 1)
+                if flag_dtm == 2
+                    subplot(1,2,i);
+                end
+                %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+                m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
+                axes
+                cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
+                drawnow;
+            end
+            
+            % retrieve external DTM
+            try
+                [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', 'low');
+                dtm = flipud(dtm);
+                % comment the following line to have bathimetry
+                dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
+                
+                % uncomment the following line to have colors
+                % colormap(Cmap.adaptiveTerrain(minMax(dtm(:))));
+                % drawnow;
+                
+                [shaded_dtm, x, y] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1]);
+                %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
+                %h_dtm.CData = shaded_dtm;
+                for i = 1 : iif(flag_dtm == 2, 2, 1)
+                    if flag_dtm == 2
+                        subplot(1,2,i);
+                    end
+                    m_image(lon_dtm, lat_dtm, shaded_dtm);
+                end
+            catch
+                % use ETOPO1 instead
+                for i = 1 : iif(flag_dtm == 2, 2, 1)
+                    if flag_dtm == 2
+                        subplot(1,2,i);
+                    end
+                    m_etopo2('shadedrelief','gradient', 3);
+                end
+            end
+            
+            for i = 1 : iif(flag_dtm == 2, 2, 1)
+                if flag_dtm == 2
+                    subplot(1,2,i);
+                end
+                % read shapefile
+                shape = 'none';
+                if (~strcmp(shape,'none'))
+                    if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                        if (strcmp(shape,'10m'))
+                            M = m_shaperead('countries_10m');
+                        elseif (strcmp(shape,'30m'))
+                            M = m_shaperead('countries_30m');
+                        else
+                            M = m_shaperead('countries_50m');
+                        end
+                        [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                        [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
+                        for k = 1 : length(M.ncst)
+                            lam_c = M.ncst{k}(:,1);
+                            ids = lam_c <  min(lon);
+                            lam_c(ids) = lam_c(ids) + 360;
+                            phi_c = M.ncst{k}(:,2);
+                            [x, y] = m_ll2xy(lam_c, phi_c);
+                            if sum(~isnan(x))>1
+                                x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                                line(x,y,'color', [0.3 0.3 0.3]);
+                            end
+                        end
+                    else
+                        if (strcmp(shape,'coast'))
+                            m_coast('line','color', lineCol);
+                        else
+                            m_coast('patch',lineCol);
+                        end
+                    end
+                end            
+                hold on;
+                
+                % Enable box
+                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+                drawnow
+                m_ruler([.7 1], -0.08, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            end
+                        
+            [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
+            if flag_dtm == 1
+                tropo_grid = tropo_grid + tropo_height_correction;
+            end
+            
+            if flag_dtm == 2
+               ax = subplot(1,2,1);
+            else
+                ax = gca;
+            end
+            imh = m_pcolor(x_grid, y_grid, tropo_grid(:,:,1));
+            imh.FaceAlpha = 0.95;
+            caxis(tropo_clim(1,:));
+            
+            switch lower(par_name)
+                case 'ztd'
+                case 'zwd'
+                    caxis([0 48]);
+                    %tropo_clim = caxis()];
+                case 'gn'
+                case 'ge'
+                case 'pwv'
+                case 'zhd'
+                case 'nsat'
+            end
+            %cmap = Cmap.get('c51',512);
+            %colormap(flipud(cmap(2:end,:)));
+            colormap(Cmap.smoothMap(Cmap.noaaRain));
+
+            % redraw boxes
+            m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+            %colormap(flipud(gat(1024, false)));
+            %colormap(Cmap.get('viridis', 32));
+            th = title(sprintf([par_str ' map @%s at sea level\\fontsize{5} \n'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+            if flag_dtm > 0
+                tropo_diff = (tropo_grid(:,:,2 : end) - tropo_grid(:,:,1 : end - 1)) / time.getRate * 3600;
+                tropo_diff_clim = [-1 1] * perc(abs(serialize(tropo_diff)), 0.998);
+                % remove outliers
+                tropo_diff(tropo_diff > 1 * max(tropo_diff_clim)) = nan;
+                tropo_diff(tropo_diff < 1 * min(tropo_diff_clim)) = nan;
+            end
+            if flag_dtm == 2  
+                cax = m_contfbar([.05 .55], 0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                xlabel(cax,'cm','color','k');                
+            else
+                if flag_dtm == 1
+                    caxis(tropo_diff_clim);
+                    colormap(ax,flipud(Cmap.get('RdBu')));
+                    cax = m_contfbar([.05 .55], 0.04, tropo_diff_clim(1, 1), tropo_diff_clim(1) : (diff(tropo_diff_clim(1,:)) / size(cmap,1)) : tropo_diff_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    xlabel(cax, 'cm / h','color','k');
+                    th = title(ax, sprintf('Temporal derivative of ZWD\n@%s\\fontsize{5} \n', time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+                else
+                    cax = m_contfbar([.15 .55], -0.05, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    xlabel(cax,'cm','color','k');
+                end
+            end
+            
+                        
+            if flag_dtm == 2  
+                %tropo_clim(2,:) = [max(0, tropo_clim(1) + min(tropo_height_correction(:))) (tropo_clim(2) + max(tropo_height_correction(:)))];
+                % uniform axes
+                ax2 = subplot(1,2,2);
+                imh2 = m_pcolor(x_grid, y_grid, nan(size(tropo_grid(:,:,1))));
+                imh2.FaceAlpha = 1;
+                %caxis(tropo_clim(2,:)); 
+                %colormap(Core_UI.CMAP_51(2:end,:));
+                %colormap(flipud(gat(1024, false)));
+                %colormap(gat2);                            
+                % redraw boxes
+                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                % ax2.FontSize = 20;
+                % ax2.FontWeight = 'bold';
+                % if new_fig
+                %    if FTP_Downloader.checkNet()
+                %        plot_google_map('alpha', 0.65, 'MapType', 'satellite');
+                %    end
+                %    xlabel('Longitude [deg]');
+                %    ylabel('Latitude [deg]');
+                %end
+                %tropo_diff_clim = [-1 1] * max(abs(minMax(serialize(tropo_grid(:,:,2 : end) - tropo_grid(:,:,1 : end - 1)))));
+                if flag_dtm == 2
+                    colormap(ax2,flipud(Cmap.get('RdBu')));
+                    ax2.CLim = tropo_diff_clim;
+                    cax2 = m_contfbar([.05 .55], 0.04, tropo_diff_clim(1, 1), tropo_diff_clim(1) : (diff(tropo_diff_clim(1,:)) / size(cmap,1)) : tropo_diff_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    xlabel(cax2,'cm / h','color','k');
+                    th2 = title(ax2, sprintf('Temporal derivative of ZWD\\fontsize{5} \n'), 'FontSize', 20);
+                end
+            end
+            
+            fig_handle.Visible = 'on';
+            %Core.getLogger.addMarkedMessage('Press any key to start playing');
+            %pause
+
+            % Add logos
+            if flag_export
+                fprintf('Stopped in debug mode to check the export size and position of the elements\nType dbcont to continue ')
+                % fh = gcf; fh.Units = 'pixel'; fh.Position([3 4]) = [1100 960];
+                keyboard % to check before export that everything is aligned
+                if flag_dtm ~= 2
+                    %fh = gcf; fh.Units = 'pixel'; fh.Position([3 4]) = [1040 764];
+                    drawnow
+                    drawnow
+                end
+                Core_UI.insertLogo(fig_handle, 'SouthEast');
+                warning off;                
+                im = {};
+                fig_handle.Visible = 'on';
+                Core.getLogger.addMarkedMessage('Exporting video');
+                fprintf('%5d/%5d', 0, 99999);
+                
+                file_name = sprintf('AniMap%sInterpAndDiff-%s-%s-at%s', par_str_short, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), datestr(now, 'yyyymmdd_HHMMSS'));
+                if ismac() || ispc()
+                    % Better compression on Mac > 10.7 and Win > 7
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.mp4']), 'MPEG-4');
+                else
+                    % Linux doesn't have mp4 compression avaiable
+                    video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.avi']));
+                end
+                
+                video_out.FrameRate = 30;
+                video_out.Quality = 66;
+                open(video_out);
+            else
+                Core_UI.insertLogo(fig_handle, 'SouthEast');
+                fig_handle.Visible = 'on';
+            end
+            drawnow
+            
+            for i = 2 : time.length
+                if any(serialize(tropo_grid(:,:,i)))
+                    if flag_dtm == 1
+                        th = title(ax, sprintf('Temporal derivative of ZWD at sea level\n@%s\\fontsize{5} \n', time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+                    else
+                        th.String = sprintf([par_str ' map %s at sea level'], time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS'));
+                    end
+                    if flag_dtm == 1
+                        imh.CData = Cmap.apply(tropo_diff(:,:,i-1), flipud(Cmap.get('RdBu')), tropo_diff_clim, [nan, nan, nan]);
+                    else
+                        imh.CData = tropo_grid(:,:,i);
+                    end
+                    %imh.AlphaData = ~isnan(tropo_grid(:,:,i));
+                    if flag_dtm == 2
+                        imh2.CData = Cmap.apply(tropo_diff(:,:,i-1), flipud(Cmap.get('RdBu')), tropo_diff_clim, [nan, nan, nan]);
+                        %imh2.FaceAlpha = 1;
+                        %imh2.CData = tropo_grid(:,:,i) - tropo_grid(:,:,i-1);
                         %imh2.AlphaData = imh.AlphaData;
                     end
                     if not(flag_export)
@@ -3764,6 +4311,46 @@ classdef GNSS_Station < handle
             sta_list.showTropoPar('GE', new_fig, sub_plot_nsat)
         end
 
+        function ztd_correction = getZtdReduction(sta_list, degree, xyh, flag_spatial)
+            % Get the reduction due to height for ZTD
+            % Estimate it with a quadratic 2d function on xy + 1d quadratic on height
+            %
+            % f(x,y,z) = a0 + a1 z + a2 z^2 + b1 x + b2 x^2 + b3 y + b4 y^2 + b5 * xy
+            %
+            % INPUT
+            %   degree  height quadratic polynomial value
+            %   xyh     [lon * cos(lat), lat, h_ortho] (angles in radians)
+            %   flag spatial enable b coefficients
+            %
+            % SYNTAX
+            %   ztd_correction = sta_list.getZtdReduction(degree, xyh, flag_spatial)
+            
+            data_med = median(sta_list.getZtd_mr, 'omitnan')';
+            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ());
+            [lat, lon, ~, h_o] = coo.getGeodetic;
+            if nargin < 4 || isempty(flag_spatial)
+                flag_spatial = false;
+            end
+            if flag_spatial
+                xyz = [lon .* cos(lat), lat, h_o];
+                if nargin < 3 || isempty(xyh)
+                    xyh = xyz;
+                end                    
+                ztd_correction = Core_Utils.interp22nLS(xyz, data_med, degree, xyh);
+            else
+                if nargin < 3 || isempty(xyh)
+                    xyh = h_o;
+                else
+                    xyh = xyh(:,3);
+                end
+                ztd_correction = Core_Utils.interp1LS(h_o, data_med, degree, xyh);
+            end
+            %try
+            %    figure; subplot(2,1,1); plot(h_o, data_med, '.', lat_lon_h(:, 3), ztd_correction, '.'); subplot(2,1,2); plot(h_o, data_med - ztd_correction, '.');
+            %catch
+            %end
+        end
+        
         function showZtdVsHeight(sta_list, degree)
             % Show Median ZTD of n_receivers vs Hortometric height
             %
@@ -3771,9 +4358,15 @@ classdef GNSS_Station < handle
             %   sta_list.showZtdVsHeight();
             figure;
             med_ztd = median(sta_list.getZtd_mr * 1e2, 'omitnan')';
-            subplot(2,1,1);
-            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
-            plot(h_o, med_ztd, '.', 'MarkerSize', 20); hold on;
+            ax1 = subplot(2,1,1);
+            [lat, lon, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+            [~, id_sort] = sort(lat);
+            plot(h_o(id_sort), med_ztd(id_sort), '.', 'MarkerSize', 20); hold on;
+            %scatter(h_o(id_sort), med_ztd(id_sort), 200, lat(id_sort), '.'); 
+            %id=(lat(id_sort)/pi*180)>41; plot(h_o(id_sort(id)), med_ztd(id_sort(id)), '.', 'MarkerSize', 20); hold on;
+            %plot(h_o(id_sort(id)), med_ztd(id_sort(id)), '.', 'MarkerSize', 20); hold on;
+            colormap(Cmap.get('viridis', numel(lat)));
+            hold on;
             ylabel('Median ZTD [cm]');
             xlabel('Elevation [m]');
             title('ZTD vs Height')
@@ -3783,12 +4376,16 @@ classdef GNSS_Station < handle
             end
             y_out = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
             plot(sort(h_o), Core_Utils.interp1LS(h_o, med_ztd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
-            subplot(2,1,2);
-            plot(h_o, med_ztd - y_out, '.', 'MarkerSize', 20);
+            grid on
+            ax1.FontSize = 16;
+            
+            ax2 = subplot(2,1,2);
+            plot(h_o, med_ztd - y_out, '.', 'MarkerSize', 20); hold on
+            %plot(h_o(id_sort(id)), med_ztd(id_sort(id)) - y_out(id_sort(id)), '.', 'MarkerSize', 20); hold on;
 
             ylabel('residual [cm]');
             xlabel('Elevation [m]');
-            title('reduced ZTD vs Height')
+            title('reduced ZTD vs Height', 'FontName', 'Open Sans')
 
             sta_strange = find(abs(med_ztd - y_out) > 8);
             if ~isempty(sta_strange)
@@ -3797,6 +4394,8 @@ classdef GNSS_Station < handle
                     Core.getLogger.addMessage(sprintf(' %d - %s', sta_strange(s), sta_list(sta_strange(s)).getMarkerName()));
                 end
             end
+            grid on
+            ax2.FontSize = 16;
         end
 
         function showZwdVsHeight(sta_list, degree)
@@ -3806,7 +4405,7 @@ classdef GNSS_Station < handle
             %   sta_list.showZwdVsHeight();
             figure;
             med_zwd = median(sta_list.getZwd_mr * 1e2, 'omitnan')';
-            subplot(2,1,1);
+            ax1 = subplot(2,1,1);
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
             plot(h_o, med_zwd, '.', 'MarkerSize', 20); hold on;
             ylabel('Median ZWD [cm]');
@@ -3814,16 +4413,19 @@ classdef GNSS_Station < handle
             title('ZWD vs Height')
 
             if nargin == 1
-                degree = 5;
+                degree = 2;
             end
             y_out = Core_Utils.interp1LS(h_o, med_zwd, degree, h_o);
             plot(sort(h_o), Core_Utils.interp1LS(h_o, med_zwd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
-            subplot(2,1,2);
+            grid on
+            ax1.FontSize = 16;
+            
+            ax2 = subplot(2,1,2);
             plot(h_o, med_zwd - y_out, '.', 'MarkerSize', 20);
 
             ylabel('residual [cm]');
             xlabel('Elevation [m]');
-            title('reduced ZWD vs Height')
+            title('reduced ZWD vs Height', 'FontName', 'Open Sans')
 
             sta_strange = find(abs(med_zwd - y_out) > 8);
             if ~isempty(sta_strange)
@@ -3832,6 +4434,8 @@ classdef GNSS_Station < handle
                     Core.getLogger.addMessage(sprintf(' %d - %s', sta_strange(s), sta_list(sta_strange(s)).getMarkerName()));
                 end
             end
+            grid on
+            ax1.FontSize = 16;
         end
 
         function showMedianTropoPar(this, par_name, new_fig)
@@ -4080,7 +4684,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [m_diff, s_diff] = showRadiosondeValidation(sta_list, rds_list)
+        function [m_diff, s_diff, rds] = showRadiosondeValidation(sta_list, rds_list)
             % Compute and show comparison with radiosondes from weather.uwyo.edu
             % given region list, and station id (as cell arrays)
             %
@@ -4099,10 +4703,10 @@ classdef GNSS_Station < handle
             %  % testing geonet full network
             %  [m_diff, s_diff] = sta_list.showRadiosondeValidation(Radiosonde.JAPAN_STATION);
             %
-            % SEE ALSE
+            % SEE ALSO
             %   Radiosonde GNSS_Station.getRadiosondeValidation
             
-            [m_diff, s_diff] = sta_list.getRadiosondeValidation(rds_list, true);            
+            [m_diff, s_diff, rds] = sta_list.getRadiosondeValidation(rds_list, true);
         end
         
         
@@ -4125,7 +4729,7 @@ classdef GNSS_Station < handle
             %  % testing geonet full network
             %  [m_diff, s_diff] = sta_list.showIGSValidation(Radiosonde.JAPAN_STATION);
             %
-            % SEE ALSE
+            % SEE ALSO
             %   Radiosonde GNSS_Station.getIGSValidation
             
             [m_diff, s_diff] = sta_list.getIGSValidation(rds_list, true);            
@@ -4192,7 +4796,7 @@ classdef GNSS_Station < handle
             set(gca, 'YTick', [-30 -10 0 10 30])
             ylim([-30 30])
             set(gca, 'XTickLabels', {})    
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
             setAllLinesWidth(1.3)
             
             subplot(6,1,2)
@@ -4204,7 +4808,7 @@ classdef GNSS_Station < handle
             ylim([-30 30])
             set(gca, 'XTickLabels', {})
             ylabel('[mm]')
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
             title('North')
             
             subplot(6,1,3)
@@ -4219,7 +4823,7 @@ classdef GNSS_Station < handle
             ylabel('[mm]')
             title('Up')
             set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
 
             subplot(6,1,4)
             errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',15,'LineWidth',1,'Color',Core_UI.getColor(4,6))
@@ -4231,7 +4835,7 @@ classdef GNSS_Station < handle
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
             set(gca, 'YTick', [-25 -10 0 10 25])
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
             title('ZTD')
             
             subplot(6,1,5)
@@ -4244,7 +4848,7 @@ classdef GNSS_Station < handle
             ax.YGrid = 'on';
             ax.GridLineStyle = '-';
             set(gca, 'YTick', [-4 -1 0 1 4])
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
             title('North gradient')
             
             subplot(6,1,6)
@@ -4261,7 +4865,9 @@ classdef GNSS_Station < handle
             set(gca, 'XTick', [1:28])
             set(gca, 'XTickLabels', sta_names)
             set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',12)
+            set(gca,'fontweight','bold','fontsize',16)
+            
+            
         end
         
         function showBaselinePlanarUp(sta_list, baseline_ids, plot_relative_variation)
