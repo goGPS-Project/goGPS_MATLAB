@@ -992,7 +992,7 @@ classdef GNSS_Station < handle
 
             med_ztd = median(sta_list.getZtd_mr, 'omitnan')';
             if nargin == 1
-                degree = 5;
+                degree = 2;
             end
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
 
@@ -1011,7 +1011,7 @@ classdef GNSS_Station < handle
 
             med_zwd = median(sta_list.getZwd_mr, 'omitnan')';
             if nargin == 1
-                degree = 5;
+                degree = 2;
             end
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
 
@@ -1087,7 +1087,7 @@ classdef GNSS_Station < handle
                 ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(id_rec(~isnan(id_rec)));
             end
 
-            if nargout == 5
+            if nargout > 4
                 tge = nan(size(id_sync));
                 tgn = nan(size(id_sync));
                 for r = 1 : n_rec
@@ -3716,7 +3716,7 @@ classdef GNSS_Station < handle
             title('ZTD vs Height')
 
             if nargin == 1
-                degree = 5;
+                degree = 2;
             end
             y_out = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
             plot(sort(h_o), Core_Utils.interp1LS(h_o, med_ztd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
