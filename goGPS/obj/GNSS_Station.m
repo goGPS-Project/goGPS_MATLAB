@@ -1344,7 +1344,9 @@ classdef GNSS_Station < handle
                 ztd_diff = nan(time_rds.length, 1);
                 for e = 1 : time_rds.length
                     [t_min, id_min(e)] = min(abs(time - time_rds.getEpoch(e)));
-                    ztd_diff(e) = ztd_rds(e) - (ztd(id_min(e),s) + ztd_height_correction(s));
+                    if t_min < 3600
+                        ztd_diff(e) = ztd_rds(e) - (ztd(id_min(e),s) + ztd_height_correction(s));
+                    end
                 end
                 
                 m_diff(s) = mean(ztd_diff, 1, 'omitnan');
@@ -1360,12 +1362,12 @@ classdef GNSS_Station < handle
                     f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';
                     
                     % interpolated ZTD
-                    plot(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '-', 'LineWidth', 2);
+                    plot(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.', 'LineWidth', 2);
                     hold on;
                     
                     % closer ZTD
                     [s_ztd, s_time] = sta_list(id_rec(s)).getZtd_mr();
-                    plot(s_time.getMatlabTime, s_ztd * 1e2, '-', 'LineWidth', 2);
+                    plot(s_time.getMatlabTime, s_ztd * 1e2, '.', 'LineWidth', 2);
                     
                     % radiosondes
                     [ztd_rds, time_rds] = rds(s).getZtd();
