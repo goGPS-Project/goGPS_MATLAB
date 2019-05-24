@@ -265,6 +265,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SPLINE_TROPO_ORDER = 0;                         % order of the spline for the tropo
         SPLINE_TROPO_GRADIENT_ORDER = 0;                % order of the spline for the tropo gradient
         
+        
+        TROPO_SPATIAL_REG_SIGMA = 1e-7;                % spatial regularization ztd sigma^2 m^2
+        TROPO_SPATIAL_REG_D_DISTANCE = 25e3;           % spatial regularization ztd distance exponetial m
+        TROPO_GRADIENT_SPATIAL_REG_SIGMA = 1e-7;       % spatial regularization ztd gradients sigma^2 m^2
+        TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE = 25e3;  % spatial regularization ztd gradients distance exponetial m
         % OUT DATA flags => what shall I store in rec.out?
         
         FLAG_OUT_DT = true;         % Clock "delta"
@@ -662,6 +667,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         spline_tropo_order = Main_Settings.SPLINE_TROPO_ORDER;
         spline_tropo_gradient_order = Main_Settings.SPLINE_TROPO_GRADIENT_ORDER;
         
+        tropo_spatial_reg_sigma = Main_Settings.TROPO_SPATIAL_REG_SIGMA;
+        tropo_spatial_reg_d_distance = Main_Settings.TROPO_SPATIAL_REG_D_DISTANCE;
+        tropo_gradient_spatial_reg_sigma = Main_Settings.TROPO_GRADIENT_SPATIAL_REG_SIGMA;
+        tropo_gradient_spatial_reg_d_distance = Main_Settings.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE;
+        
+        
+        
         %------------------------------------------------------------------
         % OUTPUT TO KEEP
         %------------------------------------------------------------------
@@ -902,6 +914,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.spline_tropo_order   = state.getData('spline_tropo_order');
                 this.spline_tropo_gradient_order   = state.getData('spline_tropo_gradient_order');
                 
+                this.tropo_spatial_reg_sigma   = state.getData('tropo_spatial_reg_sigma');
+                this.tropo_spatial_reg_d_distance   = state.getData('tropo_spatial_reg_d_distance');
+                this.tropo_gradient_spatial_reg_sigma   = state.getData('tropo_gradient_spatial_reg_sigma');
+                this.tropo_gradient_spatial_reg_d_distance   = state.getData('tropo_gradient_spatial_reg_d_distance');
+                
                 % OUTPUT TO KEEP                
                 this.flag_out_dt = state.getData('flag_out_dt');                % Dt
                 this.flag_out_pwv = state.getData('flag_out_pwv');              % PWV
@@ -1055,6 +1072,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.spline_rate_tropo_gradient = state.spline_rate_tropo_gradient;
                 this.spline_tropo_order = state.spline_tropo_order;
                 this.spline_tropo_gradient_order = state.spline_tropo_gradient_order;
+                
+                 this.tropo_spatial_reg_sigma = state.tropo_spatial_reg_sigma;
+                this.tropo_spatial_reg_d_distance = state.tropo_spatial_reg_d_distance;
+                this.tropo_gradient_spatial_reg_sigma = state.tropo_gradient_spatial_reg_sigma;
+                this.tropo_gradient_spatial_reg_d_distance = state.tropo_gradient_spatial_reg_d_distance;
+                
                 
                 % OUTPUT TO KEEP
                 this.flag_out_dt = state.flag_out_dt;                % PWV
@@ -1237,6 +1260,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n\n', this.spline_rate_tropo_gradient)];
             str = [str sprintf(' Spline order of tropospheric delay:               %g\n\n', this.spline_tropo_order)];
             str = [str sprintf(' Spline order of tropospheric delay gradients:     %g\n\n', this.spline_tropo_gradient_order)];
+            str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n\n', this.tropo_spatial_reg_sigma)];
+            str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n\n', this.tropo_spatial_reg_d_distance)];
+            str = [str sprintf(' Spatial regualrization ztd gardients [m^2]:                 %g\n\n', this.tropo_gradient_spatial_reg_sigma)];
+            str = [str sprintf(' Spatial regualrization ztd gardietns halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
             str = this.toString@Command_Settings(str);
             
             str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
@@ -1712,6 +1739,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('spline_tropo_order', this.spline_tropo_order, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_TROPO_GRADIENT_ORDER), str_cell);
             str_cell = Ini_Manager.toIniString('spline_tropo_gradient_order', this.spline_tropo_gradient_order, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo [m^2] (default = %.0f)', this.TROPO_SPATIAL_REG_SIGMA), str_cell);
+            str_cell = Ini_Manager.toIniString('tropo_spatial_reg_sigma', this.tropo_spatial_reg_sigma, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo halving distance [m] (default = %.0f)', this.TROPO_SPATIAL_REG_D_DISTANCE), str_cell);
+            str_cell = Ini_Manager.toIniString('tropo_spatial_reg_d_distance', this.tropo_spatial_reg_d_distance, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo gradient [m^2] (default = %.0f)', this.TROPO_GRADIENT_SPATIAL_REG_SIGMA), str_cell);
+            str_cell = Ini_Manager.toIniString('tropo_gradient_spatial_reg_sigma', this.tropo_gradient_spatial_reg_sigma, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo gradient halving distance [m] (default = %.0f)', this.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE), str_cell);
+            str_cell = Ini_Manager.toIniString('tropo_gradient_spatial_reg_d_distance', this.tropo_gradient_spatial_reg_d_distance, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % OUT TO KEEP
@@ -2345,6 +2380,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.spline_rate_tropo_gradient = 1800;
             this.spline_tropo_order = 0;
             this.spline_tropo_gradient_order = 0;
+            
+            this.tropo_spatial_reg_sigma = 1e-7;
+            this.tropo_spatial_reg_d_distance = 25e3;
+            this.tropo_gradient_spatial_reg_sigma = 1-e7;
+            this.tropo_gradient_spatial_reg_d_distance = 25e3;
+                        
                         
             % Save Results
             this.flag_out_pwv = 1;
@@ -2555,6 +2596,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('spline_rate_tropo_gradient',[0 1e50]);
             this.checkNumericField('spline_tropo_order',[0 3]);
             this.checkNumericField('spline_tropo_gradient_order',[0 3]);
+            this.checkNumericField('tropo_spatial_reg_sigma',[0 1e50]);
+            this.checkNumericField('tropo_spatial_reg_d_distance',[0 1e50]);
+            this.checkNumericField('tropo_gradient_spatial_reg_sigma',[0 1e50]);
+            this.checkNumericField('tropo_gradient_spatial_reg_d_distance',[0 1e50]);
             
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');

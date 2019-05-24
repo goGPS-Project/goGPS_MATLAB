@@ -245,7 +245,22 @@ classdef Network < handle
                             else
                                 ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * this.state.spline_rate_tropo_gradient ); %this.state.std_tropo / 3600 * rate );
                                 ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 *  this.state.spline_rate_tropo_gradient); %this.state.std_tropo  / 3600 * rate );
-                            end                            
+                            end
+                        end
+                        if Core.isGReD
+                            dist_matrix = zeros(n_rec);
+                            for i = 1:n_rec
+                                for j = i+1:n_rec
+                                    coo1 = Coordinates(); coo1.xyz = this.rec_list(i).work.xyz;
+                                    coo2 = Coordinates(); coo2.xyz = this.rec_list(j).work.xyz;
+                                    dist_matrix(i,j) = coo1.ellDistanceTo(coo2);
+                                end
+                            end
+                            state = Core.getCurrentSettings();
+                            ls.dist_matr = dist_matrix;
+                            ls.distance_regularization.fun_tropo = @(d)  state.tropo_spatial_reg_sigma.*2.^(-d./state.tropo_spatial_reg_d_distance);
+                            ls.distance_regularization.fun_gradients = @(d)  state.tropo_gradient_spatial_reg_sigma.*2.^(-d./state.tropo_gradient_spatial_reg_d_distance);
+                            
                         end
                         ls.is_tropo_decorrel = this.is_tropo_decorrel;
                         ls.is_coo_decorrel = this.is_coo_decorrel;

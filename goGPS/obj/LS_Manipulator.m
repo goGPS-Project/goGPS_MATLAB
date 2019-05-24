@@ -119,6 +119,10 @@ classdef LS_Manipulator < handle
         is_coo_decorrel % are coo paramter decorrelated enough
         
         ant_mp_est = false;  % estimate antenna multipath
+        
+        dist_matr = [];
+        distance_regularization = [];
+        
     end
     
     properties (Access = private)
@@ -1443,6 +1447,9 @@ classdef LS_Manipulator < handle
             
             if is_network
                 
+               
+                
+                
                 n_obs = size(this.A_idx,1);
                 % create the part of the normal that considers common parameters
                 
@@ -1469,6 +1476,15 @@ classdef LS_Manipulator < handle
                     
                     N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                 end
+                if ~isempty(this.distance_regularization) && Core.isGReD
+                    N = GReD_Utility.regularizeTropoDist(this,N,u_ep, x_rec,this.dist_matr,this.distance_regularization.fun_tropo);
+                    N = GReD_Utility.regularizeGradientsDist(this,N,u_ep,x_rec, this.dist_matr,this.distance_regularization.fun_gradients);
+                end
+                
+                
+                
+                
+                
                 
                 % get the oidx for the common parameters
                 common_idx = zeros(n_obs,1);
