@@ -270,7 +270,46 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   status this.isEmpty();
             status = isempty(this.xyz);
-        end        
+        end  
+        
+        function dist = ellDistanceTo(this,coo)
+            % return the distance on the ellipsoid between the object
+            % coordinates and the coordinate coo using vincenty's formula
+            % (https://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf)
+            %
+            % SYNTAX
+            %     dist = this.distanceTo(coo)
+            
+            % reduced latitude
+            a = this.ELL_A;
+            b = sqrt((1 - this.E2)*a^2) ;
+            f = (a - b)/a;
+            [lat1, lon1] = this.getGeodetic();
+            [lat2, lon2] = coo.getGeodetic();
+            U1 = atan((1-f)*tan(lat1));
+            U2 = atan((1-f)*tan(lat2));
+            L = lon2 - lon1;
+            lambda_old = 10000;
+            lambda= L;
+            
+            while abs(lambda - lambda_old) > 1e-12
+                sin_sigma = sqrt((cos(U2) * sin(lambda))^2 + (cos(U1)*sin(U2) - sin(U1)*cos(U2)*cos(lambda))^2);
+                cos_sigma = sin(U1)*sin(U2) + cos(U1)*cos(U2)*cos(lambda);
+                sigma = atan2(sin_sigma,cos_sigma);
+                sin_alpha = cos(U1)*cos(U2)*sin(lambda)/sin_sigma;
+                cos2_alpha = 1 - sin_alpha^2;
+                cos_2sigmam = cos_sigma - 2*sin(U1)*sin(U2)/cos2_alpha;
+                C = f/16*cos2_alpha*(4 + f*(4 -3*cos2_alpha));
+                lambda_old = lambda;
+                lambda = L + (1 - C)*f*sin_alpha*(sigma + C*sin_sigma*(cos_2sigmam + C*cos_sigma*(-1 + 2 * cos_2sigmam^2)));
+            end
+            u2 = cos2_alpha*(a^2 - b^2)/b^2;
+            A = 1 + u2/16384*(4096 + u2*(-768 + u2*(320-175*u2)));
+            B = u2/1024*(256 +u2*(-128 +u2*(74-47*u2)));
+            Dsigma = B*sin_sigma*(cos_2sigmam + 1/4*B*(cos_sigma*(-1 + 2*cos_2sigmam^2) -B/6*cos_2sigmam*(-3 + 4 * sin_sigma^2)*(- 3 + 4 * cos_2sigmam^2)));
+            dist = b*A*(sigma -Dsigma);
+            
+        end
     end
     
     % =========================================================================
