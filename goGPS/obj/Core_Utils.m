@@ -170,7 +170,7 @@ classdef Core_Utils < handle
             r = [r(end-len+2:end) ; r(1:len)];
         end
         
-        function s = getSemivariogram1D(x,mode)
+        function [s,n] = getSemivariogram1D(x,mode)
             % compute 1 d semivariogram
             %
             % SYNTAX:
@@ -180,9 +180,12 @@ classdef Core_Utils < handle
             end
             max_lag = length(x)-1;
             s = nan(max_lag,1);
+            n = zeros(max_lag,1);
             if strcmpi(mode,'mean')
                 for l = 1 : max_lag
-                    s(l) = mean((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
+                    diffs = (x((l+1):end) - x(1:(end-l))).^2;
+                    s(l) = mean(diffs,'omitnan')/2;
+                    n(l) = sum(~isnan(diffs));
                 end
             elseif strcmpi(mode,'fft')
                 L = length(x);
@@ -196,6 +199,41 @@ classdef Core_Utils < handle
                     s(l) = median((x((l+1):end) - x(1:(end-l))).^2,'omitnan')/2;
                 end
             end
+        end
+        
+        function [s,n] = getSemivariogram1DCS(x,cs_lid)
+            % compute 1 d semivariogram accoutnign for cycle slips
+            %
+            % SYNTAX:
+            %     s = Core_Utils.getSemivariogram1D(x)
+            cs = unique([1; find(cs_lid); length(x)]);
+                        max_lag = length(x)-1;
+
+            s = nan(max_lag,1);
+            n = zeros(max_lag,1);
+            for c = 2 : length(cs)
+                if sum(~isnan(x(cs(c-1):cs(c)))) > 1
+                    [st,nt] = Core_Utils.getSemivariogram1D(x(cs(c-1):(cs(c)-1)));
+                    ntt = n(1:length(st))+nt;
+                    s(1:length(st)) = zero2nan( ( nan2zero(s(1:length(st))).*n(1:length(st)) + nan2zero(st).*nt )./ntt );
+                    n(1:length(st)) = ntt;
+                end
+            end
+        end
+        
+        function [a,b] = logLogLineEst(y,lims)
+            % compute slope and intercept in log log plane
+            %
+            % SYNTAX:
+            %     [a,b] = Core_Utils.logLogLineEst(y,lims)
+            x = (1:length(y))';
+            x = x(lims(1):lims(2));
+            y = y(lims(1):lims(2));
+            A = [log(x) ones(size(x))];
+            y = log(y);
+            est = A\y;
+            a=est(1);
+            b=est(2);
         end
         
         function [gh11,nh11] =variofl(x1,icode)
