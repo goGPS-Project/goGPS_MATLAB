@@ -90,8 +90,8 @@ classdef Parallel_Manager < Com_Interface
     % ==================================================================================================================================================
     methods (Access = private)
         function delete(this)
-            % delete
-            this.log.addMarkedMessage('Closing goGPS Master');
+            % delete 
+            Logger.getInstance.addMarkedMessage('Closing goGPS Master');
         end
     end
     %
