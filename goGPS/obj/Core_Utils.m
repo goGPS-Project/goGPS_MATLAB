@@ -862,6 +862,32 @@ classdef Core_Utils < handle
             double_tot(idx2) = double_2;
         end
         
+        
+        function [ids] = findAinB(cellA,cellB)
+            % find the index of cella in cellb
+            %
+            % SYNTAX
+            %     [ids] = Core_Utils.findAinB(cellA,cellB)
+            if ~iscell(cellA)
+                cellA = {cellA};
+            end
+            lB = length(cellB);
+            lA = length(cellA);
+            ids = zeros(lA,1);
+            for i = 1 : lA
+                not_found = true;
+                j = 1;
+                while j <= lB && not_found
+                    if strcmp(cellA{i},cellB{j})
+                        ids(i) = j;
+                        not_found = false;
+                    end
+                    j = j+1;
+                end
+            end
+            ids(ids==0) = [];
+        end
+        
         function [wl_cyle_out, frac_bias] = getFracBias(wl_cycle, weigth)
             % get the common frac bias between cycles
             % NOTE: very coarse/nobrain/empirical solution - > a simpler one should be found
