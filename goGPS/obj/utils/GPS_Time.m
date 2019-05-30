@@ -1598,6 +1598,48 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function min_time = miminum(this,id_subset)
+            % Get the minimum element stored in gps_time
+            %
+            % SYNTAX
+            %   new_obj = last(this, id_subset)
+            if (nargin == 1)
+                new_obj = this.getEpoch(this.length());
+            else
+                if islogical(id_subset)
+                    new_obj = this.getEpoch(find(id_subset(1 : this.length())));
+                else
+                    id_subset = id_subset(id_subset < this.length());
+                    new_obj = this.getEpoch(id_subset);
+                end
+            end
+            time_mat = new_obj.getMatlabTime();
+            [~,idx] = min(time_mat);
+            min_time = new_obj.getEpoch(idx);
+            
+        end
+        
+        function max_time = maximum(this,id_subset)
+            % Get the minimum element stored in gps_time
+            %
+            % SYNTAX
+            %   new_obj = last(this, id_subset)
+            if (nargin == 1)
+                new_obj = this.getEpoch(this.length());
+            else
+                if islogical(id_subset)
+                    new_obj = this.getEpoch(find(id_subset(1 : this.length())));
+                else
+                    id_subset = id_subset(id_subset < this.length());
+                    new_obj = this.getEpoch(id_subset);
+                end
+            end
+            time_mat = new_obj.getMatlabTime();
+            [~,idx] = max(time_mat);
+            max_time = new_obj.getEpoch(idx);
+            
+        end
+        
         function gps_time_subset = getSubSet(this, index)
             % create a copy of the object having only a subset of time_diff
             %
