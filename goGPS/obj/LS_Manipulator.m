@@ -57,6 +57,7 @@ classdef LS_Manipulator < handle
         PAR_TROPO = 7;
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
+        PAR_TROPO_V = 10;
         PAR_PCO_X = 10;
         PAR_PCO_Y = 11;
         PAR_PCO_Z = 12;
@@ -806,7 +807,8 @@ classdef LS_Manipulator < handle
             % Building Design matrix
             order_tropo = this.state.spline_tropo_order;
             order_tropo_g = this.state.spline_tropo_gradient_order;
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            tropo_v_g = true && obs_set.hasPhase(); 
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -1002,6 +1004,11 @@ classdef LS_Manipulator < handle
                     end
                     
                 end
+                if tropo_v_g
+                       prog_p_col = prog_p_col + 1;
+                        A(lines_stream, prog_p_col) = mfw_stream*rec.h_ellips;
+                        A_idx(lines_stream, prog_p_col) =n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                end
                 if this.ant_mp_est
                     prog_p_col = prog_p_col + 1;
                     n_el = 7;
@@ -1021,7 +1028,7 @@ classdef LS_Manipulator < handle
             e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
             e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
             if dynamic
-                p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
+                p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g), ones(tropo_v_g)];
             else
                 
                 
@@ -1029,7 +1036,7 @@ classdef LS_Manipulator < handle
             end
            
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
-                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg];
+                this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg , this.PAR_TROPO_V * ones(tropo_v_g) ];
             if obs_set.hasPhase()
                 amb_set_jmp = find(sum(diff(int32(amb_idx)) < 0, 2) == sum((amb_idx(1 : end - 1, :)) > 0, 2) | sum(diff(int32(amb_idx)) > 0, 2) == sum((amb_idx(2 : end, :)) > 0,2)) + 1;
             else
@@ -1463,19 +1470,22 @@ classdef LS_Manipulator < handle
                 %mix the receiver indexes
                 par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                 A_idx_not_mix = this.A_idx;
+                idx_net_comm = find(this.param_class == this.PAR_TROPO_V);
                 for j = 2 : n_rec
                     rec_idx = this.receiver_id == j;
                     % update the indexes
                     par_rec_id = [par_rec_id ; j*ones(max(max(this.A_idx(this.receiver_id == j,:))),1)];
-                    this.A_idx(rec_idx,:) = this.A_idx(this.receiver_id == j, :) + max(max(this.A_idx(this.receiver_id == j-1,:)));
+                    this.A_idx(rec_idx,this.param_class ~= this.PAR_TROPO_V) = this.A_idx(this.receiver_id == j, this.param_class ~= this.PAR_TROPO_V) + max(max(this.A_idx(this.receiver_id == j-1,this.param_class ~= this.PAR_TROPO_V)));
                     
                     a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
                     a_idx_const(a_idx_const == 0) = [];
-                    a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise));
+                    a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise(idx_ep_wise ~= idx_net_comm)));
                     a_idx_ep_wise(a_idx_ep_wise == 0) = [];
                     
                     N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                 end
+                this.A_idx(:,this.param_class == this.PAR_TROPO_V) = this.A_idx(:,this.param_class == this.PAR_TROPO_V) - min(this.A_idx(:,this.param_class == this.PAR_TROPO_V)) + max(max(this.A_idx(:,this.param_class ~= this.PAR_TROPO_V)));
+                N2A_idx = [N2A_idx; unique(this.A_idx(:,this.param_class == this.PAR_TROPO_V))];
                 if ~isempty(this.distance_regularization) && Core.isGReD
                     N = GReD_Utility.regularizeTropoDist(this,N,u_ep, x_rec,this.dist_matr,this.distance_regularization.fun_tropo);
                     N = GReD_Utility.regularizeGradientsDist(this,N,u_ep,x_rec, this.dist_matr,this.distance_regularization.fun_gradients);
