@@ -3615,6 +3615,33 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
         
+        function [obs_set] = getObsSet(this, flag, sys_c, prn)
+            % get observation set corrspondiung to the requested
+            % observation
+            %
+            % SYNTAX:
+            %     this.getObsSet(flag, sys_c, prn)
+            if nargin == 4
+                [obs, idx, snr, cs] = this.getObs(flag, sys_c, prn);
+            elseif nargin == 3
+                [obs, idx, snr, cs] = this.getObs(flag, sys_c);
+            elseif nargin == 2
+                [obs, idx, snr, cs] = this.getObs(flag);
+            end
+            idx2 = idx(this.obs_code(idx,1) == 'L');
+            obs(this.obs_code(idx,1) == 'L',:) = obs(this.obs_code(idx,1) == 'L',:).*repmat(this.wl(idx2),1,size(obs,2));
+            obs_set = Observation_Set(this.time, nan2zero(obs'), [this.system(idx)' this.obs_code(idx,:)], this.wl(idx), this.sat.el(:,this.go_id(idx)), this.sat.az(:,this.go_id(idx)), this.prn(idx));
+            obs_set.snr = snr';
+            obs_set.cycle_slip = cs';
+            obs_set.sigma  = zeros(size(obs_set.wl));
+            rec_set = Receiver_Settings();
+            for i = 1 : size(obs_set.obs_code,1)
+                obs_set.sigma(i) = rec_set.getStd(obs_set.obs_code(i,1),obs_set.obs_code(i,2:end));
+            end
+            
+        end
+        
+        
         function [last_repair, old_ph, old_synt] = getLastRepair(this, go_id, band_tracking)
             % Get the last integer (or half cycle) ambiguity repair applyied to the satellite
             %
