@@ -807,7 +807,7 @@ classdef LS_Manipulator < handle
             % Building Design matrix
             order_tropo = this.state.spline_tropo_order;
             order_tropo_g = this.state.spline_tropo_gradient_order;
-            tropo_v_g = true && obs_set.hasPhase(); 
+            tropo_v_g = false && obs_set.hasPhase(); 
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
