@@ -1598,7 +1598,7 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-        function min_time = miminum(this,id_subset)
+        function min_time = minimum(this,id_subset)
             % Get the minimum element stored in gps_time
             %
             % SYNTAX

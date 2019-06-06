@@ -885,7 +885,7 @@ classdef Core_Utils < handle
                     j = j+1;
                 end
             end
-            ids(ids==0) = [];
+            %ids(ids==0) = [];
         end
         
         function [wl_cyle_out, frac_bias] = getFracBias(wl_cycle, weigth)
