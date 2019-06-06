@@ -1713,7 +1713,9 @@ classdef Core_Sky < handle
                 for o = 2 : poly_order
                     t_fct(:, o) = o * t_fct(:, o);
                 end
-                V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
+                if nargout > 1
+                    V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
+                end
             end
             X_sat = X_sat ./ repmat(W_poly, 1, n_sat, 3);
             V_sat = V_sat ./ repmat(W_poly, 1, n_sat, 3);

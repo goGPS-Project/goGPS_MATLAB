@@ -3234,7 +3234,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
             %time_tx.addSeconds(); % rel clok neglegible
-            [XS_tx, ~] = Core.getCoreSky.coordInterpolate(time_tx, sat);
+            [XS_tx] = Core.getCoreSky.coordInterpolate(time_tx, sat);
             
             
             %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
