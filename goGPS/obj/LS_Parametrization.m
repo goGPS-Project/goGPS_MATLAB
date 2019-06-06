@@ -65,7 +65,7 @@ classdef LS_Parametrization < handle
         
         % track paramterization paramterization
         SING_TRACK = 1;
-        SINGLE_FREQ = 2;
+        SING_FREQ = 2;
         ALL_FREQ = 3;
         RULE = 5; % warnign only sequential & allowed
         
@@ -75,44 +75,42 @@ classdef LS_Parametrization < handle
     
     properties
         % paramterization [(time paramterization) (rec paramterization) (sat paramterization) (tracking paramterization)]
-        rec_x = [this.CONST this.SING_REC this.ALL_SAT this.ALL_FREQ];
-        rec_y = [this.CONST this.SING_REC this.ALL_SAT this.ALL_FREQ];
-        rec_z = [this.CONST this.SING_REC this.ALL_SAT this.ALL_FREQ];
+        rec_x = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        rec_y = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        rec_z = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         
-        sat_x = [this.EP_WISE this.ALL_REC this.SING_SAT this.ALL_FREQ];
-        sat_y = [this.EP_WISE this.ALL_REC this.SING_SAT this.ALL_FREQ];
-        sat_z = [this.EP_WISE this.ALL_REC this.SING_SAT this.ALL_FREQ];
+        sat_x = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        sat_y = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        sat_z = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
-        rec_eb = [this.CONST this.SING_REC this.ALL_SAT this.RULE];
-        rec_eb_line = [this.CONST this.SING_REC this.ALL_SAT this.RULE];
+        rec_eb = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
+        rec_eb_line = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
 
         
-        sat_eb = [this.CONST this.ALL_REC this.SING_SAT this.SING_TRACK];
+        sat_eb = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
         
-        amb  = [this.STEP_CONST this.SING_REC this.SING_SAT this.SING_TRACK];
+        amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
-        rec_clk = [this.EP_WISE this.ALL_REC this.ALL_SAT this.ALL_FREQ];
-        sat_clk = [this.EP_WISE this.ALL_REC this.SING_SAT this.ALL_FREQ];
+        rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
       
-        tropo = [this.EP_WISE this.SING_REC this.ALL_SAT this.ALL_FREQ];
-        tropo_n = [this.EP_WISE this.SING_REC this.ALL_SAT this.ALL_FREQ];
-        tropo_e = [this.EP_WISE this.SING_REC this.ALL_SAT this.ALL_FREQ];
-        tropo_s =  [this.SPLINE_CUB this.SING_REC this.SING_SAT this.ALL_FREQ];
-        tropo_v = [this.EP_WISE this.ALL_REC this.ALL_SAT this.ALL_FREQ];
+        tropo = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_n = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_e = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_s =  [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        tropo_v = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
               
-        iono =  [this.EP_WISE this.SING_REC this.SING_SAT this.SING_FREQ];
+        iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_FREQ];
              
-        ant_mp = [this.CONST this.SING_REC this.ALL_SAT this.SING_FREQ];
+        ant_mp = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ];
         
         % options to keep track of spline rate, rule based distinction,
         % cycle slips
         rec_x_opt;
         rec_y_opt;
         rec_z_opt;
-        rec_eb_opt;
-        rec_eb_opt_lin;
-        rec_eb_opt.rule      = {['PSRANGE:' num2str(this.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(this.SING_FREQ)],['PHASE&GLONASS:ALL_FREQ' num2str(this.ALL_FREQ)]};
-        rec_eb_opt_line.rule = {['PHASE&GLONASS:' num2str(this.ALL_FREQ)]};
+        rec_eb_opt = struct('rule',1);
+        rec_eb_opt_line = struct('rule',1);
 
         amb_opt;
         rec_clk_opt;
@@ -123,7 +121,7 @@ classdef LS_Parametrization < handle
         sat_clk_opt;
         ant_mp_opt;
         iono_opt;
-        tropo_s_opt.spline_rate = 900;
+        tropo_s_opt= struct('spline_rate',900);
         sat_x_opt;
         sat_y_opt;
         sat_z_opt;
@@ -131,6 +129,12 @@ classdef LS_Parametrization < handle
     end
     
     methods
+        function [this] = LS_Parametrization()
+            this = this@handle();
+            this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_FREQ)],['PHASE&GLONASS:ALL_FREQ' num2str(LS_Parametrization.ALL_FREQ)]};
+            this.rec_eb_opt_line.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.ALL_FREQ)]};
+        end
+       
         function [parametriz, option] = getParametrization(this, par_class)
             % get the parametrization and the options for the paramter
             % class p
@@ -144,6 +148,9 @@ classdef LS_Parametrization < handle
                 case LS_Manipulator_new.PAR_REC_Y
                     parametriz = this.rec_y;
                     option = this.rec_y_opt;
+                case LS_Manipulator_new.PAR_REC_Z
+                    parametriz = this.rec_z;
+                    option = this.rec_z_opt;
                 case LS_Manipulator_new.PAR_REC_EB
                     parametriz = this.rec_eb;
                     option = this.rec_eb_opt;
@@ -157,10 +164,10 @@ classdef LS_Parametrization < handle
                     parametriz = this.amb;
                     option = this.amb_opt;
                 case LS_Manipulator_new.PAR_REC_CLK
-                    parametriz = rec_clk;
+                    parametriz = this.rec_clk;
                     option = this.rec_clk_opt;
                 case LS_Manipulator_new.PAR_SAT_CLK
-                    parametriz = sat_clk;
+                    parametriz = this.sat_clk;
                     option = this.sat_clk_opt;
                 case LS_Manipulator_new.PAR_TROPO
                     parametriz = this.tropo;

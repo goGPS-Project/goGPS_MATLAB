@@ -22,7 +22,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giulio Tagliaferro
-%  Contributors:     
+%  Contributors:
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -68,8 +68,8 @@ classdef LS_Manipulator_new < handle
         PAR_SAT_Z = 17;
         PAR_SAT_EB = 18;
         PAR_REC_EB_LIN = 19;
-
-
+        
+        
         CLASS_NAME = {'REC_X', 'REC_Y', 'REC_Z', 'REC_EB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'SAT_CLK', 'ANT_MP', 'IONO', 'TROPO_S', 'SAT_X', 'SAT_Y', 'SAT_Z', 'SAT_EB', 'REC_EB_LIN'};
     end
     
@@ -79,7 +79,7 @@ classdef LS_Manipulator_new < handle
         %%% entry
         A % obervation
         A_idx
-        obs 
+        obs
         param_class % class id of the colum of A
         time_obs   % epoch of the obervation (GPS_Time)
         satellite_obs % goid satellite of the observation
@@ -91,13 +91,22 @@ classdef LS_Manipulator_new < handle
         phase_obs % logical to tle  if obs are phase or code
         wl_id_obs % id of the wavelength
         
+        A_pseudo
+        A_idx_pseudo
+        time_pseudo   % epoch of the pseudo-observation (GPS_Time)
+        satellite_pseudo % goid satellite of the pseudo-observation
+        receiver_pseudo % reciver of the pseudo-observation
+        variance_pseudo % varaince of the pseudo-observation
+        
         unique_obs_codes % uniques ids (cell) of the signals  /since lot of combinations are possible they will be generated dynamically)
         unique_wl % set of unique wavelength
         rec_xyz % receiver coordinates to be used in
+        unique_rec_name % names of the recivers
         unique_sat_goid % unique satellite goids
-        cycle_slips % epoch of the cycle slip
+        cycle_slips = cell(1) % epoch of the cycle slip
         
-        time_par   % time of the paramter
+        time_par   % time of the paramter !!!! very important the parameters (within the same class e.g. time for satellite s ) MUST be ordered in chronological order
+        param_par  % paramtrization of the paramter
         time_min   % ref_time_of the parameter
         rec_par    % receiver of the paramters
         sat_par    % staellite of the paramters
@@ -108,7 +117,12 @@ classdef LS_Manipulator_new < handle
         sat_set % set of satellites
         ch_set  % set of observation codes
         
-        N      
+        N
+        idx_rd % idx paramter removed to silve the rank deficency
+        ls_parametrization;
+        
+        
+        log
     end
     
     methods
@@ -117,7 +131,14 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %    this.addObsEq(rec, obs_set)
-            n_param = length(param_selection);
+            n_par = length(param_selection);
+            
+            if isempty(this.param_class)
+                this.param_class = param_selection;
+            end
+            if nargin < 4
+                param_selection = this.param_class;
+            end
             
             % --- check all paramters presence and their order -----
             par_rec_x_lid = param_selection == this.PAR_REC_X;
@@ -126,6 +147,13 @@ classdef LS_Manipulator_new < handle
             par_rec_y = sum(par_rec_y_lid) > 0;
             par_rec_z_lid = param_selection == this.PAR_REC_Z;
             par_rec_z = sum(par_rec_z_lid) > 0;
+            
+            par_sat_x_lid = param_selection == this.PAR_SAT_X;
+            par_sat_x = sum(par_sat_x_lid) > 0;
+            par_sat_y_lid = param_selection == this.PAR_SAT_Y;
+            par_sat_y = sum(par_sat_y_lid) > 0;
+            par_sat_z_lid = param_selection == this.PAR_SAT_Z;
+            par_sat_z = sum(par_sat_z_lid) > 0;
             
             par_rec_eb_lid = param_selection == this.PAR_REC_EB;
             par_rec_eb = sum(par_rec_eb_lid) > 0;
@@ -161,7 +189,14 @@ classdef LS_Manipulator_new < handle
             par_iono_lid = param_selection == this.PAR_IONO;
             par_iono = sum(par_iono_lid) > 0;
             
-            
+            % ---- add the recever to the recibers
+            if Core_Utils.findAinB(rec.parent.getMarkerName,this.unique_rec_name) == 0
+                this.unique_rec_name{end+1} = rec.parent.getMarkerName;
+                this.rec_xyz = [this.rec_xyz; rec.getMedianPosXYZ];
+                r = size(this.rec_xyz,1);
+            else
+                r = Core_Utils.findAinB(rec.parent.getMarkerName,this.unique_rec_name);
+            end
             
             % --- remove syntetic measurement form the observations -----
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
@@ -178,21 +213,21 @@ classdef LS_Manipulator_new < handle
             % add signal to the unique
             u_obs_code = unique(cellstr(obs_set.obs_code));
             for i = 1 : length(u_obs_code)
-                if Core_Utils.findAinB(u_obs_code(i),this.unique_obs_codes) > 0
+                if Core_Utils.findAinB(u_obs_code(i),this.unique_obs_codes) == 0
                     this.unique_obs_codes{end+1} = u_obs_code{i};
                 end
             end
-            obs_code_id = Core_Utils.findAinB(obs_set.obs_code,this.unique_obs_codes);
+            obs_code_id = Core_Utils.findAinB(cellstr(obs_set.obs_code),this.unique_obs_codes);
             
             
             % add wavelength to the unique
-            u_wl = unique(obs_set.wl);
-            this.unique_wl = unique([this.unique_wl u_wl]);
-            [~, obs_wl_id] = intersect(obs_set.wl, this.unique_wl);
+            u_wl = unique(round(obs_set.wl*1e15))/1e15;
+            this.unique_wl = unique([this.unique_wl; u_wl]*1e15)/1e15;
+            [~, obs_wl_id] = ismember(round(obs_set.wl*1e7), round(this.unique_wl*1e7));
             
             
             % get the mapping function for tropo
-            if sum(param_selection == this.PAR_TROPO || param_selection == this.PAR_TROPO_E || param_selection == this.PAR_TROPO_N || param_selection == this.PAR_TROPO_V) > 0
+            if sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V) > 0
                 id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
                 [~, mfw] = rec.getSlantMF(id_sync_out);
                 mfw(mfw  > 60 ) = nan;
@@ -200,16 +235,22 @@ classdef LS_Manipulator_new < handle
             end
             
             % check whivh observations are phase ones
-            phase_s = obs_set.wl ~=  -1;
+            phase_s = obs_set.obs_code(:,2) == 'L'; % first char is the system second MUST be the bervation type (Phase pseudorance doppler snr)
             
             % initliaze the matrices
             A = zeros(n_obs, n_par);
-            [obs,satellite_obs, azimuth_obs, elevation_obs, variance_obs, wl_obs] = deals(zeros(n_obs, 1));
-            [ obs_codes_id_obs,  wl_obs] = deals(zeros(n_obs, 1,'uint8'));
+            [obs,satellite_obs, azimuth_obs, elevation_obs, variance_obs, wl_obs] = deal(zeros(n_obs, 1));
+            [ obs_codes_id_obs,  wl_obs] = deal(zeros(n_obs, 1,'uint8'));
             phase_obs = false(n_obs,1);
             time_obs = GPS_Time();
             obs_count = 1;
-            
+            if length(this.cycle_slips) < r || isempty(this.cycle_slips{r})
+                this.cycle_slips{r} = {};
+                this.cycle_slips{r} = cell(max([this.unique_sat_goid obs_set.go_id']),1);
+                for s = 1 : max([this.unique_sat_goid obs_set.go_id'])
+                    this.cycle_slips{r}{s} = cell(length(this.unique_obs_codes),1);
+                end
+            end
             
             % fill the A matrix per satellite
             for s = 1 : n_stream
@@ -225,8 +266,9 @@ classdef LS_Manipulator_new < handle
                     s_go_id   = obs_set.go_id(s);
                     s_s_id    = obs_code_id(s);
                     wl_id     = obs_wl_id(s);
+                    mfw_stream = mfw(id_ok_stream, s_go_id);
                     this.unique_sat_goid = unique([this.unique_sat_goid  s_go_id]);
-
+                    
                     
                     xs_loc_stream = permute(xs_loc(id_ok_stream, s, :), [1, 3, 2]);
                     los_stream = rowNormalize(xs_loc_stream);
@@ -240,11 +282,15 @@ classdef LS_Manipulator_new < handle
                     obs_codes_id_obs(lines_stream) = s_s_id;
                     phase_obs(lines_stream) = phase_s(s);
                     wl_obs(lines_stream) = wl_id;
-                    time_obs.addEpoch(obs_set.time.getEpoch(id_ok_stream));
+                    time_obs.addEpoch(obs_set.time.getEpoch(id_ok_stream).getMatlabTime);
                     
                     % ----------- save the cycle slips
                     if phase_s(s)
-                        this.cycle_splips{r}{s_go_id}{s_s_id} = obs_set.time.getEpoch(find(obs_set.cycle_slip(:,s)));
+                        %obs_set.cycle_slip(,s) = true;
+                        if any(obs_set.obs(:,s)) && ~any(obs_set.cycle_slip(:,s))
+                            obs_set.cycle_slip(1,s) = true;
+                        end
+                        this.cycle_slips{r}{s_go_id}{s_s_id} = obs_set.time.getEpoch(find(obs_set.cycle_slip(:,s) & obs_set.obs(:,s)~=0));
                     end
                     
                     % ----------- FILL IMAGE MATRIX ------------
@@ -295,27 +341,27 @@ classdef LS_Manipulator_new < handle
                     end
                     % ----------- ZTD ------------------
                     if par_tropo
-                        A(lines_stream, par_rec_tropo_lid) = mfw_stream;
+                        A(lines_stream, par_tropo_lid) = mfw_stream;
                     end
                     % ----------- ZTD gradients ------------------
                     if par_tropo_n || par_tropo_e
                         cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                         if par_tropo_e
-                            A(lines_stream, par_rec_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient
+                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient
                         end
                         if par_tropo_n
-                            A(lines_stream, par_rec_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient
                         end
                     end
                     if par_tropo_v
-                        A(lines_stream, par_rec_tropo_v_lid) = mfw_stream*rec.h_ellips;
+                        A(lines_stream, par_tropo_v_lid) = mfw_stream*rec.h_ellips;
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
                         if phase_s(s)
-                            A(lines_stream, par_iono_lid) = - obs_set.wl^2;
+                            A(lines_stream, par_iono_lid) = - obs_set.wl(s)^2;
                         else
-                            A(lines_stream, par_iono_lid) =   obs_set.wl^2;
+                            A(lines_stream, par_iono_lid) =   obs_set.wl(s)^2;
                         end
                     end
                     obs_count = obs_count + n_obs_stream;
@@ -329,7 +375,13 @@ classdef LS_Manipulator_new < handle
             this.obs_codes_id_obs = [this.obs_codes_id_obs; obs_codes_id_obs];
             this.variance_obs = [this.variance_obs; variance_obs];
             this.phase_obs = [this.phase_obs; phase_obs];
-            this.tme_obs.addEpoch(time_obs);
+            this.wl_id_obs = [this.wl_id_obs; wl_obs];
+            
+            if isempty(this.time_obs)
+                this.time_obs = time_obs;
+            else
+                this.time_obs.addEpoch(time_obs.getMatlabTime);
+            end
             this.receiver_obs = [this.receiver_obs; r*ones(size(phase_obs))];
         end
         
@@ -338,6 +390,8 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX
             %    this.bondParamGenerateIdx(parametrization)
+            this.log = Core.getLogger();
+            this.ls_parametrization = ls_parametrization;
             n_rec = size(this.rec_xyz,1);
             n_sat = length(this.unique_sat_goid);
             this.A_idx = zeros(size(this.A));
@@ -348,266 +402,322 @@ classdef LS_Manipulator_new < handle
             
             cumulative_idx = 0;
             i_col = 1;
+            
+            % ---- preallocation to speed up
+            ch_lid = false(size(this.A,1),1);
+            obs_lid = false(size(this.A,1),1);
+            
+            
+            this.time_par = zeros(size(this.A,1),2,'uint8');
+            this.param_par = zeros(size(this.A,1),4,'uint8'); % time of the paramter
+            this.rec_par = zeros(size(this.A,1),1,'uint8'); % receiver of the paramters
+            this.sat_par = zeros(size(this.A,1),1,'uint8');  % receiver of the paramters
+            this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the paramter
+            this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id paramters
+            
+            ch_set_old = []; % avoid repating expesnive task 
+            
             for i_p = 1 : length(this.param_class)
+                col_incr = 0;
                 p = this.param_class(i_p);
                 [parametriz, opt] = ls_parametrization.getParametrization(p);
-                  % ----------------- defining receiver sets ---------
-                  if parametriz(2) == ls_parametrization.SING_REC
-                      n_rec_set = size(this.rec_xyz,1);
-                      rec_set = mat2cell(1:n_rec_set);
-                  elseif parametriz(2) == ls_parametrization.ALL_REC
-                      n_rec_set = 1;
-                      rec_set = {1:n_rec_set};
-                  elseif parametriz(2) == ls_parametrization.MULTI_REC
-                      n_rec_set = length(opt.rec_sets);
-                      rec_set = opt.rec_sets;
-                  end
-                  % ----------------- defining satellites sets ---------
-                  if parametriz(2) == ls_parametrization.SING_SAT
-                      n_sat_set = length(this.unique_sat_goid);
-                      sat_set = mat2cell(this.unique_sat_goid);
-                  elseif parametriz(2) == ls_parametrization.ALL_SAT
-                      n_sat_set = 1;
-                      sat_set = {this.unique_sat_goid};
-                  elseif parametriz(2) == ls_parametrization.MULTI_SAT
-                      n_sat_set = length(opt.sat_sets);
-                      sat_set = opt.sat_sets;
-                  end
-                  end
-                  % ----------------- defining channel sets ---------
-                  % construct channel to frequency mapping
-                  sig2wl = zeros(size(this.unique_obs_codes));
-                  sig_p_id = 1:size(this.unique_obs_codes,1);
-                  for c = 1 : length(this.unique_obs_codes)
-                      idx1 = find(this.obs_codes_id_obs == c,1,'first');
-                      sig2wl(c) = this.wl_obs(idx1);
-                  end
-                  % construct channel to phase mapping
-                  sig2phase = zeros(size(this.unique_obs_codes));
-                  for c = 1 : length(this.unique_obs_codes)
-                      idx1 = find(this.obs_codes_id_obs == c,1,'first');
-                      sig2phase(c) = this.phase_obs(idx1);
-                  end
-                  % construct channel to constellation mapping
-                  sig2const = char(zeros(size(this.unique_obs_codes)));
-                  for c = 1 : length(this.unique_obs_codes)
-                      idx1 = find(this.obs_codes_id_obs == c,1,'first');
-                      ant_id = Core.getConstellationCollector.getAntennaId(this.go_id(idx1));
-                      sig2const(c) = ant_id(1);
-                  end
-                  if parametriz(3) == ls_parametrization.SING_TRACK
-                      n_ch_set = size(this.unique_obs_codes);
-                      ch_set = mat2cell(1:n_ch_set);
-                  elseif parametriz(3) == ls_parametrization.ALL_FREQ
-                      n_ch_set = 1;
-                      ch_set = {1:n_ch_set};
-                  elseif parametriz(3) == ls_parametrization.SING_FREQ
-                      n_ch_set = length(this.unique_wl);
-                      ch_set = {};
-                      for c = 1 : n_ch_set
-                          ch_set{c} = sig_p_id(sig2wl == this.unique_wl(c));
-                      end
-                  elseif parametriz(3) == ls_parametrization.RULE
-                      % ---- evaluate the rule
-                      n_ch_set = 0;
-                      ch_set = {};
-                      for rule = opt.eb_rule
-                          cond_sig = true(size(sig_p_id));
-                          parts = strsplit(rule,':');
-                          cond = parts{1};
-                          opt = parts{2};
-                          conds = strsplit(cond,'&');
-                          for c = conds
-                              if strcmpi('PSRANGE',c)
-                                  cond_sig = cond_sig & ~sig2phase;
-                              elseif strcmpi('PHASE',c)
-                                  cond_sig = cond_sig & sig2phase;
-                              elseif strcmpi('GLONASS',c)
-                                  cond_sig = cond_sig & sig2const == 'R';
-                              elseif strcmpi('NOT_GLONASS',c)
-                                  cond_sig = cond_sig & sig2const ~= 'R';
-                              else
-                                  cond_sig(:) = false;
-                                  this.logWarning(sprintf('Unknown option %s in parametrization rule, ignoring parameter',c));
-                              end
-                          end
-                          if any(cond_sig)
-                              if str2num(opt) == ls_parametrization.ALL_FREQ
-                                  n_ch_set = n_ch_set +1;
-                                  ch_set{n_ch_set} = sig_p_id(cond_sig);
-                              elseif str2num(opt) == ls_parametrization.SING_FREQ
-                                  u_wl_tmp = unique(sig2wl(cond_sig));
-                                  n_wl_tmp = length(u_wl_tmp);
-                                  for c = 1 : n_wl_tmp
-                                      n_ch_set = n_ch_set +1;
-                                      ch_set{n_ch_set} = sig_p_id(sig2wl == u_wl_tmp(c) & cond_sig);
-                                  end
-                              elseif str2num(opt) == ls_parametrization.SING_TRACK
-                                  n_ch_set = n_ch_set +length(sig_p_id(cond_sig));
-                                  ch_set = [ch_set mat2cell(sig_p_id(cond_sig))];
-                                  
-                              end
-                          end
-                          
-                      end
-                      
-                  % ------- Now constructing the index, the epoch dependednce will be dealt inside the loop -------------
-                  for r = 1 : n_rec_set
-                      rec_lid = false(size(this.A,1),1);
-                      for rr = rec_set{r}
-                          rec_lid = rec_lid | this.receiver_obs == rr;
-                      end
-                      % find an id for the reciver set to keep track of the
-                      % paramters if recievr is sigle is simply the reciver
-                      % progessince number, otherwise they are negative
-                      % number with the index in the receiver set
-                      if length(rec_set{r}) == 1
-                          r_id = rec_set{r};
-                      else
-                          r_id =Core_Utils.findAinB(rec_set{r},this.rec_set);
-                          if r_id == 0
-                              r_id = length(this.rec_set) -1;
-                              this.rec_set{end+1} = rec_set{r};
-                          end
-                          
-                      end
-                      for s = 1 : n_sat_set
-                          sat_lid = false(size(this.A,1),1);
-                          for ss = sat_set{s}
-                              sat_lid = sat_lid | this.satellite_obs == ss;
-                          end
-                          if length(sat_set{r}) == 1
-                              r_id = sat_set{s};
-                          else
-                              s_id =Core_Utils.findAinB(sat_set{s},this.sat_set);
-                              if s_id == 0
-                                  s_id = length(this.sat_set) -1;
-                                  this.sat_set{end+1} = sat_set{s};
-                              end
-                              
-                          end
-                          for f = 1 : n_chanel_set
-                              ch_lid = false(size(this.A,1),1);
-                              for cc = ch_set{f}
-                                  ch_lid = ch_lid | this.obs_codes_id_obs == cc;
-                              end
-                              if length(ch_set{f}) == 1
-                                  ch_id = ch_set{f};
-                              else
-                                  ch_id =Core_Utils.findAinB(ch_set{f},this.sat_set);
-                                  if s_id == 0
-                                      ch_id = length(this.ch_set) -1;
-                                      this.ch_set{end+1} = ch_set{f};
-                                  end
-                                  
-                              end
-                              %---- final observation id
-                              obs_lid = rec_lid & sat_lid & ch_lid;
-                              % --- now dealing with epoch dependence ----
-                              cols_tmp = 0;
-                              if parametriz(1) = ls_parametrization.CONST
-                                  ep_pgr_id = 1;
-                                  n_prg_id = 1;
-                                  time_par_tmp = [this.time_obs.getEpoch(obs_lid).minimum.getReferenceTime(this.time_min)  this.time_obs.getEpoch(obs_lid).maximum.getReferenceTime(this.time_min)];
-                              elseif parametriz(1) = ls_parametrization.EP_WISE
-                                  ep_id = time_obs(obs_lid);
-                                  u_e_tmp = unique(ep_id);
-                                  [~,ep_pgr_id] = intersect(ep_id,u_e_tmp);
-                                  n_prg_id = length(u_e_tmp);
-                                  time_par_tmp = [u_e_tmp*obs_rate zeros(size(u_e_tmp))];
-                              elseif parametriz(1) = ls_parametrization.STEP_CONST
-                                  ep_id = time_obs(obs_lid);
-                                  ep_pgr_id = zeors(size(ep_id));
-                                  n_prg_id = 0;
-                                  steps_set = opt.steps_set;
-                                  time_par_tmp = [];
-                                  if p == this.PAR_AMB %% ambiguity case is really unique and make sense to treat it separatly
-                                      steps = round(this.cycle_slips{rr}{ss}{cc}.getRefTime(time_min)/obs_rate);
-                                      p_s = 1;
-                                      for st = steps'
-                                          lid_maj = ep_id >= st;
-                                          ep_pgr_id(lid_maj) = p_s;
-                                          time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
-                                          if p_s > 1
-                                              time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
-                                          end
-                                          p_s = p_s +1;
-                                      end
-                                  elseif parametriz(2) == ls_parametrization.ALL_REC % you can use differents step for step wise satellite dependent paraters
-                                      steps = round(steps_set{ss}.getRefTime(time_min)/obs_rate);
-                                      p_s = 1;
-                                      for st = steps'
-                                          lid_maj = ep_id >= st;
-                                          ep_pgr_id(lid_maj) = p_s;
-                                          time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
-                                          if p_s > 1
-                                              time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
-                                          end
-                                          p_s = p_s +1;
-                                      end
-                                  elseif parametriz(3) == ls_parametrization.ALL_SAT  % you can use differents step for step wise receiver dependent paraters
-                                      steps = round(steps_set{rr}.getRefTime(time_min)/obs_rate);
-                                      p_s = 1;
-                                      for st = steps'
-                                          lid_maj = ep_id >= st;
-                                          ep_pgr_id(lid_maj) = p_s;
-                                          time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
-                                          if p_s > 1
-                                              time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
-                                          end
-                                          p_s = p_s +1;
-                                      end
-                                  end
-                              elseif parametriz(1) = ls_parametrization.SPLINE_ZERO
-                                  ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
-                                  u_e_tmp = unique(ep_id);
-                                  [~,ep_pgr_id] = intersect(ep_id,u_e_tmp);
-                                  time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
-                                  n_prg_id = length(u_e_tmp);
-                              elseif parametriz(1) = ls_parametrization.SPLINE_LIN
-                                  % ---- colum will be doubled -----
-                                  cols_tmp = [ 0 1];
-                                  ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
-                                  spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),1);
-                                  u_e_tmp = unique([ep_id ep_id+1]);
-                                  time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
-                                  ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
-                                  for i_o = cols_tmp;
-                                      [~,ep_pgr_id(i_o+1)] = intersect(ep_id+i_o,u_e_tmp);
-                                  end
-                                  % ----- expand colum of the A matrix
-                                  this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,(i_col+1):end)];
-                                  n_prg_id = length(u_e_tmp);
-                              elseif parametriz(1) = ls_parametrization.SPLINE_CUB
-                                   % ---- colum will be quadrupled -----
-                                  cols_tmp = [ 0 1 2 3];
-                                  ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
-                                  spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),1);
-                                  u_e_tmp = unique([ep_id ep_id+1 ep_id+2 ep_id+3]);
-                                  time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
-                                  ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
-                                  for i_o = cols_tmp;
-                                      [~,ep_pgr_id(i_o+1)] = intersect(ep_id+i_o,u_e_tmp);
-                                  end
-                                  % ----- expand colum of the A matrix
-                                  this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,i_col).*spline_v(:,3) this.A(:,i_col).*spline_v(:,4) this.A(:,(i_col+1):end)];
-                                  n_prg_id = length(u_e_tmp);
-                              end
-                              this.A_idx(obs_lid,i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
-                              [u_new_par] = unique(cumulative_idx + ep_pgr_id(:));
-                              
-                              this.time_par.addEpoch(time_par_tmp);  % time of the paramter
-                              this.rec_par    = [this.rec_par;                r_id*ones(n_prg_id,1)];  % receiver of the paramters
-                              this.sat_par    = [this.sat_par;                s_id*ones(n_prg_id,1)];  % receiver of the paramters
-                              this.class_par  = [this.class_par;              p*ones(n_prg_id,1)];  % class of the paramter
-                              this.obs_codes_id_par = [this.obs_codes_id_par; ch_id*ones(n_prg_id,1)];  % obs_code id paramters
-                              cumulative_idx = cumulative_idx + n_prg_id;
-                              i_col = i_col + length(cols_tmp);
-                          end
-                      end
-                  end
-                  
+                % ----------------- defining receiver sets ---------
+                if parametriz(2) == ls_parametrization.SING_REC
+                    n_rec_set = size(this.rec_xyz,1);
+                    rec_set = num2cell(1:n_rec_set);
+                elseif parametriz(2) == ls_parametrization.ALL_REC
+                    n_rec_set = 1;
+                    rec_set = {1:size(this.rec_xyz,1)};
+                elseif parametriz(2) == ls_parametrization.MULTI_REC
+                    n_rec_set = length(opt.rec_sets);
+                    rec_set = opt.rec_sets;
+                end
+                % ----------------- defining satellites sets ---------
+                if parametriz(3) == ls_parametrization.SING_SAT
+                    n_sat_set = length(this.unique_sat_goid);
+                    sat_set = num2cell(this.unique_sat_goid);
+                elseif parametriz(3) == ls_parametrization.ALL_SAT
+                    n_sat_set = 1;
+                    sat_set = {this.unique_sat_goid};
+                elseif parametriz(3) == ls_parametrization.MULTI_SAT
+                    n_sat_set = length(opt.sat_sets);
+                    sat_set = opt.sat_sets;
+                end
+                
+                % ----------------- defining channel sets ---------
+                % construct channel to frequency mapping
+                sig2wl = zeros(size(this.unique_obs_codes));
+                sig_p_id = 1:numel(this.unique_obs_codes);
+                for c = 1 : length(this.unique_obs_codes)
+                    idx1 = find(this.obs_codes_id_obs == c,1,'first');
+                    if ~isempty(idx1)
+                        sig2wl(c) = this.wl_id_obs(idx1);
+                    end
+                end
+                % construct channel to phase mapping
+                sig2phase = zeros(size(this.unique_obs_codes));
+                for c = 1 : length(this.unique_obs_codes)
+                    idx1 = find(this.obs_codes_id_obs == c,1,'first');
+                    if ~isempty(idx1)
+                        sig2phase(c) = this.phase_obs(idx1);
+                    end
+                end
+                % construct channel to constellation mapping
+                sig2const = char(zeros(size(this.unique_obs_codes)));
+                for c = 1 : length(this.unique_obs_codes)
+                    idx1 = find(this.obs_codes_id_obs == c,1,'first');
+                    if ~isempty(idx1)
+                        ant_id = Core.getConstellationCollector.getAntennaId(this.satellite_obs(idx1));
+                        sig2const(c) = ant_id(1);
+                    end
+                end
+                if parametriz(4) == ls_parametrization.SING_TRACK
+                    n_ch_set = numel(this.unique_obs_codes);
+                    ch_set = num2cell(uint8(1:n_ch_set));
+                elseif parametriz(4) == ls_parametrization.ALL_FREQ
+                    n_ch_set = 1;
+                    ch_set = {uint8(1:numel(this.unique_obs_codes))};
+                elseif parametriz(4) == ls_parametrization.SING_FREQ
+                    n_ch_set = length(this.unique_wl);
+                    ch_set = {};
+                    for c = 1 : n_ch_set
+                        ch_set{c} = uint8(sig_p_id(sig2wl == c));
+                    end
+                elseif parametriz(4) == ls_parametrization.RULE
+                    % ---- evaluate the rule
+                    n_ch_set = 0;
+                    ch_set = {};
+                    for rule = opt.rule
+                        cond_sig = true(size(sig_p_id));
+                        parts = strsplit(rule{1},':');
+                        cond = parts{1};
+                        opt = parts{2};
+                        conds = strsplit(cond,'&');
+                        for c = conds
+                            if strcmpi('PSRANGE',c)
+                                cond_sig = cond_sig & ~sig2phase;
+                            elseif strcmpi('PHASE',c)
+                                cond_sig = cond_sig & sig2phase;
+                            elseif strcmpi('GLONASS',c)
+                                cond_sig = cond_sig & sig2const == 'R';
+                            elseif strcmpi('NOT*GLONASS',c)
+                                cond_sig = cond_sig & sig2const ~= 'R';
+                            else
+                                cond_sig(:) = false;
+                                this.log.addWarning(sprintf('Unknown option %s in parametrization rule, ignoring parameter',c));
+                            end
+                        end
+                        if any(cond_sig)
+                            if str2num(opt) == ls_parametrization.ALL_FREQ
+                                n_ch_set = n_ch_set +1;
+                                ch_set{n_ch_set} = uint8(sig_p_id(cond_sig));
+                            elseif str2num(opt) == ls_parametrization.SING_FREQ
+                                u_wl_tmp = unique(sig2wl(cond_sig));
+                                n_wl_tmp = length(u_wl_tmp);
+                                for c = 1 : n_wl_tmp
+                                    n_ch_set = n_ch_set +1;
+                                    ch_set{n_ch_set} = uint8(sig_p_id(sig2wl == u_wl_tmp(c) & cond_sig));
+                                end
+                            elseif str2num(opt) == ls_parametrization.SING_TRACK
+                                n_ch_set = n_ch_set +length(sig_p_id(cond_sig));
+                                ch_set = [ch_set num2cell(uint8(sig_p_id(cond_sig)))];
+                                
+                            end
+                        end
+                        
+                    end
+                end
+                
+                % ------- Now constructing the index, the epoch dependednce will be dealt inside the loop -------------
+                for r = 1 : n_rec_set
+                    rec_lid = false(size(this.A,1),1);
+                    for rr = rec_set{r}
+                        rec_lid = rec_lid | this.receiver_obs == rr;
+                    end
+                    % find an id for the reciver set to keep track of the
+                    % paramters if recievr is sigle is simply the reciver
+                    % progessince number, otherwise they are negative
+                    % number with the index in the receiver set
+                    if length(rec_set{r}) == 1
+                        r_id = rec_set{r};
+                    else
+                        r_id =Core_Utils.findAinB(rec_set{r},this.rec_set);
+                        if r_id == 0
+                            r_id = length(this.rec_set) -1;
+                            this.rec_set{end+1} = rec_set{r};
+                        end
+                        
+                    end
+                    for s = 1 : n_sat_set
+%                         sat_lid = false(size(this.A,1),1);
+%                         for ss = sat_set{s}
+%                             sat_lid = sat_lid | this.satellite_obs == ss;
+%                         end
+                        sat_lid = ismember(this.satellite_obs,sat_set{s});
+                        ss = sat_set{end};
+                        if length(sat_set{r}) == 1
+                            s_id = sat_set{s};
+                        else
+                            s_id =Core_Utils.findAinB(sat_set{s},this.sat_set);
+                            if s_id == 0
+                                s_id = length(this.sat_set) -1;
+                                this.sat_set{end+1} = sat_set{s};
+                            end
+                            
+                        end
+                        for f = 1 : n_ch_set
+                            if p ~= this.PAR_AMB || this.unique_obs_codes{ch_set{f}}(2) == 'L'
+                                %                                 ch_lid(:) = false;
+                                %                                 for cc = ch_set{f}
+                                %                                     ch_lid = ch_lid | this.obs_codes_id_obs == cc;
+                                %                                 end
+                                if ~isequal(ch_set_old,ch_set{f})
+                                    %ch_lid = ismemberBuiltinTypes(this.obs_codes_id_obs,ch_set{f}); 
+                                    ch_lid = ismember(this.obs_codes_id_obs,ch_set{f});
+                                    ch_set_old = ch_set{f};
+                                end
+                                cc = ch_set{end};
+                                if length(ch_set{f}) == 1
+                                    ch_id = ch_set{f};
+                                else
+                                    ch_id =Core_Utils.findAinB(ch_set{f},this.sat_set);
+                                    if s_id == 0
+                                        ch_id = length(this.ch_set) -1;
+                                        this.ch_set{end+1} = ch_set{f};
+                                    end
+                                    
+                                end
+                                %---- final observation id
+                                obs_lid = rec_lid & sat_lid & ch_lid;
+                                if any(obs_lid)
+                                    % --- now dealing with epoch dependence ----
+                                    cols_tmp = 0;
+                                    if parametriz(1) == ls_parametrization.CONST
+                                        ep_pgr_id = 1;
+                                        n_prg_id = 1;
+                                        time_par_tmp = [this.time_obs.getEpoch(obs_lid).minimum.getRefTime(this.time_min.getMatlabTime)  this.time_obs.getEpoch(obs_lid).maximum.getRefTime(this.time_min.getMatlabTime)];
+                                    elseif parametriz(1) == ls_parametrization.EP_WISE
+                                        ep_id = time_obs(obs_lid);
+                                        u_e_tmp = unique(ep_id);
+                                        [~,ep_pgr_id] = ismember(ep_id,u_e_tmp);
+                                        n_prg_id = length(u_e_tmp);
+                                        time_par_tmp = [u_e_tmp*obs_rate zeros(size(u_e_tmp))];
+                                    elseif parametriz(1) == ls_parametrization.STEP_CONST
+                                        ep_id = time_obs(obs_lid);
+                                        ep_pgr_id = zeros(size(ep_id));
+                                        n_prg_id = 0;
+                                        time_par_tmp = [];
+                                        if p == this.PAR_AMB %% ambiguity case is really unique and make sense to treat it separatly
+                                            p_s = 1;
+                                            if length(this.cycle_slips{rr}{ss}) >= cc
+                                                cs = this.cycle_slips{rr}{ss}{cc};
+                                                if ~isempty(cs)
+                                                    steps = round(cs.getRefTime(time_min)/obs_rate);
+                                                    time_par_tmp = zeros(length(steps),2);
+                                                    for st = steps'
+                                                        lid_maj = ep_id >= st;
+                                                        ep_pgr_id(lid_maj) = p_s;
+                                                        time_par_tmp(p_s,:) = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
+                                                        if p_s > 1
+                                                            time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
+                                                        end
+                                                        p_s = p_s +1;
+                                                    end
+                                                else
+                                                    ep_pgr_id = 1;
+                                                end
+                                            end
+                                        else
+                                            steps_set = opt.steps_set;
+                                            
+                                            if parametriz(2) == ls_parametrization.ALL_REC % you can use differents step for step wise satellite dependent paraters
+                                                steps = round(steps_set{ss}.getRefTime(time_min)/obs_rate);
+                                                p_s = 1;
+                                                for st = steps'
+                                                    lid_maj = ep_id >= st;
+                                                    ep_pgr_id(lid_maj) = p_s;
+                                                    time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
+                                                    if p_s > 1
+                                                        time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
+                                                    end
+                                                    p_s = p_s +1;
+                                                end
+                                            elseif parametriz(3) == ls_parametrization.ALL_SAT  % you can use differents step for step wise receiver dependent paraters
+                                                steps = round(steps_set{rr}.getRefTime(time_min)/obs_rate);
+                                                p_s = 1;
+                                                for st = steps'
+                                                    lid_maj = ep_id >= st;
+                                                    ep_pgr_id(lid_maj) = p_s;
+                                                    time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
+                                                    if p_s > 1
+                                                        time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
+                                                    end
+                                                    p_s = p_s +1;
+                                                end
+                                            end
+                                        end
+                                        n_prg_id = p_s - 1;
+                                    elseif parametriz(1) == ls_parametrization.SPLINE_ZERO
+                                        ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
+                                        u_e_tmp = unique(ep_id);
+                                        [~,ep_pgr_id] = ismember(ep_id,u_e_tmp);
+                                        time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
+                                        n_prg_id = length(u_e_tmp);
+                                    elseif parametriz(1) == ls_parametrization.SPLINE_LIN
+                                        % ---- colum will be doubled -----
+                                        cols_tmp = [ 0 1];
+                                        ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
+                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),1);
+                                        u_e_tmp = unique([ep_id ep_id+1]);
+                                        time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
+                                        ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
+                                        for i_o = cols_tmp;
+                                            [~,ep_pgr_id(i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
+                                        end
+                                        % ----- expand colum of the A matrix
+                                        this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,(i_col+1):end)];
+                                        n_prg_id = length(u_e_tmp);
+                                    elseif parametriz(1) == ls_parametrization.SPLINE_CUB
+                                        % ---- colum will be quadrupled -----
+                                        cols_tmp = [ 0 1 2 3];
+                                        ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
+                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),1);
+                                        u_e_tmp = unique([ep_id ep_id+1 ep_id+2 ep_id+3]);
+                                        time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
+                                        ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
+                                        for i_o = cols_tmp;
+                                            [~,ep_pgr_id(i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
+                                        end
+                                        % ----- expand colum of the A matrix
+                                        this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,i_col).*spline_v(:,3) this.A(:,i_col).*spline_v(:,4) this.A(:,(i_col+1):end)];
+                                        n_prg_id = length(u_e_tmp);
+                                    end
+                                    this.A_idx(obs_lid,i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
+                                    [u_new_par] = unique(cumulative_idx + ep_pgr_id(:));
+                                    
+                                    this.time_par(cumulative_idx+(1:n_prg_id),:) =  time_par_tmp;% time of the paramter
+                                    this.param_par(cumulative_idx+(1:n_prg_id),:) = repmat(uint8(parametriz),n_prg_id,1);% time of the paramter
+                                    this.rec_par(cumulative_idx+(1:n_prg_id)) =       r_id*ones(n_prg_id,1,'uint8');  % receiver of the paramters
+                                    this.sat_par(cumulative_idx+(1:n_prg_id)) =     s_id*ones(n_prg_id,1,'uint8');  % receiver of the paramters
+                                    this.class_par(cumulative_idx+(1:n_prg_id)) =     p*ones(n_prg_id,1,'uint8');  % class of the paramter
+                                    this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = uint8(ch_id)*ones(n_prg_id,1,'uint8');  % obs_code id paramters
+                                    cumulative_idx = cumulative_idx + n_prg_id;
+                                    col_incr = max(col_incr,length(cols_tmp));
+                                end
+                            end
+                        end
+                    end
+                end
+                i_col = i_col + col_incr;
             end
+            % free allocated space in excess
+            this.time_par((cumulative_idx+1):end,:) =  [];% 
+            this.param_par((cumulative_idx+1):end,:) =  [];% 
+            this.rec_par((cumulative_idx+1):end) =  [];% 
+            this.sat_par((cumulative_idx+1):end) =  [];% 
+            this.class_par((cumulative_idx+1):end) =  [];% 
+            this.obs_codes_id_par((cumulative_idx+1):end) =  [];% 
+            
             
             
         end
@@ -619,28 +729,28 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %    this.removeFullRankDeficency()
             
-            % remove one bias per receiver
-            n_rec = size(this.xyz,1);
+            % remove two bias per receiver
+            n_rec = size(this.rec_xyz,1);
             idx_rm = [];
             for r = 1 : n_rec
-                idx_par = this.class_par == this.PAR_REC_EB & this.rec_par = r & this.param_par(:,4) = LS_Parametrization.CONST; % the case no electronic bias is not managed since too unlikely, it can be easily extendedn in case is needed
+                idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r); % the case no electronic bias is not managed since too unlikely, it can be easily extendedn in case is needed
                 if ~isempty(idx_par)
-                    idx_rm = [idx_rm; idx_par(1)];
+                    idx_rm = [idx_rm; idx_par(1:2)];
                 end
             end
-            % remove one bias per satellite 
+            % remove two bias per satellite
             for s = this.unique_sat_goid
-                idx_par = this.class_par == this.PAR_SAT_EB & this.sat_par = s & this.param_par(:,4) = LS_Parametrization.CONST; % the case no electronic bias is not managed since too unlikely, it can be easily extendedn in case is needed
+                idx_par = find(this.class_par == this.PAR_SAT_EB & this.sat_par == s); % the case no electronic bias is not managed since too unlikely, it can be easily extendedn in case is needed
                 if ~isempty(idx_par)
-                    idx_rm = [idx_rm; idx_par(1)];
+                    idx_rm = [idx_rm; idx_par(1:2)];
                 end
             end
             
-            % remove one clock per satellite
+            % remove one clock per epoch
             u_ep = unique(this.time_par);
             if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
                 for e = u_ep
-                    idx_par = this.class_par == this.PAR_REC_CLK & this.time_par == e; 
+                    idx_par = find(this.class_par == this.PAR_REC_CLK & this.time_par == e);
                     if ~isempty(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         idx_rm = [idx_rm; idx_par(idx_rm_rm)];
@@ -650,22 +760,28 @@ classdef LS_Manipulator_new < handle
             
             % for each sat and fro each contiguos set of ambiguity remove one
             if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
-               for s = this.unique_sat_goid
-                    idx_par = this.class_par == this.PAR_AMB & this.sat_par == s; 
+                for s = this.unique_sat_goid
+                    idx_par = this.class_par == this.PAR_AMB & this.sat_par == s;
                     idx_par = find(par);
                     time_par = this.time_par(idx_par,:);
                     rec_par  = this.rec_par(idx_par,:);
+                    obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                    
                     u_time = unique(time_par);
                     u_rec = unique(rec_par);
-                    amb_mat = zeros(length(u_time),length(u_rec),'uint8');
+                    u_obs_codes = unique(obs_codes_id_par);
+                    arc = 1000*rec_par + obs_codes_id_par;
+                    u_arc = unique(arc);
+                    [~,arc] = ismember(arc,u_arc);
+                    amb_mat = zeros(max(u_time),length(u_arc),'uint8');
                     for t = 1 : size(time_par,1)
-                        amb_mat(time_par(t,1)+1:time_par(t,2),rec_par(t)) = idx_par(t);
+                        amb_mat(time_par(t,1)+1:time_par(t,2),arc(t)) = idx_par(t);
                     end
-                    jmps = [diff(sum(amb_mat,2) > 0) == 1; length(u_time)];
+                    jmps = [1; diff(sum(amb_mat,2) > 0) == 1; max(u_time)];
                     for j = 1 : (length(jmps) -1)
                         jmp_s = jmps(j);
                         jmp_e = jmps(j+1);
-                        ambs = amb_mat(jmps_s:jmps_e,:);
+                        ambs = amb_mat(jmp_s:jmp_e,:);
                         idx_rm = [idx_rm; mode(noZero(ambs(:)))];
                     end
                     
@@ -675,27 +791,32 @@ classdef LS_Manipulator_new < handle
             
             % for each rec and for each contiguos set of ambiguity remove one
             if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
-               for r = 1: size(thos.rec_xyz,1);
-                    idx_par = this.class_par == this.PAR_AMB & this.rec_par == r; 
-                    idx_par = find(par);
+                for r = 1: size(this.rec_xyz,1);
+                    idx_par = this.class_par == this.PAR_AMB & this.rec_par == r;
+                    idx_par = find(idx_par);
                     time_par = this.time_par(idx_par,:);
                     sat_par  = this.sat_par(idx_par,:);
+                    obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
                     u_time = unique(time_par);
                     u_sat = unique(sat_par);
-                    amb_mat = zeros(length(u_time),length(u_sat),'uint8');
+                    u_obs_codes = unique(obs_codes_id_par);
+                    arc = 1000*sat_par + obs_codes_id_par;
+                    u_arc = unique(arc);
+                    [~,arc] = ismember(arc,u_arc);
+                    amb_mat = zeros(max(u_time),length(u_arc),'uint8');
                     for t = 1 : size(time_par,1)
-                        amb_mat(time_par(t,1)+1:time_par(t,2),sat_par(t)) = idx_par(t);
+                        amb_mat(time_par(t,1)+1:time_par(t,2),arc(t)) = idx_par(t);
                     end
-                    jmps = [diff(sum(amb_mat,2) > 0) == 1; length(u_time)];
+                    jmps = [1; find(diff(sum(amb_mat,2) > 0) == 1); max(u_time)];
                     for j = 1 : (length(jmps) -1)
                         jmp_s = jmps(j);
                         jmp_e = jmps(j+1);
-                        ambs = amb_mat(jmps_s:jmps_e,:);
+                        ambs = amb_mat(jmp_s:jmp_e,:);
                         id_poss_rm = mode(noZero(ambs(:)));
                         while sum(id_poss_rm ==  idx_rm) > 0 % it might be that the ambiguity was previouly removed in the satellite round
                             ambs(ambs == id_poss_rm) = 0;
                             id_poss_rm = mode(noZero(ambs(:)));
-                        end 
+                        end
                         idx_rm = [idx_rm; id_poss_rm];
                     end
                 end
@@ -708,55 +829,268 @@ classdef LS_Manipulator_new < handle
                     idx_par = this.class_par == this.PAR_REC_X & this.time_par == e;
                     if ~isempty(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                        if sum(idx_rm_rm == idx_rm) = 0
+                        if sum(idx_rm_rm == idx_rm) == 0
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
                     idx_par = this.class_par == this.PAR_REC_Y & this.time_par == e;
                     if ~isempty(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                        if sum(idx_rm_rm == idx_rm) = 0
+                        if sum(idx_rm_rm == idx_rm) == 0
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
                     idx_par = this.class_par == this.PAR_REC_Z & this.time_par == e;
                     if ~isempty(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                        if sum(idx_rm_rm == idx_rm) = 0
+                        if sum(idx_rm_rm == idx_rm) == 0
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
                 end
             end
             
-       
+            this.idx_rd = sort(noZero(idx_rm));
+            %             for i = length(this.idx_rd) : -1 : 1
+            %                 ir = this.idx_rd(i);
+            %                 this.A_idx(this.A_idx == ir) = 0;
+            %                 i_mj = this.A_idx > ir;
+            %                 this.A_idx(i_mj) = this.A_idx(i_mj) -1;
+            %             end
         end
         
-        function absValRegularization(this,param_id, var)
+        
+        
+        
+        function absValRegularization(this,p_class, var)
             % regularize paramters to zero (Tykhnov aka ridge aka L2)
-            % 
+            %
             % this.absValRegularization(param_id, var)
+            par_ids = this.parameter_class == p_class;
+            u_p_id = unique(this.A_idx(:,par_ids));
+            n_par = length(u_p_id);
+            [A_tmp, A_idx_tmp] = deal(zeros(n_par, 2)); % tykhonv regualrization are now limited to two paramters
+            A_tmp(:,1) = 1;
+            A_idx_tmp(:,1) = u_p_id;
+            this.A_pseudo = [this.A_pseudo; A_tmp];
+            this.A_idx_pseudo = [this.A_idx_pseudo; A_idx_tmp];
+            this.variance_pseudo = [this.variance_pseudo; var*ones(n_par,1)];
+            this.receiver_pseudo = [this.receiver_pseudo; rec_par(u_p_id)];
+            this.time_pseudo.addEpoch(GPS_Time(this.time_min + this.time_par(u_p_id)));
+            this.satellite_pseudo = [this.satellite_pseudo; sat_par(u_p_id)];
         end
         
-        function timeRegularization(this, param_id, var)
+        function timeRegularization(this, p_class, var_per_sec)
             % first order tykhonv regualrization in time
             %
             % this.timeRegularization(this, param_id, var)
+            par_ids = this.parameter_class == p_class;
+            p_idx = unique(this.A_idx(:,par_ids));
+            rec_idx = this.rec_par(p_idx);
+            u_rec = unique(rec_idx);
+            sat_idx = this.sat_par(p_idx);
+            u_sat = unique(sat_idx);
+            ch_idx  =  this.ch_par(p_idx);
+            u_ch = unique(ch_idx);
+            for r = u_rec
+                for s = u_sat
+                    for c = u_ch
+                        p_tmp = p_idx(rec_idx == r & sta_idx == s & ch_idx == c); % find the idx of the obsrevations
+                        if ~isempty(p_tmp)
+                            u_p_id = unique(p_tmp);
+                            n_par = length(u_p_id);
+                            A_tmp = [ones(n_par-1,1) -ones(n_par-1,1)];
+                            A_idx_tmp = [u_p_id(1:end-1) u_p_id(2,end)];
+                            this.A_pseudo = [this.A_pseudo; A_tmp];
+                            this.A_idx_pseudo = [this.A_idx_pseudo; A_idx_tmp];
+                            
+                            this.variance_pseudo = [this.variance_pseudo; var_per_sec * diff(this.time_par(u_p_id))];
+                            % taking the indices of first epoch
+                            this.receiver_pseudo = [this.receiver_pseudo; rec_par(u_p_id(1:end-1))];
+                            this.time_pseudo.addEpoch(GPS_Time(this.time_min + this.time_par(u_p_id(1:end-1))));
+                            this.satellite_pseudo = [this.satellite_pseudo; sat_par(u_p_id(1:end-1))];
+                        end
+                    end
+                end
+            end
         end
         
         function spatialRegularization(this, law)
-             % tykhonv regualrization in space
+            % tykhonv regualrization in space
             %
             % this.spatialRegularization(this, law)
+            
+            
+            n_rec_tot = size(this.xyz,1);
+            dist_mat = zeros(n_rec_tot);
+            for i = 1 : n_rec_tot
+                for j = (i+1) : n_rec_tot
+                    coord1 = Coordinates();
+                    coord1.xyz = this.xyz(i,:);
+                    coord2 = Coordinates();
+                    coord2.xyz = this.xyz(j,:);
+                    dist_mat(i,j) = coord1.ellDistanceTo(coord2);
+                end
+            end
+            var_mat = law(dis_mat);
+            
+            % -- construct A and indices
+            par_ids = this.parameter_class == p_class;
+            p_idx = unique(this.A_idx(:,par_ids));
+            sat_idx = this.sat_par(p_idx);
+            u_sat = unique(sat_idx);
+            ch_idx  =  this.ch_par(p_idx);
+            time_idx = this.time_par(p_idx);
+            u_ch = unique(ch_idx);
+            for s = u_sat
+                for c = u_ch
+                    p_tmp = p_idx(rec_idx == r & sta_idx == s & ch_idx == c); % find the idx of the obsrevations
+                    u_ep = unique(this.time_par(p_tmp));
+                    for e = u_ep
+                        p_tmp = p_idx(rec_idx == r & sta_idx == s & ch_idx == c & time_idx == e); % find the idx of the obsrevations
+                        if ~isempty(p_tmp)
+                            u_p_id = unique(p_tmp);
+                            n_par = length(u_p_id);
+                            rec_par = this.rec_par(u_p_id);
+                            n_rec = length(rec_apr);
+                            n_pseudobs = n_rec*(n_rec - 1);
+                            A_tmp = [ones(n_par-1,1) -ones(n_par-1,1)];
+                            idx_1 = [];
+                            for r = 1 : n_rec
+                                idx_1 = [idx_1; (r:n_rec)'];
+                            end
+                            idx_2 = idx_1 + 1;
+                            A_idx_tmp = [u_p_id(idx_1) u_p_id(idx_2)];
+                            var = var_mat(rec_par(idx_1)+n_rec_tot*(rec_par(idx_1) -1));
+                            this.A_pseudo = [this.A_pseudo; A_tmp];
+                            this.A_idx_pseudo = [this.A_idx_pseudo; A_idx_tmp];
+                            
+                            this.variance_pseudo = [this.variance_pseudo; var_per_sec * var];
+                            % taking the indices of first epoch
+                            this.receiver_pseudo = [this.receiver_pseudo; zeros(n_pseudo_obs,1)];
+                            this.time_pseudo.addEpoch(GPS_Time(this.time_min + e*ones(n_pseudo_obs,1)));
+                            this.satellite_pseudo = [this.satellite_pseudo; s*ones(n_pseudo_obs,1)];
+                        end
+                    end
+                end
+            end
         end
         
         function hemisphereRegularization(this, law)
             % tykhonv regualrization on the hemisphere
             %
             % this.spatialRegularization(this, law)
+            % TBD
         end
         
         function reduceForNuisanceParameters(this, param_id)
+            % reduce for the paramter
+        end
+        
+        
+        function solve(this)
+            % ------ form the normal matrix
+            n_obs = size(this.A,1) + size(this.A_pseudo,1);
+            n_par = max(max(this.A_idx));
+            rows = repmat((1:size(this.A,1))',1,size(this.A,2));
+            rows_pseudo = repmat((1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
+            A = sparse([rows(:); rows_pseudo(:)],zero2n([this.A_idx(:) this.A_idx_pseudo(:)],1),[this.A(:) this.A_pseudo(:)],n_obs,n_par);
+            A(:,this.idx_rd) = [];
+            class_par = this.class_par;
+            class_par(this.idx_rd) = [];
+            Cyy =  spdiags([1./this.variance_obs; 1./this.variance_pseudo],0,n_obs,n_obs);
+            x_est = zeros(n_par -length(this.idx_rd),1);
+            Aw = A'*Cyy;
+            N = Aw*A;
+            y = sparse([this.obs; zeros(size(this.A_pseudo,1),1)]);
+            B = Aw*y;
+            
+            clearvars Aw
+            % ------ reduce for sat clock, rec clock and iono
+            idx_reduce_sat_clk = class_par == this.PAR_SAT_CLK;
+            idx_reduce_rec_clk = class_par == this.PAR_REC_CLK;
+            idx_reduce_iono = class_par == this.PAR_IONO;
+            
+            n_iono = sum(idx_reduce_iono);
+            iIono = spdiags(1./diag(N(idx_reduce_iono,idx_reduce_iono)),0,n_iono,n_iono);
+            Nx_iono = N(~idx_reduce_iono,idx_reduce_iono); % cross term reduce iono
+            Nt = Nx_iono * iIono;
+            N = N(~idx_reduce_iono,~idx_reduce_iono) - Nt * N(idx_reduce_iono,~idx_reduce_iono);
+            B_iono =  B(idx_reduce_iono);
+            B = B(~idx_reduce_iono) - Nt * B_iono;
+            sat_clk = sum(this.param_class  == this.PAR_SAT_CLK) > 0;
+                       
+            i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
+            if sat_clk
+            iSatClk = inv(N(i_sat_clk_tmp,i_sat_clk_tmp));
+            Nx_satclk = N(~i_sat_clk_tmp, i_sat_clk_tmp);
+            Nt = Nx_satclk * iSatClk;
+            N = N(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt * N(i_sat_clk_tmp, ~i_sat_clk_tmp);
+            B_satclk =  B(i_sat_clk_tmp);
+            B = B(~i_sat_clk_tmp) - Nt * B_satclk;
+            end
+            
+            i_rec_clk_tmp = idx_reduce_rec_clk(~i_sat_clk_tmp);
+            iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
+            Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
+            Nt = Nx_recclk * iRecClk;
+            N = N(~i_rec_clk_tmp, ~i_rec_clk_tmp) - Nt * N(i_rec_clk_tmp, ~i_rec_clk_tmp);
+            B_recclk = B(i_rec_clk_tmp);
+            B = B(~i_rec_clk_tmp) - Nt * B_recclk;
+            
+            x_reduced = N\B;
+            
+            % ------- fix the ambiguities
+            
+            if sum(this.param_class == this.PAR_AMB) > 0 && false
+                % get the ambiguity inverse matrxi
+                idx_amb = find(this.class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
+                n_amb = length(idx_amb);
+                amb_y  = sparse(idx_amb,1:max(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
+                C_amb_amb = N \ idx_amb;
+                C_amb_amb(idx_amb,:) = [];
+                amb_float = x_reduce(idx_amb);
+                [amb_fixed, is_fixed, l_fixed] = Fixer.fixAmbiguities(amb_float, C_amb_amb, approach);
+                if is_fixed
+                    Nt = N(~idx_amb,idx_amb);
+                    B(idx_amb) = [];
+                    B = B - sum(Nt * spdiags(amb_fixed,0,n_amb,n_amb),2);
+                    N(idx_amb,idx_amb) = [];
+                end
+                x_fixed = N\B;
+                x_reduced(idx_amb) = amb_fixed;
+                x_reduced(~idx_amb) = x_fixed;
+            end
+            
+            % ------- substitute back
+            x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
+            
+            % receiver clcok
+            B_recclk = B_recclk - sum(Nx_recclk' * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
+            x_rec_clk = iRecClk * B_recclk;
+            x_est(idx_reduce_rec_clk) = x_rec_clk;
+            
+            % satellite clcok
+            if sat_clk
+            n_sat_clk = size(B_recclk,1);
+            idx_est = ~idx_reduce_rec_clk & ~idx_reduce_iono;
+            B_satclk = B_satclk -   sum(Nx_satclk' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
+            x_sat_clk = iSatClk * B_satclk;
+            x_est(idx_reduce_sat_clk) = x_sat_clk;
+            end
+            
+            % iono
+            n_iono = size(B_iono,1);
+            idx_est = ~idx_reduce_sat_clk & ~idx_reduce_iono;
+            B_iono = B_iono -   sum(Nx_iono' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
+            x_iono = iIono * B_iono;
+            x_est(idx_reduce_iono) = x_iono;
+            
+            x = zeros(n_par,1);
+            idx_est = true(n_par,1);
+            idx_est(this.idx_rd) = false;
+            x(idx_est) = x_est;
+            this.x;
             
         end
         
@@ -764,6 +1098,28 @@ classdef LS_Manipulator_new < handle
         end
         
         function res = getResidual(this)
+        end
+        
+        function setUpSA(this,rec_work,id_sync,flag,param_selction)
+            % set up single point adjustment
+            %
+            % SYNTAX:
+            %   this.setUpSA(rec_work,id_sync,obs_type)
+            if strcmpi(flag,'???')
+                this.addObsEq(rec_work, rec_work.getObsSet('L??'),param_selction );
+                this.addObsEq(rec_work, rec_work.getObsSet('C??'), param_selction);
+            end
+            ls_param = LS_Parametrization();
+            this.bondParamsGenerateIdx(ls_param);
+        end
+        
+        function setUpPPP(this,rec_work,id_sync)
+            % set up precise point positionign
+            %
+            % SYNTAX:
+            %   this.setUpSA(rec_work,id_sync,obs_type)
+            param_selction = [this.PAR_REC_X this.PAR_REC_Y this.PAR_REC_Z this.PAR_REC_EB this.PAR_AMB this.PAR_REC_CLK this.PAR_TROPO this.PAR_TROPO_N this.PAR_TROPO_E this.PAR_IONO];
+            this.setUpSA(rec_work,id_sync,'???',param_selction);
         end
         
     end
