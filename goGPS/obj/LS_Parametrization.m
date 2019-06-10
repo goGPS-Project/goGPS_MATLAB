@@ -100,7 +100,7 @@ classdef LS_Parametrization < handle
         tropo_s =  [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         tropo_v = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
               
-        iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_FREQ];
+        iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
              
         ant_mp = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ];
         
