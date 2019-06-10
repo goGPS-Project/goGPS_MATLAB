@@ -7481,7 +7481,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor_diff = Core_Utils.diffAndPred(sensor);
             sensor2 = bsxfun(@minus,sensor_diff, median(sensor_diff,2, 'omitnan'));
             sensor_bad_sat2 = bsxfun(@minus,sensor2, median(sensor2,1, 'omitnan'));
-            tmp2 = abs(sensor_bad_sat); thr = noNaN(tmp2(:)); thr = perc(thr(1:100), 0.99);
+            tmp2 = abs(sensor_bad_sat); thr = noNaN(tmp2(:)); thr = perc(thr(1:min(100,length(thr))), 0.99);
             tmp2 = abs(sensor_bad_sat2); thr2 = noNaN(tmp2(:)); thr2 = perc(thr2(1:10:end), 0.99);
             id_ko = (tmp2 > max(1e4, 2 * thr)) | (tmp2 > max(25, 2 * thr2));
             pr(id_ko) = nan;
