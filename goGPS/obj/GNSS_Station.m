@@ -1916,8 +1916,8 @@ classdef GNSS_Station < handle
             w_bar.setBarLen(numel(epoch_list));
             
             tropo_clim = tropo_res + h_correction(1);
-            tropo_clim = [perc(tropo_clim(:),0.005) perc(tropo_clim(:),0.995)];
-            tropo_clim(2,:) = [perc(tropo(:),0.005) perc(tropo(:),0.995)];
+            tropo_clim = [perc(tropo_clim(:),0.0025) perc(tropo_clim(:),0.9975)];
+            tropo_clim(2,:) = [perc(tropo(:),0.0025) perc(tropo(:),0.9975)];
 
             if flag_show
                 % subplot(1,2,1);
@@ -3678,7 +3678,7 @@ classdef GNSS_Station < handle
                 tropo_diff(tropo_diff < 2 * min(tropo_diff_clim)) = nan;
             end
             if flag_dtm == 2  
-                cax = m_contfbar([.05 .55], 0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
+                cax = m_contfbar([.05 .55], -0.04, tropo_clim(1, 1), tropo_clim(1) : (diff(tropo_clim(1,:)) / size(cmap,1)) : tropo_clim(1, 2) ,'edgecolor','none','endpiece','no', 'fontsize', 16);
                 xlabel(cax,'cm','color','k');                
             else
                 if flag_dtm == 1
@@ -3739,7 +3739,7 @@ classdef GNSS_Station < handle
                     drawnow
                     drawnow
                 end
-                Core_UI.insertLogo(fig_handle, 'SouthEast');
+                Core_UI.insertLogo(fig_handle, 'NorthWest');
                 warning off;                
                 im = {};
                 fig_handle.Visible = 'on';
@@ -4037,7 +4037,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);

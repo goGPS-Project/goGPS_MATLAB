@@ -411,7 +411,10 @@ classdef Logger < handle
                     end
                 end
                 if this.isFileOut % File
-                    fprintf(this.getOutFId, '   **   %s\n', text);
+                    try
+                        fprintf(this.getOutFId, '   **   %s\n', text);
+                    catch
+                    end
                 end
             end
         end
