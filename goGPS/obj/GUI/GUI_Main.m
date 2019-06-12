@@ -105,12 +105,16 @@ classdef GUI_Main < handle
             if isempty(unique_instance_gui_main__)
                 this = GUI_Main();
                 unique_instance_gui_main__ = this;
-                uiwait(this.w_main);                
+                if isvalid(this.w_main)                
+                    uiwait(this.w_main);
+                end
             else
                 this = unique_instance_gui_main__;
                 this.init();
                 this.openGUI();
-                uiwait(this.w_main);                
+                if isvalid(this.w_main)
+                    uiwait(this.w_main);
+                end
             end
     end
 end

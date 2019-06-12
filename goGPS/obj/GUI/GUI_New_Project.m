@@ -91,7 +91,7 @@ classdef GUI_New_Project < handle
             this.state = Core.getState();
         end
         
-        function openGUI(this)
+        function status_ok = openGUI(this)
             % WIN CONFIGURATION
             % L| N|    W
             %
@@ -99,11 +99,11 @@ classdef GUI_New_Project < handle
             % ----------
             % b      b b
             %
-            
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 close(this.w_main);
             end
             
+            status_ok = true;
             this.ok_go = false;
             
             % empty check boxes
@@ -141,6 +141,7 @@ classdef GUI_New_Project < handle
                 this.log.newLine();
                 this.log.addWarning('After installation re-run goGPS');
                 close(win);
+                status_ok = false
                 return;
             end
             top_bh = uix.HBox( 'Parent', main_bv);
