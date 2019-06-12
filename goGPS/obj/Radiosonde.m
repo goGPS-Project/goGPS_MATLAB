@@ -505,10 +505,10 @@ classdef Radiosonde < handle
                 g_e = 9.780356; %[m/s^2] %vedel et al. 2000 coversion of WGS84 heigths...
                 a1 = 5.2885 * 10^-3; %vedel et al. 2000 coversion of WGS84 heigths...
                 a2 = -5.9 * 10^-6; %vedel et al. 2000 coversion of WGS84 heigths...
-                lat=45.4605*pi/180; %latitude of the radiosonde station (http://www.radiosonde.eu.bonplans.info/RS00-I/RS02C-I.html)
-                %z=52; %hortometric heigth of the radiosonde station
-                R_e=6378.1; %[km] % average equatorial radius
-                R_p=R_e-21.5;%[km] %average pole radius
+                % lat = 45.4605 * pi/180; %latitude of the radiosonde station of Spino d'Adda (http://www.radiosonde.eu.bonplans.info/RS00-I/RS02C-I.html)
+                lat = lat / 180 * pi;
+                R_e = 6378.1; %[km] % average equatorial radius
+                R_p = R_e-21.5;%[km] %average pole radius
                 g_s = g_e*(1+a1*sin(lat)^2+a2*sin(2*lat)^2); %An approximate expression for the value of g at the geoid surface as function of latitude
                 R_s = R_e / sqrt((R_e/R_p)^2*sin(lat)^2+cos(lat)^2); %distance to the center of the earth from that point of the geoid surface
                 %height_g = (height(1:end-1)+height(2:end))/2;
@@ -516,6 +516,8 @@ classdef Radiosonde < handle
                 
                 g_fin = (g(1:end-1)+g(2:end))/2;
                 
+                % cit: Calculation of zenith delays from meteorological data, comparison of NWP model, radiosonde and GPS delays
+                % http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.542.6157&rep=rep1&type=pdf
                 ztd_oth=((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+degCtoK)))).*delta_P)) * 1e2;
                 ztd_oth = ztd_oth + (10^-4)*(k1*R_d*P(end)/g_s(end))*(1+2*(R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end))+2*((R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end)))^2);
             end
