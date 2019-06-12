@@ -323,6 +323,11 @@ classdef Radiosonde < handle
     methods (Static)
         function [ztd, zhd, zwd, pwv, ztd_oth, pwv_2, err] = rad2ztd(temperature, relative_humidity, pressure, height, lat)
             % Compute ZTD from RAOB (no saastamoinen)
+            % Note that this script is under development
+            % ztd, zhd, zwd are not properly estimated
+            % use ztd_oth instead
+            %
+            % For question on how this script works ask to: stefano.barindalli (at) polimi.it
             
             err = 0;
 
@@ -450,19 +455,19 @@ classdef Radiosonde < handle
                 % Tm = Tm_num/Tm_den;
                 
                 % Saturation vapor pressure (e_s)
-                e_s=6.1078*exp((17.27*T)./(237.3+T));
+                e_s = 6.1078*exp((17.27*T)./(237.3+T));
                 % The partial pressure of water vapor (e)
-                e=double(RH)/100.*e_s;
+                e = double(RH)/100.*e_s;
                 % Mixing ratio (r)
-                r=0.622*(e)./P;
+                r = 0.622*(e)./P;
                 % dry air density (rho_d)
-                rho_d=(Md/R)./((T+degCtoK)).*P;
+                rho_d = (Md/R)./((T+degCtoK)).*P;
                 % wet air density
-                rho_w=rho_d.*r;
+                rho_w = rho_d.*r;
                 %spesific humidity (q)
-                q=((rho_w)./(rho_w+rho_d));
+                q = ((rho_w)./(rho_w+rho_d));
                 % ZTD
-                ztd=10^-6*sum((((k1*R_d).*rho_d)+(k2+k3./(T+degCtoK)).*(R_w.*rho_w)).*delta_h) * 1e2; %hpa
+                ztd = 10^-6*sum((((k1*R_d).*rho_d)+(k2+k3./(T+degCtoK)).*(R_w.*rho_w)).*delta_h) * 1e2; %hpa
                 
                 ZWD_layers = (k2+k3./(T+degCtoK)).*(R_w.*rho_w) .* delta_h;
                 zwd = 10^-6*sum(ZWD_layers) * 1e2;
@@ -477,11 +482,11 @@ classdef Radiosonde < handle
                 e_s_2 = 6.1078*exp((17.27*temperature)./(237.3+temperature));
                 e_2 = double(relative_humidity)/100.*e_s_2;
                 r_2 = 0.622*(e_2)./(pressure-e_2);
-                rho_d_2=(Md/R)./((temperature+degCtoK)).*pressure;
-                rho_w_2=rho_d_2.*r_2;
-                q_2=((rho_w_2)./(rho_w_2+rho_d_2));
+                rho_d_2 = (Md/R)./((temperature+degCtoK)).*pressure;
+                rho_w_2 = rho_d_2.*r_2;
+                q_2 = ((rho_w_2)./(rho_w_2+rho_d_2));
                 
-                q_2=(q_2(1:end-1)+q_2(2:end))/2;
+                q_2 = (q_2(1:end-1)+q_2(2:end))/2;
                 
                 g_2 = 9.78003;
                 rho_water = 1;
@@ -501,7 +506,7 @@ classdef Radiosonde < handle
                 
                 %see vedel et al. 2000 coversion of WGS84 heigths...
                 
-                delta_P=double(pressure(1:end-1)-pressure(2:end));
+                delta_P = double(pressure(1:end-1)-pressure(2:end));
                 g_e = 9.780356; %[m/s^2] %vedel et al. 2000 coversion of WGS84 heigths...
                 a1 = 5.2885 * 10^-3; %vedel et al. 2000 coversion of WGS84 heigths...
                 a2 = -5.9 * 10^-6; %vedel et al. 2000 coversion of WGS84 heigths...
@@ -518,7 +523,7 @@ classdef Radiosonde < handle
                 
                 % cit: Calculation of zenith delays from meteorological data, comparison of NWP model, radiosonde and GPS delays
                 % http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.542.6157&rep=rep1&type=pdf
-                ztd_oth=((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+degCtoK)))).*delta_P)) * 1e2;
+                ztd_oth = ((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+degCtoK)))).*delta_P)) * 1e2;
                 ztd_oth = ztd_oth + (10^-4)*(k1*R_d*P(end)/g_s(end))*(1+2*(R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end))+2*((R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end)))^2);
             end
         end
