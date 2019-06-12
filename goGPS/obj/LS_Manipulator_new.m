@@ -757,7 +757,7 @@ classdef LS_Manipulator_new < handle
             idx_rm = [];
             for r = 1 : n_rec
                 idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r); % one for phase one for code for each constellation ( constalltion beacuse they have in common the same iono paramters)
-                
+                 
                 
                 idx_par_psrange = false(size(idx_par));
                 sys_c_par =  zeros(size(idx_par));
@@ -771,8 +771,10 @@ classdef LS_Manipulator_new < handle
                 sys_c_par_phase = sys_c_par(~idx_par_psrange);
                 sys_c_par_psrange = sys_c_par(idx_par_psrange);
                 idx_par_psrange =  idx_par(idx_par_psrange);
-                if ~isempty(idx_par_psrange) % <--- this should have a rational explanation
+                if ~isempty(idx_par_psrange) % <--- this should have a rational explanation (why code only or could be also ohase the reference one)
                     idx_rm = [idx_rm; idx_par_psrange(1)];
+                    wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frquency and system
+                    sys_c_ref = sys_c_par(1);
                     idx_par_psrange(1) = [];
                     sys_c_par_psrange(1) = [];
                 else
@@ -782,9 +784,12 @@ classdef LS_Manipulator_new < handle
                 end
                 
                 if ~isempty(idx_par_psrange)
-                    
-                    for sys_c = unique(sys_c_par_psrange)'
-                        idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
+                    for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
+                        if sys_c == sys_c_ref
+                            idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
+                        else
+                            idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
+                        end
                         if~isempty(idx_tmp)
                             idx_rm = [idx_rm; idx_tmp(1)];
                         end
@@ -909,7 +914,7 @@ classdef LS_Manipulator_new < handle
                     u_eb = unique(arc2eb);
                     eb_arc_rem = false(size(u_eb));
                     
-                    amb_mat = zeros(max(u_time),length(u_arc),'uint8');
+                    amb_mat = zeros(max(u_time),length(u_arc),'uint32');
                     for t = 1 : size(time_par,1)
                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
                     end
@@ -931,7 +936,6 @@ classdef LS_Manipulator_new < handle
                                 if id_poss_rm > 0
                                     idx_rm = [idx_rm; id_poss_rm];
                                     eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0)) = true;
-                                    find(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0))
                                 else
                                     eb_arc_rem(u_eb == eb_arc_tmp(sum(idx_start) > 0)) = true;
                                 end
@@ -1257,7 +1261,7 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
-            param_selction = [this.PAR_REC_X this.PAR_REC_Y this.PAR_REC_Z   this.PAR_AMB  this.PAR_REC_EB this.PAR_REC_CLK this.PAR_TROPO this.PAR_TROPO_N this.PAR_TROPO_E this.PAR_IONO]; %
+            param_selction = [this.PAR_REC_X this.PAR_REC_Y this.PAR_REC_Z  this.PAR_REC_EB this.PAR_AMB  this.PAR_REC_CLK this.PAR_TROPO this.PAR_TROPO_N this.PAR_TROPO_E this.PAR_IONO];  %
             this.setUpSA(rec_work,id_sync,'???',param_selction);
         end
         
