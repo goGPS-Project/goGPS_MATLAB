@@ -131,7 +131,7 @@ classdef LS_Parametrization < handle
     methods
         function [this] = LS_Parametrization()
             this = this@handle();
-            this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_FREQ)],['PHASE&GLONASS:ALL_FREQ' num2str(LS_Parametrization.ALL_FREQ)]};
+            this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&GLONASS:' num2str(LS_Parametrization.ALL_FREQ)]};
             this.rec_eb_opt_line.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.ALL_FREQ)]};
         end
        
