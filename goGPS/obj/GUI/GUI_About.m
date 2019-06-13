@@ -250,6 +250,7 @@ classdef GUI_About < handle
                 'Andreas Krietemeyer', ...
                 'Alice Bonfiglio', ...
                 'Stefano Barindelli',...
+                'Alessandra Mascitelli', ...
                 }, 7);
             Core_UI.insertEmpty(credits_new, GUI_About.BG_COLOR)
 
@@ -261,7 +262,7 @@ classdef GUI_About < handle
             txt = this.insertText(credits_new, {'I dedicate my work on this software to my father, Tiziano Gatti, ', 'who taught me, among countless things, the importance of putting passion in everything you choose to do. I will never forget you,'}, 7, [], 'right'); txt.FontAngle = 'italic';
             txt = this.insertText(credits_new, {'Andrea Gatti'}, 7, [20 183 242]/255, 'right'); txt.FontAngle = 'italic';
             
-            credits_new.Heights = [22 5 18 14*2 5 18 14*6 5 18 -1 14*3 28];
+            credits_new.Heights = [22 5 18 14*2 5 18 14*7 5 18 -1 14*3 28];
             
             
 

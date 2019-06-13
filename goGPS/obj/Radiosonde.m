@@ -10,7 +10,7 @@ classdef Radiosonde < handle
     %--------------------------------------------------------------------------
     %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
     %  Written by:       Alice Bonfiglio, Stefano Barindelli
-    %  Contributors:     Andrea Gatti
+    %  Contributors:     Andrea Gatti, Alessandra Mascitelli
     %  A list of all the historical goGPS contributors is in CREDITS.nfo
     %--------------------------------------------------------------------------
     %
@@ -47,12 +47,7 @@ classdef Radiosonde < handle
         
         ref_time        % launch epoch;
         pwv             % precipitable water vapor [mm]     double   [n_launches x 1]
-        pwv1            % precipitable water vapor [mm]     double   [n_launches x 1] % by integration
-        pwv2            % precipitable water vapor [mm]     double   [n_launches x 1] % by integration on pressure        
-        ztd1            % zenith tropospheric delay
-        ztd2            % zenith tropospheric delay
-        zhd             % zenith hidrostatic delay
-        zwd             % zenith wet delay
+        ztd             % zenith tropospheric delay
     end
     
     properties (Constant)
@@ -165,12 +160,7 @@ classdef Radiosonde < handle
             
             this.ref_time = [];
             this.pwv  = [];
-            this.pwv1  = [];
-            this.pwv2  = [];
-            this.ztd1  = [];
-            this.ztd2 = [];
-            this.zhd  = [];
-            this.zwd  = [];
+            this.ztd = [];
         end
                 
         function rds_pwv = download(this, region, sta_num, date_start, date_stop)
@@ -270,18 +260,13 @@ classdef Radiosonde < handle
                         this.height = [this.height; height];
                         this.temperature = [this.temperature; temp];
                         this.rel_humidity = [this.rel_humidity; relh];
-                        [ztd1, zhd, zwd, pwv1, ztd2, pwv2, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
+                        [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
                         
                         if err_code
                             log = Logger.getInstance();
                             log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
                         end
-                        this.ztd1 = [this.ztd1 ztd1];
-                        this.zhd = [this.zhd zhd];
-                        this.zwd = [this.zwd zwd];
-                        this.pwv1 = [this.pwv1 pwv1];
-                        this.ztd2 = [this.ztd2 ztd2];
-                        this.pwv2 = [this.pwv2 pwv2];
+                        this.ztd = [this.ztd ztd];
                         this.ref_time = [this.ref_time this.data_time(id_1)];
                     end
                     
@@ -308,7 +293,11 @@ classdef Radiosonde < handle
         end
         
         function [ztd, time] = getZtd(this)
-            ztd = this.ztd2 * 1e2;
+            % Get the zenit total delay computed from sounding
+            %
+            % SYNTAX
+            %   [ztd, time] = getZtd(this)
+            ztd = this.ztd * 1e2;
             time = GPS_Time(datenum(this.ref_time)');
         end
         
@@ -321,21 +310,25 @@ classdef Radiosonde < handle
     end
     
     methods (Static)
-        function [ztd, zhd, zwd, pwv, ztd_oth, pwv_2, err] = rad2ztd(temperature, relative_humidity, pressure, height, lat)
+        function [ztd, err_status] = rad2ztd(temperature, relative_humidity, pressure, height, lat)
             % Compute ZTD from RAOB (no saastamoinen)
-            % Note that this script is under development
-            % ztd, zhd, zwd are not properly estimated
-            % use ztd_oth instead
             %
-            % For question on how this script works ask to: stefano.barindalli (at) polimi.it
+            % For question on how this script works ask to: stefano.barindelli (at) polimi.it
+            %
+            % OUTPUT
+            %   ztd     zenith total delay [m]
+            %   err     boolean, represent if the radiosonde data are valid
+            %
+            % SYNTAX
+            %  [ztd, err] = Radiosonde.rad2ztd(temperature, relative_humidity, pressure, height, lat)
             
-            err = 0;
+            err_status = 0;
 
-            degCtoK = 273.16;
+            celsius_to_kelvin = 273.16; %tempearture conversion
             R = 8.31432;  %universal gas constant for air
-            Md = 0.02896; %molar mass of dry air [kg mole-1]
-            Mv = 0.0180153; %molar mass of H2o [kg mole-1]
-            g = 9.80665; %Gravitational acceleration [m]            
+            dry_molar_mass = 0.02896; % molar mass of dry air [kg mole-1]
+            % wet_molar_mass = 0.0180153; % molar mass of H2o [kg mole-1]
+            g = 9.80665; % Gravitational acceleration [m]            
             
             if isnan(temperature(end)) && isnan(height(end)) && isnan(relative_humidity(end))
                 temperature = temperature(1 : end - 1);
@@ -353,16 +346,20 @@ classdef Radiosonde < handle
             lid_nan = nan_T | nan_RH | nan_P | nan_height;
             first_ok = find(~lid_nan, 1, 'first');
             last_ok = find(~lid_nan, 1, 'last');
-
-            % At 8900 meters there is the 99% of the water vapour 
-            % Sato, K., Realini, E., Tsuda, T., Oigawa, M., Iwaki, Y., Shoji, Y., & Seko, H. (2013). 
+            
+            %"analyzing the radiosonde accumulated water vapor as a function of altitude a threshold value was determined; 99% of the total accumulated water vapor 
+            %was reached at an altitude between 8 and 9 km. A conservative threshold value of 10 km was thus chosen for tests in order to make a precise comparison 
+            %between radiosonde- and GPS-derived PWV."
+            %Sato, K., Realini, E., Tsuda, T., Oigawa, M., Iwaki, Y., Shoji, Y., & Seko, H. (2013).
             % A high-resolution, precipitable water vapor monitoring system using a dense network of GNSS receivers.
             % cit. https://www.fujipress.jp/jdr/dr/dsstr000800010037/
+            %In this case a threshold value of 8.9 km was set in order to consider empirical evidences
+
             if isempty(last_ok) || height(last_ok) < 8900
-                err = 1;
-                [ztd, zhd, zwd, pwv, ztd_oth, pwv_2] = deal(nan);
+                err_status = 1;
+                [ztd] = deal(nan);
             else      
-                if last_ok < length(lid_nan) | (first_ok > 1)
+                if last_ok < length(lid_nan) || (first_ok > 1)
                     % cut last nan values
                     temperature = temperature(first_ok : last_ok);
                     relative_humidity = relative_humidity(first_ok : last_ok);
@@ -399,7 +396,7 @@ classdef Radiosonde < handle
                     flag_interval_ref = getOutliers(nan_height);
                     for h = 1:size(flag_interval_ref,1)
                         for hh = flag_interval_ref(h,1):flag_interval_ref(h,2)
-                            height(hh) = -log(pressure(hh)*100/p0)*t0*R/g/Md;
+                            height(hh) = -log(pressure(hh)*100/p0)*t0*R/g/dry_molar_mass;
                         end
                     end
                     %height = fill1D(height, uint32(flag_interval_ref), 0 );
@@ -408,51 +405,21 @@ classdef Radiosonde < handle
                 T = (temperature(1:end-1)+temperature(2:end))/2;
                 RH = (relative_humidity(1:end-1)+relative_humidity(2:end))/2;
                 P = (pressure(1:end-1)+pressure(2:end))/2;
-                delta_h = double(height(2:end)-height(1:end-1));
+                % delta_h = double(height(2:end)-height(1:end-1));
                 
-                % %radiosonde dry bias correction
-                % c_rad=-0.12158*(log(P)).^2+1.664.*log(P)-4.7855;
-                % T0=find(T>=0);
-                % T30=find(T<0 & T>=-30);
-                % T50=find(T<-30 & T>=-50);
-                % T60=find(T<-50 & T>=-60);
-                % T70=find(T<-60 & T>=-70);
-                %
-                % cf(T0)=0.98;
-                % cf(T30)=0.98;
-                % cf(T50)=0.94;
-                % cf(T60)=1.04;
-                % cf(T70)=1.13;
-                % cf=cf';
-                % RH=RH./((c_rad).*(cf));
                 
                 %https://www.eol.ucar.edu/projects/ceop/dm/documents/refdata_report/eqns.html(bolton,1980)
+                %From Bevis et al. 1994 k1,k2,k3
                 k1 = 7.76 * 10^-1; %[K/Pa] % from Vedel,2001
                 k2 = 7.04 * 10^-1; %[K/Pa] % from Vedel,2001
                 k3 = 3.739 * 10^3; %[K^2/Pa] % from Vedel,2001
                 %http://glossary.ametsoc.org/wiki/Gas_constant
-                R_w = 461.5; %[J Kg^-1 K^-1]% Realini,2014
+                % R_w = 461.5; %[J Kg^-1 K^-1]% Realini,2014
                 R_d = 287; %[J Kg^-1 K^-1]% Realini,2014
                 
-                %molecular weight
+                %eps is the ratio of the molecular weight of water vapour to that of dry air
                 eps=18/28.94;
-                % T = T_vec(2:end);
-                % RH = RH_vec(2:end);
-                % rho_d=
-                % rho_w=
                 
-                %compute radiosonde PWV %part to modify
-                % rho_d = (Md/R)./T;
-                % vap_part_pres = RH/100.*e_s;
-                % mix_r = 0.622*vap_part_pres;
-                % delta_h = h(2:end) - h(1:end-1);
-                % PWV_layers = mix_r .* rho_d .* delta_h;
-                % PWV = sum(PWV_layers) * 1e2;
-                
-                %weighted mean temperature of the atmosphere %part to modify
-                % Tm_num = sum(vap_part_pres./T);
-                % Tm_den = sum(vap_part_pres./(T.^2));
-                % Tm = Tm_num/Tm_den;
                 
                 % Saturation vapor pressure (e_s)
                 e_s = 6.1078*exp((17.27*T)./(237.3+T));
@@ -461,55 +428,18 @@ classdef Radiosonde < handle
                 % Mixing ratio (r)
                 r = 0.622*(e)./P;
                 % dry air density (rho_d)
-                rho_d = (Md/R)./((T+degCtoK)).*P;
+                rho_d = (dry_molar_mass/R)./((T+celsius_to_kelvin)).*P;
                 % wet air density
                 rho_w = rho_d.*r;
-                %spesific humidity (q)
+                %specific humidity (q)
                 q = ((rho_w)./(rho_w+rho_d));
-                % ZTD
-                ztd = 10^-6*sum((((k1*R_d).*rho_d)+(k2+k3./(T+degCtoK)).*(R_w.*rho_w)).*delta_h) * 1e2; %hpa
                 
-                ZWD_layers = (k2+k3./(T+degCtoK)).*(R_w.*rho_w) .* delta_h;
-                zwd = 10^-6*sum(ZWD_layers) * 1e2;
-                
-                ZHD_layers = ((k1*R_d).*rho_d) .* delta_h;
-                zhd = 10^-6*sum(ZHD_layers) * 1e2;
-                
-                PWV_layers = rho_w .* delta_h;
-                pwv = sum(PWV_layers) * 1e2;
-                
-                %PWV integrationg on pressure
-                e_s_2 = 6.1078*exp((17.27*temperature)./(237.3+temperature));
-                e_2 = double(relative_humidity)/100.*e_s_2;
-                r_2 = 0.622*(e_2)./(pressure-e_2);
-                rho_d_2 = (Md/R)./((temperature+degCtoK)).*pressure;
-                rho_w_2 = rho_d_2.*r_2;
-                q_2 = ((rho_w_2)./(rho_w_2+rho_d_2));
-                
-                q_2 = (q_2(1:end-1)+q_2(2:end))/2;
-                
-                g_2 = 9.78003;
-                rho_water = 1;
-                delta_P_2 = double(pressure(1:end-1)-pressure(2:end));
-                %lat = 45.4605;%lat of station linate
-                %ZHD_saast_up = 0.002277*pressure(end)*(1+0.0026*cos(2*lat))+0.00000028*height(end);
-                ZWD_saast_up = 0.002277*(0.05+1255/(temperature(end)+degCtoK))*e_s_2(end);
-                %Tm_2 = 0.673*(temperature(end)+ degCtoK)+83.0;
-                %Tm_2 = (temperature(end)+ degCtoK)*0.72+70.2;
-                Tm_2 = (temperature(end) + degCtoK)*0.8688+27.008;
-                Q_2 = (4.61524e-3*((3.739e5/Tm_2)+22.1));
-                %PWV_2 = 1/(rho_water*g_2)*sum((eps*e)./(eps*e+rho_d.*R_d.*(T+degCtoK)).*delta_P_2);
-                pwv_2 = 1/(rho_water*g_2)*sum(q.*delta_P_2)*1e2 + ZWD_saast_up/Q_2;
-                
-                
-                %other formula for ZTD
-                
-                %see vedel et al. 2000 coversion of WGS84 heigths...
+                %see Vedel et al. 2000 Conversion of WGS84 geometric heights to NWP model HIRLAM geopotential heights, Danish Meteorological Institute.
                 
                 delta_P = double(pressure(1:end-1)-pressure(2:end));
-                g_e = 9.780356; %[m/s^2] %vedel et al. 2000 coversion of WGS84 heigths...
-                a1 = 5.2885 * 10^-3; %vedel et al. 2000 coversion of WGS84 heigths...
-                a2 = -5.9 * 10^-6; %vedel et al. 2000 coversion of WGS84 heigths...
+                g_e = 9.780356; %[m/s^2] %vedel et al. 2000 
+                a1 = 5.2885 * 10^-3; %vedel et al. 2000
+                a2 = -5.9 * 10^-6; %vedel et al. 2000
                 % lat = 45.4605 * pi/180; %latitude of the radiosonde station of Spino d'Adda (http://www.radiosonde.eu.bonplans.info/RS00-I/RS02C-I.html)
                 lat = lat / 180 * pi;
                 R_e = 6378.1; %[km] % average equatorial radius
@@ -521,10 +451,14 @@ classdef Radiosonde < handle
                 
                 g_fin = (g(1:end-1)+g(2:end))/2;
                 
-                % cit: Calculation of zenith delays from meteorological data, comparison of NWP model, radiosonde and GPS delays
+                % cit: Calculation of zenith delays from meteorological
+                % data, comparison of NWP model, radiosonde and GPS delays
+                % Vedel et al. 2001
                 % http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.542.6157&rep=rep1&type=pdf
-                ztd_oth = ((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+degCtoK)))).*delta_P)) * 1e2;
-                ztd_oth = ztd_oth + (10^-4)*(k1*R_d*P(end)/g_s(end))*(1+2*(R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end))+2*((R_d*(T(end)+degCtoK))/(R_s(end)*10^3*g_s(end)))^2);
+                % ZTD in meters
+                ztd = ((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+celsius_to_kelvin)))).*delta_P)) * 1e2;
+                ztd = (ztd + (10^-4)*(k1*R_d*P(end)/g_s(end))*(1+2*(R_d*(T(end)+celsius_to_kelvin))/(R_s(end)*10^3*g_s(end))+2*((R_d*(T(end)+celsius_to_kelvin))/(R_s(end)*10^3*g_s(end)))^2));
+                
             end
         end
     end
