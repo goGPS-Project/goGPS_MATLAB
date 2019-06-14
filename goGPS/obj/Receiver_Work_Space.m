@@ -705,6 +705,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function remObsByFlag(this,flag,sys_c)
+            % remove obesravtion by flag
+            %
+            % SYNTAX
+            %    this.remObsByFlag(flag,sys_c)
+            [~, id_obs] = getObs(this, flag, sys_c);
+            this.remObs(id_obs);
+        end
+        
         function keepEpochs(this, good_epochs)
             % keep epochs with a certain id
             %
