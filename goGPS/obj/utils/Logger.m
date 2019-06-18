@@ -131,7 +131,9 @@ classdef Logger < handle
             % SYNTAX
             %   log.disableFileOut()
             
-            this.setOutMode([], false);            
+            while this.isFileOut
+                this.setOutMode([], false);
+            end
         end
         
         function enableFileOut(this)
@@ -140,7 +142,9 @@ classdef Logger < handle
             % SYNTAX
             %   log.enableFileOut()
             
-            this.setOutMode([], true);
+            while ~this.isFileOut
+                this.setOutMode([], true);
+            end
         end
         
         function setOutMode(this, screen_out, file_out)
