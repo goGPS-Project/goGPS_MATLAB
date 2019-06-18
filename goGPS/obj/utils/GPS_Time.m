@@ -1396,6 +1396,24 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function date_string = toStringLocal(this)
+            % Convert a date to string format
+            % Date format support also decimals 
+            %   e.g. date_format = 'HH:MM:SS.ssss'
+            %
+            % Append "local time (GMT+xx)"
+            % where xx is the time zone offset in hours
+            % SYNTAX
+            %   date_string = toStringLocal(this, date_format)
+            if nargin < 2
+                date_format = 'yyyy-mm-dd HH:MM:SS';
+            end
+                
+            time = this.getCopy;
+            time.addSeconds(-GPS_Time.getLocalTimeOffset * 3600);            
+            date_string = sprintf('%s local time (GMT%-2d)', time.toString(date_format), GPS_Time.getLocalTimeOffset);            
+        end
+        
         function sinex_str = toSinexStrDate(this)
             % Convert a date to a sinex format (yy:doy:sod)
             %
@@ -1889,6 +1907,14 @@ classdef GPS_Time < Exportable & handle
             mat_time = now();
             mat_time = mat_time + java.util.Date().getTimezoneOffset/(60*24);
             this = GPS_Time(mat_time, true);
+        end
+        
+        function time_zone = getLocalTimeOffset()
+            % get local time zone offset (in hours)
+            %
+            % SYNTAX
+            %   time_zone = getLocalTimeOffset()
+            time_zone = java.util.Date().getTimezoneOffset / 60;
         end
                 
         function this = fromString(str_gps_time, is_gps)
