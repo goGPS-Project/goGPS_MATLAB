@@ -2383,7 +2383,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.tropo_spatial_reg_sigma = 1e-7;
             this.tropo_spatial_reg_d_distance = 25e3;
-            this.tropo_gradient_spatial_reg_sigma = 1-e7;
+            this.tropo_gradient_spatial_reg_sigma = 1e-7;
             this.tropo_gradient_spatial_reg_d_distance = 25e3;
                         
                         
