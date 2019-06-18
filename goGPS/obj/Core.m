@@ -116,7 +116,7 @@ classdef Core < handle
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance(force_clean, skip_init)                        
+        function this = getInstance(force_clean, skip_init, ini_file_path)                        
             % Get the persistent instance of the class
             %
             % INPUT
@@ -131,10 +131,12 @@ classdef Core < handle
             % substitute the current persistent link to the core
             %
             % INPUT 
-            %   core        existent core
+            %   core           existent core
+            %   skip_init      flag
+            %   ini_file_path  path to the ini file to load
             %
             % SYNTAX
-            %   core = getInstance(core)
+            %   core = getInstance(core, <skip_init>, <ini_file_path>)
             
             
             persistent unique_instance_core__
@@ -155,12 +157,20 @@ classdef Core < handle
                     this = Core();
                     unique_instance_core__ = this;
                     if ~skip_init
-                        this.init(force_clean);
+                        if nargin == 3 && ~isempty(ini_file_path) && exist(ini_file_path, 'file')
+                            this.init(force_clean, ini_file_path);
+                        else
+                            this.init(force_clean);
+                        end
                     end
                 else
                     this = unique_instance_core__;
                     if ~skip_init
-                        this.init(force_clean);
+                        if nargin == 3 && ~isempty(ini_file_path) && exist(ini_file_path, 'file')
+                            this.init(force_clean, ini_file_path);
+                        else
+                            this.init(force_clean);
+                        end
                     end
                 end
             end
@@ -601,7 +611,7 @@ classdef Core < handle
     %% METHODS INIT
     % ==================================================================================================================================================
     methods        
-        function init(this, force_clean)
+        function init(this, force_clean, ini_file_path)
             % Get instances for:
             %   - Settings
             %   - Wait_Bar
@@ -609,7 +619,7 @@ classdef Core < handle
             %   - Command_Interpreter
             %
             % SYNTAX:
-            %   this.init(<force_clean>)
+            %   this.init(<force_clean>, <ini_file_path>)
             
             if nargin < 2
                 force_clean = false;
@@ -619,12 +629,13 @@ classdef Core < handle
             
             if ispc, fclose('all'); end
             
-            cm = this.log.getColorMode();
             this.log.setColorMode(true);   
             
-            Core_UI.showTextHeader();
-            this.log.setColorMode(cm);            
-            this.state = Main_Settings();
+            if nargin == 3 && ~isempty(ini_file_path)
+                this.state = Main_Settings(ini_file_path);
+            else
+                this.state = Main_Settings();
+            end
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky(force_clean);
             this.atmo = Atmosphere();

@@ -69,11 +69,18 @@ function goGPS(ini_settings, use_gui, flag_online)
     log = Logger.getInstance();
     log.disableFileOut();
     
-    core = Core.getInstance(true); % Init Core
+    % Show coloured header
+    cm = log.getColorMode();
+    log.setColorMode(true);    
+    Core_UI.showTextHeader();
+    log.setColorMode(cm);
     
     if nargin >= 1 && ~isempty(ini_settings)
-        core.import(ini_settings);
+        core = Core.getInstance(true, false, ini_settings);    
+    else
+        core = Core.getInstance(true); % Init Core
     end
+    
     if nargin < 2 || isempty(use_gui)
         if isdeployed
             use_gui = true;
