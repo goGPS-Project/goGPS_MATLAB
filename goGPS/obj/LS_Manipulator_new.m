@@ -327,7 +327,7 @@ classdef LS_Manipulator_new < handle
                         A(lines_stream, par_rec_eb_lid) = 1;
                     end
                     if par_rec_eb_lin
-                        A(lines_stream, par_rec_eb_lid) = 1/obs_set.wl(s);
+                        A(lines_stream, par_rec_eb_lin_lid) = 1/obs_set.wl(s);
                     end
                     if par_sat_eb
                         A(lines_stream, par_sat_eb_lid) = 1;
@@ -487,6 +487,44 @@ classdef LS_Manipulator_new < handle
                     ch_set = {};
                     for c = 1 : n_ch_set
                         ch_set{c} = uint8(sig_p_id(sig2wl == c));
+                    end
+                elseif parametriz(4) == ls_parametrization.SING_FREQ_BIN
+                    n_ch_set = length(this.unique_wl);
+                    ch_set = {};
+                    % waveleght are binned into theese bands
+                    fr_bin = [1176.450*1e6+[-1e5  +1e5];  %  L5a   -> G5 , I5 , J5, E5 , S5
+                        1191.795*1e6+[-1e5  +1e5];  %  L5ab  -> E8
+                        1202.025*1e6+[-1e5  +1e5];  %  L5c   -> R3
+                        1207.140*1e6+[-1e5  +1e5];  %  L5B   -> C7 , E7,
+                        1227.600*1e6+[-1e5  +1e5];  %  L2a   -> G2 , J2
+                        1246.000*1e6+[-7*7/16*1e6-1e5  +12*7/16*1e6+1e5];  %  L2b   -> R2
+                        1268.520*1e6+[-1e5  +1e5];  %  L6a   -> C3
+                        1278.750*1e6+[-1e5  +1e5];  %  L6b   -> J6 , E6
+                        1561.098*1e6+[-1e5  +1e5];  %  L1a   -> C2
+                        1575.42*1e6+[-1e5  +1e5];  %  L1b   -> G1, E1, J1, S1
+                        1602.000*1e6+[-7*9/16*1e6-1e5  +12*9/16*1e6+1e5];  %  L1c   -> R1
+                        2492.028*1e6+[-1e5  +1e5];  %  L9   -> I9
+                       ];
+                    wl_bin = fliplr(Core_Utils.V_LIGHT./fr_bin);
+                    wl2bnd = zeros(size(this.unique_wl));
+                    wl2chid = zeros(size(this.unique_wl));
+
+                    for w = 1 : length(this.unique_wl)
+                        b = 1;
+                        while wl2bnd(w) == 0
+                            if this.unique_wl(w) > wl_bin(b,1) && this.unique_wl(w) < wl_bin(b,2)
+                                wl2bnd(w) = b;
+                            else
+                                b = b+1;
+                            end
+                        end
+                        wl2chid(w) = this.obs_codes_id_obs(find(this.wl_id_obs == w,1,'first'));
+                    end
+                    u_bnd = unique(wl2bnd);
+                    n_ch_set = length(u_bnd);
+                    for c = 1 : n_ch_set
+                        chids = wl2chid(wl2bnd == u_bnd(c));
+                        ch_set{c} = chids;
                     end
                 elseif parametriz(4) == ls_parametrization.RULE
                     % ---- evaluate the rule
@@ -863,15 +901,28 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-              % remove one bias per signal from one recievr
+            % remove one bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0
                 for e = 1: length(this.unique_obs_codes)
-                    idx_par = find(this.class_par == this.PAR_REC_EB & this.obs_codes_id_par == e); 
-                    
-                        idx_rm = [idx_rm; uint32(idx_par(1))]; 
+                    idx_par = find(this.class_par == this.PAR_REC_EB & this.obs_codes_id_par == e);
+                    if ~isempty(idx_par)
+                        idx_rm = [idx_rm; uint32(idx_par(1))];
                         this.log.addMessage(this.log.indent(sprintf('Receiver %d choosen as reference for obs %s',this.rec_par(idx_par(1)),this.unique_obs_codes{e})));
+                    end
                 end
             end
+            
+             % remove one linear trend bias per signal from one recievr
+            if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0
+                for e = 1: length(this.unique_obs_codes)
+                    idx_par = find(this.class_par == this.PAR_REC_EB_LIN & this.obs_codes_id_par == e);
+                    if ~isempty(idx_par)
+                        idx_rm = [idx_rm; uint32(idx_par(1))];
+                        this.log.addMessage(this.log.indent(sprintf('Receiver %d choosen as reference for obs %s',this.rec_par(idx_par(1)),this.unique_obs_codes{e})));
+                    end
+                end
+            end
+            
             
             % remove one clock per epoch
             u_ep = unique(this.time_par);
@@ -1318,11 +1369,11 @@ classdef LS_Manipulator_new < handle
             
             % satellite clcok
             if sat_clk
-            n_sat_clk = size(B_recclk,1);
-            idx_est = ~idx_reduce_iono & ~idx_reduce_sat_clk ;
-            B_satclk = B_satclk -   sum(Nx_satclk' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
-            x_sat_clk = iSatClk * B_satclk;
-            x_est(idx_reduce_sat_clk) = x_sat_clk;
+                n_sat_clk = size(B_recclk,1);
+                idx_est = ~idx_reduce_iono & ~idx_reduce_sat_clk ;
+                B_satclk = B_satclk -   sum(Nx_satclk' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
+                x_sat_clk = iSatClk * B_satclk;
+                x_est(idx_reduce_sat_clk) = x_sat_clk;
             end
             
             % iono
@@ -1422,6 +1473,7 @@ classdef LS_Manipulator_new < handle
                 this.PAR_REC_Y;
                 this.PAR_REC_Z;
                 this.PAR_REC_EB;
+                this.PAR_REC_EB_LIN;
                 this.PAR_AMB;
                 this.PAR_REC_CLK;
                 this.PAR_TROPO;

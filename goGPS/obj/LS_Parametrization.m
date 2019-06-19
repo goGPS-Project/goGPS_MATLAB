@@ -66,6 +66,7 @@ classdef LS_Parametrization < handle
         % track paramterization paramterization
         SING_TRACK = 1;
         SING_FREQ = 2;
+        SING_FREQ_BIN = 4;
         ALL_FREQ = 3;
         RULE = 5; % warnign only sequential & allowed
         
@@ -75,16 +76,16 @@ classdef LS_Parametrization < handle
     
     properties
         % paramterization [(time paramterization) (rec paramterization) (sat paramterization) (tracking paramterization)]
-        rec_x = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        rec_y = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        rec_z = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        rec_x = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ_BIN];
+        rec_y = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ_BIN];
+        rec_z = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ_BIN];
         
         sat_x = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         sat_y = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         sat_z = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
-        rec_eb = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
-        rec_eb_line = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
+        rec_eb = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
+        rec_eb_lin = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
 
         
         sat_eb = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
@@ -110,7 +111,7 @@ classdef LS_Parametrization < handle
         rec_y_opt;
         rec_z_opt;
         rec_eb_opt = struct('rule',1);
-        rec_eb_opt_line = struct('rule',1);
+        rec_eb_opt_lin = struct('rule',1);
 
         amb_opt;
         rec_clk_opt;
@@ -131,8 +132,8 @@ classdef LS_Parametrization < handle
     methods
         function [this] = LS_Parametrization()
             this = this@handle();
-            this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&GLONASS:' num2str(LS_Parametrization.ALL_FREQ)]};
-            this.rec_eb_opt_line.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.ALL_FREQ)]};
+          %  this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
+            this.rec_eb_opt_lin.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.SING_TRACK)]};
         end
        
         function [parametriz, option] = getParametrization(this, par_class)
@@ -156,7 +157,7 @@ classdef LS_Parametrization < handle
                     option = this.rec_eb_opt;
                 case LS_Manipulator_new.PAR_REC_EB_LIN
                     parametriz = this.rec_eb_lin;
-                    option = this.rec_eb_lin_opt;
+                    option = this.rec_eb_opt_lin;
                 case LS_Manipulator_new.PAR_SAT_EB
                     parametriz = this.sat_eb;
                     option = this.rec_x_opt;
