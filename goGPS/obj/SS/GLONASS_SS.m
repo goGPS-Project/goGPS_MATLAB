@@ -17,6 +17,9 @@
 %   L2 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L2-s-kod.-razd.-Red-1.0-2016.pdf
 %   L3 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L3-s-kod.-razd.-Red-1.0-2016.pdf
 %
+%   English resource
+%   CDMA http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-General.-Edition-1.0-2016.pdf
+%
 %   Other useful links
 %     - http://www.navipedia.net/index.php/GLONASS_Signal_Plan
 %     - http://www.navipedia.net/index.php/Reference_Frames_in_GNSS
