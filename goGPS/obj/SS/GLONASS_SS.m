@@ -12,13 +12,11 @@
 %   Standard: http://gauss.gge.unb.ca/GLONASS.ICD-98.pdf
 %    newer -> http://kb.unavco.org/kb/assets/727/ikd51en.pdf
 %
-%   The new specifications are available only in Russian
-%   L1 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L1-s-kod.-razd.-Red-1.0-2016.pdf
-%   L2 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L2-s-kod.-razd.-Red-1.0-2016.pdf
-%   L3 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L3-s-kod.-razd.-Red-1.0-2016.pdf
-%
-%   English resource
-%   CDMA http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-General.-Edition-1.0-2016.pdf
+%   Specifications
+%   L1   specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-L1.-Edition-1.0-2016.pdf
+%   L2   specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-L2.-Edition-1.0-2016.pdf
+%   L3   specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-L3.-Edition-1.0-2016.pdf
+%   CDMA specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD-GLONASS-CDMA-General.-Edition-1.0-2016.pdf
 %
 %   Other useful links
 %     - http://www.navipedia.net/index.php/GLONASS_Signal_Plan
