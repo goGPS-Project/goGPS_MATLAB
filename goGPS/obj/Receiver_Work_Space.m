@@ -2345,16 +2345,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % Get logical list of active constellations
                 [~, id] = intersect(cc.SYS_C, sys_c); 
-                ss_id = zeros(1, numel(cc.SYS_C)); ss_id(id) = 1;
+                ss_lid = false(1, numel(cc.SYS_C)); ss_lid(id) = 1;
                 
                 % update the maximum number of rows to store                
-                n_obs = ss_id(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                    ss_id(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                    ss_id(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                    ss_id(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                    ss_id(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                    ss_id(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                    ss_id(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
+                n_obs = ss_lid(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
+                    ss_lid(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
+                    ss_lid(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
+                    ss_lid(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
+                    ss_lid(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
+                    ss_lid(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
+                    ss_lid(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
@@ -2387,13 +2387,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                     
                     f_id = obs_code(:,2);
-                    ss = cc.(char(cc.SYS_NAME{ss_id(s)} + 32));
+                    ss = cc.(char(cc.SYS_NAME{s} + 32));
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
                     ismember(this.system, cc.SYS_C);
                     this.f_id = [this.f_id; f_id];
                     
-                    if ss_id(s) == 2 % glonass FDMA system
+                    if s == 2 % glonass FDMA system
                         wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                         wl(prn_ss > ss.N_SAT) = NaN;
                         wl(f_id == 0) = NaN;
