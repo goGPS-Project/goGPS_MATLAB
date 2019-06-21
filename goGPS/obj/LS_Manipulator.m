@@ -1470,7 +1470,9 @@ classdef LS_Manipulator < handle
                 %mix the receiver indexes
                 par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                 A_idx_not_mix = this.A_idx;
+                
                 idx_net_comm = find(this.param_class == this.PAR_TROPO_V);
+                
                 for j = 2 : n_rec
                     rec_idx = this.receiver_id == j;
                     % update the indexes
@@ -1479,18 +1481,23 @@ classdef LS_Manipulator < handle
                     
                     a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
                     a_idx_const(a_idx_const == 0) = [];
-                    a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise(idx_ep_wise ~= idx_net_comm)));
+                    if ~isempty(idx_net_comm)
+                        a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise(idx_ep_wise ~= idx_net_comm)));
+                    else
+                        a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise));
+                    end
                     a_idx_ep_wise(a_idx_ep_wise == 0) = [];
                     
                     N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                 end
-                this.A_idx(:,this.param_class == this.PAR_TROPO_V) = this.A_idx(:,this.param_class == this.PAR_TROPO_V) - min(this.A_idx(:,this.param_class == this.PAR_TROPO_V)) + max(max(this.A_idx(:,this.param_class ~= this.PAR_TROPO_V)));
-                N2A_idx = [N2A_idx; unique(this.A_idx(:,this.param_class == this.PAR_TROPO_V))];
-                if ~isempty(this.distance_regularization) && Core.isGReD
-                    N = GReD_Utility.regularizeTropoDist(this,N,u_ep, x_rec,this.dist_matr,this.distance_regularization.fun_tropo);
-                    N = GReD_Utility.regularizeGradientsDist(this,N,u_ep,x_rec, this.dist_matr,this.distance_regularization.fun_gradients);
+                if ~isempty(idx_net_comm)
+                    this.A_idx(:,this.param_class == this.PAR_TROPO_V) = this.A_idx(:,this.param_class == this.PAR_TROPO_V) - min(this.A_idx(:,this.param_class == this.PAR_TROPO_V)) + max(max(this.A_idx(:,this.param_class ~= this.PAR_TROPO_V)));
+                    N2A_idx = [N2A_idx; unique(this.A_idx(:,this.param_class == this.PAR_TROPO_V))];
+                    if ~isempty(this.distance_regularization) && Core.isGReD
+                        N = GReD_Utility.regularizeTropoDist(this,N,u_ep, x_rec,this.dist_matr,this.distance_regularization.fun_tropo);
+                        N = GReD_Utility.regularizeGradientsDist(this,N,u_ep,x_rec, this.dist_matr,this.distance_regularization.fun_gradients);
+                    end
                 end
-                
                 
                 
                 
