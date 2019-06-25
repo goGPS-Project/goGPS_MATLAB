@@ -1664,7 +1664,7 @@ classdef Core_Utils < handle
                         aria2c_path = '/usr/bin/aria2c';
                     end
                 end
-                aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'http://www.marine-geo.org/services/GridServer?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
+                aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
                 Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
                 dos(aria_call)
             end
