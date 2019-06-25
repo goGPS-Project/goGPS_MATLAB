@@ -1858,7 +1858,8 @@ classdef GNSS_Station < handle
             mask((x_id - 1) * size(y_grid, 2) + y_id) = 1;
             % Refine mask keeping only points above sea level close to the station to process
             [xg, yg] = meshgrid(x_id, y_id); 
-            d = max(25, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.35))); % 20% of min distance is uused to enlarge the area of interpolation
+            % for Japan max was 25 -> elsewhere the bases are further away
+            d = max(100, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.35))); % 35% of min distance is used to enlarge the area of interpolation
             mask = (circConv2(mask, d) > 0) & (dtm >= -10);
             conv_mask = [0 0 1 1 1 0 0; ...
                          0 1 1 1 1 1 0; ...
@@ -1889,8 +1890,8 @@ classdef GNSS_Station < handle
                 h_correction = Core_Utils.interp1LS([h_o; 5000 * ones(100,1)], [med_tropo;  zeros(100,1)], degree, h_list);
             
                 % Compute map of tropo corrections for height displacements
-                tropo_height_correction = nan(size(dtm));
-                tropo_height_correction(:) = (h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
+                tropo_height_correction = nan(size(dtm), 'single');
+                tropo_height_correction(:) = single(h_correction(round(max(0, dtm(:)) + 1)) - h_correction(1));
             end
             
             % List of valide epochs (opening an aproximate window around the points)
@@ -2589,6 +2590,8 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   sta_list.showMapDtm(new_fig, resolution);
             
+            sta_list = sta_list(~sta_list.isEmpty_mr);
+            
             flag_labels = true;
             flag_large_points = true;
             point_size = 15;
@@ -2758,6 +2761,8 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showMapGoogle(new_fig);
+                        
+            sta_list = sta_list(~sta_list.isEmpty_mr);
             
             flag_labels = true;
             flag_large_points = true;
@@ -2864,7 +2869,7 @@ classdef GNSS_Station < handle
                 % Label BG (in background w.r.t. the point)
                 for r = 1 : numel(sta_list)
                     name = upper(sta_list(r).getMarkerName4Ch());
-                    text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(name), 'uint8')), ...
+                    text(x(r), y(r), char(32 * ones(1, 6 + 2 * length(name), 'uint8')), ...
                         'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
                         'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                         'Margin', 2, 'LineWidth', 2, ...
@@ -3145,6 +3150,8 @@ classdef GNSS_Station < handle
             %   % over Japan
             %   sta_list.showAniMapTropoInterp('ZWD', [45.8, 123.5, 23, 146.5], 200, 2, false);
             
+            sta_list_full = sta_list_full(~sta_list_full.isEmpty_mr);
+            
             switch lower(par_name)
                 case 'ztd'
                     par_str = 'ZTD';
@@ -3295,14 +3302,14 @@ classdef GNSS_Station < handle
                 drawnow
                 m_ruler([.7 1], -0.08, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             end
-                        
+            
             [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
             if flag_dtm == 1
                 tropo_grid = tropo_grid + tropo_height_correction;
             end
             
             if flag_dtm == 2
-               ax = subplot(1,2,1);
+                ax = subplot(1,2,1);
             end
             imh = m_pcolor(x_grid, y_grid, tropo_grid(:,:,1));
             imh.FaceAlpha = 0.95;
@@ -3311,7 +3318,7 @@ classdef GNSS_Station < handle
             switch lower(par_name)
                 case 'ztd'
                 case 'zwd'
-                    caxis([0 48]);
+                    caxis([max(0, tropo_clim(1,1)) min(48, tropo_clim(1,2))]);
                     %tropo_clim = caxis()]
                 case 'gn'
                 case 'ge'
@@ -3363,7 +3370,7 @@ classdef GNSS_Station < handle
                 switch lower(par_name)
                     case 'ztd'
                     case 'zwd'
-                        caxis([0 48]);
+                        caxis([max(0, tropo_clim(1,1)) min(48, tropo_clim(1,2))]);
                         %tropo_clim = [tropo_clim(1,:); caxis()]; 
                     case 'gn'
                     case 'ge'
@@ -3371,9 +3378,9 @@ classdef GNSS_Station < handle
                     case 'zhd'
                     case 'nsat'
                 end
-                %cmap = Cmap.get('c51',512);
-                %colormap(flipud(cmap(2:end,:)));
-                colormap(Cmap.smoothMap(Cmap.noaaRain));
+                cmap = Cmap.get('c51',512);
+                colormap(flipud(cmap(2:end,:)));
+                %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
                 % redraw boxes
                 m_grid('box','fancy','tickdir','in', 'fontsize', 16);
@@ -3653,7 +3660,7 @@ classdef GNSS_Station < handle
             switch lower(par_name)
                 case 'ztd'
                 case 'zwd'
-                    caxis([0 48]);
+                    caxis([max(0, tropo_clim(1,1)) min(48, tropo_clim(1,2))]);
                     %tropo_clim = caxis()];
                 case 'gn'
                 case 'ge'
@@ -3661,9 +3668,9 @@ classdef GNSS_Station < handle
                 case 'zhd'
                 case 'nsat'
             end
-            %cmap = Cmap.get('c51',512);
-            %colormap(flipud(cmap(2:end,:)));
-            colormap(Cmap.smoothMap(Cmap.noaaRain));
+            cmap = Cmap.get('c51',512);
+            colormap(flipud(cmap(2:end,:)));
+            %colormap(Cmap.smoothMap(Cmap.noaaRain));
 
             % redraw boxes
             m_grid('box','fancy','tickdir','in', 'fontsize', 16);
@@ -4079,8 +4086,8 @@ classdef GNSS_Station < handle
 
             sta_list = sta_list(rec_ok);
             tropo = tropo(rec_ok);
-            t = t(rec_ok);
-
+            t = t(rec_ok);            
+            
             if numel(sta_list) == 0
                 log = Core.getLogger();
                 log.addError('No valid troposphere is present in the receiver list');
@@ -4143,7 +4150,7 @@ classdef GNSS_Station < handle
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
 
-                    if n_entry < 20
+                    if n_entry < 30
                         if ~sub_plot_nsat
                             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                         else

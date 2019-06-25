@@ -173,3 +173,5 @@ remote_data
 goGPS/obj/utils/colormaps\.zip
 
 goGPS/ssh\.pass
+
+goGPS/goGuardCurPrj\.ini
