@@ -95,8 +95,30 @@ classdef Core_SEID < handle
                     phase_gf(r) = Observation_Set();
                     code_gf(r) = Observation_Set();
                     for sys = systems
-                        phase_gf(r).merge(ref(r).getGeometryFree('L1','L2',sys));
-                        code_gf(r).merge(ref(r).getGeometryFree('C1','C2',sys));
+                        frqs =  num2str(ref(r).getFreqs(sys));
+                        ph_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                        pr_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                        wl1_pr = zeros(length(pr_gf_t.go_id),1);
+                        wl2_pr = zeros(length(pr_gf_t.go_id),1);
+                        for i = 1 : length(pr_gf_t.go_id)
+                            l_vec = Core.getConstellationCollector.getWavelength(pr_gf_t.go_id(i));
+                            wl1_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                            wl2_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));  
+                        end
+                        iono_factor_pr = wl2_pr.^2 - wl1_pr.^2;
+
+                        wl1_ph = zeros(length(ph_gf_t.go_id),1);
+                        wl2_ph = zeros(length(ph_gf_t.go_id),1);
+                        for i = 1 : length(ph_gf_t.go_id)
+                            l_vec = Core.getConstellationCollector.getWavelength(ph_gf_t.go_id(i));
+                            wl1_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                            wl2_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));  
+                        end
+                        iono_factor_ph = wl2_ph.^2 - wl1_ph.^2;
+                        ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph',size(ph_gf_t.obs,1),1);
+                        pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr',size(pr_gf_t.obs,1),1);
+                        phase_gf(r).merge(ph_gf_t);
+                        code_gf(r).merge(pr_gf_t);
                     end
                     phase_gf(r).obs(phase_gf(r).cycle_slip > 0) = 0;
                     phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, [], 300 / phase_gf(r).time.getRate); 
@@ -110,7 +132,8 @@ classdef Core_SEID < handle
                     %code_gf(r).obs = phase_gf(r).obs;
                     
                     [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
-                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
+                    [pierce_point(r).lat, pierce_point(r).lat, pierce_point(r).lat] = deal(nan(size( code_gf(r).az)));
+                    [pierce_point(r).lat(:,code_gf(r).go_id), pierce_point(r).lon(:,code_gf(r).go_id), pierce_point(r).mf(:,code_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
                 end
                 
                 max_sat = 0;
@@ -171,9 +194,12 @@ classdef Core_SEID < handle
                     ph1 = [];
                     id_ph = [];
                     for sys = systems
-                        [ph1_t, id_ph_t] = trg(t).getObs('L1',sys);
-                        ph1 = [ph1; ph1_t];
-                        id_ph = [id_ph; id_ph_t];
+                        frqs = num2str(trg(t).getFreqs(sys));
+                        if ~isempty(frqs)
+                            [ph1_t, id_ph_t] = trg(t).getObs(['L' frqs(1) '?'],sys);
+                            ph1 = [ph1; ph1_t];
+                            id_ph = [id_ph; id_ph_t];
+                        end
                     end
                     [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
                     ph1_goid = trg(t).go_id(id_ph)';
@@ -184,21 +210,31 @@ classdef Core_SEID < handle
                     % this part of the code needs to be improved
                     trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
                     trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
+                    wl1 = zeros(max(trg_go_id),1);
+                    wl2 = zeros(max(trg_go_id),1);
+                    band = char(zeros(max(trg_go_id),1));
                     for s = 1 : numel(trg_go_id)
                         lat_sat = nan(size(id_sync{t},1), numel(ref));
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
                         for r = 1 : numel(ref)
-                            id_sat = unique(code_gf(r).go_id) == trg_go_id(s);
-                            if sum(id_sat) == 1
-                                id_ok = (~isnan(id_sync{t}(:,r)));
-                                id_ok_ref = id_sync{t}(id_ok,r);
-                                lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
-                                lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
-                            end
+                            id_sat = trg_go_id(s);
+                            id_ok = (~isnan(id_sync{t}(:,r)));
+                            id_ok_ref = id_sync{t}(id_ok,r);
+                            lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
+                            lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                            
                         end
-                        trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
+                        sys = Core.getConstellationCollector.getSysPrn(trg_go_id(s));
+                        frqs = num2str(trg(t).getFreqs(sys));
+                        l_vec = Core.getConstellationCollector.getWavelength(trg_go_id(s));
+                        wl1(trg_go_id(s)) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1)); % <- we have that
+                        wl2(trg_go_id(s)) = l_vec(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));  % <- we want to generate that
+                        band(trg_go_id(s)) = Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));
+                        iono_factor = wl2(trg_go_id(s))^2 - wl1(trg_go_id(s))^2;
+                        trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
                         %trg_ph_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(ph_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
-                        trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
+                        trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
+                        
                     end
                     
                     % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
@@ -216,20 +252,23 @@ classdef Core_SEID < handle
                     
                     trg_ph_gf(inan) = nan;
                     
-                    wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
-                    wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+%                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+%                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
                     ph2 = nan(size(ph1));
                     % L1 * wl1 - L2 * wl2 = gf
                     % L2 = (L1 * wl1 - gf) / wl2;
-                    ph2 = (ph1 * wl1 - trg_ph_gf(:, trg(t).go_id(id_ph))') / wl2;
+                    ph2 = (ph1 .* repmat(wl1(trg(t).go_id(id_ph)),1,size(ph1,2)) - trg_ph_gf(:, trg(t).go_id(id_ph))') ./ repmat(wl2(trg(t).go_id(id_ph)),1,size(ph1,2));
                     
                     [~, ~, ~, flag] = trg(t).getBestCodeObs();
                     pr1 = [];
                     id_pr = [];
                     for sys = systems
-                        [pr1_t, id_pr_t] = trg(t).getObs(flag(1,1:3),sys);
-                        pr1 = [pr1; pr1_t];
-                        id_pr = [id_pr; id_pr_t];
+                        frqs = num2str(trg(t).getFreqs(sys));
+                        if ~isempty(frqs)
+                            [pr1_t, id_pr_t] = trg(t).getObs(['C' frqs(1) '?'],sys);
+                            pr1 = [pr1; pr1_t];
+                            id_pr = [id_pr; id_pr_t];
+                        end
                     end
                     pr1_goid = trg(t).go_id(id_pr);
                     % C2 - C1 = gf
@@ -243,29 +282,44 @@ classdef Core_SEID < handle
                     %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
                     
                     % Remove the L2 stored in the object
-                    id_ph = [];
                     for sys = systems
-                        [~, id_ph_t] = trg(t).getObs('L2',sys);
-                        id_ph = [id_ph; id_ph_t];
-                    end
-                    if ~isempty(id_ph)
-                        log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                        trg(t).remObs(id_ph);
-                    end
-                    id_pr = [];
-                    for sys = systems
-                        [~, id_pr_t] = trg(t).getObs('C2',sys);
-                        id_pr = [id_pr; id_pr_t];
-                    end
-                    if ~isempty(id_pr)
-                        log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
-                        trg(t).remObs(id_pr);
+                        bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                        bnd(bnd == 0) = [];
+                        [~, id_ph] = trg(t).getObs(['L' bnd],sys);
+                        if ~isempty(id_ph)
+                            log.addMessage(log.indent(sprintf('Removing %sL%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                            trg(t).remObs(id_ph);
+                        end
+                        
                     end
                     
+                    for sys = systems
+                       bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                        bnd(bnd == 0) = [];
+                        [~, id_pr] = trg(t).getObs(['C' bnd],sys);
+                        if ~isempty(id_pr)
+                            log.addMessage(log.indent(sprintf('Removing %sC%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                            trg(t).remObs(id_pr);
+                        end
+                    end
+                    
+                    
                     % Inject the new synthesised phase
-                    log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
-                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
+                    sys_o = Core.getConstellationCollector.getSysPrn(trg_go_id);
+                    for sys = unique(sys_o)
+                        sys_pr = Core.getConstellationCollector.getSysPrn(pr1_goid);
+                        sys_ph = Core.getConstellationCollector.getSysPrn(ph1_goid);
+
+
+                        lid_pr = sys_pr == sys;
+                        lid_ph = sys_ph == sys;
+
+                        bnd = unique(band(pr1_goid(lid_pr)));
+                        
+                        log.addMessage(log.indent(sprintf('Injecting SEID L%s into target receiver %d / %d', bnd,t, numel(trg))));
+                        trg(t).injectObs(nan2zero(pr2(lid_pr,:)), wl2(pr1_goid(lid_pr))',str2num(bnd),[ 'C' bnd 'F'], pr1_goid(lid_pr));
+                        trg(t).injectObs(nan2zero(ph2(lid_ph,:)), wl2(ph1_goid(lid_ph))', str2num(bnd),[ 'L' bnd 'F'], ph1_goid(lid_ph));
+                    end
                     %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
                     %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                     

@@ -884,6 +884,21 @@ classdef Constellation_Collector < Settings_Interface
                 end
             end
         end
+        
+        function lvec = getWavelength(this, go_id)
+            % return wavelength of satellite for a given go id
+            % SYNTAX [lvec] = this.getWavelength(go_id)
+            [sys_c, prn] = getSysPrn(this, go_id);
+            
+            
+            ss = this.getSys(sys_c);
+            if sys_c ~= 'R'
+                lvec = ss.L_VEC;
+            else
+                lvec = [ss.L_VEC(ss.PRN2IDCH(prn),:)];
+            end
+            
+        end
     end
     
     % =========================================================================

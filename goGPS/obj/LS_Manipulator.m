@@ -440,8 +440,10 @@ classdef LS_Manipulator < handle
                         amb_const = zeros(1,n_amb);
                         amb_idx_const = noZero(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
                         amb_idx_const = mode(amb_idx_const);
-                        amb_const(amb_idx_const) = 1;
-                        G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
+                        if amb_idx_const ~= 0
+                            amb_const(amb_idx_const) = 1;
+                            G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
+                        end
                     end
                     
                     G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];

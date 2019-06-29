@@ -1285,7 +1285,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             bad_id = find(arc_mean > max(0.001, median(movstd(sensor_ph0, 5), 'omitnan')));
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
             arc_std = abs(std(sensor_ph0,'omitnan'));
-            bad_id = unique([bad_id find(arc_std > 12*median(serialize(movstd(sensor_ph0, 5)), 'omitnan'))]);
+            bad_id = [];%unique([bad_id find(arc_std > 12*median(serialize(movstd(sensor_ph0, 5)), 'omitnan'))]);
             for i = 1 : numel(bad_id)
                 % analize current arc
                 sensor_tmp = sensor_ph(:, bad_id(i));
@@ -1314,7 +1314,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 sensor_ph = sensor_ph0;
             end
-            
+             if false
             % --------------------------------------------------------------------------------------------
             % detection on arc edges
             % flag out for more than 4 cm are bad phases,
@@ -1354,6 +1354,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
+            
+             else
+                 der = 1;
+             end
             
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -1448,6 +1452,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SAFE CHOICE: if there is an hole
             %              put a cycle slip
             %--------------------------------------------------------
+            if false
             for o = 1 : size(ph2,2)
                 tmp_ph = ph2(:,o);
                 % Remember that you lost more than 2 hour to find out why a cycle slip was not detected correctly
@@ -1456,14 +1461,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 c_idx = [false ; diff(ph_idx) == -1];
                 poss_slip_idx(c_idx,o) = 1;
             end
-            
+            end
             % if majority of satellites jump set cycle slip on all
             n_obs_ep = sum(~isnan(ph2),2);
             all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
             for c = find(all_but_one')
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
-            
             
             this.sat.outliers_ph_by_ph = sparse((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
             n_out = full(sum(this.sat.outliers_ph_by_ph(:)));
@@ -1605,6 +1609,39 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
             end
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
+        end
+        
+        function repairCycleSlipRough(this)
+            % to be called after a PPP with prceise clock correction
+            [phases, wl,lid] = this.getPhases;
+            residual = phases - this.getSyntPhases;
+            d_res = diff(residual);
+            
+            clock_drift = cumsum( [0 nan2zero(median(d_res', 'omitnan'))]);
+            residual =  bsxfun(@minus, residual', clock_drift)';
+            id = find(lid);
+            cs_old = this.sat.cycle_slip_ph_by_ph;
+            this.sat.cycle_slip_ph_by_ph(:) = false;
+            r = 0;
+            nr = 0;
+            for i = 1 : size(residual,2)
+                res = residual(:,i)./wl(i);
+                cs = [find(cs_old(:,i))'];
+                for c = 1 : length(cs)-1
+                    %res(cs(c):cs(c+1)-1) = res(cs(c):cs(c+1)-1) - round(mean(res(cs(c):cs(c+1)-1),'omitnan'));
+                    idx_bf = find((1:length(res)) < cs(c)& ~isnan(res'),1,'last');
+                    idx_aft = find((1:length(res)) >= cs(c)& ~isnan(res'),1,'first');
+                    if abs(fracFNI(res(idx_aft) -res(idx_bf))) < 0.1 & true %abs(res(idx_aft) -res(idx_bf)) < 1e3
+                        phases(cs(c):end,i) = phases(cs(c):end,i) - round(res(idx_aft) - res(idx_bf))*wl(i);
+                        r = r+1;
+                    else
+                        this.sat.cycle_slip_ph_by_ph(cs(c),i) = true;
+                        nr=nr+1;
+                    end
+                end
+            end
+            this.log.addMarkedMessage(sprintf('%d out of %d cycle slips repaired',r,r+nr));
+            this.setPhases(phases, wl, lid);
         end
         
         function cycleSlipPPPres(this)
@@ -2505,7 +2542,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Find the valid epoch that are close to the nominal at the requested rate (aka do not read the entire file)
                 t_rel = nominal.getRefTime(floor(nominal.first.getMatlabTime));
                 t_rel_ss = nominal_ss.getRefTime(floor(nominal.first.getMatlabTime));
-                [~, to_keep_ep] = intersect(round(t_rel * 1e5), round(t_rel_ss * 1e5));
+                [~, to_keep_ep] = intersect(uint64(round(t_rel * 1e5)), uint64(round(t_rel_ss * 1e5)));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -2648,8 +2685,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                             line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                             % try with sscanf
                             line = line(data_pos(1 : numel(line)));
-                            data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                            obs(obs_line(1:size(data,1)), tid(e)) = data;
+                            n_o = numel(line)/14;
+                            if abs((n_o) - round(n_o) ) < 1e-14
+                                data = sscanf(reshape(line, 14, n_o), '%f');
+                                if size(data,1) <= numel(obs_line)
+                                    obs(obs_line(1:size(data,1)), tid(e)) = data;
+                                end
+                            end
                         end
                         % alternative approach with textscan
                         %data = textscan(line, '%14.3f%1d%1d');
@@ -4417,7 +4459,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 if sum(ph_idx) > 0
                                     obs((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
                                     snr((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
-                                    cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_ph_by_ph(:,ph_idx)';
+                                    cycle_slips((s-1)*n_opt+i,this.sat.cycle_slip_ph_by_ph(:,ph_idx)') = true;
                                 end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
@@ -4635,7 +4677,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
                 % check if there are observation for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1) & system == this.system') > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1) & system == this.system') > 0
                     is_present(i) = true;
                 end
             end
@@ -4663,7 +4705,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
                 % check if there are observations for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1) & this.system' == system) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)  & this.system' == system) > 0
                     is_present(i) = true;
                 end
             end
@@ -4683,7 +4725,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
                 % check if there are observation for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1) & sys_c == this.system') > 0  && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1) & sys_c == this.system') > 0
                     is_present(i) = true;
                 end
             end
@@ -4776,26 +4818,30 @@ classdef Receiver_Work_Space < Receiver_Commons
             gf_ph.obs = this.smoothSatData([], [], zero2nan(gf_ph.obs), false(size(gf_ph.cycle_slip)), [], 300 / gf_ph.time.getRate); % <== supposing no more cycle slips
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
-            ifree = cc.getSys(sys_c).getIonoFree();
+            band_ids =  [cc.getBand(sys_c,gf_ph.obs_code(1,3)) cc.getBand(sys_c,gf_ph.obs_code(1,6))];
+            ifree = cc.getSys(sys_c).getIonoFree(band_ids);
+            band_id = find(band_ids ==  cc.getBand(sys_c, obs_type(2)));
             coeff = [ifree.alpha2 ifree.alpha1];
             fun1 = @(wl1, wl2) 1;
-            band = cc.getBand(sys_c, obs_type(2));
-            fun2 = @(wl1, wl2) + coeff(band);
+            fun2 = @(wl1, wl2) + coeff(band_id);
             [obs_set] =  this.getTwoFreqComb(obs_set1, gf_ph, fun1, fun2);
             obs_set.iono_free = true;
-            synt_ph = this.getSyntTwin(obs_set);
-            %%% tailored outlier detection
-            sensor_ph = Core_Utils.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
-            sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
-            %
-            %             % subtract median (clock error)
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            %
-            %
-            %             % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > 0.5;
-            poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
-            obs_set.obs(poss_out_idx) = 0;
+            if false
+                
+                synt_ph = this.getSyntTwin(obs_set);
+                %%% tailored outlier detection
+                sensor_ph = Core_Utils.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
+                sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
+                %
+                %             % subtract median (clock error)
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                %
+                %
+                %             % outlier when they exceed 0.5 cycle
+                poss_out_idx = abs(sensor_ph) > 0.5;
+                poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
+                obs_set.obs(poss_out_idx) = 0;
+            end
             obs_set.obs_code = repmat(gf_ph.obs_code(1,:),length(obs_set.prn),1);
         end
         
@@ -5115,7 +5161,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.wl = [this.wl; wl * ones(size(go_id))];
                 else
                     assert(size(obs, 1) == numel(wl), 'Observation injection input "wl" parameters size error');
-                    this.wl = [this.f_id; wl];
+                    this.wl = [this.wl; wl];
                 end
                 
                 [sys, prn] = this.getSysPrn(go_id);
@@ -6165,6 +6211,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 3 % IONEX
                     this.sat.err_iono = atmo.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
+        end
+        
+        function estimateIonoFromObs(this)
+            % estimate iono dealy from observables, not boring about code
+            % biases
+            this.updateErrIono();
+            this.applyIonoModel();
+            zero_sigma_reg = 1;
+            time_derivative_sigma_reg = 0.001;
+            n_par = this.getMaxSat()*this.time.length;
+            [ph,id,wl] = this.getPhases;
+            [pr,id,wl] = this.getPseudoarnges;
+            
+            
         end
         
         function applyIonoModel(this)
@@ -7504,7 +7564,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sat_mean(i) = perc(noNaN(abs(sensor_bad_sat(:,i))),0.9);
             end
             median_sat_mean = median(sat_mean,'omitnan');
-            bad_sat = sat_mean > 5 * max(median_sat_mean,5);
+            bad_sat = sat_mean > 10 * max(median_sat_mean,5);
             bad_track = abs(sensor) > 1e5;
             
             % the mean of the sensor cannot be too far from the others
@@ -7556,7 +7616,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
-                    id_sync = 1 : this.length();
+                    id_sync = 1 : this.time.length;
                 end
             end
             if nargin < 3
@@ -8037,7 +8097,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
-                            
+                            this.codeStaticPositioning();
+                            this.applyDtRec(this.dt);
+                            this.shiftToNominal;
+                            this.detectOutlierMarkCycleSlip();
                             %this.coarseAmbEstimation();
                             this.pp_status = true;
                         end
@@ -8358,7 +8421,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        this.smoothAndApplyDt(0, false, false, 2);
+                        %this.smoothAndApplyDt(0, false, false, 2);
                         %this.pushResult();
                     end
                 end
