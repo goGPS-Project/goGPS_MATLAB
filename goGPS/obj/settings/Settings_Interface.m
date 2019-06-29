@@ -80,18 +80,28 @@ classdef Settings_Interface < Exportable
             ini = Ini_Manager(file_path, this.export());
         end
 
-        function importIniFile(this, file_path)
+        function [home_reset] = importIniFile(this, file_path)
             % Import from an INI file the content of the Settings object
-            % SYNTAX: this.importIniFile(file_path);
+            %
+            % OUTPUT
+            %   home_reset is empty if the home have not been changed
+            %              otherwise it contains the old path
+            % SYNTAX
+            %   home_reset = this.importIniFile(file_path);
             ini = Ini_Manager(file_path);
             fnp = File_Name_Processor;
             prj_home = fnp.checkPath(ini.getData('prj_home'));
+            home_reset = prj_home;
             if ~isempty(prj_home) && ~exist(prj_home, 'dir')
                 [path_str, ~, ~] = fileparts(fnp.getFullDirPath(file_path));
                 prj_home = fnp.getFullDirPath(strcat(path_str, [filesep '..' filesep]), pwd);
                 if exist(prj_home, 'dir')
-                    ini.setData('prj_home', prj_home);
+                    ini.setData('prj_home', prj_home);                    
+                else
+                    home_reset = '';
                 end
+            else
+                home_reset = '';
             end
             this.import(ini);
         end

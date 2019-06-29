@@ -992,6 +992,76 @@ classdef Core < handle
     
     %% CHECK VALIDITY METHODS
     methods
+        function err_code = resetMissingResources(this, new_home)
+            % Check validity of requiremets
+            %
+            % INPUT
+            %   new_home = new_home
+            %   
+            % SYNTAX
+            %   err_code = resetMissingResources(this, new_home)
+            
+            err_code = this.checkValidity(5, false);
+            state = this.state;
+            if ~exist(new_home, 'dir')
+                mkdir(new_home);
+            end
+            if err_code.ocean ~= 0
+                state.resetPath('ocean_dir', new_home, true);
+            end
+            if err_code.atm ~= 0
+                state.resetPath('atm_load_dir', new_home, true);
+            end
+            if err_code.atx ~= 0
+                state.resetPath('atx_dir', new_home, true);
+            end
+            if err_code.hoi ~= 0
+                state.resetPath('iono_dir', new_home, true);
+                state.resetPath('igrf_dir', new_home, true);
+            end
+            %if err_code.eph ~= 0
+            %    state.resetPath('eph_dir', new_home, true);
+            %end
+            if err_code.clk ~= 0
+                state.resetPath('clk_dir', new_home, true);
+            end
+            if err_code.erp ~= 0
+                state.resetPath('erp_dir', new_home, true);
+            end
+            if err_code.crx ~= 0
+                state.resetPath('crx_dir', new_home, true);
+            end
+            if err_code.dcb ~= 0
+                state.resetPath('dcb_dir', new_home, true);
+            end
+            if err_code.ems ~= 0
+                state.resetPath('ems_dir', new_home, true);
+            end
+            if err_code.geoid_f ~= 0
+                state.resetPath('geoid_dir', new_home, true);
+            end
+            if err_code.iono ~= 0
+                state.resetPath('iono_dir', new_home, true);
+            end
+            if err_code.igrf ~= 0
+                state.resetPath('igrf_dir', new_home, true);
+            end
+            if err_code.vmf ~= 0
+                state.resetPath('vmf_dir', new_home, true);
+            end
+            
+            if err_code.crd ~= 0
+                state.resetPath('crd_dir', new_home, true);
+            end
+            if err_code.eph ~= 0
+                state.resetPath('eph_dir', new_home, true);
+            end
+            if err_code.clk ~= 0
+                state.resetPath('clk_dir', new_home, true);
+            end
+            err_code = this.checkValidity();    
+        end
+        
         function err_code = checkValidity(this, level, flag_verbose)
             % Check validity of requiremets
             %
@@ -1019,9 +1089,12 @@ classdef Core < handle
             err_code.go = 0; % Global ok check
             
             state = this.state;
-            if (level < 5) || (level == 10)
+            if (level < 5) || (level > 10)
                 err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
                 err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);                
+            else
+                err_code.home = 0;
+                err_code.obs = 0;
             end
             
             if (level == 1) || (level > 10)
@@ -1046,9 +1119,7 @@ classdef Core < handle
                 end
             end
             
-            if (level < 5) || (level > 10)
-                err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
-            end
+            err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
             
             if (level < 5) || (level > 10)
                 if this.state.isMet()
@@ -1075,6 +1146,8 @@ classdef Core < handle
                             end
                             err_code.obs_f = -sum(n_ko);
                         end
+                    else
+                        err_code.obs_f = 0;
                     end
                 else
                     if flag_verbose
@@ -1082,10 +1155,12 @@ classdef Core < handle
                     end
                     err_code.met = 0;
                 end
+            else
+                err_code.obs_f = 0;
             end
             
             if state.isOceanLoading
-                err_code.ocean = state.checkDirErr('ocean_dir', 'Ocean loading dir', flag_verbose);
+                err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
             else
                 if flag_verbose
                     this.log.addStatusDisabled('Ocean loading disabled');
@@ -1102,7 +1177,7 @@ classdef Core < handle
                 err_code.atm = 0;
             end
             
-            err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);
+            err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);            
             if state.isHOI
                 err_code.hoi   = state.checkDirErr('igrf_dir', 'International Geomagnetic reference dir', flag_verbose);
             else
@@ -1157,7 +1232,6 @@ classdef Core < handle
             err_code.go = err_code.home + ...
                 err_code.obs + ...
                 (err_code.obs_f < 0) + ...
-                (err_code.ocean < 0) + ...
                 err_code.atx + ...
                 err_code.hoi * state.isHOI;
         end

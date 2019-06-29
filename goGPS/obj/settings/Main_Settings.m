@@ -2655,6 +2655,26 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
         end
         
+        function change_status = resetPath(this, field_name, new_home, flag_verbose)
+            % given a new home path reset the field with the default value
+            %
+            % SYNTAX
+            %   status = this.resetPath(field_name, new_home)
+            fnp = File_Name_Processor();
+            new_dir = strrep(this.(upper(field_name)), '${PRJ_HOME}', new_home);
+            new_dir = fnp.getFullDirPath(new_dir, new_home);
+            change_status = false;
+            % If the path are different
+            if ~strcmp(this.(field_name), new_dir)
+                this.(field_name) = new_dir;
+                change_status = true;
+                if nargin == 4 && flag_verbose
+                    log = Core.getLogger();
+                    log.addWarning(sprintf('Changing %s to "%s"', field_name, new_dir));
+                end
+            end
+        end
+        
         function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file, flag_error)
             % Check the validity of the fields
             %
@@ -2820,7 +2840,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   base_rinex_dir = getRinexBaseDir(this)
-            base_rinex_dir = this.obs_dir();
+            base_rinex_dir = this.obs_dir;
         end
 
         function num_session = getSessionCount(this)
