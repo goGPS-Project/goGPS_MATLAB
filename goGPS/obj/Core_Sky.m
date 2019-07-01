@@ -2019,7 +2019,11 @@ classdef Core_Sky < handle
             end
             for sat = 1 : size(ant(:),1)
                 if ~ant(sat).isEmpty()
-                    this.ant_pco1(:,sat,:) = ant(sat).getPCO([ant(sat).f_code(1) '01'])' * 1e-3;
+                    if Core.getConstellationCollector.getSysPrn(sat) ~= 'I'
+                        this.ant_pco1(:,sat,:) = ant(sat).getPCO([ant(sat).f_code(1) '01'])' * 1e-3;
+                    else
+                        this.ant_pco1(:,sat,:) = ant(sat).getPCO([ant(sat).f_code(1) '05'])' * 1e-3;
+                    end
                 else
                     this.avail(sat) = 0;
                 end
@@ -2415,7 +2419,7 @@ classdef Core_Sky < handle
                         eph_ss(:, 17) = getParNum(5,4); % Omegadot
                         
                         eph_ss(:, 13) = getParNum(6,1); % idot
-                        eph_ss(:, 23) = getParNum(6,2); % code_on_L2
+                        eph_ss(:, 23) = iif(isempty(getParNum(6,2)),0,getParNum(6,2)); % code_on_L2
                         if (sys_c == 'C') % Beidou week have an offset of 1356 weeks
                             eph_ss(:, 24) = GPS_Time.GPS_BDS_WEEK0 + getParNum(6,3); % weekno
                         else
