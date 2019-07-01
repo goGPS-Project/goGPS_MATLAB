@@ -752,6 +752,50 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        
+         function exportTropoCSV(this)
+            % Export the troposphere into a MATLAB data format file
+            % The data exported are:
+            %  - ztd
+            %  - zwd
+            %  - east gradient
+            %  - north gradient
+            %  - time_utc in matlab format
+            %
+            % SYNTAX
+            %   this.exportTropoCSV
+            
+            for r = 1 : numel(this)
+                if max(this(r).quality_info.s0) < 0.10
+                    try
+                        this(r).updateCoordinates;
+                        time = this(r).getTime();
+                        [year, month, day] = this(r).getCentralTime.getCalEpoch();
+                        time.toUtc();
+                        ztd = this(r).getZtd(); %#ok<NASGU>
+                        zwd = this(r).getZwd(); %#ok<NASGU>
+                        [gn,ge ] =  this(r).getGradient(); %#ok<NASGU>
+                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.marker_name sprintf('%04d%02d%02d',year, month,day) '.csv']);
+                        fid = fopen(fname,'w');
+                        n_data = time.length;
+                        fprintf(fid,'Data               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
+                        data = [time.toString('dd/mm/yyyy HH:MM:SS') char(44.*ones(n_data,1)) ...
+                                reshape(sprintf('%12.6f',ztd),12,n_data)' char(44.*ones(n_data,1)) ...
+                                reshape(sprintf('%12.6f',zwd),12,n_data)' char(44.*ones(n_data,1)) ...
+                                reshape(sprintf('%12.6f',ge),12,n_data)' char(44.*ones(n_data,1)) ...
+                                reshape(sprintf('%12.6f',gn),12,n_data)' char(10.*ones(n_data,1))];
+                        fprintf(fid,data');
+                        fclose(fid);
+                        this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                    catch ex
+                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                    end
+                else
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                end
+            end
+        end
+        
         function txt = exportWrfLittleR(this, save_on_disk)
             % export WRF-compatible file (LITTLE_R)
             if nargin == 1
