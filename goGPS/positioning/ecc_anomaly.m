@@ -62,6 +62,9 @@ switch char(Eph(31))
     case 'J'
         %GM = goGNSS.GM_QZS;
         GM = 3.986005e14;
+    case 'I'
+        %GM = goGNSS.GM_QZS;
+        GM = 3.986005e14;
     otherwise
         fprintf('Something went wrong in ecc_anomaly.m\nUnrecongized Satellite system!\n');
         %GM = goGNSS.GM_GPS;

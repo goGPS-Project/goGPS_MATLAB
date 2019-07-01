@@ -65,7 +65,7 @@ classdef IRNSS_SS < Satellite_System
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ IRNSS_SS.F_VEC;
 
-        N_SAT = 7;                    % Maximum number of satellite in the constellation
+        N_SAT = 9;                    % Maximum number of satellite in the constellation
         PRN = (1 : IRNSS_SS.N_SAT)';  % Satellites id numbers as defined in the constellation
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf

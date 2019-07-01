@@ -96,29 +96,32 @@ classdef Core_SEID < handle
                     code_gf(r) = Observation_Set();
                     for sys = systems
                         frqs =  num2str(ref(r).getFreqs(sys));
-                        ph_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
-                        pr_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
-                        wl1_pr = zeros(length(pr_gf_t.go_id),1);
-                        wl2_pr = zeros(length(pr_gf_t.go_id),1);
-                        for i = 1 : length(pr_gf_t.go_id)
-                            l_vec = Core.getConstellationCollector.getWavelength(pr_gf_t.go_id(i));
-                            wl1_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
-                            wl2_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));  
+                        if ~isempty(frqs)
+                            
+                            ph_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                            pr_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                            wl1_pr = zeros(length(pr_gf_t.go_id),1);
+                            wl2_pr = zeros(length(pr_gf_t.go_id),1);
+                            for i = 1 : length(pr_gf_t.go_id)
+                                l_vec = Core.getConstellationCollector.getWavelength(pr_gf_t.go_id(i));
+                                wl1_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                                wl2_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));
+                            end
+                            iono_factor_pr = wl2_pr.^2 - wl1_pr.^2;
+                            
+                            wl1_ph = zeros(length(ph_gf_t.go_id),1);
+                            wl2_ph = zeros(length(ph_gf_t.go_id),1);
+                            for i = 1 : length(ph_gf_t.go_id)
+                                l_vec = Core.getConstellationCollector.getWavelength(ph_gf_t.go_id(i));
+                                wl1_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                                wl2_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));
+                            end
+                            iono_factor_ph = wl2_ph.^2 - wl1_ph.^2;
+                            ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph',size(ph_gf_t.obs,1),1);
+                            pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr',size(pr_gf_t.obs,1),1);
+                            phase_gf(r).merge(ph_gf_t);
+                            code_gf(r).merge(pr_gf_t);
                         end
-                        iono_factor_pr = wl2_pr.^2 - wl1_pr.^2;
-
-                        wl1_ph = zeros(length(ph_gf_t.go_id),1);
-                        wl2_ph = zeros(length(ph_gf_t.go_id),1);
-                        for i = 1 : length(ph_gf_t.go_id)
-                            l_vec = Core.getConstellationCollector.getWavelength(ph_gf_t.go_id(i));
-                            wl1_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
-                            wl2_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));  
-                        end
-                        iono_factor_ph = wl2_ph.^2 - wl1_ph.^2;
-                        ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph',size(ph_gf_t.obs,1),1);
-                        pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr',size(pr_gf_t.obs,1),1);
-                        phase_gf(r).merge(ph_gf_t);
-                        code_gf(r).merge(pr_gf_t);
                     end
                     phase_gf(r).obs(phase_gf(r).cycle_slip > 0) = 0;
                     phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, [], 300 / phase_gf(r).time.getRate); 
@@ -218,10 +221,12 @@ classdef Core_SEID < handle
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
                         for r = 1 : numel(ref)
                             id_sat = trg_go_id(s);
-                            id_ok = (~isnan(id_sync{t}(:,r)));
-                            id_ok_ref = id_sync{t}(id_ok,r);
-                            lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
-                            lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                            if id_sat < size(pierce_point(r).lat,2)
+                                id_ok = (~isnan(id_sync{t}(:,r)));
+                                id_ok_ref = id_sync{t}(id_ok,r);
+                                lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
+                                lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                            end
                             
                         end
                         sys = Core.getConstellationCollector.getSysPrn(trg_go_id(s));
