@@ -1066,10 +1066,12 @@ classdef Core_Sky < handle
             if iscell(dcb_name)
                 dcb_name = dcb_name{1};
             end
-            if instr(dcb_name,'CAS')
-                this.importSinexDCB();
-            else
-                this.importCODEDCB();
+            if ~isempty(dcb_name)
+                if instr(dcb_name,'CAS')
+                    this.importSinexDCB();
+                else
+                    this.importCODEDCB();
+                end
             end
         end
         
