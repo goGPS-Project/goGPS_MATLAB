@@ -469,7 +469,7 @@ classdef File_Wizard < handle
             %     this.conjureFiles(date_start, date_stop, center_name)
             dsa = date_start.getCopy();
             dso = date_stop.getCopy();
-            if (GPS_Time.now() - dso) < (6*3600)
+            if (GPS_Time.now() - dso) < (24*3600)
                 this.nrt = true;
             end
             if nargin < 4
