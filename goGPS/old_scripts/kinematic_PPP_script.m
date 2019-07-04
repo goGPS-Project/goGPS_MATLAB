@@ -7,9 +7,9 @@
 
 % set up the PPP system
 ls = LS_Manipulator();
-id_sync = rec(1).work.getIdSync;
-ls.setUpPPP(rec(1).work,id_sync , core.state.cut_off, true);
-time = rec(1).work.time.getSubSet(id_sync);
+id_sync = rec(2).work.getIdSync;
+ls.setUpPPP(rec(2).work,id_sync , core.state.cut_off, true);
+time = rec(2).work.time.getSubSet(id_sync);
 rate = time.getRate();
 
 % First order tykhonv regularization of tropo paramater, variances defined
@@ -36,9 +36,9 @@ ls.setTimeRegularization(ls.PAR_Z,varz);
 xcoo = x(x(:,2) == ls.PAR_X) + rec(1).work.xyz(1);
 ycoo = x(x(:,2) == ls.PAR_Y) + rec(1).work.xyz(2) ;
 zcoo = x(x(:,2) == ls.PAR_Z) + rec(1).work.xyz(3);
-clock = x(x(:,2) == ls.PAR_REC_CLK) + rec(1).work.getDt;
+clock = x(x(:,2) == ls.PAR_REC_CLK) + rec(2).work.getDt;
 amb = x(x(:,2) == ls.PAR_AMB) ;
-tropo = x(x(:,2) == ls.PAR_TROPO)+ rec(1).work.getZtd;
+tropo = x(x(:,2) == ls.PAR_TROPO)+ rec(2).work.getZtd;
 [gradient_n, gradient_e] = rec(1).work.getGradient;
 gradient_e = x(x(:,2) == ls.PAR_TROPO_E) + gradient_e;
 gradient_n = x(x(:,2) == ls.PAR_TROPO_N) + gradient_n;

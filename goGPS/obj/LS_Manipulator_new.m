@@ -80,6 +80,7 @@ classdef LS_Manipulator_new < handle
         A % obervation
         A_idx
         obs
+        res
         param_class % class id of the colum of A
         time_obs   % epoch of the obervation (GPS_Time)
         satellite_obs % goid satellite of the observation
@@ -122,6 +123,7 @@ classdef LS_Manipulator_new < handle
         idx_rd % idx paramter removed to silve the rank deficency
         ls_parametrization;
         
+        x
         
         log
     end
@@ -291,7 +293,7 @@ classdef LS_Manipulator_new < handle
                     % ----------- save the cycle slips
                     if phase_s(s)
                         %obs_set.cycle_slip(,s) = true;
-                        if any(obs_set.obs(:,s)) 
+                        if any(obs_set.obs(:,s))
                             obs_set.cycle_slip(find(obs_set.obs(:,s) ~= 0, 1, 'first'), s) = true;
                         end
                         this.cycle_slips{r}{s_go_id}{s_s_id} = obs_set.time.getEpoch(find(obs_set.cycle_slip(:, s) & obs_set.obs(:, s) ~= 0));
@@ -420,7 +422,7 @@ classdef LS_Manipulator_new < handle
             this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id paramters
             this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id paramters
             
-            ch_set_old = []; % avoid repating expesnive task 
+            ch_set_old = []; % avoid repating expesnive task
             
             for i_p = 1 : length(this.param_class)
                 col_incr = 0;
@@ -504,11 +506,11 @@ classdef LS_Manipulator_new < handle
                         1575.42*1e6+[-1e5  +1e5];  %  L1b   -> G1, E1, J1, S1
                         1602.000*1e6+[-7*9/16*1e6-1e5  +12*9/16*1e6+1e5];  %  L1c   -> R1
                         2492.028*1e6+[-1e5  +1e5];  %  L9   -> I9
-                       ];
+                        ];
                     wl_bin = fliplr(Core_Utils.V_LIGHT./fr_bin);
                     wl2bnd = zeros(size(this.unique_wl));
                     wl2chid = zeros(size(this.unique_wl));
-
+                    
                     for w = 1 : length(this.unique_wl)
                         b = 1;
                         while wl2bnd(w) == 0
@@ -593,10 +595,10 @@ classdef LS_Manipulator_new < handle
                         
                     end
                     for s = 1 : n_sat_set
-%                         sat_lid = false(size(this.A,1),1);
-%                         for ss = sat_set{s}
-%                             sat_lid = sat_lid | this.satellite_obs == ss;
-%                         end
+                        %                         sat_lid = false(size(this.A,1),1);
+                        %                         for ss = sat_set{s}
+                        %                             sat_lid = sat_lid | this.satellite_obs == ss;
+                        %                         end
                         sat_lid = ismember(this.satellite_obs,sat_set{s});
                         ss = sat_set{s};
                         if length(sat_set{s}) == 1
@@ -616,7 +618,7 @@ classdef LS_Manipulator_new < handle
                                 %                                     ch_lid = ch_lid | this.obs_codes_id_obs == cc;
                                 %                                 end
                                 if ~isequal(ch_set_old,ch_set{f})
-                                    %ch_lid = ismemberBuiltinTypes(this.obs_codes_id_obs,ch_set{f}); 
+                                    %ch_lid = ismemberBuiltinTypes(this.obs_codes_id_obs,ch_set{f});
                                     ch_lid = ismember(this.obs_codes_id_obs, ch_set{f});
                                     ch_set_old = ch_set{f};
                                 end
@@ -677,7 +679,7 @@ classdef LS_Manipulator_new < handle
                                                     ep_pgr_id = 1;
                                                     n_prg_id = 1;
                                                     time_par_tmp = [ep_id(1)*obs_rate ep_id(end)*obs_rate];
-
+                                                    
                                                 end
                                             end
                                         else
@@ -709,7 +711,7 @@ classdef LS_Manipulator_new < handle
                                                 end
                                             end
                                             n_prg_id = p_s - 1;
-                                                                                        
+                                            
                                         end
                                     elseif parametriz(1) == ls_parametrization.SPLINE_ZERO
                                         ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
@@ -771,13 +773,13 @@ classdef LS_Manipulator_new < handle
                 i_col = i_col + col_incr;
             end
             % free allocated space in excess
-            this.time_par((cumulative_idx+1):end,:) =  [];% 
-            this.param_par((cumulative_idx+1):end,:) =  [];% 
-            this.rec_par((cumulative_idx+1):end) =  [];% 
-            this.sat_par((cumulative_idx+1):end) =  [];% 
-            this.class_par((cumulative_idx+1):end) =  [];% 
-            this.obs_codes_id_par((cumulative_idx+1):end) =  [];% 
-              this.wl_id_par((cumulative_idx+1):end) =  [];% 
+            this.time_par((cumulative_idx+1):end,:) =  [];%
+            this.param_par((cumulative_idx+1):end,:) =  [];%
+            this.rec_par((cumulative_idx+1):end) =  [];%
+            this.sat_par((cumulative_idx+1):end) =  [];%
+            this.class_par((cumulative_idx+1):end) =  [];%
+            this.obs_codes_id_par((cumulative_idx+1):end) =  [];%
+            this.wl_id_par((cumulative_idx+1):end) =  [];%
             
             
             
@@ -796,7 +798,7 @@ classdef LS_Manipulator_new < handle
             % remove two bias per receiver
             n_rec = size(this.rec_xyz,1);
             idx_rm = [];
-            if  sum(this.param_class == this.PAR_REC_EB) > 0 
+            if  sum(this.param_class == this.PAR_REC_EB) > 0
                 for r = 1 : n_rec
                     idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r); % one for phase one for code for each constellation ( constalltion beacuse they have in common the same iono paramters)
                     
@@ -886,14 +888,14 @@ classdef LS_Manipulator_new < handle
                     if ~isempty(idx_par_psrange)
                         idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
                         this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
-%                         wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frquency and system
-%                         i = 2;
-%                         while this.wl_id_par(idx_par_psrange(i)) == wl_ref && i < length(idx_par_psrange)
-%                             i = i+1;
-%                         end
-%                         if idx_par_psrange(i) ~= wl_ref
-%                             idx_rm = [idx_rm; uint32(idx_par_psrange(i))];
-%                         end
+                        %                         wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frquency and system
+                        %                         i = 2;
+                        %                         while this.wl_id_par(idx_par_psrange(i)) == wl_ref && i < length(idx_par_psrange)
+                        %                             i = i+1;
+                        %                         end
+                        %                         if idx_par_psrange(i) ~= wl_ref
+                        %                             idx_rm = [idx_rm; uint32(idx_par_psrange(i))];
+                        %                         end
                     end
                     if ~isempty(idx_par_phase)
                         idx_rm = [idx_rm; uint32(idx_par_phase(1))]; % phase only will be dealt afterwords
@@ -912,7 +914,7 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-             % remove one linear trend bias per signal from one recievr
+            % remove one linear trend bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0
                 for e = 1: length(this.unique_obs_codes)
                     idx_par = find(this.class_par == this.PAR_REC_EB_LIN & this.obs_codes_id_par == e);
@@ -938,9 +940,9 @@ classdef LS_Manipulator_new < handle
             
             % for each sat and fro each contiguos set of ambiguity remove
             % one abiguity per set of phase bias
-                            idx_amb_rm_sat = [];
-
-            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0 
+            idx_amb_rm_sat = [];
+            
+            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
                 for s = this.unique_sat_goid
                     idx_par = this.class_par == this.PAR_AMB & this.sat_par == s;
                     idx_par = find(idx_par);
@@ -980,7 +982,7 @@ classdef LS_Manipulator_new < handle
                             if any(ambs)
                                 idx_poss_amb = mode(noZero(ambs(:)));
                                 idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
-                                %n_obs = size(this.A,1) + size(this.A_pseudo,1); n_par = max(max(this.A_idx)); rows = repmat((1:size(this.A,1))',1,size(this.A,2)); A = sparse([rows(:);],zero2n([this.A_idx(:)],1),[this.A(:) this.A_pseudo(:)],n_obs,n_par); A(:,[idx_amb_rm_sat]) = []; 
+                                %n_obs = size(this.A,1) + size(this.A_pseudo,1); n_par = max(max(this.A_idx)); rows = repmat((1:size(this.A,1))',1,size(this.A,2)); A = sparse([rows(:);],zero2n([this.A_idx(:)],1),[this.A(:) this.A_pseudo(:)],n_obs,n_par); A(:,[idx_amb_rm_sat]) = [];
                                 %disp([double(idx_poss_amb)  (rank(full(A)) - size(A,2)) double(eb_arc_tmp(sum(ambs == idx_poss_amb) > 0)) s]);
                                 eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == idx_poss_amb) > 0)) = true;
                             else
@@ -994,7 +996,7 @@ classdef LS_Manipulator_new < handle
             end
             
             % for each rec and for each contiguos set of ambiguity remove one
-            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0 
+            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
                 forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.obs_codes_id_par(idx_amb_rm_sat)); % this ambiguities can not be elemitaing without genrating "tension" in the system
                 for r = 1: size(this.rec_xyz,1);
                     forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
@@ -1092,7 +1094,7 @@ classdef LS_Manipulator_new < handle
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                     idx_par = this.class_par == this.PAR_TROPO & idx_e;
+                    idx_par = this.class_par == this.PAR_TROPO & idx_e;
                     idx_par = find(idx_par);
                     
                     if any(idx_par)
@@ -1101,7 +1103,7 @@ classdef LS_Manipulator_new < handle
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                     idx_par = this.class_par == this.PAR_TROPO_E & idx_e;
+                    idx_par = this.class_par == this.PAR_TROPO_E & idx_e;
                     idx_par = find(idx_par);
                     
                     if any(idx_par)
@@ -1110,7 +1112,7 @@ classdef LS_Manipulator_new < handle
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                     idx_par = this.class_par == this.PAR_TROPO_N & idx_e;
+                    idx_par = this.class_par == this.PAR_TROPO_N & idx_e;
                     idx_par = find(idx_par);
                     
                     if any(idx_par)
@@ -1264,14 +1266,22 @@ classdef LS_Manipulator_new < handle
         end
         
         
-        function solve(this)
+        function solve(this, fix)
+            % %solve the least squares
+            % SYNTAX:
+            %    this.solve(<fix>)
+            % INPUT:
+            %    fix : seek to fix integer parameters
+            if nargin < 2
+                fix = false;
+            end
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
             n_par = max(max(this.A_idx));
             rows = repmat((1:size(this.A,1))',1,size(this.A,2));
             rows_pseudo = repmat(size(this.A,1)+(1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
             A = sparse([rows(:); rows_pseudo(:)],zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1),[this.A(:); this.A_pseudo(:)],n_obs,n_par);
-            %this.idx_rd = [];
+            this.idx_rd = [];
             A(:,this.idx_rd) = [];
             class_par = this.class_par;
             class_par(this.idx_rd) = [];
@@ -1326,7 +1336,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && true
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 n_amb = length(idx_amb);
@@ -1340,7 +1350,7 @@ classdef LS_Manipulator_new < handle
                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
                 is_fixed = false;
-%                 [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_bootstrapping' );
+                %                 [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_bootstrapping' );
                 if is_fixed
                     idx_amb_fixed = idx_amb(l_fixed);
                     n_amb_fixed = sum(l_fixed);
@@ -1351,7 +1361,7 @@ classdef LS_Manipulator_new < handle
                     B = B - sum(Nt * spdiags(amb_fixed(l_fixed,1),0,n_amb_fixed,n_amb_fixed),2);
                     N(idx_amb_fixed,:) = [];
                     N(:,idx_amb_fixed) = [];
-
+                    
                     x_fixed = N\B;
                     x_reduced(idx_amb_fixed) = amb_fixed(l_fixed,1);
                     x_reduced(idx_not_amb_fixed) = x_fixed;
@@ -1389,7 +1399,8 @@ classdef LS_Manipulator_new < handle
             idx_est(this.idx_rd) = false;
             x(idx_est) = x_est;
             res = this.obs - A(1:size(this.A,1),:)*x_est;
-            this.x;
+            this.res = res;
+            this.x = x;
             
         end
         
@@ -1399,48 +1410,58 @@ classdef LS_Manipulator_new < handle
         function res = getResidual(this)
         end
         
-        function setUpSA(this,rec_work,id_sync,flag,param_selction)
+        function setUpSA(this, rec_work, id_sync, flag, param_selction, parametrization)
             % set up single point adjustment
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
             if strcmpi(flag,'???')
-              this.addObsEq(rec_work, rec_work.getObsSet('L??'), param_selction);
-             this.addObsEq(rec_work, rec_work.getObsSet('C??'), param_selction);
+                o_tmp = rec_work.getObsSet('L??');
+                o_tmp.keepEpochs(id_sync);
+                this.addObsEq(rec_work, o_tmp, param_selction);
+                o_tmp = rec_work.getObsSet('C??');
+                o_tmp.keepEpochs(id_sync);
+                this.addObsEq(rec_work, o_tmp, param_selction);
             else
-                this.addObsEq(rec_work, rec_work.getObsSet(flag), param_selction);
+                o_tmp = rec_work.getObsSet(flag);
+                o_tmp.keepEpochs(id_sync);
+                this.addObsEq(rec_work, o_tmp, param_selction);
             end
-            ls_param = LS_Parametrization();
-%             ls_param.tropo(1) = LS_Parametrization.SPLINE_CUB;
-%             ls_param.tropo_opt = struct('spline_rate',900);
-%             ls_param.tropo_e(1) = LS_Parametrization.SPLINE_CUB;
-%             ls_param.tropo_e_opt = struct('spline_rate',3600);
-%             ls_param.tropo_n(1) = LS_Parametrization.SPLINE_CUB;
-%             ls_param.tropo_n_opt = struct('spline_rate',3600);
-            this.bondParamsGenerateIdx(ls_param);
-            this.timeRegularization(this.PAR_TROPO, 1e-6/3600);
-            this.timeRegularization(this.PAR_TROPO_N, 1e-8/3600);
+            if nargin < 6
+                parametrization = LS_Parametrization();
+            end
+            %             ls_param.tropo(1) = LS_Parametrization.SPLINE_CUB;
+            %             ls_param.tropo_opt = struct('spline_rate',900);
+            %             ls_param.tropo_e(1) = LS_Parametrization.SPLINE_CUB;
+            %             ls_param.tropo_e_opt = struct('spline_rate',3600);
+            %             ls_param.tropo_n(1) = LS_Parametrization.SPLINE_CUB;
+            %             ls_param.tropo_n_opt = struct('spline_rate',3600);
+            this.bondParamsGenerateIdx(parametrization);
             
-            this.timeRegularization(this.PAR_TROPO_E, 1e-8/3600);
         end
         
-        function setUpPPP(this,rec_work,id_sync)
+        function setUpPPP(this, rec_work, id_sync, param_selction, parametrization)
             % set up precise point positionign
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
-            param_selction = [this.PAR_REC_X;
-                              this.PAR_REC_Y;
-                              this.PAR_REC_Z;
-                              this.PAR_REC_EB;
-                              this.PAR_AMB;
-                              this.PAR_REC_CLK;
-                              this.PAR_TROPO;
-                              this.PAR_TROPO_N;
-                              this.PAR_TROPO_E;
-                              this.PAR_IONO];  %
-                          
-            this.setUpSA(rec_work,id_sync,'???',param_selction);
+            if nargin < 4 || isempty(param_selction)
+                param_selction = [this.PAR_REC_X;
+                    this.PAR_REC_Y;
+                    this.PAR_REC_Z;
+                    this.PAR_REC_EB;
+                    this.PAR_AMB;
+                    this.PAR_REC_CLK;
+                    this.PAR_TROPO;
+                    this.PAR_TROPO_N;
+                    this.PAR_TROPO_E;
+                    this.PAR_IONO];  %
+            end
+            if nargin < 5
+                parametrization = LS_Parametrization();
+            end
+            
+            this.setUpSA(rec_work, id_sync, '???', param_selction, parametrization);
         end
         
         function setUpIonoFreePPP(this,rec_work,id_sync)
@@ -1449,19 +1470,19 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
             param_selction = [this.PAR_REC_X;
-                              this.PAR_REC_Y;
-                              this.PAR_REC_Z;
-                              this.PAR_REC_EB;
-                              this.PAR_AMB;
-                              this.PAR_REC_CLK;
-                              this.PAR_TROPO;
-                              this.PAR_TROPO_N;
-                              this.PAR_TROPO_E]; 
-           this.addObsEq(rec_work, rec_work.getPrefIonoFree('L','G'), param_selction);
-           this.addObsEq(rec_work, rec_work.getPrefIonoFree('C','G'), param_selction);
-
-           ls_param = LS_Parametrization();
-           this.bondParamsGenerateIdx(ls_param);
+                this.PAR_REC_Y;
+                this.PAR_REC_Z;
+                this.PAR_REC_EB;
+                this.PAR_AMB;
+                this.PAR_REC_CLK;
+                this.PAR_TROPO;
+                this.PAR_TROPO_N;
+                this.PAR_TROPO_E];
+            this.addObsEq(rec_work, rec_work.getPrefIonoFree('L','G'), param_selction);
+            this.addObsEq(rec_work, rec_work.getPrefIonoFree('C','G'), param_selction);
+            
+            ls_param = LS_Parametrization();
+            this.bondParamsGenerateIdx(ls_param);
         end
         
         function setUpNET(this,sta_list,flag)
@@ -1473,12 +1494,12 @@ classdef LS_Manipulator_new < handle
                 this.PAR_REC_Y;
                 this.PAR_REC_Z;
                 this.PAR_REC_EB;
-                this.PAR_REC_EB_LIN;
+                %  this.PAR_REC_EB_LIN;
                 this.PAR_AMB;
                 this.PAR_REC_CLK;
-                this.PAR_TROPO;
-                this.PAR_TROPO_N;
-                this.PAR_TROPO_E;
+                %                 this.PAR_TROPO;
+                %                 this.PAR_TROPO_N;
+                %                 this.PAR_TROPO_E;
                 this.PAR_IONO;
                 this.PAR_SAT_CLK;
                 this.PAR_SAT_EB ];
@@ -1498,6 +1519,18 @@ classdef LS_Manipulator_new < handle
             
         end
         
+        function [time_st, time_end] = getTimePar(this, idx)
+            % get the paramter time as GPS_Time
+            %
+            % SYNTAX:
+            %  [time_st, time_end] = getTimePar(this,idx)
+            if nargin < 2
+                idx = 1:numel(this.time_par);
+            end
+            time_st = this.time_min.getCopy();
+            time_st.addSeconds( double(this.time_par(idx,1)));
+            time_end = this.time_min.getCopy();
+            time_end.addSeconds( double(this.time_par(idx,2)));
+        end
     end
-    
 end
