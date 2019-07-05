@@ -297,7 +297,7 @@ classdef File_Wizard < handle
                         f_struct = this.rm.getFileLoc(file_tree{1});
                         f_name = f_struct.filename;
                         f_path = [f_struct.(['loc' sprintf('%03d',loc_n)]) f_name];
-                        step_s = this.fnp.getStepSec(f_path);
+                        step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                         dsa = this.date_start.getCopy();
                         dso = this.date_stop.getCopy();
                         dsa.addIntSeconds(-step_s);
@@ -348,7 +348,7 @@ classdef File_Wizard < handle
                         this.state.setFile(f_name, this.current_resource);
                         if strcmp(mode, 'local_check')
                             f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
-                            step_s = this.fnp.getStepSec(f_path);
+                            step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                             dsa = this.date_start.getCopy();
                             dso = this.date_stop.getCopy();
                             dsa.addIntSeconds(-step_s);
@@ -374,7 +374,7 @@ classdef File_Wizard < handle
                             
                             for i = 1 : f_struct.loc_number
                                 f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
-                                step_s = this.fnp.getStepSec(f_path);
+                                step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                                 dsa = this.date_start.getCopy();
                                 dso = this.date_stop.getCopy();
                                 dsa.addIntSeconds(-step_s);
@@ -512,8 +512,8 @@ classdef File_Wizard < handle
             % Prepare all the files needed for processing
             
             if ~this.state.isNoResources()
-                this.state.updateNavFileName();
-                this.state.updateErpFileName();
+                %this.state.updateNavFileName();
+                %this.state.updateErpFileName();
                 this.conjureNavFiles(dsa, dso);
                 if this.state.isAutomaticDownload()
                     this.conjureDCBFiles(dsa, dso);

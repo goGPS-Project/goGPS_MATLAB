@@ -3411,7 +3411,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name), this.getHomeDir());
-            step_sec = fnp.getStepSec(file_name);
+            step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
@@ -3431,7 +3431,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             else
                 met_name = this.met_name;
             end
-            step_sec = fnp.getStepSec(met_name);
+            step_sec = min(3*3600, fnp.getStepSec(met_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
 
             if (~isempty(strfind(this.met_dir, fnp.GPS_WD)) || ~isempty(strfind(this.met_dir, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
@@ -3450,7 +3450,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name), this.getHomeDir());
-            step_sec = fnp.getStepSec(file_name);
+            step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
