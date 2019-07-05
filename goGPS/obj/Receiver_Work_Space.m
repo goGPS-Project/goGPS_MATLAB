@@ -8596,7 +8596,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 o_code = mat2cell([this.system(idx_ph)' this.obs_code(idx_ph,:)],ones(sum(idx_ph),1),4);
                 idx_ph = find(idx_ph);
                 [o_ids] = Core_Utils.findAinB(o_code, ls.unique_obs_codes);
-                for s = 1 : n_pr
+                for s = 1 : n_ph
                     idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_ph(s));
                     this.sat.res_ph_by_ph(ep_pr(idx_o),s) = ls.res(idx_o);
                 end

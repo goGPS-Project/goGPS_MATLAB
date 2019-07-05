@@ -723,7 +723,7 @@ classdef LS_Manipulator_new < handle
                                         % ---- colum will be doubled -----
                                         cols_tmp = [ 0 1];
                                         ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
-                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),1);
+                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate)/opt.spline_rate,1);
                                         u_e_tmp = unique([ep_id ep_id+1]);
                                         time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
                                         ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
@@ -737,7 +737,7 @@ classdef LS_Manipulator_new < handle
                                         % ---- colum will be quadrupled -----
                                         cols_tmp = [ 0 1 2 3];
                                         ep_id = floor(time_obs(obs_lid)*obs_rate/opt.spline_rate);
-                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate),3);
+                                        spline_v = Core_Utils.spline(rem(time_obs(obs_lid)*obs_rate,opt.spline_rate)/opt.spline_rate,3);
                                         u_e_tmp = unique([ep_id ep_id+1 ep_id+2 ep_id+3]);
                                         time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
                                         ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
