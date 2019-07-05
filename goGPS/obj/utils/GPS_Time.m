@@ -1622,7 +1622,7 @@ classdef GPS_Time < Exportable & handle
             % SYNTAX
             %   new_obj = last(this, id_subset)
             if (nargin == 1)
-                new_obj = this.getEpoch(1:this.length());
+                new_obj = this.getCopy;
             else
                 if islogical(id_subset)
                     new_obj = this.getEpoch(find(id_subset(1 : this.length())));

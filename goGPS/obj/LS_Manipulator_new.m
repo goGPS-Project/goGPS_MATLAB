@@ -22,7 +22,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giulio Tagliaferro
-%  Contributors:
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -75,52 +75,52 @@ classdef LS_Manipulator_new < handle
     
     properties
         %%% sparse A , this in more efficient than a sparse(slow to index in matlab) because
-        %%% normally all the obervation euation have the same numebr of
+        %%% normally all the observation euation have the same numebr of
         %%% entry
-        A % obervation
+        A % observations
         A_idx
         obs
         res
-        param_class % class id of the colum of A
-        time_obs   % epoch of the obervation (GPS_Time)
-        satellite_obs % goid satellite of the observation
-        receiver_obs % reciver of the obeservation
-        azimuth_obs % azimuth of the observation
-        elevation_obs % elevation of the observation
-        variance_obs % varaince of the observations
+        param_class % class id of the column of A
+        time_obs   % epoch of the observation (GPS_Time)
+        satellite_obs % goid satellite of the observations
+        receiver_obs % receiver of the observations
+        azimuth_obs % azimuth of the observations
+        elevation_obs % elevation of the observations
+        variance_obs % variance of the observations
         obs_codes_id_obs % id of the signal used
-        phase_obs % logical to tle  if obs are phase or code
+        phase_obs % logical to tell if obs are phase or code
         wl_id_obs % id of the wavelength
         
         A_pseudo
         A_idx_pseudo
         time_pseudo   % epoch of the pseudo-observation (GPS_Time)
         satellite_pseudo % goid satellite of the pseudo-observation
-        receiver_pseudo % reciver of the pseudo-observation
+        receiver_pseudo % receiver of the pseudo-observation
         variance_pseudo % varaince of the pseudo-observation
         
-        unique_obs_codes % uniques ids (cell) of the signals  /since lot of combinations are possible they will be generated dynamically)
+        unique_obs_codes % uniques ids (cell) of the signals / since lot of combinations are possible they will be generated dynamically)
         unique_wl % set of unique wavelength
         rec_xyz % receiver coordinates to be used in
-        unique_rec_name % names of the recivers
+        unique_rec_name % names of the receivers
         unique_sat_goid % unique satellite goids
         cycle_slips = cell(1) % epoch of the cycle slip
         
-        time_par   % time of the paramter !!!! very important the parameters (within the same class e.g. time for satellite s ) MUST be ordered in chronological order
-        param_par  % paramtrization of the paramter
+        time_par   % time of the parameter!!! very important the parameters (within the same class e.g. time for satellite s ) MUST be ordered in chronological order
+        param_par  % parametrization of the parameter
         time_min   % ref_time_of the parameter
-        rec_par    % receiver of the paramters
-        sat_par    % staellite of the paramters
-        class_par  % class of the paramter
-        obs_codes_id_par  % obs code id fo the paramter
-        wl_id_par % wl id of the paramter
+        rec_par    % receiver of the parameter
+        sat_par    % satellite of the parameter
+        class_par  % class of the parameter
+        obs_codes_id_par  % obs code id fo the parameter
+        wl_id_par % wl id of the parameter
         
         rec_set % set of receivers
         sat_set % set of satellites
         ch_set  % set of observation codes
         
         N
-        idx_rd % idx paramter removed to silve the rank deficency
+        idx_rd % idx parameter removed to silve the rank deficency
         ls_parametrization;
         
         x
@@ -129,7 +129,7 @@ classdef LS_Manipulator_new < handle
     end
     
     methods
-        function addObsEq(this,rec,obs_set, param_selection)
+        function addObsEq(this, rec, obs_set, param_selection)
             % add observation equations to the matrices
             %
             % SYNTAX:
@@ -143,7 +143,7 @@ classdef LS_Manipulator_new < handle
                 param_selection = this.param_class;
             end
             
-            % --- check all paramters presence and their order -----
+            % --- check all parameters presence and their order -----
             par_rec_x_lid = param_selection == this.PAR_REC_X;
             par_rec_x = sum(par_rec_x_lid) > 0;
             par_rec_y_lid = param_selection == this.PAR_REC_Y;
@@ -392,7 +392,7 @@ classdef LS_Manipulator_new < handle
         end
         
         function bondParamsGenerateIdx(this, ls_parametrization)
-            % bond paramters (splines or other models) and generate idx
+            % bond parameters (splines or other models) and generate idx
             %
             % SYNTAX
             %    this.bondParamGenerateIdx(parametrization)
@@ -415,12 +415,12 @@ classdef LS_Manipulator_new < handle
             
             
             this.time_par = zeros(size(this.A,1),2,'uint32');
-            this.param_par = zeros(size(this.A,1),4,'uint8'); % time of the paramter
-            this.rec_par = zeros(size(this.A,1),1,'uint16'); % receiver of the paramters
-            this.sat_par = zeros(size(this.A,1),1,'uint8');  % receiver of the paramters
-            this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the paramter
-            this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id paramters
-            this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id paramters
+            this.param_par = zeros(size(this.A,1),4,'uint8'); % time of the parameter
+            this.rec_par = zeros(size(this.A,1),1,'uint16'); % receiver of the parameters
+            this.sat_par = zeros(size(this.A,1),1,'uint8');  % receiver of the parameters
+            this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the parameter
+            this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
+            this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
             
             ch_set_old = []; % avoid repating expesnive task
             
@@ -580,8 +580,8 @@ classdef LS_Manipulator_new < handle
                     for rr = rec_set{r}
                         rec_lid = rec_lid | this.receiver_obs == rr;
                     end
-                    % find an id for the reciver set to keep track of the
-                    % paramters if recievr is sigle is simply the reciver
+                    % find an id for the receiver set to keep track of the
+                    % parameters if recievr is sigle is simply the receiver
                     % progessince number, otherwise they are negative
                     % number with the index in the receiver set
                     if length(rec_set{r}) == 1
@@ -751,17 +751,17 @@ classdef LS_Manipulator_new < handle
                                     this.A_idx(obs_lid,i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
                                     [u_new_par] = unique(cumulative_idx + ep_pgr_id(:));
                                     
-                                    this.time_par(cumulative_idx+(1:n_prg_id),:) =  uint32(time_par_tmp);% time of the paramter
-                                    this.param_par(cumulative_idx+(1:n_prg_id),:) = repmat(uint8(parametriz),n_prg_id,1);% time of the paramter
-                                    this.rec_par(cumulative_idx+(1:n_prg_id)) = r_id*ones(n_prg_id,1,'uint8');  % receiver of the paramters
-                                    this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'uint8');  % receiver of the paramters
-                                    this.class_par(cumulative_idx+(1:n_prg_id)) =  p*ones(n_prg_id,1,'uint8');  % class of the paramter
-                                    this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = uint8(ch_id)*ones(n_prg_id,1,'uint8');  % obs_code id paramters
+                                    this.time_par(cumulative_idx+(1:n_prg_id),:) =  uint32(time_par_tmp);% time of the parameter
+                                    this.param_par(cumulative_idx+(1:n_prg_id),:) = repmat(uint8(parametriz),n_prg_id,1);% time of the parameter
+                                    this.rec_par(cumulative_idx+(1:n_prg_id)) = r_id*ones(n_prg_id,1,'uint8');  % receiver of the parameters
+                                    this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'uint8');  % receiver of the parameters
+                                    this.class_par(cumulative_idx+(1:n_prg_id)) =  p*ones(n_prg_id,1,'uint8');  % class of the parameter
+                                    this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = uint8(ch_id)*ones(n_prg_id,1,'uint8');  % obs_code id parameters
                                     
                                     if ch_id > 0
-                                        this.wl_id_par(cumulative_idx+(1:n_prg_id)) = uint8(sig2wl(ch_id))*ones(n_prg_id,1,'uint8');  % wavelength id paramters
+                                        this.wl_id_par(cumulative_idx+(1:n_prg_id)) = uint8(sig2wl(ch_id))*ones(n_prg_id,1,'uint8');  % wavelength id parameters
                                     else
-                                        this.wl_id_par(cumulative_idx+(1:n_prg_id)) = zeros(n_prg_id,1,'uint8');  % wavelength id paramters
+                                        this.wl_id_par(cumulative_idx+(1:n_prg_id)) = zeros(n_prg_id,1,'uint8');  % wavelength id parameters
                                     end
                                     cumulative_idx = cumulative_idx + n_prg_id;
                                     col_incr = max(col_incr,length(cols_tmp));
@@ -786,7 +786,7 @@ classdef LS_Manipulator_new < handle
         end
         
         function removeFullRankDeficency(this)
-            % solve full rank deficency removing paramters from the
+            % solve full rank deficency removing parameters from the
             % estimation
             %
             % SYNTAX:
@@ -800,7 +800,7 @@ classdef LS_Manipulator_new < handle
             idx_rm = [];
             if  sum(this.param_class == this.PAR_REC_EB) > 0
                 for r = 1 : n_rec
-                    idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r); % one for phase one for code for each constellation ( constalltion beacuse they have in common the same iono paramters)
+                    idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r); % one for phase one for code for each constellation ( constalltion beacuse they have in common the same iono parameters)
                     
                     
                     idx_par_psrange = false(size(idx_par));
@@ -1021,7 +1021,7 @@ classdef LS_Manipulator_new < handle
                     [~,amb2arc] = ismember(amb2arc_a,u_arc);
                     u_eb = unique(arc2eb);
                     eb_arc_rem = false(size(u_eb));
-                    % if the reciverb bias has been prviously removed do
+                    % if the receiverb bias has been prviously removed do
                     % not remove
                     for ie = 1:length(u_eb)
                         eb_arc_rem(ie) = sum(this.obs_codes_id_par(idx_rm) == u_eb(ie) & this.rec_par(idx_rm) == r & this.class_par(idx_rm) == this.PAR_REC_EB) > 0;
@@ -1134,16 +1134,14 @@ classdef LS_Manipulator_new < handle
         end
         
         
-        
-        
         function absValRegularization(this,p_class, var)
-            % regularize paramters to zero (Tykhnov aka ridge aka L2)
+            % regularize parameters to zero (Tykhnov aka ridge aka L2)
             %
             % this.absValRegularization(param_id, var)
             par_ids = this.parameter_class == p_class;
             u_p_id = unique(this.A_idx(:,par_ids));
             n_par = length(u_p_id);
-            [A_tmp, A_idx_tmp] = deal(zeros(n_par, 2)); % tykhonv regualrization are now limited to two paramters
+            [A_tmp, A_idx_tmp] = deal(zeros(n_par, 2)); % tykhonv regualrization are now limited to two parameters
             A_tmp(:,1) = 1;
             A_idx_tmp(:,1) = u_p_id;
             this.A_pseudo = [this.A_pseudo; A_tmp];
@@ -1262,7 +1260,7 @@ classdef LS_Manipulator_new < handle
         end
         
         function reduceForNuisanceParameters(this, param_id)
-            % reduce for the paramter
+            % reduce for the parameter
         end
         
         
@@ -1520,7 +1518,7 @@ classdef LS_Manipulator_new < handle
         end
         
         function [time_st, time_end] = getTimePar(this, idx)
-            % get the paramter time as GPS_Time
+            % get the parameter time as GPS_Time
             %
             % SYNTAX:
             %  [time_st, time_end] = getTimePar(this,idx)
@@ -1531,6 +1529,16 @@ classdef LS_Manipulator_new < handle
             time_st.addSeconds( double(this.time_par(idx,1)));
             time_end = this.time_min.getCopy();
             time_end.addSeconds( double(this.time_par(idx,2)));
+        end
+    end
+    
+    methods
+        function s0 = getSigma0Ph(this)
+            % Get sigma0 of phase (PPP solution)
+            %
+            % SYNTAX:
+            %  s0 = this.getSigma0Ph()
+            s0 = mean(abs(this.res(this.phase_obs > 0)));
         end
     end
 end

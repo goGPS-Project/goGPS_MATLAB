@@ -8476,8 +8476,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllTOT
                 ls = LS_Manipulator_new();
                 parametrization = LS_Parametrization();
-                [~,int_lim] = this.state.getSessionLimits();
+                [~, int_lim] = this.state.getSessionLimits();
 
+                % Estimate different set of coordinates for the left and write buffer
                 if this.state.isSepCooAtBoundaries
                     parametrization.rec_x(1) = parametrization.STEP_CONST;
                     parametrization.rec_x_opt.steps_set  = int_lim;
@@ -8486,11 +8487,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                     parametrization.rec_z(1) = parametrization.STEP_CONST;
                     parametrization.rec_z_opt.steps_set  = int_lim;
                 end
+                
+                % Estimate different Antenna Phase Center for each frequency/constellation
                 if ~this.state.flag_separate_apc
                     parametrization.rec_x(4) = parametrization.ALL_FREQ;
                     parametrization.rec_y(4) = parametrization.ALL_FREQ;
                     parametrization.rec_z(4) = parametrization.ALL_FREQ;
                 end 
+                
+                % Use spline for estimating ZTD
                 if  this.state.spline_tropo_order > 0
                     if this.state.spline_tropo_order == 1
                         parametrization.tropo(1) = parametrization.SPLINE_LIN;
@@ -8500,7 +8505,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     parametrization.tropo_opt.spline_rate = this.state.spline_rate_tropo;
                 end
-                
+                                
+                % Use spline for estimating ZTD gradients
                 if  this.state.spline_tropo_gradient_order > 0
                     if this.state.spline_tropo_order == 1
                         parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
@@ -8512,16 +8518,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                     parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo_gradient;
                 end
                 
+                % Prepare the LS object
                 ls.setUpPPP(this, this.getIdSync, [], parametrization)
                 
-                
+                % Set up time dependent regularizations for the tropospheric parameters
                 ls.timeRegularization(ls.PAR_TROPO, (this.state.std_clock)^2 / 3600);
                 ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
                 ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 
-                
+                % Solve the LS problem
                 ls.solve();
-                s0 = mean(abs(ls.res(ls.phase_obs > 0)));
+                
+                % Compute sigma0 of the estimation
+                s0 = ls.getSigma0Ph();
                 
                 if isempty(this.zwd) || all(isnan(this.zwd))
                     this.zwd = zeros(this.time.length(), 1, 'single');
