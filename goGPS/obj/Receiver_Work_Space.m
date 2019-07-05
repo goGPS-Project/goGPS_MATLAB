@@ -8536,99 +8536,45 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Compute sigma0 of the estimation
                 s0 = ls.getSigma0Ph();
                 
+                % ZWD is not present
                 if isempty(this.zwd) || all(isnan(this.zwd))
                     this.zwd = zeros(this.time.length(), 1, 'single');
                 end
+                
+                % a-priori ZHD is not present
                 if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
                     this.apr_zhd = zeros(this.time.length(),1, 'single');
                 end
+                
+                % ZTD is not present
                 if isempty(this.ztd) || all(isnan(this.ztd))
                     this.ztd = zeros(this.time.length(),1, 'single');
                 end
-                
-                n_sat = size(this.sat.el,2);
-                if isempty(this.sat.slant_td)
-                    this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
-                end
+                                                
                 if s0 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                 end
+                
                 if s0 < 0.5 % with over 50cm of error the results are not meaningfull
-                % substitute back coo
-                idx_x = ls.class_par == ls.PAR_REC_X;
-                if sum(idx_x) > 0
-                    x_coo = ls.x(idx_x);
-                    [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                    idx_save = x_coo_time1 - int_lim.first > -eps & x_coo_time2 - int_lim.last < eps;
-                    cox = mean(x_coo(idx_save));
-                else
-                    cox = 0;
-                end
-                idx_y = ls.class_par == ls.PAR_REC_Y;
-                if sum(idx_y) > 0
-                    y_coo = ls.x(idx_y);
-                    [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
-                    idx_save = y_coo_time1 - int_lim.first > -eps & y_coo_time2 - int_lim.last < eps;
-                    coy = mean(y_coo(idx_save));
                     
-                else
-                    coy = 0;
-                end
-                
-                idx_z = ls.class_par == ls.PAR_REC_Z;
-                if sum(idx_z) > 0
-                    z_coo = ls.x(idx_z);
-                    [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
-                    idx_save = z_coo_time1 - int_lim.first > -eps & z_coo_time2 - int_lim.last < eps;
-                    coz = mean(z_coo(idx_save));
+                    % Push coordinates from LS object to rec
+                    idx_x = ls.class_par == ls.PAR_REC_X;
+                    if sum(idx_x) > 0
+                        x_coo = ls.x(idx_x);
+                        [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
+                        idx_save = x_coo_time1 - int_lim.first > -eps & x_coo_time2 - int_lim.last < eps;
+                        cox = mean(x_coo(idx_save));
+                    else
+                        cox = 0;
+                    end
                     
-                else
-                    coz = 0;
-                end
-                
-                coo = [cox coy coz];
-                this.xyz = this.xyz + coo;
-                
-                % substitute back residuals
-                idx_pr = this.obs_code(:,1) == 'C' ;
-                n_pr = sum(this.obs_code(:,1) == 'C' );
-                this.sat.res_pr_by_pr = zeros(this.time.length, n_pr, 'single');
-                o_code = mat2cell([this.system(idx_pr)' this.obs_code(idx_pr,:)],ones(sum(idx_pr),1),4);
-                idx_pr = find(idx_pr);
-                [o_ids] = Core_Utils.findAinB(o_code, ls.unique_obs_codes);
-                [~,ep_pr] = ismember(ls.time_obs.getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                for s = 1 : n_pr
-                    idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_pr(s));
-                    this.sat.res_pr_by_pr(ep_pr(idx_o),s) = ls.res(idx_o);
-                end
-                
-                idx_ph = this.obs_code(:,1) == 'L' ;
-                n_ph = sum(idx_ph);
-                this.sat.res_ph_by_ph = zeros(this.time.length, n_pr, 'single');
-                [~,~,idx] = this.getPhases();
-                o_code = mat2cell([this.system(idx_ph)' this.obs_code(idx_ph,:)],ones(sum(idx_ph),1),4);
-                idx_ph = find(idx_ph);
-                [o_ids] = Core_Utils.findAinB(o_code, ls.unique_obs_codes);
-                for s = 1 : n_ph
-                    idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_ph(s));
-                    this.sat.res_ph_by_ph(ep_pr(idx_o),s) = ls.res(idx_o);
-                end
-                %this.sat.res_ph_by_ph(ep_pr + ls.sat_ob = zeros(this.time.length, n_ph, 'single');
-                
-                
-                idx_clk = ls.class_par == ls.PAR_REC_CLK;
-                [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                this.dt(ep_pr) = this.dt(ep_pr) + ls.x(idx_clk)/ Core_Utils.V_LIGHT;
-                
-                
-                if this.state.flag_tropo
-                    zwd = this.getZwd();
-                    zwd_tmp = zeros(size(this.zwd));
-                    zwd_tmp(this.id_sync) = zwd;
-                    if this.state.spline_tropo_order == 0
-                        idx_trp = ls.class_par == ls.PAR_TROPO;
-                        [~,valid_ep] = ismember(ls.getTimePar(idx_trp).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                        tropo =  ls.x(idx_trp);
+                    idx_y = ls.class_par == ls.PAR_REC_Y;
+                    if sum(idx_y) > 0
+                        y_coo = ls.x(idx_y);
+                        [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
+                        idx_save = y_coo_time1 - int_lim.first > -eps & y_coo_time2 - int_lim.last < eps;
+                        coy = mean(y_coo(idx_save));
+                        
                     else
                         idx_trp = ls.class_par == ls.PAR_TROPO;
                         tropo =  ls.x(idx_trp);
@@ -8637,28 +8583,36 @@ classdef Receiver_Work_Space < Receiver_Commons
                         [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
-
+                        
                         tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
                     end
-                    this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
-                    this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
-                    this.pwv = nan(size(this.zwd), 'single');
-                    if ~isempty(this.meteo_data)
-                        degCtoK = 273.15;
-                        [~,Tall, H] = this.getPTH();
-                        % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                        Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                    
+                    idx_z = ls.class_par == ls.PAR_REC_Z;
+                    if sum(idx_z) > 0
+                        z_coo = ls.x(idx_z);
+                        [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
+                        idx_save = z_coo_time1 - int_lim.first > -eps & z_coo_time2 - int_lim.last < eps;
+                        coz = mean(z_coo(idx_save));
                         
-                        % Askne and Nordius formula (from Bevis et al., 1994)
-                        Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-                        
-                        % precipitable Water Vapor
-                        this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                    else
+                        coz = 0;
                     end
-                end
-                if this.state.flag_tropo_gradient
-                    if isempty(this.tgn) || all(isnan(this.tgn))
-                        this.tgn = nan(this.time.length,1);
+                    
+                    coo = [cox coy coz];
+                    this.xyz = this.xyz + coo;
+                    
+                    % Push residuals from LS object to rec
+                    
+                    idx_pr = this.obs_code(:,1) == 'C'; % code residuals
+                    n_pr = sum(this.obs_code(:,1) == 'C' );
+                    this.sat.res_pr_by_pr = zeros(this.time.length, n_pr, 'single');
+                    o_code = mat2cell([this.system(idx_pr)' this.obs_code(idx_pr,:)],ones(sum(idx_pr),1),4);
+                    idx_pr = find(idx_pr);
+                    [o_ids] = Core_Utils.findAinB(o_code, ls.unique_obs_codes);
+                    [~,ep_pr] = ismember(ls.time_obs.getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                    for s = 1 : n_pr
+                        idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_pr(s));
+                        this.sat.res_pr_by_pr(ep_pr(idx_o),s) = ls.res(idx_o);
                     end
                     if this.state.spline_tropo_order == 0
                         idx_trpe = ls.class_par == ls.PAR_TROPO_E;
@@ -8666,14 +8620,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                         [~,valid_ep] = ismember(ls.getTimePar(idx_trpe).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                         getropo =  ls.x(idx_trpe);
                         gntropo =  ls.x(idx_trpn);
-
+                        
                     else
                         idx_trpe = ls.class_par == ls.PAR_TROPO_E;
                         idx_trpn = ls.class_par == ls.PAR_TROPO_N;
                         
                         tropoe =  ls.x(idx_trpe);
                         tropon =  ls.x(idx_trpn);
-
+                        
                         tropo_dt = rem(this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
                         tropo_idx = floor((this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum)/this.state.spline_rate_tropo_gradient);
                         [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
@@ -8682,26 +8636,101 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
                         getropo =sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         gntropo =sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-
+                        
                     end
-                    this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
-                    this.tgn(valid_ep) = nan2zero(this.tgn(valid_ep))  + gntropo;
-                end
-                this.updateErrTropo();
-                
-
-                this.quality_info.s0 = s0;
-                this.quality_info.n_epochs = numel(unique(ls.time_par));
-                this.quality_info.n_obs = size(ls.obs, 1);
-                this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
-                this.quality_info.n_sat = length(unique(ls.sat_par));
-                this.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + ls.satellite_obs), this.quality_info.n_epochs ));
-                
-                if this.state.getAmbFixPPP
-                    this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
-                end
-                
-
+                    %this.sat.res_ph_by_ph(ep_pr + ls.sat_ob = zeros(this.time.length, n_ph, 'single');
+                    
+                    
+                    % Push clock from LS object to rec
+                    idx_clk = ls.class_par == ls.PAR_REC_CLK;
+                    [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                    this.dt(ep_pr) = this.dt(ep_pr) + ls.x(idx_clk)/ Core_Utils.V_LIGHT;
+                    
+                    
+                    % Push tropo from LS object to rec
+                    if this.state.flag_tropo
+                        zwd = this.getZwd();
+                        zwd_tmp = zeros(size(this.zwd));
+                        zwd_tmp(this.id_sync) = zwd;
+                        if this.state.spline_tropo_order == 0
+                            idx_trp = ls.class_par == ls.PAR_TROPO;
+                            [~,valid_ep] = ismember(ls.getTimePar(idx_trp).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                            tropo =  ls.x(idx_trp);
+                        else
+                            idx_trp = ls.class_par == ls.PAR_TROPO;
+                            tropo =  ls.x(idx_trp);
+                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trp).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
+                            [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime.getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
+                            valid_ep = tropo_idx ~=0;
+                            spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
+                            
+                            tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                        end
+                        this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
+                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        this.pwv = nan(size(this.zwd), 'single');
+                        if ~isempty(this.meteo_data)
+                            degCtoK = 273.15;
+                            [~,Tall, H] = this.getPTH();
+                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                            
+                            % Askne and Nordius formula (from Bevis et al., 1994)
+                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                            
+                            % precipitable Water Vapor
+                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                        end
+                    end
+                    
+                    % Push tropo gradients from LS object to rec
+                    if this.state.flag_tropo_gradient
+                        if isempty(this.tgn) || all(isnan(this.tgn))
+                            this.tgn = nan(this.time.length,1);
+                        end
+                        if this.state.spline_tropo_order == 0
+                            idx_trpe = ls.class_par == ls.PAR_TROPO_E;
+                            idx_trpn = ls.class_par == ls.PAR_TROPO_N;
+                            [~,valid_ep] = ismember(ls.getTimePar(idx_trpe).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                            getropo =  ls.x(idx_trpe);
+                            gntropo =  ls.x(idx_trpn);
+                            
+                        else
+                            idx_trpe = ls.class_par == ls.PAR_TROPO_E;
+                            idx_trpn = ls.class_par == ls.PAR_TROPO_N;
+                            
+                            tropoe =  ls.x(idx_trpe);
+                            tropon =  ls.x(idx_trpn);
+                            
+                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/this.state.spline_rate_tropo_gradient);
+                            [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime.getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
+                            valid_ep = tropo_idx ~=0;
+                            spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
+                            
+                            getropo =sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            gntropo =sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            
+                        end
+                        this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
+                        this.tgn(valid_ep) = nan2zero(this.tgn(valid_ep))  + gntropo;
+                    end
+                    this.updateErrTropo();
+                    
+                    % Push quality info from LS object to rec
+                    this.quality_info.s0 = s0;
+                    this.quality_info.n_epochs = numel(unique(ls.time_par));
+                    this.quality_info.n_obs = size(ls.obs, 1);
+                    this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
+                    this.quality_info.n_sat = length(unique(ls.sat_par));
+                    this.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + ls.satellite_obs), this.quality_info.n_epochs ));
+                    
+                    if this.state.getAmbFixPPP
+                        this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
+                    end
+                    
+                    
                     % -------------------- estimate additional coordinate set
                     if this.state.flag_coo_rate
                         for i = 1 : 3
