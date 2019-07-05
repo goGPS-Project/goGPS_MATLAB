@@ -8476,16 +8476,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllTOT
                 ls = LS_Manipulator_new();
                 parametrization = LS_Parametrization();
-                [~, int_lim] = this.state.getSessionLimits();
+                [out_lim, int_lim] = this.state.getSessionLimits();
 
                 % Estimate different set of coordinates for the left and write buffer
                 if this.state.isSepCooAtBoundaries
+                    steps = out_lim.getEpoch(1);
+                    steps.append(int_lim);
                     parametrization.rec_x(1) = parametrization.STEP_CONST;
-                    parametrization.rec_x_opt.steps_set  = int_lim;
+                    parametrization.rec_x_opt.steps_set{1}  = steps;
+
                     parametrization.rec_y(1) = parametrization.STEP_CONST;
-                    parametrization.rec_y_opt.steps_set  = int_lim;
+                    parametrization.rec_y_opt.steps_set{1}  = steps;
+                    
                     parametrization.rec_z(1) = parametrization.STEP_CONST;
-                    parametrization.rec_z_opt.steps_set  = int_lim;
+                    parametrization.rec_z_opt.steps_set{1}  = steps;
                 end
                 
                 % Estimate different Antenna Phase Center for each frequency/constellation
@@ -8628,9 +8632,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     else
                         idx_trp = ls.class_par == ls.PAR_TROPO;
                         tropo =  ls.x(idx_trp);
-                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trp).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
-                        tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime.getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
+                        tropo_dt = rem(this.time.getNominalTime(this.time.getRate) - ls.getTimePar.minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
+                        tropo_idx = floor((this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
+                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
 
@@ -8670,9 +8674,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         tropoe =  ls.x(idx_trpe);
                         tropon =  ls.x(idx_trpn);
 
-                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
-                        tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/this.state.spline_rate_tropo_gradient);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime.getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
+                        tropo_dt = rem(this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
+                        tropo_idx = floor((this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum)/this.state.spline_rate_tropo_gradient);
+                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
                         

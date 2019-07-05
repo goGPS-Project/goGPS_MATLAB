@@ -691,7 +691,7 @@ classdef LS_Manipulator_new < handle
                                                 for st = steps'
                                                     lid_maj = ep_id >= st;
                                                     ep_pgr_id(lid_maj) = p_s;
-                                                    time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
+                                                    time_par_tmp = [time_par_tmp; [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]]; %start of the arc
                                                     if p_s > 1
                                                         time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
                                                     end
@@ -703,7 +703,7 @@ classdef LS_Manipulator_new < handle
                                                 for st = steps'
                                                     lid_maj = ep_id >= st;
                                                     ep_pgr_id(lid_maj) = p_s;
-                                                    time_par_tmp = [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]; %start of the arc
+                                                    time_par_tmp = [time_par_tmp; [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]]; %start of the arc
                                                     if p_s > 1
                                                         time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
                                                     end
@@ -1523,7 +1523,7 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %  [time_st, time_end] = getTimePar(this,idx)
             if nargin < 2
-                idx = 1:numel(this.time_par);
+                idx = 1:size(this.time_par,1);
             end
             time_st = this.time_min.getCopy();
             time_st.addSeconds( double(this.time_par(idx,1)));
