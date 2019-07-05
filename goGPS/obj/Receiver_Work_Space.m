@@ -8522,7 +8522,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.setUpPPP(this, this.getIdSync, [], parametrization)
                 
                 % Set up time dependent regularizations for the tropospheric parameters
-                ls.timeRegularization(ls.PAR_TROPO, (this.state.std_clock)^2 / 3600);
+                ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
                 ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
                 ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 

@@ -1157,7 +1157,7 @@ classdef LS_Manipulator_new < handle
             %
             % this.timeRegularization(this, param_id, var)
             par_ids = this.param_class == p_class;
-            p_idx = unique(this.A_idx(:,par_ids));
+            p_idx = unique(find(this.class_par == p_class));
             rec_idx = this.rec_par(p_idx);
             u_rec = unique(rec_idx);
             sat_idx = this.sat_par(p_idx);
