@@ -738,7 +738,10 @@ classdef File_Wizard < handle
                                     mget(ftp_server,s1,down_dir);
                                     cd(ftp_server, num2str(year_orig(y)));
                                     s2 = [s2(1:end-2) '_TMP'];
-                                    movefile([down_dir '/' s1], [down_dir '/' s2]);
+                                    [move_success, message] = movefile([down_dir '/' s1], [down_dir '/' s2], 'f');
+                                    if ~move_success
+                                        log.addError(message);
+                                    end
                                     this.log.addWarning(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2]);
                                 end
                             else
@@ -831,7 +834,8 @@ classdef File_Wizard < handle
             %
             % DESCRIPTION:
             %   Download of .CRX files from the AIUB FTP server.
-            %
+            
+            log = Core.getLogger;
             this.log.addMarkedMessage('Checking CRX (Satellite problems file)');
             date_start = date_start.getCopy();
             date_stop = date_stop.getCopy();
@@ -872,8 +876,8 @@ classdef File_Wizard < handle
             try
                 ftp_server = ftp(aiub_ip);
             catch
-                this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
-                this.log.addError('Connection failed.');
+                log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                log.addError('Connection failed.');
                 return
             end
             
@@ -896,11 +900,15 @@ classdef File_Wizard < handle
                 % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
                 % do not do
                 if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
-                    this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                    log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                     %if not(exist([down_dir, '/', s2]) == 2)
                     try
+                        move_success = false;
                         if exist(fullfile(down_dir, s2), 'file') == 2
-                            movefile(fullfile(down_dir, s2), fullfile(down_dir, [s2 '.old']));
+                            [move_success, message] = movefile(fullfile(down_dir, s2), fullfile(down_dir, [s2 '.old']), 'f');
+                            if ~move_success
+                                log.addError(message);
+                            end
                         end
                         try % ARIA2C download
                             clear file_name_lst f_ext_lst;
@@ -912,17 +920,22 @@ classdef File_Wizard < handle
                             % fprintf(ex.message)
                             mget(ftp_server,s2,down_dir);
                             f_status_lst = true;
-                        end                     
+                        end
                         if ~f_status_lst
                             throw(MException('Verify CRX download', 'download error'));
                         end
                     catch ex
-                        this.log.addWarning(sprintf('CRX file have not been updated due to connection problems: %s', ex.message))
+                        log.addWarning(sprintf('CRX file have not been updated due to connection problems: %s', ex.message))
                         if exist(fullfile(down_dir, [s2, '.old']), 'file') == 2
-                            movefile(fullfile(down_dir, [s2 '.old']), fullfile(down_dir, s2));
+                            if move_success
+                                [move_success, message] = movefile(fullfile(down_dir, [s2 '.old']), fullfile(down_dir, s2));
+                                if ~move_success
+                                    log.addError(message);
+                                end
+                            end
                         end
                     end
-                    this.log.addMessage(this.log.indent(sprintf(['Downloaded CRX file: ' s2 '\n'])));
+                    log.addMessage(log.indent(sprintf(['Downloaded CRX file: ' s2 '\n'])));
                 end
                 
                 % cell array with the paths to the downloaded files
@@ -933,7 +946,7 @@ classdef File_Wizard < handle
                 close(ftp_server);
             catch
             end
-            this.log.addStatusOk('CRX files are present ^_^')
+            log.addStatusOk('CRX files are present ^_^')
         end
         
     end

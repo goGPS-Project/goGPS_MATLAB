@@ -238,7 +238,13 @@ classdef Command_Settings < Settings_Interface
             cmd_list = this.cmd_list;
         end
     end
-   
+
+    methods (Access = 'public')
+        function setCommandList(this, cmd_list)
+            this.cmd_list = cmd_list;
+        end
+    end
+
     % =========================================================================
     %  TEST
     % =========================================================================
