@@ -8574,17 +8574,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
                         idx_save = y_coo_time1 - int_lim.first > -eps & y_coo_time2 - int_lim.last < eps;
                         coy = mean(y_coo(idx_save));
-                        
-                    else
-                        idx_trp = ls.class_par == ls.PAR_TROPO;
-                        tropo =  ls.x(idx_trp);
-                        tropo_dt = rem(this.time.getNominalTime(this.time.getRate) - ls.getTimePar.minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
-                        tropo_idx = floor((this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
-                        valid_ep = tropo_idx ~=0;
-                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
-                        
-                        tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
                     end
                     
                     idx_z = ls.class_par == ls.PAR_REC_Z;
@@ -9436,6 +9425,113 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             smt(inan) = nan;
         end
+        
+        function [p_time, id_sync] = getSyncTimeExpanded(rec, p_rate, use_pos_time)
+            % Get the common time among all the receivers
+            %
+            % SYNTAX
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, <p_rate>, <use_pos_time>);
+            %
+            % EXAMPLE:
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, 30);
+
+            if nargin < 3 || isempty(use_pos_time)
+                use_pos_time = false;
+            end
+
+            if sum(~rec.isEmpty_mr) == 0
+                % no valid receiver
+                p_time = GPS_Time;
+                id_sync = [];
+            else
+                if nargin < 2 || isempty(p_rate)
+                    p_rate = 1e-6;
+
+                    for r = 1 : numel(rec)
+                        if (rec(r).work.time.length) > 2
+                            if use_pos_time
+                                p_rate = lcm(round(p_rate * 1e6), round(rec(r).work.time_pos.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                            else
+                                p_rate = lcm(round(p_rate * 1e6), round(rec(r).work.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                            end
+                        end
+                    end
+                end
+
+                % prepare reference time
+                % processing time will start with the receiver with the last first epoch
+                %          and it will stop  with the receiver with the first last epoch
+                
+                out = [rec.work];
+                first_id_ok = find(~out.isEmpty_mr, 1, 'first');
+                if ~isempty(first_id_ok)
+                    if use_pos_time
+                        p_time_zero = round(rec(first_id_ok).work.time_pos.first.getMatlabTime() * 24)/24; % get the reference time for positions
+                    else
+                        p_time_zero = round(rec(first_id_ok).work.time.first.getMatlabTime() * 24)/24; % get the reference time
+                    end
+                end
+
+                % Get all the common epochs
+                t = [];
+                for r = 1 : numel(rec)
+                    if use_pos_time
+                        rec_rate = min(86400, iif(rec(r).work.time_pos.length == 1, 86400, rec(r).work.time_pos.getRate));
+                        t = [t; round(rec(r).work.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate];
+                    else
+                        rec_rate = min(1, rec(r).work.time.getRate);
+                        t = [t; round(rec(r).work.time.getRefTime(p_time_zero) / rec_rate) * rec_rate];
+                    end
+                    % p_rate = lcm(round(p_rate * 1e6), round(rec(r).work.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                end
+                t = unique(t);
+
+                % If p_rate is specified use it
+                if nargin > 1
+                    t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
+                end
+
+                % Create reference time
+                p_time = GPS_Time(p_time_zero, t);
+                id_sync = nan(p_time.length(), numel(rec));
+
+                % Get intersected times
+                for r = 1 : numel(rec)
+                    if use_pos_time
+                        rec_rate = iif(rec(r).work.time_pos.length == 1, 86400, rec(r).work.time_pos.getRate);
+                        [~, id1, id2] = intersect(t, round(rec(r).work.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate);
+                    else
+                        rec_rate = min(1, rec(r).work.time.getRate);
+                        [~, id1, id2] = intersect(t, round(rec(r).work.time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
+                    end
+
+                    id_sync(id1, r) = id2;
+                end
+            end
+        end
+        
+        function [o_codes, id_sync_o] = getCommonObsCode(sta_list)
+            % get comm onservation codes (only phase and pseudoranges)
+            % considering satellites
+            %
+            % SYNTAX:
+            %   [o_codes, id_sync_o] = Receiver_Work_Space.getCommonObsCode(sta_list) 
+            o_codes = [];
+            for r = 1 : length(sta_list)
+                idx_obs = sta_list(r).work.obs_code(:,1) == 'L' | sta_list(r).work.obs_code(:,1) == 'C';
+                o_codes = unique([o_codes; uint64(Core_Utils.code3Char2Num(sta_list(r).work.obs_code(idx_obs, :)))*1000 + uint64(sta_list(r).work.go_id(idx_obs))]);
+            end
+            id_sync_o = nan(numel(o_codes), numel(sta_list));
+            for r = 1 : length(sta_list)
+                idx_obs = sta_list(r).work.obs_code(:,1) == 'L' | sta_list(r).work.obs_code(:,1) == 'C';
+                o_num = uint64(Core_Utils.code3Char2Num(sta_list(r).work.obs_code(idx_obs, :)))*1000 + uint64(sta_list(r).work.go_id(idx_obs));
+                [~,idx] = ismember(o_num, o_codes);
+                id_sync_o(idx,r) = 1:length(idx);
+            end
+            o_codes = [Core_Utils.num2Code3Char(floor(o_codes/1000)) reshape(sprintf('%03d',rem(o_codes,1000)),3,numel(o_codes))'];
+            
+        end
+        
         
         function z_iono = applyMF(obs, mf, reg_alpha)
             % apply a mapping function by LS computation

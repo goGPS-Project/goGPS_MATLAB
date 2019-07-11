@@ -105,6 +105,7 @@ classdef LS_Manipulator_new < handle
         unique_rec_name % names of the receivers
         unique_sat_goid % unique satellite goids
         cycle_slips = cell(1) % epoch of the cycle slip
+        unique_time % unique epoch of the system
         
         time_par   % time of the parameter!!! very important the parameters (within the same class e.g. time for satellite s ) MUST be ordered in chronological order
         param_par  % parametrization of the parameter
@@ -126,6 +127,12 @@ classdef LS_Manipulator_new < handle
         x
         
         log
+    end
+    
+    methods
+        function this = LS_Manipulator_new()
+            this.log = Core.getLogger;
+        end
     end
     
     methods
@@ -845,33 +852,48 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC
-                idx_par = find(this.class_par == this.PAR_REC_EB); %
-                idx_par_psrange = false(size(idx_par));
-                sys_c_par =  zeros(size(idx_par));
-                for i = 1 : length(idx_par)
-                    sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
-                    if this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(2) == 'C'
-                        idx_par_psrange(i) = true;
-                    end
-                end
-                idx_par_phase = idx_par(~idx_par_psrange);
-                sys_c_par_phase = sys_c_par(~idx_par_psrange);
-                sys_c_par_psrange = sys_c_par(idx_par_psrange);
-                idx_par_psrange =  idx_par(idx_par_psrange);
-                if ~isempty(idx_par_psrange)
-                    for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
-                        if sys_c == sys_c_ref
-                            idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
-                        else
-                            idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
-                        end
-                        if~isempty(idx_tmp)
-                            idx_rm = [idx_rm; idx_tmp(1)];
-                        end
-                    end
-                end
+%             if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC
+%                 idx_par = find(this.class_par == this.PAR_REC_EB); %
+%                 idx_par_psrange = false(size(idx_par));
+%                 sys_c_par =  zeros(size(idx_par));
+%                 for i = 1 : length(idx_par)
+%                     sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
+%                     if this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(2) == 'C'
+%                         idx_par_psrange(i) = true;
+%                     end
+%                 end
+%                 idx_par_phase = idx_par(~idx_par_psrange);
+%                 sys_c_par_phase = sys_c_par(~idx_par_psrange);
+%                 sys_c_par_psrange = sys_c_par(idx_par_psrange);
+%                 idx_par_psrange =  idx_par(idx_par_psrange);
+%                 if ~isempty(idx_par_psrange)
+%                     for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
+%                         if sys_c == sys_c_ref
+%                             idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
+%                         else
+%                             idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
+%                         end
+%                         if~isempty(idx_tmp)
+%                             idx_rm = [idx_rm; idx_tmp(1)];
+%                         end
+%                     end
+%                 end
+%             end
+            
+            if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+                % for each satellite if there is not ata least one double frequrency receiver observing the satellite remove the iono paramter, the delay is going to be absorbed by the clock
+                  for s = this.unique_sat_goid
+                      idx_par = find(this.class_par == this.PAR_IONO & this.sat_par == s); % two code biases not from the same frequency
+                      n_freq = numel(unique(this.wl_id_par(idx_par)));
+                      if n_freq == 1
+                            idx_rm = [idx_rm; idx_par];
+                      end
+                  end
+                
+                
             end
+
+            
             
             % remove two bias per satellite
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
@@ -937,6 +959,8 @@ classdef LS_Manipulator_new < handle
                     end
                 end
             end
+            % phase only TBD!!
+            
             
             % for each sat and fro each contiguos set of ambiguity remove
             % one abiguity per set of phase bias
@@ -1138,7 +1162,7 @@ classdef LS_Manipulator_new < handle
             % regularize parameters to zero (Tykhnov aka ridge aka L2)
             %
             % this.absValRegularization(param_id, var)
-            par_ids = this.parameter_class == p_class;
+            par_ids = this.param_class == p_class;
             u_p_id = unique(this.A_idx(:,par_ids));
             n_par = length(u_p_id);
             [A_tmp, A_idx_tmp] = deal(zeros(n_par, 2)); % tykhonv regualrization are now limited to two parameters
@@ -1147,9 +1171,13 @@ classdef LS_Manipulator_new < handle
             this.A_pseudo = [this.A_pseudo; A_tmp];
             this.A_idx_pseudo = [this.A_idx_pseudo; A_idx_tmp];
             this.variance_pseudo = [this.variance_pseudo; var*ones(n_par,1)];
-            this.receiver_pseudo = [this.receiver_pseudo; rec_par(u_p_id)];
-            this.time_pseudo.addEpoch(GPS_Time(this.time_min + this.time_par(u_p_id)));
-            this.satellite_pseudo = [this.satellite_pseudo; sat_par(u_p_id)];
+            this.receiver_pseudo = [this.receiver_pseudo; this.rec_par(u_p_id)];
+            if isempty(this.time_pseudo)
+                this.time_pseudo = GPS_Time(this.time_min.getMatlabTime + this.time_par(u_p_id));
+            else
+                this.time_pseudo.addEpoch(GPS_Time(this.time_min.getMatlabTime + this.time_par(u_p_id)));
+            end
+            this.satellite_pseudo = [this.satellite_pseudo; this.sat_par(u_p_id)];
         end
         
         function timeRegularization(this, p_class, var_per_sec)
@@ -1279,8 +1307,8 @@ classdef LS_Manipulator_new < handle
             rows = repmat((1:size(this.A,1))',1,size(this.A,2));
             rows_pseudo = repmat(size(this.A,1)+(1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
             A = sparse([rows(:); rows_pseudo(:)],zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1),[this.A(:); this.A_pseudo(:)],n_obs,n_par);
-            this.idx_rd = [];
-            A(:,this.idx_rd) = [];
+            %this.idx_rd = [];
+            A(:, this.idx_rd) = [];
             class_par = this.class_par;
             class_par(this.idx_rd) = [];
             vars = [1./this.variance_obs; 1./this.variance_pseudo];
@@ -1299,7 +1327,7 @@ classdef LS_Manipulator_new < handle
             idx_reduce_rec_clk = class_par == this.PAR_REC_CLK;
             idx_reduce_iono = class_par == this.PAR_IONO;
             
-            iono = sum(this.param_class  == this.PAR_IONO) > 0;
+            iono = sum(class_par  == this.PAR_IONO) > 0;
             if iono
                 n_iono = sum(idx_reduce_iono);
                 iIono = spdiags(1./diag(N(idx_reduce_iono,idx_reduce_iono)),0,n_iono,n_iono);
@@ -1310,7 +1338,7 @@ classdef LS_Manipulator_new < handle
                 B = B(~idx_reduce_iono) - Nt * B_iono;
             end
             
-            sat_clk = sum(this.param_class  == this.PAR_SAT_CLK) > 0;
+            sat_clk = sum(class_par  == this.PAR_SAT_CLK) > 0;
             i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
             if sat_clk
                 n_clk_sat = sum(i_sat_clk_tmp);
@@ -1322,13 +1350,16 @@ classdef LS_Manipulator_new < handle
                 B = B(~i_sat_clk_tmp) - Nt * B_satclk;
             end
             
-            i_rec_clk_tmp = idx_reduce_rec_clk(~i_sat_clk_tmp);
-            iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
-            Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
-            Nt = Nx_recclk * iRecClk;
-            N = N(~i_rec_clk_tmp, ~i_rec_clk_tmp) - Nt * N(i_rec_clk_tmp, ~i_rec_clk_tmp);
-            B_recclk = B(i_rec_clk_tmp);
-            B = B(~i_rec_clk_tmp) - Nt * B_recclk;
+            rec_clk = sum(class_par  == this.PAR_REC_CLK) > 0;
+            if rec_clk
+                i_rec_clk_tmp = idx_reduce_rec_clk(~i_sat_clk_tmp);
+                iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
+                Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
+                Nt = Nx_recclk * iRecClk;
+                N = N(~i_rec_clk_tmp, ~i_rec_clk_tmp) - Nt * N(i_rec_clk_tmp, ~i_rec_clk_tmp);
+                B_recclk = B(i_rec_clk_tmp);
+                B = B(~i_rec_clk_tmp) - Nt * B_recclk;
+            end
             
             x_reduced = N\B;
             
@@ -1344,11 +1375,10 @@ classdef LS_Manipulator_new < handle
                 idx_rm_line(idx_amb) = false;
                 C_amb_amb(idx_rm_line,:) = [];
                 amb_float = x_reduced(idx_amb);
-                amb_fixed = amb_float;
-                l_fixed = abs(fracFNI(amb_float)) < 0.1;
-                amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
-                is_fixed = false;
-                %                 [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_bootstrapping' );
+%                 amb_fixed = amb_float;
+%                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
+%                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
+                [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
                 if is_fixed
                     idx_amb_fixed = idx_amb(l_fixed);
                     n_amb_fixed = sum(l_fixed);
@@ -1371,9 +1401,11 @@ classdef LS_Manipulator_new < handle
             x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
             
             % receiver clcok
-            B_recclk = B_recclk - sum(Nx_recclk' * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
-            x_rec_clk = iRecClk * B_recclk;
-            x_est(idx_reduce_rec_clk) = x_rec_clk;
+            if rec_clk
+                B_recclk = B_recclk - sum(Nx_recclk' * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
+                x_rec_clk = iRecClk * B_recclk;
+                x_est(idx_reduce_rec_clk) = x_rec_clk;
+            end
             
             % satellite clcok
             if sat_clk
@@ -1435,6 +1467,7 @@ classdef LS_Manipulator_new < handle
             %             ls_param.tropo_n(1) = LS_Parametrization.SPLINE_CUB;
             %             ls_param.tropo_n_opt = struct('spline_rate',3600);
             this.bondParamsGenerateIdx(parametrization);
+            this.removeFullRankDeficency();
             
         end
         
@@ -1483,38 +1516,87 @@ classdef LS_Manipulator_new < handle
             this.bondParamsGenerateIdx(ls_param);
         end
         
-        function setUpNET(this,sta_list,flag)
+        function setUpNET(this, sta_list, coo_rate, flag, param_selction, parametrization)
             % set up single point adjustment
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
+            if nargin < 4
             param_selction = [this.PAR_REC_X ;
                 this.PAR_REC_Y;
                 this.PAR_REC_Z;
                 this.PAR_REC_EB;
+                this.PAR_IONO;
                 %  this.PAR_REC_EB_LIN;
                 this.PAR_AMB;
                 this.PAR_REC_CLK;
-                %                 this.PAR_TROPO;
-                %                 this.PAR_TROPO_N;
-                %                 this.PAR_TROPO_E;
-                this.PAR_IONO;
+                this.PAR_TROPO;
+                this.PAR_TROPO_N;
+                this.PAR_TROPO_E;
                 this.PAR_SAT_CLK;
                 this.PAR_SAT_EB ];
+            end
+            if nargin < 5
+               parametrization = LS_Parametrization();
+            end
+            % get time common at least to two receiver
+            [p_time, id_sync] = Receiver_Work_Space.getSyncTimeExpanded(sta_list, coo_rate);
+            id_rem = sum(~isnan(id_sync),2) <= 1; 
+            p_time.remEpoch(id_rem);
+            id_sync(id_rem,:) = [];
+            this.unique_time = p_time;
+            
+            
+            % get observation types common to at least two reciver
+            [o_codes, id_sync_o] = Receiver_Work_Space.getCommonObsCode(sta_list);
+            id_rem_o = find(sum(~isnan(id_sync_o),2) <= 1)'; 
+            %id_sync_o(id_rem_o,:) = nan;
+
+            
+            % add equations
             for r = 1 : length(sta_list)
                 if strcmpi(flag,'???')
-                    this.addObsEq(sta_list(r).work, sta_list(r).work.getObsSet('L??'),param_selction );
-                    this.addObsEq(sta_list(r).work, sta_list(r).work.getObsSet('C??'), param_selction);
+                    o_tmp = sta_list(r).work.getObsSet('L??');
+                    o_tmp.keepEpochs(noNaN(id_sync(:,r)));
+                    for o = id_rem_o
+                        idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
+                        if sum(idx_rm) > 0
+                            o_tmp.removeColumn(idx_rm);
+                            this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
+                        end
+                    end
+                    this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                    o_tmp = sta_list(r).work.getObsSet('C??');
+                    o_tmp.keepEpochs(noNaN(id_sync(:,r)));
+                    for o = id_rem_o
+                        idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
+                        if sum(idx_rm) > 0
+                            o_tmp.removeColumn(idx_rm);
+                            this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
+                            
+                        end
+                    end
+                    this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                else
+                    o_tmp = sta_list(r).work.getObsSet(flag);
+                    o_tmp.keepEpochs(noNaN(id_sync(:,r)));
+                    for o = id_rem_o
+                        idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
+                        if sum(idx_rm) > 0
+                            o_tmp.removeColumn(idx_rm);
+                            this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
+                            
+                        end
+                    end
+                    this.addObsEq(sta_list(r).work, o_tmp, param_selction);
                 end
+                
             end
-            ls_param = LS_Parametrization();
-            %  ls_param.iono(2) = LS_Parametrization.ALL_REC;
-            this.bondParamsGenerateIdx(ls_param);
-            this.timeRegularization(this.PAR_TROPO, 1e-12/3600);
-            this.timeRegularization(this.PAR_TROPO_N, 1e-8/3600);
-            
-            this.timeRegularization(this.PAR_TROPO_E, 1e-8/3600);
-            
+              parametrization.iono(2) = LS_Parametrization.ALL_REC;
+            this.bondParamsGenerateIdx(parametrization);
+                          this.absValRegularization(this.PAR_IONO, 1e4);
+
+            this.removeFullRankDeficency();
         end
         
         function [time_st, time_end] = getTimePar(this, idx)

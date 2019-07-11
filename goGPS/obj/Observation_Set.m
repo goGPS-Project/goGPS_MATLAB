@@ -212,16 +212,18 @@ classdef Observation_Set < handle
                 end
                 this.snr(lid_rem,:) = [];
                 
-                lim = getOutliers(lid_rem);
-                if lim(end) == numel(lid_rem)
-                    lim(end,:) = [];
+                if ~isempty(this.cycle_slip)
+                    lim = getOutliers(lid_rem);
+                    if lim(end) == numel(lid_rem)
+                        lim(end,:) = [];
+                    end
+                    lim(:,2) = lim(:,2) + 1;
+                    for l = 1 : size(lim, 1)
+                        this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
+                    end
+                    this.cycle_slip(lid_rem,:) = [];
                 end
-                lim(:,2) = lim(:,2) + 1;
-                for l = 1 : size(lim, 1)
-                    this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
-                end
-                this.cycle_slip(lid_rem,:) = [];
-                                
+                
                 this.time = this.time.getSubSet(~lid_rem);
             end
         end
@@ -416,7 +418,9 @@ classdef Observation_Set < handle
             if ~isempty(this.az)
                 this.az(:,idx_col) = [];
             end
-            this.cycle_slip(:,idx_col) = [];
+            if ~isempty(this.cycle_slip)
+                this.cycle_slip(:,idx_col) = [];
+            end
             this.snr(:,idx_col) = [];
             this.obs_code(idx_col,:) = [];
             this.wl(idx_col) = [];

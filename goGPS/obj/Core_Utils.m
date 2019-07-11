@@ -357,6 +357,7 @@ classdef Core_Utils < handle
             % Convert a numeric value (float) of a 3 char string
             % SYNTAX
             %   str3 = Core_Utils.num2Code3ch(num)
+            num = double(num);
             str3 = char(zeros(numel(num), 3));
             str3(:,1) = char(floor(num / 2^16));
             num = num - str3(:,1) * 2^16;
