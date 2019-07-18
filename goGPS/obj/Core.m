@@ -407,9 +407,18 @@ classdef Core < handle
             % Return true if GReD Utilities are present
             %
             % SYNTAX
-            %   is_gred = isGReD()
+            %   is_gred = core.isGReD()
             core = Core.getInstance(false, true);
             is_gred = core.is_gred;
+        end
+        
+        function setGReD(is_gred)
+            % Set true if GReD Utilities are present
+            %
+            % SYNTAX
+            %   core.setGReD(is_gred)
+            core = Core.getInstance(false, true);
+            core.is_gred = is_gred;
         end
         
         function rec_list = getRecList()
