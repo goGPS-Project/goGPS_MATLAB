@@ -768,7 +768,7 @@ classdef Core < handle
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
             this.initConfiguration(); % Set up / download observations and navigational files
-            this.log.addMessage('Conjuring all the auxilliary files...');
+            this.log.addMessage('Conjuring all the auxiliary files...');
             rin_list = this.getRinFileList();
             
             fw = File_Wizard;
