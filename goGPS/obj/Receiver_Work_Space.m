@@ -7324,6 +7324,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         t_offset = mean(dt_pr);
                         dt_ph = dt_ph_dj - drifting_pr - t_offset;
                         dt_pr = dt_pr - t_offset;
+                    else
+                        dt_ph = dt_ph_dj;
+                        dt_pr = dt_pr_dj;
                     end
                 end
                 

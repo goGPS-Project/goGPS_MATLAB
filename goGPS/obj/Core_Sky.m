@@ -157,9 +157,7 @@ classdef Core_Sky < handle
                         if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
                             this.addSp3(eph_f_name{i}, clock_in_eph);
                             this.coord = this.coord(1 : find(any(this.coord(:,:,1),2), 1, 'last'),:,:);
-                            if clock_in_eph
-                                this.clock = this.clock(1 : find(any(this.clock(:,:),2), 1, 'last'),:,:);
-                            end
+                            this.clock = this.clock(1 : find(any(this.clock(:,:),2), 1, 'last'),:,:);
                         end
                         this.coord_type = 0; % center of mass
                         this.poly_type = 0; % center of mass
