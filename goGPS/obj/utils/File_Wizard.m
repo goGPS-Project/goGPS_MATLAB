@@ -357,7 +357,20 @@ classdef File_Wizard < handle
                             status = true;
                             f_status_lst = false(length(file_name_lst),1); % file list to be saved in tree with flag of downloaded or not
                             for i = 1 : length(file_name_lst)
-                                f_status = exist(file_name_lst{i}, 'file') == 2;
+                                file_info = dir(file_name_lst{i});
+                                if isempty(file_info)
+                                    f_status = false;
+                                else
+                                    % if the file is empty delete it
+                                    if (file_info.bytes == 0)
+                                        f_status = false;
+                                        this.log.addError(sprintf('"%s" file is empty => deleting it...', [file_name_lst{i}]));
+                                        delete(file_name_lst{i});
+                                    else
+                                        f_status = true;
+                                    end
+                                end
+                                        
                                 f_status_lst(i) = f_status;
                                 status = status && f_status;
                                 if f_status

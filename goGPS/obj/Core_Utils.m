@@ -523,6 +523,19 @@ classdef Core_Utils < handle
                                         this.log.addError('aria2c is not working, is it installed?');
                                     end
                                 end
+                                % Check for zero byte files (download errors)
+                                for f = 1 : numel(fnl)
+                                    [~, out_file_name, out_file_ext] = fileparts(fnl{f});
+                                    out_file_path = [old_od, filesep, out_file_name, out_file_ext];
+                                    if exist(out_file_path, 'file') == 2
+                                        file_info = dir(out_file_path);
+                                        if file_info.bytes == 0
+                                            % the file is empty
+                                            delete(out_file_path)
+                                            this.log.addError(sprintf('%s download failed\nThe file is probably missing', [out_file_name, out_file_ext]));
+                                        end
+                                    end
+                                end    
                                 % open file list for the next set
                                 fid = fopen(file_name, 'w');
                                 str = '';
