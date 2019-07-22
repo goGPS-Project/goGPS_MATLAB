@@ -192,6 +192,9 @@ classdef Core_Sky < handle
                     end
                 end
                 
+                % Interp clock, not necessary since they are always interpolated
+                %this.fillClockGaps('spline');
+                
                 % load erp
                 Core.getLogger.addMarkedMessage('Importing Earth Rotation Parameters');
                 this.importERP(Core.getState.getErpFileName(start_date, stop_date),start_date);
@@ -781,27 +784,63 @@ classdef Core_Sky < handle
             this.coord = zero2nan(this.coord);  % <--- nan is slow for the computation of the polynomial coefficents
         end
                 
-        function fillClockGaps(this)
-            % DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
-            for i = 1 : size(this.clock,2)
-                if not(sum(this.clock(:,i),1) == 0)
-                    empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
-                    n_ep = size(this.clock,1);
-                    if sum(empty_clk_idx) < n_ep && sum(empty_clk_idx) > 0
-                        this.clock(empty_clk_idx,i) = nan;
-                        for hole = find(empty_clk_idx)'
-                            [idx_bf  ] = max((1 : hole)'   .* (this.clock(1 : hole ,i) ./this.clock(1 : hole ,i) ));
-                            [idx_aft ] = min((hole : n_ep)'.* (this.clock(hole : n_ep ,i) ./this.clock(hole : n_ep ,i)));
-                            if isnan(idx_bf)
-                                this.clock(hole,i) =  this.clock(idx_aft,i);
-                            elseif isnan(idx_aft)
-                                this.clock(hole,i) =  this.clock(idx_bf,i);
-                            else
-                                this.clock(hole,i) = ((idx_aft - hole) * this.clock(idx_bf,i) + (hole - idx_bf) * this.clock(idx_aft,i)) / (idx_aft - idx_bf);
+        function fillClockGaps(this, mode)
+            % Fill clock gaps linearly interpolating neighbour clocks
+            %
+            % INPUT
+            %   mode:   mode of interpolation
+            %            - 'custom'    - linear custom made (default)
+            %            - 'previous'  - Previous non-missing entry.
+            %            - 'next'      - Next non-missing entry.
+            %            - 'nearest'   - Nearest non-missing entry.
+            %            - 'linear'    - Linear interpolation of non-missing entries.
+            %            - 'spline'    - Piecewise cubic spline interpolation.
+            %            - 'pchip'     - Shape-preserving piecewise cubic spline interpolation.
+            %            - 'makima'    - modified Akima cubic interpolation.
+            %
+            % SYNTAX
+            %   this.fillClockGaps(mode)
+            %
+            % SEE ALSO:
+            %   fillmissing
+            
+            if nargin == 1
+                mode = 'custom';
+            end
+            if ~exist('fillmissing', 'file')
+                mode = 'custom';
+            end
+            
+            switch mode
+                case {'custom'}
+                    for i = 1 : size(this.clock,2)
+                        if not(sum(this.clock(:,i),1) == 0)
+                            empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
+                            n_ep = size(this.clock,1);
+                            if sum(empty_clk_idx) < n_ep && sum(empty_clk_idx) > 0
+                                this.clock(empty_clk_idx,i) = nan;
+                                for hole = find(empty_clk_idx)'
+                                    [idx_bf  ] = max((1 : hole)'   .* (this.clock(1 : hole ,i) ./this.clock(1 : hole ,i) ));
+                                    [idx_aft ] = min((hole : n_ep)'.* (this.clock(hole : n_ep ,i) ./this.clock(hole : n_ep ,i)));
+                                    if isnan(idx_bf)
+                                        this.clock(hole,i) =  this.clock(idx_aft,i);
+                                    elseif isnan(idx_aft)
+                                        this.clock(hole,i) =  this.clock(idx_bf,i);
+                                    else
+                                        this.clock(hole,i) = ((idx_aft - hole) * this.clock(idx_bf,i) + (hole - idx_bf) * this.clock(idx_aft,i)) / (idx_aft - idx_bf);
+                                    end
+                                end
                             end
                         end
                     end
-                end
+                otherwise
+                    for s = 1 : size(this.clock, 2)
+                        % If there is a good observation and a missing value
+                        if any(this.clock(:,s)) && any(isnan(zero2nan(this.clock(:,s))))
+                            %this.clock(:,s) = fillmissing(zero2nan(this.clock(:,s)), mode, 'EndValues','nearest');
+                            this.clock(:,s) = fillmissing(zero2nan(this.clock(:,s)), mode); % do not extrapolate
+                        end
+                    end
             end
         end
         
