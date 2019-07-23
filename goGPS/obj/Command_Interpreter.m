@@ -104,6 +104,8 @@ classdef Command_Interpreter < handle
         
         PAR_SLAVE     % number of parallel slaves to request
         
+        PAR_M_SEID_PLANE  % Use old approach plane based        
+        
         PAR_S_ALL       % show all plots
         PAR_S_DA        % Data availability
         PAR_S_ENU       % ENU positions
@@ -123,6 +125,7 @@ classdef Command_Interpreter < handle
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+              
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_REC_MAT   % Receiver export parameter matlab format
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
@@ -251,6 +254,11 @@ classdef Command_Interpreter < handle
             this.PAR_BAND.limits = [1 5];
             this.PAR_BAND.accepted_values = [];
 
+            % Method parameter
+            this.PAR_M_SEID_PLANE.name = 'Use original plane based SEID';
+            this.PAR_M_SEID_PLANE.descr = 'PLANE            (flag) use a plane for the interpolation of the geometry free';
+            this.PAR_M_SEID_PLANE.par = '(PLANE)|(plane)|(OLD)|(old)';
+            
             % Show plots
             
             this.PAR_S_ALL.name = 'Show all the plots';
@@ -422,8 +430,8 @@ classdef Command_Interpreter < handle
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
             this.CMD_SEID.rec = 'RT';
-            this.CMD_SEID.par = [];
-            
+            this.CMD_SEID.par = [this.PAR_M_SEID_PLANE];
+
             this.CMD_REMIONO.name = {'REMIONO', 'remove_iono'};
             this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
             this.CMD_REMIONO.rec = 'RT';
@@ -1419,10 +1427,23 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                
+                flag_use_plane = false;
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_SEID_PLANE.par ')*$'], 'once'))
+                        % use the original plane based interpolation
+                        flag_use_plane = true;
+                    end
+                end
+
                 if ~found_ref
                     this.log.addWarning('No reference SEID station found -> nothing to do');
                 else
-                    tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                    if flag_use_plane
+                        tic; Core_SEID.getSyntL2_SEID(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                    else
+                        tic; Core_SEID.getSyntL2_fusion(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                    end
                 end
             end
         end
@@ -1791,6 +1812,10 @@ classdef Command_Interpreter < handle
                     % e.g. T*        all the receivers
                     %      T1,3:5    receiver 1,3,4,5
                     str_rec = tok{t}(2:end);
+                    % end | END | E == n_key
+                    str_rec = strrep(str_rec, 'end', num2str(n_key));
+                    str_rec = strrep(str_rec, 'END', num2str(n_key));
+                    str_rec = strrep(str_rec, 'E', num2str(n_key));
                     take_all = ~isempty(regexp(str_rec,'[\*]*', 'once'));
                     if take_all
                         id_key = 1 : n_key;

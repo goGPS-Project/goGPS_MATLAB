@@ -9392,7 +9392,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 s_c = find(pr_go_id == ph_go_id(s));
                 pr(isnan(ph(:,s)), s_c) = nan;
                 
-                lim = getOutliers(~isnan(ph(:,s)), cs_mat(:,s));
+                lim = getOutliers(~isnan(ph(:,s)) & ~isnan(pr(:,s)), cs_mat(:,s));
                 for l = 1 : size(lim, 1)
                     id_arc = (lim(l,1) : lim(l,2))';
                     
@@ -9418,12 +9418,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             smt = zeros(size(ph_mat));
             n_sat = size(ph_mat,2);
             n_iono = size(pr_mat,1);
-            iono_shell_height = 350e3;
-            iono_mf = 1 ./ sqrt(1 - (GPS_SS.ELL_A / (GPS_SS.ELL_A + iono_shell_height) .* cos(el_rad)) .^ 2);
+            iono_shell_height = 450e3;
+            
+            
+            lat_rad = pi/2; % mean value for latitude
+            h_ortho = 0;  % sea level
+            iono_mf = Core.getAtmosphere.getIonoMF(lat_rad, h_ortho, el_rad, GPS_SS.ELL_A);
             for s = 1 : n_sat
                 ph = ph_mat(:,s);
                 pr = pr_mat(:,s);
-                if any(~isnan(ph) & ~isnan(pr)) & any(amb_idx_mat(:,s))
+                if any(~isnan(ph) & ~isnan(pr)) && any(amb_idx_mat(:,s))
                     amb_idx = amb_idx_mat(:,s);
                     amb_idx = amb_idx - min(amb_idx) + 1;
                     n_amb = double(max(amb_idx));

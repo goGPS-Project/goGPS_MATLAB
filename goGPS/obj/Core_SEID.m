@@ -43,6 +43,10 @@
 %--------------------------------------------------------------------------
 
 classdef Core_SEID < handle
+    
+    properties (Constant)
+        R_TER = 6378137 % from WGS84
+    end
 
     properties % Public Access
         log;
@@ -62,7 +66,16 @@ classdef Core_SEID < handle
     % =========================================================================
 
     methods (Static) % Public Access
-        function getSyntL2(ref, trg)
+        function thin_shell_height = getThinShellHeight()
+            % Get Thin Shell Height from Core_Athmosphere
+            % 
+            % SYNTAX
+            %   thin_shell_height = getThinShellHeight(this)
+            
+            thin_shell_height = Core.getAtmosphere.getThinShellHeight();            
+        end
+            
+        function getSyntL2_SEID(ref, trg)
             % Compute L2 synthetic observations to be injected into the receiver
             %
             % SYNTAX
@@ -71,35 +84,36 @@ classdef Core_SEID < handle
             trg = trg(~trg.isEmpty_mr);
             ref = ref(~ref.isEmpty_mr);
             if ~isempty(trg) && ~isempty(ref)                
+                % rec = [ref trg];
                 rec(1:numel(ref)) = ref;
                 rec(numel(ref) + (1 : numel(trg))) = trg;
+                % Obs type == 2 means ref
                 obs_type(1:numel(ref)) = 2;
+                % Obs type == 0 means trg
                 obs_type(numel(ref) + (1 : numel(trg))) = 0;
-                %%% check if one of the target receiver does have too few
-                %%% epoch
+                
+                % check if one of the target receiver does have too few epochs
                 [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
                 log = Logger.getInstance();
                
-                
-                
-                
-                
-                
+                % get synced tuime
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
-                
                 
                 log.addMarkedMessage('Starting SEID processing')
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
                 systems = unique(ref(1).system);
                 for r = 1 : numel(ref)
-                    phase_gf(r) = Observation_Set();
-                    code_gf(r) = Observation_Set();
+                    ph_ref_gf(r) = Observation_Set();
+                    pr_ref_gf(r) = Observation_Set();
                     for sys = systems
                         frqs =  num2str(ref(r).getFreqs(sys));
                         if ~isempty(frqs)
                             
+                            % Extract geometry free for each reference receiver
                             ph_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
-                            pr_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                            pr_gf_t = ref(r).getGeometryFree(['C' frqs(1)],['C' frqs(2)],sys);
+                            
+                            % Get wavelength factor
                             wl1_pr = zeros(length(pr_gf_t.go_id),1);
                             wl2_pr = zeros(length(pr_gf_t.go_id),1);
                             for i = 1 : length(pr_gf_t.go_id)
@@ -117,226 +131,528 @@ classdef Core_SEID < handle
                                 wl2_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));
                             end
                             iono_factor_ph = wl2_ph.^2 - wl1_ph.^2;
-                            ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph',size(ph_gf_t.obs,1),1);
-                            pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr',size(pr_gf_t.obs,1),1);
-                            phase_gf(r).merge(ph_gf_t);
-                            code_gf(r).merge(pr_gf_t);
+                            
+                            ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph', size(ph_gf_t.obs,1),1);
+                            pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr', size(pr_gf_t.obs,1),1);
+                            
+                            ph_ref_gf(r).merge(ph_gf_t);
+                            pr_ref_gf(r).merge(pr_gf_t);
                         end
                     end
-                    phase_gf(r).obs(phase_gf(r).cycle_slip > 0) = 0;
-                    phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, [], 300 / phase_gf(r).time.getRate); 
+                    ph_ref_gf(r).obs(ph_ref_gf(r).cycle_slip > 0) = 0;
+                    % Smoothing 
+                    %ph_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).cycle_slip, [], 300 / ph_ref_gf(r).time.getRate); 
+                                        
+                    % Smooth code with phase (remove biases)
+                    %[ph_ref_gf(r).obs, ph_ref_gf(r).sigma] = Receiver_Work_Space.smoothCodeWithPhase(zero2nan(pr_ref_gf(r).obs), pr_ref_gf(r).sigma, pr_ref_gf(r).go_id, ...
+                    %                                                                      zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).sigma, ph_ref_gf(r).go_id, ph_ref_gf(r).cycle_slip);
                     
-                    %[phase_gf(r).obs, phase_gf(r).sigma] = Receiver.smoothCodeWithPhase(zero2nan(code_gf(r).obs), code_gf(r).sigma, code_gf(r).go_id, ...
-                    %zero2nan(phase_gf(r).obs), phase_gf(r).sigma, phase_gf(r).go_id, phase_gf(r).cycle_slip);
+                    % Smoothing woth splines
+                    %ph_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
+                    %pr_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(pr_ref_gf(r).obs), [], 'spline', (300 / ref(r).getRate), (300 / ref(r).getRate));
+                    %pr_ref_gf(r).obs = ph_ref_gf(r).obs;
                     
-                    % Smoothing iono
-                    %phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
-                    %code_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(code_gf(r).obs), [], 'spline', (300 / ref(r).getRate), (300 / ref(r).getRate));
-                    %code_gf(r).obs = phase_gf(r).obs;
-                    
+                    % Get pierce point
                     [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
-                    [pierce_point(r).lat, pierce_point(r).lat, pierce_point(r).lat] = deal(nan(size( code_gf(r).az)));
-                    [pierce_point(r).lat(:,code_gf(r).go_id), pierce_point(r).lon(:,code_gf(r).go_id), pierce_point(r).mf(:,code_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
+                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = deal(nan(size(pr_ref_gf(r).az)));
+                    [pierce_point(r).lat(:, pr_ref_gf(r).go_id), pierce_point(r).lon(:, pr_ref_gf(r).go_id), pierce_point(r).mf(:, pr_ref_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, pr_ref_gf(r).az / 180 * pi, zero2nan(pr_ref_gf(r).el / 180 * pi), Core_SEID.getThinShellHeight());
                 end
                 
                 max_sat = 0;
                 for r = 1 : numel(ref)
-                    max_sat = max(max_sat, max(code_gf(r).go_id));
+                    max_sat = max(max_sat, max(pr_ref_gf(r).go_id));
                 end
                 
                 min_gap = 3;
                 
                 % Extract syncronized C4 L4 diff
                 for t = 1 : numel(trg)
-                     if any(any(id_sync{t}))
-                    log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
-                    
-                    max_sat_trg = max(max_sat, max(trg(t).go_id));
-                    
-                    ph_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
-                    pr_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
-                    for r = 1 : numel(ref)
-                        id_ok = find(~isnan(id_sync{t}(:,r)));
-                        id_ok_ref = id_sync{t}(id_ok,r);
-                        ph_gf(id_ok, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_ok_ref, :));
-                        % Import CS and outliers from receivers
-                        for s = 1 : numel(ref(r).ph_idx)
-                            ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                            ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                            %
-                            %                         % fill small gaps
-                            %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
-                            %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
-                            %                         idx = false(size(ph_gf, 1), 1);
-                            %                         for l = 1 : size(lim, 1)
-                            %                             idx(lim(l, 1) : lim(l, 2)) = true;
-                            %                         end
-                            %                         if sum(idx) > 0
-                            %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
-                            %                         end
-                        end
-                        pr_gf(id_ok, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_ok_ref, :));
-                    end
-                    ph_gf_diff = diff(ph_gf);
-                    
-                    % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
-                    % pierce_point(r).lat could have different size receiver by receiver
-                    % indexes convarsion is id = phase_gf(r).go_id
-                    
-                    % % DEBUG: plot
-                    % hold off;
-                    % for r = 1 : numel(ref)
-                    %     % Id of non nan values
-                    %     id_ok = reshape(~isnan(pierce_point(r).lon(:)) & ~isnan(serialize(pr_gf(:, phase_gf(r).go_id, r))), size(pierce_point(r).lat, 1), size(pierce_point(r).lat, 2));
-                    %     tmp = ph_gf_diff(:, phase_gf(r).go_id, r);
-                    %     id_ok(end, :) = false;
-                    %     lat_lim = minMax(pierce_point(r).lat / pi * 180); lat_lim(1) = lat_lim(1) - 0.5; lat_lim(2) = lat_lim(2) + 0.5;
-                    %     lon_lim = minMax(pierce_point(r).lon / pi * 180); lon_lim(1) = lon_lim(1) - 0.5; lon_lim(2) = lon_lim(2) + 0.5;
-                    %     prettyScatter(tmp(id_ok(2 : end, :)), pierce_point(r).lat(id_ok) / pi * 180, pierce_point(r).lon(id_ok) / pi * 180, lat_lim(1), lat_lim(2), lon_lim(1), lon_lim(2), '10m'); hold on; colormap(jet);
-                    % end
-                    ph1 = [];
-                    id_ph = [];
-                    for sys = systems
-                        frqs = num2str(trg(t).getFreqs(sys));
-                        if ~isempty(frqs)
-                            [ph1_t, id_ph_t] = trg(t).getObs(['L' frqs(1) '?'],sys);
-                            ph1 = [ph1; ph1_t];
-                            id_ph = [id_ph; id_ph_t];
-                        end
-                    end
-                    [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
-                    ph1_goid = trg(t).go_id(id_ph)';
-                    trg_go_id = unique(ph1_goid);
-                    [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
-                    
-                    % It is necessary to better sync satellites in view
-                    % this part of the code needs to be improved
-                    trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
-                    trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
-                    wl1 = zeros(max(trg_go_id),1);
-                    wl2 = zeros(max(trg_go_id),1);
-                    band = char(zeros(max(trg_go_id),1));
-                    for s = 1 : numel(trg_go_id)
-                        lat_sat = nan(size(id_sync{t},1), numel(ref));
-                        lon_sat = nan(size(id_sync{t},1), numel(ref));
+                    if any(any(id_sync{t}))
+                        log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
+                                                
+                        % Create a unique matrix containing all the geometry free of the ref receivers ---------------------------------------------------------
+                        max_sat_trg = max(max_sat, max(trg(t).go_id));
+                        ph_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
+                        pr_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
                         for r = 1 : numel(ref)
-                            id_sat = trg_go_id(s);
-                            if id_sat < size(pierce_point(r).lat,2)
-                                id_ok = (~isnan(id_sync{t}(:,r)));
-                                id_ok_ref = id_sync{t}(id_ok,r);
-                                lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
-                                lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                            id_ok = find(~isnan(id_sync{t}(:,r)));
+                            id_ok_ref = id_sync{t}(id_ok,r);
+                            ph_gf(id_ok, ph_ref_gf(r).go_id, r) = zero2nan(ph_ref_gf(r).obs(id_ok_ref, :));
+                            % Import CS and outliers from receivers
+                            for s = 1 : numel(ref(r).ph_idx)
+                                ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                %
+                                %                         % fill small gaps
+                                %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
+                                %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
+                                %                         idx = false(size(ph_gf, 1), 1);
+                                %                         for l = 1 : size(lim, 1)
+                                %                             idx(lim(l, 1) : lim(l, 2)) = true;
+                                %                         end
+                                %                         if sum(idx) > 0
+                                %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
+                                %                         end
+                            end
+                            pr_gf(id_ok, pr_ref_gf(r).go_id, r) = zero2nan(pr_ref_gf(r).obs(id_ok_ref, :));
+                        end
+                        ph_gf_diff = diff(ph_gf);
+                        
+                        % Extract L1 from target ---------------------------------------------------------------------------------------------------------------
+                        % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
+                        % pierce_point(r).lat could have different size receiver by receiver
+                        % indexes conversion is id = ph_ref_gf(r).go_id
+                        
+                        ph1_trg = [];
+                        id_ph = [];
+                        for sys = systems
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            if ~isempty(frqs)
+                                [ph1_t, id_ph_t] = trg(t).getObs(['L' frqs(1) '?'],sys);
+                                ph1_trg = [ph1_trg; ph1_t];
+                                id_ph = [id_ph; id_ph_t];
+                            end
+                        end
+                        [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
+                        ph1_goid = trg(t).go_id(id_ph)';
+                        trg_go_id = unique(ph1_goid);
+                        [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), Core_SEID.getThinShellHeight());
+                        
+                        % Create a unique matrix containing all the pierce_points/mf of the ref receivers (sat by sat) ------- AND INTERPOLATE!!!!! ------------
+                        % It is necessary to better sync satellites in view
+                        % this part of the code needs to be improved
+                        trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
+                        trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
+                        wl1 = zeros(max(trg_go_id),1);
+                        wl2 = zeros(max(trg_go_id),1);
+                        band = char(zeros(max(trg_go_id),1));
+                        
+                        for s = 1 : numel(trg_go_id)
+                            mf_sat = nan(size(id_sync{t},1), numel(ref));
+                            lat_sat = nan(size(id_sync{t},1), numel(ref));
+                            lon_sat = nan(size(id_sync{t},1), numel(ref));
+                            for r = 1 : numel(ref)
+                                id_sat = trg_go_id(s);
+                                if id_sat < size(pierce_point(r).lat,2)
+                                    id_ok = (~isnan(id_sync{t}(:,r)));
+                                    id_ok_ref = id_sync{t}(id_ok,r);
+                                    mf_sat(id_ok, r) = pierce_point(r).mf(id_ok_ref, id_sat);
+                                    lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
+                                    lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                                end
+                            end
+                            
+                            sys = Core.getConstellationCollector.getSysPrn(trg_go_id(s));
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            l_vec = Core.getConstellationCollector.getWavelength(trg_go_id(s));                            
+                            wl1(trg_go_id(s)) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1)); % <- we have that
+                            wl2(trg_go_id(s)) = l_vec(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));  % <- we want to generate that
+                            band(trg_go_id(s)) = Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));
+                            iono_factor = wl2(trg_go_id(s))^2 - wl1(trg_go_id(s))^2;
+                            
+                            % Apply MF (of the ref)
+                            
+                            % CALL INTERPOLATION!!!
+                            trg_pr_gf(id_sync{t}(:,       t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat,             lon_sat,             squeeze(pr_gf(:,trg_go_id(s),:)),       lat_pp(id_sync{t}(:      ,t + numel(ref)), s), lon_pp(id_sync{t}(:      , t + numel(ref)), s), 'plane');
+                            trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end, t + numel(ref)), s), 'plane');
+                            
+                            % Apply (inverse) MF of the (trg)
+                            
+                        end
+                        
+                        % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                        
+                        trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers                        
+                        
+                        %% experimental (fill gaps)
+                        %                     inan = isnan(trg_ph_gf);
+                        %                     for i = trg(t).go_id(id_ph)
+                        %                         trg_ph_gf(:,i) = simpleFill1D(trg_ph_gf(:,i),isnan(trg_ph_gf(:,i)),'linear');
+                        %                     end
+                        %                     trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
+                        
+                        % aesthetic approach
+                        corr_diff = trg_ph_gf;
+                        for s = 1 : size(corr_diff, 2)
+                            lim = getOutliers(~isnan(corr_diff(:,s)));
+                            for l = 1 : size(lim, 1)
+                                id_arc = lim(l,1) : lim(l,2);
+                                trg_ph_gf(id_arc, s) = cumsum(trg_ph_gf(id_arc, s));
+                            end
+                        end                             
+                        
+                        % cumsum approach (faster but ugly)
+                        %inan = isnan(trg_ph_gf);
+                        %trg_ph_gf = cumsum(nan2zero(trg_ph_gf));                        
+                        %trg_ph_gf(inan) = nan;
+                        
+                        %                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                        %                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                        ph2 = nan(size(ph1_trg));
+                        % L1 * wl1 - L2 * wl2 = gf
+                        % L2 = (L1 * wl1 - gf) / wl2;
+                        ph2 = (ph1_trg .* repmat(wl1(trg(t).go_id(id_ph)),1,size(ph1_trg,2)) - trg_ph_gf(:, trg(t).go_id(id_ph))') ./ repmat(wl2(trg(t).go_id(id_ph)),1,size(ph1_trg,2));
+                        
+                        [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                        pr1 = [];
+                        id_pr = [];
+                        for sys = systems
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            if ~isempty(frqs)
+                                [pr1_t, id_pr_t] = trg(t).getObs(['C' frqs(1) '?'],sys);
+                                pr1 = [pr1; pr1_t];
+                                id_pr = [id_pr; id_pr_t];
+                            end
+                        end
+                        pr1_goid = trg(t).go_id(id_pr);
+                        % C2 - C1 = gf
+                        % C2 = C1 + gf
+                        pr2 = pr1 + trg_pr_gf(:, trg(t).go_id(id_pr))';
+                        
+                        %compute ~L2
+                        %fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
+                        
+                        %compute ~P2
+                        %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
+                        
+                        % Remove the L2 stored in the object
+                        for sys = systems
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd(bnd == 0) = [];
+                            [~, id_ph] = trg(t).getObs(['L' bnd],sys);
+                            if ~isempty(id_ph)
+                                log.addMessage(log.indent(sprintf('Removing %sL%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                                trg(t).remObs(id_ph);
                             end
                             
                         end
-                        sys = Core.getConstellationCollector.getSysPrn(trg_go_id(s));
-                        frqs = num2str(trg(t).getFreqs(sys));
-                        l_vec = Core.getConstellationCollector.getWavelength(trg_go_id(s));
-                        wl1(trg_go_id(s)) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1)); % <- we have that
-                        wl2(trg_go_id(s)) = l_vec(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));  % <- we want to generate that
-                        band(trg_go_id(s)) = Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));
-                        iono_factor = wl2(trg_go_id(s))^2 - wl1(trg_go_id(s))^2;
-                        trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
-                        %trg_ph_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(ph_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
-                        trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
                         
-                    end
-                    
-                    % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
-                    
-                    trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
-                    inan = isnan(trg_ph_gf);
-
-                    %% experimental 
-%                     for i = trg(t).go_id(id_ph)
-%                         trg_ph_gf(:,i) = simpleFill1D(trg_ph_gf(:,i),isnan(trg_ph_gf(:,i)),'linear');
-%                     end
-                    trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
-                    inan = isnan(trg_ph_gf);
-                    trg_ph_gf = cumsum(nan2zero(trg_ph_gf));
-                    
-                    trg_ph_gf(inan) = nan;
-                    
-%                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
-%                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
-                    ph2 = nan(size(ph1));
-                    % L1 * wl1 - L2 * wl2 = gf
-                    % L2 = (L1 * wl1 - gf) / wl2;
-                    ph2 = (ph1 .* repmat(wl1(trg(t).go_id(id_ph)),1,size(ph1,2)) - trg_ph_gf(:, trg(t).go_id(id_ph))') ./ repmat(wl2(trg(t).go_id(id_ph)),1,size(ph1,2));
-                    
-                    [~, ~, ~, flag] = trg(t).getBestCodeObs();
-                    pr1 = [];
-                    id_pr = [];
-                    for sys = systems
-                        frqs = num2str(trg(t).getFreqs(sys));
-                        if ~isempty(frqs)
-                            [pr1_t, id_pr_t] = trg(t).getObs(['C' frqs(1) '?'],sys);
-                            pr1 = [pr1; pr1_t];
-                            id_pr = [id_pr; id_pr_t];
-                        end
-                    end
-                    pr1_goid = trg(t).go_id(id_pr);
-                    % C2 - C1 = gf
-                    % C2 = C1 + gf
-                    pr2 = pr1 + trg_pr_gf(:, trg(t).go_id(id_pr))';
-                    
-                    %compute ~L2
-                    %fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
-                    
-                    %compute ~P2
-                    %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
-                    
-                    % Remove the L2 stored in the object
-                    for sys = systems
-                        bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
-                        bnd(bnd == 0) = [];
-                        [~, id_ph] = trg(t).getObs(['L' bnd],sys);
-                        if ~isempty(id_ph)
-                            log.addMessage(log.indent(sprintf('Removing %sL%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
-                            trg(t).remObs(id_ph);
+                        for sys = systems
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd(bnd == 0) = [];
+                            [~, id_pr] = trg(t).getObs(['C' bnd],sys);
+                            if ~isempty(id_pr)
+                                log.addMessage(log.indent(sprintf('Removing %sC%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                                trg(t).remObs(id_pr);
+                            end
                         end
                         
-                    end
-                    
-                    for sys = systems
-                       bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
-                        bnd(bnd == 0) = [];
-                        [~, id_pr] = trg(t).getObs(['C' bnd],sys);
-                        if ~isempty(id_pr)
-                            log.addMessage(log.indent(sprintf('Removing %sC%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
-                            trg(t).remObs(id_pr);
+                        % Inject the new synthesised phase
+                        sys_o = Core.getConstellationCollector.getSysPrn(trg_go_id);
+                        for sys = unique(sys_o)
+                            sys_pr = Core.getConstellationCollector.getSysPrn(pr1_goid);
+                            sys_ph = Core.getConstellationCollector.getSysPrn(ph1_goid);
+                            
+                            
+                            lid_pr = sys_pr == sys;
+                            lid_ph = sys_ph == sys;
+                            
+                            bnd = unique(band(pr1_goid(lid_pr)));
+                            
+                            log.addMessage(log.indent(sprintf('Injecting SEID L%s into target receiver %d / %d', bnd,t, numel(trg))));
+                            trg(t).injectObs(nan2zero(pr2(lid_pr,:)), wl2(pr1_goid(lid_pr))', str2num(bnd),[ 'C' bnd 'F'], pr1_goid(lid_pr));
+                            trg(t).injectObs(nan2zero(ph2(lid_ph,:)), wl2(ph1_goid(lid_ph))', str2num(bnd),[ 'L' bnd 'F'], ph1_goid(lid_ph));
                         end
-                    end
-                    
-                    
-                    % Inject the new synthesised phase
-                    sys_o = Core.getConstellationCollector.getSysPrn(trg_go_id);
-                    for sys = unique(sys_o)
-                        sys_pr = Core.getConstellationCollector.getSysPrn(pr1_goid);
-                        sys_ph = Core.getConstellationCollector.getSysPrn(ph1_goid);
-
-
-                        lid_pr = sys_pr == sys;
-                        lid_ph = sys_ph == sys;
-
-                        bnd = unique(band(pr1_goid(lid_pr)));
+                        %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
+                        %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                         
-                        log.addMessage(log.indent(sprintf('Injecting SEID L%s into target receiver %d / %d', bnd,t, numel(trg))));
-                        trg(t).injectObs(nan2zero(pr2(lid_pr,:)), wl2(pr1_goid(lid_pr))',str2num(bnd),[ 'C' bnd 'F'], pr1_goid(lid_pr));
-                        trg(t).injectObs(nan2zero(ph2(lid_ph,:)), wl2(ph1_goid(lid_ph))', str2num(bnd),[ 'L' bnd 'F'], ph1_goid(lid_ph));
+                        trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
+                        trg(t).updateDetectOutlierMarkCycleSlip();
                     end
-                    %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
-                    %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
-                    
-                    trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
-                    trg(t).updateDetectOutlierMarkCycleSlip();
-                end
                 end
                 log.addMarkedMessage('Syncing times, computing reference time');
-                
             end
-        end               
+        end
                 
+        function getSyntL2_fusion(ref, trg)
+            % Compute L2 synthetic observations to be injected into the receiver
+            %
+            % SYNTAX
+            %   Core_SEID.getSyntL2(ref, trg)
+            %%
+            trg = trg(~trg.isEmpty_mr);
+            ref = ref(~ref.isEmpty_mr);
+            if ~isempty(trg) && ~isempty(ref)                
+                % rec = [ref trg];
+                rec(1:numel(ref)) = ref;
+                rec(numel(ref) + (1 : numel(trg))) = trg;
+                % Obs type == 2 means ref
+                obs_type(1:numel(ref)) = 2;
+                % Obs type == 0 means trg
+                obs_type(numel(ref) + (1 : numel(trg))) = 0;
+                
+                % check if one of the target receiver does have too few epochs
+                [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
+                log = Logger.getInstance();
+               
+                % get synced tuime
+                [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
+                
+                log.addMarkedMessage('Starting SEID processing')
+                log.addMessage(log.indent('Getting Geometry free from reference receivers'));
+                systems = unique(ref(1).system);
+                for r = 1 : numel(ref)
+                    ph_ref_gf(r) = Observation_Set();
+                    pr_ref_gf(r) = Observation_Set();
+                    for sys = systems
+                        frqs =  num2str(ref(r).getFreqs(sys));
+                        if ~isempty(frqs)
+                            
+                            % Extract geometry free for each reference receiver
+                            ph_gf_t = ref(r).getGeometryFree(['L' frqs(1)],['L' frqs(2)],sys);
+                            pr_gf_t = ref(r).getGeometryFree(['C' frqs(1)],['C' frqs(2)],sys);
+                            
+                            % Get wavelength factor
+                            wl1_pr = zeros(length(pr_gf_t.go_id),1);
+                            wl2_pr = zeros(length(pr_gf_t.go_id),1);
+                            for i = 1 : length(pr_gf_t.go_id)
+                                l_vec = Core.getConstellationCollector.getWavelength(pr_gf_t.go_id(i));
+                                wl1_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                                wl2_pr(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));
+                            end
+                            iono_factor_pr = wl2_pr.^2 - wl1_pr.^2;
+                            
+                            wl1_ph = zeros(length(ph_gf_t.go_id),1);
+                            wl2_ph = zeros(length(ph_gf_t.go_id),1);
+                            for i = 1 : length(ph_gf_t.go_id)
+                                l_vec = Core.getConstellationCollector.getWavelength(ph_gf_t.go_id(i));
+                                wl1_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1));
+                                wl2_ph(i) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(2));
+                            end
+                            iono_factor_ph = wl2_ph.^2 - wl1_ph.^2;
+                            
+                            ph_gf_t.obs = ph_gf_t.obs ./ repmat(iono_factor_ph', size(ph_gf_t.obs,1),1);
+                            pr_gf_t.obs = pr_gf_t.obs ./ repmat(iono_factor_pr', size(pr_gf_t.obs,1),1);
+                            
+                            ph_ref_gf(r).merge(ph_gf_t);
+                            pr_ref_gf(r).merge(pr_gf_t);
+                        end
+                    end
+                    ph_ref_gf(r).obs(ph_ref_gf(r).cycle_slip > 0) = 0;
+                    % Smoothing 
+                    %ph_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).cycle_slip, [], 300 / ph_ref_gf(r).time.getRate); 
+                                        
+                    % Smooth code with phase (remove biases)
+                    %[ph_ref_gf(r).obs, ph_ref_gf(r).sigma] = Receiver_Work_Space.smoothCodeWithPhase(zero2nan(pr_ref_gf(r).obs), pr_ref_gf(r).sigma, pr_ref_gf(r).go_id, ...
+                    %                                                                      zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).sigma, ph_ref_gf(r).go_id, ph_ref_gf(r).cycle_slip);
+                    
+                    % Smoothing woth splines
+                    %ph_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
+                    %pr_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(pr_ref_gf(r).obs), [], 'spline', (300 / ref(r).getRate), (300 / ref(r).getRate));
+                    %pr_ref_gf(r).obs = ph_ref_gf(r).obs;
+                    
+                    % Get pierce point
+                    [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
+                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = deal(nan(size(pr_ref_gf(r).az)));
+                    [pierce_point(r).lat(:, pr_ref_gf(r).go_id), pierce_point(r).lon(:, pr_ref_gf(r).go_id), pierce_point(r).mf(:, pr_ref_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, pr_ref_gf(r).az / 180 * pi, zero2nan(pr_ref_gf(r).el / 180 * pi), Core_SEID.getThinShellHeight());
+                end
+                
+                max_sat = 0;
+                for r = 1 : numel(ref)
+                    max_sat = max(max_sat, max(pr_ref_gf(r).go_id));
+                end
+                
+                min_gap = 3;
+                
+                % Extract syncronized C4 L4 diff
+                for t = 1 : numel(trg)
+                    if any(any(id_sync{t}))
+                        log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
+                                                
+                        % Create a unique matrix containing all the geometry free of the ref receivers ---------------------------------------------------------
+                        max_sat_trg = max(max_sat, max(trg(t).go_id));
+                        ph_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
+                        pr_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
+                        for r = 1 : numel(ref)
+                            id_ok = find(~isnan(id_sync{t}(:,r)));
+                            id_ok_ref = id_sync{t}(id_ok,r);
+                            ph_gf(id_ok, ph_ref_gf(r).go_id, r) = zero2nan(ph_ref_gf(r).obs(id_ok_ref, :));
+                            % Import CS and outliers from receivers
+                            for s = 1 : numel(ref(r).ph_idx)
+                                ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                %
+                                %                         % fill small gaps
+                                %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
+                                %                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
+                                %                         idx = false(size(ph_gf, 1), 1);
+                                %                         for l = 1 : size(lim, 1)
+                                %                             idx(lim(l, 1) : lim(l, 2)) = true;
+                                %                         end
+                                %                         if sum(idx) > 0
+                                %                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
+                                %                         end
+                            end
+                            pr_gf(id_ok, pr_ref_gf(r).go_id, r) = zero2nan(pr_ref_gf(r).obs(id_ok_ref, :));
+                        end
+                        ph_gf_diff = diff(ph_gf);
+                        
+                        % Extract L1 from target ---------------------------------------------------------------------------------------------------------------
+                        % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
+                        % pierce_point(r).lat could have different size receiver by receiver
+                        % indexes conversion is id = ph_ref_gf(r).go_id
+                        
+                        ph1_trg = [];
+                        id_ph = [];
+                        for sys = systems
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            if ~isempty(frqs)
+                                [ph1_t, id_ph_t] = trg(t).getObs(['L' frqs(1) '?'],sys);
+                                ph1_trg = [ph1_trg; ph1_t];
+                                id_ph = [id_ph; id_ph_t];
+                            end
+                        end
+                        [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
+                        ph1_goid = trg(t).go_id(id_ph)';
+                        trg_go_id = unique(ph1_goid);
+                        [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), Core_SEID.getThinShellHeight());
+                        
+                        % Create a unique matrix containing all the pierce_points/mf of the ref receivers (sat by sat) ------- AND INTERPOLATE!!!!! ------------
+                        % It is necessary to better sync satellites in view
+                        % this part of the code needs to be improved
+                        trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
+                        trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
+                        wl1 = zeros(max(trg_go_id),1);
+                        wl2 = zeros(max(trg_go_id),1);
+                        band = char(zeros(max(trg_go_id),1));
+                        
+                        for s = 1 : numel(trg_go_id)
+                            mf_sat = nan(size(id_sync{t},1), numel(ref));
+                            lat_sat = nan(size(id_sync{t},1), numel(ref));
+                            lon_sat = nan(size(id_sync{t},1), numel(ref));
+                            for r = 1 : numel(ref)
+                                id_sat = trg_go_id(s);
+                                if id_sat < size(pierce_point(r).lat,2)
+                                    id_ok = (~isnan(id_sync{t}(:,r)));
+                                    id_ok_ref = id_sync{t}(id_ok,r);
+                                    mf_sat(id_ok, r) = pierce_point(r).mf(id_ok_ref, id_sat);
+                                    lat_sat(id_ok, r) = pierce_point(r).lat(id_ok_ref, id_sat);
+                                    lon_sat(id_ok, r) = pierce_point(r).lon(id_ok_ref, id_sat);
+                                end
+                            end
+                            
+                            sys = Core.getConstellationCollector.getSysPrn(trg_go_id(s));
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            l_vec = Core.getConstellationCollector.getWavelength(trg_go_id(s));                            
+                            wl1(trg_go_id(s)) = l_vec(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND == frqs(1)); % <- we have that
+                            wl2(trg_go_id(s)) = l_vec(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));  % <- we want to generate that
+                            band(trg_go_id(s)) = Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND(find(Core.getConstellationCollector.getSys(sys).CODE_RIN3_2BAND ~= frqs(1),1,'first'));
+                            iono_factor = wl2(trg_go_id(s))^2 - wl1(trg_go_id(s))^2;
+                            
+                            % Apply MF (of the ref)
+                            
+                            % CALL INTERPOLATION!!!
+                            trg_pr_gf(id_sync{t}(:,       t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat,             lon_sat,             squeeze(pr_gf(:,trg_go_id(s),:)),       lat_pp(id_sync{t}(:      ,t + numel(ref)), s), lon_pp(id_sync{t}(:      , t + numel(ref)), s));
+                            trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = iono_factor * Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end, t + numel(ref)), s));
+                            
+                            % Apply (inverse) MF of the (trg)
+                            
+                        end
+                        
+                        % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                        
+                        trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers                        
+                        
+                        %% experimental (fill gaps)
+                        %                     inan = isnan(trg_ph_gf);
+                        %                     for i = trg(t).go_id(id_ph)
+                        %                         trg_ph_gf(:,i) = simpleFill1D(trg_ph_gf(:,i),isnan(trg_ph_gf(:,i)),'linear');
+                        %                     end
+                        %                     trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
+                        
+                        % aesthetic approach
+                        corr_diff = trg_ph_gf;
+                        for s = 1 : size(corr_diff, 2)
+                            lim = getOutliers(~isnan(corr_diff(:,s)));
+                            for l = 1 : size(lim, 1)
+                                id_arc = lim(l,1) : lim(l,2);
+                                trg_ph_gf(id_arc, s) = cumsum(trg_ph_gf(id_arc, s));
+                            end
+                        end                             
+                        
+                        % cumsum approach (faster but ugly)
+                        %inan = isnan(trg_ph_gf);
+                        %trg_ph_gf = cumsum(nan2zero(trg_ph_gf));                        
+                        %trg_ph_gf(inan) = nan;
+                        
+                        %                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                        %                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                        ph2 = nan(size(ph1_trg));
+                        % L1 * wl1 - L2 * wl2 = gf
+                        % L2 = (L1 * wl1 - gf) / wl2;
+                        ph2 = (ph1_trg .* repmat(wl1(trg(t).go_id(id_ph)),1,size(ph1_trg,2)) - trg_ph_gf(:, trg(t).go_id(id_ph))') ./ repmat(wl2(trg(t).go_id(id_ph)),1,size(ph1_trg,2));
+                        
+                        [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                        pr1 = [];
+                        id_pr = [];
+                        for sys = systems
+                            frqs = num2str(trg(t).getFreqs(sys));
+                            if ~isempty(frqs)
+                                [pr1_t, id_pr_t] = trg(t).getObs(['C' frqs(1) '?'],sys);
+                                pr1 = [pr1; pr1_t];
+                                id_pr = [id_pr; id_pr_t];
+                            end
+                        end
+                        pr1_goid = trg(t).go_id(id_pr);
+                        % C2 - C1 = gf
+                        % C2 = C1 + gf
+                        pr2 = pr1 + trg_pr_gf(:, trg(t).go_id(id_pr))';
+                        
+                        %compute ~L2
+                        %fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
+                        
+                        %compute ~P2
+                        %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
+                        
+                        % Remove the L2 stored in the object
+                        for sys = systems
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd(bnd == 0) = [];
+                            [~, id_ph] = trg(t).getObs(['L' bnd],sys);
+                            if ~isempty(id_ph)
+                                log.addMessage(log.indent(sprintf('Removing %sL%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                                trg(t).remObs(id_ph);
+                            end
+                            
+                        end
+                        
+                        for sys = systems
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd(bnd == 0) = [];
+                            [~, id_pr] = trg(t).getObs(['C' bnd],sys);
+                            if ~isempty(id_pr)
+                                log.addMessage(log.indent(sprintf('Removing %sC%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
+                                trg(t).remObs(id_pr);
+                            end
+                        end
+                        
+                        % Inject the new synthesised phase
+                        sys_o = Core.getConstellationCollector.getSysPrn(trg_go_id);
+                        for sys = unique(sys_o)
+                            sys_pr = Core.getConstellationCollector.getSysPrn(pr1_goid);
+                            sys_ph = Core.getConstellationCollector.getSysPrn(ph1_goid);
+                            
+                            
+                            lid_pr = sys_pr == sys;
+                            lid_ph = sys_ph == sys;
+                            
+                            bnd = unique(band(pr1_goid(lid_pr)));
+                            
+                            log.addMessage(log.indent(sprintf('Injecting SEID L%s into target receiver %d / %d', bnd,t, numel(trg))));
+                            trg(t).injectObs(nan2zero(pr2(lid_pr,:)), wl2(pr1_goid(lid_pr))', str2num(bnd),[ 'C' bnd 'F'], pr1_goid(lid_pr));
+                            trg(t).injectObs(nan2zero(ph2(lid_ph,:)), wl2(ph1_goid(lid_ph))', str2num(bnd),[ 'L' bnd 'F'], ph1_goid(lid_ph));
+                        end
+                        %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
+                        %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
+                        
+                        trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
+                        trg(t).updateDetectOutlierMarkCycleSlip();
+                    end
+                end
+                log.addMarkedMessage('Syncing times, computing reference time');
+            end
+        end
+                        
         function remIono(ref, trg)
             % Compute Ionosphere from reference receivers and remove it from the observations in target
             %
@@ -365,39 +681,39 @@ classdef Core_SEID < handle
                 sys_c = 'G';
                 for r = 1 : numel(ref)                    
                     % combine code and phase
-                    phase_gf(r) = ref(r).getPrefGeometryFree('L',sys_c);
-                    code_gf = ref(r).getPrefGeometryFree('C',sys_c);
+                    ph_ref_gf(r) = ref(r).getPrefGeometryFree('L',sys_c);
+                    pr_ref_gf = ref(r).getPrefGeometryFree('C',sys_c);
                     
                     % sync pr with ph
-                    [~, id_ko] = setdiff(code_gf.go_id, phase_gf(r).go_id);
+                    [~, id_ko] = setdiff(pr_ref_gf.go_id, ph_ref_gf(r).go_id);
                     if ~isempty(id_ko)
                         % remove pseudoranges not present as phases 
-                        code_gf.obs(:,id_ko) = [];
-                        code_gf.obs_code(id_ko, :) = [];
-                        code_gf.wl(id_ko) = [];
-                        code_gf.el(:,id_ko) = [];
-                        code_gf.az(:,id_ko) = [];
-                        code_gf.prn(id_ko) = [];
-                        if ~isempty(code_gf.snr)
-                            code_gf.snr(:,id_ko) = [];
+                        pr_ref_gf.obs(:,id_ko) = [];
+                        pr_ref_gf.obs_code(id_ko, :) = [];
+                        pr_ref_gf.wl(id_ko) = [];
+                        pr_ref_gf.el(:,id_ko) = [];
+                        pr_ref_gf.az(:,id_ko) = [];
+                        pr_ref_gf.prn(id_ko) = [];
+                        if ~isempty(pr_ref_gf.snr)
+                            pr_ref_gf.snr(:,id_ko) = [];
                         end
-                        if ~isempty(code_gf.cycle_slip)
-                            code_gf.cycle_slip(:,id_ko) = [];
+                        if ~isempty(pr_ref_gf.cycle_slip)
+                            pr_ref_gf.cycle_slip(:,id_ko) = [];
                         end
-                        code_gf.go_id(id_ko) = [];
-                        code_gf.sigma(id_ko) = [];
+                        pr_ref_gf.go_id(id_ko) = [];
+                        pr_ref_gf.sigma(id_ko) = [];
                     end
                     
-                    idx_nan = phase_gf(r).obs == 0;
+                    idx_nan = ph_ref_gf(r).obs == 0;
 
-                    el = phase_gf(r).el / 180 * pi;
-                    az = phase_gf(r).az / 180 * pi;
-                    [phase_gf(r).obs] = ref(r).ionoCodePhaseSmt(zero2nan(code_gf.obs), code_gf.sigma.^2, zero2nan(phase_gf(r).obs), phase_gf(r).sigma.^2, phase_gf(r).getAmbIdx(), 0.01, el);
+                    el = ph_ref_gf(r).el / 180 * pi;
+                    az = ph_ref_gf(r).az / 180 * pi;
+                    [ph_ref_gf(r).obs] = ref(r).ionoCodePhaseSmt(zero2nan(pr_ref_gf.obs), pr_ref_gf.sigma.^2, zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).sigma.^2, ph_ref_gf(r).getAmbIdx(), 0.01, el);
                     
                     % Apply mapping function
                     [lat, lon, ~, h_ortho] = ref(r).getMedianPosGeodetic;
-                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), 350*1e3);
-                    phase_gf(r).obs(idx_nan) = nan;
+                    [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), Core_SEID.getThinShellHeight());
+                    ph_ref_gf(r).obs(idx_nan) = nan;
                     %iono_ref(r).obs = ref(r).applyMF(iono_ref(r).obs, iono_ref(r).mf, 1);
                     %iono_ref(r).obs(idx_nan) = nan;
 
@@ -406,7 +722,7 @@ classdef Core_SEID < handle
                 
                 max_sat = 0;
                 for r = 1 : numel(ref)
-                    max_sat = max(max_sat, max(phase_gf(r).go_id));
+                    max_sat = max(max_sat, max(ph_ref_gf(r).go_id));
                 end
                                 
                 % Extract syncronized C4 L4 diff
@@ -423,7 +739,7 @@ classdef Core_SEID < handle
                     for r = 1 : numel(ref)
                         id_ok = find(~isnan(id_sync{t}(:,r)));
                         id_ok_ref = id_sync{t}(id_ok,r);
-                        iono_sync(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));% - mean(iono_ref(r).obs(id_sync{t}(:,r), :), 1, 'omitnan');
+                        iono_sync(:, ph_ref_gf(r).go_id, r) = zero2nan(ph_ref_gf(r).obs(id_sync{t}(:,r), :));% - mean(iono_ref(r).obs(id_sync{t}(:,r), :), 1, 'omitnan');
                         for s = 1 : numel(ref(r).ph_idx)
                             iono_sync(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
                             iono_sync(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
@@ -447,7 +763,7 @@ classdef Core_SEID < handle
                     % Complex approach --------------------------------------------
                     % Compute median iono (to reduce the signal)
                     iono_diff = nan(size(iono_sync));
-                    for r = 1: numel(phase_gf)
+                    for r = 1: numel(ph_ref_gf)
                         tmp = Core_Utils.diffAndPred(zero2nan(iono_sync(:,:,r)));
                         mm_tmp = movmedian(tmp, 3);
                         id_ko = abs(tmp - mm_tmp) > 0.03;
@@ -458,7 +774,7 @@ classdef Core_SEID < handle
                     % Reduce the iono signal by a smoothed median iono diff
                     med_iono_diff = median(iono_diff, 3, 'omitnan');
                     med_iono_diff = Receiver_Commons.smoothSatData([], [], zero2nan(med_iono_diff), false(size(med_iono_diff)), [], spline_smooth_time / p_time(t).getRate, 6); % <== supposing no more cycle slips
-                    for r = 1: numel(phase_gf)
+                    for r = 1: numel(ph_ref_gf)
                         d_tmp = iono_diff(:,:,r) - med_iono_diff;
                         d_tmp(abs(d_tmp) > 0.015) = nan;                        
                         iono_diff(:,:,r) = d_tmp;
@@ -467,7 +783,7 @@ classdef Core_SEID < handle
                     
                     % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
                     % pierce_point(r).lat could have different size receiver by receiver
-                    % indexes conversion is id = phase_gf(r).go_id
+                    % indexes conversion is id = ph_ref_gf(r).go_id
                                                            
                     [ph1, id_ph] = trg(t).getObs('L1','G');
                     [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
@@ -481,7 +797,7 @@ classdef Core_SEID < handle
                         lat_sat = nan(size(id_sync{t},1), numel(ref));
                         lon_sat = nan(size(id_sync{t},1), numel(ref));
                         for r = 1 : numel(ref)
-                            id_sat = unique(phase_gf(r).go_id) == trg_go_id(s);
+                            id_sat = unique(ph_ref_gf(r).go_id) == trg_go_id(s);
                             if sum(id_sat) == 1
                                 lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
                                 lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);

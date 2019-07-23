@@ -870,8 +870,20 @@ classdef Atmosphere < handle
             % SYNTAX
             %   tec = interpolateTEC(this, gps_time, lat, lon)
             tec = Core_Utils.linInterpLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon,gps_time);
-            
-            
+        end
+        
+        function thin_shell_height = getThinShellHeight(this)
+            % Get Thin Shell Height from Core_Athmosphere
+            % 
+            % SYNTAX
+            %   thin_shell_height = getThinShellHeight(this)
+
+            % ionopshere thin shell height [km]->[m]
+            if isempty(this.ionex.height)
+                thin_shell_height = 350 * 1e3; % if the ionex is not loaded use 350km
+            else
+                thin_shell_height = this.ionex.height(1) * 1e3;       % ionopshere thin shell height [km]
+            end
         end
         
         function [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
@@ -880,12 +892,9 @@ classdef Atmosphere < handle
             % SYNTAX
             %   [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
             
-            thin_shell_height = this.ionex.height(1) * 1000;
-            % ionopshere thin shell height [km]->[m]
-            % get piercing point and mapping function
-            %
-            % SYNTAX
-            %   thin_shell_height = this.ionex.height(1) * 1000
+            thin_shell_height = this.getThinShellHeight();
+            
+            % get piercing point and mapping function            
             [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az(:)/180*pi, el(:)/180*pi, thin_shell_height, 6371000);
             % interpolate TEC at piercing point
             tec = this.interpolateTEC( time, latpp * 180/pi, lonpp * 180/pi);
@@ -917,7 +926,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -987,7 +996,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1106,7 +1115,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ï¿½C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1812,13 +1821,9 @@ classdef Atmosphere < handle
                 rcm = getMeridianRadiusCurvature(lat_rad);
             end
             
-            if isempty(this.ionex.height)
-                thin_shell_height = 350 * 1e3; % if the ionex is not loaded use 350km
-            else
-                thin_shell_height = this.ionex.height(1) * 1e3;       % ionopshere thin shell height [km]
-            end
+            thin_shell_height = this.getThinShellHeight();
             
-            id_ok = el_rad > 0 & ~isnan(el_rad);
+            id_ok = el_rad >= 0 & ~isnan(el_rad);
             k = (rcm + h_ortho)/(rcm + h_ortho + thin_shell_height) * cos(el_rad(id_ok));
             iono_mf = nan(size(el_rad));
             iono_mf(id_ok) = (1-(k).^2).^(-1/2); % formula 6.99 in [1]
@@ -1875,7 +1880,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45ï¿½ lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
