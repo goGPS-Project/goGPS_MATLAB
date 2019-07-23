@@ -1440,9 +1440,12 @@ classdef Command_Interpreter < handle
                     this.log.addWarning('No reference SEID station found -> nothing to do');
                 else
                     if flag_use_plane
-                        tic; Core_SEID.getSyntL2_SEID(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                        tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'plane'); toc;
                     else
-                        tic; Core_SEID.getSyntL2_fusion(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                        % (Using a mapping function for the iono has mostly no effect)
+                        % but it's usage does not cost many cpu cycles
+                        flag_use_mf = false;
+                        tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'distance', flag_use_mf); toc;
                     end
                 end
             end
