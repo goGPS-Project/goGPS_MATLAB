@@ -881,12 +881,21 @@ end
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
-            Core_UI.insertEmpty(vbox);
+            
+            uicontrol('Parent', vbox, ...
+                'Style', 'Text', ...
+                'String', 'WARNING: Any unsaved modification will be ignored during the execution, please save the file to use it!', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                        
             table_hbox = uix.HBox('Parent', vbox,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            vbox.Heights = [23 5 -1];
-                        
+
+            vbox.Heights = [23 23 -1];
+            
             % Create UITable
             this.coo_tbl = uitable('Parent', table_hbox, ...
                 'CellEditCallback', @this.dataCrdChange);
@@ -1860,7 +1869,7 @@ end
         
         function resetResDir(this, caller, event)
             this.state.geoid_dir = '';
-            this.state.geoid_name = '';
+            this.state.geoid_name = this.state.GEOID_NAME;
             this.state.crx_dir = '';
             this.state.crx_name = this.state.CRX_NAME;
             this.state.eph_dir = '';

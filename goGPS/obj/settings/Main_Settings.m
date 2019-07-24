@@ -59,8 +59,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         LAST_SETTINGS = 'last_settings.ini';
     end
 
-    % Default values for each field - useful to restore corrupted fields
-    properties (Constant, Access = 'private')
+    % Default values for each field - useful to restore corrupted fields    
+    properties (Constant, Access = 'public')
         
         % IO ---------------------------------------------------------------------------------------------------------------------------------------------------
         % PARALLELISM
