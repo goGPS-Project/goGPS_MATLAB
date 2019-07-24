@@ -1920,14 +1920,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             tmp_path = fnp.checkPath(this.(field_name), this.getHomeDir);
             tmp_default_path = fnp.getFullDirPath(fnp.checkPath(this.(upper(field_name)), this.getHomeDir), this.getHomeDir);
-            this.(field_name) = fnp.getFullDirPath(tmp_path, this.prj_home, [], fnp.getFullDirPath(tmp_default_path));
-            switch nargin
-                case 2, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path);
-                case 3, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid);
-                case 4, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid, check_existence);
-                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            if ~isempty(tmp_path) || empty_is_valid
+                this.(field_name) = fnp.getFullDirPath(tmp_path, this.prj_home, [], fnp.getFullDirPath(tmp_default_path));
+                switch nargin
+                    case 2, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path);
+                    case 3, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid);
+                    case 4, [this.(field_name), is_existing] = this.checkString(field_name, tmp_path, tmp_default_path, empty_is_valid, check_existence);
+                    otherwise, error('Settings checkStringField called with the wrong number of parameters');
+                end
+                this.(field_name) = fnp.getFullDirPath(this.(field_name), this.getHomeDir);
+            else
+                this.(field_name) = tmp_default_path;
             end
-            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.getHomeDir);
         end
 
         function checkNumericField(this, field_name, limits, valid_val)

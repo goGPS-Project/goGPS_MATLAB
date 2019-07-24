@@ -159,7 +159,7 @@ end
                 'NumberTitle', 'off', ...
                 'UserData', 'goGPSwin', ...
                 'Renderer', 'opengl', ...
-                'Position', [0 0 1040, 610]);
+                'Position', [0 0 1040, 640]);
             
             this.w_main = win;            
             
@@ -360,36 +360,7 @@ end
                 'BackgroundColor', cmd_bg);
             tab.Widths = [-3 5 -2];
             
-            % HELP
             % --------------------------------------------------------
-            help_box = uix.VBox('Parent', v_left, ...
-                'Padding', 0, ...
-                'BackgroundColor', cmd_bg);
-            
-            uicontrol('Parent', help_box, ...
-                'Style', 'Text', ...
-                'String', 'Command list help:', ...
-                'ForegroundColor', Core_UI.BLACK, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', cmd_bg);
-            
-            j_help = com.mathworks.widgets.SyntaxTextPane;
-            codeType = j_help.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
-            j_help.setContentType(codeType);
-            
-            j_help.setText(strrep(strCell2Str(this.state.exportCmdListHelp(), 10),'#','%'));
-            j_help.setEditable(0)
-            % Create the ScrollPanel containing the widget
-            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_help);
-            % Inject edit box with the Java Scroll Pane into the main_window
-            javacomponent(j_scroll_rri, [1 1 1 1], help_box);
-
-            help_box.Heights = [23, -1];
-
-            % --------------------------------------------------------
-
-            Core_UI.insertEmpty(v_left);
             
             % COMMAND LIST
             % --------------------------------------------------------
@@ -418,7 +389,12 @@ end
             set(j_cmd, 'FocusLostCallback', @this.refreshCmdList);
             set(j_cmd, 'FocusGainedCallback', @this.refreshCmdList);
         
-            cmd_box.Heights = [23, -1];
+            % HELP
+            but_help = uicontrol( 'Parent', cmd_box, ...
+                'String', 'Command list HELP', ...
+                'Callback', @this.openCommandHelp);
+
+            cmd_box.Heights = [23, -1, 23];
         
             % --------------------------------------------------------
 
@@ -449,7 +425,7 @@ end
 
             % --------------------------------------------------------
             
-            v_left.Heights = [-4 5 -3];
+            v_left.Heights = [-1];
         end
         
         function insertTabDataSources(this, container)
@@ -592,8 +568,8 @@ end
             
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observation', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
             Core_UI.insertEmpty(box_g);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [170 -3 5 -1 25]);
-            Core_UI.insertEmpty(box_g);
+            %[~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(box_g, 'Custom Antex (ATX) filename', 'custom_atx_dir', 'custom_atx_name', @this.onEditChange, [170 -3 5 -1 25]);
+            %Core_UI.insertEmpty(box_g);
             
             box_gh = uix.HBox('Parent', box_g, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
@@ -603,17 +579,9 @@ end
                 'String', 'Get missing BLQ', ...
                 'Callback', @this.openGetChalmerString);
             box_gh.Widths = [-1 120];
-            box_g.Heights = [-1 5 23 5 23];
+            box_g.Heights = [-1 5 23];
         end
-        
-        function openGetChalmerString(this, caller, event)
-            % Update file name list and plot daily availability of the files
-            %
-            % SYNTAX:
-            %   this.updateAndPlotRecList            
-            GUI_Chalmers;            
-        end
-        
+                
         function insertTabProcessing(this, container)
             data_selection_bg = Core_UI.LIGHT_GRAY_BG;
             tab = uix.Grid('Parent', container, ...
@@ -864,7 +832,7 @@ end
             %%% processing options
             opt_container = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            out_panel = Core_UI.insertPanelLight(opt_container, 'Results to store in out');
+            out_panel = Core_UI.insertPanelLight(opt_container, 'Results to be stored');
             opt_v = uix.VBox('Parent', out_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dt (clock errors)',       'flag_out_dt', @this.onCheckBoxChange);
@@ -879,8 +847,9 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange);           
+            opt_container.Heights = [264];
             %Core_UI.insertEmpty(opt_container);
-            %opt_container.Heights = [260 -1];
+            %opt_container.Heights = [264 -1];
         end
         
         function ppp_panel = insertCorrections(this, container)
@@ -1360,21 +1329,30 @@ end
              
             Core_UI.insertEmpty(bottom_box);
             
+            dir_but_box = uix.VBox( 'Parent', bottom_box, ...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            dir_reset = uicontrol( 'Parent', dir_but_box, ...
+                'String', 'Reset all resource paths', ...
+                'Callback', @this.resetResDir);
+
             dir_box = uix.VBox( 'Parent', bottom_box, ...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            bottom_box.Heights = [-1 5 225];
+            bottom_box.Heights = [-1 5 25 247];
                          
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [100 -3 5 -1 25]);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [100 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [100 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [130 -1 25]);
 
             this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
@@ -1880,6 +1858,25 @@ end
             this.updateINI();
         end
         
+        function resetResDir(this, caller, event)
+            this.state.geoid_dir = '';
+            this.state.geoid_name = '';
+            this.state.crx_dir = '';
+            this.state.crx_name = this.state.CRX_NAME;
+            this.state.eph_dir = '';
+            this.state.clk_dir = '';
+            this.state.erp_dir = '';
+            this.state.iono_dir = '';
+            this.state.igrf_dir = '';
+            this.state.dcb_dir = '';
+            this.state.vmf_dir = '';
+            this.state.atm_load_dir = '';
+            
+            this.state.check();
+            this.updateINI();
+            this.updateUI();
+        end
+        
         function onTabChange(this, caller, event)
             if event.NewValue == 1
                 if ~isempty(this.j_settings)
@@ -2122,6 +2119,16 @@ end
         function createNewProject(this, caller, event)
             % Create a new project            
             new = GUI_New_Project(this);
+        end
+        
+        function openGetChalmerString(this, caller, event)
+            % Open window to get Chalmer string
+            GUI_Chalmers;            
+        end
+
+        function openCommandHelp(this, caller, event)
+            % Open Help Window
+            GUI_Command_Help;            
         end
         
         function about(this, caller, event)
