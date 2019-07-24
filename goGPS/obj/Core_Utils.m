@@ -486,7 +486,7 @@ classdef Core_Utils < handle
                 end
                 fid = fopen(file_name, 'w');
                 if fid < 0
-                    Logger.getInstance.addWarning(['Writing on "' file_name '" is not possible' char(10) 'aria2 could not work']);
+                    log.addWarning(['Writing on "' file_name '" is not possible' char(10) 'aria2 could not work']);
                 else
                     str = '';
                     old_od = odl{1};
@@ -532,7 +532,7 @@ classdef Core_Utils < handle
                                         if file_info.bytes == 0
                                             % the file is empty
                                             delete(out_file_path)
-                                            this.log.addError(sprintf('%s download failed\nThe file is probably missing', [out_file_name, out_file_ext]));
+                                            log.addError(sprintf('%s download failed\nThe file is probably missing', [out_file_name, out_file_ext]));
                                         end
                                     end
                                 end    

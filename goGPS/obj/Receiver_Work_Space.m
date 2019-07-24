@@ -3182,7 +3182,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function dtRel = getRelClkCorr(this, sat)
             %  : get clock offset of the satellite due to
-            % special relativity (eccntrcity term)
+            % special relativity (eccentricity term)
             idx = this.sat.avail_index(:,sat) > 0;
             [X,V] = Core.getCoreSky.coordInterpolate(this.time.getSubSet(idx),sat);
             dtRel = -2 * sum(conj(X) .* V, 2) / (Core_Utils.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
