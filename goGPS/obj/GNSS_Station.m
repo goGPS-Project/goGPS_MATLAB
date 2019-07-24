@@ -2066,7 +2066,7 @@ classdef GNSS_Station < handle
             
             for i = 1 : numel(epoch_list)
                 e = epoch_list(i);
-                if sum(id_ok(:, epoch(e))) > 2
+                if sum(id_ok(:, epoch(e))) > 1
                     if strmatch(method, 'fun')
                         tmp = funInterp2(dlon_out, dlat_out, x_list(id_ok(:, epoch(e))), y_list(id_ok(:, epoch(e))), tropo_res(epoch(e), id_ok(:, epoch(e)))', fun);
                     else
@@ -2075,8 +2075,11 @@ classdef GNSS_Station < handle
                     end
                     tropo_out(:,i) = single(tmp);
                 else
-                    if i > 1
-                        tropo_out(:,i) = tropo_out(:,i) - 1;
+                    if sum(id_ok(:, epoch(e))) == 1
+                        tropo_out(:,i) = single(tropo_res(epoch(e), id_ok(:, epoch(e))));
+                    else
+                        tropo_out(:,i) = single(nan);
+                        % If I have no station return nan
                     end
                 end
                 w_bar.goTime(i);
@@ -3432,7 +3435,7 @@ classdef GNSS_Station < handle
                     % Linux doesn't have mp4 compression avaiable
                     video_out = VideoWriter(fullfile(Core.getState.getOutDir, [file_name '.avi']));
                 end
-                video_out.FrameRate = 30;
+                video_out.FrameRate = 10;
                 video_out.Quality = 91;
                 open(video_out);
             else
@@ -4340,30 +4343,36 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   ztd_correction = sta_list.getZtdReduction(degree, xyh, flag_spatial)
             
-            data_med = median(sta_list.getZtd_mr, 'omitnan')';
-            coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ());
-            [lat, lon, ~, h_o] = coo.getGeodetic;
-            if nargin < 4 || isempty(flag_spatial)
-                flag_spatial = false;
-            end
-            if flag_spatial
-                xyz = [lon .* cos(lat), lat, h_o];
-                if nargin < 3 || isempty(xyh)
-                    xyh = xyz;
-                end                    
-                ztd_correction = Core_Utils.interp22nLS(xyz, data_med, degree, xyh);
+            if numel(sta_list) < 3
+                ztd_correction = 0;
+                log = Core.getLogger();
+                log.addWarning('I cannot estimate an height correction with less than 3 stations');
             else
-                if nargin < 3 || isempty(xyh)
-                    xyh = h_o;
-                else
-                    xyh = xyh(:,3);
+                data_med = median(sta_list.getZtd_mr, 'omitnan')';
+                coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ());
+                [lat, lon, ~, h_o] = coo.getGeodetic;
+                if nargin < 4 || isempty(flag_spatial)
+                    flag_spatial = false;
                 end
-                ztd_correction = Core_Utils.interp1LS(h_o, data_med, degree, xyh);
+                if flag_spatial
+                    xyz = [lon .* cos(lat), lat, h_o];
+                    if nargin < 3 || isempty(xyh)
+                        xyh = xyz;
+                    end
+                    ztd_correction = Core_Utils.interp22nLS(xyz, data_med, degree, xyh);
+                else
+                    if nargin < 3 || isempty(xyh)
+                        xyh = h_o;
+                    else
+                        xyh = xyh(:,3);
+                    end
+                    ztd_correction = Core_Utils.interp1LS(h_o, data_med, degree, xyh);
+                end
+                %try
+                %    figure; subplot(2,1,1); plot(h_o, data_med, '.', lat_lon_h(:, 3), ztd_correction, '.'); subplot(2,1,2); plot(h_o, data_med - ztd_correction, '.');
+                %catch
+                %end
             end
-            %try
-            %    figure; subplot(2,1,1); plot(h_o, data_med, '.', lat_lon_h(:, 3), ztd_correction, '.'); subplot(2,1,2); plot(h_o, data_med - ztd_correction, '.');
-            %catch
-            %end
         end
         
         function showZtdVsHeight(sta_list, degree)
