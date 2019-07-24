@@ -2251,6 +2251,17 @@ classdef GNSS_Station < handle
     %% SETTER
     % ==================================================================================================================================================
     methods (Access = public)
+        function marker_name = setMarkerName(this, marker_name)
+            % Set the Marker name of the Receiver
+            %
+            % SYNTAX:
+            %   marker_name = setMarkerName(this)
+            this.marker_name = marker_name;
+            if ~isempty(this.work)
+                this.work.rinex_file_name = marker_name(1 : max(4, numel(marker_name))); % Force 4Ch name to match this
+            end                
+        end
+        
         function setSlantFilterSize(this, win_size)
             % Setter multi_receiver to change filtering windows size for slant export
             %

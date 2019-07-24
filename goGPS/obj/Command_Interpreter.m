@@ -62,6 +62,7 @@ classdef Command_Interpreter < handle
         % List of the supported commands
         
         CMD_LOAD        % Load data from the linked RINEX file into the receiver
+        CMD_RENAME      % Rename a receiver        
         CMD_EMPTY       % Reset the receiver content
         CMD_EMPTYWORK   % Reset the receiver work space
         CMD_EMPTYOUT    % Reset the receiver output container
@@ -83,7 +84,7 @@ classdef Command_Interpreter < handle
         CMD_REMSAT      % remove satellites from receivers
         CMD_REMOBS      % Remove some observations from the receiver (given the obs code)
         CMD_REMTMP      % Remove temporary data not used later for pushout
-            
+                    
         CMD_PINIT       % parallel request slaves
         CMD_PKILL       % parallel kill slaves
         
@@ -92,6 +93,8 @@ classdef Command_Interpreter < handle
         KEY_ENDFOR      % For marker end
         KEY_ENDPAR      % Par marker end
 
+        PAR_NAME        % Parameter marker name
+        
         PAR_RATE        % Parameter select rate
         PAR_CUTOFF      % Parameter select cutoff
         PAR_SNRTHR      % Parameter select snrthr
@@ -136,7 +139,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -184,6 +187,11 @@ classdef Command_Interpreter < handle
                     this.core = core;
                 end
             end
+            
+            this.PAR_NAME.name = 'Marker name';
+            this.PAR_NAME.descr = 'NAME                Marker name';
+            this.PAR_NAME.par = '.';
+
             this.PAR_RATE.name = 'rate';
             this.PAR_RATE.descr = '@<rate>            processing rate in seconds (e.g. @30s, -r=30s)';
             this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
@@ -260,7 +268,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_SEID_PLANE.par = '(PLANE)|(plane)|(OLD)|(old)';
             
             % Show plots
-            
+
             this.PAR_S_ALL.name = 'Show all the plots';
             this.PAR_S_ALL.descr = 'SHOWALL';
             this.PAR_S_ALL.par = '(ALL)|(all)';
@@ -376,6 +384,11 @@ classdef Command_Interpreter < handle
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
             this.CMD_LOAD.par = [this.PAR_SS, this.PAR_RATE];
+
+            this.CMD_RENAME.name = {'RENAME', 'rename', 'ren'};
+            this.CMD_RENAME.descr = ['Rename a receiver (change marker name)' new_line 'WARNING: Every load will reset this name' new_line 'Useful for final plots'];
+            this.CMD_RENAME.rec = 'T';
+            this.CMD_RENAME.par = [this.PAR_NAME];
 
             this.CMD_EMPTY.name = {'EMPTY', 'empty'};
             this.CMD_EMPTY.descr = 'Empty the entire receiver';
@@ -495,7 +508,7 @@ classdef Command_Interpreter < handle
             this.CMD_REMTMP.rec = 'T';
             this.CMD_REMTMP.key = '';
             this.CMD_REMTMP.par = [];
-
+            
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
             this.KEY_FOR.rec = '';
@@ -854,6 +867,8 @@ classdef Command_Interpreter < handle
                                 this.runParKill(tok(2:end));
                             case this.CMD_LOAD.name                 % LOAD
                                 this.runLoad(core.rec, tok(2:end));
+                            case this.CMD_RENAME.name               % RENAME
+                                this.runRename(core.rec, tok(2:end));
                             case this.CMD_EMPTY.name                % EMPTY
                                 this.runEmpty(core.rec, tok(2:end));
                             case this.CMD_EMPTYWORK.name            % EMPTYW
@@ -972,6 +987,35 @@ classdef Command_Interpreter < handle
                             rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                         end
                     end
+                end
+            end
+        end
+        
+        function runRename(this, rec, tok)
+            % Change the marker name of a receiver
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.load(rec)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            elseif numel(tok) < 2
+                this.log.addWarning('No name defined for rename');
+            else
+                for t = 2 : numel(tok) - 1
+                    tok{t} = [tok{t} ' '];
+                end
+                name = [tok{2:end}];
+                for r = id_trg
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Renaming receiver %d: %s to %s', r, rec(r).getMarkerName(), tok{2}));
+                    this.log.smallSeparator();
+                    this.log.newLine();
+                    rec(r).setMarkerName(name);
                 end
             end
         end
@@ -1931,7 +1975,7 @@ classdef Command_Interpreter < handle
                     end
                     if numel(tok) < (1 + numel(cmd.rec))
                         err = this.ERR_NEI; % not enough input parameters
-                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.key))
+                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.key)) && ~strcmp(cmd.name{1}, 'RENAME')
                         err = this.WRN_TMI; % too many input parameters
                     end
                 end
