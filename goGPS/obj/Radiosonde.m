@@ -195,11 +195,13 @@ classdef Radiosonde < handle
                 plot_type = 'TEXT';
                 % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
                 address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year(e)) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
+                fprintf('           get %s\n', address);
                 try
                     char_array = webread(address);
                 catch
                     % try again after some seconds
                     try
+                        fprintf('           hretry access to %s\n', address);
                         pause(3 + randi(1,1) * 5);
                         char_array = webread(address);
                     catch
