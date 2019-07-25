@@ -1309,9 +1309,20 @@ classdef GNSS_Station < handle
             % Download radiosondes
             rds = Radiosonde.fromList(rds_list, start_time, stop_time);
             
-            Logger.getInstance.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
-            [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
+            % Get closer GNSS station
+            [id_rec, d3d, dup] = sta_list.getCloserRec(rds.getLat(), rds.getLon(), rds.getElevation());
+            gnss_list = sta_list(id_rec);
             
+            % Interpolate ZTD
+            Logger.getInstance.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
+            if numel(sta_list) > 1
+                [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
+            else
+                Logger.getInstance.addWarning('Interpolation is not possible with just one station!!!');
+                ztd_height_correction = 0;
+                [ztd, time] = sta_list(id_rec(1)).getZtd_mr();
+                ztd = ztd * 1e2;
+            end
             
 %             [lat, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
 %             [~, id_sort] = sort(lat);
@@ -1320,10 +1331,6 @@ classdef GNSS_Station < handle
 %             [ztd_s, ztd_height_correction_s] = sta_list(id_sort(~id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
 %             ztd_ns(:,rds.getLat > 41) = ztd_n(:,rds.getLat > 41);
 %             ztd_ns(:,rds.getLat <= 41) = ztd_s(:,rds.getLat <= 41);
-
-            % Get closer GNSS stations
-            [id_rec, d3d, dup] = sta_list.getCloserRec(rds.getLat(), rds.getLon(), rds.getElevation());
-            gnss_list = sta_list(id_rec);
 
             % Compute values
             fprintf('---------------------------------------------------------------------\n');
@@ -1394,15 +1401,15 @@ classdef GNSS_Station < handle
                 lon = rds.getLon;
                 % set map limits
                 if numel(sta_list) == 1
-                    lon_lim = minMax(lon) + [-0.05 0.05];
-                    lat_lim = minMax(lat) + [-0.05 0.05];
+                    lon_lim = minMax(lon) + [-0.25 0.25];
+                    lat_lim = minMax(lat) + [-0.25 0.25];
                 else
                     lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
                     lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
                 end
                 nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-                clon = nwse([2 4]) + [-0.02 0.02];
-                clat = nwse([3 1]) + [-0.02 0.02];
+                clon = nwse([2 4]) - [-0.02 0.02];
+                clat = nwse([3 1]) - [-0.02 0.02];
                 
                 fh = figure; fh.Color = [1 1 1]; maximizeFig(fh);
                 %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
