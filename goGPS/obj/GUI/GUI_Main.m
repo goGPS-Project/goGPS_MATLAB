@@ -1874,6 +1874,8 @@ end
         end
         
         function resetResDir(this, caller, event)
+            this.state.atx_dir = '';
+            this.state.atx_name = '';
             this.state.geoid_dir = '';
             this.state.geoid_name = this.state.GEOID_NAME;
             this.state.crx_dir = '';
