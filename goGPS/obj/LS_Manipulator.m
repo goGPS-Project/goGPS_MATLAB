@@ -273,6 +273,7 @@ classdef LS_Manipulator < handle
                 if not(phase_present)
                     obs_set.wl(:) = -1;
                 end
+                
                 if phase_present
                     cc = Core.getState.getConstellationCollector;
                     n_sat = cc.getMaxNumSat();
@@ -322,8 +323,7 @@ classdef LS_Manipulator < handle
                 if nargin > 4 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
                     obs_set.remUnderCutOff(cut_off);
                 end
-                
-                
+                                              
                 % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
                 idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
                 obs_set.setZeroEpochs(~idx_valid_ep_l);
@@ -354,6 +354,11 @@ classdef LS_Manipulator < handle
                     end
                     
                 end
+                
+                % Remove all the observables for an epoch with less than this.state.getMinNSat()
+                epoch_ko = sum(obs_set.obs ~= 0, 2) < this.state.getMinNSat() & sum(obs_set.obs ~= 0, 2) > 0;
+                obs_set.obs(epoch_ko, :) = 0;
+                
                 idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
                 obs_set.setZeroEpochs(~idx_valid_ep_l);
                 
@@ -367,14 +372,12 @@ classdef LS_Manipulator < handle
                     tropo = false;
                     tropo_g = false;
                 end
-                
-                
+                                
                 % get reference observations and satellite positions
                 [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
                 xs_loc = zero2nan(xs_loc);
                 diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-                
-                
+                                
                 % Sometime code observations may contain unreasonable values -> remove them
                 if obs_type == 'C'
                     % very coarse outlier detection based on diff obs

@@ -1316,56 +1316,68 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 sensor_ph = sensor_ph0;
             end
-             if false
-            % --------------------------------------------------------------------------------------------
-            % detection on arc edges
-            % flag out for more than 4 cm are bad phases,
-            % expand them but consider outliers only what is out for more than 2 cm
-            tmp_out = flagExpand(abs(sensor_ph) > 0.02, 8) & (abs(sensor_ph) > 0.01); % expand for a max of 8 epochs
-            % keep only flags at the beginnig (10 epochs) of arcs (do not split arcs)
-            tmp_out = tmp_out & flagExpand(isnan(sensor_ph), 10);
-            
-            % mark short arcs as outliers
-            tmp_out = tmp_out | flagShrink(flagExpand(tmp_out, this.state.getMinArc), this.state.getMinArc);
-            
-            % save the outliers
-            this.sat.outliers_ph_by_ph(tmp_out) = true;
-            sensor_ph0(tmp_out) = nan;
-            
-            % recompute dt and sensor_ph
-            sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-            
-            % --------------------------------------------------------------------------------------------
-            
-            % test sensor variance
-            tmp = sensor_ph(~isnan(sensor_ph));
-            tmp(abs(tmp) > 4) = [];
-            std_sensor = mean(movstd(tmp(:),900));
-            %%
-            % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
-            % use as a sensor the time second derivative
-            if std_sensor > ol_thr
-                this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
-                der = 2; % use second
-                % try with second time derivative
-                sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
-                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            if true
+                % --------------------------------------------------------------------------------------------
+                % detection on arc edges
+                % flag out for more than 4 cm are bad phases,
+                % expand them but consider outliers only what is out for more than 2 cm
+                tmp_out = flagExpand(abs(sensor_ph) > 0.02, 8) & (abs(sensor_ph) > 0.01); % expand for a max of 8 epochs
+                % keep only flags at the beginnig (10 epochs) of arcs (do not split arcs)
+                tmp_out = tmp_out & flagExpand(isnan(sensor_ph), 10);
+                
+                % mark short arcs as outliers
+                tmp_out = tmp_out | flagShrink(flagExpand(tmp_out, this.state.getMinArc), this.state.getMinArc);
+                
+                % save the outliers
+                this.sat.outliers_ph_by_ph(tmp_out) = true;
+                sensor_ph0(tmp_out) = nan;
+                
+                % recompute dt and sensor_ph
+                sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                
+                % --------------------------------------------------------------------------------------------
+                
+                % test sensor variance
+                tmp = sensor_ph(~isnan(sensor_ph));
+                tmp(abs(tmp) > 4) = [];
+                std_sensor = mean(movstd(tmp(:),900));
+                %%
+                % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
+                % use as a sensor the time second derivative
+                if std_sensor > ol_thr
+                    this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
+                    der = 2; % use second
+                    % try with second time derivative
+                    sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
+                    sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                else
+                    der = 1; % use first
+                end
+                
+                sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));                
             else
-                der = 1; % use first
+                der = 1;
             end
-            
-            sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
-            
-             else
-                 der = 1;
-             end
             
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             
             % outlier when they exceed 0.5 cycle
             poss_out_idx = abs(sensor_ph) > ol_thr / der;
+            
+            % Remove all the observables for an epoch with less than this.state.getMinNSat()
+            out_id = (this.sat.outliers_ph_by_ph | poss_out_idx); % all the outliers till now
+            ph2 = ph;
+            id_ph = find(lid_ph);
+            ph2(out_id) = nan;
+            id_ok = false(size(ph2,1), this.getMaxSat);
+            for i = 1 : size(ph2, 2)
+                id_ok(:, this.go_id(id_ph(i))) = id_ok(:, this.go_id(id_ph(i))) | ~isnan(ph(:, i));                
+            end
+            epoch_ko = sum(id_ok,2) < this.state.getMinNSat() & sum(id_ok,2) > 0;
+            poss_out_idx = poss_out_idx | (repmat(epoch_ko, 1, size(poss_out_idx, 2)) & ~isnan(ph));
+                        
             % take them off
             ph2 = ph;
             ph2(poss_out_idx) = nan;
@@ -1455,14 +1467,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             %              put a cycle slip
             %--------------------------------------------------------
             if false
-            for o = 1 : size(ph2,2)
-                tmp_ph = ph2(:,o);
-                % Remember that you lost more than 2 hour to find out why a cycle slip was not detected correctly
-                ph_idx = flagMergeArcs(isnan(tmp_ph), 5); % (bigger than 5 epochs) => not marking a CS could be very very VERY bad
-                %ph_idx  = isnan(tmp_ph);
-                c_idx = [false ; diff(ph_idx) == -1];
-                poss_slip_idx(c_idx,o) = 1;
-            end
+                for o = 1 : size(ph2,2)
+                    tmp_ph = ph2(:,o);
+                    % Remember that you lost more than 2 hour to find out why a cycle slip was not detected correctly
+                    ph_idx = flagMergeArcs(isnan(tmp_ph), 5); % (bigger than 5 epochs) => not marking a CS could be very very VERY bad
+                    %ph_idx  = isnan(tmp_ph);
+                    c_idx = [false ; diff(ph_idx) == -1];
+                    poss_slip_idx(c_idx,o) = 1;
+                end
             end
             % if majority of satellites jump set cycle slip on all
             n_obs_ep = sum(~isnan(ph2),2);
@@ -1470,7 +1482,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for c = find(all_but_one')
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
-            
+                        
             this.sat.outliers_ph_by_ph = sparse((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
             n_out = full(sum(this.sat.outliers_ph_by_ph(:)));
             this.sat.cycle_slip_ph_by_ph = sparse(poss_slip_idx);
@@ -1607,8 +1619,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
-                this.setPhases(ph,wl,lid_ph); % ste back phases
-                
+                this.setPhases(ph,wl,lid_ph); % ste back phases                
             end
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
         end

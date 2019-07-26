@@ -3994,6 +3994,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             snr_thr = this.snr_thr;
         end
 
+        function min_n_sat = getMinNSat(this)
+            % Get the minimum number of sat to keep in one epoch
+            %
+            % SYNTAX
+            %   min_n_sat = this.getMinNSat()
+            min_n_sat = this.min_n_sat;
+        end
+        
         function min_arc = getMinArc(this)
             % Get the minimum arc legnth to be kept
             %
