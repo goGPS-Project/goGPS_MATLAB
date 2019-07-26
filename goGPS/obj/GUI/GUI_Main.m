@@ -613,7 +613,11 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [175 40 5 50]);
-            grd.Children(end).Tooltip = 'This is not kept in case of snooping';
+            if verLessThan('matlab','9.1')
+                grd.Children(end).TooltipString = 'This is not kept in case of snooping';
+            else
+                grd.Children(end).Tooltip = 'This is not kept in case of snooping';
+            end
 
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [175 40 5 50]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [175 40 5 50]);
