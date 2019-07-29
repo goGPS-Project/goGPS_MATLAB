@@ -94,6 +94,18 @@ classdef Core_Antenna < handle
             this.serial = '';
             this.list = [];
             if nargin == 2
+                % Load custom files:
+                file_list = dir(fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', '*.ATX'));
+                file_list = [file_list; dir(fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', '*.atx'))];
+                file_name = {};
+                log = Logger.getInstance();
+                for f = 1 : numel(file_list)
+                    file_name{f} = fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', file_list(f).name); %#ok<AGROW>
+                    log.addMessage('Custom ANTEX file found in "%s"\n Loading...', file_name{f});
+                    this.importAntex(file_name{f});
+                end
+                
+                % Load UI defined file
                 this.importAntex(atx_file_name);
             end
             this.importMonumentTable()
@@ -158,11 +170,11 @@ classdef Core_Antenna < handle
                 else
                     this.type = [this.type; ant_type];
                     this.serial = [this.serial; ant_serial];
-                    this.list = [this.list; ant_list];
+                    this.list = [this.list ant_list];
                     tmp = [ant_list.start];
                     this.start = [this.start; tmp.getMatlabTime];
                     tmp = [ant_list.stop];
-                    this.stop = [this.stop tmp.getMatlabTime];
+                    this.stop = [this.stop; tmp.getMatlabTime];
                 end
             end
         end
@@ -498,6 +510,7 @@ classdef Core_Antenna < handle
                                     log.addWarning(sprintf('"%s" antenna PCO/PCV found but it is out of validity range,\n      not using corrections', ant_name));
                                 end
                             else
+                                % Keep the first occurence of the antenna
                                 id_ant = id_ant(1);
                             end
                         end
