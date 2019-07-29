@@ -8352,7 +8352,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd), 'single');
-                            if ~isempty(this.meteo_data)
+                            if ~isempty(this.meteo_data) || true
                                 degCtoK = 273.15;
                                 [~,Tall, H] = this.getPTH();
                                 % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
