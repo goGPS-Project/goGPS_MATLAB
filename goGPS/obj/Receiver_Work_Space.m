@@ -1984,7 +1984,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.parent.ant_type = type; % setting the right antenna into receiver!
                     end
                 end
-                if isempty(this.ant) || this.ant.isEmpty
+                if (isempty(this.ant) || this.ant.isEmpty) && ~this.time.isEmpty
                     this.ant = Core.getAntennaManager.getAntenna(this.parent.ant_type, '', this.time.getCentralTime);
                 end
             end
