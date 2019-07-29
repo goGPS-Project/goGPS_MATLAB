@@ -1316,7 +1316,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 sensor_ph = sensor_ph0;
             end
-            if true
+            if false
                 % --------------------------------------------------------------------------------------------
                 % detection on arc edges
                 % flag out for more than 4 cm are bad phases,
