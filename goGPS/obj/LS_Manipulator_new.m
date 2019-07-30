@@ -1322,7 +1322,6 @@ classdef LS_Manipulator_new < handle
             this.removeFullRankDeficency();
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
-            n_pseudo = size(this.A_pseudo,1);
             n_par = max(max(this.A_idx));
             rows = repmat((1:size(this.A,1))',1,size(this.A,2));
             rows_pseudo = repmat(size(this.A,1)+(1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
@@ -1334,15 +1333,15 @@ classdef LS_Manipulator_new < handle
             A(this.outlier_obs, :) = [];
 
             class_par = this.class_par;
-            class_par(this.idx_rd) = [];
-            vars = [1./this.variance_obs; 1./this.variance_pseudo];
+            class_par([this.idx_rd find(this.out_par)]) = [];
+            vars = [1./this.variance_obs(~this.outlier_obs); 1./this.variance_pseudo];
             mean_vars = mean(vars);
             vars = vars ./ mean_vars;
             Cyy =  spdiags(vars,0,n_obs - n_out,n_obs - n_out);
             x_est = zeros(n_par -length(this.idx_rd) - sum(this.out_par),1);
             Aw = A'*Cyy;
             N = Aw*A;
-            y = sparse([this.obs; zeros(size(this.A_pseudo,1),1)]);
+            y = sparse([this.obs(~this.outlier_obs); zeros(size(this.A_pseudo,1),1)]);
             B = Aw*y;
             
             clearvars Aw
@@ -1452,19 +1451,23 @@ classdef LS_Manipulator_new < handle
             idx_est = true(n_par,1);
             idx_est(this.idx_rd) = false;
             x(idx_est) = x_est;
-            % generate esatimations also for the out par (to get a residual)
-            res_out = this.obs(this.outlier_obs) - A_out(:,~this.out_par & ~Core_Utils.ordinal2logical(this.idx_rd,n_par))*x_est;
-            red_out = res_out;
-            A_res_red = A_out(:,this.out_par);
-            idx_empty = sum(A_res_red,2) == 0;
-            red_out(idx_empty) = [];
-            A_res_red(idx_empty) = [];
-            x_out = A_res_red \ red_out;
-            res_out(~idx_empty) = red_out - A_res_red * x_out;
-            x(this.out_par) = x_out;
             res = nan(size(this.obs));
-            res(~this.outlier_obs) = this.obs(~this.outlier_obs) - A(sum(~this.outlier_obs),:)*x_est;
-            res(this.outlier_obs) = res_out;
+            
+            % generate esatimations also for the out par (to get a residual)
+            if n_out > 0
+                res_out = this.obs(this.outlier_obs) - A_out(:,~this.out_par & ~Core_Utils.ordinal2logical(this.idx_rd,n_par))*x_est;
+                red_out = res_out;
+                A_res_red = A_out(:,this.out_par);
+                idx_empty = sum(A_res_red,2) == 0;
+                red_out(idx_empty) = [];
+                A_res_red(idx_empty) = [];
+                x_out = A_res_red \ red_out;
+                res_out(~idx_empty) = red_out - A_res_red * x_out;
+                x(this.out_par) = x_out;
+                res(this.outlier_obs) = res_out;
+                
+            end
+            res(~this.outlier_obs) = this.obs(~this.outlier_obs) - A(1:sum(~this.outlier_obs),:)*x_est;
             this.res = res;
             this.x = x;
             
