@@ -91,6 +91,7 @@ classdef LS_Manipulator_new < handle
         obs_codes_id_obs % id of the signal used
         phase_obs % logical to tell if obs are phase or code
         wl_id_obs % id of the wavelength
+        outlier_obs % is obs an outlier?
         
         A_pseudo
         A_idx_pseudo
@@ -252,6 +253,8 @@ classdef LS_Manipulator_new < handle
             A = zeros(n_obs, n_par);
             [obs,satellite_obs, azimuth_obs, elevation_obs, variance_obs, wl_obs] = deal(zeros(n_obs, 1));
             [ obs_codes_id_obs,  wl_obs] = deal(zeros(n_obs, 1,'uint8'));
+            [ satellite_obs] = deal(zeros(n_obs, 1,'uint16'));
+
             phase_obs = false(n_obs,1);
             time_obs = GPS_Time();
             obs_count = 1;
@@ -1440,6 +1443,73 @@ classdef LS_Manipulator_new < handle
         function res = getResidual(this)
         end
         
+        function [res_ph, sat, obs_id] = getPhRes(this, rec)
+            % get phase residual 
+            %
+            % SYNTAX:  res_ph = getPhRes(this)
+            if nargin <2
+                rec = 1;
+            end
+            idx_rec = find(this.receiver_obs == rec);
+            u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
+            n_stream = length(u_stream);
+            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
+            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+            time_res.addSeconds(0:this.time_obs.getRate:duration);
+            res_ph = nan(time_res.length,n_stream);
+            sat = nan(1,n_stream);
+            obs_id = nan(1,n_stream);
+            for i = 1 : n_stream
+                sat(i) = rem(u_stream(i) ,1000);
+                obs_id(i) = floor(u_stream(i)/1000);
+                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
+                if any(idx_res)
+                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    res_ph(idx_time,i) = this.res(idx_res);
+                end
+            end
+            
+        end
+        
+        function [res_pr, sat, obs_id] = getPrRes(this, rec)
+            % get phase residual 
+            %
+            % SYNTAX:  res_ph = getPhRes(this)
+            if nargin <2
+                rec = 1;
+            end
+            idx_rec = find(this.receiver_obs == rec);
+            u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
+            n_stream = length(u_stream);
+            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
+            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+            time_res.addSeconds(0:this.time_obs.getRate:duration);
+            res_pr = nan(time_res.length,n_stream);
+            sat = nan(1,n_stream);
+            obs_id = nan(1,n_stream);
+            for i = 1 : n_stream
+                sat(i) = rem(u_stream(i) ,1000);
+                obs_id(i) = floor(u_stream(i)/1000);
+                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
+                if any(idx_res)
+                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    res_pr(idx_time,i) = this.res(idx_res);
+                end
+            end
+            
+        end
+        
+        function setPhFlag(this,rec,flag)
+            idx_rec = find(this.receiver_obs == rec);
+            u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
+            n_stream = length(u_stream);
+            time_res = this.time.getNominalTime.getEpoch(idx_rec).minimum;
+            duration = this.time.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+            time_res.addSeconds(0:this.time.getRate:duration);
+            
+        end
+        
+        
         function setUpSA(this, rec_work, id_sync, flag, param_selction, parametrization)
             % set up single point adjustment
             %
@@ -1460,6 +1530,7 @@ classdef LS_Manipulator_new < handle
             if nargin < 6
                 parametrization = LS_Parametrization();
             end
+            this.unique_time = rec_work.time;
             %             ls_param.tropo(1) = LS_Parametrization.SPLINE_CUB;
             %             ls_param.tropo_opt = struct('spline_rate',900);
             %             ls_param.tropo_e(1) = LS_Parametrization.SPLINE_CUB;
