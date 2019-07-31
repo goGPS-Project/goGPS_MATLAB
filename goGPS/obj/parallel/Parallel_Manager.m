@@ -737,7 +737,7 @@ classdef Parallel_Manager < Com_Interface
                     n_job_done = numel(slave_list);
                     for j = 1 : numel(slave_list)
                         worker_id = regexp(slave_list(j).name, [ Go_Slave.SLAVE_READY_PREFIX '[T|S]_[0-9]*'], 'match', 'once');
-                        % get the result stored into jobXXXX_WORKER_YYYY.mat
+                        % get the result stored into jobXXXX_WORKER_T|S_YYY.mat
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         switch par_type
                             case 1 % if it's a session parallelism:
@@ -766,47 +766,47 @@ classdef Parallel_Manager < Com_Interface
                                         % try to read it again
                                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
                                     end
-                                end
-                                if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
-                                    this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
-                                else
-                                    this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), tmp.rec.state.getCurSession), 9));
-                                end
-                                if core.rec(job_id).out.isEmpty
-                                    % import all
-                                    tmp.rec.out = core.rec(job_id).out;
-                                    % Detect if the parallel GNSS_Station is empty
-                                    par_sta_is_empty = (strcmp(tmp.rec.marker_name, 'unknown') && strcmp(tmp.rec.number, '000') && strcmp(tmp.rec.version, '000'));
-                                    local_sta_is_empty = (strcmp(core.rec(job_id).marker_name, 'unknown') && strcmp( core.rec(job_id).number, '000') && strcmp(core.rec(job_id).version, '000'));
-                                    if ~par_sta_is_empty || local_sta_is_empty
-                                        % import the entire receiver
-                                        core.rec(job_id) = tmp.rec;
+                                    if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
+                                        this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
                                     else
-                                        % Import only work and out
-                                        core.rec(job_id).work = tmp.rec.work;
-                                        core.rec(job_id).out = tmp.rec.out;
+                                        this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), tmp.rec.state.getCurSession), 9));
                                     end
-                                    % Remember to out (Luke) who's the father!
-                                    % Luke, I'm your father!!!
-                                    core.rec(job_id).out.parent = core.rec(job_id);
-                                    core.rec(job_id).out.initHandles();
-                                    % relink singletons
-                                    core.rec(job_id).log = Core.getLogger;
-                                    core.rec(job_id).state = Core.getState;
-                                    % import results in out
-                                else
-                                    % import only work
-                                    tmp.rec.work.parent = core.rec(job_id);
-                                    tmp.rec.work.initHandles();
-                                    core.rec(job_id).work = tmp.rec.work;
+                                    if core.rec(job_id).out.isEmpty
+                                        % import all
+                                        tmp.rec.out = core.rec(job_id).out;
+                                        % Detect if the parallel GNSS_Station is empty
+                                        par_sta_is_empty = (strcmp(tmp.rec.marker_name, 'unknown') && strcmp(tmp.rec.number, '000') && strcmp(tmp.rec.version, '000'));
+                                        local_sta_is_empty = (strcmp(core.rec(job_id).marker_name, 'unknown') && strcmp( core.rec(job_id).number, '000') && strcmp(core.rec(job_id).version, '000'));
+                                        if ~par_sta_is_empty || local_sta_is_empty
+                                            % import the entire receiver
+                                            core.rec(job_id) = tmp.rec;
+                                        else
+                                            % Import only work and out
+                                            core.rec(job_id).work = tmp.rec.work;
+                                            core.rec(job_id).out = tmp.rec.out;
+                                        end
+                                        % Remember to out (Luke) who's the father!
+                                        % Luke, I'm your father!!!
+                                        core.rec(job_id).out.parent = core.rec(job_id);
+                                        core.rec(job_id).out.initHandles();
+                                        % relink singletons
+                                        core.rec(job_id).log = Core.getLogger;
+                                        core.rec(job_id).state = Core.getState;
+                                        % import results in out
+                                    else
+                                        % import only work
+                                        tmp.rec.work.parent = core.rec(job_id);
+                                        tmp.rec.work.initHandles();
+                                        core.rec(job_id).work = tmp.rec.work;
+                                    end
+                                    % Remember to work (Leia) who's the father!
+                                    core.rec(job_id).work.parent = core.rec(job_id);
+                                    if core.rec(job_id).work.flag_currupted
+                                        this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
+                                    end
+                                    this.log.addMessage(this.log.indent(sprintf('Deleting %s',fullfile(this.getComDir(), job_file(1).name))),200);
+                                    delete(fullfile(this.getComDir(), job_file(1).name));
                                 end
-                                % Remember to work (Leia) who's the father!
-                                core.rec(job_id).work.parent = core.rec(job_id);
-                                if core.rec(job_id).work.flag_currupted
-                                    this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
-                                end
-                            this.log.addMessage(this.log.indent(sprintf('Deleting %s',fullfile(this.getComDir(), job_file(1).name))),200);
-                            delete(fullfile(this.getComDir(), job_file(1).name));
                         end
                         % core.rec(job_id).work.pushResult();
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
