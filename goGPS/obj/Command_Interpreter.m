@@ -134,6 +134,7 @@ classdef Command_Interpreter < handle
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
         PAR_E_TROPO_SNX % Tropo export paramter sinex format
         PAR_E_TROPO_MAT % Tropo export paramter mat format
+        PAR_E_TROPO_CSV % Tropo export paramter csv format
         PAR_E_COO_CRD   % Coordinates in bernese crd format
 
         PAR_S_SAVE      % flage for saving                
@@ -364,6 +365,11 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.accepted_values = {};
+            
+            this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
+            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters matlab as .csv file';
+            this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
+            this.PAR_E_TROPO_CSV.accepted_values = {};
             
             this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
@@ -1765,6 +1771,9 @@ classdef Command_Interpreter < handle
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                         rec(r).out.exportTropoMat();
+                                        not_exported = false;
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_CSV.par ')*$'], 'once'))
+                                        rec(r).out.exportTropoCSV();
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
                                         rec(r).exportMat();
