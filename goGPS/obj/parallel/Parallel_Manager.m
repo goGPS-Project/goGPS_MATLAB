@@ -775,19 +775,33 @@ classdef Parallel_Manager < Com_Interface
                                 if core.rec(job_id).out.isEmpty
                                     % import all
                                     tmp.rec.out = core.rec(job_id).out;
-                                    tmp.rec.out.parent = tmp.rec;
-                                    tmp.rec.out.initHandles();
-                                    core.rec(job_id) = tmp.rec;
+                                    % Detect if the parallel GNSS_Station is empty
+                                    par_sta_is_empty = (strcmp(tmp.rec.marker_name, 'unknown') && strcmp(tmp.rec.number, '000') && strcmp(tmp.rec.version, '000'));
+                                    local_sta_is_empty = (strcmp(core.rec(job_id).marker_name, 'unknown') && strcmp( core.rec(job_id).number, '000') && strcmp(core.rec(job_id).version, '000'));
+                                    if ~par_sta_is_empty || local_sta_is_empty
+                                        % import the entire receiver
+                                        core.rec(job_id) = tmp.rec;
+                                    else
+                                        % Import only work and out
+                                        core.rec(job_id).work = tmp.rec.work;
+                                        core.rec(job_id).out = tmp.rec.out;
+                                    end
+                                    % Remember to out (Luke) who's the father!
+                                    % Luke, I'm your father!!!
+                                    core.rec(job_id).out.parent = core.rec(job_id);
+                                    core.rec(job_id).out.initHandles();
                                     % relink singletons
                                     core.rec(job_id).log = Core.getLogger;
                                     core.rec(job_id).state = Core.getState;
                                     % import results in out
                                 else
                                     % import only work
+                                    tmp.rec.work.parent = core.rec(job_id);
                                     tmp.rec.work.initHandles();
                                     core.rec(job_id).work = tmp.rec.work;
-                                    core.rec(job_id).work.parent = core.rec(job_id);
                                 end
+                                % Remember to work (Leia) who's the father!
+                                core.rec(job_id).work.parent = core.rec(job_id);
                                 if core.rec(job_id).work.flag_currupted
                                     this.log.addError(sprintf('Something bad appened in parallel job %d - processing corrupted', job_id));
                                 end
