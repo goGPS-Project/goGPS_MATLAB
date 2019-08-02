@@ -1413,8 +1413,8 @@ classdef Command_Interpreter < handle
                     end
                 end
                 %try
-                %                net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
-                net.adjustNew(id_ref, coo_rate, iono_reduce, clk_export, free_network);
+                net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
+                %net.adjustNew(id_ref, coo_rate, iono_reduce, clk_export, free_network);
                 %catch ex
                 %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
                 %end
