@@ -389,7 +389,7 @@ classdef GNSS_Station < handle
                     time = sta_list(r).getTime().getEpoch([1 sta_list(r).getTime().length()]);
                     time.toUtc();
 
-                    fname = fullfile(sta_list(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', sta_list(r).marker_name, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
+                    fname = fullfile(sta_list(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', sta_list(r).getMarkerName4Ch, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
 
                     rec = sta_list(r);
                     tmp_work = rec.work; % back-up current out

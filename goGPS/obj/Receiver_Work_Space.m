@@ -9329,7 +9329,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     time = this(r).getTime().getEpoch([1 this(r).getTime().length()]);
                     time.toUtc();
                     
-                    fname = fullfile(this(r).state.getOutDir(), sprintf('work_%s-session%03d-%s-%s-rec%04d%s', this(r).parent.marker_name, this(r).state.getCurSession, this(r).state.getSessionsStart.toString('yyyymmdd_HHMMSS'), this(r).state.getSessionsStop.toString('yyyymmdd_HHMMSS'), r, '.mat'));
+                    fname = fullfile(this(r).state.getOutDir(), sprintf('work_%s-session%03d-%s-%s-rec%04d%s', this(r).parent.getMarkerName4Ch, this(r).state.getCurSession, this(r).state.getSessionsStart.toString('yyyymmdd_HHMMSS'), this(r).state.getSessionsStop.toString('yyyymmdd_HHMMSS'), r, '.mat'));
                     
                     rec = this(r).parent;
                     tmp_out = rec.out; % back-up current out

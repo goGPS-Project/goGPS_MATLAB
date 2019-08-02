@@ -661,9 +661,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             yy = num2str(year);
                             yy = yy(3:4);
                             sess_str = '0'; %think how to get the right one from sss_id_list
-                            fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                            fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.getMarkerName4Ch sprintf('%03d', doy) sess_str '.' yy 'zpd']);
                             snx_wrt = SINEX_Writer(fname);
-                            snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.marker_name)
+                            snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.getMarkerName4Ch)
                             snx_wrt.writeFileReference()
                             snx_wrt.writeAcknoledgments()
                             smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
@@ -739,7 +739,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ztd = this(r).getZtd(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
-                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
+                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d',year, doy) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
@@ -775,7 +775,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ztd = this(r).getZtd(); %#ok<NASGU>
                         zwd = this(r).getZwd(); %#ok<NASGU>
                         [gn,ge ] =  this(r).getGradient(); %#ok<NASGU>
-                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.marker_name sprintf('%04d%02d%02d',year, month,day) '.csv']);
+                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%02d%02d',year, month,day) '.csv']);
                         fid = fopen(fname,'w');
                         n_data = time.length;
                         fprintf(fid,'Data               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
