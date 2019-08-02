@@ -4136,6 +4136,8 @@ classdef GNSS_Station < handle
                     sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
                 else
                     tlim = [inf -inf];
+                    dlim = [inf -inf];
+
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
                         f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
@@ -4143,6 +4145,7 @@ classdef GNSS_Station < handle
                     else
                         l = legend;
                         old_legend = get(l,'String');
+                        f = gcf();
                     end
                     if sub_plot_nsat
                         ax1 = subplot(3,1,1:2);
@@ -4162,10 +4165,25 @@ classdef GNSS_Station < handle
                                 plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2); hold on;
                             end
                         end
-                        outm{r} = rec(1).getMarkerName();
-                        tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
-                        tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
+                        childs = f.Children(end).Children;
+                        for c = 1 : length(childs)
+                            tlim(1) = min([tlim(1), childs(c).XData]);
+                            tlim(2) = max([tlim(2), childs(c).XData]);
+                            
+                            dlim(1) = min([dlim(1), childs(c).YData]);
+                            dlim(2) = max([dlim(2), childs(c).YData]);
+                        end
+                        dspan = dlim(2) - dlim(1);
+                        if dlim(1) < 0
+                            dlim(1) = dlim(1) - 0.03 *dspan;
+                        else
+                            dlim(1) = max(0,dlim(1) - 0.03 *dspan);
+                        end
+                        dlim(2) = dlim(2) + 0.03 *dspan;
                         xlim(tlim);
+                        ylim(dlim);
+                        outm{r} = rec(1).getMarkerName();
+
                     end
 
                     outm = [old_legend, outm];
