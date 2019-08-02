@@ -1318,7 +1318,8 @@ classdef GPS_Time < Exportable & handle
             
             mat_time = time.getMatlabTime;
             [year, ~] = datevec(mat_time);
-            time = mat_time - datenummx(year,1,1);
+            % deal with loss of presition (keep 9 decimal digits)
+            time = round((mat_time - datenummx(year,1,1))* 1e9) / 1e9;
             doy = floor(time) + 1; % days from the beginning of the year
             sod = floor((time - doy +1) * 86400); % days from the beginning of the year
         end
