@@ -136,6 +136,7 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_MAT % Tropo export paramter mat format
         PAR_E_TROPO_CSV % Tropo export paramter csv format
         PAR_E_COO_CRD   % Coordinates in bernese crd format
+        PAR_E_COO_CSV   % Coordinates in bernese crd format
 
         PAR_S_SAVE      % flage for saving                
                 
@@ -382,6 +383,13 @@ classdef Command_Interpreter < handle
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
             this.PAR_E_COO_CRD.accepted_values = [];
+            
+            this.PAR_E_COO_CSV.name = 'Coordinates bernese CSV format';
+            this.PAR_E_COO_CSV.descr = 'COO_CSV            Coordinates Bernese .csv file';
+            this.PAR_E_COO_CSV.par = '(coo_csv)|(COO_CSV)';
+            this.PAR_E_COO_CSV.class = '';
+            this.PAR_E_COO_CSV.limits = [];
+            this.PAR_E_COO_CSV.accepted_values = [];
             
             % definition of commands
             
