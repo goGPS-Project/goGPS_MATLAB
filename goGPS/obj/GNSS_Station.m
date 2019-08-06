@@ -4173,18 +4173,17 @@ classdef GNSS_Station < handle
                             dlim(1) = min([dlim(1), childs(c).YData]);
                             dlim(2) = max([dlim(2), childs(c).YData]);
                         end
-                        dspan = dlim(2) - dlim(1);
-                        if dlim(1) < 0
-                            dlim(1) = dlim(1) - 0.03 *dspan;
-                        else
-                            dlim(1) = max(0,dlim(1) - 0.03 *dspan);
-                        end
-                        dlim(2) = dlim(2) + 0.03 *dspan;
-                        xlim(tlim);
-                        ylim(dlim);
                         outm{r} = rec(1).getMarkerName();
-
                     end
+                    dspan = dlim(2) - dlim(1);
+                    if dlim(1) < 0
+                        dlim(1) = dlim(1) - 0.03 *dspan;
+                    else
+                        dlim(1) = max(0, dlim(1) - 0.03 *dspan);
+                    end
+                    dlim(2) = dlim(2) + 0.03 *dspan;
+                    xlim(tlim);
+                    ylim(dlim);
 
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
