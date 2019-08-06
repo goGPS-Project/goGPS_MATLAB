@@ -567,6 +567,15 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observation', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
+            box_g_but = uix.HBox('Parent', box_g, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            Core_UI.insertEmpty(box_g_but);
+            get_markers = uicontrol( 'Parent', box_g_but, ...
+                'String', 'Recursive get marker names', ...
+                'Callback', @Core_UI.onGetRecursiveMarkers);
+            box_g_but.Widths = [170 160];
+            
+            
             Core_UI.insertEmpty(box_g);
             %[~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(box_g, 'Custom Antex (ATX) filename', 'custom_atx_dir', 'custom_atx_name', @this.onEditChange, [170 -3 5 -1 25]);
             %Core_UI.insertEmpty(box_g);
@@ -579,7 +588,7 @@ end
                 'String', 'Get missing BLQ', ...
                 'Callback', @this.openGetChalmerString);
             box_gh.Widths = [-1 120];
-            box_g.Heights = [-1 5 23];
+            box_g.Heights = [-1 23 5 23];
         end
                 
         function insertTabProcessing(this, container)

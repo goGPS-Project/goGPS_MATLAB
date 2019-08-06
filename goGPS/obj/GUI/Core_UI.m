@@ -1404,6 +1404,27 @@ classdef Core_UI < handle
             end
         end
         
+        function onGetRecursiveMarkers(caller, event)
+            dir_box = caller.Parent.Parent.Children(end).Children(end).Children(2);
+            list_box = caller.Parent.Parent.Children(end).Children(1).Children(2);
+            
+            dir_path = uigetdir(dir_box.String);
+            station_list = Core_Utils.getStationList(dir_path, 'oO', true);
+            
+            if dir_path ~= 0
+                dir_box.String = dir_path;
+                % trigger the edit of the field
+                callbackCell = get(dir_box,'Callback');
+                callbackCell(dir_box);
+                if ~isempty(station_list)
+                    list_box.String = station_list;
+                    % trigger the edit of the field
+                    callbackCell = get(list_box,'Callback');
+                    callbackCell(list_box);
+                end
+            end
+        end
+        
         function onSearchDirBoxMLStationMet(caller, event)
             dir_path = uigetdir(caller.Parent.Children(2).String);
             station_list = Core_Utils.getStationList(dir_path,'mM');

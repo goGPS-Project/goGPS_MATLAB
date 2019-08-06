@@ -680,69 +680,83 @@ classdef Core_Utils < handle
             end
         end
         
-        function station_list = getStationList(dir_path, file_ext)
+        function station_list = getStationList(dir_path_list, file_ext, flag_recursive)
             % Get the list of stations present in a folder (with keys substituted)
             %
             % SYNTAX
             %   station_list = Core_Utilis.getStationList(dir_path)
             
-            try
-                % Calling dos is faster than dir with large directories
-                if isunix
-                    [~, d] = dos(['ls ' dir_path]); dir_list = strsplit(d);
-                else
-                    [~, d] = dos(['dir ' dir_path]); dir_list = strsplit(d);
-                end
-            catch
-                dir_list = dir(dir_path);
-                dir_list = {dir_list.name};
-            end                                   
-            
-            % search for station files STAT${DOY}${S}${QQ}.${YY}
             if nargin == 1
                 file_ext = '.';
             else
                 file_ext = ['[' file_ext ']'];
             end
-            file_list = [];
+            
+            if nargin == 3 && flag_recursive
+                dir_path_list = strsplit(genpath(dir_path_list), ':');
+            else
+                dir_path_list = {dir_path_list};
+            end
+            
+            recursive_dirs = {};
+            for d = 1 : numel(dir_path_list)
+                dir_path = dir_path_list{d};
+                if ~isempty(dir_path)
+                    try
+                        % Calling dos is faster than dir with large directories
+                        if isunix
+                            [~, d] = dos(['ls ' dir_path]); 
+                            dir_list = strsplit(d);
+                            dir_list = dir_list(1:end-1);
+                        else
+                            [~, d] = dos(['dir ' dir_path]); 
+                            dir_list = strsplit(d);
+                            dir_list = dir_list(1:end-1);
+                        end
+                    catch
+                        dir_list = dir(dir_path);
+                        dir_list = {dir_list.name};
+                    end
+                    for i = 1 : numel(dir_list)
+                        dir_list{i} = [dir_path(length(dir_path_list{1})+2:end) filesep dir_list{i}];
+                    end
+                end
+                recursive_dirs = [recursive_dirs dir_list];
+            end
+            dir_list = recursive_dirs;
+            %%
+            % search for station files STAT${DOY}${S}${QQ}.${YY}
+            file_list = {};
             for d = 1 : numel(dir_list)
-                file_name_len = numel(dir_list{d});
+                tmp = strsplit(dir_list{d}, filesep);
+                file_name = tmp{end};
+                file_name_len = numel(file_name);
+                rin2_start = regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[0-9]{2}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once');
                 rin3_start = regexp(dir_list{d}, '\_R\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
-                if (file_name_len == 14) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[0-9]{2}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
-                    file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}${QQ}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
+                rin3B_start = regexp(dir_list{d}, '\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
+                if (file_name_len == 14) && ~isempty(rin2_start)
+                    file_list = [file_list; {[dir_list{d}(1:rin2_start) '${DOY}${S}${QQ}.${YY}' dir_list{d}(end)]}];
                     %file_list = [file_list; dir_list{d}(1:4)];
                 elseif (file_name_len == 38) && ~isempty(rin3_start)
                     %file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}${HH}${QQ}' dir_list{d}(rin3_start + 14 : end)]]; %#ok<AGROW>
-                    file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]]; %#ok<AGROW>
+                    file_list = [file_list; {[dir_list{d}(1:rin3_start) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]}]; %#ok<AGROW>
+                elseif (file_name_len == 31) && ~isempty(rin3B_start)
+                    file_list = [file_list; {[dir_list{d}(1:rin3B_start) '${YYYY}${DOY}' dir_list{d}(rin3B_start + 8 : end)]}]; %#ok<AGROW>
                 end
-            end
-            station_list = {};
-            if size(file_list, 2) > 1
-                station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
-                station_name = unique(station_num);
-                for s = 1 : numel(station_name)
-                    station_list = [station_list; {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
-                end
-            end
+            end           
             
             % search for station files STAT${DOY}${S}.${YY}
-            file_list = [];
             for d = 1 : numel(dir_list)
-                file_name_len = numel(dir_list{d});
-                if (file_name_len == 12) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
-                    file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
+                tmp = strsplit(dir_list{d}, filesep);
+                file_name = tmp{end};
+                file_name_len = numel(file_name);
+                rin2_start = regexp(dir_list{d}, ['[0-9]{3}.{1}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once');
+                if (file_name_len == 12) && ~isempty(rin2_start)
+                    file_list = [file_list; {[dir_list{d}(1:rin2_start-1) '${DOY}${S}.${YY}' dir_list{d}(end)]}]; %#ok<AGROW>
                     %file_list = [file_list; dir_list{d}(1:4)];
-                elseif (file_name_len == 38) && ~isempty(rin3_start)
-                    file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]]; %#ok<AGROW>
                 end
             end
-            if size(file_list, 2) > 1
-                station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
-                station_name = unique(station_num);
-                for s = 1 : numel(station_name)
-                    station_list = [station_list; {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
-                end
-            end
+            station_list = unique(file_list)
         end
     
         function data = injectData(data1, data2, idx1, idx2, data_size)
