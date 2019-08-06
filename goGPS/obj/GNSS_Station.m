@@ -761,6 +761,19 @@ classdef GNSS_Station < handle
                 coo(r) = sta_list(r).out.getPos();
             end
         end
+        
+        function printCrd(sta_list)
+            % return at screen the CRD in goGet format
+            %
+            % SYNTAX
+            %   coo = sta_list.printCrd()            
+            crd = reshape(sta_list.getPosXYZ_mr, 3, numel(sta_list))';
+            coo = sta_list.getPos;
+            for r = 1 : numel(sta_list)
+                [lat, lon] = coo(r).getGeodetic();
+                fprintf('%4s_%04d_%04d     %13.4f %13.4f %13.4f 1\n', upper(sta_list(r).getMarkerName4Ch), round(90 - lat/pi*180)*10, round(mod(lon/pi*180,360)*10), crd(r, 1), crd(r, 2), crd(r, 3))
+            end
+        end
 
         function xyz = getPosXYZ(sta_list)
             % return the positions computed for the receiver
