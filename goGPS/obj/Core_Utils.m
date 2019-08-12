@@ -732,16 +732,11 @@ classdef Core_Utils < handle
                 file_name = tmp{end};
                 file_name_len = numel(file_name);
                 rin2_start = regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[0-9]{2}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once');
-                rin3_start = regexp(dir_list{d}, '\_R\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
-                rin3B_start = regexp(dir_list{d}, '\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
+                rin3_start = regexp(dir_list{d}, '\_[0-9]{4}[0-9]{3}[0-9]{4}\_', 'once');
                 if (file_name_len == 14) && ~isempty(rin2_start)
                     file_list = [file_list; {[dir_list{d}(1:rin2_start) '${DOY}${S}${QQ}.${YY}' dir_list{d}(end)]}];
-                    %file_list = [file_list; dir_list{d}(1:4)];
-                elseif (file_name_len == 38) && ~isempty(rin3_start)
-                    %file_list = [file_list; [dir_list{d}(1:rin3_start+2) '${YYYY}${DOY}${HH}${QQ}' dir_list{d}(rin3_start + 14 : end)]]; %#ok<AGROW>
-                    file_list = [file_list; {[dir_list{d}(1:rin3_start) '${YYYY}${DOY}' dir_list{d}(rin3_start + 10 : end)]}]; %#ok<AGROW>
-                elseif (file_name_len == 31) && ~isempty(rin3B_start)
-                    file_list = [file_list; {[dir_list{d}(1:rin3B_start) '${YYYY}${DOY}' dir_list{d}(rin3B_start + 8 : end)]}]; %#ok<AGROW>
+                elseif ~isempty(rin3_start)
+                    file_list = [file_list; {[dir_list{d}(1:rin3_start) '${YYYY}${DOY}' dir_list{d}(rin3_start + 8 : end)]}]; %#ok<AGROW>
                 end
             end           
             
