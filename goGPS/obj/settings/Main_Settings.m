@@ -2659,6 +2659,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
         end
         
+        function n_missing = checkFileErr(this, field_name, field_text, flag_verbose)
+            % Check the validity of the fields
+            %
+            % SYNTAX
+            %   n_missing = this.checkFile(field_name, field_text, flag_verbose);
+            %   n_missing = this.checkFile({field_dir, field_name}, field_text, flag_verbose);
+            
+            if nargin < 4
+                flag_verbose = true;
+            end
+            n_missing = checkPath(this, field_name, field_text, flag_verbose, true, true);
+        end
+        
         function change_status = resetPath(this, field_name, new_home, flag_verbose)
             % given a new home path reset the field with the default value
             %

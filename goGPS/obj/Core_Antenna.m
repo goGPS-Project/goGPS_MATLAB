@@ -416,13 +416,18 @@ classdef Core_Antenna < handle
                 serial = {serial};
             end
             time = time.getMatlabTime;
-            ss = Core_Utils.code3Char2Num(this.serial(:, 1:3)); % stored serials expressed as a number
-            sat_type = cell(size(serial(:), 1), 1);
-            for a = 1 : size(serial(:), 1)
-                id_sat = find(ss == Core_Utils.code3Char2Num(serial{a}(1:3)) & ...
-                    this.start <= time & ...
-                    this.stop >= time, 1, 'first');
-                sat_type{a} = this.type(id_sat, :);
+            if isempty(this.serial)
+                Core.getLogger.addError('goGPS requires a satellite antenna file to work properly!'); 
+                error('No antennas no fun :-(')
+            else
+                ss = Core_Utils.code3Char2Num(this.serial(:, 1:3)); % stored serials expressed as a number
+                sat_type = cell(size(serial(:), 1), 1);
+                for a = 1 : size(serial(:), 1)
+                    id_sat = find(ss == Core_Utils.code3Char2Num(serial{a}(1:3)) & ...
+                        this.start <= time & ...
+                        this.stop >= time, 1, 'first');
+                    sat_type{a} = this.type(id_sat, :);
+                end
             end
         end
         

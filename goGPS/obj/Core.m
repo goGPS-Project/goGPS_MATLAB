@@ -1192,6 +1192,7 @@ classdef Core < handle
             end
             
             err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);            
+            err_code.atx_f = state.checkFileErr({'atx_dir', 'atx_name'}, 'Antenna file', flag_verbose);
             if state.isHOI
                 err_code.hoi   = state.checkDirErr('igrf_dir', 'International Geomagnetic reference dir', flag_verbose);
             else
@@ -1246,7 +1247,7 @@ classdef Core < handle
             err_code.go = err_code.home + ...
                 err_code.obs + ...
                 (err_code.obs_f < 0) + ...
-                err_code.atx + ...
+                err_code.atx + err_code.atx_f +  ...
                 err_code.hoi * state.isHOI;
         end
     end
