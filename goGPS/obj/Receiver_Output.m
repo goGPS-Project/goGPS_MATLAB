@@ -1074,7 +1074,7 @@ classdef Receiver_Output < Receiver_Commons
                 win.Units = 'pixels';
                 scroller = uix.ScrollingPanel('Parent', win);
                 container = uix.Grid('Parent', scroller, ...
-                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 
                 %h = title(, 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 uicontrol('Parent', container, ...
@@ -1084,7 +1084,7 @@ classdef Receiver_Output < Receiver_Commons
                     'HorizontalAlignment', 'center', ...
                     'FontSize', Core_UI.getFontSize(10), ...
                     'FontWeight', 'Bold', ...
-                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 
                 for i = 1 : n_plot
                     ax(i) = axes('Parent', container);

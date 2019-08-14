@@ -48,7 +48,7 @@ classdef goGUIclass < handle
 
     properties (Constant)
         % Colors
-        DISABLE_COL = [0.502 0.502 0.502];  % Grey (disabled color)
+        DISABLE_COL = [0.502 0.502 0.502];  % Gray (disabled color)
         ENABLE_COL = [0 0 0];               % Black (enabled color)
         GREEN = [0 0.8 0];                  % Green - for flag
         YELLOW = [1 0.8 0.1];               % Yellow - for flag

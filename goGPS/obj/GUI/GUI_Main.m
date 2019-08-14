@@ -77,6 +77,7 @@ classdef GUI_Main < handle
         j_rrini     % ini resources file
         edit_texts  % List of editable text
         edit_texts_array % list of editable text array
+        flag_list   % list of all the flags
         ceckboxes
         
         uip         % User Interface Pointers
@@ -149,6 +150,7 @@ end
             this.pop_ups = {};
             this.edit_texts = {};
             this.edit_texts_array = {};
+            this.flag_list = {};
             
             % Main Window ----------------------------------------------------------------------------------------------
             
@@ -174,7 +176,7 @@ end
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
@@ -187,7 +189,7 @@ end
             
             left_bv = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             
             % Set-up menu ----------------------------------------------------------------------------------------------
             
@@ -207,13 +209,13 @@ end
             
             panel_g_border = uix.Grid('Parent', top_bh, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
             
             tab_panel = uix.TabPanel('Parent', panel_g_border, ...
                 'TabWidth', 100, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'SelectionChangedFcn', @this.onTabChange);
             
             
@@ -253,39 +255,39 @@ end
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
                 'Padding', 5, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);
             
             bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);
             
             ini_name_box = uix.HBox( 'Parent', bottom_bh, ...
                 'Padding', 2, ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);
             
             uicontrol('Parent', ini_name_box, ...
                 'Style', 'Text', ...
                 'String', ' Current INI path:', ...
-                'ForegroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);   
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);   
             
             this.ini_path = uicontrol('Parent', ini_name_box, ...
                 'Style', 'Text', ...
                 'String', 'last_settings.ini', ...
-                'ForegroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);            
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);            
             
             ini_name_box.Widths = [100 -1];
             
             bottom_bhr = uix.HButtonBox( 'Parent', bottom_bh, ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'right', ...
-                'BackgroundColor', Core_UI.DARKER_GRAY_BG);
+                'BackgroundColor', Core_UI.DARKER_GREY_BG);
             
             exit_but = uicontrol( 'Parent', bottom_bhl, ...
                 'String', 'Exit', ...
@@ -329,7 +331,7 @@ end
     % ==================================================================================================================================================
     methods
         function insertResources(this, container)
-            resources_BG = Core_UI.LIGHT_GRAY_BG;
+            resources_BG = Core_UI.LIGHT_GREY_BG;
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', resources_BG);
@@ -346,7 +348,7 @@ end
         end
         
         function j_cmd = insertTabCommands(this, container)
-            cmd_bg = Core_UI.LIGHT_GRAY_BG;
+            cmd_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.HBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', cmd_bg);
@@ -429,7 +431,7 @@ end
         end
         
         function insertTabDataSources(this, container)
-            data_selection_bg = Core_UI.LIGHT_GRAY_BG;
+            data_selection_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', data_selection_bg);
@@ -437,7 +439,7 @@ end
             % --------------------------------------------------------
             
             prj_box = Core_UI.insertPanelLight(tab, 'Project');
-            [~, this.edit_texts{end+1}] = Core_UI.insertDirBox(prj_box, 'Project home directory', 'prj_home', @this.onEditChange, [160 -1 25]);
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(prj_box, 'Project home directory', 'prj_home', @this.onEditChange, [25 150 -1 25]);
             
             % --------------------------------------------------------
             
@@ -448,26 +450,26 @@ end
             
             this.session_panel = Core_UI.insertPanelLight(tab, 'Session');
             sss_box_v = uix.VBox('Parent', this.session_panel, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);                        
             sss_box_h = uix.HBox('Parent', sss_box_v, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);                        
             
             sss_box_l = uix.VBox('Parent', sss_box_h, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                         
             date_g = uix.Grid( 'Parent', sss_box_l, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             uicontrol('Parent', date_g, ...
                 'Style', 'Text', ...
                 'String', 'Start', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK);
             uicontrol('Parent', date_g, ...
                 'Style', 'Text', ...
                 'String', 'Stop', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK);
             ts = this.state.getSessionsStart();
             te = this.state.getSessionsStop();
@@ -490,10 +492,10 @@ end
             % Session size
 
             sss_box_r = uix.VBox('Parent', sss_box_h, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             sss_bounds = uix.VBox('Parent', sss_box_r, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [el_group, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 60 5 40]);
             el_group.Tag = 'sss_duration';
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 60 5 40]);
@@ -508,7 +510,7 @@ end
             %-------------------------------------------
             % session check boxes
             sss_check_box = uix.HBox('Parent', sss_box_v, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onSSSCheckBoxChange);
             this.check_boxes{end}.Tag = 'sss_smooth';
@@ -521,7 +523,7 @@ end
             % --------------------------------------------------------
             % Session char
             sss_list_box_g = uix.HBox('Parent', sss_box_v, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [200 -1 0 0]);
             %this.edit_texts{end}.HorizontalAlignment = 'left';
@@ -564,11 +566,11 @@ end
             box = Core_UI.insertPanelLight(container, 'Stations');
             
             box_g = uix.VBox('Parent', box, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observation', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observation', 'obs_dir', 'obs_name', @this.onEditChange, {[180 -1 25], [175 -1 25]});
             box_g_but = uix.HBox('Parent', box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             Core_UI.insertEmpty(box_g_but);
             get_markers = uicontrol( 'Parent', box_g_but, ...
                 'String', 'Recursive get marker names', ...
@@ -581,9 +583,9 @@ end
             %Core_UI.insertEmpty(box_g);
             
             box_gh = uix.HBox('Parent', box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_gh, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(box_gh, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [25 155 -3 5 -1 25]);
             plot_rec = uicontrol( 'Parent', box_gh, ...
                 'String', 'Get missing BLQ', ...
                 'Callback', @this.openGetChalmerString);
@@ -592,7 +594,7 @@ end
         end
                 
         function insertTabProcessing(this, container)
-            data_selection_bg = Core_UI.LIGHT_GRAY_BG;
+            data_selection_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', data_selection_bg);
@@ -603,7 +605,7 @@ end
             
             % --------------------------------------------------------
             ds_box_g = uix.VBox('Parent', ds_box, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             uicontrol('Parent', ds_box_g, ...
                 'Style', 'Text', ...
@@ -616,10 +618,10 @@ end
             Core_UI.insertHBarLight(ds_box_g);
             
             ds_h_box = uix.HBox('Parent', ds_box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             err_box_g = uix.VBox('Parent', ds_h_box, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [175 40 5 50]);
             if verLessThan('matlab','9.1')
@@ -659,21 +661,21 @@ end
             %  -ppp--E--r--E--out--
             
             opt_h = uix.HBox('Parent', tab, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             opt_l = uix.VBox('Parent', opt_h, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             opt_tlh = uix.HBox('Parent', opt_l, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             opt_tll = uix.VBox('Parent', opt_tlh, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             Core_UI.insertEmpty(opt_tlh);
             
             opt_tlr = uix.VBox('Parent', opt_tlh, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                          
             % left top left
             ppp_panel = this.insertCorrections(opt_tll); %#ok<NASGU>
@@ -685,7 +687,7 @@ end
 
             % left bottom
             Core_UI.insertEmpty(opt_l);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [100 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
             Core_UI.insertEmpty(opt_l);
 
             Core_UI.insertEmpty(opt_h);
@@ -712,14 +714,14 @@ end
         function ocean_panel = insertOceanOptions(this, container)
             ocean_panel = Core_UI.insertPanelLight(container, 'Ocean loading file');
             opt_grid = uix.Grid('Parent', ocean_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
         
         function ocean_panel = insertCooOptions(this, container)
             ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
             opt_v = uix.VBox('Parent', ocean_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
             %this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
@@ -730,7 +732,7 @@ end
         function proc_opt = insertTabProcessingOptions(this, container)
             proc_opt = Core_UI.insertPanelLight(container, 'Options');
             opt_grid = uix.VBox('Parent', proc_opt,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
             Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
@@ -743,7 +745,7 @@ end
         function crd_panel = insertCrdFile(this, container)
             crd_panel = Core_UI.insertPanelLight(container, 'Stations a-priori coordinates');
             opt_grid = uix.Grid('Parent', crd_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+1}] = Core_UI.insertDirFileBox(opt_grid, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange);
         end
         
@@ -753,11 +755,11 @@ end
             ss_panel.FontWeight = 'normal';
             
             h_box_cc = uix.HBox('Parent', ss_panel, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
                 'ButtonSize', [100 20], ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange);
@@ -772,10 +774,10 @@ end
             
             %%% frequency selection
             v_bx_freq = uix.VBox('Parent', h_box_cc, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             n_b_gps = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L1) L1', 'GPS_L1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L2) L2', 'GPS_L2', @this.onCheckBoxCCChange);
@@ -783,7 +785,7 @@ end
             
             n_b_glo = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) G1', 'GLO_G1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) G2', 'GLO_G2', @this.onCheckBoxCCChange);
@@ -791,7 +793,7 @@ end
             
             n_b_gal = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L1) E1 ', 'GAL_E1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L5) E5a', 'GAL_E5a', @this.onCheckBoxCCChange);
@@ -801,7 +803,7 @@ end
             
             n_b_qzs = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2', @this.onCheckBoxCCChange);
@@ -810,7 +812,7 @@ end
             
             n_b_bei = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L2) B1', 'BDS_B1', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L7) B2', 'BDS_B2', @this.onCheckBoxCCChange);
@@ -818,14 +820,14 @@ end
             
             n_b_irn = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L5) L5', 'IRN_L5', @this.onCheckBoxCCChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L9) S ', 'IRN_S', @this.onCheckBoxCCChange);
             
             n_b_sbs = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_sbs, '(L1) L1', 'SBS_L1', @this.onCheckBoxCCChange);
             this.check_boxes{end}.Enable = 'off';
@@ -846,10 +848,10 @@ end
         function out_panel = insertOutOptions(this, container)
             %%% processing options
             opt_container = uix.VBox('Parent', container,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             out_panel = Core_UI.insertPanelLight(opt_container, 'Results to be stored');
             opt_v = uix.VBox('Parent', out_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dt (clock errors)',       'flag_out_dt', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV',                     'flag_out_pwv', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD',                     'flag_out_zwd', @this.onCheckBoxChange);
@@ -871,7 +873,7 @@ end
             %%% processing options
             ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
             opt_grid = uix.Grid('Parent', ppp_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
@@ -888,13 +890,13 @@ end
         function insertTabRecSpecificParameters(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
             
             %%% Rec
             box = Core_UI.insertPanelLight(tab, 'Station Coordinates');
             vbox = uix.VBox('Parent', box,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);            
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
             
             uicontrol('Parent', vbox, ...
@@ -903,11 +905,11 @@ end
                 'ForegroundColor', Core_UI.BLACK, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                         
             table_hbox = uix.HBox('Parent', vbox,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
 
             vbox.Heights = [23 23 -1];
             
@@ -916,7 +918,7 @@ end
                 'CellEditCallback', @this.dataCrdChange);
             but_box = uix.VBox('Parent', table_hbox,...
                 'Spacing', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             table_hbox.Widths = [-1 120];
                         
             del_row_but = uicontrol( 'Parent', but_box, ...
@@ -1173,13 +1175,13 @@ end
         function insertTabAtmosphere(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             %%% IONO
             iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
             
@@ -1189,10 +1191,10 @@ end
             tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             tropo_opt_est_grid = uix.HBox('Parent', tropo_opt_grid,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);
             
@@ -1212,23 +1214,23 @@ end
             tropo_opt_adv = Core_UI.insertPanelLight(tab, 'Advanced regularization options');
             tropo_opt_v_adv = uix.VBox('Parent', tropo_opt_adv,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             clock_reg_hbox = uix.HBox('Parent', tropo_opt_v_adv,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(clock_reg_hbox, 'clock regularization', 'std_clock', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             Core_UI.insertEmpty(clock_reg_hbox);
             clock_reg_hbox.Widths = [332 -1];
             tropo_opt_hbox_adv = uix.HBox('Parent', tropo_opt_v_adv,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             tropo_opt_v_adv.Heights = [25 -1];
             
             tropo_opt_vl_adv = uix.VBox('Parent', tropo_opt_hbox_adv,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             Core_UI.insertEmpty(tropo_opt_hbox_adv);
             tropo_opt_vr_adv = uix.VBox('Parent', tropo_opt_hbox_adv,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             tropo_opt_hbox_adv.Widths = [-1 20 -1];
             
             uicontrol('Parent', tropo_opt_vl_adv, ...
@@ -1238,7 +1240,7 @@ end
                 'FontWeight' , 'bold', ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             uicontrol('Parent', tropo_opt_vr_adv, ...
                 'Style', 'Text', ...
@@ -1247,7 +1249,7 @@ end
                 'FontWeight' , 'bold', ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);            
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Spline rate', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
@@ -1267,13 +1269,13 @@ end
             
             tab_bv = uix.VBox( 'Parent', tab, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
 %             uicontrol('Parent', tab_bv, ...
 %                 'Style', 'Text', ...
 %                 'HorizontalAlignment', 'left', ...
 %                 'String', 'Remote Resources ini file contains download locations - not editable from GUI', ...
-%                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
 %                 'ForegroundColor', Core_UI.BLACK, ...
 %                 'FontSize', Core_UI.getFontSize(10), ...
 %                 'FontWeight', 'bold');
@@ -1282,7 +1284,7 @@ end
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
                 'String', ['File path: ' this.state.getRemoteSourceFile], ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontSize', Core_UI.getFontSize(7.5));
             
@@ -1299,13 +1301,13 @@ end
             
             box_opref = uix.HBox( 'Parent', tab_bv, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             uicontrol('Parent', box_opref, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
                 'String', 'Center orbit type preference', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK, ...
                 'FontSize', Core_UI.getFontSize(9));
           
@@ -1318,13 +1320,13 @@ end
             
             box_ipref = uix.HBox( 'Parent', tab_bv, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             uicontrol('Parent', box_ipref, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
                 'String', 'Center iono type preference', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK, ...
                 'FontSize', Core_UI.getFontSize(9));
             
@@ -1338,16 +1340,16 @@ end
             % Resource tree
             Core_UI.insertEmpty(tab_bv);
             bottom_box = uix.VBox( 'Parent', tab_bv, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             rr_box = uix.VBox( 'Parent', bottom_box, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
 
             uicontrol('Parent', rr_box, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
                 'String', 'Resource tree inspector:', ... %  when a center have missing resources (e.g. iono, vmf, ...) default values are used
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK, ...
                 'FontSize', Core_UI.getFontSize(8));
              
@@ -1355,7 +1357,7 @@ end
             
             dir_but_box = uix.VBox( 'Parent', bottom_box, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             dir_reset = uicontrol( 'Parent', dir_but_box, ...
                 'String', 'Reset all resource paths', ...
@@ -1363,20 +1365,20 @@ end
 
             dir_box = uix.VBox( 'Parent', bottom_box, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            bottom_box.Heights = [-1 5 25 247];
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            bottom_box.Heights = [-1 5 25 275];
                          
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [130 -1 25]);
-            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [25 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [25 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [25 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [25 130 -1 25]);
 
             this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
@@ -1404,12 +1406,12 @@ end
             
             tab_bv = uix.VBox( 'Parent', tab, ...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'String', 'Remote Resources ini file - not editable from GUI', ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
                 'FontName', 'arial', ...
                 'FontSize', Core_UI.getFontSize(10), ...
@@ -1418,7 +1420,7 @@ end
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'String', this.state.getRemoteSourceFile, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontName', 'arial', ...
                 'FontSize', Core_UI.getFontSize(8));
@@ -1449,7 +1451,7 @@ end
         end
         
         function insertSessionInfo(this, container)
-            session_bg = Core_UI.DARK_GRAY_BG;
+            session_bg = Core_UI.DARK_GREY_BG;
             %session_p = uix.Panel('Parent', container, ...
             %    'Padding', 0, ...
             %    'BackgroundColor', session_bg);
@@ -1463,7 +1465,7 @@ end
             Core_UI.insertEmpty(v_text, session_bg);
             
             h_title = uix.HBox( 'Parent', v_text, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             list_title = uicontrol('Parent', h_title, ...
                 'Style', 'Text', ...
                 'String', 'Session', ...
@@ -1528,14 +1530,14 @@ end
         function insertRecList(this, container)
             this.info_g = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             
             v_text = uix.VBox( 'Parent', this.info_g, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
-            Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(v_text, Core_UI.DARK_GREY_BG);
             h_title = uix.HBox( 'Parent', v_text, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             list_title = uicontrol('Parent', h_title, ...
                 'Style', 'Text', ...
                 'String', 'Receiver List', ...
@@ -1543,14 +1545,14 @@ end
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(9), ...
                 'FontWeight', 'bold', ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
-            Core_UI.insertEmpty(h_title, Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(h_title, Core_UI.DARK_GREY_BG);
             
             check_rec = uicontrol( 'Parent', h_title, ...
                 'String', 'Check', ...
                 'Callback', @this.updateAndCheckRecList);
             
-            Core_UI.insertEmpty(h_title, Core_UI.DARK_GRAY_BG);
+            Core_UI.insertEmpty(h_title, Core_UI.DARK_GREY_BG);
             
             plot_rec = uicontrol( 'Parent', h_title, ...
                 'String', 'Plot', ...
@@ -1558,13 +1560,13 @@ end
 
             h_title.Widths = [95 -1 50  -1 40];
             
-            Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
+            Core_UI.insertEmpty(v_text, Core_UI.DARK_GREY_BG);
             
             v_text.Heights = [5, 23, -1];
             
             rec_g = uix.Grid('Parent', this.info_g, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             
             this.rec_tbl = uitable('Parent', rec_g);
             this.rec_tbl.RowName = {}; 
@@ -1582,12 +1584,12 @@ end
             tab = uix.Grid('Parent', container);
             
             com_box = Core_UI.insertPanelLight(tab, 'Parallelism');
-            [~, this.edit_texts{end+1}] = Core_UI.insertDirBox(com_box, 'Communication dir', 'com_dir', @this.onEditChange, [160 -1 25]);
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(com_box, 'Communication dir', 'com_dir', @this.onEditChange, [25 160 -1 25]);
 
             settings_box = Core_UI.insertPanelLight(tab, 'Raw settings file');
             setting_grid =  uix.HBox('Parent', settings_box, ...
                     'Spacing', 5, ...
-                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
 
             
             j_ini = com.mathworks.widgets.SyntaxTextPane;
@@ -1608,7 +1610,7 @@ end
                 'VerticalAlignment', 'top', ...
                 'HorizontalAlignment', 'center', ...
                 'ButtonSize', [120 20], ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             refresh_but = uicontrol( 'Parent', tab1_bvr, ...
                 'String', 'Refresh INI => UI', ...
@@ -1709,6 +1711,7 @@ end
                 this.updateRecList();
                 this.updateSessionSummary()
                 this.updateSessionGUI();
+                this.checkFlag();
             end
         end       
         
@@ -1851,6 +1854,7 @@ end
             this.state.check();
             caller.String = this.state.getProperty(caller.UserData);            
             this.updateINI();
+            this.checkFlag();
             
             if strcmp(caller.UserData, 'crd_name') || strcmp(caller.UserData, 'crd_dir')
                 rf = Core.getReferenceFrame;
@@ -1939,8 +1943,7 @@ end
         
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
-                this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
-                
+                this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);                
                 try
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     if ~strcmp(str, char(this.j_settings.getText()))
@@ -1952,6 +1955,10 @@ end
                     this.log.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                 end
             end
+        end
+        
+        function checkFlag(this)
+            Core_UI.checkFlag(this.flag_list)
         end
         
         function updateCmdList(this)
@@ -2278,6 +2285,7 @@ end
                 this.updatePopUpsState();
                 this.updateResourcePopUpsState();
                 this.updateRecList();
+                this.checkFlag();
             end
         end
         

@@ -134,7 +134,7 @@ classdef GUI_New_Project < handle
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
@@ -148,11 +148,11 @@ classdef GUI_New_Project < handle
             
             left_bv = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             
             % Logo/title box -------------------------------------------------------------------------------------------
             
-            logo_bg_color = Core_UI.DARK_GRAY_BG;
+            logo_bg_color = Core_UI.DARK_GREY_BG;
             logo_g = uix.Grid('Parent', left_bv, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_bg_color);
@@ -168,13 +168,13 @@ classdef GUI_New_Project < handle
             logo_ax.YTickLabel = [];
             axis off;
                         
-            Core_UI.insertEmpty(left_bv, Core_UI.DARK_GRAY_BG);
+            Core_UI.insertEmpty(left_bv, Core_UI.DARK_GREY_BG);
             
             % Main Panel -----------------------------------------------------------------------------------------------
             
             panel_g_border = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
             
             fnp = File_Name_Processor();

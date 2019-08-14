@@ -44,7 +44,7 @@
 classdef GUI_Chalmers < handle
     
     properties (Constant, Access = 'protected')
-        BG_COLOR = Core_UI.DARK_GRAY_BG;
+        BG_COLOR = Core_UI.DARK_GREY_BG;
     end
     
     %% PROPERTIES SINGLETON POINTERS
@@ -110,7 +110,7 @@ classdef GUI_Chalmers < handle
             try
                 main_vb = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GRAY_BG);
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
@@ -121,7 +121,7 @@ classdef GUI_Chalmers < handle
             end
             top_bh = uix.HBox('Parent', main_vb);
             
-            logo_GUI.BG_COLOR = Core_UI.DARK_GRAY_BG;
+            logo_GUI.BG_COLOR = Core_UI.DARK_GREY_BG;
             left_tbv = uix.VBox('Parent', top_bh, ...
                 'BackgroundColor', logo_GUI.BG_COLOR, ...
                 'Padding', 5);

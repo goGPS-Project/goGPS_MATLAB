@@ -1162,7 +1162,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     % Axe with all the satellites
                     overview_box = uix.VBoxFlex('Parent', v_main, ...
-                        'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                     
                     ax_all = axes('Parent', overview_box, 'Units', 'normalized');
                     
@@ -1171,17 +1171,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     sat_box = uix.VBoxFlex('Parent', v_main, ...
                         'Padding', 5, ...
-                        'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                     
                     v_main.Heights = [-2 -5];
                     
                     scroller = uix.ScrollingPanel('Parent', sat_box);
                     sat_grid = uix.Grid('Parent', scroller, ...
-                        'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                     scroller.Heights = 120 * ceil(n_sat / 4);
                     for s = 1 : n_sat
                         single_sat(s) = uix.VBox('Parent', sat_grid, ...
-                            'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                         uicontrol('Parent', single_sat(s), ...
                             'Style', 'Text', ...
                             'String', sprintf('Satellite %s', cc.getSatName(s)), ...
@@ -1189,7 +1189,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             'HorizontalAlignment', 'center', ...
                             'FontSize', Core_UI.getFontSize(7), ...
                             'FontWeight', 'Bold', ...
-                            'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                         ax_sat(s) = axes('Parent', single_sat(s));
                     end
                     sat_grid.Heights = -ones(1, ceil(n_sat / 4));
