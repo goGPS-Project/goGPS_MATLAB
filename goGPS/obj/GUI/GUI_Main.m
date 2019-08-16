@@ -313,7 +313,7 @@ end
             main_bv.Heights = [-1 30];
             %session_height = sum(left_bv.Children(2).Children(1).Heights);
             session_height = sum(left_bv.Children(2).Heights);
-            left_bv.Heights = [82 session_height -1];
+            left_bv.Heights = [94 session_height -1];
             top_bh.Widths = [210 -1];
             bottom_bh.Widths = [60 -1 260];
             this.updateUI();
