@@ -2404,7 +2404,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_res = 1;
             this.flag_out_mf = 1;
             
-            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'PPP T*', 'ENDFOR', 'SHOW T* ZTD'};
+            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'PPP T$', 'ENDFOR', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ZTD'};
         end
         
         function setToMediumNET(this)
@@ -2488,7 +2488,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_res = 1;
             this.flag_out_mf = 1;
             
-            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'NET T* R1', 'ENDFOR', 'SHOW T* ENUBSL'};
+            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};
         end
         
         function setToShortNET(this)
@@ -2513,7 +2513,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Iono free mode - Tropo estimation on (with splines)
             this.setToMediumNET();
 
-            this.cmd_list = {'FOR S*', 'LOAD T* @30s', 'PREPRO T*', 'NET T* R1 -IONO', 'ENDFOR', 'SHOW T* ENUBSL'};            
+            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -IONO', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};            
         end
         
         function check(this)

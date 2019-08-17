@@ -174,6 +174,7 @@ classdef Core < handle
                     end
                 end
             end
+            this.is_gred = exist('GReD_Utility', 'class');
         end
         
         
