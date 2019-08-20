@@ -2721,9 +2721,9 @@ classdef Core_UI < handle
             %   COre_UI.setFlagRed(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 50, 'Color', max(0, Core_UI.RED - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.RED - 0.5)); 
             hold(flag_handle, 'on')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 38, 'Color', min(1, Core_UI.RED + 0.3));
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.RED + 0.3));
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    
             axis(flag_handle, 'off');
@@ -2737,9 +2737,9 @@ classdef Core_UI < handle
             %   COre_UI.setFlagOrange(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 50, 'Color', max(0, Core_UI.ORANGE - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.ORANGE - 0.5)); 
             hold(flag_handle, 'on')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 38, 'Color', min(1, Core_UI.ORANGE + 0.1));
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.ORANGE + 0.1));
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    
             axis(flag_handle, 'off');
@@ -2753,9 +2753,9 @@ classdef Core_UI < handle
             %   COre_UI.setFlagGreen(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 50, 'Color', max(0, Core_UI.GREEN - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREEN - 0.5)); 
             hold(flag_handle, 'on')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 38, 'Color', min(1, Core_UI.GREEN + 0.3));
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.GREEN + 0.3));
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    
             axis(flag_handle, 'off');
@@ -2769,9 +2769,9 @@ classdef Core_UI < handle
             %   COre_UI.setFlagGrey(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 50, 'Color', max(0, Core_UI.GREY - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREY - 0.5)); 
             hold(flag_handle, 'on')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 38, 'Color', Core_UI.GREY);
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', Core_UI.GREY);
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    
             axis(flag_handle, 'off');
