@@ -151,8 +151,7 @@ classdef Core_Utils < handle
         function num = round_odd(num)
            num = round((num-1)/2)*2+1;
         end
-        
-        
+                
         function r = xcorr(x)
             % compute cross correlation
             %
@@ -325,8 +324,7 @@ classdef Core_Utils < handle
             x = N\B;
             s = s - A*x;
         end
-        
-        
+                
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
             % SYNTAX
@@ -884,8 +882,7 @@ classdef Core_Utils < handle
             double_tot(idx1) = double_1;
             double_tot(idx2) = double_2;
         end
-        
-        
+               
         function [ids] = findAinB(cellA,cellB)
             % find the index of cella in cellb
             %

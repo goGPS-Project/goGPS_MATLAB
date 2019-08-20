@@ -657,10 +657,22 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     try
                         rec = this(r);
                         if ~isempty(rec.getZtd)
-                            [year, doy] = rec.time.first.getDOY();
+                            time = this(r).getTime();
+                            [year, doy] = this(r).getCentralTime.getDOY();
+                            
+                            % Detect session length
+                            %flag_no_session = (time.last - time.first) > (3600 * 23); % if I have at least 23 hour is a daily session
+                            flag_no_session = Core.getState.getSessionDuration() >= 86400;
+                            
                             yy = num2str(year);
                             yy = yy(3:4);
-                            sess_str = '0'; %think how to get the right one from sss_id_list
+                            if flag_no_session
+                                sess_str = '0';
+                            else
+                                datevec_start = datevec(round(time.first.getMatlabTime()*24)/24); 
+                                sess_str = 'abcdefghijklmnopqrstuvwx';
+                                sess_str = sess_str(datevec_start(4) + 1);
+                            end
                             fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.getMarkerName4Ch sprintf('%03d', doy) sess_str '.' yy 'zpd']);
                             snx_wrt = SINEX_Writer(fname);
                             snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.getMarkerName4Ch)
@@ -730,6 +742,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         this(r).updateCoordinates;
                         time = this(r).getTime();
                         [year, doy] = this(r).getCentralTime.getDOY();
+                        t_start = time.first().toString('HHMM');
+                        t_stop =  time.last().toString('HHMM');
                         time.toUtc();
                         
                         lat = this(r).lat; %#ok<NASGU>
@@ -739,7 +753,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ztd = this(r).getZtd(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
-                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d',year, doy) '.mat']);
+                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%4s', year, doy, t_start, t_stop) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));

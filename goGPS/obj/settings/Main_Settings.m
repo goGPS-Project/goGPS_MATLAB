@@ -3301,6 +3301,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             counter = this.run_counter;
         end
         
+        function len = getSessionDuration(this)
+            % Get length of the sessions in seconds
+            % not considering buffer
+            %
+            % SYNTAX
+            %   date = getSessionDuration(this)
+            len = this.sss_duration;
+        end
+        
         function date = getSessionsStart(this)
             % Get the beginning of all the sessions
             % not considering buffer
