@@ -47,5 +47,9 @@ function [universal_path, is_valid] = checkPath(path)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-[universal_path, is_valid] = File_Name_Processor.checkPath(path);
+if nargout == 2
+    [universal_path, is_valid] = File_Name_Processor.checkPath(path);
+else
+    universal_path = File_Name_Processor.checkPath(path);
+end
 

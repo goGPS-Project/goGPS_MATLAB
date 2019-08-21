@@ -575,7 +575,7 @@ end
             get_markers = uicontrol( 'Parent', box_g_but, ...
                 'String', 'Recursive get marker names', ...
                 'Callback', @Core_UI.onGetRecursiveMarkers);
-            box_g_but.Widths = [170 160];
+            box_g_but.Widths = [175 160];
             
             
             Core_UI.insertEmpty(box_g);
@@ -2116,7 +2116,7 @@ end
             rec_path = state.getRecPath;
             str = '';
             
-            color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
+            %color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
             this.rec_tbl.Data = cell(1,4);
             for r = 1 : n_rec
                 name = File_Name_Processor.getFileName(rec_path{r}{1});
@@ -2323,10 +2323,10 @@ end
             % dir list, otherwise use existent cache
             persistent unique_dir dir_list 
             
-            % If last check is older than 5 minutes ago
+            % If last check is older than 15 minutes ago
             % force_check
             persistent last_check
-            if isempty(last_check) || (now - last_check) > (300 / 86400)
+            if isempty(last_check) || (now - last_check) > (900 / 86400)
                 last_check = now;                    
                 flag_force = true;
             end
@@ -2340,38 +2340,28 @@ end
                     dir_path{i} = fileparts(rec_path{r}{s});
                 end
             end
-            
-            dirty_cache = isempty(dir_list);
-            if ~flag_force || (max_sss * n_rec > 366)
-                % Check if the cache is for the same set of folders
-                cur_unique_dir = unique(dir_path);
-                if numel(unique_dir) == numel(cur_unique_dir)
-                    for d = 1 : numel(unique_dir)
-                        dirty_cache = dirty_cache || ~(strcmp(unique_dir{d}, cur_unique_dir{d}));
-                    end
-                else
-                    dirty_cache = true;
-                end
-                if (dirty_cache)
-                    Core.getLogger.addMessage('Dirty cache found for updateRecList', 100);
-                end
-                unique_dir = cur_unique_dir;
-                clear cur_unique_dir;
-                flag_force = dirty_cache;
-            else                
-                % Remove duplicates            
-                unique_dir = unique(dir_path);
-            end
-
+                               
             % If the number of files to check is > 366 or the cache is clean
-            if (max_sss * n_rec > 366) || dirty_cache
-                if flag_force
-                    log = Core.getLogger;
-                    log.addMessage(log.indent('Checking receivers data directories'));
-                    for d = 1 : numel(unique_dir)
-                        dir_list{d} = dir(fullfile(unique_dir{d}, '*.*'));
+            if (max_sss * n_rec > 366) || flag_force
+                    % Check if the cache is for the same set of folders
+                    cur_unique_dir = unique(dir_path);
+                    % back-up cache
+                    old_unique_dir = iif(flag_force, cell(0), unique_dir);
+                    old_dir_list = iif(flag_force, cell(0), dir_list);
+                    dir_list = cell(0);
+                    for d = 1 : numel(cur_unique_dir)
+                        id_old = find(strcmp(old_unique_dir, cur_unique_dir(d)));
+                        if ~isempty(id_old)
+                            dir_list(d) = old_dir_list(id_old);
+                        else
+                            Core.getLogger.addMessage(sprintf('Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*')), 100);
+                            dir_list{d} = dir(fullfile(cur_unique_dir{d}, '*.*'));
+                            flag_force = true;
+                        end                        
                     end
-                end
+                    
+                    unique_dir = cur_unique_dir;
+                    clear cur_unique_dir old_dir_list old_unique_dir;                   
                     
                 for d = 1 : numel(unique_dir)                   
                     available_files = [available_files {dir_list{d}.name}];
@@ -2379,6 +2369,7 @@ end
                 available_files = [available_files{:}];
             end
             
+            % Update rec table
             this.rec_tbl.Data = cell(1, 4);
             for r = 1 : n_rec
                 if ~isempty(rec_path{r})
@@ -2386,12 +2377,9 @@ end
                 else
                     name = '    ';
                 end
-                %n_session = numel(rec_path{r});
-                %if (n_session * n_rec) < 20
-                %this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
                 
                 n_ok = 0; n_ko = 0;
-                if ~isempty(available_files)
+                if ~isempty(available_files) || (max_sss * n_rec > 366)
                     for s = 1 : numel(rec_path{r})
                         [~, file_name, ext] = fileparts(rec_path{r}{s});
                         if instr(available_files, [file_name ext])
@@ -2419,8 +2407,8 @@ end
             end
                         
             if toc(t0) > 1
-                this.log.addMessage('Receiver files checked');
-            end
+                this.log.addMessage(this.log.indent('Receiver files checked'));
+            end                        
         end
         
         function updateSessionSummary(this)
