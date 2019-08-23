@@ -1216,7 +1216,7 @@ classdef Core < handle
                     this.log.addWarning('The Geoid is missing');
                 end
             else
-                err_code.geoid = 0;
+                err_code.geoid = 0;              
                 if flag_verbose
                     this.log.addStatusOk('The Geoid is loaded');
                 end
@@ -1229,8 +1229,8 @@ classdef Core < handle
                 if flag_verbose
                     this.log.addStatusDisabled('High order ionospheric corrections disabled');
                 end
-                err_code.iono = 1;
-                err_code.igrf = 1;
+                err_code.iono = 0; % Who cares?   
+                err_code.igrf = 0; % Who cares?   
             end
             
             if state.isVMF
@@ -1239,7 +1239,7 @@ classdef Core < handle
                 if flag_verbose
                     this.log.addStatusDisabled('Not using Vienna Mapping functions');
                 end
-                err_code.vmf = 1;
+                err_code.vmf = 0; % Who cares?                
             end
             
             this.log.newLine();
