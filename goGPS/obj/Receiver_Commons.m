@@ -741,7 +741,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     try
                         this(r).updateCoordinates;
                         time = this(r).getTime();
-                        [year, doy] = this(r).getCentralTime.getDOY();
+                        [year, doy] = time.first().getDOY();
                         t_start = time.first().toString('HHMM');
                         t_stop =  time.last().toString('HHMM');
                         time.toUtc();
@@ -753,7 +753,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ztd = this(r).getZtd(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
-                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%4s', year, doy, t_start, t_stop) '.mat']);
+                        out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                        if ~exist(out_dir, 'file')
+                            mkdir(out_dir);
+                        end
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
