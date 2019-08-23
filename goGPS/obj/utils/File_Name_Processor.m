@@ -222,6 +222,87 @@ classdef File_Name_Processor < handle
     end
 
     methods (Static)
+        function dir_path_out = getInnerDir(dir_path_list)
+            % Get recursive dir list
+            %
+            % SYNTAX
+            %   dir_path_out = getInnerDir(dir_path_list)
+            
+            dir_path_out = cell(0);
+            % make base_dir a cell
+            if ~iscell(dir_path_list)
+                dir_path_list = {dir_path_list};
+            end
+            
+            % loop on base_dirs
+            for d = 1 : numel(dir_path_list)
+                dir_path_out = [dir_path_out dir_path_list(d)];
+                dir_path = dir_path_list{d};
+                fprintf(' Scanning %s for subdirs\n', dir_path);
+                % Search fo subdirs
+                tmp = dir(dir_path);
+                tmp = tmp([tmp.isdir]);
+                dir_list = {};
+                for i = numel(tmp) : -1 : 1
+                    % remove hidden or special dirs (log)
+                    if not(tmp(i).name(1) == '.') && not(strcmp(tmp(i).name, 'log'))
+                        dir_list = [dir_list {fullfile(dir_path, tmp(i).name)}];
+                    end
+                end
+                               
+                if ~isempty(dir_list)                                    
+                    for c = 1 : numel(dir_list)
+                        cur_dir = dir_list(c);
+                        dir_path_out = [dir_path_out File_Name_Processor.getInnerDir(cur_dir)];
+                    end
+                end
+            end
+        end
+        
+        function file_list_out = findFiles(dir_path_list, prefix)
+            % Get recursive file list
+            %
+            % SYNTAX
+            %   file_list_out = findFiles(dir_path_list, prefix)
+            
+            
+            file_list_out = cell(0);
+            % make base_dir a cell
+            if ~iscell(dir_path_list)
+                dir_path_list = {dir_path_list};
+            end
+            
+            % loop on base_dirs
+            for d = 1 : numel(dir_path_list)
+                dir_path = dir_path_list{d};
+                fprintf(' Scanning %s for subdirs\n', dir_path);
+                % Search fo subdirs
+                tmp = dir(dir_path);
+                tmp_dir_list = tmp([tmp.isdir]);
+                tmp_file_list = tmp(~[tmp.isdir]);
+                dir_list = {};
+                for i = 1 : numel(tmp_dir_list)
+                    % remove hidden or special dirs (log)
+                    if not(tmp_dir_list(i).name(1) == '.') && not(strcmp(tmp_dir_list(i).name, 'log'))
+                        dir_list = [dir_list {fullfile(dir_path, tmp_dir_list(i).name)}];
+                    end
+                end
+                               
+                if ~isempty(dir_list)                                    
+                    for c = 1 : numel(dir_list)
+                        cur_dir = dir_list(c);
+                        file_list_out = [file_list_out File_Name_Processor.findFiles(cur_dir, prefix)];
+                    end
+                end
+                
+                for i = 1 : numel(tmp_file_list)
+                    if length(tmp_file_list(i).name) > length(prefix) &&  strcmp(tmp_file_list(i).name(1:length(prefix)), prefix)
+                        file_list_out = [file_list_out {fullfile(dir_path, tmp_file_list(i).name)}];
+                    end
+                end
+            end
+        end
+        
         function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback, empty_fallback)
             % Get the full path given the relative one and the relative dir_base
             % It changes the folder with dir_fallback only if the changed folder exist
