@@ -2072,11 +2072,12 @@ classdef Core_UI < handle
             % SYNTAX
             %   flag_handle = insertFlag(container)
             flag_handle = axes( 'Parent', container);
-            Core_UI.setFlagGrey(flag_handle);
             
             if nargin == 2
                 flag_handle.UserData = properties;
                 Core_UI.checkFlag(flag_handle)
+            else
+                Core_UI.setFlagGrey(flag_handle);
             end
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    

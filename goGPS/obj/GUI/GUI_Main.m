@@ -1931,14 +1931,18 @@ end
         end
         
         function refreshCmdList(this, caller, event)
+            persistent cache_txt
             txt = char(this.j_cmd.getText());
-            if ~isempty(txt)
-                txt = textscan(strrep(txt,'%','#'),'%s','Delimiter', '\n');
-                this.state.importPlainCommands(txt{1});
-            else
-                this.state.importPlainCommands('');
+            if isempty(cache_txt) || ~strcmp(cache_txt, txt)
+                cache_txt = txt;
+                if ~isempty(txt)
+                    txt = textscan(strrep(txt,'%','#'),'%s','Delimiter', '\n');
+                    this.state.importPlainCommands(txt{1});
+                else
+                    this.state.importPlainCommands('');
+                end
+                this.updateUI();
             end
-            this.updateUI();
         end
         
         function updateINI(this)
