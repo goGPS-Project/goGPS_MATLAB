@@ -319,6 +319,7 @@ end
             this.updateUI();
             
             tab_panel.Selection = 3;
+            drawnow
             this.w_main.Visible = 'on';
             t_win = toc(t0);
             cm = this.log.getColorMode();
@@ -624,7 +625,7 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [175 40 5 50]);
-            if verLessThan('matlab','9.1')
+            if verLessThan('matlab','9.5')
                 grd.Children(end).TooltipString = 'This is not kept in case of snooping';
             else
                 grd.Children(end).Tooltip = 'This is not kept in case of snooping';
