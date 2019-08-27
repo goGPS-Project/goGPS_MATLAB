@@ -759,7 +759,7 @@ classdef LS_Manipulator_new < handle
                                         this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,i_col).*spline_v(:,3) this.A(:,i_col).*spline_v(:,4) this.A(:,(i_col+1):end)];
                                         n_prg_id = length(u_e_tmp);
                                     end
-                                    this.A_idx(obs_lid,i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
+                                    this.A_idx(obs_lid, i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
                                     [u_new_par] = unique(cumulative_idx + ep_pgr_id(:));
                                     
                                     this.time_par(cumulative_idx+(1:n_prg_id),:) =  uint32(time_par_tmp);% time of the parameter
@@ -820,11 +820,11 @@ classdef LS_Manipulator_new < handle
             % remove two bias per receiver
             n_rec = size(this.rec_xyz,1);
             idx_rm = [];
-            if  sum(this.param_class == this.PAR_REC_EB) > 0
+            if  sum(this.param_class == this.PAR_REC_EB) > 0 
                 for r = 1 : n_rec
-                    idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r & ~this.out_par); % one for phase one for code for each constellation ( constalltion beacuse they have in common the same iono parameters)
+                    idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r & ~this.out_par); % one pseudorange bias per reciever
                     
-                    
+                    % tell which is pseudorange from the electronic bias
                     idx_par_psrange = false(size(idx_par));
                     sys_c_par =  zeros(size(idx_par));
                     for i = 1 : length(idx_par)
@@ -834,18 +834,23 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     idx_par_phase = idx_par(~idx_par_psrange);
+                    % system of the electronic bias
                     sys_c_par_phase = sys_c_par(~idx_par_psrange);
                     sys_c_par_psrange = sys_c_par(idx_par_psrange);
                     idx_par_psrange =  idx_par(idx_par_psrange);
+                    
+                    
                     if sum(this.param_class == this.PAR_REC_CLK) > 0
-                        if ~isempty(idx_par_psrange) % <--- this should have a rational explanation (why code only or could be also ohase the reference one)
+                        if ~isempty(idx_par_psrange) % <--- remove one pseudorange because it is less complicated afterwards
                             idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
-                            wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frquency and system
+                            wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frequency and system
                             sys_c_ref = sys_c_par(1);
                             idx_par_psrange(1) = [];
                             sys_c_par_psrange(1) = [];
                         else
                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];
+                            wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
+
                             idx_par_phase(1) = [];
                             idx_par_phase(1) = [];
                         end
@@ -857,6 +862,17 @@ classdef LS_Manipulator_new < handle
                                     idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
                                 else
                                     idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
+                                end
+                                if~isempty(idx_tmp)
+                                    idx_rm = [idx_rm; idx_tmp(1)];
+                                end
+                            end
+                        else
+                            for sys_c = unique(sys_c_par_phase)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
+                                if sys_c == sys_c_ref
+                                    idx_tmp= idx_par_phase(sys_c_par_phase == sys_c & wl_ref ~= this.wl_id_par(idx_par_phase));
+                                else
+                                    idx_tmp= idx_par_phase(sys_c_par_phase == sys_c);
                                 end
                                 if~isempty(idx_tmp)
                                     idx_rm = [idx_rm; idx_tmp(1)];
@@ -899,19 +915,15 @@ classdef LS_Manipulator_new < handle
                 % for each satellite if there is not ata least one double frequrency receiver observing the satellite remove the iono paramter, the delay is going to be absorbed by the clock
                 for s = this.unique_sat_goid
                     idx_par = find(this.class_par == this.PAR_IONO & this.sat_par == s & ~this.out_par); % two code biases not from the same frequency
-                    n_freq = numel(unique(this.wl_id_par(idx_par)));
+                    n_freq = numel(unique(this.wl_id_obs(this.satellite_obs == s)));
                     if n_freq == 1
                         idx_rm = [idx_rm; idx_par];
                     end
                 end
-                
-                
             end
             
-            
-            
-            % remove two bias per satellite
-            if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+            % remove ones bias per satellite
+            if  sum(this.param_class == this.PAR_SAT_EB) > 0 
                 for s = this.unique_sat_goid
                     idx_par = find(this.class_par == this.PAR_SAT_EB & this.sat_par == s & ~this.out_par); % two code biases not from the same frequency
                     idx_par_psrange = false(size(idx_par));
@@ -922,36 +934,66 @@ classdef LS_Manipulator_new < handle
                     end
                     idx_par_phase = idx_par(~idx_par_psrange);
                     idx_par_psrange =  idx_par(idx_par_psrange);
-                    if ~isempty(idx_par_psrange)
-                        idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
-                        this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
-                        %                         wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frquency and system
-                        %                         i = 2;
-                        %                         while this.wl_id_par(idx_par_psrange(i)) == wl_ref && i < length(idx_par_psrange)
-                        %                             i = i+1;
-                        %                         end
-                        %                         if idx_par_psrange(i) ~= wl_ref
-                        %                             idx_rm = [idx_rm; uint32(idx_par_psrange(i))];
-                        %                         end
+                    if sum(this.param_class == this.PAR_SAT_CLK) > 0
+                        if ~isempty(idx_par_psrange)
+                            idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
+                            wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frequency and system
+                            this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
+                        else
+                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];
+                            wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
+                            this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(1))},s)));
+                        end
                     end
-                    if ~isempty(idx_par_phase)
-                        idx_rm = [idx_rm; uint32(idx_par_phase(1))]; % phase only will be dealt afterwords
+                    if sum(this.param_class == this.PAR_IONO) > 0
+                        if ~isempty(idx_par_psrange)
+                            idx_par_psrange = idx_par_psrange(wl_ref ~= this.wl_id_par(idx_par_psrange)); %<- remove bias of the same frequency of one thta has been already removed
+                            if ~isempty(idx_par_psrange)
+                                idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
+                                this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
+                            end
+                        else
+                            idx_par_phase = idx_par_phase(wl_ref ~= this.wl_id_par(idx_par_phase));  %<- remove bias of the same frequency of one thta has been already removed
+                            if ~isempty(idx_par_phase)
+                                idx_rm = [idx_rm; uint32(idx_par_phase(1))];
+                                this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(1))},s)));
+                            end
+                        end
                     end
                 end
             end
             
-            % remove one bias per signal from one recievr
+            if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0
+                idx_par = find(this.class_par == this.PAR_REC_EB & ~this.out_par);
+                rec_wl_id = uint64(this.wl_id_par(idx_par)) + 100*uint64(this.rec_par(idx_par));
+                rec_wl_id_rm = uint64(this.wl_id_par(idx_rm)) + 100*uint64(this.rec_par(idx_rm));
+                [conflictig_id] = ismember(rec_wl_id,rec_wl_id_rm); % <- you can not remove from same receiver and frequency this could generate inconsistency
+                idx_par(conflictig_id) = [];
+                if ~isempty(idx_par)
+                    idx_rm = [idx_rm; uint32(idx_par(1))];
+                    this.log.addMessage(this.log.indent(sprintf('Receiver %d and %s choosen as reference',this.rec_par(idx_par(1)),this.unique_obs_codes{this.obs_codes_id_par(idx_par(1))})));
+                end
+            end
+           
+            
+            
+            
+            
+            
+%             % remove one bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0
                 for e = 1: length(this.unique_obs_codes)
-                    idx_par = find(this.class_par == this.PAR_REC_EB & this.obs_codes_id_par == e & ~this.out_par);
-                    if ~isempty(idx_par)
-                        idx_rm = [idx_rm; uint32(idx_par(1))];
-                        this.log.addMessage(this.log.indent(sprintf('Receiver %d choosen as reference for obs %s',this.rec_par(idx_par(1)),this.unique_obs_codes{e})));
+                    if sum(this.obs_codes_id_par(idx_rm(this.class_par(idx_rm) == this.PAR_REC_EB)) == e) == 0% <- if it has not been previously removed
+                        idx_par = find(this.class_par == this.PAR_REC_EB & this.obs_codes_id_par == e & ~this.out_par);
+                        if ~isempty(idx_par)
+                            idx_rm = [idx_rm; uint32(idx_par(1))];
+                            this.log.addMessage(this.log.indent(sprintf('Receiver %d choosen as reference for obs %s',this.rec_par(idx_par(1)),this.unique_obs_codes{e})));
+                        end
                     end
                 end
             end
-            
-            % remove one linear trend bias per signal from one recievr
+%             
+%             % remove one linear trend bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0
                 for e = 1: length(this.unique_obs_codes)
                     idx_par = find(this.class_par == this.PAR_REC_EB_LIN & this.obs_codes_id_par == e & ~this.out_par);
@@ -961,7 +1003,7 @@ classdef LS_Manipulator_new < handle
                     end
                 end
             end
-            
+%             
             
             % remove one clock per epoch
             u_ep = unique(this.time_par);
@@ -977,7 +1019,7 @@ classdef LS_Manipulator_new < handle
             % phase only TBD!!
             
             
-            % for each sat and fro each contiguos set of ambiguity remove
+            % for each sat and fro each contiguous set of ambiguity remove
             % one abiguity per set of phase bias
             idx_amb_rm_sat = [];
             
@@ -1010,7 +1052,10 @@ classdef LS_Manipulator_new < handle
                     for t = 1 : size(time_par,1)
                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
                     end
-                    jmps = [1; find(diff(sum(amb_mat,2) > 0) == 1); max(u_time)];
+                    jmps = [ (find(diff(sum(amb_mat,2) > 0) == 1)+1); max(u_time)];
+                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                        jmps = [1; jmps];
+                    end
                     for j = 1 : (length(jmps) -1)
                         jmp_s = jmps(j);
                         jmp_e = jmps(j+1);
@@ -1018,7 +1063,7 @@ classdef LS_Manipulator_new < handle
                             [~,   idx_ambs] = ismember(arc2eb,u_eb(~eb_arc_rem));
                             ambs = amb_mat(jmp_s:jmp_e,idx_ambs>0);
                             eb_arc_tmp = arc2eb(idx_ambs>0);
-                            if any(ambs)
+                            if any(any(ambs))
                                 idx_poss_amb = mode(noZero(ambs(:)));
                                 idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
                                 %n_obs = size(this.A,1) + size(this.A_pseudo,1); n_par = max(max(this.A_idx)); rows = repmat((1:size(this.A,1))',1,size(this.A,2)); A = sparse([rows(:);],zero2n([this.A_idx(:)],1),[this.A(:) this.A_pseudo(:)],n_obs,n_par); A(:,[idx_amb_rm_sat]) = [];
@@ -1072,7 +1117,10 @@ classdef LS_Manipulator_new < handle
                     for t = 1 : size(time_par,1)
                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
                     end
-                    jmps = [1; find(diff(sum(amb_mat,2) > 0) == 1); max(u_time)];
+                    jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                        jmps = [1; jmps];
+                    end
                     for j = 1 : (length(jmps) -1)
                         jmp_s = jmps(j);
                         jmp_e = jmps(j+1);
@@ -1335,7 +1383,7 @@ classdef LS_Manipulator_new < handle
             class_par = this.class_par;
             class_par([this.idx_rd find(this.out_par)]) = [];
             vars = [1./this.variance_obs(~this.outlier_obs); 1./this.variance_pseudo];
-            mean_vars = mean(vars);
+            mean_vars = 1 ; %mean(vars);
             vars = vars ./ mean_vars;
             Cyy =  spdiags(vars,0,n_obs - n_out,n_obs - n_out);
             x_est = zeros(n_par -length(this.idx_rd) - sum(this.out_par),1);
@@ -1391,6 +1439,7 @@ classdef LS_Manipulator_new < handle
             if sum(this.param_class == this.PAR_AMB) > 0 && fix
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
+                if any(idx_amb)
                 n_amb = length(idx_amb);
                 amb_y  = sparse(idx_amb,1:length(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
                 C_amb_amb = N \ amb_y;
@@ -1402,28 +1451,64 @@ classdef LS_Manipulator_new < handle
                 %                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
                 %                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
                 [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
-                if is_fixed
-                    idx_amb_fixed = idx_amb(l_fixed);
-                    n_amb_fixed = sum(l_fixed);
-                    idx_not_amb_fixed = true(size(N,1),1);
-                    idx_not_amb_fixed(idx_amb_fixed) = false;
-                    Nt = N(idx_not_amb_fixed,idx_amb_fixed);
-                    B(idx_amb_fixed) = [];
-                    B = B - sum(Nt * spdiags(amb_fixed(l_fixed,1),0,n_amb_fixed,n_amb_fixed),2);
-                    N(idx_amb_fixed,:) = [];
-                    N(:,idx_amb_fixed) = [];
+                flag_debug = false;
+                if flag_debug
+                    N_old = N;
+                    B_old = B;
+                    figure;
+                    coo =x_reduced(1:3);
                     
-                    x_fixed = N\B;
-                    x_reduced(idx_amb_fixed) = amb_fixed(l_fixed,1);
+                    plot3(coo(1),coo(2),coo(3),'o')
+                    grid on;
+                    hold on;
+                    
+                    
+                    
+                    for a = 1 : size(amb_fixed,2)
+                        idx_amb_fixed = idx_amb(l_fixed(:, a));
+                        n_amb_fixed = sum(l_fixed(:, a));
+                        idx_not_amb_fixed = true(size(N,1), 1);
+                        idx_not_amb_fixed(idx_amb_fixed) = false;
+                        Nt = N(idx_not_amb_fixed, idx_amb_fixed);
+                        B(idx_amb_fixed) = [];
+                        B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,a),a),0,n_amb_fixed,n_amb_fixed),2);
+                        N(idx_amb_fixed, :) = [];
+                        N(:, idx_amb_fixed) = [];
+                        
+                        x_fixed = N \ B;
+                        coo =x_fixed(1:3);
+                        plot3(coo(1),coo(2),coo(3),'.','MarkerSize',10)
+                        text(coo(1)+0.01,coo(2)+0.01,coo(3)+0.01,num2str(a));
+                        N = N_old;
+                        B = B_old;
+                    end
+                    
+                end
+                if is_fixed
+                    idx_amb_fixed = idx_amb(l_fixed(:, 1));
+                    n_amb_fixed = sum(l_fixed(:, 1));
+                    idx_not_amb_fixed = true(size(N,1), 1);
+                    idx_not_amb_fixed(idx_amb_fixed) = false;
+                    Nt = N(idx_not_amb_fixed, idx_amb_fixed);
+                    B(idx_amb_fixed) = [];
+                    B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,1),1),0,n_amb_fixed,n_amb_fixed),2);
+                    N(idx_amb_fixed, :) = [];
+                    N(:, idx_amb_fixed) = [];
+                    
+                    x_fixed = N \ B;
+                    
+                    x_reduced(idx_amb_fixed) = amb_fixed(l_fixed(:,1),1);
                     x_reduced(idx_not_amb_fixed) = x_fixed;
+                    clearvars x_fixed Nt C_amb_amb N B
+                end
                 end
                 
             end
             
             % ------- substitute back
-            x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
+            x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~ idx_reduce_iono) = x_reduced;
             
-            % receiver clcok
+            % receiver clock
             if rec_clk
                 B_recclk = B_recclk - sum(Nx_recclk' * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
                 x_rec_clk = iRecClk * B_recclk;
@@ -1433,7 +1518,7 @@ classdef LS_Manipulator_new < handle
             % satellite clcok
             if sat_clk
                 n_sat_clk = size(B_recclk,1);
-                idx_est = ~idx_reduce_iono & ~idx_reduce_sat_clk ;
+                idx_est = ~ idx_reduce_iono & ~idx_reduce_sat_clk ;
                 B_satclk = B_satclk -   sum(Nx_satclk' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
                 x_sat_clk = iSatClk * B_satclk;
                 x_est(idx_reduce_sat_clk) = x_sat_clk;
@@ -1442,7 +1527,7 @@ classdef LS_Manipulator_new < handle
             % iono
             if iono
                 n_iono = size(B_iono,1);
-                idx_est = ~idx_reduce_iono;
+                idx_est = ~ idx_reduce_iono;
                 B_iono = B_iono -   sum(Nx_iono' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
                 x_iono = iIono * B_iono;
                 x_est(idx_reduce_iono) = x_iono;
@@ -1703,8 +1788,11 @@ classdef LS_Manipulator_new < handle
                             this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
                         end
                     end
-                    this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                    if ~o_tmp.isEmpty
+                        this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                    end
                     o_tmp = sta_list(r).work.getObsSet('C??');
+                    
                     o_tmp.keepEpochs(noNaN(id_sync(:,r)));
                     for o = id_rem_o
                         idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
@@ -1714,7 +1802,9 @@ classdef LS_Manipulator_new < handle
                             
                         end
                     end
-                    this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                    if ~o_tmp.isEmpty
+                        this.addObsEq(sta_list(r).work, o_tmp, param_selction);
+                    end
                 else
                     o_tmp = sta_list(r).work.getObsSet(flag);
                     o_tmp.keepEpochs(noNaN(id_sync(:,r)));
@@ -1730,7 +1820,6 @@ classdef LS_Manipulator_new < handle
                 end
                 
             end
-            parametrization.iono(2) = LS_Parametrization.ALL_REC;
             this.bondParamsGenerateIdx(parametrization);
             this.absValRegularization(this.PAR_IONO, 1e4);
             
