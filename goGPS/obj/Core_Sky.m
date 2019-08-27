@@ -162,6 +162,21 @@ classdef Core_Sky < handle
                         this.coord_type = 0; % center of mass
                         this.poly_type = 0; % center of mass
                     end
+                    
+                    % Very simple fill of missing orbits, but if they are bad, data are rejected
+                    % in normal conditions orbits have no gaps, but sometimes BNC are not logged
+                    for s = 1 : size(this.coord, 2)
+                        if any(isnan(serialize(this.coord(:,s,:))))
+                            for c = 1 : 3
+                                data = this.coord(:,s,c);                                
+                                id_ok = find(~isnan(data));
+                                if numel(id_ok) > 3
+                                    id_ko = find(isnan(data));
+                                    this.coord(id_ko,s,c) = interp1(id_ok, this.coord(id_ok,s,c), id_ko, 'spline', nan);
+                                end
+                            end
+                        end
+                    end
                 else %% if not sp3 assume is a rinex navigational file
                     this.toAPC(); % be sure to be in APC before adding new coordinates
                     this.clearPolyCoeff();

@@ -1420,8 +1420,10 @@ classdef Core_Utils < handle
                 x = 1: length(y);
             end
             idx_nan = isnan(y);
-            int_data = interp1(x(~idx_nan),y(~idx_nan),x(idx_nan));
-            y(idx_nan) = int_data;
+            if sum(~idx_nan) > 2
+                int_data = interp1(x(~idx_nan),y(~idx_nan),x(idx_nan));
+                y(idx_nan) = int_data;
+            end
         end
         
         function [Amp,Phase,f] = getSpectrum(y,smpl_rate)
