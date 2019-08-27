@@ -537,5 +537,13 @@ classdef Observation_Set < handle
             id_rm(this.obs == 0) = false; %do not remove observation that are not there
             this.remObs(id_rm);
         end
+        
+        function is_empty = isEmpty(this)
+            % Check if the object is empty
+            %
+            % SYNTAX:
+            %     is_empty = this.isEmpty()
+            is_empty =  isempty(this.obs);
+        end
     end
 end
