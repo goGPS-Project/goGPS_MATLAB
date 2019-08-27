@@ -1410,8 +1410,8 @@ classdef LS_Manipulator_new < handle
             end
             
             sat_clk = sum(class_par  == this.PAR_SAT_CLK) > 0;
-            i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
             if sat_clk
+                i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
                 n_clk_sat = sum(i_sat_clk_tmp);
                 iSatClk = spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                 Nx_satclk = N(~i_sat_clk_tmp, i_sat_clk_tmp);
@@ -1423,7 +1423,7 @@ classdef LS_Manipulator_new < handle
             
             rec_clk = sum(class_par  == this.PAR_REC_CLK) > 0;
             if rec_clk
-                i_rec_clk_tmp = idx_reduce_rec_clk(~i_sat_clk_tmp);
+                i_rec_clk_tmp = idx_reduce_rec_clk(~idx_reduce_iono & ~idx_reduce_sat_clk);
                 iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
                 Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
                 Nt = Nx_recclk * iRecClk;
@@ -1506,7 +1506,7 @@ classdef LS_Manipulator_new < handle
             end
             
             % ------- substitute back
-            x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~ idx_reduce_iono) = x_reduced;
+            x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
             
             % receiver clock
             if rec_clk
