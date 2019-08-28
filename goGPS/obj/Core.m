@@ -909,6 +909,9 @@ classdef Core < handle
                                 rec(r).work = Receiver_Work_Space(rec(r).work.parent);
                             end
                         end
+                        if strcmp(rec(r).marker_name, 'unknown') && ~isempty(rin_list(r).marker_name{1})
+                            rec(r).marker_name = rin_list(r).marker_name{1};
+                        end
                     end
                 end
                 if flag_preload || numel(rec) > 0

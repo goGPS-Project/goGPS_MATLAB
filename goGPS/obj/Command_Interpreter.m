@@ -817,8 +817,8 @@ classdef Command_Interpreter < handle
                                 if ~is_empty
                                     cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute � with the current session
-                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'�', num2str(s));
+                                        % substitute § with the current session
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
                                     end
                                     this.exec(core, cmd_list_loop);
                                     
@@ -1010,7 +1010,7 @@ classdef Command_Interpreter < handle
                     else
                         [session_limits, out_limits] = state.getSessionLimits(cur_session);
                         if out_limits.length < 2 || ~this.core.rin_list(r).hasObsInSession(out_limits.first, out_limits.last)
-                            this.log.addMessage(sprintf('No observations are available for receiver %s in session %d', rec(r).getMarkerName4Ch, cur_session));
+                            this.log.addWarning(sprintf('No observations are available for receiver %s in the interval of the session %d\n - %s\n - %s', rec(r).getMarkerName4Ch, cur_session, out_limits.first.toString, out_limits.last.toString));
                         else
                             rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate, sys_list);
                             rec(r).work.loaded_session = cur_session;
