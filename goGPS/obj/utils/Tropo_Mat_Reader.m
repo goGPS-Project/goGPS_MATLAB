@@ -105,7 +105,7 @@ classdef Tropo_Mat_Reader
         
         function showAllTropoPar(this, tropo_par)
             if ~isempty(this.data_set)
-                figure; 
+                f = figure; f.Name = sprintf('%03d: %s %s ', f.Number, upper(tropo_par), this.marker); f.NumberTitle = 'off';
                 colormap(flipud(gat2));
                 min_time = inf;
                 max_time = -inf;

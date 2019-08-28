@@ -886,57 +886,61 @@ classdef Command_Interpreter < handle
                         end
                         l = par_cmd_id(end);
                     else
-                        switch upper(tok{1})
-                            case this.CMD_PINIT.name                % PINIT
-                                this.runParInit(tok(2:end));
-                            case this.CMD_PKILL.name                % PKILL
-                                this.runParKill(tok(2:end));
-                            case this.CMD_LOAD.name                 % LOAD
-                                this.runLoad(core.rec, tok(2:end));
-                            case this.CMD_RENAME.name               % RENAME
-                                this.runRename(core.rec, tok(2:end));
-                            case this.CMD_EMPTY.name                % EMPTY
-                                this.runEmpty(core.rec, tok(2:end));
-                            case this.CMD_EMPTYWORK.name            % EMPTYW
-                                this.runEmptyWork(core.rec, tok(2:end));
-                            case this.CMD_EMPTYOUT.name             % EMPTYO
-                                this.runEmptyOut(core.rec, tok(2:end));
-                            case this.CMD_AZEL.name                 % AZEL
-                                this.runUpdateAzEl(core.rec, tok(2:end));
-                            case this.CMD_BASICPP.name              % BASICPP
-                                this.runBasicPP(core.rec, tok(2:end));
-                            case this.CMD_PREPRO.name               % PREP
-                                this.runPrePro(core.rec, tok(2:end));
-                            case this.CMD_CODEPP.name               % CODEPP
-                                this.runCodePP(core.rec, tok(2:end));
-                            case this.CMD_PPP.name                  % PPP
-                                this.runPPP(core.rec, tok(2:end));
-                            case this.CMD_REMSAT.name               % REM SAT
-                                this.runRemSat(core.rec, tok(2:end));
-                            case this.CMD_REMOBS.name               % REM OBS
-                                this.runRemObs(core.rec, tok(2:end));
-                            case this.CMD_REMTMP.name               % REM OBS
-                                this.runRemTmp(core.rec, tok(2:end));
-                            case this.CMD_NET.name                  % NET
-                                this.runNet(core.rec, tok(2:end));
-                            case this.CMD_PSRALIGN.name             % Pseudorange align
-                                this.runPseudorangeAlign(core.rec, tok(2:end));
-                            case this.CMD_SEID.name                 % SEID
-                                this.runSEID(core.rec, tok(2:end));
-                            case this.CMD_REMIONO.name              % REMIONO
-                                this.runRemIono(core.rec, tok(2:end));
-                            case this.CMD_KEEP.name                 % KEEP
-                                this.runKeep(core.rec.getWork(), tok(2:end));
-                            case this.CMD_SYNC.name                 % SYNC
-                                this.runSync(core.rec, tok(2:end));
-                            case this.CMD_OUTDET.name               % OUTDET
-                                this.runOutDet(core.rec, tok);
-                            case this.CMD_SHOW.name                 % SHOW
-                                this.runShow(core.rec, tok, level(l));
-                            case this.CMD_EXPORT.name               % EXPORT
-                                this.runExport(core.rec, tok, level(l));
-                            case this.CMD_PUSHOUT.name              % PUSHOUT
-                                this.runPushOut(core.rec, tok);
+                        try
+                            switch upper(tok{1})
+                                case this.CMD_PINIT.name                % PINIT
+                                    this.runParInit(tok(2:end));
+                                case this.CMD_PKILL.name                % PKILL
+                                    this.runParKill(tok(2:end));
+                                case this.CMD_LOAD.name                 % LOAD
+                                    this.runLoad(core.rec, tok(2:end));
+                                case this.CMD_RENAME.name               % RENAME
+                                    this.runRename(core.rec, tok(2:end));
+                                case this.CMD_EMPTY.name                % EMPTY
+                                    this.runEmpty(core.rec, tok(2:end));
+                                case this.CMD_EMPTYWORK.name            % EMPTYW
+                                    this.runEmptyWork(core.rec, tok(2:end));
+                                case this.CMD_EMPTYOUT.name             % EMPTYO
+                                    this.runEmptyOut(core.rec, tok(2:end));
+                                case this.CMD_AZEL.name                 % AZEL
+                                    this.runUpdateAzEl(core.rec, tok(2:end));
+                                case this.CMD_BASICPP.name              % BASICPP
+                                    this.runBasicPP(core.rec, tok(2:end));
+                                case this.CMD_PREPRO.name               % PREP
+                                    this.runPrePro(core.rec, tok(2:end));
+                                case this.CMD_CODEPP.name               % CODEPP
+                                    this.runCodePP(core.rec, tok(2:end));
+                                case this.CMD_PPP.name                  % PPP
+                                    this.runPPP(core.rec, tok(2:end));
+                                case this.CMD_REMSAT.name               % REM SAT
+                                    this.runRemSat(core.rec, tok(2:end));
+                                case this.CMD_REMOBS.name               % REM OBS
+                                    this.runRemObs(core.rec, tok(2:end));
+                                case this.CMD_REMTMP.name               % REM OBS
+                                    this.runRemTmp(core.rec, tok(2:end));
+                                case this.CMD_NET.name                  % NET
+                                    this.runNet(core.rec, tok(2:end));
+                                case this.CMD_PSRALIGN.name             % Pseudorange align
+                                    this.runPseudorangeAlign(core.rec, tok(2:end));
+                                case this.CMD_SEID.name                 % SEID
+                                    this.runSEID(core.rec, tok(2:end));
+                                case this.CMD_REMIONO.name              % REMIONO
+                                    this.runRemIono(core.rec, tok(2:end));
+                                case this.CMD_KEEP.name                 % KEEP
+                                    this.runKeep(core.rec.getWork(), tok(2:end));
+                                case this.CMD_SYNC.name                 % SYNC
+                                    this.runSync(core.rec, tok(2:end));
+                                case this.CMD_OUTDET.name               % OUTDET
+                                    this.runOutDet(core.rec, tok);
+                                case this.CMD_SHOW.name                 % SHOW
+                                    this.runShow(core.rec, tok, level(l));
+                                case this.CMD_EXPORT.name               % EXPORT
+                                    this.runExport(core.rec, tok, level(l));
+                                case this.CMD_PUSHOUT.name              % PUSHOUT
+                                    this.runPushOut(core.rec, tok);
+                            end
+                        catch ex
+                            this.log.addError('Command %s failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message);
                         end
                     end
                 end
