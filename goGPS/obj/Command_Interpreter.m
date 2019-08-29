@@ -940,7 +940,7 @@ classdef Command_Interpreter < handle
                                     this.runPushOut(core.rec, tok);
                             end
                         catch ex
-                            this.log.addError('Command %s failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message);
+                            this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
                         end
                     end
                 end
