@@ -1105,14 +1105,6 @@ classdef LS_Manipulator_new < handle
                     [~,amb2arc] = ismember(amb2arc_a,u_arc);
                     u_eb = unique(arc2eb);
                     eb_arc_rem = false(size(u_eb));
-                    % if the receiverb bias has been prviously removed do
-                    % not remove
-                    for ie = 1:length(u_eb)
-                        eb_arc_rem(ie) = sum(this.obs_codes_id_par(idx_rm) == u_eb(ie) & this.rec_par(idx_rm) == r & this.class_par(idx_rm) == this.PAR_REC_EB) > 0;
-                    end
-                    if sum(eb_arc_rem) == 0 && false
-                        eb_arc_rem(1) = true;
-                    end
                     amb_mat = zeros(max(u_time),length(u_arc),'uint32');
                     for t = 1 : size(time_par,1)
                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
