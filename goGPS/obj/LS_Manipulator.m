@@ -41,7 +41,7 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-classdef LS_Manipulator < handle
+classdef LS_Manipulator < Exportable
     
     % ==================================================================================================================================================
     %% Parameter columns id (order)
@@ -456,8 +456,9 @@ classdef LS_Manipulator < handle
                     this.D = D;
                 end
                 if phase_present
-                    fprintf('#### DEBUG #### \n');
-                    [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]]
+                    % fprintf('#### DEBUG #### \n');
+                    lim = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
+                    Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Dataset is splitted in this way:\n%s', sprintf('%6d -> %6d\n', lim'))))
                     this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
                 else
                     this.system_split = [1 max(ep)];
