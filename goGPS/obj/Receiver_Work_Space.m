@@ -8233,20 +8233,38 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                         if flag_recompute
                             ls.Astack2Nstack();
+                            warning off; % Close to singular matrix are annoing
                             [x, res, s0, ~, l_fixed] = ls.solve();
+                            warning on;
                         end
                     end
                     
-                    
+                    Core.getLogger.addMarkedMessage(sprintf('PPP s0 = %.4f (first estimation)', s0));
                     % Remove outliers > threshold has requested in max phase error threshold (see settings/GUI)
                     flag_recompute = true;
                     ok_factor = 1; % accept a thr exactly as the one from UI
                     while (flag_recompute && any(abs(res(:)) > (ok_factor * Core.getState.getMaxPhaseErrThr())))
+                        ls_bk = ls.toStruct(true); % note that this is a limited save
                         flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
                         if flag_recompute
                             ls.Astack2Nstack();
-                            [x, res, s0, ~, l_fixed] = ls.solve();
-                            ok_factor = ok_factor * 1.5; % accept a thr 1.5 greater than the previous
+                            warning off; % Close to singular matrix are annoing
+                            [x_new, res_new, s0_new, ~, l_fixed_new] = ls.solve();
+                            warning on;
+
+                            if (s0_new - 0.005) < s0 % if s0 is not worse (than the old + 5 mm)
+                                Core.getLogger.addMarkedMessage(sprintf('PPP s0 = %.4f (iteration)', s0_new));
+                                s0 = s0_new;
+                                x = x_new;
+                                res = res_new;
+                                l_fixed = l_fixed_new;
+                                ok_factor = ok_factor * 1.5; % accept a thr 1.5 greater than the previous
+                            else
+                                Core.getLogger.addWarning(sprintf('Iterative improvement causes solution to diverge:\ns0 = %.4f vs %.4f m\nstopping iterations', s0, s0_new));
+                                flag_recompute = false;
+                                % restore old properties
+                                ls.importFromStruct(ls_bk, true); % note that this is a limited restore                            
+                            end
                         end
                     end
                     
