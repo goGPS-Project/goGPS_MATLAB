@@ -941,6 +941,7 @@ classdef Command_Interpreter < handle
                             end
                         catch ex
                             this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+                            Core_Utils.printEx(ex);
                         end
                     end
                 end
