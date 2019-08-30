@@ -7539,6 +7539,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
                 [dpos, s0] = this.codeStaticPositioning(ep_coarse);
+                if sum(abs(dpos)) > 1e8
+                    % Solution is diverging => exit
+                    this.log.addError('Data are too bad, positioning is not possible!');
+                    s0 = 0;
+                    dpos = 0;
+                end
             end
             if s0 > 0
                 this.updateAzimuthElevation()
