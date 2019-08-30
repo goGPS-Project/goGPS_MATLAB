@@ -48,11 +48,23 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
+        function printEx(ex)
+            % Print exception to screen
+            %
+            % SYNTAX: 
+            %  Core_Utils.printEx(ex)
+            
+            fprintf('\n----------------------------------------------------------------\n MESSAGE: %s\n----------------------------------------------------------------\n\n', ex.message);
+            for i=1:numel(ex.stack)
+                fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
+            end
+        end
+        
         function exportCurFig(out_path)
             % Eport Current Figure
             %
             % EXAMPLE
-            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))            
+            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
             Core_Utils.exportFig(gcf, out_path);
         end
         
@@ -64,19 +76,19 @@ classdef Core_Utils < handle
             %   Core_Utils.exportFig(out_path)
             %
             % EXAMPLE
-            %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))            
+            %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
             if nargin == 1
                 out_path = fh;
                 fh = gcf;
             end
             %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
             col = fh.Color;
-            fh.Color = [1 1 1]; 
-            fh.WindowStyle = 'normal'; 
+            fh.Color = [1 1 1];
+            fh.WindowStyle = 'normal';
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
-            export_fig(fh, out_path, '-transparent', '-r150'); 
+            export_fig(fh, out_path, '-transparent', '-r150');
             fh.WindowStyle = 'docked';
-            fh.Color = col; 
+            fh.Color = col;
         end
         
         function diff_data = diffAndPred(data, n_order, t_ref)
@@ -145,13 +157,13 @@ classdef Core_Utils < handle
         end
         
         function num = round_even(num)
-           num = round((num-2)/2)*2+2;
+            num = round((num-2)/2)*2+2;
         end
         
         function num = round_odd(num)
-           num = round((num-1)/2)*2+1;
+            num = round((num-1)/2)*2+1;
         end
-                
+        
         function r = xcorr(x)
             % compute cross correlation
             %
@@ -188,8 +200,8 @@ classdef Core_Utils < handle
                 end
             elseif strcmpi(mode,'fft')
                 L = length(x);
-%                 Y = fft(x)
-%                 Ae = abs(Y);
+                %                 Y = fft(x)
+                %                 Ae = abs(Y);
                 A = Core_Utils.getSpectrum(x);
                 cova = ifft(([A; flipud(A(2:end))]).^2);
                 s = var(x) - cova(1:101);
@@ -206,8 +218,8 @@ classdef Core_Utils < handle
             % SYNTAX:
             %     s = Core_Utils.getSemivariogram1D(x)
             cs = unique([1; find(cs_lid); length(x)]);
-                        max_lag = length(x)-1;
-
+            max_lag = length(x)-1;
+            
             s = nan(max_lag,1);
             n = zeros(max_lag,1);
             for c = 2 : length(cs)
@@ -237,7 +249,7 @@ classdef Core_Utils < handle
         
         function [gh11,nh11] =variofl(x1,icode)
             % SOURCE : Marcotte, Denis. "Fast variogram computation with FFT." Computers & Geosciences 22.10 (1996): 1175-1186.
-            % 
+            %
             % function [gh11,nh11l=variofl(x1,icode);
             %
             % function to compute variograms or covariograms, in 1D or 2D
@@ -308,8 +320,8 @@ classdef Core_Utils < handle
             nh11 = [nh11(1:n,1:p) nh11(1:n,nc2-p+2:nc2); nh11(nr2-n+2,1:p) nh11(nr2-n+2:nr2,nc2-p+2:nc2)];
             gh11 = [gh11(1:n,1:p) gh11(1:n,nc2-p+2:nc2); gh11(nr2-n+2,1:p) gh11(nr2-n+2:nr2,nc2-p+2:nc2)];
             
-%             gh11=fftshift(gh11);
-%             nh11=fftshift(nh11);
+            %             gh11=fftshift(gh11);
+            %             nh11=fftshift(nh11);
         end
         
         function s = remPeriod(s,p)
@@ -324,7 +336,7 @@ classdef Core_Utils < handle
             x = N\B;
             s = s - A*x;
         end
-                
+        
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
             % SYNTAX
@@ -342,7 +354,7 @@ classdef Core_Utils < handle
             num = num - str2(:,2) * 2^8;
             str2(:,2) = char(num);
         end
-
+        
         function num = code3Char2Num(str3)
             % Convert a 3 char string into a numeric value (float)
             % SYNTAX
@@ -409,7 +421,7 @@ classdef Core_Utils < handle
             %   str2 = Core_Utilis.unique2ch(str3)
             str2 = Core_Utils.num2Code2Char(unique(Core_Utils.code2Char2Num(str2)));
         end
-                        
+        
         function f_status_lst = aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list, out_dir)
             % Try to download files using aria2C
             %
@@ -533,7 +545,7 @@ classdef Core_Utils < handle
                                             log.addError(sprintf('%s download failed\nThe file is probably missing', [out_file_name, out_file_ext]));
                                         end
                                     end
-                                end    
+                                end
                                 % open file list for the next set
                                 fid = fopen(file_name, 'w');
                                 str = '';
@@ -542,10 +554,10 @@ classdef Core_Utils < handle
                         if i <= numel(fnl)
                             decrement = 0;
                             if ~(strcmp(odl{i}, old_od))
-                                decrement = 1; % this last file have not been downloaded! 
+                                decrement = 1; % this last file have not been downloaded!
                             end
                             old_od = odl{i};
-                            i = i - decrement;                        
+                            i = i - decrement;
                         end
                     end
                     fclose(fid);
@@ -579,7 +591,7 @@ classdef Core_Utils < handle
             end
             
         end
-
+        
         function [status] = downloadHttpTxtResUncompress(filename, out_dir)
             log = Core.getLogger();
             fnp = File_Name_Processor();
@@ -674,7 +686,7 @@ classdef Core_Utils < handle
             else
                 log = Logger.getInstance;
                 log.addWarning('HTTP check is implemeted only for Unix systems')
-                status = true; % !!! to be implemented                
+                status = true; % !!! to be implemented
             end
         end
         
@@ -703,11 +715,11 @@ classdef Core_Utils < handle
                     try
                         % Calling dos is faster than dir with large directories
                         if isunix
-                            [~, d] = dos(['ls ' dir_path]); 
+                            [~, d] = dos(['ls ' dir_path]);
                             dir_list = strsplit(d);
                             dir_list = dir_list(1:end-1);
                         else
-                            [~, d] = dos(['dir ' dir_path]); 
+                            [~, d] = dos(['dir ' dir_path]);
                             dir_list = strsplit(d);
                             dir_list = dir_list(1:end-1);
                         end
@@ -736,7 +748,7 @@ classdef Core_Utils < handle
                 elseif ~isempty(rin3_start)
                     file_list = [file_list; {[dir_list{d}(1:rin3_start) '${YYYY}${DOY}' dir_list{d}(rin3_start + 8 : end)]}]; %#ok<AGROW>
                 end
-            end           
+            end
             
             % search for station files STAT${DOY}${S}.${YY}
             for d = 1 : numel(dir_list)
@@ -751,7 +763,7 @@ classdef Core_Utils < handle
             end
             station_list = unique(file_list)
         end
-    
+        
         function data = injectData(data1, data2, idx1, idx2, data_size)
             % isert data2 into data1 at the position definied by idx1 and idx2
             % idx1 - 1 is the last element of data1 to be putted before data2 (0  if none)
@@ -775,7 +787,7 @@ classdef Core_Utils < handle
         
         function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time1, time2, id_stop, id_start, interpolate)
             % inject smoothed data
-            % 
+            %
             % INPUT:
             %   data_lft : all data left
             %   data_right : all data right
@@ -794,7 +806,7 @@ classdef Core_Utils < handle
             
             % Get the part of data to interp
             data_tosmt_lft = data_lft(idx_smt1);
-            data_tosmt_rgt = data_rgt(idx_smt2);            
+            data_tosmt_rgt = data_rgt(idx_smt2);
             
             % we use mat time, is easier and we do not need extreme precision
             time1 = time1.getMatlabTime();
@@ -810,7 +822,7 @@ classdef Core_Utils < handle
             data2 = nan(n_out);
             data1(idx1) = data_tosmt_lft;
             data2(idx2) = data_tosmt_rgt;
-            %id_start = idx1(id_start);            
+            %id_start = idx1(id_start);
             %id_ko = ((isnan(data1) & (1 : n_out)' < id_start) |(isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2)); %?? should be used -> yes beacuse time is injected deleting overlapping times
             id_keep = unique([idx1(1:(id_stop-1)); idx2(id_start:end)]);
             % Interpolate missing data
@@ -839,12 +851,12 @@ classdef Core_Utils < handle
             data = w1.*data1 + w2.*data2;
             %data(id_ko) = [];
             data = data(id_keep);
-            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];            
+            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];
         end
         
         function [idx1, idx2, double_tot] = intersectOrderedDouble(double_1, double_2, threshold)
             % given two ordered double give the index of the two vector in the joint vector considering the threshold
-            % 
+            %
             % SYNTAX
             % [idx1, idx2] = Core_Utils.intersectOrderedDouble(double_1, double_2, threshold)
             l1 = length(double_1);
@@ -882,7 +894,7 @@ classdef Core_Utils < handle
             double_tot(idx1) = double_1;
             double_tot(idx2) = double_2;
         end
-               
+        
         function [ids] = findAinB(cellA,cellB)
             % find the index of cella in cellb
             %
@@ -999,10 +1011,10 @@ classdef Core_Utils < handle
                 else
                     y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
                 end
-                warning('on')                
+                warning('on')
             end
         end
-
+        
         function [y_out] = interpPlaneLS(x_in, y_in, degree, x_out)
             % Least squares interpolant of a 3D dataset
             % Estimate a plane on x, y + polynomial on z
@@ -1036,7 +1048,7 @@ classdef Core_Utils < handle
                 for d = 1 : degree
                     A(:, d + 3) = x_tmp(:, 3) .^ d;
                 end
-                                        
+                
                 if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
                     A2 = A;
                 else
@@ -1057,7 +1069,7 @@ classdef Core_Utils < handle
                 else
                     y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
                 end
-                warning('on')                
+                warning('on')
             end
         end
         
@@ -1097,7 +1109,7 @@ classdef Core_Utils < handle
                 for d = 1 : degree
                     A(:, d + 6) = x_tmp(:, 3) .^ d;
                 end
-                                        
+                
                 if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
                     A2 = A;
                 else
@@ -1121,18 +1133,18 @@ classdef Core_Utils < handle
                 else
                     y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
                 end
-                warning('on')                
+                warning('on')
             end
         end
-
+        
         function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % Interpolate values froma data on a gepgraphical grid with multiple epoch
-            % data structure: 
+            % data structure:
             %        first dimension : dlat (+) south pole -> north pole
             %        second dimension : dlon (+) west -> east
             %        third dimension : dr (+) time usual direction
             %        NOTE: dlat, dlon,dt do not have to be positive
-            % 
+            %
             % INPUT:
             %      data - the data to be interpolate
             %      fist_lat - value of first lat value (max lat)
@@ -1197,13 +1209,13 @@ classdef Core_Utils < handle
             end
             
         end
-
+        
         function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % get  interpolating index
             [nlat , nlon, nt] = size(data);
             
-           
-            lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity 
+            
+            lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity
             % find indexes and interpolating length
             % time
             it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
@@ -1218,9 +1230,9 @@ classdef Core_Utils < handle
             ilons = max(min(floor((lon - first_lon)/ dlon)+1,nlon),1);
             ilone = ilons +1;
             ilone(ilone > nlon) = 1;
-            slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;        
+            slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
         end
-            
+        
         function response = permutedEqual(str1, str2)
             % check if the two variables are permuted version of the same sequence
             %
@@ -1312,7 +1324,7 @@ classdef Core_Utils < handle
         end
         
         function fr_cy = circularModedRobustMean(cycle)
-            % estimate a roubust mean mean for data over 0 -1 
+            % estimate a roubust mean mean for data over 0 -1
             %
             % SYNTAX:
             %     fr_cy = Core_Utils.circularModedRobustMean(cycle)
@@ -1320,7 +1332,7 @@ classdef Core_Utils < handle
             % elimnate the nan
             cycle(isnan(cycle)) = [];
             mode_cy = mode(cycle);
-             
+            
             % center around the mode and then take the string(robust) mean
             idx_inf = (cycle - mode_cy) < -0.5;
             idx_sup = (cycle - mode_cy) > 0.5;
@@ -1361,7 +1373,7 @@ classdef Core_Utils < handle
             %    createEmptyProject(prj_name)
             
             fnp = File_Name_Processor();
-
+            
             if nargin == 3
                 state = Main_Settings('', fnp.checkPath([base_dir filesep prj_name]));
             else
@@ -1401,7 +1413,7 @@ classdef Core_Utils < handle
                         state.setToShortNET();
                     case 3 % NET no iono
                         state.setToMediumNET();
-                    case 4 % NET iono-free                       
+                    case 4 % NET iono-free
                         state.setToLongNET();
                 end
             end
@@ -1446,7 +1458,7 @@ classdef Core_Utils < handle
         end
         
         function [val] = spline(t,order)
-            % Compute matrix entry for spline 
+            % Compute matrix entry for spline
             %
             % INPUT
             %   t -> 0 : 1
@@ -1478,7 +1490,7 @@ classdef Core_Utils < handle
         end
         
         function [val] = cubicSpline(t)
-            % Compute matrix entry for cubic spline 
+            % Compute matrix entry for cubic spline
             %
             % INPUT
             %   t -> 0 : 1
@@ -1506,7 +1518,7 @@ classdef Core_Utils < handle
             val(:,1) = 1 -t;
             val(:,2) = t;
         end
-         
+        
         function [idx, val] = hemisphereCubicSpline(n_az, n_el, az, el)
             % give the index of the hemisphere spline idx
             % first the equator then the first parallel then the second
@@ -1524,7 +1536,7 @@ classdef Core_Utils < handle
             idx_az(:,2) = idx_az(:,2) + 1;
             idx_az(:,3) = idx_az(:,3) + 2;
             idx_az(:,4) = idx_az(:,4) + 3;
-            idx_az(idx_az > n_az) = idx_az(idx_az > n_az) - n_az; 
+            idx_az(idx_az > n_az) = idx_az(idx_az > n_az) - n_az;
             idx = idx_az + (idx_el -1).*n_el;
             idx = [idx idx+1 idx+2 idx+3];
             
@@ -1539,7 +1551,7 @@ classdef Core_Utils < handle
         end
         
         function x = despline(x,spline_base)
-            % despline signal x 
+            % despline signal x
             %
             % SYNTAX:
             %   x = despline(x,<spline_base>)
@@ -1550,37 +1562,37 @@ classdef Core_Utils < handle
                 x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
             end
         end
-%         
-%           function [idx, val] = 4DCubicSpline(x, y, z, k)
-%             % give the index of the hemisphere spline idx
-%             % first the equator then the first parallel then the second
-%             % parallel
-%             %
-%             % SYNTAX:
-%             %  [idx] = hemisphereSpline(n_az,n_el,az,el)
-%                    
-%             t_x = rem(x/x_step);
-%             t_y = rem(y/y_step);
-%             t_z = rem(z/z_step);
-%             t_k = rem(k/k_step);
-%             
-%             i_x = floor(x/x_step);
-%             i_y = floor(y/y_step);
-%             i_z = floor(z/z_step);
-%             i_k = floor(k/k_step);
-%             
-%             val_x = Core_Utils.cubicSpline(t_x);
-%             val_y = Core_Utils.cubicSpline(t_y);
-%             val_z = Core_Utils.cubicSpline(t_z);
-%             val_k = Core_Utils.cubicSpline(t_k);
-%             
-%             
-%             
-%             
-%             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
-%             
-%             
-%         end
+        %
+        %           function [idx, val] = 4DCubicSpline(x, y, z, k)
+        %             % give the index of the hemisphere spline idx
+        %             % first the equator then the first parallel then the second
+        %             % parallel
+        %             %
+        %             % SYNTAX:
+        %             %  [idx] = hemisphereSpline(n_az,n_el,az,el)
+        %
+        %             t_x = rem(x/x_step);
+        %             t_y = rem(y/y_step);
+        %             t_z = rem(z/z_step);
+        %             t_k = rem(k/k_step);
+        %
+        %             i_x = floor(x/x_step);
+        %             i_y = floor(y/y_step);
+        %             i_z = floor(z/z_step);
+        %             i_k = floor(k/k_step);
+        %
+        %             val_x = Core_Utils.cubicSpline(t_x);
+        %             val_y = Core_Utils.cubicSpline(t_y);
+        %             val_z = Core_Utils.cubicSpline(t_z);
+        %             val_k = Core_Utils.cubicSpline(t_k);
+        %
+        %
+        %
+        %
+        %             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
+        %
+        %
+        %         end
         
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
@@ -1634,7 +1646,7 @@ classdef Core_Utils < handle
             % SYNTAX
             %    [lid] = Core_Utils.ordinal2logical(id,n_el)
             lid = false(n_el,1);
-            lid(id) = true; 
+            lid(id) = true;
         end
         function [dtm, lat, lon, georef, info] = getDTM(nwse, res)
             % Get the dtm of an area delimited by geographical coordinates nwse
@@ -1670,7 +1682,7 @@ classdef Core_Utils < handle
                         try
                             mkdir(dtm_path);
                         catch ex
-                            Logger.getInstance.addError(sprintf('Could not create %s DTM cannot be saved locally\nException: %s\n', dtm_path, ex.message))                            
+                            Logger.getInstance.addError(sprintf('Could not create %s DTM cannot be saved locally\nException: %s\n', dtm_path, ex.message))
                         end
                     end
                 end

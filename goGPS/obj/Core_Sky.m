@@ -651,6 +651,14 @@ classdef Core_Sky < handle
                 Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
                 
                 txt = fread(f_sp3,'*char')';
+                if txt(1) == ' '
+                    % the first line is corrupted and have spaces at
+                    % the beginning of the line
+                    id_cut = find(txt ~= ' ', 1, 'first');
+                    if ~isempty(id_cut)
+                        txt = txt(id_cut : end);
+                    end
+                end
                 version = txt(2);
                 fclose(f_sp3);
                 
@@ -671,6 +679,7 @@ classdef Core_Sky < handle
                 n_epochs = cell2mat(textscan(txt(repmat(lim(1,1),1,7) + (32:38)),'%f'));
                 % find first epoch
                 string_time = txt(repmat(lim(1,1),1,28) + (3:30));
+               
                 % import it as a GPS_Time obj
                 sp3_first_ep = GPS_Time(string_time, [], true);
                 if this.coord_rate ~= coord_rate
