@@ -351,7 +351,7 @@ classdef Network < handle
                     end
                 end
                 
-                if s0 < 0.02
+                if s0 < 0.05 || true
                     % initialize array for results
                     this.initOut(ls);
                     this.addAdjValues(x);
@@ -493,7 +493,7 @@ classdef Network < handle
                 [~, idx_ref] = intersect(this.net_id, id_ref);
                 lid_ref(idx_ref) = true;
             end
-            is_empty_recs = ~this.rec_list.hasPhases_mr;
+            is_empty_recs = this.rec_list.isEmpty_mr;
             n_valid_rec = sum(~is_empty_recs);
             n_valid_ref = sum(~is_empty_recs(lid_ref));
             if n_valid_ref < numel(id_ref)
@@ -527,7 +527,7 @@ classdef Network < handle
                     lid_ref(id_ref) = true;
                 end
                 l_fixed = 0; % nothing is fixed
-                is_empty_recs = ~this.rec_list.hasPhases_mr;
+                is_empty_recs = this.rec_list.isEmpty_mr;
                 
                 e = find(is_empty_recs);
                 if ~isempty(e)
@@ -551,6 +551,7 @@ classdef Network < handle
                     ls.PAR_REC_EB;
                     ls.PAR_SAT_EB
                     ls.PAR_AMB;
+                    ls.PAR_IONO;
                     ls.PAR_REC_CLK;
                     ls.PAR_SAT_CLK;];
                 if this.state.flag_tropo
@@ -564,10 +565,7 @@ classdef Network < handle
                         ls.PAR_TROPO_E;];
                 end
                 
-                if reduce_iono
-                    param_selection = [param_selection;
-                        ls.PAR_IONO;];
-                end
+                
                 glonass_r_sum = 0;
                 for i = 1 : length(this.rec_list)
                     if sum(this.rec_list(i).work.system == 'R') > 0
@@ -579,6 +577,10 @@ classdef Network < handle
                         ls.PAR_REC_EB_LIN;];
                 end
                 parametrization = LS_Parametrization();
+                
+                if ~reduce_iono
+                    parametrization.iono(2) = LS_Parametrization.ALL_REC;
+                end
                 
                 ls.setUpNET(this.rec_list, coo_rate, '???', param_selection, parametrization);
                 

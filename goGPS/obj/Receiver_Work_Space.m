@@ -707,7 +707,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function remObsByFlag(this,flag,sys_c)
+        function remObsByFlag(this, flag, sys_c)
             % remove obesravtion by flag
             %
             % SYNTAX

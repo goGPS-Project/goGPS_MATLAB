@@ -117,6 +117,7 @@ classdef LS_Manipulator_new < handle
         obs_codes_id_par  % obs code id fo the parameter
         wl_id_par % wl id of the parameter
         out_par % paramters that are observed only by outlier observation
+        phase_par % is pahse coode or both
         
         rec_set % set of receivers
         sat_set % set of satellites
@@ -420,9 +421,19 @@ classdef LS_Manipulator_new < handle
             cumulative_idx = 0;
             i_col = 1;
             
+            % is the observatio  pahse or code
+            phpr_unique_obs_codes = zeros(size(this.unique_obs_codes));
+            for o = 1 : length(this.unique_obs_codes)
+                if this.unique_obs_codes{o}(2) == 'C'
+                    phpr_unique_obs_codes(o) = 1;
+                elseif this.unique_obs_codes{o}(2) == 'L'
+                    phpr_unique_obs_codes(o) = 2;
+                end
+            end
             % ---- preallocation to speed up
             ch_lid = false(size(this.A,1),1);
             obs_lid = false(size(this.A,1),1);
+            
             
             
             this.time_par = zeros(size(this.A,1),2,'uint32');
@@ -432,6 +443,7 @@ classdef LS_Manipulator_new < handle
             this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the parameter
             this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
             this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
+            this.phase_par= zeros(size(this.A,1),1,'uint8');  % phse code or both parameter
             
             ch_set_old = []; % avoid repating expesnive task
             
@@ -482,11 +494,14 @@ classdef LS_Manipulator_new < handle
                 end
                 % construct channel to constellation mapping
                 sig2const = char(zeros(size(this.unique_obs_codes)));
+                sig2const_num = zeros(size(this.unique_obs_codes));
+
                 for c = 1 : length(this.unique_obs_codes)
                     idx1 = find(this.obs_codes_id_obs == c,1,'first');
                     if ~isempty(idx1)
                         ant_id = Core.getConstellationCollector.getAntennaId(this.satellite_obs(idx1));
                         sig2const(c) = ant_id(1);
+                        sig2const_num(c) = find(Core.getConstellationCollector.SYS_C == ant_id(1));
                     end
                 end
                 if parametriz(4) == ls_parametrization.SING_TRACK
@@ -500,6 +515,15 @@ classdef LS_Manipulator_new < handle
                     ch_set = {};
                     for c = 1 : n_ch_set
                         ch_set{c} = uint8(sig_p_id(sig2wl == c));
+                    end
+                elseif parametriz(4) == ls_parametrization.FREQ_CONST
+                    u_wl_const = unique(sig2wl*100+sig2const_num)
+                    n_ch_set = length(u_wl_const);
+                    ch_set = {};
+                    for c = 1 : n_ch_set
+                        const = rem(u_wl_const(c),100);
+                        wl = floor(u_wl_const(c)/100);
+                        ch_set{c} = uint8(sig_p_id(sig2const_num == const & sig2wl == wl));
                     end
                 elseif parametriz(4) == ls_parametrization.SING_FREQ_BIN
                     n_ch_set = length(this.unique_wl);
@@ -577,7 +601,14 @@ classdef LS_Manipulator_new < handle
                             elseif str2num(optt) == ls_parametrization.SING_TRACK
                                 n_ch_set = n_ch_set +length(sig_p_id(cond_sig));
                                 ch_set = [ch_set num2cell(uint8(sig_p_id(cond_sig)))];
-                                
+                            elseif str2num(optt) == ls_parametrization.FREQ_CONST
+                                u_wl_const = unique(sig2wl(cond_sig)*100+sig2const_num(cond_sig));
+                                for c = 1 : n_ch_set
+                                    n_ch_set = n_ch_set +1;
+                                    const = rem(u_wl_const(c),100);
+                                    wl = floor(u_wl_const(c)/100);
+                                    ch_set{n_ch_set} = uint8(sig_p_id(sig2const_num == const & sig2wl == wl & cond_sig));
+                                end                                
                             end
                             
                         end
@@ -600,7 +631,7 @@ classdef LS_Manipulator_new < handle
                     else
                         r_id =Core_Utils.findAinB(rec_set{r},this.rec_set);
                         if r_id == 0
-                            r_id = length(this.rec_set) -1;
+                            r_id = -length(this.rec_set) -1;
                             this.rec_set{end+1} = rec_set{r};
                         end
                         
@@ -617,7 +648,7 @@ classdef LS_Manipulator_new < handle
                         else
                             s_id =Core_Utils.findAinB(sat_set{s},this.sat_set);
                             if s_id == 0
-                                s_id = length(this.sat_set) -1;
+                                s_id = -length(this.sat_set) -1;
                                 this.sat_set{end+1} = sat_set{s};
                             end
                             
@@ -637,12 +668,18 @@ classdef LS_Manipulator_new < handle
                                 if length(ch_set{f}) == 1
                                     ch_id = ch_set{f};
                                 else
-                                    ch_id =Core_Utils.findAinB(ch_set{f},this.sat_set);
-                                    if s_id == 0
-                                        ch_id = length(this.ch_set) -1;
+                                    ch_id =Core_Utils.findAinB(ch_set{f},num2cell(1:length(this.unique_obs_codes)));
+                                    if ch_id == 0
+                                        ch_id = -length(this.ch_set) -1;
                                         this.ch_set{end+1} = ch_set{f};
                                     end
                                     
+                                end
+                                % is a phase pr or both paramter
+                                phase_code = 0;
+                                u_phpr = unique(phpr_unique_obs_codes(cc));
+                                if length(u_phpr) == 1
+                                    phase_code = u_phpr;
                                 end
                                 %---- final observation id
                                 obs_lid = rec_lid & sat_lid & ch_lid;
@@ -768,11 +805,17 @@ classdef LS_Manipulator_new < handle
                                     this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'uint8');  % receiver of the parameters
                                     this.class_par(cumulative_idx+(1:n_prg_id)) =  p*ones(n_prg_id,1,'uint8');  % class of the parameter
                                     this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = uint8(ch_id)*ones(n_prg_id,1,'uint8');  % obs_code id parameters
+                                    this.phase_par(cumulative_idx+(1:n_prg_id)) = uint8(phase_code)*ones(n_prg_id,1,'uint8');  % phase code or both id parameters
                                     
                                     if ch_id > 0
                                         this.wl_id_par(cumulative_idx+(1:n_prg_id)) = uint8(sig2wl(ch_id))*ones(n_prg_id,1,'uint8');  % wavelength id parameters
                                     else
-                                        this.wl_id_par(cumulative_idx+(1:n_prg_id)) = zeros(n_prg_id,1,'uint8');  % wavelength id parameters
+                                        u_wl = unique(sig2wl(this.ch_set{-ch_id})); % check if at least they belong to the same frequency
+                                        if length(u_wl) == 1
+                                            this.wl_id_par(cumulative_idx+(1:n_prg_id)) = uint8(u_wl)*ones(n_prg_id,1,'uint8');  % wavelength id parameters
+                                        else
+                                            this.wl_id_par(cumulative_idx+(1:n_prg_id)) = zeros(n_prg_id,1,'uint8');  % wavelength id parameters
+                                        end
                                     end
                                     cumulative_idx = cumulative_idx + n_prg_id;
                                     col_incr = max(col_incr,length(cols_tmp));
@@ -791,6 +834,8 @@ classdef LS_Manipulator_new < handle
             this.class_par((cumulative_idx+1):end) =  [];%
             this.obs_codes_id_par((cumulative_idx+1):end) =  [];%
             this.wl_id_par((cumulative_idx+1):end) =  [];%
+            this.phase_par((cumulative_idx+1):end) =  [];%
+
             
             
             
@@ -819,8 +864,9 @@ classdef LS_Manipulator_new < handle
             
             % remove two bias per receiver
             n_rec = size(this.rec_xyz,1);
+            n_sat = length(this.unique_sat_goid);
             idx_rm = [];
-            if  sum(this.param_class == this.PAR_REC_EB) > 0 
+            if  sum(this.param_class == this.PAR_REC_EB) > 0
                 for r = 1 : n_rec
                     idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r & ~this.out_par); % one pseudorange bias per reciever
                     
@@ -829,7 +875,7 @@ classdef LS_Manipulator_new < handle
                     sys_c_par =  zeros(size(idx_par));
                     for i = 1 : length(idx_par)
                         sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
-                        if this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(2) == 'C'
+                        if this.phase_par(idx_par(i)) == 1
                             idx_par_psrange(i) = true;
                         end
                     end
@@ -850,8 +896,7 @@ classdef LS_Manipulator_new < handle
                         else
                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];
                             wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
-
-                            idx_par_phase(1) = [];
+                            
                             idx_par_phase(1) = [];
                         end
                     end
@@ -883,34 +928,6 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            %             if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC
-            %                 idx_par = find(this.class_par == this.PAR_REC_EB); %
-            %                 idx_par_psrange = false(size(idx_par));
-            %                 sys_c_par =  zeros(size(idx_par));
-            %                 for i = 1 : length(idx_par)
-            %                     sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
-            %                     if this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(2) == 'C'
-            %                         idx_par_psrange(i) = true;
-            %                     end
-            %                 end
-            %                 idx_par_phase = idx_par(~idx_par_psrange);
-            %                 sys_c_par_phase = sys_c_par(~idx_par_psrange);
-            %                 sys_c_par_psrange = sys_c_par(idx_par_psrange);
-            %                 idx_par_psrange =  idx_par(idx_par_psrange);
-            %                 if ~isempty(idx_par_psrange)
-            %                     for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
-            %                         if sys_c == sys_c_ref
-            %                             idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
-            %                         else
-            %                             idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
-            %                         end
-            %                         if~isempty(idx_tmp)
-            %                             idx_rm = [idx_rm; idx_tmp(1)];
-            %                         end
-            %                     end
-            %                 end
-            %             end
-            
             if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
                 % for each satellite if there is not ata least one double frequrency receiver observing the satellite remove the iono paramter, the delay is going to be absorbed by the clock
                 for s = this.unique_sat_goid
@@ -923,12 +940,12 @@ classdef LS_Manipulator_new < handle
             end
             
             % remove ones bias per satellite
-            if  sum(this.param_class == this.PAR_SAT_EB) > 0 
+            if  sum(this.param_class == this.PAR_SAT_EB) > 0
                 for s = this.unique_sat_goid
                     idx_par = find(this.class_par == this.PAR_SAT_EB & this.sat_par == s & ~this.out_par); % two code biases not from the same frequency
                     idx_par_psrange = false(size(idx_par));
                     for i = 1 : length(idx_par)
-                        if this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(2) == 'C'
+                        if this.phase_par(idx_par(i)) == 1
                             idx_par_psrange(i) = true;
                         end
                     end
@@ -942,7 +959,7 @@ classdef LS_Manipulator_new < handle
                         else
                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];
                             wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
-                            this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(1))},s)));
+                            this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',wl_ref,s)));
                         end
                     end
                     if sum(this.param_class == this.PAR_IONO) > 0
@@ -974,13 +991,13 @@ classdef LS_Manipulator_new < handle
                     this.log.addMessage(this.log.indent(sprintf('Receiver %d and %s choosen as reference',this.rec_par(idx_par(1)),this.unique_obs_codes{this.obs_codes_id_par(idx_par(1))})));
                 end
             end
-           
             
             
             
             
             
-%             % remove one bias per signal from one recievr
+            
+            % remove one bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB) > 0
                 for e = 1: length(this.unique_obs_codes)
                     if sum(this.obs_codes_id_par(idx_rm(this.class_par(idx_rm) == this.PAR_REC_EB)) == e) == 0% <- if it has not been previously removed
@@ -992,8 +1009,8 @@ classdef LS_Manipulator_new < handle
                     end
                 end
             end
-%             
-%             % remove one linear trend bias per signal from one recievr
+            
+            % remove one linear trend bias per signal from one recievr
             if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0
                 for e = 1: length(this.unique_obs_codes)
                     idx_par = find(this.class_par == this.PAR_REC_EB_LIN & this.obs_codes_id_par == e & ~this.out_par);
@@ -1003,7 +1020,6 @@ classdef LS_Manipulator_new < handle
                     end
                 end
             end
-%             
             
             % remove one clock per epoch
             u_ep = unique(this.time_par);
@@ -1021,127 +1037,162 @@ classdef LS_Manipulator_new < handle
             
             % for each sat and fro each contiguous set of ambiguity remove
             % one abiguity per set of phase bias
-            idx_amb_rm_sat = [];
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
-                for s = this.unique_sat_goid
-                    idx_par = this.class_par == this.PAR_AMB & this.sat_par == s & ~this.out_par;
-                    idx_par = find(idx_par);
-                    time_par = this.time_par(idx_par,:);
-                    rec_par  = this.rec_par(idx_par,:);
-                    obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
-                    amb2eb = zeros(size(idx_par));
-                    % find to which electrinuc bias the ambiguity is tied
-                    for e = 1: length(idx_par)
-                        idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_par(e),1,'first');
-                        amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB);
-                    end
-                    amb2eb = this.obs_codes_id_par(amb2eb);
-                    u_time = unique(time_par);
-                    u_rec = unique(rec_par);
-                    amb2arc = 1000*uint32(rec_par) + uint32(obs_codes_id_par);
-                    u_arc = unique(amb2arc);
-                    arc2eb = rem(u_arc,1000);
-                    
-                    
-                    [~,amb2arc] = ismember(amb2arc,u_arc);
-                    u_eb = unique(arc2eb);
-                    eb_arc_rem = false(size(u_eb));
-                    
-                    amb_mat = zeros(max(u_time),length(u_arc),'uint32');
-                    for t = 1 : size(time_par,1)
-                        amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
-                    end
-                    jmps = [ (find(diff(sum(amb_mat,2) > 0) == 1)+1); max(u_time)];
-                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
-                        jmps = [1; jmps];
-                    end
-                    for j = 1 : (length(jmps) -1)
-                        jmp_s = jmps(j);
-                        jmp_e = jmps(j+1);
-                        while sum(eb_arc_rem) < length(eb_arc_rem) % one ambiguity per electronic bias associated with the ambiguity
-                            [~,   idx_ambs] = ismember(arc2eb,u_eb(~eb_arc_rem));
-                            ambs = amb_mat(jmp_s:jmp_e,idx_ambs>0);
-                            eb_arc_tmp = arc2eb(idx_ambs>0);
-                            if any(any(ambs))
-                                idx_poss_amb = mode(noZero(ambs(:)));
-                                idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
-                                %n_obs = size(this.A,1) + size(this.A_pseudo,1); n_par = max(max(this.A_idx)); rows = repmat((1:size(this.A,1))',1,size(this.A,2)); A = sparse([rows(:);],zero2n([this.A_idx(:)],1),[this.A(:) this.A_pseudo(:)],n_obs,n_par); A(:,[idx_amb_rm_sat]) = [];
-                                %disp([double(idx_poss_amb)  (rank(full(A)) - size(A,2)) double(eb_arc_tmp(sum(ambs == idx_poss_amb) > 0)) s]);
-                                eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == idx_poss_amb) > 0)) = true;
-                            else
-                                eb_arc_rem(:) = true;
+            % remember -> there is the possibility of island of
+            % disconnected tracking that you have not considered
+            
+            %rule -> you can not have two full receiver removed at this
+            %stage
+            % you start from the most populus receiver than you move to the
+            % other keeping in mind that after the first no receiver can be
+            % completely removed
+            if sum(this.param_class == this.PAR_AMB) > 0 && (sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0)
+                idx_amb_rm_sat = [];
+                % find the elecronic bias assoictaed with each ambiguity
+                idx_ambs = find(this.class_par == this.PAR_AMB);
+                amb2eb = zeros(size(idx_ambs));
+                % find to which electrinuc bias the ambiguity is tied
+                for e = 1: length(idx_ambs)
+                    idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
+                    amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_SAT_EB);
+                end
+                ebs = unique(amb2eb)';
+                for eb = ebs
+                    if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+                        is_first_complete = false; %flag to know if the recievr has been removed completely
+                        idx_ambs_e = idx_ambs;
+                        idx_ambs_e(amb2eb ~= eb) = [];
+                        rec_sat_mtx = zeros(n_rec,n_sat);
+                        for aa = idx_ambs_e
+                            rec_sat_mtx(this.rec_par(aa),this.sat_par(aa)) = 1;
+                        end
+                        idx_ambs_e = Core_Utils.ordinal2logical(idx_ambs_e,length(this.class_par));
+                        
+                        [~, rec_preference] = sort(sum(rec_sat_mtx,2),'descend');
+                        for s = this.unique_sat_goid
+                            
+                            idx_par = idx_ambs_e & this.sat_par == s & ~this.out_par;
+                            idx_par = find(idx_par);
+                            time_par = this.time_par(idx_par,:);
+                            rec_par  = this.rec_par(idx_par,:);
+                            obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                            
+                            u_time = unique(time_par);
+                            u_rec = unique(rec_par);
+                            amb2arc = 1000*uint32(rec_par) + uint32(obs_codes_id_par);
+                            u_arc = unique(amb2arc);
+                            arc2eb = rem(u_arc,1000);
+                            
+                            
+                            [~,amb2u_arc] = ismember(amb2arc,u_arc);
+                            u_eb = unique(arc2eb);
+                            
+                            amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                            rec_amb_mat =  zeros(1,length(u_arc),'uint32');
+                            for t = 1 : size(time_par,1)
+                                amb_mat(time_par(t,1)+1:time_par(t,2),amb2u_arc(t)) = idx_par(t);
+                                rec_amb_mat(amb2u_arc(t)) = floor(amb2arc(t) / 1000);
+                            end
+                            jmps = [ (find(diff(sum(amb_mat,2) > 0) == 1)+1); max(u_time)];
+                            if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                                jmps = [1; jmps];
+                            end
+                           
+                            
+                            for j = 1 : (length(jmps) -1)
+                                jmp_s = jmps(j);
+                                jmp_e = jmps(j+1);
+                                ambs = amb_mat(jmp_s:jmp_e,:);
+                                if any(any(ambs))
+                                    rr = 1;
+                                    not_found = true;
+                                    while rr <= length(rec_preference) && not_found
+                                        rp = rec_preference(rr);
+                                        if ~(sum(rec_sat_mtx(rec_preference(1),:) == 1) == 0 && sum(rec_sat_mtx(rp,:) == 1) <= 1)
+                                            ambs_r = ambs(:,rec_amb_mat == rp);
+                                            idx_poss_amb = mode(noZero(ambs_r(:)));
+                                            idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
+                                            rec_sat_mtx(rr,s) == 2; % two means eliminated
+                                            not_found = false;
+                                        end
+                                    end
+                                end
                             end
                             
                         end
+                        idx_rm = [idx_rm; uint32(idx_amb_rm_sat)];
                     end
                 end
-                idx_rm = [idx_rm; uint32(idx_amb_rm_sat)];
-            end
-            
-            % for each rec and for each contiguos set of ambiguity remove one
-            if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
-                forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.obs_codes_id_par(idx_amb_rm_sat)); % this ambiguities can not be elemitaing without genrating "tension" in the system
-                for r = 1: size(this.rec_xyz,1);
-                    forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
-                    idx_par = this.class_par == this.PAR_AMB & this.rec_par ==  r & ~this.out_par;
-                    idx_par = find(idx_par);
-                    time_par = this.time_par(idx_par,:);
-                    sat_par  = this.sat_par(idx_par,:);
-                    obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
-                    amb2eb = zeros(size(idx_par));
-                    % find to which electrinuc bias the ambiguity is tied
-                    for e = 1: length(idx_par)
-                        idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_par(e),1,'first');
-                        amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB);
-                    end
-                    amb2eb = this.obs_codes_id_par(amb2eb);
-                    u_time = unique(time_par);
-                    amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
-                    u_arc = unique(amb2arc_a);
-                    arc2eb = rem(u_arc,1000);
-                    
-                    
-                    [~,amb2arc] = ismember(amb2arc_a,u_arc);
-                    u_eb = unique(arc2eb);
-                    eb_arc_rem = false(size(u_eb));
-                    amb_mat = zeros(max(u_time),length(u_arc),'uint32');
-                    for t = 1 : size(time_par,1)
-                        amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
-                    end
-                    jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
-                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
-                        jmps = [1; jmps];
-                    end
-                    for j = 1 : (length(jmps) -1)
-                        jmp_s = jmps(j);
-                        jmp_e = jmps(j+1);
-                        while sum(eb_arc_rem) < length(eb_arc_rem) % one ambiguity per electronic bias associated with the ambiguity
-                            [~,   idx_ambs] = ismember(arc2eb,u_eb(~eb_arc_rem));
-                            ambs = amb_mat(jmp_s:jmp_e,idx_ambs>0);
-                            eb_arc_tmp = arc2eb(idx_ambs>0);
-                            if any(any(ambs))
-                                [id_poss_rm]  = mode(noZero(ambs(:)));
-                                idx_start = sum(ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
-                                while any(any(ambs)) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 % it might be that the ambiguity was previouly removed in the satellite round
-                                    ambs(ambs == id_poss_rm) = 0;
-                                    id_poss_rm = mode(noZero(ambs(:)));
-                                end
-                                if id_poss_rm > 0
-                                    idx_rm = [idx_rm; uint32(id_poss_rm)];
-                                    eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0)) = true;
-                                else
-                                    eb_arc_rem(u_eb == eb_arc_tmp(sum(idx_start) > 0)) = true;
-                                end
-                            else
-                                eb_arc_rem(:) = true;
-                            end
+                % find the elecronic bias assoictaed with each ambiguity
+                idx_ambs = find(this.class_par == this.PAR_AMB);
+                amb2eb = zeros(size(idx_ambs));
+                % find to which electrinuc bias the ambiguity is tied
+                for e = 1: length(idx_ambs)
+                    idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
+                    amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB);
+                end
+                ebs = unique(amb2eb)';
+                for eb = ebs
+                    % for each rec and for each contiguos set of ambiguity remove one
+                    if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
+                        forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.ls_parametrization.rec_eb(4) == LS_Parametrization.SING_TRACK)*uint32(this.obs_codes_id_par(idx_amb_rm_sat)); % this ambiguities can not be elemitaing without genrating "tension" in the system  %+ uint32(this.obs_codes_id_par(idx_amb_rm_sat)) if there is a bias per tracking the condition is weaker
+                        for r = 1: size(this.rec_xyz,1);
+                            forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
+                            idx_ambs_e = idx_ambs;
+                            idx_ambs_e(amb2eb ~= eb) = [];
+                            idx_ambs_e = Core_Utils.ordinal2logical(idx_ambs_e,length(this.class_par));
+                            idx_par = idx_ambs_e & this.rec_par ==  r & ~this.out_par;
+                            idx_par = find(idx_par);
+                            time_par = this.time_par(idx_par,:);
+                            sat_par  = this.sat_par(idx_par,:);
+                            obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                            u_time = unique(time_par);
+                            amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
+                            u_arc = unique(amb2arc_a);
+                            arc2eb = rem(u_arc,1000);
                             
+                            
+                            [~,amb2arc] = ismember(amb2arc_a,u_arc);
+                            u_eb = unique(arc2eb);
+                            eb_arc_rem = false(size(u_eb));
+                            amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                            for t = 1 : size(time_par,1)
+                                amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
+                            end
+                            jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                            if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                                jmps = [1; jmps];
+                            end
+                            for j = 1 : (length(jmps) -1)
+                                jmp_s = jmps(j);
+                                jmp_e = jmps(j+1);
+                                while sum(eb_arc_rem) < length(eb_arc_rem) % one ambiguity per electronic bias associated with the ambiguity
+                                    [~,   idx_ambs_2] = ismember(arc2eb,u_eb(~eb_arc_rem));
+                                    ambs = amb_mat(jmp_s:jmp_e,idx_ambs_2>0);
+                                    eb_arc_tmp = arc2eb(idx_ambs_2>0);
+                                    if any(any(ambs))
+                                        [id_poss_rm]  = mode(noZero(ambs(:)));
+                                        idx_start = sum(ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
+                                        while any(any(ambs)) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 % it might be that the ambiguity was previouly removed in the satellite round
+                                            ambs(ambs == id_poss_rm) = 0;
+                                            id_poss_rm = mode(noZero(ambs(:)));
+                                        end
+                                        if id_poss_rm > 0
+                                            idx_rm = [idx_rm; uint32(id_poss_rm)];
+                                            eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0)) = true;
+                                        else
+                                            eb_arc_rem(u_eb == eb_arc_tmp(sum(idx_start) > 0)) = true;
+                                        end
+                                    else
+                                        eb_arc_rem(:) = true;
+                                    end
+                                    
+                                end
+                            end
                         end
                     end
                 end
             end
-            
             
             % ---- (multi receiver) for each epoche remove one coordinate --------
             if (sum(this.param_class == this.PAR_REC_X) > 0 || sum(this.param_class == this.PAR_REC_Y) > 0  ||  sum(this.param_class == this.PAR_REC_Z) > 0 || sum(this.param_class == this.PAR_TROPO) > 0  || sum(this.param_class == this.PAR_TROPO_E) > 0  || sum(this.param_class == this.PAR_TROPO_N) > 0) && sum(this.param_class == this.PAR_SAT_CLK) > 0
@@ -1428,71 +1479,71 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
-                n_amb = length(idx_amb);
-                amb_y  = sparse(idx_amb,1:length(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
-                C_amb_amb = N \ amb_y;
-                idx_rm_line = true(size(C_amb_amb,1),1);
-                idx_rm_line(idx_amb) = false;
-                C_amb_amb(idx_rm_line,:) = [];
-                amb_float = x_reduced(idx_amb);
-                %                 amb_fixed = amb_float;
-                %                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
-                %                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
-                [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
-                flag_debug = false;
-                if flag_debug
-                    N_old = N;
-                    B_old = B;
-                    figure;
-                    coo =x_reduced(1:3);
-                    
-                    plot3(coo(1),coo(2),coo(3),'o')
-                    grid on;
-                    hold on;
-                    
-                    
-                    
-                    for a = 1 : size(amb_fixed,2)
-                        idx_amb_fixed = idx_amb(l_fixed(:, a));
-                        n_amb_fixed = sum(l_fixed(:, a));
+                    n_amb = length(idx_amb);
+                    amb_y  = sparse(idx_amb,1:length(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
+                    C_amb_amb = N \ amb_y;
+                    idx_rm_line = true(size(C_amb_amb,1),1);
+                    idx_rm_line(idx_amb) = false;
+                    C_amb_amb(idx_rm_line,:) = [];
+                    amb_float = x_reduced(idx_amb);
+                    %                 amb_fixed = amb_float;
+                    %                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
+                    %                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                    flag_debug = false;
+                    if flag_debug
+                        N_old = N;
+                        B_old = B;
+                        figure;
+                        coo =x_reduced(1:3);
+                        
+                        plot3(coo(1),coo(2),coo(3),'o')
+                        grid on;
+                        hold on;
+                        
+                        
+                        
+                        for a = 1 : size(amb_fixed,2)
+                            idx_amb_fixed = idx_amb(l_fixed(:, a));
+                            n_amb_fixed = sum(l_fixed(:, a));
+                            idx_not_amb_fixed = true(size(N,1), 1);
+                            idx_not_amb_fixed(idx_amb_fixed) = false;
+                            Nt = N(idx_not_amb_fixed, idx_amb_fixed);
+                            B(idx_amb_fixed) = [];
+                            B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,a),a),0,n_amb_fixed,n_amb_fixed),2);
+                            N(idx_amb_fixed, :) = [];
+                            N(:, idx_amb_fixed) = [];
+                            
+                            x_fixed = N \ B;
+                            coo =x_fixed(1:3);
+                            plot3(coo(1),coo(2),coo(3),'.','MarkerSize',10)
+                            text(coo(1)+0.01,coo(2)+0.01,coo(3)+0.01,num2str(a));
+                            N = N_old;
+                            B = B_old;
+                        end
+                        
+                    end
+                    if is_fixed
+                        idx_amb_fixed = idx_amb(l_fixed(:, 1));
+                        n_amb_fixed = sum(l_fixed(:, 1));
                         idx_not_amb_fixed = true(size(N,1), 1);
                         idx_not_amb_fixed(idx_amb_fixed) = false;
                         Nt = N(idx_not_amb_fixed, idx_amb_fixed);
                         B(idx_amb_fixed) = [];
-                        B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,a),a),0,n_amb_fixed,n_amb_fixed),2);
+                        B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,1),1),0,n_amb_fixed,n_amb_fixed),2);
                         N(idx_amb_fixed, :) = [];
                         N(:, idx_amb_fixed) = [];
                         
                         x_fixed = N \ B;
-                        coo =x_fixed(1:3);
-                        plot3(coo(1),coo(2),coo(3),'.','MarkerSize',10)
-                        text(coo(1)+0.01,coo(2)+0.01,coo(3)+0.01,num2str(a));
-                        N = N_old;
-                        B = B_old;
+                        
+                        x_reduced(idx_amb_fixed) = amb_fixed(l_fixed(:,1),1);
+                        x_reduced(idx_not_amb_fixed) = x_fixed;
+                        clearvars x_fixed Nt C_amb_amb N B
                     end
-                    
-                end
-                if is_fixed
-                    idx_amb_fixed = idx_amb(l_fixed(:, 1));
-                    n_amb_fixed = sum(l_fixed(:, 1));
-                    idx_not_amb_fixed = true(size(N,1), 1);
-                    idx_not_amb_fixed(idx_amb_fixed) = false;
-                    Nt = N(idx_not_amb_fixed, idx_amb_fixed);
-                    B(idx_amb_fixed) = [];
-                    B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,1),1),0,n_amb_fixed,n_amb_fixed),2);
-                    N(idx_amb_fixed, :) = [];
-                    N(:, idx_amb_fixed) = [];
-                    
-                    x_fixed = N \ B;
-                    
-                    x_reduced(idx_amb_fixed) = amb_fixed(l_fixed(:,1),1);
-                    x_reduced(idx_not_amb_fixed) = x_fixed;
-                    clearvars x_fixed Nt C_amb_amb N B
-                end
                 end
                 
             end
@@ -1830,9 +1881,8 @@ classdef LS_Manipulator_new < handle
             time_end = this.time_min.getCopy();
             time_end.addSeconds( double(this.time_par(idx,2)));
         end
-    end
-    
-    methods
+        
+        
         function s0 = getSigma0Ph(this)
             % Get sigma0 of phase (PPP solution)
             %
