@@ -89,7 +89,7 @@ classdef LS_Parametrization < handle
         rec_eb_lin = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
 
         
-        sat_eb = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
+        sat_eb = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
@@ -136,7 +136,7 @@ classdef LS_Parametrization < handle
             this = this@handle();
           %  this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&NOT*GLONASS:' num2str(LS_Parametrization.SING_TRACK)],['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
             this.rec_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE:' num2str(LS_Parametrization.FREQ_CONST)]};
-            this.sat_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE:' num2str(LS_Parametrization.SING_FREQ)]};
+            this.sat_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE:' num2str(LS_Parametrization.FREQ_CONST)]};
 
             this.rec_eb_opt_lin.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
         end

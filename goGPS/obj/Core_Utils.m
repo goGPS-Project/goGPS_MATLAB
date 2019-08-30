@@ -910,7 +910,7 @@ classdef Core_Utils < handle
                 not_found = true;
                 j = 1;
                 while j <= lB && not_found
-                    if strcmp(cellA{i},cellB{j})
+                    if strcmp(num2str(cellA{i}),num2str(cellB{j}))
                         ids(i) = j;
                         not_found = false;
                     end

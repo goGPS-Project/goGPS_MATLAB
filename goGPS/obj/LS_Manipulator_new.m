@@ -438,10 +438,10 @@ classdef LS_Manipulator_new < handle
             
             this.time_par = zeros(size(this.A,1),2,'uint32');
             this.param_par = zeros(size(this.A,1),4,'uint8'); % time of the parameter
-            this.rec_par = zeros(size(this.A,1),1,'uint16'); % receiver of the parameters
-            this.sat_par = zeros(size(this.A,1),1,'uint8');  % receiver of the parameters
+            this.rec_par = zeros(size(this.A,1),1,'int16'); % receiver of the parameters
+            this.sat_par = zeros(size(this.A,1),1,'int8');  % receiver of the parameters
             this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the parameter
-            this.obs_codes_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
+            this.obs_codes_id_par= zeros(size(this.A,1),1,'int8');  % obs_code id parameters
             this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
             this.phase_par= zeros(size(this.A,1),1,'uint8');  % phse code or both parameter
             
@@ -629,7 +629,7 @@ classdef LS_Manipulator_new < handle
                     if length(rec_set{r}) == 1
                         r_id = rec_set{r};
                     else
-                        r_id =Core_Utils.findAinB(rec_set{r},this.rec_set);
+                        r_id = -Core_Utils.findAinB(rec_set{r},this.rec_set);
                         if r_id == 0
                             r_id = -length(this.rec_set) -1;
                             this.rec_set{end+1} = rec_set{r};
@@ -646,7 +646,7 @@ classdef LS_Manipulator_new < handle
                         if length(sat_set{s}) == 1
                             s_id = sat_set{s};
                         else
-                            s_id =Core_Utils.findAinB(sat_set{s},this.sat_set);
+                            s_id = -Core_Utils.findAinB(sat_set{s},this.sat_set);
                             if s_id == 0
                                 s_id = -length(this.sat_set) -1;
                                 this.sat_set{end+1} = sat_set{s};
@@ -668,12 +668,11 @@ classdef LS_Manipulator_new < handle
                                 if length(ch_set{f}) == 1
                                     ch_id = ch_set{f};
                                 else
-                                    ch_id =Core_Utils.findAinB(ch_set{f},num2cell(1:length(this.unique_obs_codes)));
+                                    ch_id = -Core_Utils.findAinB(ch_set{f},this.ch_set);
                                     if ch_id == 0
                                         ch_id = -length(this.ch_set) -1;
                                         this.ch_set{end+1} = ch_set{f};
                                     end
-                                    
                                 end
                                 % is a phase pr or both paramter
                                 phase_code = 0;
@@ -801,10 +800,10 @@ classdef LS_Manipulator_new < handle
                                     
                                     this.time_par(cumulative_idx+(1:n_prg_id),:) =  uint32(time_par_tmp);% time of the parameter
                                     this.param_par(cumulative_idx+(1:n_prg_id),:) = repmat(uint8(parametriz),n_prg_id,1);% time of the parameter
-                                    this.rec_par(cumulative_idx+(1:n_prg_id)) = r_id*ones(n_prg_id,1,'uint8');  % receiver of the parameters
-                                    this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'uint8');  % receiver of the parameters
+                                    this.rec_par(cumulative_idx+(1:n_prg_id)) = r_id*ones(n_prg_id,1,'int8');  % receiver of the parameters
+                                    this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'int8');  % receiver of the parameters
                                     this.class_par(cumulative_idx+(1:n_prg_id)) =  p*ones(n_prg_id,1,'uint8');  % class of the parameter
-                                    this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = uint8(ch_id)*ones(n_prg_id,1,'uint8');  % obs_code id parameters
+                                    this.obs_codes_id_par(cumulative_idx+(1:n_prg_id)) = int8(ch_id)*ones(n_prg_id,1,'int8');  % obs_code id parameters
                                     this.phase_par(cumulative_idx+(1:n_prg_id)) = uint8(phase_code)*ones(n_prg_id,1,'uint8');  % phase code or both id parameters
                                     
                                     if ch_id > 0
@@ -888,16 +887,23 @@ classdef LS_Manipulator_new < handle
                     
                     if sum(this.param_class == this.PAR_REC_CLK) > 0
                         if ~isempty(idx_par_psrange) % <--- remove one pseudorange because it is less complicated afterwards
-                            idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
-                            wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frequency and system
-                            sys_c_ref = sys_c_par(1);
-                            idx_par_psrange(1) = [];
-                            sys_c_par_psrange(1) = [];
+                            id_obs_par  = this.obs_codes_id_par(idx_par_psrange);
+                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                            idx_idx_par = find(id_obs_par == chosen_id_obs);
+                            idx_rm = [idx_rm; uint32(idx_par_psrange(idx_idx_par))]; % <- all bias of the same observation
+                            wl_ref = this.wl_id_par(idx_par_psrange(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                            sys_c_ref = sys_c_par(idx_idx_par(1));
+                            idx_par_psrange(idx_idx_par) = [];
+                            sys_c_par_psrange(idx_idx_par) = [];
                         else
-                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];
-                            wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
-                            
-                            idx_par_phase(1) = [];
+                            id_obs_par  = this.obs_codes_id_par(idx_par_phase);
+                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                            idx_idx_par = find(id_obs_par == chosen_id_obs);
+                            idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))]; % <- all bias of the same observation
+                            wl_ref = this.wl_id_par(idx_par_phase(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                            sys_c_ref = sys_c_par(idx_idx_par(1));
+                            idx_par_phase(idx_idx_par) = [];
+                            sys_c_par_phase(idx_idx_par) = [];
                         end
                     end
                     if sum(this.param_class == this.PAR_IONO) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC
@@ -909,7 +915,10 @@ classdef LS_Manipulator_new < handle
                                     idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
                                 end
                                 if~isempty(idx_tmp)
-                                    idx_rm = [idx_rm; idx_tmp(1)];
+                                    id_obs_par  = this.obs_codes_id_par(idx_tmp);
+                                    chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                    idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                    idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
                                 end
                             end
                         else
@@ -920,7 +929,10 @@ classdef LS_Manipulator_new < handle
                                     idx_tmp= idx_par_phase(sys_c_par_phase == sys_c);
                                 end
                                 if~isempty(idx_tmp)
-                                    idx_rm = [idx_rm; idx_tmp(1)];
+                                    id_obs_par  = this.obs_codes_id_par(idx_tmp);
+                                    chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                    idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                    idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
                                 end
                             end
                         end
@@ -952,13 +964,22 @@ classdef LS_Manipulator_new < handle
                     idx_par_phase = idx_par(~idx_par_psrange);
                     idx_par_psrange =  idx_par(idx_par_psrange);
                     if sum(this.param_class == this.PAR_SAT_CLK) > 0
-                        if ~isempty(idx_par_psrange)
-                            idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
-                            wl_ref = this.wl_id_par(idx_par_psrange(1)); % <- you can not then remove from  the same frequency and system
-                            this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
+                        if ~isempty(idx_par_psrange) % <--- remove one pseudorange because it is less complicated afterwards
+                            id_obs_par  = this.obs_codes_id_par(idx_par_psrange);
+                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                            idx_idx_par = find(id_obs_par == chosen_id_obs);
+                            idx_rm = [idx_rm; uint32(idx_par_psrange(idx_idx_par))]; % <- all bias of the same observation
+                            wl_ref = this.wl_id_par(idx_par_psrange(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                            this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(idx_idx_par(1)))},s)));
+                            %idx_par_psrange(idx_idx_par) = [];
                         else
-                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];
-                            wl_ref = this.wl_id_par(idx_par_phase(1)); % <- you can not then remove from  the same frequency and system
+                            id_obs_par  = this.obs_codes_id_par(idx_par_phase);
+                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                            idx_idx_par = find(id_obs_par == chosen_id_obs);
+                            idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))]; % <- all bias of the same observation
+                            wl_ref = this.wl_id_par(idx_par_phase(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                            sys_c_ref = sys_c_par(idx_idx_par(1));
+                            %idx_par_phase(idx_idx_par) = [];
                             this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',wl_ref,s)));
                         end
                     end
@@ -966,14 +987,20 @@ classdef LS_Manipulator_new < handle
                         if ~isempty(idx_par_psrange)
                             idx_par_psrange = idx_par_psrange(wl_ref ~= this.wl_id_par(idx_par_psrange)); %<- remove bias of the same frequency of one thta has been already removed
                             if ~isempty(idx_par_psrange)
-                                idx_rm = [idx_rm; uint32(idx_par_psrange(1))];
-                                this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(1))},s)));
+                                id_obs_par  = this.obs_codes_id_par(idx_par_psrange);
+                                chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                idx_rm = [idx_rm; uint32(idx_par_psrange(idx_idx_par))];
+                                this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(idx_idx_par(1)))},s)));
                             end
                         else
                             idx_par_phase = idx_par_phase(wl_ref ~= this.wl_id_par(idx_par_phase));  %<- remove bias of the same frequency of one thta has been already removed
                             if ~isempty(idx_par_phase)
-                                idx_rm = [idx_rm; uint32(idx_par_phase(1))];
-                                this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(1))},s)));
+                                   id_obs_par  = this.obs_codes_id_par(idx_par_phase);
+                                chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))];
+                                this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(idx_idx_par(1)))},s)));
                             end
                         end
                     end
@@ -1054,7 +1081,7 @@ classdef LS_Manipulator_new < handle
                 % find to which electrinuc bias the ambiguity is tied
                 for e = 1: length(idx_ambs)
                     idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
-                    amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_SAT_EB);
+                    amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_SAT_EB));
                 end
                 ebs = unique(amb2eb)';
                 for eb = ebs
@@ -1110,11 +1137,14 @@ classdef LS_Manipulator_new < handle
                                         rp = rec_preference(rr);
                                         if ~(sum(rec_sat_mtx(rec_preference(1),:) == 1) == 0 && sum(rec_sat_mtx(rp,:) == 1) <= 1)
                                             ambs_r = ambs(:,rec_amb_mat == rp);
-                                            idx_poss_amb = mode(noZero(ambs_r(:)));
-                                            idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
-                                            rec_sat_mtx(rr,s) == 2; % two means eliminated
-                                            not_found = false;
+                                            if any(any(ambs_r))
+                                                idx_poss_amb = mode(noZero(ambs_r(:)));
+                                                idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
+                                                rec_sat_mtx(rr,s) == 2; % two means eliminated
+                                                not_found = false;
+                                            end
                                         end
+                                        rr = rr +1;
                                     end
                                 end
                             end
@@ -1129,13 +1159,15 @@ classdef LS_Manipulator_new < handle
                 % find to which electrinuc bias the ambiguity is tied
                 for e = 1: length(idx_ambs)
                     idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
-                    amb2eb(e) = this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB);
+                    amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB));
                 end
                 ebs = unique(amb2eb)';
                 for eb = ebs
                     % for each rec and for each contiguos set of ambiguity remove one
                     if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
-                        forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.ls_parametrization.rec_eb(4) == LS_Parametrization.SING_TRACK)*uint32(this.obs_codes_id_par(idx_amb_rm_sat)); % this ambiguities can not be elemitaing without genrating "tension" in the system  %+ uint32(this.obs_codes_id_par(idx_amb_rm_sat)) if there is a bias per tracking the condition is weaker
+                        o_ch = this.obs_codes_id_par(idx_amb_rm_sat);
+                        o_ch(o_ch < 0) = length(this.unique_obs_codes) - o_ch(o_ch < 0); % negative index stand for set  put them positive after the numebr of type of observation 
+                        forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.ls_parametrization.rec_eb(4) == LS_Parametrization.SING_TRACK)*uint32(o_ch); % this ambiguities can not be elemitaing without genrating "tension" in the system  %+ uint32(this.obs_codes_id_par(idx_amb_rm_sat)) if there is a bias per tracking the condition is weaker
                         for r = 1: size(this.rec_xyz,1);
                             forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
                             idx_ambs_e = idx_ambs;
@@ -1479,7 +1511,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
