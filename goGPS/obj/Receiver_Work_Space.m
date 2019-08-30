@@ -7362,7 +7362,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
-                this.log.addMarkedMessage('Removing main outliers');
+                % this.log.addMarkedMessage('Removing main outliers');
                 % [ph, flag_ph] = Core_PP.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
                 % [pr, flag_pr] = Core_PP.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
