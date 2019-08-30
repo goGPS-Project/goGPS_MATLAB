@@ -53,7 +53,17 @@ classdef Exportable < handle
     %  INTERFACE REQUIREMENTS
     % =========================================================================
     methods
-        function out = toStruct(this)
+        function out = toStruct(this, flag_ignore_err)
+            % Export to struct all the fields of the object
+            %
+            % DISCLAMER
+            %   Partial support, only works on non objects and public properties
+            %
+            % SYNTAX
+            %   out = this.toStruct(flag_ignore_err)
+            if nargin < 3
+                flag_ignore_err = true;
+            end
             log = Core.getLogger();
             cm = log.getColorMode();
             log.setColorMode(false);
@@ -75,7 +85,9 @@ classdef Exportable < handle
                         try
                             out(i).(prp{p}) = this(i).(prp{p}).toStruct;
                         catch ex
-                            log.addWarning(ex.message)
+                            if not(flag_ignore_err)
+                                log.addWarning(ex.message)
+                            end
                         end
                     end
                 end
@@ -84,19 +96,46 @@ classdef Exportable < handle
             log.setColorMode(cm);
         end
         
-        function importFromStruct(this, fields)
+        function importFromStruct(this, struct_in, flag_ignore_err)
+            % Import from struct
+            %
+            % DISCLAMER
+            %   Partial support, only works on non objects and public properties
+            %
+            % SYNTAX:
+            %   this.importFromStruct(fields_list, flag_ignore_err)
+            if nargin < 3 || isempty(flag_ignore_err)
+                flag_ignore_err = true;
+            end
+
             log = Core.getLogger();
 
-            prp = fieldnames(fields);
+            prp = fieldnames(struct_in);
             for p = 1 : numel(prp)
-                if isobject(this.(prp{p}))
-                    try
-                        this.(prp{p}) = this.(prp{p}).fromStruct(fields.(prp{p}));
-                    catch ex
+                try
+                    if isobject(this.(prp{p}))
+                        try
+                            this.(prp{p}) = this.(prp{p}).fromStruct(struct_in.(prp{p}));
+                        catch ex
+                            if not(flag_ignore_err)
+                                log.addWarning(ex.message)
+                            end
+                        end
+                    else
+                        try
+                            this.(prp{p}) = struct_in.(prp{p});
+                        catch ex
+                            % typically here I have an error for read only properties
+                            if not(flag_ignore_err)
+                                log.addWarning(ex.message)
+                            end
+                        end
+                    end
+                catch ex
+                    % typically here I have an error for non public properties
+                    if not(flag_ignore_err)
                         log.addWarning(ex.message)
                     end
-                else
-                    this.(prp{p}) = fields.(prp{p});
                 end
             end
         end
