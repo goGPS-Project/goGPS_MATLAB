@@ -718,7 +718,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    if isempty(max(this(r).quality_info.s0))
+                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                    else
+                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    end
                 end
             end
         end
@@ -765,7 +769,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    if isempty(max(this(r).quality_info.s0))
+                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                    else
+                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    end
                 end
             end
         end
@@ -809,7 +817,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    if isempty(max(this(r).quality_info.s0))
+                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                    else
+                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    end
                 end
             end
         end
