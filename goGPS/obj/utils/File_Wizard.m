@@ -400,37 +400,42 @@ classdef File_Wizard < handle
                                     if ~f_status_lst(j)
                                         file_name = file_name_lst{j};
                                         [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
-                                        server = server{1};
-                                        file_name = strrep(file_name,['?{' server '}'],'');
-                                        [s_ip, port] = this.rm.getServerIp(server);
-                                        
-                                        if instr(port,'21')
-                                            idx = this.getServerIdx(s_ip, port);
-                                            [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
-                                            if ~this.nrt
-                                                status = status && stat;
-                                            else
-                                                status = stat;
-                                            end
+                                        if isempty(server)
+                                            this.log.addWarning(sprintf('No server is configured to download "%s"\nCheck remote_resources.ini', file_name));
+                                            status = false;
                                         else
-                                            [stat, ext] = Core_Utils.checkHttpTxtRes([s_ip file_name]);
-                                            if ~this.nrt
-                                                status = status && stat;
-                                            else
-                                                status = stat;
-                                            end
-                                        end
-                                        f_ext_lst{j} = ext;
-                                        if status
-                                            this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server), 20);
-                                        else
+                                            server = server{1};
+                                            file_name = strrep(file_name,['?{' server '}'],'');
+                                            [s_ip, port] = this.rm.getServerIp(server);
+
                                             if instr(port,'21')
-                                                this.log.addWarning(sprintf('"ftp://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                                idx = this.getServerIdx(s_ip, port);
+                                                [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
+                                                if ~this.nrt
+                                                    status = status && stat;
+                                                else
+                                                    status = stat;
+                                                end
                                             else
-                                                this.log.addWarning(sprintf('"http://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                                [stat, ext] = Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                                if ~this.nrt
+                                                    status = status && stat;
+                                                else
+                                                    status = stat;
+                                                end
                                             end
-                                            if ~this.nrt
-                                                break
+                                            f_ext_lst{j} = ext;
+                                            if status
+                                                this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server), 20);
+                                            else
+                                                if instr(port,'21')
+                                                    this.log.addWarning(sprintf('"ftp://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                                else
+                                                    this.log.addWarning(sprintf('"http://%s:%s%s" have not been found remotely', s_ip, port, file_name));
+                                                end
+                                                if ~this.nrt
+                                                    break
+                                                end
                                             end
                                         end
                                     end
