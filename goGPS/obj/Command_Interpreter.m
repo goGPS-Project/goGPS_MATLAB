@@ -68,6 +68,7 @@ classdef Command_Interpreter < handle
         CMD_EMPTYOUT    % Reset the receiver output container
         CMD_AZEL        % Compute (or update) Azimuth and Elevation
         CMD_BASICPP     % Basic Point positioning with no correction (useful to compute azimuth and elevation)
+        CMD_FIX_POS         % Fix (position) of a receiver
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
@@ -102,10 +103,15 @@ classdef Command_Interpreter < handle
         PAR_SYNC        % Parameter sync
         PAR_IONO        % Paramter to estimate ionosphere
         PAR_CLK         % Paramter to estimate clock
-        PAR_FREE_NET    % Paramter to let the network free
+        PAR_M_FREE_NET    % Paramter to let the network free
         PAR_BAND        % Paramter of the band to be used in the adjustemtn
         
-        PAR_SLAVE     % number of parallel slaves to request
+        PAR_SLAVE       % number of parallel slaves to request
+        
+        PAR_R_FROM_OUT  % Parameter to indicate to get data from Receiver Out
+        PAR_R_FROM_WORK % Parameter to indicate to get data from Receiver Out
+        
+        PAR_R_FIX_APR   % Parameter to indicate to use position as approximate coordinate        
         
         PAR_M_SEID_PLANE  % Use old approach plane based        
         
@@ -141,7 +147,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -249,14 +255,7 @@ classdef Command_Interpreter < handle
             this.PAR_CLK.class = '';
             this.PAR_CLK.limits = [];
             this.PAR_CLK.accepted_values = [];
-            
-            this.PAR_FREE_NET.name = 'Free network';
-            this.PAR_FREE_NET.descr = '-free                let the network free';
-            this.PAR_FREE_NET.par = '(-free)|(-Free)|(-FREE)';
-            this.PAR_FREE_NET.class = '';
-            this.PAR_FREE_NET.limits = [];
-            this.PAR_FREE_NET.accepted_values = [];
-            
+                        
             this.PAR_BAND.name = 'band';
             this.PAR_BAND.descr = 'L<band>            band to be used for single frequency adjustment';
             this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate= 
@@ -264,10 +263,30 @@ classdef Command_Interpreter < handle
             this.PAR_BAND.limits = [1 5];
             this.PAR_BAND.accepted_values = [];
 
-            % Method parameter
+            %  Method parameter
+            this.PAR_M_FREE_NET.name = 'Free network';
+            this.PAR_M_FREE_NET.descr = '-free                let the network free';
+            this.PAR_M_FREE_NET.par = '(-free)|(-Free)|(-FREE)';
+            this.PAR_M_FREE_NET.class = '';
+            this.PAR_M_FREE_NET.limits = [];
+            this.PAR_M_FREE_NET.accepted_values = [];
+        
             this.PAR_M_SEID_PLANE.name = 'Use original plane based SEID';
             this.PAR_M_SEID_PLANE.descr = 'PLANE            (flag) use a plane for the interpolation of the geometry free';
             this.PAR_M_SEID_PLANE.par = '(PLANE)|(plane)|(OLD)|(old)';
+            
+            % Receiver parameter
+            this.PAR_R_FROM_OUT.name = 'From OUT';
+            this.PAR_R_FROM_OUT.descr = 'FROM_OUT         (flag) use data from Receiver Output object';
+            this.PAR_R_FROM_OUT.par = '(FROM_OUT)|(from_out)';
+
+            this.PAR_R_FROM_WORK.name = 'From WORK';
+            this.PAR_R_FROM_WORK.descr = 'FROM_WORK        (flag) use data from Work Space (current session)';
+            this.PAR_R_FROM_WORK.par = '(FROM_WORK)|(from_work)';
+            
+            this.PAR_R_FIX_APR.name = 'Approximate position';
+            this.PAR_R_FIX_APR.descr = 'AS_APR           (flag) use position as a new a-priori position (not as fixed)';
+            this.PAR_R_FIX_APR.par = '(AS_APR)|(AS_APPROXIMATE)|(as_approximate)';
             
             % Show plots
 
@@ -434,6 +453,11 @@ classdef Command_Interpreter < handle
             this.CMD_PREPRO.rec = 'T';
             this.CMD_PREPRO.par = [this.PAR_RATE this.PAR_SS];
             
+            this.CMD_FIX_POS.name = {'FIXPOS', 'fixpos'};
+            this.CMD_FIX_POS.descr = 'Fix position';
+            this.CMD_FIX_POS.rec = 'T';
+            this.CMD_FIX_POS.par = [this.PAR_R_FROM_WORK this.PAR_R_FROM_OUT this.PAR_R_FIX_APR];
+            
             this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
             this.CMD_CODEPP.descr = 'Code positioning';
             this.CMD_CODEPP.rec = 'T';
@@ -447,7 +471,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK this.PAR_BAND this.PAR_FREE_NET];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK this.PAR_BAND this.PAR_M_FREE_NET];
             
             this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
             this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
@@ -914,6 +938,8 @@ classdef Command_Interpreter < handle
                                     this.runPushOut(core.rec, tok);
                                 case this.CMD_LOAD.name                 % LOAD
                                     this.runLoad(core.rec, tok(2:end));
+                                case this.CMD_FIX_POS.name              % FIX POS
+                                    this.runFixPos(core.rec, tok(2:end));
                             end
                             if not(core.getCoreSky.isEmpty())
                                 switch upper(tok{1})
@@ -1165,6 +1191,59 @@ classdef Command_Interpreter < handle
             end
         end
         
+        function runFixPos(this, rec, tok)
+            % Execute Fix pos
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runFixPos(rec, tok)
+           
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                
+                mode = []; % Take the position from work
+                flag_apr = false; % do not use coordinates as a-rpiori (use them as fixed)
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_R_FROM_OUT.par ')*$'], 'once'))
+                        mode = 'out';
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_R_FROM_WORK.par ')*$'], 'once'))
+                        mode = 'work';
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_R_FIX_APR.par ')*$'], 'once'))
+                        flag_apr = true;
+                    end
+                end
+                
+                for r = id_trg
+                    if ~isempty(mode)
+                        try
+                            rec(r).fixPos(mode);
+                        catch ex
+                            this.log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
+                            Core_Utils.printEx(ex);
+                        end
+                    end
+                    
+                    if flag_apr
+                        try
+                            rec(r).unFixPos();
+                        catch ex
+                            this.log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
+                            Core_Utils.printEx(ex);
+                        end
+                    end
+                end
+                
+            end
+        end
+        
         function runUpdateAzEl(this, rec, tok)
             % Execute Computation of azimuth and elevation
             %
@@ -1386,10 +1465,8 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runPPP(rec, tok)
-            %             if true
-            %                 rec.netPrePro();
-            %             end
+            %   this.runNET(rec, tok)
+            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             %             if true
             %                 rec(id_trg).netPrePro();
@@ -1424,7 +1501,7 @@ classdef Command_Interpreter < handle
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_CLK.par ')*$'], 'once'))
                         clk_export = true;
                     end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_FREE_NET.par ')*$'], 'once'))
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_FREE_NET.par ')*$'], 'once'))
                         free_network = true;
                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
