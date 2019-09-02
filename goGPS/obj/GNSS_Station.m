@@ -4078,7 +4078,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);
@@ -4942,6 +4942,35 @@ classdef GNSS_Station < handle
             
         end
         
+        function fixPos(sta_list, mode)
+            % fix the position of the receiver into the reference frame
+            % object
+            %
+            % SYNTAX:
+            %  sta_list.fixPos(mode)
+            for s = 1 : length(sta_list)
+                if strcmpi(mode,'work') % get from work
+                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
+                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                elseif strcmpi(mode,'out')
+                    xyz = sta_list(s).out.getPosXYZ();
+                    xyz = xyz(end,:);
+                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                end
+            end
+        end
+        
+         function unFixPos(sta_list)
+            % unfix the position of the receiver into the reference frame
+            % object
+            %
+            % SYNTAX:
+            %  sta_list.unFixPos()
+            for s = 1 : length(sta_list)
+                Core.getReferenceFrame.setFlag(sta_list(s).getMarkerName4Ch, 1)
+            end
+        end
+                
         function showBaselinePlanarUp(sta_list, baseline_ids, plot_relative_variation)
             % Function to plot baseline between 2 or more stations
             %
