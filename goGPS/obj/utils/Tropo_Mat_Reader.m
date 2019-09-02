@@ -68,11 +68,57 @@ classdef Tropo_Mat_Reader
             end
             % sort by time
             [~, id] = sort(first_epoch);
-            this.data_set = data_set(id);
+            if ~isempty(id)
+                this.data_set = data_set(id);
+            end
         end
     end
 
     methods
+        function showBaselineENU(this, ref)
+            % Show ENU position variations
+            if ~isempty(this.data_set)
+                f = figure; f.Name = sprintf('%03d: BSL %s - %s', f.Number, ref.marker, this.marker); f.NumberTitle = 'off';
+                        
+                colormap(flipud(gat2));
+                for i = 1 : numel(this.data_set)
+                    enu(i,:) = this.data_set(i).coo.getENU();
+                    tmp = this.data_set(i).time.getCentralTime.getCopy(); tmp.toUtc();
+                    time(i) = round(tmp.getMatlabTime() * 24) / 24;                    
+                end
+                for i = 1 : numel(ref.data_set)
+                    enu_ref(i,:) = ref.data_set(i).coo.getENU();
+                    tmp = ref.data_set(i).time.getCentralTime.getCopy(); tmp.toUtc();
+                    time_ref(i) = round(tmp.getMatlabTime() * 24) / 24;                   
+                end
+                [time, ida, idb] = intersect(time, time_ref);
+                      
+                enu = enu_ref(idb,:) - enu(ida,:);
+
+                enu = enu - repmat(median(enu, 'omitnan'), size(enu,1), 1); % enu wrt first epoch
+
+                for a = 1: 3
+                    subplot(3,1,a);
+                    plot(time, enu(:,a) * 1e3, '.', 'MarkerSize', 10, 'Color', Core_UI.getColor(a,3)); hold on;
+                end
+                ax = [];
+                label = {'East [mm]', 'North [mm]', 'Up [mm]'};
+                for a = 3:-1:1
+                    ax(a) = subplot(3,1,a);
+                    h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                    setTimeTicks(10,'mmm-dd HH:MM');
+                    h = ylabel(label{a}); h.FontWeight = 'bold';
+                    grid on;
+                    xlim(minMax(time));
+                    yl = ylim();
+                    yl(1) = min(-20, yl(1));
+                    yl(2) = max(20, yl(2));
+                    ylim(yl);
+                end
+                linkaxes(ax, 'x');
+            end
+        end
+        
         function showENU(this)
             % Show ENU position variations
             if ~isempty(this.data_set)
@@ -90,13 +136,13 @@ classdef Tropo_Mat_Reader
                     plot(time, enu(:,a) * 1e3, '.', 'MarkerSize', 10, 'Color', Core_UI.getColor(a,3)); hold on;
                 end
                 ax = [];
-                label = {'East [cm]', 'North [cm]', 'Up [cm]'};
+                label = {'East [mm]', 'North [mm]', 'Up [mm]'};
                 for a = 3:-1:1
                     ax(a) = subplot(3,1,a);
                     h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
-                    setTimeTicks(10,'mmm dd HH');
+                    setTimeTicks(10,'mmm-dd HH:MM');
                     h = ylabel(label{a}); h.FontWeight = 'bold';
-                    grid minor;
+                    grid on;
                     xlim(minMax(time));
                 end
                 linkaxes(ax, 'x');
