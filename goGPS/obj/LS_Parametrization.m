@@ -89,7 +89,7 @@ classdef LS_Parametrization < handle
         rec_eb_lin = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
 
         
-        sat_eb = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
+        sat_eb = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
@@ -112,7 +112,7 @@ classdef LS_Parametrization < handle
         rec_y_opt;
         rec_z_opt;
         rec_eb_opt = struct('rule',1);
-        sat_eb_opt = struct('rule',1);
+        sat_eb_opt = struct('rule',1,'spline_rate',900);
 
         rec_eb_opt_lin = struct('rule',1);
 

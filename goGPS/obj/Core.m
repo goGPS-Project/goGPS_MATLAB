@@ -144,6 +144,7 @@ classdef Core < handle
             if (nargin == 1) && isa(force_clean, 'Core')
                 unique_instance_core__ = force_clean;
                 this = force_clean;
+                this.is_gred = exist('GReD_Utility', 'class');
             else                
                 if nargin < 1 || isempty(force_clean)
                     force_clean = false;
@@ -156,6 +157,7 @@ classdef Core < handle
                 if isempty(unique_instance_core__)
                     this = Core();
                     unique_instance_core__ = this;
+
                     if ~skip_init
                         if nargin == 3 && ~isempty(ini_file_path) && exist(ini_file_path, 'file')
                             this.init(force_clean, ini_file_path);
@@ -163,6 +165,8 @@ classdef Core < handle
                             this.init(force_clean);
                         end
                     end
+                    this.is_gred = exist('GReD_Utility', 'class');
+
                 else
                     this = unique_instance_core__;
                     if ~skip_init
@@ -174,7 +178,6 @@ classdef Core < handle
                     end
                 end
             end
-            this.is_gred = exist('GReD_Utility', 'class');
         end
         
         

@@ -497,7 +497,7 @@ classdef LS_Manipulator_new < handle
                 % construct channel to constellation mapping
                 sig2const = char(zeros(size(this.unique_obs_codes)));
                 sig2const_num = zeros(size(this.unique_obs_codes));
-
+                
                 for c = 1 : length(this.unique_obs_codes)
                     idx1 = find(this.obs_codes_id_obs == c,1,'first');
                     if ~isempty(idx1)
@@ -610,7 +610,7 @@ classdef LS_Manipulator_new < handle
                                     const = rem(u_wl_const(c),100);
                                     wl = floor(u_wl_const(c)/100);
                                     ch_set{n_ch_set} = uint8(sig_p_id(sig2const_num == const & sig2wl == wl & cond_sig));
-                                end                                
+                                end
                             end
                             
                         end
@@ -855,7 +855,7 @@ classdef LS_Manipulator_new < handle
             this.obs_codes_id_par((cumulative_idx+1):end) =  [];%
             this.wl_id_par((cumulative_idx+1):end) =  [];%
             this.phase_par((cumulative_idx+1):end) =  [];%
-
+            
             
             
             
@@ -1017,7 +1017,7 @@ classdef LS_Manipulator_new < handle
                         else
                             idx_par_phase = idx_par_phase(wl_ref ~= this.wl_id_par(idx_par_phase));  %<- remove bias of the same frequency of one thta has been already removed
                             if ~isempty(idx_par_phase)
-                                   id_obs_par  = this.obs_codes_id_par(idx_par_phase);
+                                id_obs_par  = this.obs_codes_id_par(idx_par_phase);
                                 chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
                                 idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
                                 idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))];
@@ -1106,6 +1106,39 @@ classdef LS_Manipulator_new < handle
                     amb2eb(e) = ebs_tmp(1);
                 end
                 clearvars ebs_tmp
+                sat_eb_const =  this.ls_parametrization.sat_eb(1) ~= LS_Parametrization.EP_WISE;
+                if sat_eb_const
+                    jmps_sat ={};
+                    jmps_sat_el ={}; % have been elimated an ambiguity from the block
+                    % determine all arcs jum
+                    for s = this.unique_sat_goid
+                        idx_par = this.class_par == this.PAR_AMB & this.sat_par ==  s & ~this.out_par;
+                        idx_par = find(idx_par);
+                        time_par = this.time_par(idx_par,:);
+                        sat_par  = this.sat_par(idx_par,:);
+                        obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                        u_time = unique(time_par);
+                        amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
+                        u_arc = unique(amb2arc_a);
+                        arc2eb = rem(u_arc,1000);
+                        
+                        
+                        [~,amb2arc] = ismember(amb2arc_a,u_arc);
+                        u_eb = unique(arc2eb);
+                        eb_arc_rem = false(size(u_eb));
+                        amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                        for t = 1 : size(time_par,1)
+                            amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
+                        end
+                        jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                        if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                            jmps = [1; jmps];
+                        end
+                        jmps_sat{s} = jmps;
+                        jmps_sat_el{s} = false(length(jmps)-1,1);
+                        
+                    end
+                end
                 ebs = unique(amb2eb)';
                 for eb = ebs
                     if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
@@ -1123,57 +1156,75 @@ classdef LS_Manipulator_new < handle
                             
                             idx_par = idx_ambs_e & this.sat_par == s & ~this.out_par;
                             idx_par = find(idx_par);
-                            time_par = this.time_par(idx_par,:);
-                            rec_par  = this.rec_par(idx_par,:);
-                            obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
-                            
-                            u_time = unique(time_par);
-                            u_rec = unique(rec_par);
-                            amb2arc = 1000*uint32(rec_par) + uint32(obs_codes_id_par);
-                            u_arc = unique(amb2arc);
-                            arc2eb = rem(u_arc,1000);
-                            
-                            
-                            [~,amb2u_arc] = ismember(amb2arc,u_arc);
-                            u_eb = unique(arc2eb);
-                            
-                            amb_mat = zeros(max(u_time),length(u_arc),'uint32');
-                            rec_amb_mat =  zeros(1,length(u_arc),'uint32');
-                            for t = 1 : size(time_par,1)
-                                amb_mat(time_par(t,1)+1:time_par(t,2),amb2u_arc(t)) = idx_par(t);
-                                rec_amb_mat(amb2u_arc(t)) = floor(amb2arc(t) / 1000);
-                            end
-                            jmps = [ (find(diff(sum(amb_mat,2) > 0) == 1)+1); max(u_time)];
-                            if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
-                                jmps = [1; jmps];
-                            end
-                           
-                            
-                            for j = 1 : (length(jmps) -1)
-                                jmp_s = jmps(j);
-                                jmp_e = jmps(j+1);
-                                ambs = amb_mat(jmp_s:jmp_e,:);
-                                if any(any(ambs))
-                                    rr = 1;
-                                    not_found = true;
-                                    while rr <= length(rec_preference) && not_found
-                                        rp = rec_preference(rr);
-                                        if ~(sum(rec_sat_mtx(rec_preference(1),:) == 1) == 0 && sum(rec_sat_mtx(rp,:) == 1) <= 1)
-                                            ambs_r = ambs(:,rec_amb_mat == rp);
-                                            if any(any(ambs_r))
-                                                idx_poss_amb = mode(noZero(ambs_r(:)));
-                                                idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
-                                                rec_sat_mtx(rr,s) == 2; % two means eliminated
-                                                not_found = false;
-                                            end
-                                        end
-                                        rr = rr +1;
+                            if any(idx_par)
+                                time_par = this.time_par(idx_par,:);
+                                rec_par  = this.rec_par(idx_par,:);
+                                obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                                
+                                u_time = unique(time_par);
+                                u_rec = unique(rec_par);
+                                amb2arc = 1000*uint32(rec_par) + uint32(obs_codes_id_par);
+                                u_arc = unique(amb2arc);
+                                arc2eb = rem(u_arc,1000);
+                                
+                                
+                                [~,amb2u_arc] = ismember(amb2arc,u_arc);
+                                u_eb = unique(arc2eb);
+                                
+                                amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                                rec_amb_mat =  zeros(1,length(u_arc),'uint32');
+                                for t = 1 : size(time_par,1)
+                                    amb_mat(time_par(t,1)+1:time_par(t,2),amb2u_arc(t)) = idx_par(t);
+                                    rec_amb_mat(amb2u_arc(t)) = floor(amb2arc(t) / 1000);
+                                end
+                                if ~sat_eb_const
+                                    jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                                        jmps = [1; jmps];
+                                    end
+                                else
+                                    if any(~jmps_sat_el{s}) 
+                                        jmps = jmps_sat{s};
+                                    else
+                                        jmps = [1; size(amb_mat,1)];
                                     end
                                 end
+                                
+                                
+                                for j = 1 : (length(jmps) -1)
+                                    first_rem = true; % one has to be removed al the times
+                                    
+                                    jmp_s = jmps(j);
+                                    jmp_e = jmps(j+1);
+                                    ambs = amb_mat(jmp_s:min(size(amb_mat,1),jmp_e),:);
+                                    if any(any(ambs))
+                                        rr = 1;
+                                        not_found = true;
+                                        while rr <= length(rec_preference) && not_found
+                                            rp = rec_preference(rr);
+                                            if ~(sum(rec_sat_mtx(rec_preference(1),:) == 1) == 0 && sum(rec_sat_mtx(rp,:) == 1) <= 1)
+                                                ambs_r = ambs(:,rec_amb_mat == rp);
+                                                if any(any(ambs_r)) && (~sat_eb_const || ~jmps_sat_el{s}(j) ||  first_rem )
+                                                    idx_poss_amb = mode(noZero(ambs_r(:)));
+                                                    idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
+                                                    if sat_eb_const
+                                                        jmps_sat_el{s}(j) = true;
+                                                    end
+                                                    first_rem = false;
+                                                    if ~any(~jmps_sat_el{s})
+                                                        rec_sat_mtx(rr,s) == 2; % two means eliminated
+                                                    end
+                                                    not_found = false;
+                                                end
+                                            end
+                                            rr = rr +1;
+                                        end
+                                    end
+                                end
+                                
                             end
-                            
+                            idx_rm = [idx_rm; uint32(idx_amb_rm_sat)];
                         end
-                        idx_rm = [idx_rm; uint32(idx_amb_rm_sat)];
                     end
                 end
                 % find the elecronic bias assoictaed with each ambiguity
@@ -1185,42 +1236,44 @@ classdef LS_Manipulator_new < handle
                     amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB));
                 end
                 ebs = unique(amb2eb)';
-                
-                % determine all arcs jumps
-%                 for r = 1: size(this.rec_xyz,1);
-%                     forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
-%                     idx_ambs_e = idx_ambs;
-%                     idx_ambs_e(amb2eb ~= eb) = [];
-%                     idx_ambs_e = Core_Utils.ordinal2logical(idx_ambs_e,length(this.class_par));
-%                     idx_par = idx_ambs_e & this.rec_par ==  r & ~this.out_par;
-%                     idx_par = find(idx_par);
-%                     time_par = this.time_par(idx_par,:);
-%                     sat_par  = this.sat_par(idx_par,:);
-%                     obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
-%                     u_time = unique(time_par);
-%                     amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
-%                     u_arc = unique(amb2arc_a);
-%                     arc2eb = rem(u_arc,1000);
-%                     
-%                     
-%                     [~,amb2arc] = ismember(amb2arc_a,u_arc);
-%                     u_eb = unique(arc2eb);
-%                     eb_arc_rem = false(size(u_eb));
-%                     amb_mat = zeros(max(u_time),length(u_arc),'uint32');
-%                     for t = 1 : size(time_par,1)
-%                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
-%                     end
-%                     jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
-%                     if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
-%                         jmps = [1; jmps];
-%                     end
-%                 end
-                
+                rec_eb_const =  this.ls_parametrization.rec_eb(1) ~= LS_Parametrization.EP_WISE;
+                if rec_eb_const
+                    jmps_rec ={};
+                    jmps_rec_el ={}; % have been elimated an ambiguity from the block
+                    % determine all arcs jum
+                    for r = 1: size(this.rec_xyz,1);
+                        idx_par = this.class_par == this.PAR_AMB & this.rec_par ==  r & ~this.out_par;
+                        idx_par = find(idx_par);
+                        time_par = this.time_par(idx_par,:);
+                        sat_par  = this.sat_par(idx_par,:);
+                        obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                        u_time = unique(time_par);
+                        amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
+                        u_arc = unique(amb2arc_a);
+                        arc2eb = rem(u_arc,1000);
+                        
+                        
+                        [~,amb2arc] = ismember(amb2arc_a,u_arc);
+                        u_eb = unique(arc2eb);
+                        eb_arc_rem = false(size(u_eb));
+                        amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                        for t = 1 : size(time_par,1)
+                            amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
+                        end
+                        jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                        if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                            jmps = [1; jmps];
+                        end
+                        jmps_rec{r} = jmps;
+                        jmps_rec_el{r} = false(length(jmps)-1,1);
+                        
+                    end
+                end
                 for eb = ebs
                     % for each rec and for each contiguos set of ambiguity remove one
                     if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
                         o_ch = this.obs_codes_id_par(idx_amb_rm_sat);
-                        o_ch(o_ch < 0) = length(this.unique_obs_codes) - o_ch(o_ch < 0); % negative index stand for set  put them positive after the numebr of type of observation 
+                        o_ch(o_ch < 0) = length(this.unique_obs_codes) - o_ch(o_ch < 0); % negative index stand for set  put them positive after the numebr of type of observation
                         forbidden_arc = 1e6*uint32(this.rec_par(idx_amb_rm_sat)) + 1000*uint32(this.sat_par(idx_amb_rm_sat)) + uint32(this.ls_parametrization.rec_eb(4) == LS_Parametrization.SING_TRACK)*uint32(o_ch); % this ambiguities can not be elemitaing without genrating "tension" in the system  %+ uint32(this.obs_codes_id_par(idx_amb_rm_sat)) if there is a bias per tracking the condition is weaker
                         for r = 1: size(this.rec_xyz,1);
                             forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
@@ -1229,50 +1282,67 @@ classdef LS_Manipulator_new < handle
                             idx_ambs_e = Core_Utils.ordinal2logical(idx_ambs_e,length(this.class_par));
                             idx_par = idx_ambs_e & this.rec_par ==  r & ~this.out_par;
                             idx_par = find(idx_par);
-                            time_par = this.time_par(idx_par,:);
-                            sat_par  = this.sat_par(idx_par,:);
-                            obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
-                            u_time = unique(time_par);
-                            amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
-                            u_arc = unique(amb2arc_a);
-                            arc2eb = rem(u_arc,1000);
-                            
-                            
-                            [~,amb2arc] = ismember(amb2arc_a,u_arc);
-                            u_eb = unique(arc2eb);
-                            eb_arc_rem = false(size(u_eb));
-                            amb_mat = zeros(max(u_time),length(u_arc),'uint32');
-                            for t = 1 : size(time_par,1)
-                                amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
-                            end
-                            jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
-                            if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
-                                jmps = [1; jmps];
-                            end
-                            for j = 1 : (length(jmps) -1)
-                                jmp_s = jmps(j);
-                                jmp_e = jmps(j+1);
-                                while sum(eb_arc_rem) < length(eb_arc_rem) % one ambiguity per electronic bias associated with the ambiguity
-                                    [~,   idx_ambs_2] = ismember(arc2eb,u_eb(~eb_arc_rem));
-                                    ambs = amb_mat(jmp_s:jmp_e,idx_ambs_2>0);
-                                    eb_arc_tmp = arc2eb(idx_ambs_2>0);
-                                    if any(any(ambs))
-                                        [id_poss_rm]  = mode(noZero(ambs(:)));
-                                        idx_start = sum(ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
-                                        while any(any(ambs)) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 % it might be that the ambiguity was previouly removed in the satellite round
-                                            ambs(ambs == id_poss_rm) = 0;
-                                            id_poss_rm = mode(noZero(ambs(:)));
-                                        end
-                                        if id_poss_rm > 0
-                                            idx_rm = [idx_rm; uint32(id_poss_rm)];
-                                            eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0)) = true;
-                                        else
-                                            eb_arc_rem(u_eb == eb_arc_tmp(sum(idx_start) > 0)) = true;
-                                        end
-                                    else
-                                        eb_arc_rem(:) = true;
+                            if any(idx_par)
+                                
+                                time_par = this.time_par(idx_par,:);
+                                sat_par  = this.sat_par(idx_par,:);
+                                obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+                                u_time = unique(time_par);
+                                amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
+                                u_arc = unique(amb2arc_a);
+                                arc2eb = rem(u_arc,1000);
+                                
+                                
+                                [~,amb2arc] = ismember(amb2arc_a,u_arc);
+                                u_eb = unique(arc2eb);
+                                eb_arc_rem = false(size(u_eb));
+                                amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+                                for t = 1 : size(time_par,1)
+                                    amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
+                                end
+                                if ~rec_eb_const
+                                    jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+                                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                                        jmps = [1; jmps];
                                     end
-                                    
+                                else
+                                    if any(~jmps_rec_el{r})
+                                        jmps = jmps_rec{r};
+                                    else
+                                        jmps = [1; size(amb_mat,1)];
+                                    end
+                                end
+                                for j = 1 : (length(jmps) -1)
+                                    first_rem = true; % one has to be removed al the times
+                                    jmp_s = jmps(j);
+                                    jmp_e = jmps(j+1);
+                                    while sum(eb_arc_rem) < length(eb_arc_rem) % one ambiguity per electronic bias associated with the ambiguity
+                                        [~,   idx_ambs_2] = ismember(arc2eb,u_eb(~eb_arc_rem));
+                                        ambs = amb_mat(jmp_s:min(size(amb_mat,1),jmp_e),idx_ambs_2>0);
+                                        eb_arc_tmp = arc2eb(idx_ambs_2>0);
+                                        if any(any(ambs))
+                                            [id_poss_rm]  = mode(noZero(ambs(:)));
+                                            idx_start = sum(ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
+                                            while any(any(ambs)) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 ...
+                                                  | (this.ls_parametrization.rec_eb(4) ~= LS_Parametrization.SING_TRACK && sum(floor(amb2arc_a(find(idx_par == id_poss_rm))/1000) == floor(forbidden_arc_rec/1000)) > 0)% it might be that the ambiguity was previouly removed in the satellite round
+                                                ambs(ambs == id_poss_rm) = 0;
+                                                id_poss_rm = mode(noZero(ambs(:)));
+                                            end
+                                            if id_poss_rm > 0 && (~rec_eb_const || ~jmps_rec_el{r}(j) ||  first_rem )
+                                                idx_rm = [idx_rm; uint32(id_poss_rm)];
+                                                if rec_eb_const
+                                                    jmps_rec_el{r}(j) = true;
+                                                end
+                                                first_rem = false;
+                                                eb_arc_rem(u_eb == eb_arc_tmp(sum(ambs == id_poss_rm) > 0)) = true;
+                                            else
+                                                eb_arc_rem(u_eb == eb_arc_tmp(sum(idx_start) > 0)) = true;
+                                            end
+                                        else
+                                            eb_arc_rem(:) = true;
+                                        end
+                                        
+                                    end
                                 end
                             end
                         end
@@ -1569,7 +1639,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false 
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
@@ -1583,7 +1653,7 @@ classdef LS_Manipulator_new < handle
                     %                 amb_fixed = amb_float;
                     %                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
                     %                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_bootstrapping' );
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
                     flag_debug = false;
                     if flag_debug
                         N_old = N;
