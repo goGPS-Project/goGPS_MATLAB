@@ -412,7 +412,8 @@ classdef LS_Manipulator_new < handle
             this.ls_parametrization = ls_parametrization;
             n_rec = size(this.rec_xyz,1);
             n_sat = length(this.unique_sat_goid);
-            this.A_idx = zeros(size(this.A));
+            n_obs = size(this.A,1);
+            this.A_idx = zeros(size(this.A),'uint32');
             time_min = min(this.time_obs.getMatlabTime);
             this.time_min = this.time_obs.minimum();
             obs_rate = this.time_obs.getRate; % TBD substitute this quantity with the obesravtion minimum rate
@@ -436,18 +437,19 @@ classdef LS_Manipulator_new < handle
             
             
             
-            this.time_par = zeros(size(this.A,1),2,'uint32');
-            this.param_par = zeros(size(this.A,1),4,'uint8'); % time of the parameter
-            this.rec_par = zeros(size(this.A,1),1,'int16'); % receiver of the parameters
-            this.sat_par = zeros(size(this.A,1),1,'int8');  % receiver of the parameters
-            this.class_par = zeros(size(this.A,1),1,'uint8');  % class of the parameter
-            this.obs_codes_id_par= zeros(size(this.A,1),1,'int8');  % obs_code id parameters
-            this.wl_id_par= zeros(size(this.A,1),1,'uint8');  % obs_code id parameters
-            this.phase_par= zeros(size(this.A,1),1,'uint8');  % phse code or both parameter
+            this.time_par = zeros(n_obs,2,'uint32');
+            this.param_par = zeros(n_obs,4,'uint8'); % time of the parameter
+            this.rec_par = zeros(n_obs,1,'int16'); % receiver of the parameters
+            this.sat_par = zeros(n_obs,1,'int8');  % receiver of the parameters
+            this.class_par = zeros(n_obs,1,'uint8');  % class of the parameter
+            this.obs_codes_id_par= zeros(n_obs,1,'int8');  % obs_code id parameters
+            this.wl_id_par= zeros(n_obs,1,'uint8');  % obs_code id parameters
+            this.phase_par= zeros(n_obs,1,'uint8');  % phse code or both parameter
             
             ch_set_old = []; % avoid repating expesnive task
-            
-            for i_p = 1 : length(this.param_class)
+            i_p = 1;
+            while i_p <= length(this.param_class)
+                has_not_expanded = true;
                 col_incr = 0;
                 p = this.param_class(i_p);
                 [parametriz, opt] = ls_parametrization.getParametrization(p);
@@ -778,7 +780,16 @@ classdef LS_Manipulator_new < handle
                                             [~,ep_pgr_id(i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
                                         end
                                         % ----- expand colum of the A matrix
-                                        this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,(i_col+1):end)];
+                                        a_col = this.A(obs_lid,i_col);
+                                        if has_not_expanded
+                                            this.A = [this.A(:,1:(i_col)) zeros(n_obs,1) this.A(:,(i_col+1):end)];
+                                            this.A_idx = [this.A_idx(:,1:(i_col)) zeros(n_obs,1,'uint32') this.A_idx(:,(i_col+1):end)];
+                                            this.param_class = [this.param_class(1:(i_col-1)); p*ones(2,1); this.param_class((i_col+1):end)];
+                                            i_p = i_p + 1;
+                                            has_not_expanded = false;
+                                        end
+                                        this.A = [this.A(:,1:(i_col-1)) zeros(n_obs,2) this.A(:,(i_col+1):end)];
+                                        this.A(obs_lid,i_col + cols_tmp) = [a_col.*spline_v(:,1) a_col.*spline_v(:,2)];
                                         n_prg_id = length(u_e_tmp);
                                     elseif parametriz(1) == ls_parametrization.SPLINE_CUB
                                         % ---- colum will be quadrupled -----
@@ -792,7 +803,16 @@ classdef LS_Manipulator_new < handle
                                             [~,ep_pgr_id(:,i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
                                         end
                                         % ----- expand colum of the A matrix
-                                        this.A = [this.A(:,1:(i_col-1)) this.A(:,i_col).*spline_v(:,1) this.A(:,i_col).*spline_v(:,2) this.A(:,i_col).*spline_v(:,3) this.A(:,i_col).*spline_v(:,4) this.A(:,(i_col+1):end)];
+                                        
+                                        if has_not_expanded
+                                            this.A = [this.A(:,1:(i_col)) zeros(n_obs,3) this.A(:,(i_col+1):end)];
+                                            this.A_idx = [this.A_idx(:,1:(i_col)) zeros(n_obs,3,'uint32') this.A_idx(:,(i_col+1):end)];
+                                            this.param_class = [this.param_class(1:(i_col-1)); p*ones(4,1); this.param_class((i_col+1):end)];
+                                            i_p = i_p + 3;
+                                            has_not_expanded = false;
+                                        end
+                                        a_col = this.A(obs_lid,i_col);
+                                        this.A(obs_lid,i_col + cols_tmp) = [a_col.*spline_v(:,1) a_col.*spline_v(:,2) a_col.*spline_v(:,3) a_col.*spline_v(:,4)];
                                         n_prg_id = length(u_e_tmp);
                                     end
                                     this.A_idx(obs_lid, i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
@@ -824,6 +844,7 @@ classdef LS_Manipulator_new < handle
                     end
                 end
                 i_col = i_col + col_incr;
+                i_p = i_p + 1;
             end
             % free allocated space in excess
             this.time_par((cumulative_idx+1):end,:) =  [];%
@@ -1081,8 +1102,10 @@ classdef LS_Manipulator_new < handle
                 % find to which electrinuc bias the ambiguity is tied
                 for e = 1: length(idx_ambs)
                     idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
-                    amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_SAT_EB));
+                    ebs_tmp = this.obs_codes_id_par(this.A_idx(idx_obs_sample, this.param_class == this.PAR_SAT_EB));
+                    amb2eb(e) = ebs_tmp(1);
                 end
+                clearvars ebs_tmp
                 ebs = unique(amb2eb)';
                 for eb = ebs
                     if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
@@ -1162,6 +1185,37 @@ classdef LS_Manipulator_new < handle
                     amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB));
                 end
                 ebs = unique(amb2eb)';
+                
+                % determine all arcs jumps
+%                 for r = 1: size(this.rec_xyz,1);
+%                     forbidden_arc_rec = rem(forbidden_arc(floor(forbidden_arc/1e6) == r),1e6);
+%                     idx_ambs_e = idx_ambs;
+%                     idx_ambs_e(amb2eb ~= eb) = [];
+%                     idx_ambs_e = Core_Utils.ordinal2logical(idx_ambs_e,length(this.class_par));
+%                     idx_par = idx_ambs_e & this.rec_par ==  r & ~this.out_par;
+%                     idx_par = find(idx_par);
+%                     time_par = this.time_par(idx_par,:);
+%                     sat_par  = this.sat_par(idx_par,:);
+%                     obs_codes_id_par = this.obs_codes_id_par(idx_par,:);
+%                     u_time = unique(time_par);
+%                     amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
+%                     u_arc = unique(amb2arc_a);
+%                     arc2eb = rem(u_arc,1000);
+%                     
+%                     
+%                     [~,amb2arc] = ismember(amb2arc_a,u_arc);
+%                     u_eb = unique(arc2eb);
+%                     eb_arc_rem = false(size(u_eb));
+%                     amb_mat = zeros(max(u_time),length(u_arc),'uint32');
+%                     for t = 1 : size(time_par,1)
+%                         amb_mat(time_par(t,1)+1:time_par(t,2),amb2arc(t)) = idx_par(t);
+%                     end
+%                     jmps = [(find(diff(sum(amb_mat,2) > 0) == 1) +1); max(u_time)];
+%                     if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+%                         jmps = [1; jmps];
+%                     end
+%                 end
+                
                 for eb = ebs
                     % for each rec and for each contiguos set of ambiguity remove one
                     if sum(this.param_class == this.PAR_AMB) > 0 && sum(this.param_class == this.PAR_REC_CLK) > 0
@@ -1303,7 +1357,8 @@ classdef LS_Manipulator_new < handle
             par_ids = this.param_class == p_class;
             u_p_id = unique(this.A_idx(:,par_ids));
             n_par = length(u_p_id);
-            [A_tmp, A_idx_tmp] = deal(zeros(n_par, 2)); % tykhonv regualrization are now limited to two parameters
+            A_idx_tmp = zeros(n_par, 2,'uint32'); % tykhonv regualrization are now limited to two parameters
+            A_tmp = zeros(n_par, 2);
             A_tmp(:,1) = 1;
             A_idx_tmp(:,1) = u_p_id;
             this.A_pseudo = [this.A_pseudo; A_tmp];
@@ -1445,10 +1500,13 @@ classdef LS_Manipulator_new < handle
             this.removeFullRankDeficency();
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
-            n_par = max(max(this.A_idx));
+            n_par = double(max(max(this.A_idx)));
             rows = repmat((1:size(this.A,1))',1,size(this.A,2));
             rows_pseudo = repmat(size(this.A,1)+(1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
-            A = sparse([rows(:); rows_pseudo(:)],zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1),[this.A(:); this.A_pseudo(:)],n_obs,n_par);
+            rows = [rows(:); rows_pseudo(:)];
+            columns = double(zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1));
+            values = [this.A(:); this.A_pseudo(:)];
+            A = sparse(rows, columns, values, n_obs, n_par);
             %this.idx_rd = [];
             n_out = sum(this.outlier_obs);
             A_out = A(this.outlier_obs,:);
@@ -1511,7 +1569,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false 
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
@@ -1525,7 +1583,7 @@ classdef LS_Manipulator_new < handle
                     %                 amb_fixed = amb_float;
                     %                 l_fixed = abs(fracFNI(amb_float)) < 0.1;
                     %                 amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_bootstrapping' );
                     flag_debug = false;
                     if flag_debug
                         N_old = N;
