@@ -201,7 +201,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 7: simple snooping
                                                         % 8: smart snooping
                                                         % 9: smart snooping + arc trim
-                                                        
+                                                                
         NET_REWEIGHT_MODE = 1                           % NET re-weight / snooping
                                                         % 1: none
                                                         % 2: simple 4 loops
@@ -214,6 +214,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  1 = no fix
                                                         %  2 = lambda
                                                         %  3 = bayesian
+                                                        
+        FLAG_PPP_FORCE_SINGLE_FREQ = false              % Force PPP solution for single frequency receivers
+                                                        
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
         FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
          
@@ -608,7 +611,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         ppp_reweight_mode = Main_Settings.PPP_REWEIGHT_MODE;
         net_reweight_mode = Main_Settings.NET_REWEIGHT_MODE;
         
-        flag_ppp_amb_fix = Main_Settings.FLAG_PPP_AMB_FIX;        
+        flag_ppp_force_single_freq = Main_Settings.FLAG_PPP_FORCE_SINGLE_FREQ;
+
+        flag_ppp_amb_fix = Main_Settings.FLAG_PPP_AMB_FIX;                
         net_amb_fix_approach = Main_Settings.NET_AMB_FIX_APPROACH;        
         
         flag_amb_pass = Main_Settings.FLAG_AMB_PASS; 
@@ -873,7 +878,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.ppp_reweight_mode = state.getData('ppp_reweight_mode');
                 this.net_reweight_mode = state.getData('net_reweight_mode');
-                this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');
+
+                this.flag_ppp_force_single_freq = state.getData('flag_ppp_force_single_freq');
+                
+                this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');                
                 this.net_amb_fix_approach = state.getData('net_amb_fix_approach');
                 if isempty(this.net_amb_fix_approach) % compatibility mode
                     this.net_amb_fix_approach = state.getData('flag_net_amb_fix') + 1;
@@ -1034,6 +1042,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.w_mode = state.w_mode;
                 this.ppp_reweight_mode = state.ppp_reweight_mode;
                 this.net_reweight_mode = state.net_reweight_mode;
+                
+                this.flag_ppp_force_single_freq = state.flag_ppp_force_single_freq;
+
                 this.flag_ppp_amb_fix = state.flag_ppp_amb_fix;
                 this.net_amb_fix_approach = state.net_amb_fix_approach;
                 this.flag_amb_pass = state.flag_amb_pass;
@@ -1222,7 +1233,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
             str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
-            str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];
+            str = [str sprintf(' PPP Enable for single frequency receiverrs:       %d\n\n', this.flag_ppp_force_single_freq)];
+            str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];            
             str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
             str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
@@ -1633,9 +1645,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             for i = 1 : numel(this.PPP_REWEIGHT_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.PPP_REWEIGHT_SMODE{i}), str_cell);
             end
+            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable PPP on single frequency receiver', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('This should be used only when REMIONO or a good iono model is provided', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ppp_force_single_freq', this.flag_ppp_force_single_freq, str_cell);
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('PPP enable ambiguity fixing', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_ppp_amb_fix', this.flag_ppp_amb_fix, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ppp_amb_fix', this.flag_ppp_amb_fix, str_cell);           
 
             str_cell = Ini_Manager.toIniStringComment('NET processing using reweight/snooping mode:', str_cell);
             str_cell = Ini_Manager.toIniString('net_reweight_mode', this.net_reweight_mode, str_cell);
@@ -2342,7 +2360,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Processing
             this.w_mode = 1; % same weight for all the observations
             this.ppp_reweight_mode = 9; % smart snooping + arc trim
-            
+
+            this.flag_ppp_force_single_freq = 0; % If you don't know what you are doing this is risky
+
             this.flag_repair = 0; % (too much experimental)
             this.flag_amb_pass = 0;
             this.flag_ppp_amb_fix = 0; % not yet woking stable enough
@@ -2550,7 +2570,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('ppp_reweight_mode',[1 numel(this.PPP_REWEIGHT_SMODE)]);
             this.checkNumericField('net_reweight_mode',[1 numel(this.NET_REWEIGHT_SMODE)]);
             
+            this.checkLogicalField('flag_ppp_force_single_freq');
+
             this.checkLogicalField('flag_ppp_amb_fix');
+            
             this.checkNumericField('net_amb_fix_approach', [1 numel(this.NET_AMB_FIX_FIXER_APPROACH)]);
             this.checkLogicalField('flag_amb_pass');
             
@@ -4078,6 +4101,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   amb_fix = this.getAmbFixNET()
             amb_fix = this.net_amb_fix_approach;
+        end
+        
+        function amb_fix = isPPPOnSF(this)
+            % Get the PPP on single freq flag for PPP
+            %
+            % SYNTAX
+            %   amb_fix = this.isPPPOnSF(this)
+            amb_fix = this.flag_ppp_force_single_freq;
         end
         
         function is_dwn = isAutomaticDownload(this)

@@ -1353,10 +1353,14 @@ classdef Command_Interpreter < handle
                         this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
                         this.log.smallSeparator();
                         this.log.newLine();
-                        if sys_found
-                            rec(r).work.staticPPP(sys_list);
+                        if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
+                            this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                         else
-                            rec(r).work.staticPPP();
+                            if sys_found
+                                rec(r).work.staticPPP(sys_list);
+                            else
+                                rec(r).work.staticPPP();
+                            end
                         end
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');

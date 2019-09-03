@@ -177,7 +177,7 @@ end
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARK_GREY_BG);
-            catch
+            catch ex
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
                 this.log.newLine();
@@ -679,13 +679,13 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                          
             % left top left
-            ppp_panel = this.insertCorrections(opt_tll); %#ok<NASGU>
-                        
+            pp_panel = this.insertTabProcessingOptions(opt_tll);
+            Core_UI.insertEmpty(opt_tll);            
+            coo_panel = this.insertCooOptions(opt_tll);
+            
             % left top left right
-            pp_panel = this.insertTabProcessingOptions(opt_tlr);
-            Core_UI.insertEmpty(opt_tlr);            
-            coo_panel = this.insertCooOptions(opt_tlr);
-
+            ppp_panel = this.insertCorrections(opt_tlr); %#ok<NASGU>
+            
             % left bottom
             Core_UI.insertEmpty(opt_l);
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
@@ -696,11 +696,11 @@ end
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [240 1 23 -1];
-            opt_tll.Heights = 233;
-            opt_tlr.Heights = [138, 5, 93];
+            opt_l.Heights = [267 1 23 -1];
+            opt_tll.Heights = [165, 5, 93];
+            opt_tlr.Heights = sum(opt_tll.Heights);
             
-            opt_tlh.Widths = [195 5 -1];
+            opt_tlh.Widths = [-1 5 195];
             opt_h.Widths = [-1 5 190];
             
             % --------------------------------------------------------
@@ -738,9 +738,11 @@ end
             Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Enable PPP for receiver containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange);
+            Core_UI.insertEmpty(opt_grid);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            opt_grid.Heights = [22 5 22 22 22 22];
+            opt_grid.Heights = [22 5 22 22 22 5 22 22];
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -873,19 +875,20 @@ end
         function ppp_panel = insertCorrections(this, container)
             %%% processing options
             ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
-            opt_grid = uix.Grid('Parent', ppp_panel,...
+            opt_vbox = uix.VBox('Parent', ppp_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Shapiro Delay',           'flag_shapiro', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Ocean Loading',           'flag_ocean_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',     'flag_atm_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere',   'flag_hoi', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
-            
-            opt_grid.Widths = -1;
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Shapiro Delay',           'flag_shapiro', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Ocean Loading',           'flag_ocean_load', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Atmospheric Loading',     'flag_atm_load', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'High Order Ionosphere',   'flag_hoi', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
+            Core_UI.insertEmpty(opt_vbox);
+             
+            opt_vbox.Heights = [ones(1, 9) * 22 -1];
         end
         
         function insertTabRecSpecificParameters(this, container)
