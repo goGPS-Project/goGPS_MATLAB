@@ -778,7 +778,13 @@ classdef Core_Sky < handle
                 sat_prn = uint8(txt(lim(d_line,1) + 2) - 48) * 10 + uint8(txt(lim(d_line,1) + 3) - 48);
                 
                 % id in this.coord containing the index to insert
-                id_ep = zeros(size(d_line,1),1);  id_ep(1) = 1; id_ep(cumsum(n_spe(1 : end-1)) + 1) = id_ep(cumsum(n_spe(1 : end-1)) + 1) + 1; id_ep = cumsum(id_ep);
+                id_ep = zeros(size(d_line,1),1);  
+                id_ep(1) = 1;
+                id_next_ep = cumsum(n_spe(1 : end-1)) + 1; % id of the next epoch
+                for i = 1 : numel(id_next_ep)
+                    id_ep(id_next_ep(i)) = id_ep(id_next_ep(i)) + 1;
+                end
+                id_ep = cumsum(id_ep);
 
                 % go_id of each line of data
                 go_id = this.cc.getIndex(sys_c, double(sat_prn))';
