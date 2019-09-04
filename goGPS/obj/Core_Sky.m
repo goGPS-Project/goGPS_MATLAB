@@ -810,7 +810,6 @@ classdef Core_Sky < handle
                     this.clock(c_ep_idx(id_ep) + (go_id - 1) * size(this.coord, 1)) = data(:, 4);
                 end
             end
-            clear sp3_file;
             this.coord = zero2nan(this.coord);  % <--- nan is slow for the computation of the polynomial coefficents
         end
                 
