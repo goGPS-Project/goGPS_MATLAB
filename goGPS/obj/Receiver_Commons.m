@@ -747,7 +747,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time = this(r).getTime();
                         [year, doy] = time.first().getDOY();
                         t_start = time.first().toString('HHMM');
-                        t_stop =  time.last().toString('HHMM');
                         time.toUtc();
                         
                         lat = this(r).lat; %#ok<NASGU>
@@ -776,10 +775,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     end
                 end
             end
-        end
+        end        
         
-        
-         function exportTropoCSV(this)
+        function exportTropoCSV(this)
             % Export the troposphere into a MATLAB data format file
             % The data exported are:
             %  - ztd
@@ -796,20 +794,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     try
                         this(r).updateCoordinates;
                         time = this(r).getTime();
-                        [year, month, day] = this(r).getCentralTime.getCalEpoch();
+                        [year, doy] = time.first().getDOY();
+                        t_start = time.first().toString('HHMM');
                         time.toUtc();
-                        ztd = this(r).getZtd(); %#ok<NASGU>
-                        zwd = this(r).getZwd(); %#ok<NASGU>
-                        [gn,ge ] =  this(r).getGradient(); %#ok<NASGU>
-                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.getMarkerName4Ch sprintf('%04d%02d%02d',year, month,day) '.csv']);
+                        ztd = this(r).getZtd(); 
+                        zwd = this(r).getZwd();
+                        [gn,ge ] =  this(r).getGradient();
+                        
+                        out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                        if ~exist(out_dir, 'file')
+                            mkdir(out_dir);
+                        end
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.csv']);
                         fid = fopen(fname,'w');
                         n_data = time.length;
                         fprintf(fid,'Data               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
                         data = [time.toString('dd/mm/yyyy HH:MM:SS') char(44.*ones(n_data,1)) ...
-                                reshape(sprintf('%12.6f',ztd),12,n_data)' char(44.*ones(n_data,1)) ...
-                                reshape(sprintf('%12.6f',zwd),12,n_data)' char(44.*ones(n_data,1)) ...
-                                reshape(sprintf('%12.6f',ge),12,n_data)' char(44.*ones(n_data,1)) ...
-                                reshape(sprintf('%12.6f',gn),12,n_data)' char(10.*ones(n_data,1))];
+                            reshape(sprintf('%12.6f',ztd),12,n_data)' char(44.*ones(n_data,1)) ...
+                            reshape(sprintf('%12.6f',zwd),12,n_data)' char(44.*ones(n_data,1)) ...
+                            reshape(sprintf('%12.6f',ge),12,n_data)' char(44.*ones(n_data,1)) ...
+                            reshape(sprintf('%12.6f',gn),12,n_data)' char(10.*ones(n_data,1))];
                         fprintf(fid,data');
                         fclose(fid);
                         this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
