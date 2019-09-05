@@ -902,7 +902,12 @@ classdef Core_Sky < handle
                 
                 % open RINEX observation file
                 fid = fopen(filename_clk,'r');
-                txt = fread(fid,'*char')';
+                try
+                    txt = fread(fid,'*char')';
+                catch ex
+                    Core.getLogger.addWarning(sprintf('"%s" cannot be read correctly!', fnp.getFileName(filename_clk)));
+                    Core_Utils.printEx(ex);
+                end
                 fclose(fid);
                 
                 % get new line separators
@@ -990,7 +995,13 @@ classdef Core_Sky < handle
                 end
                 Core.getLogger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);
                 Core.getLogger.newLine(100);
-            end
+                
+                % Outlier detection
+                %d_clock = Core_Utils.diffAndPred(zero2nan(this.clock));
+                %d_clock = bsxfun(@minus, d_clock, median(d_clock, 'omitnan'));
+                %d_clock = bsxfun(@minus, d_clock, median(d_clock, 2, 'omitnan'));
+                %figure; plot(d_clock)
+            end            
         end
         
         function importERP(this, f_name, time)

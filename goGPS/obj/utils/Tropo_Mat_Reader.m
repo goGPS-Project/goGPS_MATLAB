@@ -58,17 +58,19 @@ classdef Tropo_Mat_Reader
             file_list = File_Name_Processor.findFiles(base_dir, marker);
             file_list = sort(file_list);
             first_epoch = [];
+            i = 0;
             for f = 1 : numel(file_list)
                 [~, ~, ext] = fileparts(file_list{f});
                 if ~strcmp(ext, '.mat')
                     fprintf('Skipping %5d/%5d "%s"\n', f, numel(file_list), file_list{f})
                 else
+                    i = i + 1;
                     fprintf('Loading %5d/%5d "%s"\n', f, numel(file_list), file_list{f})
                     tmp = load(file_list{f});
-                    first_epoch(f) = tmp.utc_time(1);
+                    first_epoch(i) = tmp.utc_time(1);
                     tmp.coo = Coordinates.fromGeodetic(tmp.lat/180*pi, tmp.lon/180*pi, tmp.h_ellips);
                     tmp.time = GPS_Time(tmp.utc_time, [], false);
-                data_set(f) = tmp;
+                    data_set(i) = tmp;
                 end
             end
             % sort by time
