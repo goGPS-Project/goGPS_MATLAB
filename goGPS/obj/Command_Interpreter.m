@@ -735,7 +735,7 @@ classdef Command_Interpreter < handle
                 '\n    ENDFOR', ...
                 '\n    PPP T1:4', ...
                 '\n    SEID R1:4 T5', ...
-                '\n    PPP R5', ...
+                '\n    PPP T5', ...
                 '\n    PUSHOUT T*', ...
                 '\n ENDFOR', ...
                 '\n SHOW T* ZTD']);
@@ -910,7 +910,7 @@ classdef Command_Interpreter < handle
                         end
                         l = par_cmd_id(end);
                     else
-                        try
+%                         try
                             switch upper(tok{1})
                                 case this.CMD_PINIT.name                % PINIT
                                     this.runParInit(tok(2:end));
@@ -969,10 +969,10 @@ classdef Command_Interpreter < handle
                                         this.runOutDet(core.rec, tok);
                                 end
                             end
-                        catch ex
-                            this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
-                            Core_Utils.printEx(ex);
-                        end
+%                         catch ex
+%                             this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+%                             Core_Utils.printEx(ex);
+%                         end
                     end
                 end
             end
@@ -1514,8 +1514,8 @@ classdef Command_Interpreter < handle
                     end
                 end
                 %try
-                net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
-                %net.adjustNew(id_ref, coo_rate, iono_reduce, clk_export, free_network);
+                %net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
+                net.adjustNew(id_ref, coo_rate, iono_reduce, clk_export, free_network);
                 %catch ex
                 %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
                 %end

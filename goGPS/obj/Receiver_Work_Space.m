@@ -8571,6 +8571,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Solve the LS problem
                 ls.solve();
                 
+                % outlier detections
+                
                 % Compute sigma0 of the estimation
                 s0 = ls.getSigma0Ph();
                 
