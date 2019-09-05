@@ -603,12 +603,13 @@ classdef Network < handle
                 end
                 this.common_time = ls.unique_time;
                 ls.solve();
+                ls.simpleSnoop(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+                ls.solve();
                 
                 
                 
-                
-                s0 = mean(abs(ls.res(ls.phase_obs > 0)));
-                if s0 < 0.02
+                s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
+                if s0 < 0.05
                     % initialize array for results
                     this.initOutNew(ls);
                     this.addAdjValuesNew(ls);
@@ -826,7 +827,7 @@ classdef Network < handle
                         if sum(idx_x) > 0
                             x_coo = ls.x(idx_x);
                             [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                            idx_save = x_coo_time1 - int_lim.first > -eps & x_coo_time2 - int_lim.last < eps;
+                            idx_save = x_coo_time1 - int_lim.first > -5e-2 & x_coo_time2 - int_lim.last < 5e-2;
                             cox = mean(x_coo(idx_save));
                         else
                             cox = 0;
@@ -836,16 +837,16 @@ classdef Network < handle
                         if sum(idx_y) > 0
                             y_coo = ls.x(idx_y);
                             [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
-                            idx_save = y_coo_time1 - int_lim.first > -eps & y_coo_time2 - int_lim.last < eps;
-                            coy = mean(x_coo(idx_save));
+                            idx_save = y_coo_time1 - int_lim.first > -5e-2 & y_coo_time2 - int_lim.last < 5e-2;
+                            coy = mean(y_coo(idx_save));
                         end
                         
                         idx_z = ls.class_par == ls.PAR_REC_Z & idx_rec;
                         if sum(idx_z) > 0
                             z_coo = ls.x(idx_z);
                             [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
-                            idx_save = z_coo_time1 - int_lim.first > -eps & z_coo_time2 - int_lim.last < eps;
-                            coz = mean(x_coo(idx_save));
+                            idx_save = z_coo_time1 - int_lim.first > -5e-2 & z_coo_time2 - int_lim.last < 5e-2;
+                            coz = mean(z_coo(idx_save));
                             
                         else
                             coz = 0;
@@ -1267,13 +1268,13 @@ classdef Network < handle
                     ge = this.ztd_ge(idx_res_av, i);
                     this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
                 end
-                s0 = mean(ls.res(ls.phase_obs > 0));
+                s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 % sigma of the session
                 this.rec_list(i).work.quality_info.s0 = s0;
                 this.rec_list(i).work.quality_info.n_epochs = length(unique(ls.time_par(ls.rec_par == i)));
                 this.rec_list(i).work.quality_info.n_obs = sum(ls.receiver_obs == i);
                 this.rec_list(i).work.quality_info.n_sat = length(unique(ls.satellite_obs(ls.receiver_obs == i)));
-                this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getEpoch(ls.receiver_obs == i).getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + ls.satellite_obs(ls.receiver_obs == i)), this.rec_list(i).work.quality_info.n_epochs ));
+                this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getEpoch(ls.receiver_obs == i).getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + double(ls.satellite_obs(ls.receiver_obs == i))), this.rec_list(i).work.quality_info.n_epochs ));
                 this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100; %TBD
                 
                 % residual
