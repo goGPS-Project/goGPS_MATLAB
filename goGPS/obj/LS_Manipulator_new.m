@@ -607,7 +607,7 @@ classdef LS_Manipulator_new < handle
                                 ch_set = [ch_set num2cell(uint8(sig_p_id(cond_sig)))];
                             elseif str2num(optt) == ls_parametrization.FREQ_CONST
                                 u_wl_const = unique(sig2wl(cond_sig)*100+sig2const_num(cond_sig));
-                                for c = 1 : n_ch_set
+                                for c = 1 : length(u_wl_const)
                                     n_ch_set = n_ch_set +1;
                                     const = rem(u_wl_const(c),100);
                                     wl = floor(u_wl_const(c)/100);
@@ -947,71 +947,73 @@ classdef LS_Manipulator_new < handle
             if  sum(this.param_class == this.PAR_REC_EB) > 0
                 for r = 1 : n_rec
                     idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r & ~this.out_par); % one pseudorange bias per reciever
-                    
-                    % tell which is pseudorange from the electronic bias
-                    idx_par_psrange = false(size(idx_par));
-                    sys_c_par =  zeros(size(idx_par));
-                    for i = 1 : length(idx_par)
-                        sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
-                        if this.phase_par(idx_par(i)) == 1
-                            idx_par_psrange(i) = true;
-                        end
-                    end
-                    idx_par_phase = idx_par(~idx_par_psrange);
-                    % system of the electronic bias
-                    sys_c_par_phase = sys_c_par(~idx_par_psrange);
-                    sys_c_par_psrange = sys_c_par(idx_par_psrange);
-                    idx_par_psrange =  idx_par(idx_par_psrange);
-                    
-                    
-                    if sum(this.param_class == this.PAR_REC_CLK) > 0
-                        if ~isempty(idx_par_psrange) % <--- remove one pseudorange because it is less complicated afterwards
-                            id_obs_par  = this.obs_codes_id_par(idx_par_psrange);
-                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
-                            idx_idx_par = find(id_obs_par == chosen_id_obs);
-                            idx_rm = [idx_rm; uint32(idx_par_psrange(idx_idx_par))]; % <- all bias of the same observation
-                            wl_ref = this.wl_id_par(idx_par_psrange(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
-                            sys_c_ref = sys_c_par(idx_idx_par(1));
-                            idx_par_psrange(idx_idx_par) = [];
-                            sys_c_par_psrange(idx_idx_par) = [];
-                        else
-                            id_obs_par  = this.obs_codes_id_par(idx_par_phase);
-                            chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
-                            idx_idx_par = find(id_obs_par == chosen_id_obs);
-                            idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))]; % <- all bias of the same observation
-                            wl_ref = this.wl_id_par(idx_par_phase(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
-                            sys_c_ref = sys_c_par(idx_idx_par(1));
-                            idx_par_phase(idx_idx_par) = [];
-                            sys_c_par_phase(idx_idx_par) = [];
-                        end
-                    end
-                    if sum(this.param_class == this.PAR_IONO) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC
-                        if ~isempty(idx_par_psrange)
-                            for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
-                                if sys_c == sys_c_ref
-                                    idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
-                                else
-                                    idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
-                                end
-                                if~isempty(idx_tmp)
-                                    id_obs_par  = this.obs_codes_id_par(idx_tmp);
-                                    chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
-                                    idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
-                                    idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
-                                end
+                    if ~isempty(idx_par)
+                        
+                        % tell which is pseudorange from the electronic bias
+                        idx_par_psrange = false(size(idx_par));
+                        sys_c_par =  zeros(size(idx_par));
+                        for i = 1 : length(idx_par)
+                            sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
+                            if this.phase_par(idx_par(i)) == 1
+                                idx_par_psrange(i) = true;
                             end
-                        else
-                            for sys_c = unique(sys_c_par_phase)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
-                                if sys_c == sys_c_ref
-                                    idx_tmp= idx_par_phase(sys_c_par_phase == sys_c & wl_ref ~= this.wl_id_par(idx_par_phase));
-                                else
-                                    idx_tmp= idx_par_phase(sys_c_par_phase == sys_c);
+                        end
+                        idx_par_phase = idx_par(~idx_par_psrange);
+                        % system of the electronic bias
+                        sys_c_par_phase = sys_c_par(~idx_par_psrange);
+                        sys_c_par_psrange = sys_c_par(idx_par_psrange);
+                        idx_par_psrange =  idx_par(idx_par_psrange);
+                        
+                        
+                        if sum(this.param_class == this.PAR_REC_CLK) > 0
+                            if ~isempty(idx_par_psrange) % <--- remove one pseudorange because it is less complicated afterwards
+                                id_obs_par  = this.obs_codes_id_par(idx_par_psrange);
+                                chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                idx_idx_par = find(id_obs_par == chosen_id_obs);
+                                idx_rm = [idx_rm; uint32(idx_par_psrange(idx_idx_par))]; % <- all bias of the same observation
+                                wl_ref = this.wl_id_par(idx_par_psrange(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                                sys_c_ref = sys_c_par(idx_idx_par(1));
+                                idx_par_psrange(idx_idx_par) = [];
+                                sys_c_par_psrange(idx_idx_par) = [];
+                            else
+                                id_obs_par  = this.obs_codes_id_par(idx_par_phase);
+                                chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                idx_idx_par = find(id_obs_par == chosen_id_obs);
+                                idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))]; % <- all bias of the same observation
+                                wl_ref = this.wl_id_par(idx_par_phase(idx_idx_par(1))); % <- you can not then remove from  the same frequency and system
+                                sys_c_ref = sys_c_par(idx_idx_par(1));
+                                idx_par_phase(idx_idx_par) = [];
+                                sys_c_par_phase(idx_idx_par) = [];
+                            end
+                        end
+                        if sum(this.param_class == this.PAR_IONO) > 0 && this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC
+                            if ~isempty(idx_par_psrange)
+                                for sys_c = unique(sys_c_par_psrange)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
+                                    if sys_c == sys_c_ref
+                                        idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c & wl_ref ~= this.wl_id_par(idx_par_psrange));
+                                    else
+                                        idx_tmp= idx_par_psrange(sys_c_par_psrange == sys_c);
+                                    end
+                                    if~isempty(idx_tmp)
+                                        id_obs_par  = this.obs_codes_id_par(idx_tmp);
+                                        chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                        idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                        idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
+                                    end
                                 end
-                                if~isempty(idx_tmp)
-                                    id_obs_par  = this.obs_codes_id_par(idx_tmp);
-                                    chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
-                                    idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
-                                    idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
+                            else
+                                for sys_c = unique(sys_c_par_phase)' % <- each system has its own ionpspherese common to the same elctronic bias so they a new rank deficency is introduced
+                                    if sys_c == sys_c_ref
+                                        idx_tmp= idx_par_phase(sys_c_par_phase == sys_c & wl_ref ~= this.wl_id_par(idx_par_phase));
+                                    else
+                                        idx_tmp= idx_par_phase(sys_c_par_phase == sys_c);
+                                    end
+                                    if~isempty(idx_tmp)
+                                        id_obs_par  = this.obs_codes_id_par(idx_tmp);
+                                        chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
+                                        idx_idx_par = find(id_obs_par == chosen_id_obs);  % <- all bias of the same observation
+                                        idx_rm = [idx_rm; idx_tmp(idx_idx_par)];
+                                    end
                                 end
                             end
                         end
@@ -1034,7 +1036,7 @@ classdef LS_Manipulator_new < handle
             if  sum(this.param_class == this.PAR_SAT_EB) > 0
                 for s = this.unique_sat_goid
                     idx_par = find(this.class_par == this.PAR_SAT_EB & this.sat_par == s & ~this.out_par); % two code biases not from the same frequency
-                    %if any(idx_par)
+                    if any(idx_par)
                         idx_par_psrange = false(size(idx_par));
                         for i = 1 : length(idx_par)
                             if this.phase_par(idx_par(i)) == 1
@@ -1082,7 +1084,7 @@ classdef LS_Manipulator_new < handle
                                     idx_rm = [idx_rm; uint32(idx_par_phase(idx_idx_par))];
                                     this.log.addMessage(this.log.indent(sprintf('Phase %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_phase(idx_idx_par(1)))},s)));
                                 end
-                        %    end
+                            end
                         end
                     end
                 end
@@ -1827,6 +1829,16 @@ classdef LS_Manipulator_new < handle
         end
         
         function res = getResidual(this)
+        end
+        
+        function simpleSnoop(this, ph_thr, pr_thr)
+            % simple threshold on residual
+            %
+            % this.Snoop(this, ph_thr, pr_thr)
+            idx_out_ph = this.phase_obs & abs(this.res) > ph_thr;
+            this.outlier_obs(idx_out_ph) = true;
+            idx_out_pr = this.phase_obs == 0 & abs(this.res) > pr_thr;
+            this.outlier_obs(idx_out_pr) = true;
         end
         
         function [res_ph, sat, obs_id] = getPhRes(this, rec)
