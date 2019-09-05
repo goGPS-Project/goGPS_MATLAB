@@ -900,15 +900,14 @@ classdef Core_Sky < handle
                     empty_clk = false;
                 end
                 
-                % open RINEX observation file
-                fid = fopen(filename_clk,'r');
+                % read RINEX observation file
                 try
-                    txt = fread(fid,'*char')';
+                    txt = fread(f_clk,'*char')';
                 catch ex
                     Core.getLogger.addWarning(sprintf('"%s" cannot be read correctly!', fnp.getFileName(filename_clk)));
                     Core_Utils.printEx(ex);
                 end
-                fclose(fid);
+                fclose(f_clk);
                 
                 % get new line separators
                 nl = regexp(txt, '\n')';
