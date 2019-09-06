@@ -2440,10 +2440,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ss = cc.(char(cc.SYS_NAME{s} + 32));
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
-                    ismember(this.system, cc.SYS_C);
+                    % ismember(this.system, cc.SYS_C); % is this debug?
                     this.f_id = [this.f_id; f_id];
                     
-                    if s == 2 % glonass FDMA system
+                    if sys == 'R' % glonass FDMA system
                         wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                         wl(prn_ss > ss.N_SAT) = NaN;
                         wl(f_id == 0) = NaN;
@@ -2664,7 +2664,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ismember(this.system, cc.SYS_C);
                     this.f_id = [this.f_id; f_id];
                     
-                    if sys == 'R'
+                    if sys == 'R' % if this is GLONASS
                         wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                         wl(prn_ss > ss.N_SAT) = NaN;
                         wl(f_id == 0) = NaN;
