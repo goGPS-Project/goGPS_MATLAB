@@ -26,7 +26,7 @@ function [CRX, found] = load_crx(data_dir_crx, time, cc)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -206,7 +206,9 @@ else
     bad_sat = find(any(CRX,2));
     if ~isempty(bad_sat)
         n_bad_epochs = sum(CRX(bad_sat,:)~=0,2);
-        log.addWarning(sprintf('%5d bad epochs (sat %2d) have been discovered into CRX\n', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
+        for b = 1 : numel(bad_sat)
+            log.addWarning(sprintf('%5d bad epochs (sat %c%02d) have been discovered into CRX', nonzeros(n_bad_epochs(b)), cc.system(bad_sat(b)), cc.prn(bad_sat(b)) ));
+        end
     end
 end
 
