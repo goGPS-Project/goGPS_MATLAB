@@ -226,11 +226,11 @@ classdef File_Rinex < Exportable
                                 eof = true;
                             else
                                 line = buf(lim(l,1) : lim(l,2));
-                                if numel(line) > 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
+                                if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
                                     marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
                                     par_to_find = par_to_find - 1;
                                 end
-                                if numel(line) > 76
+                                if numel(line) >= 76
                                     if line(61) == 'T'
                                         %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
                                         if line(69) == 'F'

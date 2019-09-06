@@ -2692,19 +2692,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for s = 1 : size(sat, 1)
                         % line to fill with the current observation line
                         obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                        n_o_l = numel(obs_line);
                         if ~isempty(obs_line)
                             line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
                             ck = line == ' ';
                             line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                             % try with sscanf
                             line = line(data_pos(1 : numel(line)));
-                            n_o = numel(line)/14;
-                            if abs((n_o) - round(n_o) ) < 1e-14
-                                data = sscanf(reshape(line, 14, n_o), '%f');
-                                if size(data,1) <= numel(obs_line)
-                                    obs(obs_line(1:size(data,1)), tid(e)) = data;
-                                end
+                            n_o = floor(numel(line)/14 + eps);
+                            n_m_ch = rem(numel(line),14);
+                            if n_m_ch > 0
+                                line = [line repmat(' ',1, 14 -n_m_ch)];
+                                n_o = n_o+1;
                             end
+                            data = sscanf(reshape(line, 14, n_o), '%f');
+                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:n_o_l);
+                            %                             end
                         end
                         % alternative approach with textscan
                         %data = textscan(line, '%14.3f%1d%1d');
@@ -9969,7 +9972,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             phs = this.synt_ph;
             cs = this.sat.cycle_slip_ph_by_ph;
             out = this.sat.outliers_ph_by_ph;
-            for sys_c = sys_c_list
+            for sys_c = ss_ok
                 ss_id = find(cc.sys_c == sys_c);
                 switch numel(ss_ok)
                     case 2
