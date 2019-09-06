@@ -2543,9 +2543,11 @@ classdef Core_Sky < handle
                             log = Core.getLogger;
                             %cm = log.getColorMode();
                             %log.setColorMode(0);
-                            log.addWarning(sprintf('IODE - IODC of sat %sare different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
+                            if not(isempty(sat_ko))
+                                log.addWarning(sprintf('IODE - IODC of sat %s are different!\nPossible problematic broadcast orbits found for "%s"\nignoring those satellites', sprintf('G%02d ', sat_ko), File_Name_Processor.getFileName(file_nav)));
+                                eph_ss(iod_check, :) = []; % delete non valid ephemeris
+                            end
                             %log.setColorMode(cm);
-                            eph_ss(iod_check, :) = []; % delete non valid ephemeris
                         end                                                
                     end
                     % Append SS ephemeris
