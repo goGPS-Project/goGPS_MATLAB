@@ -2421,35 +2421,41 @@ classdef Receiver_Work_Space < Receiver_Commons
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
-                    this.n_sat = this.n_sat + n_sat;
+                    
                     n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
                     % transform in n_code x 3
                     obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
-                    
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    aligned  = false(size(obs_code,1),1);
-                    this.obs_code = [this.obs_code; obs_code];
-                    this.aligned = [this.aligned; aligned];
+                    aligned = false(size(obs_code,1),1);
+                    
                     prn_ss = repmat(prn.(sys)', n_code, 1);
+                    % discarding satellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
                     this.prn = [this.prn; prn_ss];
+                    this.obs_code = [this.obs_code; obs_code];
+                    this.aligned  = [this.aligned; aligned];
+                    this.n_sat = this.n_sat + n_sat;
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                     
                     f_id = obs_code(:,2);
-                    ss = cc.(char(cc.SYS_NAME{s} + 32));
+                    ss = cc.getSys(sys);
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
-                    % ismember(this.system, cc.SYS_C); % is this debug?
-                    this.f_id = [this.f_id; f_id];
+                    %ismember(this.system, cc.SYS_C);
+                    this.f_id = [this.f_id; f_id];                                        
                     
-                    if sys == 'R' % glonass FDMA system
+                    if sys == 'R' % if this is GLONASS
                         wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                         wl(prn_ss > ss.N_SAT) = NaN;
                         wl(f_id == 0) = NaN;
                     else
                         wl = ss.L_VEC(max(1, f_id))';
                         wl(f_id == 0) = NaN;
+                    end
+                    if sum(f_id == 0)
+                        [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
+                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
                     end
                     this.wl = [this.wl; wl];
                 end
@@ -2661,7 +2667,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ss = cc.getSys(sys);
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
-                    ismember(this.system, cc.SYS_C);
+                    %ismember(this.system, cc.SYS_C);
                     this.f_id = [this.f_id; f_id];
                     
                     if sys == 'R' % if this is GLONASS
