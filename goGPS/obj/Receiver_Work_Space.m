@@ -10106,9 +10106,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 prn_ss = unique(this.prn(this.system == ss));
                 xlim([1 size(this.obs,2)]);
-                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                if ~isempty(prn_ss) 
+                    ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                    ax = gca(); ax.YTick = prn_ss;
+                end
                 h = ylabel('PRN'); h.FontWeight = 'bold';
-                ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 title(cc.getSysName(ss));
