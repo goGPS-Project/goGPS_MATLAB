@@ -1846,10 +1846,17 @@ classdef LS_Manipulator_new < handle
             this.outlier_obs(idx_out_pr) = true;
         end
         
-        function [res_ph, sat, obs_id] = getPhRes(this, rec)
-            % get phase residual
+        function [res_ph, sat, obs_id, res_id] = getPhRes(this, rec)
+            % Get phase residual
             %
-            % SYNTAX:  res_ph = getPhRes(this)
+            % OUPUT
+            %   res_ph          matrix of phase residuals
+            %   sat             go_id of the satellite
+            %   obs_id          id of the array ls.unique_obs_codes indicating the constallation and tracking of the column
+            %   id_res          indix of the value in the res array
+            %
+            % SYNTAX
+            %   [res_ph, sat, obs_id] = this.getPhRes(rec)
             if nargin <2
                 rec = 1;
             end
@@ -1860,15 +1867,17 @@ classdef LS_Manipulator_new < handle
             duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
             time_res.addSeconds(0:this.time_obs.getRate:duration);
             res_ph = nan(time_res.length,n_stream);
+            res_id = zeros(time_res.length,n_stream,'uint32');
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             for i = 1 : n_stream
                 sat(i) = rem(u_stream(i) ,1000);
                 obs_id(i) = floor(u_stream(i)/1000);
-                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
+                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);                
                 if any(idx_res)
                     [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
-                    res_ph(idx_time,i) = this.res(idx_res);
+                    res_ph(idx_time, i) = this.res(idx_res);
+                    res_id(idx_time, i) = find(idx_res);
                 end
             end
             
