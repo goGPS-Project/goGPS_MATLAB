@@ -2698,7 +2698,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for s = 1 : size(sat, 1)
                         % line to fill with the current observation line
                         obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
-                        n_o_l = numel(obs_line);
                         if ~isempty(obs_line)
                             line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
                             ck = line == ' ';
@@ -2708,12 +2707,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             n_o = floor(numel(line)/14 + eps);
                             n_m_ch = rem(numel(line),14);
                             if n_m_ch > 0
-                                line = [line repmat(' ',1, 14 -n_m_ch)];
+                                line = [line repmat(' ',1, 14 - n_m_ch)];
                                 n_o = n_o+1;
                             end
                             data = sscanf(reshape(line, 14, n_o), '%f');
-                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:n_o_l);
-                            %                             end
+                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data;
+                            % end
                         end
                         % alternative approach with textscan
                         %data = textscan(line, '%14.3f%1d%1d');
