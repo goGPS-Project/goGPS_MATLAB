@@ -198,13 +198,17 @@ classdef File_Rinex < Exportable
                             lim(end,:) = [];
                         end
                         
+                        % Check for meteo rinex
+                        flag_met = buf(21) == 'M';
+                        
                         line = buf(lim(l,1) : lim(l,2));
                         date_start = '';
                         date_stop = '';
                         coo = '';
                         eof = false;
                         par_to_find = 4;
-                        while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
+                        %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
+                        while (length(line) > 61) && (line(61) ~= 'E') && not(eof)
                             l = l + 1;
                             if l > size(lim, 1)
                                 % out of buffer
@@ -226,26 +230,31 @@ classdef File_Rinex < Exportable
                                 eof = true;
                             else
                                 line = buf(lim(l,1) : lim(l,2));
-                                if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
-                                    marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
-                                    par_to_find = par_to_find - 1;
-                                end
-                                if numel(line) >= 76
-                                    if line(61) == 'T'
-                                        %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
-                                        if line(69) == 'F'
-                                            date_start = strtrim(line(1:48));
-                                            par_to_find = par_to_find - 1;
-                                        elseif line(69) == 'L'
-                                            %tmp = regexp(line, '.*(?=GPS         TIME OF LAST OBS)', 'match', 'once');
-                                            date_stop = strtrim(line(1:48));
-                                            par_to_find = par_to_find - 1;
-                                        end
-                                    else
-                                        %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
-                                        if line(62) == 'P' % APPROXIMATE POSITION
-                                            coo = strtrim(line(1:60));
-                                            par_to_find = par_to_find - 1;
+                                if par_to_find > 0
+                                    if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
+                                        marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
+                                        par_to_find = par_to_find - 1;
+                                    end
+                                    if numel(line) >= 76
+                                        if line(61) == 'T'
+                                            %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
+                                            if line(69) == 'F'
+                                                date_start = strtrim(line(1:48));
+                                                par_to_find = par_to_find - 1;
+                                            elseif line(69) == 'L'
+                                                %tmp = regexp(line, '.*(?=GPS         TIME OF LAST OBS)', 'match', 'once');
+                                                date_stop = strtrim(line(1:48));
+                                                par_to_find = par_to_find - 1;
+                                            end
+                                        else
+                                            %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
+                                            % character to recognize approximate position for met file: 'E' => sensor pos
+                                            % character to recognize approximate position for met file: 'P' => approx position
+                                            pos_char = iif(flag_met, 'E', 'P');
+                                            if line(62) == pos_char % APPROXIMATE POSITION
+                                                coo = strtrim(line(1:43));
+                                                par_to_find = par_to_find - 1;
+                                            end
                                         end
                                     end
                                 end
@@ -264,10 +273,8 @@ classdef File_Rinex < Exportable
                         if ~isempty(date_start)
                             this.first_epoch.addEpoch(date_start, [], true);
                         else
-                            epoch_line = fgetl(fid);
-                            if epoch_line == -1
-                                error('Empty file');
-                            end
+                            l = l + 1;
+                            epoch_line = buf(lim(l,1) : lim(l,2));
                             % try to guess the time format
                             [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
                             this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
@@ -286,8 +293,10 @@ classdef File_Rinex < Exportable
                             else
                                 % go to the end of the file to search for the last epoch
                                 % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
-                                fseek(fid, -1e4, 'eof');
-                                buf = fread(fid, 1e4,'*char')';
+                                fseek(fid, 0, 'eof');
+                                f_size = ftell(fid);
+                                fseek(fid, - min(1e4, f_size - 1), 'eof');
+                                buf = fread(fid, min(1e4, f_size - 1),'*char')';
                                 
                                 % Start searching for a valid epoch
                                 time = [];
@@ -333,7 +342,9 @@ classdef File_Rinex < Exportable
                     end
                 catch ex
                     this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file or missing'], this.verbosity_lev);
+                    Core_Utils.printEx(ex);
                     this.is_valid_list(f) = false;
+                    fclose(fid);
                 end
                 % store marker_name
                 if isempty(marker_name)
