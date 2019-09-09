@@ -101,10 +101,7 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
-        PAR_IONO        % Paramter to estimate ionosphere
-        PAR_CLK         % Paramter to estimate clock
-        PAR_M_FREE_NET    % Paramter to let the network free
-        PAR_BAND        % Paramter of the band to be used in the adjustemtn
+        PAR_BAND        % Parameter of the band to be used in the adjustemtn
         
         PAR_SLAVE       % number of parallel slaves to request
         
@@ -112,6 +109,12 @@ classdef Command_Interpreter < handle
         PAR_R_FROM_WORK % Parameter to indicate to get data from Receiver Out
         
         PAR_R_FIX_APR   % Parameter to indicate to use position as approximate coordinate        
+        
+        PAR_M_UNCOMBINED  % Parameter to force the usage if the new uncombined engine
+        
+        PAR_M_IONO        % Parameter to estimate ionosphere
+        PAR_M_CLK         % Parameter to estimate clock
+        PAR_M_FREE_NET    % Parameter to let the network free
         
         PAR_M_SEID_PLANE  % Use old approach plane based        
         
@@ -138,9 +141,9 @@ classdef Command_Interpreter < handle
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_REC_MAT   % Receiver export parameter matlab format
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
-        PAR_E_TROPO_SNX % Tropo export paramter sinex format
-        PAR_E_TROPO_MAT % Tropo export paramter mat format
-        PAR_E_TROPO_CSV % Tropo export paramter csv format
+        PAR_E_TROPO_SNX % Tropo export Parameter sinex format
+        PAR_E_TROPO_MAT % Tropo export Parameter mat format
+        PAR_E_TROPO_CSV % Tropo export Parameter csv format
         PAR_E_COO_CRD   % Coordinates in bernese crd format
         PAR_E_COO_CSV   % Coordinates in bernese crd format
 
@@ -241,21 +244,7 @@ classdef Command_Interpreter < handle
             this.PAR_SLAVE.class = 'double';
             this.PAR_SLAVE.limits = [1 1000];
             this.PAR_SLAVE.accepted_values = [];
-            
-            this.PAR_IONO.name = 'Reduce for ionosphere delay';
-            this.PAR_IONO.descr = '-iono              reduce for ionosphere delay';
-            this.PAR_IONO.par = '(-iono)|(-Iono)|(-IONO)';
-            this.PAR_IONO.class = '';
-            this.PAR_IONO.limits = [];
-            this.PAR_IONO.accepted_values = [];
-            
-            this.PAR_CLK.name = 'Export clock';
-            this.PAR_CLK.descr = '-clk                export common paramter in network';
-            this.PAR_CLK.par = '(-clk)|(-Clk)|(-CLK)';
-            this.PAR_CLK.class = '';
-            this.PAR_CLK.limits = [];
-            this.PAR_CLK.accepted_values = [];
-                        
+                                    
             this.PAR_BAND.name = 'band';
             this.PAR_BAND.descr = 'L<band>            band to be used for single frequency adjustment';
             this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate= 
@@ -264,18 +253,44 @@ classdef Command_Interpreter < handle
             this.PAR_BAND.accepted_values = [];
 
             %  Method parameter
+            
+            this.PAR_M_UNCOMBINED.name = 'Use the Uncombined new experimental engine';
+            this.PAR_M_UNCOMBINED.descr = '-u               (flag) use the new (experimental) uncombined engine';
+            this.PAR_M_UNCOMBINED.par = '(-u)|(-U)|(--uncombined)|(--UNCOMBINED)';
+            this.PAR_M_UNCOMBINED.class = '';
+            this.PAR_M_UNCOMBINED.limits = [];
+            this.PAR_M_UNCOMBINED.accepted_values = [];
+
             this.PAR_M_FREE_NET.name = 'Free network';
-            this.PAR_M_FREE_NET.descr = '-free                let the network free';
-            this.PAR_M_FREE_NET.par = '(-free)|(-Free)|(-FREE)';
+            this.PAR_M_FREE_NET.descr = '--free                let the network free';
+            this.PAR_M_FREE_NET.par = '(-f)(--free)|(--FREE)';
             this.PAR_M_FREE_NET.class = '';
             this.PAR_M_FREE_NET.limits = [];
             this.PAR_M_FREE_NET.accepted_values = [];
         
+            this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
+            this.PAR_M_IONO.descr = '--iono              reduce for ionosphere delay';
+            this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(-IONO)';
+            this.PAR_M_IONO.class = '';
+            this.PAR_M_IONO.limits = [];
+            this.PAR_M_IONO.accepted_values = [];
+            
+            this.PAR_M_CLK.name = 'Export clock';
+            this.PAR_M_CLK.descr = '--clk                export common Parameter in network';
+            this.PAR_M_CLK.par = '(-c)|(-C)|(--clk)|(--Clk)|(--CLK)';
+            this.PAR_M_CLK.class = '';
+            this.PAR_M_CLK.limits = [];
+            this.PAR_M_CLK.accepted_values = [];
+
             this.PAR_M_SEID_PLANE.name = 'Use original plane based SEID';
             this.PAR_M_SEID_PLANE.descr = 'PLANE            (flag) use a plane for the interpolation of the geometry free';
             this.PAR_M_SEID_PLANE.par = '(PLANE)|(plane)|(OLD)|(old)';
+            this.PAR_M_SEID_PLANE.class = '';
+            this.PAR_M_SEID_PLANE.limits = [];
+            this.PAR_M_SEID_PLANE.accepted_values = [];
             
             % Receiver parameter
+            
             this.PAR_R_FROM_OUT.name = 'From OUT';
             this.PAR_R_FROM_OUT.descr = 'FROM_OUT         (flag) use data from Receiver Output object';
             this.PAR_R_FROM_OUT.par = '(FROM_OUT)|(from_out)';
@@ -466,12 +481,12 @@ classdef Command_Interpreter < handle
             this.CMD_PPP.name = {'PPP', 'precise_point_positioning'};
             this.CMD_PPP.descr = 'Precise Point Positioning using carrier phase observations';
             this.CMD_PPP.rec = 'T';
-            this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
+            this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_M_UNCOMBINED];
             
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_IONO this.PAR_CLK this.PAR_BAND this.PAR_M_FREE_NET];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_M_IONO this.PAR_M_CLK this.PAR_BAND this.PAR_M_FREE_NET this.PAR_M_UNCOMBINED];
             
             this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
             this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
@@ -910,7 +925,7 @@ classdef Command_Interpreter < handle
                         end
                         l = par_cmd_id(end);
                     else
-%                         try
+                         try
                             switch upper(tok{1})
                                 case this.CMD_PINIT.name                % PINIT
                                     this.runParInit(tok(2:end));
@@ -969,10 +984,10 @@ classdef Command_Interpreter < handle
                                         this.runOutDet(core.rec, tok);
                                 end
                             end
-%                         catch ex
-%                             this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
-%                             Core_Utils.printEx(ex);
-%                         end
+                        catch ex
+                            this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+                            Core_Utils.printEx(ex);
+                        end
                     end
                 end
             end
@@ -1347,6 +1362,15 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
+                
+                flag_uncombined = false;
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
+                        % use the original plane based interpolation
+                        flag_uncombined = true;
+                    end
+                end
+                
                 for r = id_trg
                     if rec(r).work.isStatic
                         this.log.newLine();
@@ -1356,10 +1380,24 @@ classdef Command_Interpreter < handle
                         if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
                             this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                         else
-                            if sys_found
-                                rec(r).work.staticPPP(sys_list);
-                            else
-                                rec(r).work.staticPPP();
+                            try
+                                if flag_uncombined
+                                    this.log.addWarning('Experimental uncombined engine enabled');
+                                    if sys_found
+                                        rec(r).work.staticPPPNew(sys_list);
+                                    else
+                                        rec(r).work.staticPPPNew();
+                                    end
+                                else
+                                    if sys_found
+                                        rec(r).work.staticPPP(sys_list);
+                                    else
+                                        rec(r).work.staticPPP();
+                                    end
+                                end
+                            catch ex
+                                this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+                                Core_Utils.printEx(ex);
                             end
                         end
                     else
@@ -1369,30 +1407,108 @@ classdef Command_Interpreter < handle
             end
         end
         
-        function runRemSat(this, rec, tok)
-            % Remove satellites from receivers
+        function runNet(this, rec, tok)
+            % Execute Network undifferenced solution
             %
             % INPUT
             %   rec     list of rec objects
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runRemSat(rec, tok)
+            %   this.runNET(rec, tok)
+            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            %             if true
+            %                 rec(id_trg).netPrePro();
+            %             end
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
-                s_idx = 2;
-                for r = id_trg
-                    sats = strsplit(tok{s_idx},',');
-                    for s = 1 : length(sats)
-                        sys_c = sats{s}(1);
-                        prn = str2double(sats{s}(2:3));
-                        rec(r).work.remSat(sys_c, prn);
+                [sys_list, sys_found] = this.getConstellation(tok);
+                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                if ~found_ref
+                    id_ref = id_trg; % Use all the receiver as mean reference
+                end
+                [id_ref] = intersect(id_trg, id_ref);
+                if isempty(id_ref)
+                    this.log.addWarning('No reference have been found, using the mean of the receiver for the computation');
+                end
+                net = this.core.getNetwork(id_trg, rec);
+                net.reset();
+                flag_iono_reduce = false;
+                flag_clk_export = false;
+                flag_uncombined = false;
+                flag_free_network = false;
+                coo_rate = [];
+                fr_id = 1;
+                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);                
+                
+                if found
+                    coo_rate = rate;
+                end
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_IONO.par ')*$'], 'once'))
+                        flag_iono_reduce = true;
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_CLK.par ')*$'], 'once'))
+                        flag_clk_export = true;
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_FREE_NET.par ')*$'], 'once'))
+                        flag_free_network = true;
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
+                        % use the original plane based interpolation
+                        flag_uncombined = true;
+                    end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
+                        fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
+                        fr_id = str2num(tok{t}(fr_id+1));
+                    end
+                end
+                try
+                    if flag_uncombined
+                        this.log.addWarning('Experimental uncombined engine enabled');
+                        net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
+                    else
+                        net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
+                    end
+                catch ex
+                    this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+                    Core_Utils.printEx(ex);
+                end
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
+                        net.exportCrd();
                     end
                 end
             end
+            %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
+                
+        function runRemSat(this, rec, tok)
+                    % Remove satellites from receivers
+                    %
+                    % INPUT
+                    %   rec     list of rec objects
+                    %   tok     list of tokens(parameters) from command line (cell array)
+                    %
+                    % SYNTAX
+                    %   this.runRemSat(rec, tok)
+                    [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+                    if ~found
+                        this.log.addWarning('No target found -> nothing to do');
+                    else
+                        s_idx = 2;
+                        for r = id_trg
+                            sats = strsplit(tok{s_idx},',');
+                            for s = 1 : length(sats)
+                                sys_c = sats{s}(1);
+                                prn = str2double(sats{s}(2:3));
+                                rec(r).work.remSat(sys_c, prn);
+                            end
+                        end
+                    end
+                end
 
         function runRemObs(this, rec, tok)
             % Remove observation from receivers
@@ -1460,74 +1576,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
-        function runNet(this, rec, tok)
-            % Execute Network undifferenced solution
-            %
-            % INPUT
-            %   rec     list of rec objects
-            %   tok     list of tokens(parameters) from command line (cell array)
-            %
-            % SYNTAX
-            %   this.runNET(rec, tok)
-            
-            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-            %             if true
-            %                 rec(id_trg).netPrePro();
-            %             end
-            if ~found
-                this.log.addWarning('No target found -> nothing to do');
-            else
-                [sys_list, sys_found] = this.getConstellation(tok);
-                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-                if ~found_ref
-                    id_ref = id_trg; % Use all the receiver as mean reference
-                end
-                [id_ref] = intersect(id_trg, id_ref);
-                if isempty(id_ref)
-                    this.log.addWarning('No reference have been found, using the mean of the receiver for the computation');
-                end
-                net = this.core.getNetwork(id_trg, rec);
-                net.reset();
-                iono_reduce = false;
-                clk_export = false;
-                free_network = false;
-                coo_rate = [];
-                fr_id = 1;
-                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
-                if found
-                    coo_rate = rate;
-                end
-                for t = 1 : numel(tok)
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_IONO.par ')*$'], 'once'))
-                        iono_reduce = true;
-                    end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_CLK.par ')*$'], 'once'))
-                        clk_export = true;
-                    end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_FREE_NET.par ')*$'], 'once'))
-                        free_network = true;
-                    end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
-                        fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
-                        fr_id = str2num(tok{t}(fr_id+1));
-                    end
-                end
-                %try
-                net.adjust(id_ref, coo_rate, iono_reduce, clk_export, fr_id, free_network);
-                %net.adjustNew(id_ref, coo_rate, iono_reduce, clk_export, free_network);
-                %catch ex
-                %    this.log.addError(['Command_Interpreter - Network solution failed: ' ex.message]);
-                %end
-                for t = 1 : numel(tok)
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
-                        net.exportCrd();
-                    end
-                end
-            end
-            %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
-        end
-        
+                
         function runPseudorangeAlign(this, rec, tok)
             % Execute pseudorange alignement
             %
@@ -1563,6 +1612,7 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                
                 for r = id_trg
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
