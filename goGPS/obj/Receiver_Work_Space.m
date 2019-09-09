@@ -8762,7 +8762,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.quality_info.n_obs = size(ls.obs, 1);
                     this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
                     this.quality_info.n_sat = length(unique(ls.sat_par));
-                    this.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + ls.satellite_obs), this.quality_info.n_epochs ));
+                    this.quality_info.n_sat_max = uint16(max(hist(double(unique(uint32(ls.time_obs.getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000) + uint32(ls.satellite_obs))), uint32(this.quality_info.n_epochs))));
                     
 %                     if this.state.getAmbFixPPP
 %                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
