@@ -2578,7 +2578,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, n_epo, 1))', '%d');
                 
                 % find data lines
-                d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+                d_line = find(~[true(t_line(1), 1); (txt(lim(t_line(1)+1:end,1)) == '>')']);
                 
                 %all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
                 
