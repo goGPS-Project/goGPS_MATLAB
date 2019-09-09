@@ -356,7 +356,7 @@ classdef Meteo_Data < handle
                 this.time = GPS_Time(); % empty the time
                 this.file = File_Rinex(file_name, verbosity_lev);
                 
-                                fid = fopen(file_name,'r');
+                fid = fopen(file_name,'r');
                 txt = fread(fid,'*char')';
                 txt(txt == 13) = []; % remove carriage return - I hate you Bill!
                 fclose(fid);
@@ -381,6 +381,7 @@ classdef Meteo_Data < handle
                 eoh = this.file.eoh;
             catch ex
                 this.log.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
+                Core_Utils.printEx(ex);
                 return
             end
 
