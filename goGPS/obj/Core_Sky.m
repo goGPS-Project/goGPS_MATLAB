@@ -205,6 +205,20 @@ classdef Core_Sky < handle
                             this.clock = this.clock(1 : find(any(this.clock(:,:),2), 1, 'last'),:,:);
                         end
                     end
+                    
+                    % Very simple fill of missing clocks, but if they are bad, data are rejected
+                    % in normal conditions clocks have no gaps, but sometimes BNC are not logged
+                    % this.clock = nan2zero(zero2nan(this.clock) - median(zero2nan(this.clock), 2, 'omitnan'));
+                    % for s = 1 : size(this.clock, 2)
+                    %     if any(isnan(zero2nan(serialize(this.clock(:,s)))))
+                    %         data = zero2nan(this.clock(:,s));
+                    %         id_ok = find(~isnan(data));
+                    %         if numel(id_ok) > 3
+                    %             id_ko = find(isnan(data));
+                    %             this.clock(id_ko,s) = nan2zero(interp1(id_ok, this.clock(id_ok,s), id_ko, 'linear', nan));
+                    %         end
+                    %     end
+                    % end
                 end
                 
                 % Interp clock, not necessary since they are always interpolated
