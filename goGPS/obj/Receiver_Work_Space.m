@@ -8951,7 +8951,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                ls = LS_Manipulator(cc);
+                ls = LS_Manipulator(Core.getConstellationCollector);
                 id_sync = ls.setUpPPP(this, id_sync, this.state.getCutOff, true);
                 ls.Astack2Nstack();
                 
