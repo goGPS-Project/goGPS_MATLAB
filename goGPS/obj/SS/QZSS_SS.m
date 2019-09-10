@@ -71,7 +71,7 @@ classdef QZSS_SS < Satellite_System
         PRN = (1 : 9)';      % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'ZXLSC ' 'XLS ', 'XIQ ', 'XLS '}; % last letter of the observation code
+        CODE_RIN3_ATTRIB  = {'ZXLSC F' 'XLS F', 'XIQ F', 'XLS F'}; % last letter of the observation code
         CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'S' 'Q' 'S'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '1256';                        % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['12';'15';'16';'25';'26';'56']; % to be evaluated which combination is really better
