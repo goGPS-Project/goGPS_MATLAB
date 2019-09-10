@@ -208,7 +208,7 @@ classdef File_Rinex < Exportable
                         eof = false;
                         par_to_find = 4;
                         %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
-                        while (length(line) > 61) && (line(61) ~= 'E') && not(eof)
+                        while ~((length(line) > 61) && (line(61) == 'E')) && not(eof)
                             l = l + 1;
                             if l > size(lim, 1)
                                 % out of buffer
@@ -274,6 +274,22 @@ classdef File_Rinex < Exportable
                             this.first_epoch.addEpoch(date_start, [], true);
                         else
                             l = l + 1;
+                            if l > size(lim, 1)
+                                % out of buffer
+                                % read block:
+                                buf = [buf char(fread(fid, 1e4))'];
+                                
+                                % get new line separators
+                                nl = regexp(buf, '\n')';
+                                if nl(end) <  (numel(buf) - double(has_cr))
+                                    nl = [nl; numel(buf)];
+                                end
+                                lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                                lim = [lim lim(:,2) - lim(:,1)];
+                                while lim(end,3) < 3
+                                    lim(end,:) = [];
+                                end
+                            end
                             epoch_line = buf(lim(l,1) : lim(l,2));
                             % try to guess the time format
                             [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
