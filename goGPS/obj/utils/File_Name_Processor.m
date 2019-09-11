@@ -263,9 +263,7 @@ classdef File_Name_Processor < handle
             % Get recursive file list
             %
             % SYNTAX
-            %   file_list_out = findFiles(dir_path_list, prefix)
-            
-            
+            %   file_list_out = findFiles(dir_path_list, prefix)                        
             file_list_out = cell(0);
             % make base_dir a cell
             if ~iscell(dir_path_list)

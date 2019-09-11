@@ -75,6 +75,7 @@ classdef Command_Interpreter < handle
         CMD_NET         % Network undifferenced solution
         CMD_PSRALIGN    % Pseudorange alignement
         CMD_SEID        % SEID processing (synthesise L2)
+        CMD_SID        % SID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
@@ -150,7 +151,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -494,12 +495,17 @@ classdef Command_Interpreter < handle
             this.CMD_PSRALIGN.par = [];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
-            this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
+            this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SEID (Satellite specific Epoch differenced Ionospheric Delay model)'];
             this.CMD_SEID.rec = 'RT';
             this.CMD_SEID.par = [this.PAR_M_SEID_PLANE];
 
+            this.CMD_SID.name = {'SID', 'synthesise_L2'};
+            this.CMD_SID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SID (Satellite specific Ionospheric Delay model)' new_line 'New SEID approch based on a joint Least Squares estimation instead of time differenciation'];
+            this.CMD_SID.rec = 'RT';
+            this.CMD_SID.par = [];
+
             this.CMD_REMIONO.name = {'REMIONO', 'remove_iono'};
-            this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
+            this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver' new_line 'using n (dual frequencies) reference stations' new_line 'Sligthly different approach w.r.t. SEID'];
             this.CMD_REMIONO.rec = 'RT';
             this.CMD_REMIONO.par = [];
             
@@ -740,7 +746,7 @@ classdef Command_Interpreter < handle
                 '\n ENDFOR', ...
                 '\n PKILL', ...
                 '\n SHOW T* ZWD', ...
-                '\n\n# PPP + SEID processing', ...
+                '\n\n# PPP + SID processing', ...
                 '\n# 4 reference stations \n# + one L1 target', ...
                 '\n# @30 seconds rate GPS', ...
                 '\n\n FOR S*' ...
@@ -749,7 +755,7 @@ classdef Command_Interpreter < handle
                 '\n       PREPRO T$', ...
                 '\n    ENDFOR', ...
                 '\n    PPP T1:4', ...
-                '\n    SEID R1:4 T5', ...
+                '\n    SID R1:4 T5', ...
                 '\n    PPP T5', ...
                 '\n    PUSHOUT T*', ...
                 '\n ENDFOR', ...
@@ -976,6 +982,8 @@ classdef Command_Interpreter < handle
                                         this.runPseudorangeAlign(core.rec, tok(2:end));
                                     case this.CMD_SEID.name                 % SEID
                                         this.runSEID(core.rec, tok(2:end));
+                                    case this.CMD_SID.name                  % SID
+                                        this.runSID(core.rec, tok(2:end));
                                     case this.CMD_REMIONO.name              % REMIONO
                                         this.runRemIono(core.rec, tok(2:end));
                                     case this.CMD_SYNC.name                 % SYNC
@@ -1661,6 +1669,29 @@ classdef Command_Interpreter < handle
                         flag_use_mf = false;
                         tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'distance', flag_use_mf); toc;
                     end
+                end
+            end
+        end
+        
+        function runSID(this, rec, tok)
+            % Synthesise L2 observations on a target receiver given a set of dual frequency reference stations
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runSID(rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found => nothing to do');
+            else
+                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                
+                if ~found_ref
+                    this.log.addWarning('No reference SID station found -> nothing to do');
+                else
+                    tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'ls', false); toc;
                 end
             end
         end

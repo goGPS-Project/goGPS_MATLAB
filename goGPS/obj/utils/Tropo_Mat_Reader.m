@@ -50,13 +50,26 @@ classdef Tropo_Mat_Reader
     
     methods (Static)
         % Creator
-        function this = Tropo_Mat_Reader(base_dir, marker)
-            % Tropo_Mat_Receiver object creator
-            this.base_dir = base_dir;
-            this.marker = marker;
+        function this = Tropo_Mat_Reader(file_list_base_dir, marker)
             
-            file_list = File_Name_Processor.findFiles(base_dir, marker);
-            file_list = sort(file_list);
+            if nargin == 2
+                % Tropo_Mat_Receiver object creator
+                if ~iscell(file_list_base_dir)
+                    base_dir = {file_list_base_dir};
+                else
+                    base_dir = file_list_base_dir;
+                end
+                file_list = {};
+                for d = 1 : numel(base_dir)
+                    this.base_dir = base_dir{d};
+                    this.marker = marker;
+                    
+                    file_list = [file_list sort(File_Name_Processor.findFiles(base_dir{d}, marker))];
+                end
+                file_list = sort(file_list);
+            else
+                file_list = file_list_base_dir;
+            end
             first_epoch = [];
             i = 0;
             for f = 1 : numel(file_list)
