@@ -842,6 +842,7 @@ classdef Core_SEID < handle
             id_bia = size(data_pr, 2);
             y0 = zeros(n_obs,1);
             sigma = zeros(n_obs,1);
+            low_cost_effects = 5; % Consider pseudoranges 10 times worse than expected
             for r = 1 : size(data_pr, 2)
                 % pseudo-ranges - one bias per receiver
                 id_r = offset(~isnan(data_pr(:,r)));
@@ -850,7 +851,7 @@ classdef Core_SEID < handle
                     A(n, r) = 1;
                     A(n(:) + (n_bia + id_r(:) - 1) * n_obs) = 1;
                     y0(n) = data_pr(~isnan(data_pr(:,r)), r);
-                    sigma(n) = sigma_pr(r) .* w(~isnan(data_pr(:,r)), r);
+                    sigma(n) = (low_cost_effects * sigma_pr(r)) ./ w(~isnan(data_pr(:,r)), r);
                 end
                 
                 % phases - one bias per arc
@@ -863,7 +864,7 @@ classdef Core_SEID < handle
                         A(n, id_bia) = 1;
                         A(n(:) + (n_bia + id_r(:) - 1) * n_obs) = 1;
                         y0(n) = data_ph(lim(l,1) : lim(l,2), r);
-                        sigma(n) = sigma_ph(r) .* w(lim(l,1) : lim(l,2), r);
+                        sigma(n) = sigma_ph(r) ./ w(lim(l,1) : lim(l,2), r);
                     end
                 end
             end
@@ -881,9 +882,10 @@ classdef Core_SEID < handle
             x = N\b;
             
             % gettin the result
-            data_q = zeros(size(data_pr,1), 1);
+            data_q = nan(size(data_pr,1), 1);
             data_q(id_ok) = x((n_bia +1) : end - 1);
-
+            
+            data_q = zero2nan(data_q);
             % figure(100); imagesc(A)
             % fnum = 103;
             % figure(fnum); clf; dockAllFigures
