@@ -3339,7 +3339,7 @@ classdef GNSS_Station < handle
             
             [tropo_grid, x_grid, y_grid, time, tropo_height_correction, tropo_clim] = sta_list.getTropoMap(par_name, rate);
             if flag_dtm == 1
-                tropo_grid = tropo_grid + tropo_height_correction;
+                tropo_grid = tropo_grid + repmat(tropo_height_correction,1,1,size(tropo_grid,3));
             end
             
             if flag_dtm == 2
@@ -3360,9 +3360,9 @@ classdef GNSS_Station < handle
                 case 'zhd'
                 case 'nsat'
             end
-            %cmap = Cmap.get('c51',512);
-            %colormap(flipud(cmap(2:end,:)));
-            colormap(Cmap.smoothMap(Cmap.noaaRain));
+            cmap = Cmap.get('c51',512);
+            colormap(flipud(cmap(2:end,:)));
+            %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
             % redraw boxes
             m_grid('box','fancy','tickdir','in', 'fontsize', 16);
@@ -3388,7 +3388,11 @@ classdef GNSS_Station < handle
             %     ylabel('Latitude [deg]');
             % end
             
-            th = title(sprintf([par_str ' map @%s at sea level\\fontsize{5} \n'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+            if flag_dtm == 1
+                th = title(sprintf([par_str ' map @%s at ground level\\fontsize{5} \n'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+            else
+                th = title(sprintf([par_str ' map @%s at sea level\\fontsize{5} \n'], time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 20);
+            end
             
             if flag_dtm == 2  
                 %tropo_clim(2,:) = [max(0, tropo_clim(1) + min(tropo_height_correction(:))) (tropo_clim(2) + max(tropo_height_correction(:)))];
