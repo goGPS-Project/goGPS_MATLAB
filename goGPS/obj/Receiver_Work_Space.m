@@ -7444,24 +7444,24 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % check if the epochs are present
                 % getting the observation set that is going to be used in
                 % setUPSA
-                obs_set = Observation_Set();
-                if this.isMultiFreq() %% case multi frequency
-                    for sys_c = this.getActiveSys()
-                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
-                    end
-                else
-                    for sys_c = this.getActiveSys()
-                        f = this.getFreqs(sys_c);
-                        if ~isempty(f)
-                            obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
-                        end
-                    end
-                end
                 
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
+                    obs_set = Observation_Set();
+                    if this.isMultiFreq() %% case multi frequency
+                        for sys_c = this.getActiveSys()
+                            obs_set.merge(this.getPrefIonoFree('C', sys_c));
+                        end
+                    else
+                        for sys_c = this.getActiveSys()
+                            f = this.getFreqs(sys_c);
+                            if ~isempty(f)
+                                obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                            end
+                        end
+                    end
                     s0 = this.coarsePositioning(obs_set);
                 else
-                    s0 = 5;
+                    s0 = iif(this.hasGoodApriori, 0.1, 5);
                     this.xyz = Core.getReferenceFrame.getCoo(this.parent.getMarkerName4Ch,this.time.getCentralTime);
                 end
                 
@@ -7475,26 +7475,58 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.log.addMessage(this.log.indent('Improving estimation'))
                     
-                    this.codeStaticPositioning(this.id_sync, this.state.cut_off);
-                    %                 %----- NEXUS DEBUG
-                    %                 this.adjustPrAmbiguity();
-                    %                 this.codeStaticPositioning(this.id_sync, 15);
-                    %------
+                    if ~this.hasGoodApriori()
+                        this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                        %                 %----- NEXUS DEBUG
+                        %                 this.adjustPrAmbiguity();
+                        %                 this.codeStaticPositioning(this.id_sync, 15);
+                        %------
+                    else
+                       % Outlier detection on code
+                       if Core.getState.isOutlierRejectionOn
+                           %% This happens when bad orbits are provided (e.g. interpolated missing data)
+                           [pr , id_pr] = this.getPseudoRanges;
+                           pr_res = pr - this.getSyntPrObs;
+                           median_res = median(pr_res, 2, 'omitnan');
+                           id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters                           
+                           if any(id_ko(:))
+                               this.log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
+                           end
+                           id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
+                           n_out = sum(id_ko(:)) ;
+                           pr_res(id_ko) = nan;
+                           
+                           % sensor = Core_Utils.diffAndPred(pr_res);
+                           sensor = pr_res;
+                           sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10, 5); % flag above 6 meters                           
+                           if any(id_ko(:))
+                               n_out = sum(id_ko(:)) ;
+                               this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
+                           end
+                           pr(id_ko) = nan;
+                               this.setPseudoRanges(pr, id_pr);
+                           
+                       end
+                       rw_loops = 0; % number of re-weight loops                       
+                    end
                     this.remBadTracking();
                     
-                    this.updateAllTOT();
-                    this.log.addMessage(this.log.indent('Final estimation'))
-                    corr = 2000;
-                    i = 1;
-                    while max(abs(corr)) > 0.1 && i < 3
-                        rw_loops = 0; % number of re-weight loops
-                        [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
-                        % final estimation of time of flight
-                        this.updateAllAvailIndex()
-                        this.updateAllTOT(true);
-                        i = i+1;
+                    if ~this.hasGoodApriori
+                        this.updateAllTOT();
+                        this.log.addMessage(this.log.indent('Final estimation'))
+                        corr = 2000;
+                        i = 1;
+                        while max(abs(corr)) > 0.1 && i < 3
+                            rw_loops = 0; % number of re-weight loops
+                            [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                            % final estimation of time of flight
+                            this.updateAllAvailIndex()
+                            this.updateAllTOT(true);
+                            i = i+1;
+                        end
                     end
-                    % a bit of outlier detection does not hurt nobody
+                    % A bit of outlier detection does not hurt nobody
                     sensor = this.sat.res;
                     for s = 1 : size(sensor,2)
                         sensor(:,s)  = zero2nan(sensor(:,s)) - median(sensor(:,s));
@@ -7508,6 +7540,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.setPseudoRanges(pr, id_pr);
                     [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
                     this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
+                else
+                    this.log.addMessage(this.log.indent(sprintf('A good a-rpiori is set, skipping pre estimation of the coordinates') ))
                 end
             end
         end
