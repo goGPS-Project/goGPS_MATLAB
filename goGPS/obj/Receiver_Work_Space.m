@@ -1279,7 +1279,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % this indicates the 75% level of time variation of the observations (it is usually less than 1 cm)
-            diff75 = perc(abs(Core_Utils.diffAndPred(sensor_ph(:))), 0.75);
+            %diff75 = perc(abs(Core_Utils.diffAndPred(sensor_ph(:))), 0.75);
             
             % first rough out detection ------------------------------------------------------------------
             % This mean should be less than 10cm, otherwise the satellite have some very bad observations
