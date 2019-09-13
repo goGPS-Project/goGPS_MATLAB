@@ -7475,6 +7475,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.log.addMessage(this.log.indent('Improving estimation'))
                     
+                    rf_changed = false;
                     if ~this.hasGoodApriori()
                         this.codeStaticPositioning(this.id_sync, this.state.cut_off);
                         %                 %----- NEXUS DEBUG
@@ -7505,7 +7506,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                                this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
                            end
                            pr(id_ko) = nan;
+                           if any(pr(:))
                                this.setPseudoRanges(pr, id_pr);
+                           elseif n_out > 0
+                               % No data are present                               
+                               % The good position was not so good
+                               this.log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
+                               
+                               rf_changed = true;
+                               rf = Core.getReferenceFrame;
+                               rf.setFlag(this.parent.getMarkerName4Ch, 1);
+                               this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                           end
                            
                        end
                        rw_loops = 0; % number of re-weight loops                       
@@ -7539,6 +7551,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.setPseudoRanges(pr, id_pr);
                     [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                    
+                    if rf_changed
+                        % restore flag in reference frame object
+                        rf.setFlag(this.parent.getMarkerName4Ch, 3);
+                    end
                     this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
                 else
                     this.log.addMessage(this.log.indent(sprintf('A good a-rpiori is set, skipping pre estimation of the coordinates') ))
