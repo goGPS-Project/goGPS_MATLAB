@@ -38,10 +38,7 @@ classdef Core_Reference_Frame < handle
         FLAG_STRING = {'0) rough position', '1) a-priori','2) Fixed', '3) Fixed for PREPRO'};
     end
     
-    properties
-        state
-        log
-        
+    properties        
         station_code
         xyz
         vxvyvz
@@ -57,8 +54,6 @@ classdef Core_Reference_Frame < handle
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
-            this.state = Core.getCurrentSettings();
-            this.log = Logger.getInstance();
         end
     end
     
@@ -69,15 +64,14 @@ classdef Core_Reference_Frame < handle
             % SYNTAX:
             % this.init()
             
-            this.state = Core.getCurrentSettings();
             if nargin == 2
-                this.state.setCrdFile(crd_file);
+                Core.getState.setCrdFile(crd_file);
             end
             
             this.clear();
             this.is_valid = true;
             try
-                fname = this.state.getCrdFile();
+                fname = Core.getState.getCrdFile();
                 this.load(fname);
             catch
                 this.is_valid = false;
@@ -86,7 +80,7 @@ classdef Core_Reference_Frame < handle
             end
         end
         
-         function load(this, crd_file)
+        function load(this, crd_file)
             % initilize the reference frame object loading coordinates from
             % crd file
             %
@@ -95,61 +89,61 @@ classdef Core_Reference_Frame < handle
             
             this.clear();
             this.is_valid = true;
-                if ~isempty(crd_file)
-                    fid = fopen([crd_file],'r');
-                    if fid == -1
-                        this.log.addWarning(sprintf('Core RF: File %s not found', crd_file));
-                        return
-                    end
-                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', crd_file)));
-                    txt = fread(fid,'*char')';
-                    fclose(fid);
-                    
-                    % get new line separators
-                    nl = regexp(txt, '\n')';
-                    if nl(end) <  numel(txt)
-                        nl = [nl; numel(txt)];
-                    end
-                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-                    lim = [lim lim(:,2) - lim(:,1)];
-                    if lim(end,3) < 3
-                        lim(end,:) = [];
-                    end
-                    header_line = find(txt(lim(:,1)) == '#');
-                    lim(header_line,:) = [];
-                    %initilaize array
-                    n_sta = size(lim,1);
-                    
-                    this.station_code = {};
-                    this.xyz = zeros(n_sta,3);
-                    this.vxvyvz = zeros(n_sta,3);
-                    this.flag = zeros(n_sta,1);
-                    re_date = zeros(n_sta,1);
-                    st_date = zeros(n_sta,1);
-                    en_date = zeros(n_sta,1);
-                    for i = 1:n_sta
-                        line = txt(lim(i,1):lim(i,2));
-                        parts = strsplit(line);
-                        l = length(parts);
-                        this.station_code(i) = parts(1);
-                        this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
-                        if l > 4
-                            this.flag(i) = str2double(parts{5});
-                            if l > 7
-                                this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
-                                if l > 9
-                                    st_date(i) = datenum([parts{9} ' ' parts{10}]);
-                                    if l > 11
-                                        en_date(i) = datenum([parts{11} ' ' parts{12}]);
-                                    end
+            if ~isempty(crd_file)
+                fid = fopen([crd_file],'r');
+                if fid == -1
+                    Core.getLogger.addWarning(sprintf('Core RF: File %s not found', crd_file));
+                    return
+                end
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', crd_file)));
+                txt = fread(fid,'*char')';
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                header_line = find(txt(lim(:,1)) == '#');
+                lim(header_line,:) = [];
+                %initilaize array
+                n_sta = size(lim,1);
+                
+                this.station_code = {};
+                this.xyz = zeros(n_sta,3);
+                this.vxvyvz = zeros(n_sta,3);
+                this.flag = zeros(n_sta,1);
+                re_date = zeros(n_sta,1);
+                st_date = zeros(n_sta,1);
+                en_date = zeros(n_sta,1);
+                for i = 1:n_sta
+                    line = txt(lim(i,1):lim(i,2));
+                    parts = strsplit(line);
+                    l = length(parts);
+                    this.station_code(i) = parts(1);
+                    this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
+                    if l > 4
+                        this.flag(i) = str2double(parts{5});
+                        if l > 7
+                            this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
+                            if l > 9
+                                st_date(i) = datenum([parts{9} ' ' parts{10}]);
+                                if l > 11
+                                    en_date(i) = datenum([parts{11} ' ' parts{12}]);
                                 end
                             end
                         end
                     end
-                    this.start_validity_epoch = GPS_Time(st_date);
-                    en_date(en_date == 0)     = datenum(2099, 1,1);
-                    this.end_validity_epoch   = GPS_Time(en_date);
                 end
+                this.start_validity_epoch = GPS_Time(st_date);
+                en_date(en_date == 0)     = datenum(2099, 1,1);
+                this.end_validity_epoch   = GPS_Time(en_date);
+            end
         end
         
         function clear(this)
@@ -200,57 +194,55 @@ classdef Core_Reference_Frame < handle
             end
         end
         
-        function setCoo(this, sta_name, xyz, flag, vxvyvz, start_validity_epoch, end_validity_epoch)
+        function setCoo(this, sta_name, xyz, flag, vxvyvz, start_validity_epoch, end_validity_epoch, flag_overwrite)
             % set the coordiates at the reference epoch
             %
             % SYNTAX:
             %  this.setCoo(sta_name, xyz)
-             % load RF if not loaded
+            % load RF if not loaded            
+            
             if ~this.isValid()
                 if exist(Core.getState.getCrdFile, 'file') == 2
                     this.init();
                 end
             end
-            
-                
-                if length(sta_name) == 4
-                    idx_sta = find(strcmpi(this.station_code, sta_name),1 , 'first');
-                    if sum(idx_sta) > 0
-                        this.xyz(idx_sta,:) = xyz;
-                        if nargin > 3 && ~isempty(flag)
-                            this.flag(idx_sta) = flag;
-                        end
-                        if nargin > 4 && ~isempty(vxvyvz)
-                            this.vxvyvz(idx_sta,:) = vxvyvz;        
-                        end
-                        
-                        if nargin > 5 && ~isempty(start_validity_epoch)
-                            this.start_validity_epoch.setEpoch(idx_sta,start_validity_epoch);
-                        end
-                        if nargin > 6 && ~isempty(end_validity_epoch)
-                            this.end_validity_epoch.setEpoch(idx_sta,end_validity_epoch);
-                        end
+            if length(sta_name) == 4
+                idx_sta = find(strcmpi(this.station_code, sta_name),1 , 'first');
+                if sum(idx_sta) > 0
+                    this.xyz(idx_sta,:) = xyz;
+                    if nargin > 3 && ~isempty(flag)
+                        this.flag(idx_sta) = flag;
+                    end
+                    if nargin > 4 && ~isempty(vxvyvz)
+                        this.vxvyvz(idx_sta,:) = vxvyvz;
+                    end
+                    
+                    if nargin > 5 && ~isempty(start_validity_epoch)
+                        this.start_validity_epoch.setEpoch(idx_sta,start_validity_epoch);
+                    end
+                    if nargin > 6 && ~isempty(end_validity_epoch)
+                        this.end_validity_epoch.setEpoch(idx_sta,end_validity_epoch);
+                    end
+                else
+                    this.xyz = [this.xyz; xyz];
+                    this.station_code{end+1} = sta_name;
+                    this.flag = [this.flag; flag];
+                    this.vxvyvz = [this.vxvyvz; vxvyvz];
+                    if isempty(this.start_validity_epoch)
+                        this.start_validity_epoch = start_validity_epoch;
                     else
-                        this.xyz = [this.xyz; xyz];
-                        this.station_code{end+1} = sta_name;
-                        this.flag = [this.flag; flag];
-                        this.vxvyvz = [this.vxvyvz; vxvyvz];
-                        if isempty(this.start_validity_epoch)
-                            this.start_validity_epoch = start_validity_epoch;
-                        else
-                            this.start_validity_epoch.append(start_validity_epoch);
-                            
-                        end
-                        if isempty(this.end_validity_epoch)
-                            this.end_validity_epoch = end_validity_epoch;
-                        else
-                            this.end_validity_epoch.append(end_validity_epoch);
-                            
-                        end
+                        this.start_validity_epoch.append(start_validity_epoch);
+                        
+                    end
+                    if isempty(this.end_validity_epoch)
+                        this.end_validity_epoch = end_validity_epoch;
+                    else
+                        this.end_validity_epoch.append(end_validity_epoch);
+                        
                     end
                 end
+            end
         end
-            
         
         function crx_list = getEntryCell(this)
             % Get the list of CORD entries in the format:
@@ -348,6 +340,15 @@ classdef Core_Reference_Frame < handle
             end
         end
         
+        function flag = getFlag(this, sta_code)
+            % Get the falg [fixed approximate] for the station sta code
+            %
+            % SYNTAX:
+            %  this.setFlag(sta_code,flag)
+            sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
+            flag = this.flag(sta_idx);
+        end
+        
         function importTableData(this, data)
             % Import from table (GUI) format to Core_Reference_Frame
             %
@@ -376,17 +377,17 @@ classdef Core_Reference_Frame < handle
                 this.vxvyvz = [[data{:,8}]' [data{:,9}]' [data{:,10}]'];
                 
                 % epochs
-                date = []; 
+                date = [];
                 for i = 1 : size(data,1)
                     try
                         date(i) = datenum(iif(isempty(data{i,6}), '1980/01/01 00:00:00', data{i,6}), 'yyyy/mm/dd HH:MM:SS');
                     catch ex
                         % not valid epoch
-                        date(i) = datenum('1980/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS'); 
+                        date(i) = datenum('1980/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS');
                     end
                 end
                 this.start_validity_epoch = GPS_Time(date');
-
+                
                 date = [];
                 for i = 1 : size(data,1)
                     try

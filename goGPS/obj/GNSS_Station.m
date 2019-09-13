@@ -762,16 +762,18 @@ classdef GNSS_Station < handle
             end
         end
         
-        function printCrd(sta_list)
+        function printCrd_goGet(sta_list)
             % return at screen the CRD in goGet format
             %
             % SYNTAX
             %   coo = sta_list.printCrd()            
-            crd = reshape(sta_list.getPosXYZ_mr, 3, numel(sta_list))';
+            crd = reshape(sta_list.getMedianPosXYZ, 3, numel(sta_list))';
             coo = sta_list.getPos;
             for r = 1 : numel(sta_list)
                 [lat, lon] = coo(r).getGeodetic();
-                fprintf('%4s_%04d_%04d     %13.4f %13.4f %13.4f 1\n', upper(sta_list(r).getMarkerName4Ch), round(90 - lat/pi*180)*10, round(mod(lon/pi*180,360)*10), crd(r, 1), crd(r, 2), crd(r, 3))
+                lat = median(lat, 'omitnan');
+                lon = median(lon, 'omitnan');
+                fprintf('%4s_%04d_%04d     %13.4f %13.4f %13.4f 1\n', upper(sta_list(r).getMarkerName4Ch), round((90 - lat/pi*180)*10), round(mod(lon/pi*180,360)*10), crd(r, 1), crd(r, 2), crd(r, 3))
             end
         end
 
@@ -4944,6 +4946,39 @@ classdef GNSS_Station < handle
             set(gca,'fontweight','bold','fontsize',16)
             
             
+        end
+        
+        function exportCRD(sta_list, mode, flag)
+            % fix the position of the receiver into the reference frame
+            % object
+            %
+            % SYNTAX:
+            %  sta_list.fixPos(mode)
+            
+            %create a new RF
+            rf = Core_Reference_Frame;
+            if nargin < 3 || isempty(flag)
+                flag = 3; % use this coordinate for prepro
+            end
+            if nargin <2 || isempty(mode)
+                mode = 'out'; % use median out coordinates
+            end
+            
+            for s = 1 : length(sta_list)
+                if strcmpi(mode,'out') || isempty(sta_list(s).out) || (sta_list(s).out.isEmpty)
+                    xyz = sta_list(s).out.getPosXYZ();
+                    xyz = xyz(end,:);
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                else %if strcmpi(mode,'work') % get from work
+                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                end
+            end
+            
+            out_dir = Core.getState.getOutDir();
+            out_file_name = fullfile(out_dir, sprintf('coordinates_%s.crd',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
+            Core.getLogger.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));            
+            rf.export(out_file_name);
         end
         
         function fixPos(sta_list, mode)
