@@ -118,7 +118,11 @@ classdef Core_SEID < handle
                 % get synced tuime
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
                 
-                log.addMarkedMessage('Starting SEID processing')
+                if strcmp(method, 'ls')
+                    log.addMarkedMessage('Starting SID processing')
+                else
+                    log.addMarkedMessage('Starting SEID processing')
+                end
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
                 systems = unique(ref(1).system);
                 for r = 1 : numel(ref)
@@ -173,12 +177,22 @@ classdef Core_SEID < handle
                     
                     % Get pierce point
                     [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
-                    az = pr_ref_gf(r).az;
-                    el = pr_ref_gf(r).el;
-                    az(isnan(az) == 0) = ph_ref_gf(r).az(isnan(az) == 0);
-                    el(isnan(el) == 0) = ph_ref_gf(r).el(isnan(el) == 0);
+                    n_max_sat = max([ph_ref_gf(r).go_id; pr_ref_gf(r).go_id]);
+                    az = nan(size(pr_ref_gf(r).az, 1), n_max_sat);
+                    el = nan(size(pr_ref_gf(r).az, 1), n_max_sat);
+                    for s = 1 : numel(pr_ref_gf(r).go_id)
+                        go_id = pr_ref_gf(r).go_id(s);
+                        az(:, go_id) = pr_ref_gf(r).az(:, s);
+                        el(:, go_id) = pr_ref_gf(r).el(:, s);
+                    end
+                    for s = 1 : numel(ph_ref_gf(r).go_id)
+                        go_id = ph_ref_gf(r).go_id(s);
+                        az(isnan(az(:,go_id)) == 0, go_id) = ph_ref_gf(r).az(isnan(az(:,go_id)) == 0, s);
+                        el(isnan(el(:,go_id)) == 0, go_id) = ph_ref_gf(r).el(isnan(el(:,go_id)) == 0, s);
+                    end
+
                     [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = deal(nan(size(pr_ref_gf(r).az)));
-                    [pierce_point(r).lat(:, pr_ref_gf(r).go_id), pierce_point(r).lon(:, pr_ref_gf(r).go_id), pierce_point(r).mf(:, pr_ref_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, zero2nan(az / 180 * pi), zero2nan(el / 180 * pi), Core_SEID.getThinShellHeight());
+                    [pierce_point(r).lat(:, pr_ref_gf(r).go_id), pierce_point(r).lon(:, pr_ref_gf(r).go_id), pierce_point(r).mf(:, pr_ref_gf(r).go_id)] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, zero2nan(az(:, pr_ref_gf(r).go_id) / 180 * pi), zero2nan(el(:, pr_ref_gf(r).go_id) / 180 * pi), Core_SEID.getThinShellHeight());
                 end
                 
                 max_sat = 0;
@@ -319,6 +333,8 @@ classdef Core_SEID < handle
                         % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
                         
                         if strcmp(method, 'ls')
+                            id_ko = movstd(Core_Utils.diffAndPred(trg_gf(:,s), 2), 10) > 0.01;
+                            trg_gf(id_ko) = nan;
                             trg_ph_gf = trg_gf;
                             trg_pr_gf = trg_gf;
                         else                            
@@ -354,7 +370,9 @@ classdef Core_SEID < handle
                             %trg_ph_gf = cumsum(nan2zero(trg_ph_gf));
                             %trg_ph_gf(inan) = nan;
                         end
-                        
+                        %for s = 1:32
+                        %    figure(100+s); clf; dockAllFigures; plot(movstd(Core_Utils.diffAndPred(trg_ph_gf(:,s), 2),10)); hold on; plot(movstd(Core_Utils.diffAndPred(trg_gf(:,s), 2),10));
+                        %end
                         %                     wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
                         %                     wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
                         ph2 = nan(size(ph1_trg));
