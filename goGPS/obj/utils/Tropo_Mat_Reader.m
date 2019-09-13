@@ -139,12 +139,13 @@ classdef Tropo_Mat_Reader
             end
         end
         
-        function showENU(this)
+        function showENU(this, color)
             % Show ENU position variations
             if ~isempty(this.data_set)
-                f = figure; f.Name = sprintf('%03d: ENU %s ', f.Number, this.marker); f.NumberTitle = 'off';
-                        
-                colormap(flipud(gat2));
+                if nargin < 2
+                    f = figure; f.Name = sprintf('%03d: ENU %s ', f.Number, this.marker); f.NumberTitle = 'off';
+                end
+                
                 for i = 1 : numel(this.data_set)
                     enu(i,:) = this.data_set(i).coo.getENU();
                     tmp = this.data_set(i).time.getCentralTime.getCopy(); tmp.toUtc();
@@ -153,13 +154,22 @@ classdef Tropo_Mat_Reader
                 enu = enu - repmat(median(enu, 'omitnan'), size(enu,1), 1); % enu wrt first epoch                
                 for a = 1: 3
                     subplot(3,1,a);
-                    plot(time, enu(:,a) * 1e3, '.', 'MarkerSize', 10, 'Color', Core_UI.getColor(a,3)); hold on;
+                    if nargin < 2
+                        plot(time, enu(:,a) * 1e3, '.', 'MarkerSize', 10, 'Color', Core_UI.getColor(a,3)); hold on;
+                    else
+                        plot(time, enu(:,a) * 1e3, 'o', 'Color', color); hold on;
+                    end
                 end
                 ax = [];
                 label = {'East [mm]', 'North [mm]', 'Up [mm]'};
                 for a = 3:-1:1
                     ax(a) = subplot(3,1,a);
-                    h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                    cur_ax = get(ax(a));
+                    if nargin < 2
+                        h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                    else                        
+                        h = title(sprintf('%s vs std %.2f [cm]', cur_ax.Title.String, sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                    end
                     setTimeTicks(10,'mmm-dd HH:MM');
                     h = ylabel(label{a}); h.FontWeight = 'bold';
                     grid on;
@@ -169,16 +179,22 @@ classdef Tropo_Mat_Reader
             end
         end
         
-        function showAllTropoPar(this, tropo_par)
+        function showAllTropoPar(this, tropo_par, color)
             if ~isempty(this.data_set)
-                f = figure; f.Name = sprintf('%03d: %s %s ', f.Number, upper(tropo_par), this.marker); f.NumberTitle = 'off';
+                if nargin < 3
+                    f = figure; f.Name = sprintf('%03d: %s %s ', f.Number, upper(tropo_par), this.marker); f.NumberTitle = 'off';
+                end
                 colormap(flipud(gat2));
                 min_time = inf;
                 max_time = -inf;
                 for i = 1 : numel(this.data_set)
                     min_time = min(min_time, min(this.data_set(i).utc_time));
                     max_time = max(max_time, max(this.data_set(i).utc_time));
-                    scatter(this.data_set(i).utc_time, this.data_set(i).(lower(tropo_par)) .* 1e2, 10, this.data_set(i).utc_time(end) - this.data_set(i).utc_time, 'filled'); hold on
+                    if nargin < 3
+                        scatter(this.data_set(i).utc_time, this.data_set(i).(lower(tropo_par)) .* 1e2, 10, this.data_set(i).utc_time(end) - this.data_set(i).utc_time, 'filled'); hold on
+                    else
+                        plot(this.data_set(i).utc_time, this.data_set(i).(lower(tropo_par)) .* 1e2, 'color', color); hold on
+                    end
                 end
                 xlim([min_time, max_time]);
                 grid minor;
