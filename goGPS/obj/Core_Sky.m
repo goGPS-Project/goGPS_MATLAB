@@ -716,17 +716,7 @@ classdef Core_Sky < handle
                 % checking overlapping and same correct syncro
                 sp3_last_ep = sp3_first_ep.getCopy();
                 sp3_last_ep.addSeconds(coord_rate * n_epochs);
-                if ~empty_file
-                    idx_first = (sp3_first_ep - this.time_ref_coord) / this.coord_rate;
-                    idx_last = (sp3_last_ep - this.time_ref_coord) / this.coord_rate;
-                    memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); % check whether the extend of sp3 file intersect with the current data
-                    if sum(memb_idx)==0
-                        empty_file = true;
-                        this.clearCoord(); % <---- if new sp3 does not match the already present data clear the data and put the new ones
-                        %                          else if sum(memb_idx) == 2 % <--- case new data are already in the class, (this leave out the case wether only one epoch more would be added to the current data, extremely unlikely)
-                        %                          return
-                    end
-                end
+
                 % initialize array size
                 if empty_file
                     this.time_ref_coord = sp3_first_ep.getCopy();
@@ -738,6 +728,9 @@ classdef Core_Sky < handle
                         this.clock = zeros(n_epochs, this.cc.getNumSat());
                     end
                 else
+                    idx_first = (sp3_first_ep - this.time_ref_coord) / this.coord_rate;
+                    idx_last = (sp3_last_ep - this.time_ref_coord) / this.coord_rate;
+                    memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); % check whether the extend of sp3 file intersect with the current data
                     c_n_sat = size(this.coord,2);
                     if memb_idx(1) == true && memb_idx(2) == false
                         n_new_epochs = idx_last - size(this.coord, 1);
@@ -754,6 +747,13 @@ classdef Core_Sky < handle
                         this.coord = cat(1,zeros(n_new_epochs,c_n_sat,3),this.coord);
                         if clock_flag
                             this.clock = cat(1,zeros(n_new_epochs,c_n_sat),this.clock);
+                        end
+                    elseif idx_first > 0 && (memb_idx(1) == false && memb_idx(2) == false)
+                        % if there is a space between last coordinates and the new set
+                        n_new_epochs = idx_last - size(this.coord, 1);
+                        this.coord = cat(1,this.coord, zeros(n_new_epochs,c_n_sat,3));
+                        if clock_flag
+                            this.clock = cat(1,this.clock,zeros(n_new_epochs,c_n_sat));
                         end
                     end
                 end
