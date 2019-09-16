@@ -1,4 +1,4 @@
-    %   CLASS Command Interpreter
+%   CLASS Command Interpreter
 % =========================================================================
 %
 % DESCRIPTION

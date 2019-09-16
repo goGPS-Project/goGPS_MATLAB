@@ -221,7 +221,7 @@ classdef File_Rinex < Exportable
                         %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
                         while ~((length(line) > 61) && (line(61) == 'E')) && not(eof)
                             l = l + 1;
-                            if l > size(lim, 1)
+                            if l >= size(lim, 1)
                                 % out of buffer
                                 % read block:
                                 buf = [buf char(fread(fid, 1e4))'];
