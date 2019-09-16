@@ -498,7 +498,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if tmp > rin_list.last_epoch.getEpoch(i)
                     tmp = rin_list.last_epoch.getEpoch(i).getCopy;
                 end
-                this.appendRinex(rin_list.getFileName(i),time_start, time_stop, rate, sys_c_list)
+                rin = File_Rinex();
+                rin.copyFrom(rin_list, i);
+                this.appendRinex(rin, time_start, time_stop, rate, sys_c_list)
             end
         end
         
@@ -507,9 +509,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX:
             %  this.appendRinex(rinex_file_name,time_start, time_stop)
+            
             rec = Receiver_Work_Space(this.parent);
             rec.ant = this.ant; % set the same antenna
-            rec.rinex_file_name = rinex_file_name;
+            if isa(rinex_file_name, 'File_Rinex')
+                rec.rinex_file_name = rinex_file_name.getFileName();
+                rec.file = rinex_file_name;
+            else
+                rec.rinex_file_name = rinex_file_name;
+            end
             rec.load(time_start, time_stop, rate, sys_c_list);
             
             if this.state.flag_amb_pass && ~isempty(this.parent.old_work) && ~this.parent.old_work.isEmpty
@@ -1828,13 +1836,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             t0 = tic;
             
-            this.log.addMarkedMessage('Reading observations...');
-            this.log.newLine();
+            this.log.addMessage(this.log.indent(sprintf('Reading observations of %s', file_name)));
             
-            this.file =  File_Rinex(file_name, 9);
+            if isempty(this.file) || ~strcmp(this.file.getFileName, file_name)
+                this.file =  File_Rinex(file_name, 9);
+            end
             
             if this.file.isValid()
-                this.log.addMessage(sprintf('Opening file %s for reading', file_name), 100);
+                if ~isempty(this.file.first_epoch)
+                    this.log.addMessage(this.log.indent(sprintf(' - first epoch found at: %s', this.file.first_epoch.last.toString())));
+                end
+                if ~isempty(this.file.last_epoch)
+                    this.log.addMessage(this.log.indent(sprintf(' - last  epoch found at: %s', this.file.last_epoch.last.toString())));
+                end
                 % open RINEX observation file
                 fid = fopen(file_name,'r');
                 txt = fread(fid,'*char')';
@@ -1934,7 +1948,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.obs_code(idx,2) = '2';
                 % other flags to be investiagated
                 
-                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
+                this.log.addMessage(this.log.indent(sprintf('Parsing completed in %.2f seconds', toc(t0))));
                 this.log.newLine();
                 
                 % Compute the other useful status array of the receiver object
@@ -2527,7 +2541,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % init datasets
                 obs = [];
             end
-            this.log.newLine();
             this.obs = obs;
         end
         
@@ -2735,7 +2748,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % init datasets
                 obs = [];
             end
-            this.log.newLine();
             this.obs = obs;
         end
     end
@@ -7273,6 +7285,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
             % apply desync
             if ~disable_dt_correction
+                
                 if any(time_desync)
                     if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
                         id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
