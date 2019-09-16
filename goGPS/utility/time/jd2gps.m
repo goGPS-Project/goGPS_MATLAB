@@ -20,7 +20,7 @@ function [gps_week, gps_sow, gps_dow] = jd2gps(jd)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 3jp
+%    |___/                    v 1.0 beta 4 ION
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

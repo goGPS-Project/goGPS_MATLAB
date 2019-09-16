@@ -22,7 +22,7 @@ function [prc_E, GPS_time02] = load_fc(iodp_mask, prn_mask, MT, msg, GPS_time)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 3jp
+%    |___/                    v 1.0 beta 4 ION
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

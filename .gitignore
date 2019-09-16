@@ -153,7 +153,10 @@ last_settings.ini
 /goGPS/reference/DTM
 /goGPS/utility/thirdParty/m_map/etopo1_ice_g_i2
 /goGPS/reserved
-/goGPS/positioning/lambda/lambda_v3
+/goGPS/positioning/lambda/lambda_v3/lambda-3.0.zip
+/goGPS/positioning/lambda/lambda_v3/lambda-3.0/man
+/goGPS/positioning/lambda/lambda_v3/lambda-3.0/src/demo
+/goGPS/positioning/lambda/lambda_v3/lambda-3.0/src/*
 !/data/goGPSconfig
 de421.bin
 .DS_Store

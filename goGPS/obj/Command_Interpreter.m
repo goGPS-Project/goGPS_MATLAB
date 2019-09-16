@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 3jp
+%    |___/                    v 1.0 beta 4 ION
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -867,8 +867,8 @@ classdef Command_Interpreter < handle
                                 if ~is_empty
                                     cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute ยง with the current session
-                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ยง', num2str(s));
+                                        % substitute ง with the current session
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ง', num2str(s));
                                     end
                                     this.exec(core, cmd_list_loop);
                                     
