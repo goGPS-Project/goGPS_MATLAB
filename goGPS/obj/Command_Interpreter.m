@@ -384,31 +384,43 @@ classdef Command_Interpreter < handle
             this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
             this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
+            this.PAR_E_CORE_MAT.class = '';
+            this.PAR_E_CORE_MAT.limits = [];
             this.PAR_E_CORE_MAT.accepted_values = {};
 
             this.PAR_E_REC_MAT.name = 'Receiver Matlab format';
             this.PAR_E_REC_MAT.descr = 'REC_MAT          Receiver object as .mat file';
             this.PAR_E_REC_MAT.par = '(rec_mat)|(REC_MAT)';
+            this.PAR_E_REC_MAT.class = '';
+            this.PAR_E_REC_MAT.limits = [];
             this.PAR_E_REC_MAT.accepted_values = {};
 
             this.PAR_E_REC_RIN.name = 'RINEX v3';
             this.PAR_E_REC_RIN.descr = 'REC_RIN          Rinex file containing the actual data stored in rec.work';
             this.PAR_E_REC_RIN.par = '(REC_RIN)|(rec_rin)|(rin3)|(RIN3)';
+            this.PAR_E_REC_RIN.class = '';
+            this.PAR_E_REC_RIN.limits = [];
             this.PAR_E_REC_RIN.accepted_values = {};
 
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
             this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters as SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
+            this.PAR_E_TROPO_SNX.class = '';
+            this.PAR_E_TROPO_SNX.limits = [];
             this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
             this.PAR_E_TROPO_MAT.name = 'TROPO Matlab format';
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
+            this.PAR_E_TROPO_MAT.class = '';
+            this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
             this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters matlab as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
+            this.PAR_E_TROPO_CSV.class = '';
+            this.PAR_E_TROPO_CSV.limits = [];
             this.PAR_E_TROPO_CSV.accepted_values = {};
                                     
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
@@ -531,7 +543,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -1910,10 +1922,18 @@ classdef Command_Interpreter < handle
             
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             do_not_complain = false;
+            flag_crd  = false;
             for t = 1 : numel(tok)
                 if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_CORE_MAT.par ')*$'], 'once'))
                     Core.getCurrentCore.exportMat();
                     do_not_complain = true;
+                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
+                    if sss_lev == 0 % run on all the results (out)
+                        rec(id_trg).exportCRD('out');
+                    else % run in single session mode (work)
+                        rec(id_trg).exportCRD('work');
+                    end
+                    flag_crd = true;
                 end
             end
             if ~found_trg
@@ -1922,18 +1942,20 @@ classdef Command_Interpreter < handle
                 end
             else
                 for r = id_trg % different for each target
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
-                    not_exported = true;
+                    if ~flag_crd || numel(tok) > 3
+                        this.log.newLine();
+                        this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
+                        this.log.smallSeparator();
+                        this.log.newLine();
+                    end
+                    not_exported = ~flag_crd;
                     for t = 1 : numel(tok)
                         try
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_RIN.par ')*$'], 'once'))
                                 rec(r).work.exportRinex3();
                                 not_exported = false;
                             else
-                                if sss_lev == 0 % run on all thw results (out)
+                                if sss_lev == 0 % run on all the results (out)
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
                                         pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
                                         export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
