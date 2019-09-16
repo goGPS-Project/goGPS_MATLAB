@@ -317,7 +317,7 @@ end
             top_bh.Widths = [210 -1];
             bottom_bh.Widths = [60 -1 260];
             this.updateUI();
-            
+            this.updateRecList();
             tab_panel.Selection = 3;
             drawnow
             this.w_main.Visible = 'on';
@@ -2118,29 +2118,31 @@ end
         
         function updateAndCheckRecList(this, caller, event)
             % Get file name list
-            state = Core.getCurrentSettings();
-            state.updateObsFileName;
-            n_rec = state.getRecCount;
-            rec_path = state.getRecPath;
-            str = '';
+            this.updateRecList(true);
             
-            %color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
-            this.rec_tbl.Data = cell(1,4);
-            for r = 1 : n_rec
-                name = File_Name_Processor.getFileName(rec_path{r}{1});
-                this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
-                fr = File_Rinex(rec_path{r}, 100);
-                n_ok = sum(fr.is_valid_list);
-                n_ko = sum(~fr.is_valid_list);
-                
-                %this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
-                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
-                %this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
-                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
-                this.rec_tbl.Data{r,3} = n_ok;
-                this.rec_tbl.Data{r,4} = n_ko;
-            end
-            this.log.addMessage('File availability checked');
+            % state = Core.getCurrentSettings();
+            % state.updateObsFileName;
+            % n_rec = state.getRecCount;
+            % rec_path = state.getRecPath;
+            % str = '';
+            %
+            % %color = round(Core_UI.getColor((1 : n_rec), n_rec) * 255);
+            % this.rec_tbl.Data = cell(1,4);
+            % for r = 1 : n_rec
+            %     name = File_Name_Processor.getFileName(rec_path{r}{1});
+            %     this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+            %     fr = File_Rinex(rec_path{r}, 100);
+            %     n_ok = sum(fr.is_valid_list);
+            %     n_ko = sum(~fr.is_valid_list);
+            %
+            %     %this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
+            %     this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
+            %     %this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+            %     this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
+            %     this.rec_tbl.Data{r,3} = n_ok;
+            %     this.rec_tbl.Data{r,4} = n_ko;
+            % end
+            % this.log.addMessage('File availability checked');
         end
         
         function updateAndPlotRecList(this, caller, event)
@@ -2292,7 +2294,6 @@ end
                 this.updateEditArraysFromState();
                 this.updatePopUpsState();
                 this.updateResourcePopUpsState();
-                this.updateRecList();
                 this.checkFlag();
             end
         end
@@ -2314,6 +2315,8 @@ end
                 return
             end
             
+            this.log.addMessage(this.log.indent('Checking file presence'));
+            
             state = Core.getCurrentSettings();
             state.updateObsFileName;
             n_rec = state.getRecCount;
@@ -2331,26 +2334,27 @@ end
             % dir list, otherwise use existent cache
             persistent unique_dir dir_list 
             
-            % If last check is older than 15 minutes ago
-            % force_check
-            persistent last_check
-            if isempty(last_check) || (now - last_check) > (900 / 86400)
-                last_check = now;                    
-                flag_force = true;
-            end
-            
-            available_files = [];
-            % Get all the folders in wich the receivers are stored
-            i = 0;
-            for r = 1 : numel(rec_path)
-                for s = 1 : numel(rec_path{r})
-                    i = i + 1;
-                    dir_path{i} = fileparts(rec_path{r}{s});
+            if (max_sss * n_rec < 10000) || flag_force
+                % If last check is older than 15 minutes ago
+                % force_check
+                persistent last_check
+                if isempty(last_check) || (now - last_check) > (900 / 86400)
+                    last_check = now;
+                    flag_force = true;
                 end
-            end
-                               
-            % If the number of files to check is > 366 or the cache is clean
-            if (max_sss * n_rec > 366) || flag_force
+                
+                available_files = [];
+                % Get all the folders in wich the receivers are stored
+                i = 0;
+                for r = 1 : numel(rec_path)
+                    for s = 1 : numel(rec_path{r})
+                        i = i + 1;
+                        dir_path{i} = fileparts(rec_path{r}{s});
+                    end
+                end
+                
+                % If the number of files to check is > 366 or the cache is clean
+                if (max_sss * n_rec > 366) || flag_force
                     % Check if the cache is for the same set of folders
                     cur_unique_dir = unique(dir_path);
                     % back-up cache
@@ -2362,61 +2366,72 @@ end
                         if ~isempty(id_old)
                             dir_list(d) = old_dir_list(id_old);
                         else
-                            Core.getLogger.addMessage(sprintf('Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*')), 100);
+                            Core.getLogger.addMessage(this.log.indent(sprintf(' - Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*'))));
                             dir_list{d} = dir(fullfile(cur_unique_dir{d}, '*.*'));
                             flag_force = true;
-                        end                        
+                        end
                     end
                     
                     unique_dir = cur_unique_dir;
-                    clear cur_unique_dir old_dir_list old_unique_dir;                   
+                    clear cur_unique_dir old_dir_list old_unique_dir;
                     
-                for d = 1 : numel(unique_dir)                   
-                    available_files = [available_files {dir_list{d}.name}];
-                end
-                available_files = [available_files{:}];
-            end
-            
-            % Update rec table
-            this.rec_tbl.Data = cell(1, 4);
-            for r = 1 : n_rec
-                if ~isempty(rec_path{r})
-                    name = File_Name_Processor.getFileName(rec_path{r}{1});
-                else
-                    name = '    ';
+                    for d = 1 : numel(unique_dir)
+                        available_files = [available_files {dir_list{d}.name}];
+                    end
+                    starting_letter = char(32*ones(numel(available_files),1, 'uint8'));
+                    for i = 1 : numel(available_files); starting_letter(i) = available_files{i}(1); end
+                    % available_files = [available_files{:}];
                 end
                 
-                n_ok = 0; n_ko = 0;
-                if ~isempty(available_files) || (max_sss * n_rec > 366)
-                    for s = 1 : numel(rec_path{r})
-                        [~, file_name, ext] = fileparts(rec_path{r}{s});
-                        if instr(available_files, [file_name ext])
-                            n_ok = n_ok + 1;
-                        else
-                            n_ko = n_ko + 1;
+                % Update rec table
+                this.rec_tbl.Data = cell(1, 4);
+                for r = 1 : n_rec
+                    Core.getLogger.addMessage(this.log.indent(sprintf('Checking receiver %d of %d', r, n_rec)));
+                    if ~isempty(available_files)
+                        [~, file_name] = fileparts(rec_path{r}{1});
+                        tmp_files = available_files(starting_letter == file_name(1));
+                    end
+                    
+                    if ~isempty(rec_path{r})
+                        name = File_Name_Processor.getFileName(rec_path{r}{1});
+                    else
+                        name = '    ';
+                    end
+                    
+                    n_ok = 0; n_ko = 0;
+                    if ~isempty(tmp_files) || (max_sss * n_rec > 366)
+                        for s = 1 : numel(rec_path{r})
+                            [~, file_name, ext] = fileparts(rec_path{r}{s});
+                            if instr(tmp_files, [file_name ext])
+                                n_ok = n_ok + 1;
+                            else
+                                n_ko = n_ko + 1;
+                            end
+                        end
+                    else
+                        for s = 1 : numel(rec_path{r})
+                            if (exist(rec_path{r}{s}, 'file') == 2)
+                                n_ok = n_ok + 1;
+                            else
+                                n_ko = n_ko + 1;
+                            end
                         end
                     end
-                else
-                    for s = 1 : numel(rec_path{r})
-                        if (exist(rec_path{r}{s}, 'file') == 2)
-                            n_ok = n_ok + 1;
-                        else
-                            n_ko = n_ko + 1;
-                        end
-                    end
+                    
+                    %this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
+                    this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
+                    %this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
+                    this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
+                    this.rec_tbl.Data{r,3} = n_ok;
+                    this.rec_tbl.Data{r,4} = n_ko;
                 end
                 
-                %this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%d', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), r);
-                this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
-                %this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: rgb(%d, %d, %d); ">%s', '<html><tr><td width=9999 align=center ', color(r,1), color(r,2), color(r,3), upper(name(1:4)));
-                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
-                this.rec_tbl.Data{r,3} = n_ok;
-                this.rec_tbl.Data{r,4} = n_ko;
+                if toc(t0) > 1
+                    this.log.addMessage(this.log.indent('Receiver files checked'));
+                end
+            else
+                this.log.addWarning('There are a lot of files to check, press check to force the execution of the routine');
             end
-                        
-            if toc(t0) > 1
-                this.log.addMessage(this.log.indent('Receiver files checked'));
-            end                        
         end
         
         function updateSessionSummary(this)
