@@ -131,21 +131,32 @@ classdef File_Rinex < Exportable
             end
         end
         
-        function copyFrom(this, file_rinex)
+        function copyFrom(this, file_rinex, id)            
             % Copy from an object of the same type
             %
             % SYNTAX
             %   this.copyFrom(time)
-            this.is_valid       = file_rinex.is_valid;
-            this.base_dir       = file_rinex.base_dir;
-            this.file_name_list = file_rinex.file_name_list;
-            this.ext            = file_rinex.ext;
-            this.is_valid_list  = file_rinex.is_valid_list ;
+            if nargin < 3 || isempty(id)
+                id = 1 : numel(file_rinex.file_name_list);
+            end
+            % Get id within coo and time limits objects
+            valid_lid = false(size(file_rinex.is_valid_list));
+            valid_lid(id) = true;
+            valid_lid = valid_lid & file_rinex.is_valid_list;
+            valid_id = cumsum(file_rinex.is_valid_list);
+            valid_id = valid_id(valid_lid);
+            % Extract fields to copy
+            this.is_valid       = all(file_rinex.is_valid_list(id));
+            this.base_dir       = file_rinex.base_dir(id);
+            this.file_name_list = file_rinex.file_name_list(id);
+            this.ext            = file_rinex.ext(id);
+            this.is_valid_list  = file_rinex.is_valid_list(id);
             this.is_composed    = file_rinex.is_composed;
-            this.first_epoch    = file_rinex.first_epoch;
-            this.last_epoch     = file_rinex.last_epoch;
+            this.first_epoch    = file_rinex.first_epoch.getEpoch(valid_id);
+            this.last_epoch     = file_rinex.last_epoch.getEpoch(valid_id);
             this.verbosity_lev  = file_rinex.verbosity_lev;
-            this.eoh            = file_rinex.eoh;
+            this.eoh            = file_rinex.eoh(id);
+            this.coo            = Coordinates.fromXYZ(file_rinex.coo.xyz(valid_id,:));            
         end
     end
 
