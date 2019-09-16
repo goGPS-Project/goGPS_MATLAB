@@ -7298,7 +7298,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if (max(abs(time_desync)) > 1e-4)
                         % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
                         time_desync = simpleFill1D(time_desync, all(isnan(pr), 2), 'nearest');
-                        ddt = [0; diff(time_desync)];
+                        ddt = Core_Utils.diffAndPred(time_desync);
                         ddrifting_pr = ddt - ddt_pr;
                         % drifting_pr = cumsum(ddrifting_pr);
                         drifting_pr = time_desync - dt_pr_dj;
@@ -7333,33 +7333,26 @@ classdef Receiver_Work_Space < Receiver_Commons
                         dt_ph = dt_ph_dj;
                         dt_pr = dt_pr_dj;
                     end
-                    
                 else
-                    if (is_ph_jumping ~= is_pr_jumping)
-                        % epochs with no phases cannot estimate dt jumps
-                        if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
-                            id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
-                            tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
-                            dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
-                        end
-                        
+                    % These are usually geodetic receivers
+                    if is_pr_jumping
                         ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
-                        jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                        jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
-                        if numel(jmp_reset) > 2
-                            drifting_pr = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
-                        else
-                            drifting_pr = 0;
-                        end
-                        
-                        dt_pr = dt_pr_dj - drifting_pr;
-                        t_offset = mean(dt_pr);
-                        dt_ph = dt_ph_dj - drifting_pr - t_offset;
-                        dt_pr = dt_pr - t_offset;
-                    else
-                        dt_ph = dt_ph_dj;
-                        dt_pr = dt_pr_dj;
+                        jmp_reset = find(abs(ddt_pr) > 1e-5); % points where the clock is reset
+                        d_points_pr = dt_pr_dj(jmp_reset);
+                        drifting_pr = interp1(jmp_reset, d_points_pr, (1 : numel(dt_pr_dj))', 'pchip');
+                        % now correct for dt_bias
+                        dt_pr_dj = dt_pr_dj - drifting_pr - mean(dt_pr_dj - drifting_pr, 'omitnan');
                     end
+                    if is_ph_jumping
+                        ddt_ph = Core_Utils.diffAndPred(dt_ph_dj);
+                        jmp_reset = find(abs(ddt_ph) > 1e-5); % points where the clock is reset
+                        d_points_ph = dt_ph_dj(jmp_reset);
+                        drifting_ph = interp1(jmp_reset, d_points_ph, (1 : numel(dt_ph_dj))', 'pchip');
+                        % now correct for dt_bias
+                        dt_ph_dj = dt_ph_dj - drifting_ph - mean(dt_ph_dj - drifting_ph, 'omitnan');
+                    end
+                    dt_ph = dt_ph_dj;
+                    dt_pr = dt_pr_dj;
                 end
                 
                 if any(dt_ph_dj)
@@ -7502,10 +7495,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                            [pr , id_pr] = this.getPseudoRanges;
                            pr_res = pr - this.getSyntPrObs;
                            median_res = median(pr_res, 2, 'omitnan');
-                           id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters                           
+                           id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters
+                           too_many_flags = sum(id_ko | isnan(median_res)) / numel(id_ko) > 0.8;
                            if any(id_ko(:))
                                this.log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
                            end
+                           %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
                            id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
                            n_out = sum(id_ko(:)) ;
                            pr_res(id_ko) = nan;
@@ -7513,15 +7508,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                            % sensor = Core_Utils.diffAndPred(pr_res);
                            sensor = pr_res;
                            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10, 5); % flag above 6 meters                           
+                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10, 5); % flag above 6 meters
                            if any(id_ko(:))
                                n_out = sum(id_ko(:)) ;
                                this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
                            end
                            pr(id_ko) = nan;
-                           if any(pr(:))
+                           if any(pr(:)) && ~too_many_flags % I've flagged less than 80% of data
                                this.setPseudoRanges(pr, id_pr);
-                           elseif n_out > 0
+                           elseif n_out > 0 
                                % No data are present                               
                                % The good position was not so good
                                this.log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
@@ -8099,7 +8094,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.remUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
-                [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync();
+                if this.hasGoodApriori
+                    [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(false);
+                else
+                    [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync();
+                end
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
