@@ -2325,16 +2325,18 @@ end
             t0 = tic;
             
             % Get the maximum number of session to check
+            tot_rec = 0;
             max_sss = 0;
             for r = 1 : n_rec
                 max_sss = max(max_sss, numel(rec_path{r}));
+                tot_rec = tot_rec + numel(rec_path{r});
             end
             
             % If I need to check a lot of files use as a method to check
             % dir list, otherwise use existent cache
             persistent unique_dir dir_list 
             
-            if (max_sss * n_rec < 10000) || flag_force
+            if (tot_rec < 10000) || flag_force
                 % If last check is older than 15 minutes ago
                 % force_check
                 persistent last_check
