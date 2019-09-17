@@ -91,10 +91,14 @@ classdef Core_Utils < handle
             fh.Color = col;
         end
         
-        function beautifyFig(fig_handle)
-            for ch = fig_handle.Children
-                ch.FontName = 'Open Sans';
-                ch.FontWeight = 'bold';
+        function beautifyFig(fig_handle, color_mode)
+            if nargin < 2 || isempty(color_mode)
+                color_mode = Core_UI.DEFAULT_MODE;
+            end
+            ax_list = findall(fig_handle,'type','axes');
+            for ax = ax_list(:)'
+                ax.FontName = 'Open Sans';
+                ax.FontWeight = 'bold';
             end
             set(fig_handle, ...
                 'DefaultFigureColor', 'w', ...
@@ -114,6 +118,103 @@ classdef Core_Utils < handle
             
             set(fig_handle, 'DefaultAxesTickDir', 'out');
             set(fig_handle, 'DefaultAxesTickDirMode', 'manual');
+            
+            if strcmp(color_mode, 'dark')
+                fig_handle.Color = [0.15, 0.15 0.15];
+                ax_list = findall(fig_handle,'type','axes');
+                for ax = ax_list(:)'
+                    ax.Color = [0.2 0.2 0.2];
+                    ax.Title.Color = [1 1 1];
+                    ax.XLabel.Color = [0.9 0.9 0.9];
+                    ax.YLabel.Color = [0.9 0.9 0.9];
+                    ax.ZLabel.Color = [0.9 0.9 0.9];
+                    ax.XColor = [0.9 0.9 0.9];
+                    ax.YColor = [0.9 0.9 0.9];
+                    ax.ZColor = [0.9 0.9 0.9];
+                    ax.FontSize = 14;
+                end
+                text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
+                for txt = text_label(:)'
+                    txt.Color = [0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
+                for txt = text_label(:)'
+                    txt.Color = [0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                text_label = findall(gcf,'Tag', 'm_ruler_label');
+                for txt = text_label(:)'
+                    txt.Color = [0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                legend = findall(gcf, 'type', 'legend');
+                for lg = legend(:)'
+                    lg.FontName = 'Open Sans';
+                    lg.Color = [1 1 1];
+                    lg.Title.Color = [0 0 0];
+                    lg.TextColor = 1-[0.9 0.9 0.9];
+                    lg.EdgeColor = [0.5 0.5 0.5];
+                end
+            elseif strcmp(color_mode, 'light')
+                fig_handle.Color = [0.94 0.94 0.94];
+                ax_list = findall(fig_handle,'type','axes');
+                for ax = ax_list(:)'
+                    ax.Color = [1 1 1];
+                    ax.Title.Color = 1-[1 1 1];
+                    ax.XLabel.Color = 1-[0.9 0.9 0.9];
+                    ax.YLabel.Color = 1-[0.9 0.9 0.9];
+                    ax.ZLabel.Color = 1-[0.9 0.9 0.9];
+                    ax.XColor = 1-[0.9 0.9 0.9];
+                    ax.YColor = 1-[0.9 0.9 0.9];
+                    ax.ZColor = 1-[0.9 0.9 0.9];
+                    ax.FontSize = 14;
+                end                
+                text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
+                for txt = text_label(:)'
+                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
+                for txt = text_label(:)'
+                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                text_label = findall(gcf,'Tag', 'm_ruler_label');
+                for txt = text_label(:)'
+                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.FontName = 'Open Sans';
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                end
+                legend = findall(gcf, 'type', 'legend');
+                for lg = legend(:)'
+                    lg.FontName = 'Open Sans';
+                    lg.Color = [1 1 1];
+                    lg.Title.Color = [0 0 0];
+                    lg.TextColor = 1-[0.9 0.9 0.9];
+                    lg.EdgeColor = [0.5 0.5 0.5];
+                end                
+            end
+            
+            % ResizeFig 
+            unit = fig_handle.Units;
+            fig_handle.Units = 'pixels';
+            if ~strcmp(fig_handle.WindowStyle, 'docked') && fig_handle.InnerPosition(3) <= (560) && fig_handle.InnerPosition(4) <= (420)
+                fig_handle.InnerPosition([3, 4]) = [1020 700];
+                if isunix && not(ismac())
+                    fig_handle.Position(1) = round((fig_handle.Parent.ScreenSize(3) - fig_handle.Position(3)) / 2);
+                    fig_handle.Position(2) = round((fig_handle.Parent.ScreenSize(4) - fig_handle.Position(4)) / 2);
+                else
+                    fig_handle.OuterPosition(1) = round((fig_handle.Parent.ScreenSize(3) - fig_handle.OuterPosition(3)) / 2);
+                    fig_handle.OuterPosition(2) = round((fig_handle.Parent.ScreenSize(4) - fig_handle.OuterPosition(4)) / 2);
+                end
+            end
+            fig_handle.Units = unit;
         end
         
         function diff_data = diffAndPred(data, n_order, t_ref)

@@ -462,18 +462,21 @@ classdef GNSS_Station < handle
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
         end
 
-        function req_rec = get(sta_list, marker_name)
+        function [req_rec, id_rec] = get(sta_list, marker_name)
             % Get the receivers with a certain Marker name (case unsensitive)
             %
             % SYNTAX
             %   req_rec = sta_list.get(marker_name)
             req_rec = [];
+            id_rec = [];
             for r = 1 : size(sta_list,2)
                 rec = sta_list(~sta_list(:,r).isEmpty_mr ,r);
                 if not(rec.isEmpty)
                     if strcmpi(rec(1).getMarkerName, marker_name)
+                        id_rec = [id_rec r]; %#ok<AGROW>
                         req_rec = [req_rec sta_list(:,r)]; %#ok<AGROW>
                     elseif strcmpi(rec(1).getMarkerName4Ch, marker_name)
+                        id_rec = [id_rec r]; %#ok<AGROW>
                         req_rec = [req_rec sta_list(:,r)]; %#ok<AGROW>
                     end
                 end
@@ -1402,7 +1405,9 @@ classdef GNSS_Station < handle
                     drawnow;
                     ax = gca; ax.FontSize = 16;
                 end
-                %fh.WindowStyle = 'normal'; fh.Units = 'pixels'; fh.Position = [1, 1, 1000, 600];
+                Core_Utils.beautifyFig(f);
+                xlim(minMax(time_rds.getMatlabTime));
+                %fh.WindowStyle = 'normal'; fh.Units = 'pixels'; fh.Position = [1, 1, 1000, 600];                
                 %Core_Utils.exportCurFig(fullfile(Core.getState.getHomeDir, 'Images', sprintf('Radiosonde_comparison_%s.png', rds(s).getName)));
             end
             
@@ -1533,6 +1538,7 @@ classdef GNSS_Station < handle
                 end
                 xlabel(ax,'cm','color','k');
                 title(sprintf('Map of mean and std of radiosonde validation\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontSize', 16);
+                Core_Utils.beautifyFig(fh);
                 
                 Logger.getInstance.addStatusOk('The map is ready ^_^');
             end
@@ -4084,7 +4090,7 @@ classdef GNSS_Station < handle
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [ÿC]'); h.FontWeight = 'bold';
+            h = ylabel('Temperaure [ï¿½C]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);
@@ -4207,7 +4213,7 @@ classdef GNSS_Station < handle
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
 
-                    if n_entry < 30
+                    if n_entry < 50
                         if ~sub_plot_nsat
                             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                         else
@@ -4246,6 +4252,7 @@ classdef GNSS_Station < handle
                         linkaxes([ax1 ax2], 'x');
                     end
                 end
+                Core_Utils.beautifyFig(f);
             end
         end
 
@@ -4254,7 +4261,8 @@ classdef GNSS_Station < handle
             if nargin == 1
                 new_fig = true;
             end
-            sta_list.showTropoPar('nsat', new_fig, false)
+            sta_list.showTropoPar('nsat', new_fig, false);
+            Core_Utils.beautifyFig(gcf);
         end
 
         function showNSatSS(sta_list)

@@ -43,7 +43,9 @@
 
 classdef Core_UI < handle
     
-    properties (Constant)
+    properties (Constant)        
+        DEFAULT_MODE = 'dark';
+        
         FONT_SIZE_CONVERSION_LNX = 1;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
