@@ -1214,17 +1214,25 @@ classdef GNSS_Station < handle
             end
         end
 
-        function [tropo, time] = getTropoPar(sta_list, par_name)
+        function [tropo, time, id_ko_cell] = getTropoPar(sta_list, par_name)
             % Get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
             % Generic function multi parameter getter
             %
             % SYNTAX
-            %  [tropo, p_time] = sta_list.getAprZhd()
+            %  [tropo, p_time, id_ko] = sta_list.getAprZhd(sta_list, par_name)
 
             tropo = {};
             time = {};
+            t_ref = 0;
+            full_time = [];
             for r = 1 : numel(sta_list)
+                tmp = sta_list(r).out.getTime();
                 time{r} = sta_list(r).out.getTime();
+                if t_ref == 0
+                    t_ref = round(time{r}.getCentralTime.getMatlabTime);
+                end
+                full_time = unique([full_time; round(time{r}.getRefTime(t_ref), 5)]);
+                
                 switch lower(par_name)
                     case 'ztd'
                         [tropo{r}] = sta_list(r).out.getZtd();
@@ -1245,10 +1253,29 @@ classdef GNSS_Station < handle
                         [tropo{r}] = sta_list(r).out.getNSat();
                 end
             end
-
+            
             if numel(tropo) == 1
                 tropo = tropo{1};
                 time = time{1};
+            end
+            
+            id_ko = [];
+            id_ko_cell = {};
+            if nargout == 3 && ~strcmp(par_name, 'nsat') && numel(sta_list) > 2
+                Core.getLogger.addMessage('Compute outlier detection');
+                tropo_sync = nan(numel(full_time), numel(sta_list));
+                for r = 1 : numel(sta_list)
+                    [~, id] = intersect(full_time, round(time{r}.getRefTime(t_ref), 5));
+                    tropo_sync(id, r) = tropo{r}*1e2;
+                end
+                tropo_sync = bsxfun(@minus, tropo_sync, median(tropo_sync, 'omitnan'));
+                tropo_sync = bsxfun(@minus, tropo_sync, median(tropo_sync, 2, 'omitnan'));
+                id_ko = Core_Utils.snoopGatt(tropo_sync, 10, 4);
+                for r = 1 : numel(sta_list)
+                    [~, id] = intersect(full_time, round(time{r}.getRefTime(t_ref), 5));
+                    id_ko_cell{r} = id_ko(id, r);
+                end
+                
             end
         end
 
@@ -1383,7 +1410,7 @@ classdef GNSS_Station < handle
             if flag_show
                 % Plot comparisons
                 for s = 1 : numel(rds)
-                    f = figure; dockAllFigures(f);
+                    f = figure;
                     f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';
                     
                     % interpolated ZTD
@@ -1397,9 +1424,14 @@ classdef GNSS_Station < handle
                     % radiosondes
                     [ztd_rds, time_rds] = rds(s).getZtd();
                     plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 40);
-                    dockAllFigures();
-                    legend({'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
-                        sprintf('Radiosonde @ %s', rds(s).getName())}, 'location', 'northwest');
+                    outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                        sprintf('Radiosonde @ %s', rds(s).getName())};
+                    [~, icons] = legend(outm, 'location', 'northwest');
+                    n_entry = numel(outm);
+                    icons = icons(n_entry + 2 : 2 : end);
+                    for i = 1 : numel(icons)
+                        icons(i).MarkerSize = 18;
+                    end
                     title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontName', 'Open Sans');
                     setTimeTicks; grid minor;
                     drawnow;
@@ -1433,6 +1465,7 @@ classdef GNSS_Station < handle
                 
                 fh = figure; fh.Color = [1 1 1]; maximizeFig(fh);
                 %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+                drawnow
                 m_proj('utm', 'lon',clon,'lat',clat);   % Projection
                 axes
                 cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
@@ -1617,7 +1650,7 @@ classdef GNSS_Station < handle
             if flag_show
                 % Plot comparisons
                 for s = 1 : tsc.getNumberSinex()
-                    f = figure; dockAllFigures(f);
+                    f = figure;
                     f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';
                     
                     % interpolated ZTD
@@ -1631,9 +1664,14 @@ classdef GNSS_Station < handle
                     % radiosondes
                     [ztd_rds, time_rds] = tsc.getZtdSinex(s);
                     plot(time_rds.getMatlabTime, ztd_rds*100, '.k', 'MarkerSize', 3);
-                    dockAllFigures();
-                    legend({'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
-                        sprintf('ZTD @ %s', tsc.getName(s))}, 'location', 'northwest');
+                    outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                        sprintf('ZTD @ %s', tsc.getName(s))};
+                    [~, icons] = legend(outm, 'location', 'northwest');
+                    n_entry = numel(outm);
+                    icons = icons(n_entry + 2 : 2 : end);
+                    for i = 1 : numel(icons)
+                        icons(i).MarkerSize = 18;
+                    end
                     title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
                     setTimeTicks; grid minor;
                     drawnow;
@@ -4084,7 +4122,7 @@ classdef GNSS_Station < handle
             n_entry = numel(outm);
             icons = icons(n_entry + 2 : 2 : end);
             for i = 1 : numel(icons)
-                icons(i).MarkerSize = 16;
+                icons(i).MarkerSize = 18;
             end
 
             ax(2) = subplot(3,1,2);
@@ -4096,7 +4134,7 @@ classdef GNSS_Station < handle
             n_entry = numel(outm);
             icons = icons(n_entry + 2 : 2 : end);
             for i = 1 : numel(icons)
-                icons(i).MarkerSize = 16;
+                icons(i).MarkerSize = 18;
             end
 
             ax(3) = subplot(3,1,3);
@@ -4108,18 +4146,17 @@ classdef GNSS_Station < handle
             n_entry = numel(outm);
             icons = icons(n_entry + 2 : 2 : end);
             for i = 1 : numel(icons)
-                icons(i).MarkerSize = 16;
+                icons(i).MarkerSize = 18;
             end
 
             linkaxes(ax, 'x');
             xlim([p_time.first.getMatlabTime() p_time.last.getMatlabTime()]);
-
         end
 
         function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
             % one function to rule them all
 
-            [tropo, t] = sta_list.getTropoPar(par_name);
+            [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
             if ~iscell(tropo)
                 tropo = {tropo};
                 t = {t};
@@ -4175,19 +4212,25 @@ classdef GNSS_Station < handle
                     if sub_plot_nsat
                         ax1 = subplot(3,1,1:2);
                     end
+                    Core_Utils.beautifyFig(f);
+                    e = 0;
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
+                        data_tmp = tropo{r};
+                        id_ko_tmp = id_ko{r};
                         if new_fig
                             if strcmp(par_name, 'nsat')
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             else
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             end
                         else
                             if strcmp(par_name, 'nsat')
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.-', 'LineWidth', 2); hold on;
+                                plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2); hold on;
                             else
-                                plot(t{r}.getMatlabTime(), zero2nan(tropo{r}').*1e2, '.', 'LineWidth', 2); hold on;
+                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, '.', 'LineWidth', 2); hold on;
                             end
                         end
                         childs = f.Children(end).Children;
@@ -4198,7 +4241,15 @@ classdef GNSS_Station < handle
                             dlim(1) = min([dlim(1), childs(c).YData]);
                             dlim(2) = max([dlim(2), childs(c).YData]);
                         end
-                        outm{r} = rec(1).getMarkerName();
+                            if strcmp(par_name, 'nsat') || ~any(id_ko_tmp)
+                                e = e + 1;
+                                outm{e} = rec(1).getMarkerName();
+                            else
+                                e = e + 1;
+                                outm{e} = [rec(1).getMarkerName() ' outliers'];
+                                e = e + 1;
+                                outm{e} = rec(1).getMarkerName();
+                            end
                     end
                     dspan = dlim(2) - dlim(1);
                     if dlim(1) < 0
@@ -4226,7 +4277,7 @@ classdef GNSS_Station < handle
                         icons = icons(n_entry + 2 : 2 : end);
 
                         for i = 1 : numel(icons)
-                            icons(i).MarkerSize = 16;
+                            icons(i).MarkerSize = 18;
                         end
                     end
 
@@ -4601,7 +4652,7 @@ classdef GNSS_Station < handle
                 icons = icons(n_entry + 2 : 2 : end);
 
                 for i = 1 : numel(icons)
-                    icons(i).MarkerSize = 16;
+                    icons(i).MarkerSize = 18;
                 end
 
                 %ylim(yl);
