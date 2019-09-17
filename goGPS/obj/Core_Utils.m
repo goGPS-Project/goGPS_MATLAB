@@ -106,11 +106,11 @@ classdef Core_Utils < handle
                 'DefaultAxesXColor', 'k', ...
                 'DefaultAxesYColor', 'k', ...
                 'DefaultAxesFontUnits', 'points', ...
-                'DefaultAxesFontSize', 8, ...
+                'DefaultAxesFontSize', Core_UI.getFontSize(8), ...
                 'DefaultAxesFontName', 'Open Sans', ...
                 'DefaultLineLineWidth', 1, ...
                 'DefaultTextFontUnits', 'Points', ...
-                'DefaultTextFontSize', 16, ...
+                'DefaultTextFontSize', Core_UI.getFontSize(14), ...
                 'DefaultTextFontName', 'Open Sans', ...
                 'DefaultTextFontWeight', 'bold', ...
                 'DefaultAxesBox', 'off', ...
@@ -131,7 +131,7 @@ classdef Core_Utils < handle
                     ax.XColor = [0.9 0.9 0.9];
                     ax.YColor = [0.9 0.9 0.9];
                     ax.ZColor = [0.9 0.9 0.9];
-                    ax.FontSize = 14;
+                    ax.FontSize = Core_UI.getFontSize(12);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
@@ -171,13 +171,13 @@ classdef Core_Utils < handle
                     ax.XColor = 1-[0.9 0.9 0.9];
                     ax.YColor = 1-[0.9 0.9 0.9];
                     ax.ZColor = 1-[0.9 0.9 0.9];
-                    ax.FontSize = 14;
+                    ax.FontSize = Core_UI.getFontSize(12);
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
                     txt.FontName = 'Open Sans';
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                    txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
@@ -189,7 +189,7 @@ classdef Core_Utils < handle
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
                     txt.FontName = 'Open Sans';
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+                    txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
