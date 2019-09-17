@@ -619,7 +619,9 @@ classdef File_Rinex < Exportable
                 if (nargin == 1)
                     validity = validity || any([this(r).is_valid_list]);
                 else
-                    validity = validity || this(r).is_valid_list(file_number);
+                    if file_number < numel(this(r).is_valid_list)
+                        validity = validity || this(r).is_valid_list(file_number);
+                    end
                 end
             end
         end

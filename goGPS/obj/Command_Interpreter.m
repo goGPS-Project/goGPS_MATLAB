@@ -772,7 +772,7 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
     methods         
-        function exec(this, core, cmd_list)
+        function exec(this, core, cmd_list, level_add)
             % run a set of commands (divided in cells of cmd_list)
             %
             % SYNTAX:
@@ -784,10 +784,13 @@ classdef Command_Interpreter < handle
             if ~iscell(cmd_list)
                 cmd_list = {cmd_list};
             end
+            if nargin < 4
+                level_add = 0;
+            end
 
             cur_session = core.getCurrentSession;
             [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
-
+            level = level + level_add;
             t0 = tic();            
             % for each command
             l = 0;
@@ -833,7 +836,8 @@ classdef Command_Interpreter < handle
                                     % substitute $ with the current target
                                     cmd_list_loop{c} = strrep(cmd_list_loop{c},'$', num2str(t));
                                 end
-                                this.exec(core, cmd_list_loop);
+                                id1 = level(execution_block == execution_block(l));
+                                this.exec(core, cmd_list_loop, level(id1(1)));
                             end
                             
                             % Auto-push if no parallel sessions are present 
@@ -867,10 +871,10 @@ classdef Command_Interpreter < handle
                                 if ~is_empty
                                     cmd_list_loop = cmd_list(id_list);
                                     for c = 1 : numel(cmd_list_loop)
-                                        % substitute § with the current session
-                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
+                                        % substitute ï¿½ with the current session
+                                        cmd_list_loop{c} = strrep(cmd_list_loop{c},'ï¿½', num2str(s));
                                     end
-                                    this.exec(core, cmd_list_loop);
+                                    this.exec(core, cmd_list_loop, level(id_list(1)));
                                     
                                     if flag_push(execution_block(l) + 1)
                                         for r = 1 : length(core.rec)
@@ -1975,10 +1979,18 @@ classdef Command_Interpreter < handle
                                         rec(r).out.exportTropoSINEX(export_par);
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
-                                        rec(r).out.exportTropoMat();
+                                        if rec(r).out.isEmpty
+                                            rec(r).work.exportTropoMat();
+                                        else
+                                            rec(r).out.exportTropoMat();
+                                        end
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_CSV.par ')*$'], 'once'))
-                                        rec(r).out.exportTropoCSV();
+                                        if rec(r).out.isEmpty
+                                            rec(r).work.exportTropoCSV();
+                                        else
+                                            rec(r).out.exportTropoCSV();
+                                        end
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
                                         rec(r).exportMat();
