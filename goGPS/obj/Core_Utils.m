@@ -110,7 +110,7 @@ classdef Core_Utils < handle
                 'DefaultAxesFontName', 'Open Sans', ...
                 'DefaultLineLineWidth', 1, ...
                 'DefaultTextFontUnits', 'Points', ...
-                'DefaultTextFontSize', Core_UI.getFontSize(14), ...
+                'DefaultTextFontSize', Core_UI.getFontSize(13), ...
                 'DefaultTextFontName', 'Open Sans', ...
                 'DefaultTextFontWeight', 'bold', ...
                 'DefaultAxesBox', 'off', ...
@@ -131,7 +131,7 @@ classdef Core_Utils < handle
                     ax.XColor = [0.9 0.9 0.9];
                     ax.YColor = [0.9 0.9 0.9];
                     ax.ZColor = [0.9 0.9 0.9];
-                    ax.FontSize = Core_UI.getFontSize(12);
+                    ax.FontSize = Core_UI.getFontSize(11);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
@@ -171,7 +171,7 @@ classdef Core_Utils < handle
                     ax.XColor = 1-[0.9 0.9 0.9];
                     ax.YColor = 1-[0.9 0.9 0.9];
                     ax.ZColor = 1-[0.9 0.9 0.9];
-                    ax.FontSize = Core_UI.getFontSize(12);
+                    ax.FontSize = Core_UI.getFontSize(11);
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
