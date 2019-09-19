@@ -2468,8 +2468,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         wl(f_id == 0) = NaN;
                     end
                     if sum(f_id == 0)
-                        [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
-                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
+                        id_ko = find(f_id == 0);
+                        [~, id] = unique(double(obs_code(id_ko, :)) * [1 10 100]');
+                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id_ko(id), :)')));
                     end
                     this.wl = [this.wl; wl];
                 end
@@ -2692,8 +2693,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         wl(f_id == 0) = NaN;
                     end
                     if sum(f_id == 0)
-                        [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
-                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
+                        id_ko = find(f_id == 0);
+                        [~, id] = unique(double(obs_code(id_ko, :)) * [1 10 100]');
+                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id_ko(id), :)')));
                     end
                     this.wl = [this.wl; wl];
                 end
