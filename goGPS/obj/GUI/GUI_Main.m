@@ -2401,7 +2401,7 @@ end
                     end
                     
                     n_ok = 0; n_ko = 0;
-                    if ~isempty(tmp_files) || (max_sss * n_rec > 366)
+                    if ~isempty(available_files) && (~isempty(tmp_files) || (max_sss * n_rec > 366))
                         for s = 1 : numel(rec_path{r})
                             [~, file_name, ext] = fileparts(rec_path{r}{s});
                             if instr(tmp_files, [file_name ext])
