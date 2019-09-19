@@ -177,7 +177,7 @@ classdef FTP_Downloader < handle
                 cd(this.ftp_server, path);
                 this.log.addMessage(this.log.indent(sprintf('downloading %s ...',fname)));
                 if ~(7 ==exist(out_dir,'dir'))
-                    mkdir(out_dir);
+                    mkdir(File_Name_Processor.getFullDirPath(out_dir));
                 end
                 retry = 0;
                 status = false;

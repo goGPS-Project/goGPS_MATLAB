@@ -1261,7 +1261,7 @@ classdef GNSS_Station < handle
             
             id_ko = [];
             id_ko_cell = {};
-            if nargout == 3 && ~strcmp(par_name, 'nsat') && numel(sta_list) > 2
+            if nargout == 3 && ~strcmpi(par_name, 'nsat') && ~strcmpi(par_name, 'zhd') && numel(sta_list) > 2
                 Core.getLogger.addMessage('Compute outlier detection');
                 tropo_sync = nan(numel(full_time), numel(sta_list));
                 for r = 1 : numel(sta_list)
@@ -1452,7 +1452,7 @@ classdef GNSS_Station < handle
                 lat = rds.getLat;
                 lon = rds.getLon;
                 % set map limits
-                if numel(sta_list) == 1
+                if numel(rds) == 1
                     lon_lim = minMax(lon) + [-0.25 0.25];
                     lat_lim = minMax(lat) + [-0.25 0.25];
                 else
@@ -4169,9 +4169,11 @@ classdef GNSS_Station < handle
 
             sta_list = sta_list(rec_ok);
             tropo = tropo(rec_ok);
-            t = t(rec_ok);            
+            t = t(rec_ok);
             
-            if numel(sta_list) == 0
+            flag_ok = false; for i = 1 : numel(tropo); flag_ok = flag_ok || any(tropo{i}); end;
+            
+            if numel(sta_list) == 0 || ~flag_ok
                 log = Core.getLogger();
                 log.addError('No valid troposphere is present in the receiver list');
             else
@@ -4217,7 +4219,11 @@ classdef GNSS_Station < handle
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         data_tmp = tropo{r};
-                        id_ko_tmp = id_ko{r};
+                        if ~isempty(id_ko)
+                            id_ko_tmp = id_ko{r};
+                        else
+                            id_ko_tmp = false(size(data_tmp));
+                        end
                         if new_fig
                             if strcmp(par_name, 'nsat')
                                 plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
