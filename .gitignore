@@ -157,6 +157,7 @@ last_settings.ini
 /goGPS/positioning/lambda/lambda_v3/lambda-3.0/man
 /goGPS/positioning/lambda/lambda_v3/lambda-3.0/src/demo
 /goGPS/positioning/lambda/lambda_v3/lambda-3.0/src/*
+/goGPS/positioning/lambda/lambda_v3/
 !/data/goGPSconfig
 de421.bin
 .DS_Store
