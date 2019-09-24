@@ -2726,7 +2726,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 n_o = n_o+1;
                             end
                             data = sscanf(reshape(line, 14, n_o), '%f');
-                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data;
+                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:min(length(obs_line),size(data,1)));
                             % end
                         end
                         % alternative approach with textscan
@@ -8196,7 +8196,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
                             this.detectOutlierMarkCycleSlip();
-                            %this.coarseAmbEstimation();
+                            this.coarseAmbEstimation();
                             this.pp_status = true;
                         end
                     end
