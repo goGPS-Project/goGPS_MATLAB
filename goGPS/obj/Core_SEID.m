@@ -435,7 +435,7 @@ classdef Core_SEID < handle
                             lid_ph = sys_ph == sys;
                             
                             bnd = unique(band(pr1_goid(lid_pr)));
-                            
+                             bnd(bnd == 0) = [];
                             log.addMessage(log.indent(sprintf('Injecting SEID L%s into target receiver %d / %d', bnd,t, numel(trg))));
                             trg(t).injectObs(nan2zero(pr2(lid_pr,:)), wl2(pr1_goid(lid_pr))', str2num(bnd),[ 'C' bnd 'F'], pr1_goid(lid_pr));
                             trg(t).injectObs(nan2zero(ph2(lid_ph,:)), wl2(ph1_goid(lid_ph))', str2num(bnd),[ 'L' bnd 'F'], ph1_goid(lid_ph));
