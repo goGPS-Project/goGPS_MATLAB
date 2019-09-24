@@ -8196,7 +8196,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
                             this.detectOutlierMarkCycleSlip();
-                            this.coarseAmbEstimation();
+                            %this.coarseAmbEstimation();
                             this.pp_status = true;
                         end
                     end
