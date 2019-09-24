@@ -1437,7 +1437,8 @@ classdef GNSS_Station < handle
                     drawnow;
                     ax = gca; ax.FontSize = 16;
                 end
-                Core_Utils.beautifyFig(f);
+                Core_UI.beautifyFig(f);
+                Core_UI.addBeautifyMenu(f);
                 xlim(minMax(time_rds.getMatlabTime));
                 %fh.WindowStyle = 'normal'; fh.Units = 'pixels'; fh.Position = [1, 1, 1000, 600];                
                 %Core_Utils.exportCurFig(fullfile(Core.getState.getHomeDir, 'Images', sprintf('Radiosonde_comparison_%s.png', rds(s).getName)));
@@ -1571,8 +1572,8 @@ classdef GNSS_Station < handle
                 end
                 xlabel(ax,'cm','color','k');
                 title(sprintf('Map of mean and std of radiosonde validation\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontSize', 16);
-                Core_Utils.beautifyFig(fh);
-                
+                Core_UI.beautifyFig(fh);
+                Core_UI.addBeautifyMenu(fh);                
                 Logger.getInstance.addStatusOk('The map is ready ^_^');
             end
         end
@@ -4214,7 +4215,8 @@ classdef GNSS_Station < handle
                     if sub_plot_nsat
                         ax1 = subplot(3,1,1:2);
                     end
-                    Core_Utils.beautifyFig(f);
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
                     e = 0;
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
@@ -4309,7 +4311,8 @@ classdef GNSS_Station < handle
                         linkaxes([ax1 ax2], 'x');
                     end
                 end
-                Core_Utils.beautifyFig(f);
+                Core_UI.beautifyFig(f);
+                Core_UI.addBeautifyMenu(f);
             end
         end
 
@@ -4319,7 +4322,8 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             sta_list.showTropoPar('nsat', new_fig, false);
-            Core_Utils.beautifyFig(gcf);
+            Core_UI.beautifyFig(gcf);
+            Core_UI.addBeautifyMenu(gcf);
         end
 
         function showNSatSS(sta_list)

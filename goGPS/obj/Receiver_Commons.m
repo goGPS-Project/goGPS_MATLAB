@@ -957,7 +957,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             linkaxes(ax, 'x');
                         end
                         grid on;
-                        Core_Utils.beautifyFig(f);
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -1008,8 +1009,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
                         end
                         linkaxes(ax, 'x');
-                        Core_Utils.beautifyFig(f);
-
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
                     else
                         rec.log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -1054,7 +1055,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         h = ylabel('Sigmas of the processing [cm]'); h.FontWeight = 'bold';
                     end
                     linkaxes(ax, 'x');
-                    Core_Utils.beautifyFig(f);
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
                 else
                     rec.log.addMessage('Plotting a single point static position is not yet supported');
                 end
@@ -1121,7 +1123,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-            Core_Utils.beautifyFig(f);            
+            Core_UI.beautifyFig(f);            
+            Core_UI.addBeautifyMenu(f);
         end
         
         
@@ -1149,7 +1152,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
                     colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
                     h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                    Core_Utils.beautifyFig(f);
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
                 end
             end
         end
@@ -1180,7 +1184,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                     hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
                     hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
-                    Core_Utils.beautifyFig(f);                    
+                    Core_UI.beautifyFig(f);                    
+                    Core_UI.addBeautifyMenu(f);
                 end
             end
         end
@@ -1608,7 +1613,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    Core_Utils.beautifyFig(f);
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
                 end
             end
         end
