@@ -445,7 +445,7 @@ classdef Receiver < Exportable
             % This function has been tested in particular cases on UBLOX single frequency receivers
             % For the future see: Optimal Doppler-aided smoothing strategy for GNSS navigation
             [pr, id_pr] = this.getPseudoRanges;
-            pr_corr = Core_Utils.diffAndPred(pr + cumsum(nan2zero(this.getDoppler * this.getRate())));
+            pr_corr = Core_Utils.diffAndPred(pr + cumsum(nan2zero(this.getDoppler)));
             for s = 1 : size(pr_corr, 2)
                 pr_corr(:,s) = cumsum(nan2zero(pr_corr(:,s) - splinerMat([], movmedian(pr_corr(:,s), 3, 'omitnan'), win_size, 1e-9)));
                 pr_corr(:,s) = pr_corr(:,s) - splinerMat([], pr_corr(:,s), win_size, 1e-9);
@@ -2518,7 +2518,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 Core.initGeoid();
@@ -3685,7 +3685,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase

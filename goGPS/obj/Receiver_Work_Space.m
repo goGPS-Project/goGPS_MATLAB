@@ -3789,6 +3789,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             dop = zero2nan(this.obs(id_dop, :)');
             wl = this.wl(id_dop);
             dop = bsxfun(@times, zero2nan(dop), wl');
+            dop = dop .* this.getRate();
         end
         
         function [snr, id_snr] = getSNR(this, sys_c, freq_c)
@@ -5120,7 +5121,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % set the snr observations
             % SYNTAX [pr, id_pr] = this.setDoppler(<sys_c>)
             % SEE ALSO:  getDoppler
-            dop = bsxfun(@rdivide, zero2nan(dop'), wl);
+            dop = bsxfun(@rdivide, zero2nan(dop'), wl) ./ this.getRate();
             this.obs(id_dop, :) = nan2zero(dop');
         end
         
@@ -7278,13 +7279,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % extract observations
             [ph, wl, id_ph] = this.getPhases();
+            [dp, wl, id_dp] = this.getDoppler();
             [pr, id_pr] = this.getPseudoRanges();
             
             dt_ph = zeros(this.time.length, 1);
             dt_pr = zeros(this.time.length, 1);
             
-            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
-            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph, dp);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr, dp);
             % apply desync
             if ~disable_dt_correction
                 
