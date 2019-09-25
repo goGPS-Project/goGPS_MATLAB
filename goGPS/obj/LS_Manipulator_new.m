@@ -1707,7 +1707,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
@@ -1718,11 +1718,11 @@ classdef LS_Manipulator_new < handle
                     idx_rm_line(idx_amb) = false;
                     C_amb_amb(idx_rm_line,:) = [];
                     amb_float = x_reduced(idx_amb);
-                    %                     amb_fixed = amb_float;
-                    %                     l_fixed = abs(fracFNI(amb_float)) < 0.1;
-                    %                     amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
-                    %                     is_fixed = true;
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                    amb_fixed = amb_float;
+                    l_fixed = abs(fracFNI(amb_float)) < 0.1 & diag(C_amb_amb) < 0.01;
+                    amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
+                    is_fixed = true;
+                    %[amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
                     flag_debug = false;
                     if flag_debug
                         N_old = N;

@@ -292,6 +292,12 @@ classdef Core_UI < Logos
                     ax.YColor = [0.9 0.9 0.9];
                     ax.ZColor = [0.9 0.9 0.9];
                     ax.FontSize = Core_UI.getFontSize(11);
+                    text_label = findall(ax, 'Type', 'text');
+                    for txt = text_label(:)'
+                        txt.Color = [0.9 0.9 0.9];
+                        txt.FontName = 'Open Sans';
+                        txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                    end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
@@ -332,6 +338,12 @@ classdef Core_UI < Logos
                     ax.YColor = 1-[0.9 0.9 0.9];
                     ax.ZColor = 1-[0.9 0.9 0.9];
                     ax.FontSize = Core_UI.getFontSize(11);
+                    text_label = findall(ax, 'Type', 'text');
+                    for txt = text_label(:)'
+                        txt.Color = 1-[0.9 0.9 0.9];
+                        txt.FontName = 'Open Sans';
+                        txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                    end
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
@@ -364,7 +376,8 @@ classdef Core_UI < Logos
             % ResizeFig 
             unit = fig_handle.Units;
             fig_handle.Units = 'pixels';
-            if ~strcmp(fig_handle.WindowStyle, 'docked') && fig_handle.InnerPosition(3) <= (560) && fig_handle.InnerPosition(4) <= (420)
+            drawnow
+            if ~strcmp(fig_handle.WindowStyle, 'docked') && fig_handle.InnerPosition(3) <= (600) && fig_handle.InnerPosition(4) <= (450)
                 fig_handle.InnerPosition([3, 4]) = [1020 700];
                 if isunix && not(ismac())
                     fig_handle.Position(1) = round((fig_handle.Parent.ScreenSize(3) - fig_handle.Position(3)) / 2);

@@ -4823,6 +4823,8 @@ classdef GNSS_Station < handle
                         end
                         grid on;
 
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
