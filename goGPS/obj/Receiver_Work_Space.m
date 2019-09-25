@@ -7285,8 +7285,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             dt_ph = zeros(this.time.length, 1);
             dt_pr = zeros(this.time.length, 1);
             
-            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph, dp);
-            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr, dp);
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
             % apply desync
             if ~disable_dt_correction
                 
