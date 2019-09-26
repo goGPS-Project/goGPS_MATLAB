@@ -89,6 +89,6 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
         if ~hold_state
             hold off
         end
-        xlim([-1 1]); ylim([-1 1]);
+        xlim([-1.15 1.15]); ylim([-1.15 1.15]);
     end
 end
