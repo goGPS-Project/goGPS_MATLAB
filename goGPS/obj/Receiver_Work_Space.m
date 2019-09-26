@@ -7279,7 +7279,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % extract observations
             [ph, wl, id_ph] = this.getPhases();
-            [dp, wl, id_dp] = this.getDoppler();
+            % [dp, wl, id_dp] = this.getDoppler();
             [pr, id_pr] = this.getPseudoRanges();
             
             dt_ph = zeros(this.time.length, 1);
