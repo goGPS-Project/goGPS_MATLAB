@@ -1,4 +1,4 @@
-function [ fr1, fr2 ] = split( tt )
+function [ fr1, fr2 ] = splitDouble( tt )
 % breaks up a double number into a double integer part and a fractional part
 %
 % void split (double tt,

@@ -373,13 +373,13 @@ end
 
 s = et2(1) - 0.5;
 
-tmp = split(s);
+tmp = splitDouble(s);
 
 pjd(1) = tmp(1);
 
 pjd(2) = tmp(2);
 
-tmp = split(et2(2));
+tmp = splitDouble(et2(2));
 
 pjd(3) = tmp(1);
 
@@ -389,7 +389,7 @@ pjd(1) = pjd(1) + pjd(3) + 0.5;
 
 pjd(2) = pjd(2) + pjd(4);
 
-tmp = split(pjd(2));
+tmp = splitDouble(pjd(2));
 
 pjd(3) = tmp(1);
 
@@ -675,7 +675,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%
 
-function fr = split(tt)
+function fr = splitDouble(tt)
 
 % this function breaks a number into a integer
 % and a fractional part.

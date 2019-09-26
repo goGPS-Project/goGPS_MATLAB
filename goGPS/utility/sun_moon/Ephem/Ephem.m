@@ -137,7 +137,7 @@ classdef Ephem < handle
       % create a new position (row vector)
       vector = zeros(1,3);
     end
-    [ fr1, fr2 ] = split( tt );
+    [ fr1, fr2 ] = splitDouble( tt );
     [ error ] = asc2eph( denum, fn, OUTFILE );
     [ st, error ] = readHeader( denum );
     [ scan, error ] = read_asc( denum, fn, dontSave );
