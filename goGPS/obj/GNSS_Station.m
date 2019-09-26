@@ -4028,57 +4028,63 @@ classdef GNSS_Station < handle
                         % restore the original mean data where observations are present
                         %map_fill(~isnan(map)) = map(~isnan(map));
                         
-                        f = figure;
-                        f.Name = sprintf('%03d: ResMap %s@%c', f.Number, rec.getMarkerName4Ch, ss); f.NumberTitle = 'off';                        
-                        if (nargin < 4) || isempty(mode)
-                            mode = 'cart';
+                        if ~any(map(:))
+                            Core.getLogger.addWarning(sprintf('No data found for %s@%c', rec.getMarkerName4Ch, ss));
+                        else
+                            
+                            f = figure;
+                            f.Name = sprintf('%03d: ResMap %s@%c', f.Number, rec.getMarkerName4Ch, ss); f.NumberTitle = 'off';
+                            if (nargin < 4) || isempty(mode)
+                                mode = 'cart';
+                            end
+                            switch mode
+                                case 'cart'
+                                    %% Cartesian projection
+                                    %img = imagesc(az_g, el_g, 1e3 * circshift(abs(map_fill), size(map_fill, 2) / 2, 2));
+                                    img = imagesc(az_g, el_g, 1e3 * map_fill);
+                                    set(gca,'YDir','normal');
+                                    grid on
+                                    image_alpha = 0.5; % everywhere 1 where obs are present
+                                    %img.AlphaData = (~isnan(circshift(abs(map), size(map, 2) / 2, 2)) * 0.7) + 0.3;
+                                    img.AlphaData = (~isnan(map) * (1 - image_alpha)) + image_alpha;
+                                    %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);
+                                    
+                                    %caxis(1e3 * [min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
+                                    caxis(1e3 * perc(abs(map(:)), 0.99) * [-1 1]);
+                                    colormap(Cmap.get('PuOr', 256));
+                                    f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
+                                    h = title(sprintf('Satellites residuals [mm] - receiver %s - %c', ss, rec.getMarkerName4Ch, ss),'interpreter', 'none');
+                                    h.FontWeight = 'bold';
+                                    hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                                    hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                                    %ax = gca;
+                                    %ax.PlotBoxAspectRatio = [1 1 1];
+                                    %ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
+                                case '3D'
+                                    %% 3D projection
+                                    %                                 clf
+                                    %                                 polarplot3d(1e3 * map_fill(1:2:end, 1:2:end),  'RadialRange',[-180 180] / 180 * pi, ...
+                                    %                                     'AxisLocation', 0, 'InterpMethod', 'cubic', ...
+                                    %                                     'PlotType', 'surfn', 'tickspacing', 15, ...
+                                    %                                     'GridColor', [0.7 0.7 0.7]);
+                                    polarplot3d(1e3 * map_fill, ...
+                                        'AxisLocation', 0, 'InterpMethod', 'cubic', ...
+                                        'PlotType', 'surfn', 'tickspacing', 15, ...
+                                        'GridColor', [0.7 0.7 0.7]);
+                                    caxis(1e3 * perc(abs(map(:)), 0.95) * [-1 1]);
+                                    colormap(Cmap.get('RdGy', 256));
+                                    colorbar();
+                                    ax = gca;
+                                    ax.PlotBoxAspectRatio = [1 1 1];
+                                    ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
+                                    smap = ax.Children(end);
+                                    smap.AlphaData = double(~isnan(map));
+                                    smap.AlphaData(smap.AlphaData == 0) = smap.AlphaData(smap.AlphaData == 0) + 0.5;
+                                    smap.FaceAlpha = 'flat';
+                            end
+                            Core_UI.beautifyFig(gcf, 'dark');
+                            Core_UI.addBeautifyMenu(gcf);
                         end
-                        switch mode
-                            case 'cart'
-                                %% Cartesian projection
-                                %img = imagesc(az_g, el_g, 1e3 * circshift(abs(map_fill), size(map_fill, 2) / 2, 2));
-                                img = imagesc(az_g, el_g, 1e3 * map_fill);
-                                set(gca,'YDir','normal');
-                                grid on
-                                image_alpha = 0.5; % everywhere 1 where obs are present
-                                %img.AlphaData = (~isnan(circshift(abs(map), size(map, 2) / 2, 2)) * 0.7) + 0.3;
-                                img.AlphaData = (~isnan(map) * (1 - image_alpha)) + image_alpha;
-                                %colormap(flipud(hot)); colorbar(); caxis([0, 0.02]);
-                                
-                                %caxis(1e3 * [min(abs(map(:))) min(20, min(6*std(zero2nan(map(:)),'omitnan'), max(abs(zero2nan(map(:))))))]);
-                                caxis(1e3 * perc(abs(map(:)), 0.99) * [-1 1]);
-                                colormap(Cmap.get('PuOr', 256));
-                                f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
-                                h = title(sprintf('Satellites residuals [mm] - receiver %s - %c', ss, rec.getMarkerName4Ch, ss),'interpreter', 'none');
-                                h.FontWeight = 'bold';
-                                hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
-                                hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
-                                %ax = gca;
-                                %ax.PlotBoxAspectRatio = [1 1 1];
-                                %ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
-                            case '3D'
-                                %% 3D projection
-%                                 clf
-%                                 polarplot3d(1e3 * map_fill(1:2:end, 1:2:end),  'RadialRange',[-180 180] / 180 * pi, ...
-%                                     'AxisLocation', 0, 'InterpMethod', 'cubic', ...
-%                                     'PlotType', 'surfn', 'tickspacing', 15, ...
-%                                     'GridColor', [0.7 0.7 0.7]);
-                                polarplot3d(1e3 * map_fill, ...
-                                    'AxisLocation', 0, 'InterpMethod', 'cubic', ...
-                                    'PlotType', 'surfn', 'tickspacing', 15, ...
-                                    'GridColor', [0.7 0.7 0.7]);
-                                caxis(1e3 * perc(abs(map(:)), 0.95) * [-1 1]);
-                                colormap(Cmap.get('RdGy', 256));
-                                colorbar();
-                                ax = gca;
-                                ax.PlotBoxAspectRatio = [1 1 1];
-                                ax.DataAspectRatio(2) = ax.DataAspectRatio(1);
-                                smap = ax.Children(end);
-                                smap.AlphaData = double(~isnan(map));
-                                smap.AlphaData(smap.AlphaData == 0) = smap.AlphaData(smap.AlphaData == 0) + 0.5;
-                                smap.FaceAlpha = 'flat';
-                        end
-                        
                     end
                 end
             end

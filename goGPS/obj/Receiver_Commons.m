@@ -2000,7 +2000,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             rec.w_bar.close();
             if isempty(data)
-                log.addWarning(sprintf('No data found for %s', rec.getMarkerName4Ch));
+                log.addWarning(sprintf('No data found for %s', rec.parent.getMarkerName4Ch), 100);
                 map_fill = nan(size(map));
             else
                 map(n_data_map(:) > 0) = map(n_data_map(:) > 0) ./ n_data_map(n_data_map(:) > 0);
@@ -2025,7 +2025,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     polar_map_fill = circConv2(polar_map_fill, size_conv);
                 end
                 map_fill = nan(size(map));
-                map_fill(:) = polar_map_fill(id_p);
+                map_fill(:) = polar_map_fill(id_p);                
             end
         end
     end

@@ -281,6 +281,12 @@ classdef Core_UI < Logos
             
             if strcmp(color_mode, 'dark')
                 fig_handle.Color = [0.15, 0.15 0.15];
+                cb_list = findall(fig_handle, 'Type', 'colorbar');
+                for cb = cb_list(:)'
+                    cb.Color = [0.9 0.9 0.9];
+                    cb.FontName = 'Open Sans';
+                    cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
                     ax.Color = [0.2 0.2 0.2];
@@ -327,6 +333,12 @@ classdef Core_UI < Logos
                 end
             elseif strcmp(color_mode, 'light')
                 fig_handle.Color = [0.94 0.94 0.94];
+                cb_list = findall(fig_handle, 'Type', 'colorbar');
+                for cb = cb_list(:)'
+                    cb.Color = 1-[0.9 0.9 0.9];
+                    cb.FontName = 'Open Sans';
+                    cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
                     ax.Color = [1 1 1];

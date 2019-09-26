@@ -10134,58 +10134,62 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function showDataAvailability(this, sys_c, band)
+        function f_handle = showDataAvailability(this, sys_c, band)
             % Plot all the satellite seen by the system
             % SYNTAX this.plotDataAvailability(sys_c)
             
-            cc = Core.getState.getConstellationCollector;
-            if (nargin == 1)
-                sys_c = cc.sys_c;
-            end
-            f = figure; f.Name = sprintf('%03d: DataAvail', f.Number); f.NumberTitle = 'off';
-            ss_ok = intersect(cc.sys_c, sys_c);
-            for ss = ss_ok
-                ss_id = find(cc.sys_c == ss);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
+            if this.isEmpty
+                Core.getLogger.addWarning(sprintf('Receiver %s is empty', this.parent.getMarkerName4Ch));
+            else
+                cc = Core.getState.getConstellationCollector;
+                if (nargin == 1)
+                    sys_c = cc.sys_c;
                 end
-                
-                for prn = cc.prn(cc.system == ss)'
-                    if nargin > 2
-                        band_id = this.obs_code(:,2) == cc.getSys(ss).CODE_RIN3_2BAND(band);
-                    else
-                        band_id = true(size(this.prn ));
+                f_handle = [];
+                ss_ok = intersect(cc.sys_c, sys_c);
+                idx_f = 1;
+                for ss = ss_ok
+                    ss_id = find(cc.sys_c == ss);
+                    f = figure; f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
+                    f_handle(idx_f) = f;
+                    
+                    any_data = false;
+                    for prn = cc.prn(cc.system == ss)'
+                        if nargin > 2
+                            band_id = this.obs_code(:,2) == cc.getSys(ss).CODE_RIN3_2BAND(band);
+                        else
+                            band_id = true(size(this.prn ));
+                        end
+                        id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & band_id, :),1));
+                        any_data = any_data || any(id_ok);
+                        plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                        hold on;
+                        id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C' & band_id, :),1));
+                        any_data = any_data || any(id_ok);
+                        plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0 0 0]);
+                        hold on;
+                        id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
+                        any_data = any_data || any(id_ok);
+                        plot(id_ok, prn * ones(size(id_ok)), '.');
                     end
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & band_id, :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
-                    hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C' & band_id, :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
-                    hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), '.');
+                    if ~any_data
+                        close(f);
+                    else
+                        prn_ss = unique(this.prn(this.system == ss));
+                        xlim([1 size(this.obs,2)]);
+                        if ~isempty(prn_ss)
+                            ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                            ax = gca(); ax.YTick = prn_ss;
+                        end
+                        h = ylabel('PRN'); h.FontWeight = 'bold';
+                        grid on;
+                        h = xlabel('epoch'); h.FontWeight = 'bold';
+                        title(cc.getSysName(ss));
+                        idx_f = idx_f + 1;
+                        Core_UI.beautifyFig(f, 'dark');
+                        Core_UI.addBeautifyMenu(f);
+                    end
                 end
-                prn_ss = unique(this.prn(this.system == ss));
-                xlim([1 size(this.obs,2)]);
-                if ~isempty(prn_ss) 
-                    ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
-                    ax = gca(); ax.YTick = prn_ss;
-                end
-                h = ylabel('PRN'); h.FontWeight = 'bold';
-                grid on;
-                h = xlabel('epoch'); h.FontWeight = 'bold';
-                title(cc.getSysName(ss));
             end
         end
         
@@ -10463,14 +10467,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     if any(snr_id) && any(snr(:))
                         idx_f = idx_f +1;
-                        f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        f = figure; f.Name = sprintf('%03d: %s SNR%d %s', f.Number, this.parent.getMarkerName4Ch, b, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                         f_handle(idx_f) = f;
                         id_ok = (~isnan(snr));
                         az = this.sat.az(:,this.go_id(snr_id));
                         el = this.sat.el(:,this.go_id(snr_id));
                         polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
                         colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none'); 
+                        h.FontWeight = 'bold'; 
+                        %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                        Core_UI.beautifyFig(f, 'dark');
+                        Core_UI.addBeautifyMenu(f);
                     end
                 end
             end
