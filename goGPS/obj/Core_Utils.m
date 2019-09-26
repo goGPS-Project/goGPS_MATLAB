@@ -99,33 +99,47 @@ classdef Core_Utils < handle
             % SYNTAX
             %   Core_Utils.diffAndPred(data, t_ref)
             
-            if nargin < 3
+            if nargin < 3 || isempty(t_ref)
                 t_ref = 1 : size(data,1);
             end
-            if nargin < 2
+            if nargin < 2 || isempty(n_order)
                 n_order = 1;
             end
+            diff_data = nan(size(data));
+            % Add n_order rows to data
             data = [repmat(data(1,:), n_order, 1); data];
             for s = 1 : size(data, 2)
+                % Get the original good data for column s
                 tmp = data(1 + n_order : end, s);
                 id_ok = ~isnan(tmp);
                 if sum(id_ok) > 2
-                    data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
+                    % Interpolate data beginning
                     % interpolate the "left" of the first element of an arc
                     % because diff "eat" the first value
+                    if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
+                        data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
+                    end
+                    
                     lim = getOutliers(id_ok);
                     lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
+                    % short arcs cannot be differenciated efficiently
                     for l = 1 : size(lim_short, 1)
                         data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
                     end
-                    lim = lim(lim(:,2) - lim(:,1) > 2 & lim(:,1) > 1, :);
+                    
+                    % differenciate only limits larger than 2
+                    lim = lim(lim(:,2) - lim(:,1) > 1, :);
                     for l = 1 : size(lim, 1)
                         id_data = lim(l, 1) : lim(l, 2);
-                        data(lim(l, 1), s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1, 'pchip', 'extrap');
+                        id_est = 0;                       
+                        data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 + id_est, 'pchip', 'extrap');
+                        diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
+                        % restore data for the next interval
+                        data(1 + n_order : end, s) = tmp;
                     end
                 end
             end
-            diff_data = diff(data, n_order);
+            % diff_data = diff(data, n_order); % now is done arc by arc
         end
         
         function idx = findMO(find_list, to_find_el)
