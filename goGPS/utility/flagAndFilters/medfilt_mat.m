@@ -76,7 +76,7 @@ function filtered_data = medfilt_mat(data, filter_size)
         for i = length(data) - half_size + 1 : length(data) -1
             win = outSortedData(win, data(-length(data) + 2 * (i - 1)));
             win = outSortedData(win, data(-length(data) + 2 * i - 1));
-            filtered_data(i) = win((length(win)+1)/2);
+            filtered_data(i) = win(round((length(win)+1)/2));
         end
         filtered_data(end) = data(end);
         filtered_data(inan) = nan;
