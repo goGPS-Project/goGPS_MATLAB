@@ -91,6 +91,9 @@ classdef Go_Slave < Com_Interface
     methods (Static, Access = public)
         function this = getInstance(com_dir, destroy_this)
             % Get the persistent instance of the class
+            %
+            % SYNTAX
+            %   gos = Go_Slave.getInstance(com_dir, destroy_this)
             persistent unique_instance_gos__
             if nargin >= 2 && ~isempty(destroy_this) && destroy_this
                 if ~isempty(unique_instance_gos__)

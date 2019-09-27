@@ -221,7 +221,7 @@ classdef Parallel_Manager < Com_Interface
             %   goGPS_folder  pwd
             %
             % SYNTAX
-            %   this.gimmeWorkers(n_workers, com_dir, goGPS_folder);
+            %   this.createSlaves(n_slaves, com_dir, goGPS_folder);
             if nargin < 2 || isempty(com_dir)
                 com_dir = fullfile(pwd, 'com');
             end
