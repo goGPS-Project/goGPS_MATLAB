@@ -206,30 +206,30 @@ classdef Core_UI < Logos
             %
             % SYNTAX
             %   Core_Utils.addBeautifyMenu(fig_handle)
-            m = findall(fig_handle.Children, 'Type', 'uimenu', 'Text', 'Aspect');
+            m = findall(fig_handle.Children, 'Type', 'uimenu', 'Label', 'Aspect');
             if ~isempty(m)
                 m = m(1);
             else
-                m = uimenu(fig_handle, 'Text', 'Aspect');
+                m = uimenu(fig_handle, 'Label', 'Aspect');
             end
-            mitem = findall(m.Children, 'Type', 'uimenu', 'Text', '&Dark mode');
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', '&Dark mode');
             if ~isempty(mitem)
                 % Item already present
                 %    mitem = mitem(1);
             else
-                mitem = uimenu(m,'Text','&Dark mode');
+                mitem = uimenu(m,'Label','&Dark mode');
                 mitem.Accelerator = 'D';
-                mitem.MenuSelectedFcn = @toDark;
+                mitem.Callback = @toDark;
             end
             
-            mitem = findall(m.Children, 'Type', 'uimenu', 'Text', '&Light mode');
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', '&Light mode');
             if ~isempty(mitem)
                 % Item already present
                 %    mitem = mitem(1);
             else
-                mitem = uimenu(m,'Text','&Light mode');
+                mitem = uimenu(m,'Label','&Light mode');
                 mitem.Accelerator = 'L';
-                mitem.MenuSelectedFcn = @toLight;
+                mitem.Callback = @toLight;
             end
             
             function toDark(src, event)
@@ -385,12 +385,22 @@ classdef Core_UI < Logos
                 end                
             end
             
-            % ResizeFig 
+            % ResizeFig
             unit = fig_handle.Units;
             fig_handle.Units = 'pixels';
             drawnow
-            if ~strcmp(fig_handle.WindowStyle, 'docked') && fig_handle.InnerPosition(3) <= (600) && fig_handle.InnerPosition(4) <= (450)
-                fig_handle.InnerPosition([3, 4]) = [1020 700];
+            if isprop(fig_handle,'InnerPosition')
+                flag_small_fig = fig_handle.InnerPosition(3) <= (600) && fig_handle.InnerPosition(4) <= (450);
+            else
+                flag_small_fig = fig_handle.Position(3) <= (600) && fig_handle.Position(4) <= (450);
+            end
+            
+            if ~strcmp(fig_handle.WindowStyle, 'docked') && flag_small_fig
+                if isprop(fig_handle,'InnerPosition')
+                    fig_handle.InnerPosition([3, 4]) = [1020 700];
+                else
+                    fig_handle.Position([3, 4]) = [1020 700];
+                end
                 if isunix && not(ismac())
                     fig_handle.Position(1) = round((fig_handle.Parent.ScreenSize(3) - fig_handle.Position(3)) / 2);
                     fig_handle.Position(2) = round((fig_handle.Parent.ScreenSize(4) - fig_handle.Position(4)) / 2);
