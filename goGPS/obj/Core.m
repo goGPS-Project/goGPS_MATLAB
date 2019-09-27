@@ -801,6 +801,7 @@ classdef Core < handle
             % SYNTAX
             %   this.activateParallelWorkers(flag_send_sky, id_rec2pass)
             this.gom = Parallel_Manager.getInstance;
+            this.gom.setComDir(Core.getState.getComDir);
             this.gom.activateWorkers(flag_par_target, id_rec2pass);
         end
     end
