@@ -1010,6 +1010,40 @@ classdef Core_Sky < handle
                         end
                         c_ep_idx = round((sat_time - this.time_ref_clock) / this.clock_rate) +1; % epoch index
                         this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
+                        if size(c_ep_idx, 1) ~= size(this.clock, 1) && Core.getState.isClockAlign()
+                            % the clock is not empty and re-alignment have been requested
+                            buf_size = 25;
+                            % check left
+                            id_left = max(1, c_ep_idx(1) - 1 - buf_size) : max(1, c_ep_idx(1) - 1);
+                            id_left(this.clock(id_left) == 0) = [];
+                            if numel(id_left) > 3
+                                % realign on left
+                                % compute id of the new clock set to be used for re-alignment
+                                id_right = c_ep_idx(1) : c_ep_idx(find(c_ep_idx < (c_ep_idx(1) + buf_size), 1, 'last'));
+                                id_right(this.clock(id_right) == 0) = [];
+                                if numel(id_right) > 3
+                                    prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
+                                    prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
+                                    time_shift = mean(prediction_from_right - prediction_from_left);
+                                    this.clock(c_ep_idx,i) = this.clock(c_ep_idx,i) - time_shift;
+                                end
+                            end
+                            % check right
+                            id_left = max(1, c_ep_idx(end) - buf_size + 1) : max(1, c_ep_idx(end));
+                            id_left(this.clock(id_left) == 0) = [];
+                            if numel(id_left) > 3
+                                % realign on right
+                                % compute id of the new clock set to be used for re-alignment
+                                id_right = min(size(this.clock,1), (c_ep_idx(end) + 1)) : min(size(this.clock,1), (c_ep_idx(end) + buf_size));
+                                id_right(this.clock(id_right) == 0) = [];
+                                if numel(id_right) > 3
+                                    prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
+                                    prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
+                                    time_shift = mean(prediction_from_right - prediction_from_left);
+                                    this.clock((c_ep_idx(end) + 1): end,i) = this.clock((c_ep_idx(end) + 1) : end, i) - time_shift;
+                                end
+                            end
+                        end
                     end
                 end
                 Core.getLogger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);

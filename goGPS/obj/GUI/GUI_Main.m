@@ -877,6 +877,13 @@ end
             ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
             opt_vbox = uix.VBox('Parent', ppp_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
+            if verLessThan('matlab','9.5')
+                this.check_boxes{end}.TooltipString = 'Align satellite clocks among each file';
+            else
+                this.check_boxes{end}.Tooltip = 'Align satellite clocks among each file';
+            end
+            Core_UI.insertHBarLight(opt_vbox);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
@@ -888,7 +895,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             Core_UI.insertEmpty(opt_vbox);
              
-            opt_vbox.Heights = [ones(1, 9) * 22 -1];
+            opt_vbox.Heights = [22 5 ones(1, 9) * 22 -1];
         end
         
         function insertTabRecSpecificParameters(this, container)

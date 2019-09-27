@@ -220,6 +220,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
         FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
          
+        FLAG_CLOCK_ALIGN = true;                        % Flag to enable satellite clock alignment (solve jumps among files)
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
         FLAG_PHASE_WIND = true;                         % Flag to enable pahse wrap up correction
@@ -620,6 +621,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         % Flag for enabling the usage of iono-free combination
         iono_management  = Main_Settings.IONO_MANAGEMENT;
+        flag_clock_align = Main_Settings.FLAG_CLOCK_ALIGN;
         flag_solid_earth = Main_Settings.FLAG_SOLID_EARTH;
         flag_pole_tide   = Main_Settings.FLAG_POLE_TIDE;
         flag_phase_wind  = Main_Settings.FLAG_PHASE_WIND;
@@ -888,6 +890,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 end
                 this.flag_amb_pass = state.getData('flag_amb_pass');
                 
+                this.flag_clock_align = state.getData('flag_clock_align');
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
                 this.flag_phase_wind = state.getData('flag_phase_wind');
@@ -1049,6 +1052,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.net_amb_fix_approach = state.net_amb_fix_approach;
                 this.flag_amb_pass = state.flag_amb_pass;
                 
+                this.flag_clock_align = state.flag_clock_align;
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
                 this.flag_phase_wind = state.flag_phase_wind;
@@ -1238,6 +1242,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
             str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
+            str = [str sprintf(' Enable satellite clock re-alignment:              %d\n', this.flag_clock_align)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
             str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
@@ -1672,6 +1677,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Enable corrections', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable re-alignment of satellite clocks (to compensate for discontinuities at the limits of validity)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_clock_align', this.flag_clock_align, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Enable solid earth tide corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_solid_earth', this.flag_solid_earth, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable pole tide corrections', str_cell);
@@ -2369,6 +2377,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_amb_pass = 0; % (too much experimental)
             
             % Corrections
+            this.flag_clock_align = 1;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 1;
             this.flag_phase_wind = 1;
@@ -2459,6 +2468,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_amb_pass = 0; % (too much experimental)
             
             % Corrections
+            this.flag_clock_align = 1;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 0;
             this.flag_phase_wind = 0;
@@ -2586,6 +2596,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
                 
             this.checkNumericField('iono_management');
+            this.checkLogicalField('flag_clock_align');
             this.checkLogicalField('flag_solid_earth');
             this.checkLogicalField('flag_pole_tide');
             this.checkLogicalField('flag_phase_wind');
@@ -4208,8 +4219,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_iono_ext = this.iono_management == 3;
         end
         
+        function is_clock_align = isClockAlign(this)
+            % Check whether the clock re-alignment for sats is requested
+            %
+            % SYNTAX
+            %   is_clock_align = isClockAlign(this)
+            is_clock_align = this.flag_clock_align;
+        end
+                
         function is_solid_earth = isSolidEarth(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the solid Earth tide corrections are enabled
             %
             % SYNTAX
             %   is_solid_earth = isSolidEarth(this)
@@ -4217,7 +4236,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_pole_tide = isPoleTide(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the Pole tide corrections are enabled
             %
             % SYNTAX
             %   is_pole_tide = isPoleTide(this)
@@ -4233,7 +4252,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_phase_wind = isPhaseWind(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the phase wind up correction is enabled
             %
             % SYNTAX
             %   is_phase_wind = isPhaseWind(this)
@@ -4241,7 +4260,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_shapiro = isShapiro(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the shaphiro delay correction is enabled
             %
             % SYNTAX
             %   is_shapiro = isShapiro(this)
@@ -4257,7 +4276,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end             
         
         function is_ocean_load = isOceanLoading(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the ocean loading correction is enabled
             %
             % SYNTAX
             %   is_ocean_load = isOceanLoading(this)
@@ -4265,7 +4284,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_atm_load = isAtmLoading(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the athmospheric loading correction is enabled
             %
             % SYNTAX
             %   is_atm_load = isAtmLoading(this)
@@ -4281,7 +4300,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_apc_sep = isSeparateApc(this)
-               % Should diffferent pahse centers been estimated
+               % Should different phase centers been estimated
             %
             % SYNTAX
             %   is_apc_sep = this.isSeparateApc()
@@ -4290,7 +4309,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_smt = isSmoothTropoOut(this)
-            % Should the troposphere paramteres be smoothed
+            % Should the troposphere parameters be smoothed
             %
             % SYNTAX
             %   is_smt = this.isSmoothTropoOut()
@@ -4299,7 +4318,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_bound_coo = isSepCooAtBoundaries(this)
-            % Should separate coordinates be estaimated at boundaries
+            % Should separate coordinates be estimated at boundaries
             %
             % SYNTAX
             %   is_smt = this.isSepCooAtBoundaries()
@@ -4316,7 +4335,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_rec_pcv = isRecPCV(this)
-            % Check whether the iono free combination is enabled
+            % Check whether the receiver PCV correction is enabled
             %
             % SYNTAX
             %   is_rec_pcv= isRecPCV(this)
