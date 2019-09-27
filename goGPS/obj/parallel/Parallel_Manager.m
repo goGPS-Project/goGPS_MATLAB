@@ -140,6 +140,7 @@ classdef Parallel_Manager < Com_Interface
             else
                 gom = Parallel_Manager.getInstance;
             end
+            gom.setComDir(Core.getState.getComDir);
             gom.killThemAll
         end
         
@@ -172,6 +173,7 @@ classdef Parallel_Manager < Com_Interface
             else
                 gom = Parallel_Manager.getInstance;
             end
+            gom.setComDir(Core.getState.getComDir);
             gom.log.addMessage(gom.log.indent(sprintf('Checking for slaves into "%s"', gom.getComDir)));
             n_living_slaves = gom.checkLivingSlaves();
             if n_living_slaves < n_slaves
