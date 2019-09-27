@@ -127,6 +127,8 @@ classdef LS_Manipulator_new < handle
         idx_rd % idx parameter removed to silve the rank deficency
         ls_parametrization;
         
+        free_tropo = false;% free network tropo paramters
+        
         x
         
         log
@@ -907,8 +909,9 @@ classdef LS_Manipulator_new < handle
                     num_rec(noZero(idx_par_rec)) = num_rec(noZero(idx_par_rec)) + 1;
                 end
                 idx_el = find(num_rec < 2);
+                par_sat_clk = this.A_idx(this.satellite_obs == s, this.param_class == this.PAR_SAT_CLK);
                 for i = idx_el'
-                    obs_par = this.A_idx(:,this.param_class == this.PAR_SAT_CLK) == idx_par(i);
+                    obs_par = par_sat_clk == idx_par(i);
                     this.outlier_obs(obs_par) = true;
                 end
             end
@@ -1135,8 +1138,10 @@ classdef LS_Manipulator_new < handle
             % remove one clock per epoch
             u_ep = unique(this.time_par);
             if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
                 for e = u_ep'
-                    idx_par = find(this.class_par == this.PAR_REC_CLK & this.time_par(:,1) == e & ~this.out_par);
+                    idx_par = idx_rec_par(time_par_tmp == e);
                     if length(idx_par)>1
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
@@ -1158,6 +1163,7 @@ classdef LS_Manipulator_new < handle
             % other keeping in mind that after the first no receiver can be
             % completely removed
             if sum(this.param_class == this.PAR_AMB) > 0 && (sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0)
+                all_ambs = this.A_idx(:,this.param_class == this.PAR_AMB);
                 idx_amb_rm_sat = [];
                 if (sum(this.param_class == this.PAR_SAT_CLK) > 0)
                     % find the elecronic bias assoictaed with each ambiguity
@@ -1165,7 +1171,7 @@ classdef LS_Manipulator_new < handle
                     amb2eb = zeros(size(idx_ambs));
                     % find to which electronic bias the ambiguity is tied
                     for e = 1: length(idx_ambs)
-                        idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
+                        idx_obs_sample = find(all_ambs == idx_ambs(e),1,'first');
                         ebs_tmp = this.obs_codes_id_par(this.A_idx(idx_obs_sample, this.param_class == this.PAR_SAT_EB));
                         amb2eb(e) = ebs_tmp(1);
                     end
@@ -1230,6 +1236,9 @@ classdef LS_Manipulator_new < handle
                                     amb2arc = 1000*uint32(rec_par) + uint32(obs_codes_id_par);
                                     u_arc = unique(amb2arc);
                                     arc2eb = rem(u_arc,1000);
+                                    % sort ambiguity per arc length
+                                    arc_len = time_par(:,2) - time_par(:,1);
+                                    [~,idx_arc_len] = sort(arc_len,'descend');
                                     
                                     
                                     [~,amb2u_arc] = ismember(amb2arc,u_arc);
@@ -1269,7 +1278,15 @@ classdef LS_Manipulator_new < handle
                                                 if ~(sum(rec_sat_mtx(rec_preference(1),:) == 1) == 0 && sum(rec_sat_mtx(rp,:) == 1) <= 1)
                                                     ambs_r = ambs(:,rec_amb_mat == rp);
                                                     if any(any(ambs_r)) && (~sat_eb_const || ~jmps_sat_el{s}(j) ||  first_rem )
-                                                        idx_poss_amb = mode(noZero(ambs_r(:)));
+                                                         cont_amb_while = true; % find the longest ambiguiti present
+                                                         ia = 1;
+                                                         while cont_amb_while
+                                                             if any(any(ambs_r == idx_par(idx_arc_len(ia))))
+                                                                 idx_poss_amb = idx_par(idx_arc_len(ia));
+                                                                 cont_amb_while = false;
+                                                             end
+                                                             ia = ia+1;
+                                                         end
                                                         idx_amb_rm_sat = [idx_amb_rm_sat; uint32(idx_poss_amb)];
                                                         if sat_eb_const
                                                             jmps_sat_el{s}(j) = true;
@@ -1298,7 +1315,7 @@ classdef LS_Manipulator_new < handle
                     amb2eb = zeros(size(idx_ambs));
                     % find to which electrinuc bias the ambiguity is tied
                     for e = 1: length(idx_ambs)
-                        idx_obs_sample = find(this.A_idx(:,this.param_class == this.PAR_AMB) == idx_ambs(e),1,'first');
+                        idx_obs_sample = find( all_ambs == idx_ambs(e),1,'first');
                         amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB));
                     end
                     ebs = unique(amb2eb)';
@@ -1317,6 +1334,7 @@ classdef LS_Manipulator_new < handle
                             amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
                             u_arc = unique(amb2arc_a);
                             arc2eb = rem(u_arc,1000);
+                            % sort ambiguity per arc length
                             
                             
                             [~,amb2arc] = ismember(amb2arc_a,u_arc);
@@ -1357,7 +1375,9 @@ classdef LS_Manipulator_new < handle
                                     amb2arc_a = 1000*uint32(sat_par) + uint32(obs_codes_id_par);
                                     u_arc = unique(amb2arc_a);
                                     arc2eb = rem(u_arc,1000);
-                                    
+                                    % sort ambiguity per arc length
+                                    arc_len = time_par(:,2) - time_par(:,1);
+                                    [~,idx_arc_len] = sort(arc_len,'descend');
                                     
                                     [~,amb2arc] = ismember(amb2arc_a,u_arc);
                                     amb_mat = zeros(max(u_time),length(u_arc),'uint32');
@@ -1382,12 +1402,28 @@ classdef LS_Manipulator_new < handle
                                         jmp_e = jmps(j+1);
                                         ambs = amb_mat(jmp_s:min(size(amb_mat,1),jmp_e),:);
                                         if any(any(ambs))
-                                            [id_poss_rm]  = mode(noZero(ambs(:)));
-                                            idx_start = sum(ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
-                                            while any(any(ambs)) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 ...
+                                            cont_amb_while = true; % find the longest ambiguiti present
+                                            ia = 1;
+                                            u_ambs = unique(noZero(ambs));
+                                            while cont_amb_while
+                                                if any(any(u_ambs == idx_par(idx_arc_len(ia))))
+                                                    id_poss_rm = idx_par(idx_arc_len(ia));
+                                                    cont_amb_while = false;
+                                                end
+                                                ia = ia+1;
+                                            end
+                                            idx_start = sum(u_ambs == id_poss_rm) > 0; % i  case everything has been removed to exit the loop
+                                            while any(u_ambs) && sum(id_poss_rm ==  idx_rm) > 0 | sum(amb2arc_a(find(idx_par == id_poss_rm)) == forbidden_arc_rec) > 0 ...
                                                     | (this.ls_parametrization.rec_eb(4) ~= LS_Parametrization.SING_TRACK && sum(floor(amb2arc_a(find(idx_par == id_poss_rm))/1000) == floor(forbidden_arc_rec/1000)) > 0)% it might be that the ambiguity was previouly removed in the satellite round
-                                                ambs(ambs == id_poss_rm) = 0;
-                                                id_poss_rm = mode(noZero(ambs(:)));
+                                                u_ambs(u_ambs == id_poss_rm) = 0;
+                                                cont_amb_while = true;  % find the longest ambiguiti present
+                                                while cont_amb_while & any(u_ambs)
+                                                    if any(u_ambs == idx_par(idx_arc_len(ia)))
+                                                        id_poss_rm = idx_par(idx_arc_len(ia));
+                                                        cont_amb_while = false;
+                                                    end
+                                                    ia = ia+1;
+                                                end
                                             end
                                             if id_poss_rm > 0 && (~rec_eb_const || ~jmps_rec_el{r}(j) ||  first_rem )
                                                 idx_rm = [idx_rm; uint32(id_poss_rm)];
@@ -1410,60 +1446,68 @@ classdef LS_Manipulator_new < handle
             
             % ---- (multi receiver) for each epoche remove one coordinate --------
             if (sum(this.param_class == this.PAR_REC_X) > 0 || sum(this.param_class == this.PAR_REC_Y) > 0  ||  sum(this.param_class == this.PAR_REC_Z) > 0 || sum(this.param_class == this.PAR_TROPO) > 0  || sum(this.param_class == this.PAR_TROPO_E) > 0  || sum(this.param_class == this.PAR_TROPO_N) > 0) && sum(this.param_class == this.PAR_SAT_CLK) > 0
+                idx_time_x = find(this.class_par == this.PAR_REC_X & ~this.out_par);
+                time_tmp_x = this.time_par(idx_time_x,:);
+                idx_time_y = find(this.class_par == this.PAR_REC_Y & ~this.out_par);
+                time_tmp_y = this.time_par(idx_time_y,:);
+                idx_time_z = find(this.class_par == this.PAR_REC_Z & ~this.out_par);
+                time_tmp_z = this.time_par(idx_time_z,:);
+                if ~this.free_tropo
+                    idx_time_t = find(this.class_par == this.PAR_TROPO & ~this.out_par);
+                    time_tmp_t = this.time_par(idx_time_t,:);
+                    idx_time_e = find(this.class_par == this.PAR_TROPO_E & ~this.out_par);
+                    time_tmp_e = this.time_par(idx_time_e,:);
+                    idx_time_n = find(this.class_par == this.PAR_TROPO_N & ~this.out_par);
+                    time_tmp_n = this.time_par(idx_time_n,:);
+                end
                 for e = u_ep'
-                    idx_e = this.time_par(:,1) >= e & ( this.time_par(:,1)==0 | this.time_par(:,2) < e) ;
-                    idx_par = this.class_par == this.PAR_REC_X & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
+                    idx_par = idx_time_x(time_tmp_x(:,1) >= e & ( time_tmp_x(:,1)==0 | time_tmp_x(:,2) < e));
                     if any(any(idx_par))
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
-                    idx_par = this.class_par == this.PAR_REC_Y & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
                     
+                    idx_par = idx_time_y(time_tmp_y(:,1) >= e & ( time_tmp_y(:,1)==0 | time_tmp_y(:,2) < e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
-                    idx_par = this.class_par == this.PAR_REC_Z & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
-                    
+
+                    idx_par = idx_time_z(time_tmp_z(:,1) >= e & ( time_tmp_z(:,1)==0 | time_tmp_z(:,2) < e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                    idx_par = this.class_par == this.PAR_TROPO & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
-                    
+                    if ~this.free_tropo
+                    idx_par = idx_time_t(time_tmp_t(:,1) >= e & ( time_tmp_t(:,1)==0 | time_tmp_t(:,2) < e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                    idx_par = this.class_par == this.PAR_TROPO_E & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
                     
+                    idx_par = idx_time_e(time_tmp_e(:,1) >= e & ( time_tmp_e(:,1)==0 | time_tmp_e(:,2) < e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
                     end
-                    idx_par = this.class_par == this.PAR_TROPO_N & idx_e & ~this.out_par;
-                    idx_par = find(idx_par);
                     
+                    idx_par = idx_time_n(time_tmp_n(:,1) >= e & ( time_tmp_n(:,1)==0 | time_tmp_n(:,2) < e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
                             idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                         end
+                    end
                     end
                 end
             end
@@ -1703,17 +1747,18 @@ classdef LS_Manipulator_new < handle
                 B = B(~i_rec_clk_tmp) - Nt * B_recclk;
             end
             
-            x_reduced = N\B;
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
                     n_amb = length(idx_amb);
                     amb_y  = sparse(idx_amb,1:length(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
-                    C_amb_amb = N \ amb_y;
+                    C_amb_amb = N \ [B amb_y];
+                    x_reduced = C_amb_amb(:,1);
+                    C_amb_amb = C_amb_amb(:,2:end);
                     idx_rm_line = true(size(C_amb_amb,1),1);
                     idx_rm_line(idx_amb) = false;
                     C_amb_amb(idx_rm_line,:) = [];
@@ -1775,6 +1820,8 @@ classdef LS_Manipulator_new < handle
                     end
                 end
                 
+            else
+                x_reduced = N\B;
             end
             
             % ------- substitute back

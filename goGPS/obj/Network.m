@@ -582,8 +582,31 @@ classdef Network < handle
                     parametrization.iono(2) = LS_Parametrization.ALL_REC;
                 end
                 
-                ls.setUpNET(this.rec_list, coo_rate, '???', param_selection, parametrization);
+                if this.state.spline_tropo_order == 1
+                    parametrization.tropo(1)  = LS_Parametrization.SPLINE_LIN;
+                    parametrization.tropo_opt.spline_rate = this.state.spline_rate_tropo;
+                elseif this.state.spline_tropo_order == 3
+                    parametrization.tropo(1)  = LS_Parametrization.SPLINE_CUB;
+                    parametrization.tropo_opt.spline_rate = this.state.spline_rate_tropo;
+                end
                 
+                if this.state.spline_tropo_gradient_order == 1
+                    parametrization.tropo_e(1)  = LS_Parametrization.SPLINE_LIN;
+                    parametrization.tropo_n(1)  = LS_Parametrization.SPLINE_LIN;
+                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo;
+                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo;
+                elseif this.state.spline_tropo_gradient_order == 3
+                    parametrization.tropo_e(1)  = LS_Parametrization.SPLINE_CUB;
+                    parametrization.tropo_n(1)  = LS_Parametrization.SPLINE_CUB;
+                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo;
+                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo;
+                end
+                
+                ls.setUpNET(this.rec_list, coo_rate, '???', param_selection, parametrization);
+               
+                if this.state.flag_free_net_tropo
+                    ls.free_tropo = true;
+                end
                 
                 this.is_tropo_decorrel = this.state.isReferenceTropoEnabled;
                 this.is_coo_decorrel = free_net;
@@ -597,6 +620,8 @@ classdef Network < handle
                     ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
                     ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 end
+                
+                
                 if Core.isGReD
                     % distance regularization to be set up
                     
@@ -877,7 +902,7 @@ classdef Network < handle
                         idx_trp = ls.class_par == LS_Manipulator.PAR_TROPO & idx_rec;
                         tropo = ls.x(idx_trp);
                         tropo_dt = rem(this.common_time.getNominalTime - ls.getTimePar(idx_trp).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
-                        tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
+                        tropo_idx = floor((this.common_time.getNominalTime - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
                         [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime.getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
@@ -903,7 +928,7 @@ classdef Network < handle
                         
                         tropo_e = ls.x(idx_trp_e);
                         tropo_dt = rem(this.common_time.getNominalTime - ls.getTimePar(idx_trp_n).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
-                        tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp_n).minimum)/this.state.spline_rate_tropo);
+                        tropo_idx = floor((this.common_time.getNominalTime - ls.getTimePar(idx_trp_n).minimum)/this.state.spline_rate_tropo);
                         [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp_n).getNominalTime.getRefTime(ls.getTimePar(idx_trp_n).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
                         spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);

@@ -7278,8 +7278,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.n_spe(id_empty) = 0;
             
             % extract observations
-            [ph, wl, id_ph] = this.getPhases();
-            % [dp, wl, id_dp] = this.getDoppler();
+            [ph, wl_ph, id_ph] = this.getPhases();
+            [dp, wl_dop, id_dp] = this.getDoppler();
             [pr, id_pr] = this.getPseudoRanges();
             
             dt_ph = zeros(this.time.length, 1);
@@ -7386,7 +7386,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % Saving observations into the object properties
-            this.setPhases(ph, wl, id_ph);
+            this.setPhases(ph, wl_ph, id_ph);
             this.setPseudoRanges(pr, id_pr);
             
             this.time.addSeconds(time_desync - this.dt_pr);
