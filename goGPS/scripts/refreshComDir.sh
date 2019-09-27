@@ -1,6 +1,6 @@
 while true
 do
    clear
-   dir $1
+   ls $1
    sleep 0.1
 done
