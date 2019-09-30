@@ -879,9 +879,9 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
             if verLessThan('matlab','9.5')
-                this.check_boxes{end}.TooltipString = 'Align satellite clocks among each file - clear Core_Sky to see changes';
+                this.check_boxes{end}.TooltipString = 'Align satellite clocks among each file';
             else
-                this.check_boxes{end}.Tooltip = 'Align satellite clocks among each file - clear Core_Sky to see changes';
+                this.check_boxes{end}.Tooltip = 'Align satellite clocks among each file';
             end
             Core_UI.insertHBarLight(opt_vbox);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
@@ -1777,6 +1777,10 @@ end
             this.state.setProperty(caller.UserData, caller.Value);
             this.updateINI();
             this.updateCheckBoxFromState(); % refresh duplicated checkboxes
+            if strcmp(caller.UserData, 'flag_clock_align')
+                clear Core_Sky
+            end
+                
         end
         
         function onPopUpChange(this, caller, event)
