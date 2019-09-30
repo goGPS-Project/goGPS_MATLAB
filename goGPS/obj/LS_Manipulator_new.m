@@ -956,7 +956,13 @@ classdef LS_Manipulator_new < handle
                         idx_par_psrange = false(size(idx_par));
                         sys_c_par =  zeros(size(idx_par));
                         for i = 1 : length(idx_par)
-                            sys_c_par(i) =  this.unique_obs_codes{this.obs_codes_id_par(idx_par(i))}(1);
+                            if this.obs_codes_id_par(idx_par(i)) > 0
+                                 idx_o_c = this.obs_codes_id_par(idx_par(i));
+                            else % note entirely general  -> (if you put an electronic bias common to more constellations this will not work)
+                                ch_s_o_c = this.ch_set{-this.obs_codes_id_par(idx_par(i))};
+                                idx_o_c = ch_s_o_c(1);
+                            end
+                            sys_c_par(i) =  this.unique_obs_codes{idx_o_c}(1);
                             if this.phase_par(idx_par(i)) == 1
                                 idx_par_psrange(i) = true;
                             end
