@@ -94,7 +94,7 @@ classdef Core_Utils < handle
         
         function diff_data = diffAndPred(data, n_order, t_ref)
             % compute diff predicting epoch 0 of each arc
-            % using interp 1 pchip method
+            % using interp 1 spline method
             %
             % SYNTAX
             %   Core_Utils.diffAndPred(data, t_ref)
@@ -113,14 +113,15 @@ classdef Core_Utils < handle
                 tmp = data(1 + n_order : end, s);
                 id_ok = ~isnan(tmp);
                 if sum(id_ok) > 2
+                    lim = getOutliers(id_ok);
                     % Interpolate data beginning
                     % interpolate the "left" of the first element of an arc
                     % because diff "eat" the first value
-                    if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
-                        data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
-                    end
+                    %if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
+                    %    id_est = find(id_ok(lim(1,1):lim(1,2)));
+                    %    data(1 : n_order, s) = interp1(t_ref(id_est), tmp(id_est), 1 - n_order : 0, 'spline', 'extrap');
+                    %end
                     
-                    lim = getOutliers(id_ok);
                     lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
                     % short arcs cannot be differenciated efficiently
                     for l = 1 : size(lim_short, 1)
@@ -131,8 +132,8 @@ classdef Core_Utils < handle
                     lim = lim(lim(:,2) - lim(:,1) > 1, :);
                     for l = 1 : size(lim, 1)
                         id_data = lim(l, 1) : lim(l, 2);
-                        id_est = 0;                       
-                        data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 + id_est, 'pchip', 'extrap');
+                        id_est = 0 : (n_order - 1);
+                        data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
                         diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
                         % restore data for the next interval
                         data(1 + n_order : end, s) = tmp;
