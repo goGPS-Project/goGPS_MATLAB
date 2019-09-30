@@ -1012,7 +1012,7 @@ classdef Core_Sky < handle
                         this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
                         if size(c_ep_idx, 1) ~= size(this.clock, 1) && Core.getState.isClockAlign()
                             % the clock is not empty and re-alignment have been requested
-                            buf_size = 25;
+                            buf_size = 200;
                             % check left
                             id_left = max(1, c_ep_idx(1) - 1 - buf_size) : max(1, c_ep_idx(1) - 1);
                             id_left(this.clock(id_left, i) == 0) = [];
@@ -1024,8 +1024,18 @@ classdef Core_Sky < handle
                                 if numel(id_right) > 3
                                     prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
                                     prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
-                                    time_shift = mean(prediction_from_right - prediction_from_left);                                    
-                                    this.clock(c_ep_idx,i) = this.clock(c_ep_idx,i) - time_shift;
+                                    % figure(1000); clf; plot(id_left, this.clock(id_left,i), '.'); hold on; plot(id_right, this.clock(id_right,i), 'o');
+                                    time_shift = mean(prediction_from_right - prediction_from_left);
+                                    % Determine the treshold for jump detection
+                                    % when the "jump" is lower than 5 times the std of the local change rate do not correct for it:
+                                    thr = 1 * std([diff(zero2nan(this.clock(id_left(1) : id_left(end), i))); ...
+                                                   diff(zero2nan(this.clock(id_right(1) : id_right(end),i)))], 'omitnan');
+                                    if abs(time_shift) > thr 
+                                        this.clock(c_ep_idx,i) = this.clock(c_ep_idx,i) - time_shift;
+                                    %    plot([id_left id_right], this.clock([id_left id_right],i), 's')
+                                    %else
+                                    %    plot([id_left id_right], this.clock([id_left id_right],i), '^k')
+                                    end
                                 end
                             end
                             % check right
@@ -1040,7 +1050,13 @@ classdef Core_Sky < handle
                                     prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
                                     prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
                                     time_shift = mean(prediction_from_right - prediction_from_left);
-                                    this.clock((c_ep_idx(end) + 1): end,i) = this.clock((c_ep_idx(end) + 1) : end, i) - time_shift;
+                                    % Determine the treshold for jump detection
+                                    % when the "jump" is lower than 5 times the std of the local change rate do not correct for it:
+                                    thr = 1 * std([diff(zero2nan(this.clock(id_left(1) : id_left(end), i))); ...
+                                        diff(zero2nan(this.clock(id_right(1) : id_right(end),i)))], 'omitnan');
+                                    if abs(time_shift) > thr
+                                        this.clock((c_ep_idx(end) + 1): end,i) = this.clock((c_ep_idx(end) + 1) : end, i) - time_shift;
+                                    end
                                 end
                             end
                         end
