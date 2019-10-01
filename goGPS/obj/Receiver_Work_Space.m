@@ -1237,7 +1237,191 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function updateDetectOutlierMarkCycleSlip(this)
+        function combinePhTrackings(this)
+            % This function combines different phase trackings
+            % to get a unique tracking with repaired CS
+            %
+            % SYNTAX
+            %   this.combinePhTrackings()
+            
+            % Remove step
+            % Estimate rough clock
+            log = Core.getLogger;
+            log.addMarkedMessage('Combining trackings');
+            [ph, id_ph] = this.getPhases;
+            n_obs = size(ph,1);
+            phs = this.getSyntPhases;
+            clk0 = detrend(cumsum(nan2zero(median(Core_Utils.diffAndPred(ph-phs), 2, 'omitnan'))));
+            
+            % Get all trackings available
+            all_trk = Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(([this.system(this.obs_code(:,1)=='L')' this.obs_code(this.obs_code(:,1)=='L',:)]))));
+            cc = Core.getConstellationCollector;
+            i = 0;
+            % for each system
+            for sys_c = unique(all_trk(:,1))'
+                sys = cc.getSys(sys_c);
+                % for each frequency
+                for f = unique(all_trk(all_trk(:,1) == sys_c, 3))'
+                    % for each tracking
+                    trk_avail = unique(all_trk(all_trk(:,1) == sys_c & all_trk(:,3) == f, 4))';
+                    % Set preferred tracking first
+                    trk_pref = sys.CODE_RIN3_ATTRIB{sys.CODE_RIN3_2BAND == f};
+                    [~, trk_order] = intersect(trk_pref, trk_avail);
+                    trk_avail = trk_pref(sort(trk_order));
+                    % if and only if I have more than one tracking
+                    if length(trk_avail) > 1
+                        log.addMessage(log.indent(sprintf(' - Merging %c L%c %s', sys_c, f, trk_avail)));
+                        sat_wl = nan(cc.getMaxNumSat(sys_c), 1);
+                        sat_id_ph = nan(cc.getMaxNumSat(sys_c), 1);
+                        
+                        i = i + 1;
+                        %fh = figure(50 + i); clf
+                        %label = '';
+                        
+                        % Extract residuals
+                        res = nan(n_obs, cc.getMaxNumSat(sys_c), numel(trk_avail));
+                        for t = numel(trk_avail) : -1 : 1
+                            trk = ['L' f trk_avail(t)];
+                            % Get phase of the current tracking in meters
+                            [ph, id_ph] = this.getObs(trk, sys_c);
+                            wl = this.wl(id_ph);
+                            sat_wl(1 + this.go_id(id_ph) - cc.getSys(sys_c).go_ids(1)) = wl;
+                            sat_id_ph(1 + this.go_id(id_ph) - cc.getSys(sys_c).go_ids(1)) = id_ph;
+                            
+                            ph = zero2nan(ph)';
+                            
+                            % the syntetised is removed from all the tracking,
+                            % in principle is not needed to realign them
+                            % For cycle repair and detecting whi is "jumping" it is easier to remove it
+                            phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntObs(this.go_id(id_ph)))', clk0), wl');
+                            
+                            % residual difference in cycles
+                            res(:, 1 + this.go_id(id_ph) - cc.getSys(sys_c).go_ids(1), t) =  zero2nan(ph - phs);
+                        end
+                        % Move all the trackings to the first one
+                        for t = 2 : numel(trk_avail)
+                            % TRAKING BIAS REMOVAL
+                            
+                            % Hp 0
+                            % Measure tracking bias (if any is present)
+                            % consider it only as a multiple of 1/4 of cycle
+                            %trk_bia = round(mean(noNaN(res(:,:,t) - res(:,:,1) - round(res(:,:,t) - res(:,:,1)))) * 4) / 4;
+                            %res(:, :, t) = res(:, :, t) - trk_bia;
+                            
+                            % Hp 1
+                            % I have different biases per satellite
+                            % let's remove them on the least precise trackings
+                            trk_bia = round(median((res(:,:,t) - res(:,:,1) - round(res(:,:,t) - res(:,:,1))), 'omitnan'), 4);
+                            res(:, :, t) = bsxfun(@minus, res(:, :, t), trk_bia);
+                            
+                            % Merge arc by arc to detect outliers and cycle sleep
+                            for s = 1 : size(res,2)
+                                arc = getOutliers(~isnan(res(:, s, t)));
+                                for a = 1 : size(arc, 1)
+                                    id_arc = arc(a,1) : arc(a,2);
+                                    tmp = res(id_arc, s, 1);
+                                    corr = round(res(id_arc, s, t) - tmp);
+                                    % if the arc in ref is shorter than the arc to be merged in
+                                    if any(~isnan(corr))
+                                        if any(isnan(corr))
+                                            lim = getOutliers(~isnan(corr));
+                                            % fill beginning and end
+                                            tmp(1 : lim(1)) = tmp(lim(1));
+                                            tmp(lim(end) : end) = tmp(lim(end));
+                                            corr(1 : lim(1)) = corr(lim(1));
+                                            corr(lim(end) : end) = corr(lim(end));
+                                            % fill middle gaps by expanding the previous data
+                                            for l = 1 : size(lim, 1) - 1
+                                                tmp((lim(l,2) + 1) : (lim(l+1,1) - 1)) = tmp(lim(l,2));
+                                                corr((lim(l,2) + 1) : (lim(l+1,1) - 1)) = corr(lim(l,2));
+                                            end
+                                        end
+                                        cs_list = find(abs(Core_Utils.diffAndPred(corr)) > 0.01);
+                                        if ~isempty(cs_list)
+                                            % for each cycle slip
+                                            for cs = cs_list(:)'
+                                                jmp_ref = round(diff(tmp(cs + -1:0)));
+                                                jmp_trk = round(diff(res(id_arc(cs + -1:0), s, t)));
+                                                if abs(jmp_trk) > abs(jmp_ref)
+                                                    % the merged tracking is jumping
+                                                    % correction is ok as it is
+                                                else
+                                                    % the reference tracking is jumping
+                                                    res(id_arc(cs):end, s, 1) = res(id_arc(cs):end, s, 1) + diff(corr(cs+[-1 0]));
+                                                    corr(cs : end) = corr(cs : end) - diff(corr(cs+[-1 0]));
+                                                end
+                                            end
+                                        end
+                                        res(id_arc, s, t) = res(id_arc, s, t)  - corr;
+                                    end
+                                end
+                            end
+                        end
+                        el = (this.sat.el(:,cc.getSys(sys_c).go_ids));
+                        % fh = figure();
+                        % Compute weights satellite by satellite
+                        % Phase trackings anyway have very similar values
+                        for s = 1 : size(res,2)
+                            % clf;
+                            id_ko = false(size(res,1), size(res,3));
+                            if any(serialize(res(:,s,:)))
+                                el_interp = (Core.getState.getCutOff() : ceil(max(el(:,s))))';
+                                sat_var = nan(n_obs, numel(trk_avail));
+                                weight = nan(size(el_interp, 1), numel(trk_avail));
+                                for t = 1 : numel(trk_avail)
+                                    trk = ['L' f trk_avail(t)];
+                                    sat_var(:,t) = zero2nan(movvar(Core_Utils.diffAndPred(res(:,s,t)),5));
+                                    min_val = mean(sat_var(el(:,s) > el_interp(round(numel(el_interp)/5*4)), t));
+                                    n_reg = 1 * size(sat_var, 1);
+                                    weight(:, t) = 1 ./ max(min_val/2, Core_Utils.interp1LS(zero2nan([serialize(el(:,s)); (el_interp(end) + 5) * ones(n_reg,1)]), [zero2nan(serialize(sat_var(:,t))); min_val * ones(n_reg, 1)], 3, el_interp));
+                                    
+                                    tmp = Core_Utils.diffAndPred(res(:, s, t));
+                                    thr = 0.4; % this is a threshold in cycle to be calibrated
+                                    id_ko(:, t) = abs(tmp-movmedian(tmp, 5)) > thr;
+                                end
+                                % Do not consider outliers if there is only one observation available
+                                id_ko = id_ko | squeeze(isnan(res(:, s, :)));
+                                id_ko(sum(id_ko, 2) == size(res,3), t) = false;
+                                % Interpolate weight
+                                weight = interp1q(el_interp, weight, el(:,s));
+                                %weight = weight*0 + 1;
+                                weight(id_ko) = 0;
+                                weight = bsxfun(@rdivide, weight, sum(weight,2));
+                                % plot(squeeze(res(:,s,:)), 'o');
+                                % hold on; plot(zero2nan(sum(squeeze(nan2zero(res(:, s, :))) .* weight, 2)), '.k');
+                                res(:, s, 1) = zero2nan(sum(squeeze(nan2zero(res(:, s, :))) .* weight, 2));
+                            end
+                        end
+                        
+                        %plot(res(:, :, 1), '.-', 'Color', Core_UI.getColor(3,7));
+                        %hold on
+                        %title([label 10]);
+                        %setAllLinesWidth(2);  Core_UI.beautifyFig(fh);
+                        %dockAllFigures;
+                        
+                        id_ok = any(res(:,:,1));
+                        res = res(:, id_ok, 1);
+                        go_id = sys.go_ids(id_ok);
+                        % remove empty sats
+                        sat_wl(~id_ok) = [];
+                        sat_id_ph(~id_ok) = [];
+                        
+                        phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntObs(go_id))', clk0), sat_wl');
+                        res = (res + zero2nan(phs))';
+                        
+                        % Substitute original observations
+                        this.setObs(res, sat_id_ph);
+                        this.obs_code(sat_id_ph, :) = repmat(['L' f trk_avail(1)],numel(sat_id_ph), 1);
+                        
+                        % Find satellite of the other trackings that I'm no more using
+                        id_ko = setdiff(find(this.system' == sys_c & this.obs_code(:,1) == 'L' & this.obs_code(:,2) == f), sat_id_ph);
+                        this.remObs(id_ko);
+                    end
+                end
+            end
+        end
+
+function updateDetectOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
             this.sat.outliers_ph_by_ph = false(size(this.sat.outliers_ph_by_ph));
@@ -3637,6 +3821,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   obs_code = this.getAvailableObsCode(flag, sys_c);
             
+            % Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(([this.obs_code(this.obs_code(:,1)=='L',:) this.system(this.obs_code(:,1)=='L')']))))
+            
             if nargin < 3 || isempty(sys_c)
                 lid = (1 : numel(this.system))';
             else
@@ -4344,12 +4530,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function setObs(this,obs,idx)
+        function setObs(this, obs, idx)
             % set the observation
             %
             % SYNTAX
-            % this.setObs(obs,idx)
-            this.obs(idx,:) = obs;
+            % this.setObs(obs, idx)
+            this.obs(idx, :) = obs;
         end
         
         
@@ -8197,6 +8383,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.codeStaticPositioning();
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
+                            this.combinePhTrackings();
                             this.detectOutlierMarkCycleSlip();
                             %this.coarseAmbEstimation();
                             this.pp_status = true;

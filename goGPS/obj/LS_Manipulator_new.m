@@ -1939,7 +1939,7 @@ classdef LS_Manipulator_new < handle
         function [res_pr, sat, obs_id] = getPrRes(this, rec)
             % get phase residual
             %
-            % SYNTAX:  res_ph = getPhRes(this)
+            % SYNTAX:  res_ph = getPrRes(this)
             if nargin <2
                 rec = 1;
             end
