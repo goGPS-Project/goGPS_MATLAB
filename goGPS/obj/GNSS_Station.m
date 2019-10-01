@@ -4305,6 +4305,8 @@ classdef GNSS_Station < handle
                             rec = sta_list(r);
                             if new_fig
                                 plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            else
+                                plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
                             end
                             outm{r} = rec(1).getMarkerName();
                             tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
