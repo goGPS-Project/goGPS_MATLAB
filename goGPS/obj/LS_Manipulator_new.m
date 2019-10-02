@@ -68,7 +68,10 @@ classdef LS_Manipulator_new < handle
         PAR_SAT_Z = 17;
         PAR_SAT_EB = 18;
         PAR_REC_EB_LIN = 19;
-        
+        PAR_REC_PPB = 20; % phase psudorange bias (to make ambiguity integer with common phase pseudorange obervables)
+        PAR_SAT_PPB = 21; % phase psudorange bias (to make ambiguity integer with common phase pseudorange obervables)
+        PAR_REC_EBFR = 22; % electrinic bias frequency depandant 
+        PAR_SAT_EBFR = 23; % electrinic bias frequency depandant 
         
         CLASS_NAME = {'REC_X', 'REC_Y', 'REC_Z', 'REC_EB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'SAT_CLK', 'ANT_MP', 'IONO', 'TROPO_S', 'SAT_X', 'SAT_Y', 'SAT_Z', 'SAT_EB', 'REC_EB_LIN'};
     end
@@ -122,6 +125,9 @@ classdef LS_Manipulator_new < handle
         rec_set % set of receivers
         sat_set % set of satellites
         ch_set  % set of observation codes
+        
+        rec_amb_jmp % set of recievr ambiguity jmps
+        sat_amb_jmp % set of satellite ambiguity jmps
         
         N
         idx_rd % idx parameter removed to silve the rank deficency
@@ -410,8 +416,12 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX
             %    this.bondParamGenerateIdx(parametrization)
+            
+            % generate jmps idx in for both receiver and satellites
             this.log = Core.getLogger();
             this.ls_parametrization = ls_parametrization;
+            this.computeAmbJmps();
+
             n_rec = size(this.rec_xyz,1);
             n_sat = length(this.unique_sat_goid);
             n_obs = size(this.A,1);
@@ -1688,8 +1698,8 @@ classdef LS_Manipulator_new < handle
             columns = double(zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1));
             values = [this.A(:); this.A_pseudo(:)];
             A = sparse(rows, columns, values, n_obs, n_par);
-            %this.idx_rd = [];
-            n_out = sum(this.outlier_obs);
+            this.idx_rd = [];
+            %n_out = sum(this.outlier_obs);
             A_out = A(this.outlier_obs > 0,:);
             A(:, [this.idx_rd; find(this.out_par)]) = [];
             
@@ -2028,12 +2038,6 @@ classdef LS_Manipulator_new < handle
                 parametrization = LS_Parametrization();
             end
             this.unique_time = rec_work.time;
-            %             ls_param.tropo(1) = LS_Parametrization.SPLINE_CUB;
-            %             ls_param.tropo_opt = struct('spline_rate',900);
-            %             ls_param.tropo_e(1) = LS_Parametrization.SPLINE_CUB;
-            %             ls_param.tropo_e_opt = struct('spline_rate',3600);
-            %             ls_param.tropo_n(1) = LS_Parametrization.SPLINE_CUB;
-            %             ls_param.tropo_n_opt = struct('spline_rate',3600);
             this.bondParamsGenerateIdx(parametrization);
             
         end
@@ -2047,6 +2051,7 @@ classdef LS_Manipulator_new < handle
                 param_selction = [this.PAR_REC_X;
                     this.PAR_REC_Y;
                     this.PAR_REC_Z;
+                    this.PAR_REC_PPB;
                     this.PAR_REC_EB;
                     this.PAR_AMB;
                     this.PAR_REC_CLK;
@@ -2190,6 +2195,119 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %  s0 = this.getSigma0Ph()
             s0 = mean(abs(this.res(this.phase_obs > 0)));
+        end
+        
+        
+        
+        function computeAmbJmps(this)
+            % determine if a loss of lock tracking happened simultaneusly
+            % in all receiver of a satellite or in all satellite of a
+            % receiver
+            n_rec = size(this.rec_xyz,1);
+            n_sat = length(this.unique_sat_goid);
+            n_phase = this.unique_obs_codes;
+            min_time = this.time_obs.minimum;
+            min_time_mat = min_time.getMatlabTime;
+            rate = this.time_obs.getRate();
+            n_epoch = max(this.time_obs.getNominalTime(rate).getRefTime(min_time_mat))/rate+1;
+            for r  = 1 : n_rec
+                % check number of channel per receiver
+                n_p = 0;
+                idx_o_r = this.receiver_obs == r;
+                o_code_r = this.obs_codes_id_obs(idx_o_r);
+                time_r = this.time_obs.getEpoch(idx_o_r).getNominalTime.getRefTime(min_time_mat)/rate;
+                sat_r = this.satellite_obs(idx_o_r);
+                for s = 1 : n_sat
+                    id_o_r_s = sat_r == this.unique_sat_goid(s);
+                    o_code_r_s = o_code_r(id_o_r_s);
+                    for c = 1 : length(this.unique_obs_codes)
+                        if this.unique_obs_codes{c}(2) == 'L'
+                            if sum(o_code_r_s == c) > 0
+                                n_p = n_p + 1;
+                            end
+                        end
+                    end
+                end
+                amb_mat = false(n_epoch,n_p); % initialize the ambiguity matrix
+                n_p = 0;
+                for s = 1 : n_sat
+                    id_o_r_s = sat_r == this.unique_sat_goid(s);
+                    o_code_r_s = o_code_r(id_o_r_s);
+                    time_r_s = time_r(id_o_r_s);
+                    for c = 1 : length(this.unique_obs_codes)
+                        if this.unique_obs_codes{c}(2) == 'L'
+                            id_o_r_s_c = o_code_r_s == c;
+                            if sum(id_o_r_s_c) > 0
+                                n_p = n_p + 1;
+                                time_r_s_c = time_r_s(id_o_r_s_c);
+                                amb_mat(time_r_s_c+1,n_p) = true;
+                                if ~isempty(this.cycle_slips{r}{s}{c})
+                                    amb_mat(this.cycle_slips{r}{s}{c}.getNominalTime(rate).getRefTime(min_time_mat)/rate+1,n_p) = false;
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                jmps = [(find(diff(sum(amb_mat,2) >0) == 1) +1); n_epoch];
+                if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                    jmps = [1; jmps];
+                end
+                this.rec_amb_jmp{r} = min_time.getCopy().addSeconds(jmps);
+                this.ls_parametrization.rec_ppb_opt.steps_set = this.rec_amb_jmp;
+
+            end
+            if n_rec > 1
+                for s = 1 : n_sat
+                    % check number of channel per receiver
+                    n_p = 0;
+                    idx_o_s = this.satellite_obs == this.unique_sat_goid(s);
+                    o_code_s = this.obs_codes_id_obs(idx_o_s);
+                    time_s = this.time_obs.getEpoch(idx_o_s).getNominalTime(rate).getRefTime(this.time_obs.first.getMatlabTime)/rate;
+                    rec_s = this.receiver_obs(idx_o_s);
+                    for r = 1 : n_rec
+                        id_o_s_r = rec_r == r;
+                        o_code_s_r = o_code_s(id_o_s_r);
+                        for c = 1 : length(this.unique_obs_codes)
+                            if this.unique_obs_codes{c}(2) == 'L'
+                                if sum(o_code_s_r == c) > 0
+                                    n_p = n_p + 1;
+                                end
+                            end
+                        end
+                    end
+                    amb_mat = false(n_epoch,n_p); % initialize the ambiguity matrix
+                    n_p = 0;
+                    for r = 1 : n_rec
+                        id_o_s_r = rec_r == r;
+                        o_code_s_r = o_code_s(id_o_s_r);
+                        time_s_r = time_r(id_o_s_r);
+                        
+                        for c = 1 : length(this.unique_obs_codes)
+                            if this.unique_obs_codes{c}(2) == 'L'
+                                id_o_s_r_c = o_code_s_r == c;
+                                
+                                if sum(id_o_s_r_c) > 0
+                                    n_p = n_p + 1;
+                                    time_s_r_c = time_s_r(id_o_s_r_c);
+                                    amb_mat(time_s_r_c+1,n_p) = true;
+                                    if ~isempty(this.cycle_slips{r}{s}{c})
+                                        
+                                        amb_mat(this.cycle_slips{r}{s}{c}.getNominalTime.getRefTime(min_time_mat)/rate+1,n_p) = false;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    jmps = [(find(diff(sum(amb_mat,2) >0) == 1) +1); n_epoch];
+                    if ~isempty(amb_mat) && sum(abs(amb_mat(1,:) )) ~= 0 %<- if first epoch is full start of the arc is not detected
+                        jmps = [1; jmps];
+                    end
+                    this.sat_amb_jmp{s} = min_time.getCopy().addSeconds(jmps);
+                end
+                this.ls_parametrization.sat_ppb_opt.steps_set = this.sat_amb_jmp;
+            end
         end
     end
 end
