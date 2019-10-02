@@ -92,7 +92,7 @@ classdef Core_Utils < handle
             fh.Color = col;
         end
         
-        function diff_data = diffAndPred(data, n_order, t_ref)
+        function diff_data = diffAndPred(data, n_order, t_ref, method)
             % compute diff predicting epoch 0 of each arc
             % using interp 1 spline method
             %
@@ -104,6 +104,9 @@ classdef Core_Utils < handle
             end
             if nargin < 2 || isempty(n_order)
                 n_order = 1;
+            end
+            if nargin < 4 || isempty(method)
+                method = 'spline';
             end
             diff_data = nan(size(data));
             % Add n_order rows to data
@@ -139,7 +142,7 @@ classdef Core_Utils < handle
                         
                         % faster approach skipping a lot of checks
                         % this is the internal implementation of interp1
-                        fun = griddedInterpolant(t_ref(id_data), tmp(id_data), 'spline');
+                        fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
                         data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
                         
                         diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
