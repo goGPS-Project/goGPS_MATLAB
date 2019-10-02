@@ -1336,7 +1336,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                                 corr((lim(l,2) + 1) : (lim(l+1,1) - 1)) = corr(lim(l,2));
                                             end
                                         end
-                                        cs_list = find(abs(round(Core_Utils.diffAndPred(corr))) > 0.01);
+                                        cs_list = find(round([0; diff(corr)]) > 0);
                                         if ~isempty(cs_list)
                                             % for each cycle slip
                                             for cs = cs_list(:)'
