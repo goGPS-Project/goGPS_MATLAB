@@ -133,14 +133,22 @@ classdef Core_Utils < handle
                     for l = 1 : size(lim, 1)
                         id_data = lim(l, 1) : lim(l, 2);
                         id_est = 0 : (n_order - 1);
-                        data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
+
+                        % slower approach with interp1
+                        % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
+                        
+                        % faster approach skipping a lot of checks
+                        % this is the internal implementation of interp1
+                        fun = griddedInterpolant(t_ref(id_data), tmp(id_data), 'spline');
+                        data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                        
                         diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
                         % restore data for the next interval
                         data(1 + n_order : end, s) = tmp;
                     end
                 end
             end
-            % diff_data = diff(data, n_order); % now is done arc by arc
+            % diff_data = diff(data, n_order); % now it is done arc by arc
         end
         
         function idx = findMO(find_list, to_find_el)
