@@ -1699,7 +1699,7 @@ classdef LS_Manipulator_new < handle
             values = [this.A(:); this.A_pseudo(:)];
             A = sparse(rows, columns, values, n_obs, n_par);
             this.idx_rd = [];
-            %n_out = sum(this.outlier_obs);
+            n_out = sum(this.outlier_obs);
             A_out = A(this.outlier_obs > 0,:);
             A(:, [this.idx_rd; find(this.out_par)]) = [];
             
