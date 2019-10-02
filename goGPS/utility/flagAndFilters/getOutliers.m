@@ -43,16 +43,12 @@ function [flag_intervals] = getOutliers(flags, split_point)
 
     % convert flags into array
     if isstruct(flags)
-        flag_array = int8(struct2flagVec(flags, max(flags.pos + 1)));
+        diff_tmp = -diff(int8([0; logical(struct2flagVec(flags, max(flags.pos + 1))); 0]));
         % add padding to avoid problem with flags on the borders
     else
-        flag_array = flags;
+        diff_tmp = -diff(int8([0; logical(flags(:)); 0]));
     end
-    flag_array = flag_array(:);
-    flag_array = [0; flag_array; 0];
-    flag_array(flag_array ~= 0) = 1;
-    diff_tmp = flag_array(1:end-1) - flag_array(2 : end);
-    clear flagArray;
+    
     if nargin == 2 && ~isempty(split_point)
         split_point = split_point & flags;
         d_tmp = diff_tmp; 
