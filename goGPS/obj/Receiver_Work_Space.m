@@ -1248,9 +1248,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Estimate rough clock
             log = Core.getLogger;
             log.addMarkedMessage('Combining trackings');
-            [ph, id_ph] = this.getPhases;
+            [ph, ~, id_ph] = this.getPhases;
             n_obs = size(ph,1);
-            phs = this.getSyntPhases;
+            phs = this.getSyntPhases();
             clk0 = detrend(cumsum(nan2zero(median(Core_Utils.diffAndPred(ph-phs), 2, 'omitnan'))));
             
             % Get all trackings available
@@ -1293,7 +1293,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             % the syntetised is removed from all the tracking,
                             % in principle is not needed to realign them
                             % For cycle repair and detecting whi is "jumping" it is easier to remove it
-                            phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntObs(this.go_id(id_ph)))', clk0), wl');
+                            phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntPhases(this.go_id(id_ph))), clk0), wl');
                             
                             % residual difference in cycles
                             res(:, 1 + this.go_id(id_ph) - cc.getSys(sys_c).go_ids(1), t) =  zero2nan(ph - phs);
@@ -1406,8 +1406,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sat_wl(~id_ok) = [];
                         sat_id_ph(~id_ok) = [];
                         
-                        phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntObs(go_id))', clk0), sat_wl');
+                        phs = bsxfun(@rdivide, bsxfun(@plus, zero2nan(this.getSyntPhases(go_id)), clk0), sat_wl');
                         res = (res + zero2nan(phs))';
+                        
+                        % APPLY -------------------------
                         
                         % Substitute original observations
                         this.setObs(res, sat_id_ph);
@@ -1421,7 +1423,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
 
-function updateDetectOutlierMarkCycleSlip(this)
+        function updateDetectOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
             this.sat.outliers_ph_by_ph = false(size(this.sat.outliers_ph_by_ph));
@@ -5180,15 +5182,26 @@ function updateDetectOutlierMarkCycleSlip(this)
             end
         end
         
-        function synt_ph = getSyntPhases(this, sys_c)
+        function synt_ph = getSyntPhases(this, arg2)
             % get current value of syntetic phase, in case not present update it
+            %
+            % SYNTAX
+            %   synt_ph = getSyntPhases(this, sys_c)
+            %   synt_ph = getSyntPhases(this, go_id)
+            
             if isempty(this.synt_ph)
                 this.updateSyntPhases();
             end
             synt_ph = this.synt_ph;
             synt_ph(this.sat.outliers_ph_by_ph) = nan;
             if nargin == 2
-                synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
+                id_ph = this.obs_code(:, 1) == 'L';
+                if ischar(arg2)
+                    synt_ph = synt_ph(:, this.system(id_ph) == arg2');
+                else
+                    lookup(this.go_id(id_ph)) = (1 : sum(id_ph))';
+                    synt_ph = synt_ph(:, lookup(arg2));
+                end
             end
         end
         
