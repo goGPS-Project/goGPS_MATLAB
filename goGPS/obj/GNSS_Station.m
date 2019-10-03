@@ -4211,7 +4211,7 @@ classdef GNSS_Station < handle
 
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;
@@ -4220,6 +4220,8 @@ classdef GNSS_Station < handle
                     end
                     if sub_plot_nsat
                         ax1 = subplot(3,1,1:2);
+                    else
+                        ax1 = f.Children(end);
                     end
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
@@ -4247,7 +4249,7 @@ classdef GNSS_Station < handle
                                 plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, '.', 'LineWidth', 2); hold on;
                             end
                         end
-                        childs = f.Children(end).Children;
+                        childs = ax1.Children;
                         for c = 1 : length(childs)
                             tlim(1) = min([tlim(1), childs(c).XData]);
                             tlim(2) = max([tlim(2), childs(c).XData]);
@@ -4255,15 +4257,15 @@ classdef GNSS_Station < handle
                             dlim(1) = min([dlim(1), childs(c).YData]);
                             dlim(2) = max([dlim(2), childs(c).YData]);
                         end
-                            if strcmp(par_name, 'nsat') || ~any(id_ko_tmp)
-                                e = e + 1;
-                                outm{e} = rec(1).getMarkerName();
-                            else
-                                e = e + 1;
-                                outm{e} = [rec(1).getMarkerName() ' outliers'];
-                                e = e + 1;
-                                outm{e} = rec(1).getMarkerName();
-                            end
+                        if strcmp(par_name, 'nsat') || ~any(id_ko_tmp)
+                            e = e + 1;
+                            outm{e} = rec(1).getMarkerName();
+                        else
+                            e = e + 1;
+                            outm{e} = [rec(1).getMarkerName() ' outliers'];
+                            e = e + 1;
+                            outm{e} = rec(1).getMarkerName();
+                        end
                     end
                     dspan = dlim(2) - dlim(1);
                     if dlim(1) < 0
@@ -4309,16 +4311,35 @@ classdef GNSS_Station < handle
                                 plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
                             end
                             outm{r} = rec(1).getMarkerName();
-                            tlim(1) = min(tlim(1), t{r}.first.getMatlabTime());
-                            tlim(2) = max(tlim(2), t{r}.last.getMatlabTime());
-                            xlim(tlim);
                         end
+                        childs = ax2.Children;
+                        tlim = [inf -inf];
+                        dlim = [inf -inf];
+                        for c = 1 : length(childs)
+                            tlim(1) = min([tlim(1), childs(c).XData]);
+                            tlim(2) = max([tlim(2), childs(c).XData]);
+                            
+                            dlim(1) = min([dlim(1), childs(c).YData]);
+                            dlim(2) = max([dlim(2), childs(c).YData]);
+                        end
+                        dspan = dlim(2) - dlim(1);
+                        if dlim(1) < 0
+                            dlim(1) = dlim(1) - 1;
+                        else
+                            dlim(1) = max(0, dlim(1) - 1);
+                        end
+                        dlim(2) = dlim(2) + 1;
+                        xlim(tlim);
+                        ylim(dlim);
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                        h = ylabel(['# sat']); h.FontWeight = 'bold';
-                        grid on;
-                        linkaxes([ax1 ax2], 'x');
+                        if new_fig
+                            h = ylabel(['# sat']); h.FontWeight = 'bold';
+                            grid on;
+                            linkaxes([ax1 ax2], 'x');
+                        end
                     end
                 end
+                f.Visible = 'on';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
             end
