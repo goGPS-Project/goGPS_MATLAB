@@ -964,7 +964,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function remBadPrObs(this, thr)
+        function remBadPrObs(this, thr, sys_list)
             % remove bad pseudo-ranges
             % and isolated observations
             %
@@ -973,15 +973,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   this.remBadPrObs(thr)
-            if nargin == 1
+            if nargin == 1 || isempty(thr)
                 thr = 150; % meters
             end
+            
             [pr, id_pr] = this.getPseudoRanges;
+            if nargin < 3 || isempty(sys_list)
+                id_ok = true(sum(id_pr), 1);
+            else
+                id_ok = ismember(this.system(id_pr), sys_list);
+            end
+            
             inan = isnan(pr);
             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
             
             pr_d3 = Core_Utils.diffAndPred(pr_fill,3);
-            med_pr0 = median(pr_d3, 2,'omitnan');
+            med_pr0 = median(pr_d3(:, id_ok), 2,'omitnan');
             out = flagExpand(abs(bsxfun(@minus, pr_d3, med_pr0)) > thr, 2); % flagExpand -> beeing conservative, I prefer to flag more
             pr_fill(out) = nan;
             pr_fill = simpleFill1D(pr_fill, flagExpand(~inan, 5) &  inan);
@@ -1044,8 +1051,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   this.remBad();
             
             % remove bad epoch in crx
-            this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
-            cc = Core.getState.getConstellationCollector;
+            log = Core.getLogger;
+            log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
+            cc = Core.getConstellationCollector;
             [CRX, found] = load_crx(this.state.crx_dir, this.time, cc);
             if found
                 for s = 1 : size(CRX,1)
@@ -1054,13 +1062,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             
-            this.log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
+            log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
             cs = Core.getCoreSky;
             nan_coord = sum(isnan(cs.coord) | cs.coord == 0,3) > 0;
             nan_clock = isnan(cs.clock) | cs.clock == 0;
             first_epoch = this.time.first;
             coord_ref_time_diff = first_epoch - cs.time_ref_coord;
             clock_ref_time_diff = first_epoch - cs.time_ref_clock;
+
+            sat_nan_clock = '';
+            sat_bad_clock = '';
             for s = 1 : cc.getMaxNumSat()
                 o_idx = this.go_id == s;
                 dnancoord = diff(nan_coord(:,s));
@@ -1093,37 +1104,52 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
                 
-                % removing near empty clock -> think a better solution
-                dnanclock = diff(nan_clock(:,s));
-                st_idx = find(dnanclock == 1);
-                end_idx = find(dnanclock == -1);
-                if ~isempty(st_idx) || ~isempty(end_idx)
-                    if isempty(st_idx)
-                        st_idx = 1;
-                    end
-                    if isempty(end_idx)
-                        end_idx = length(nan_clock);
-                    end
-                    if end_idx(1) < st_idx(1)
-                        st_idx = [1; st_idx];
-                    end
-                    if st_idx(end) > end_idx(end)
-                        end_idx = [end_idx ; length(nan_clock)];
-                    end
-                    for i = 1:length(st_idx)
-                        is = st_idx(i);
-                        ie = end_idx(i);
-                        c_rate = cs.clock_rate;
-                        bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.time.getRate())));
-                        bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.time.getRate())));
-                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
-                    end
-                else
-                    if nan_clock(1,s) == 1
-                        this.obs(o_idx , :) = 0;
+                if any(nan_clock(:,s))
+                    [sys_c, prn] = cc.getSysPrn(s);
+                    if all(nan_clock(:,s))
+                        sat_nan_clock = sprintf('%s, %s%02d', sat_nan_clock, sys_c, prn);
+                    else
+                        sat_bad_clock = sprintf('%s, %s%02d', sat_bad_clock, sys_c, prn);
+                        % removing near empty clock -> think a better solution
+                        dnanclock = diff(nan_clock(:,s));
+                        st_idx = find(dnanclock == 1);
+                        end_idx = find(dnanclock == -1);
+                        if ~isempty(st_idx) || ~isempty(end_idx)
+                            if isempty(st_idx)
+                                st_idx = 1;
+                            end
+                            if isempty(end_idx)
+                                end_idx = length(nan_clock);
+                            end
+                            if end_idx(1) < st_idx(1)
+                                st_idx = [1; st_idx];
+                            end
+                            if st_idx(end) > end_idx(end)
+                                end_idx = [end_idx ; length(nan_clock)];
+                            end
+                            for i = 1:length(st_idx)
+                                is = st_idx(i);
+                                ie = end_idx(i);
+                                c_rate = cs.clock_rate;
+                                bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.time.getRate())));
+                                bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.time.getRate())));
+                                this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                            end
+                        else
+                            if nan_clock(1,s) == 1
+                                this.obs(o_idx , :) = 0;
+                            end
+                        end
                     end
                 end
             end
+            if ~isempty(sat_bad_clock)
+                log.addWarning(sprintf('Satellite %s have some missing clocks values\nremoving invalid epochs', sat_bad_clock(3:end)));
+            end
+            if ~isempty(sat_nan_clock)
+                log.addWarning(sprintf('Satellites with missing clocks: %s\nRemember to process them only in network mode\n', sat_nan_clock(3:end)));
+            end
+            
             % remove moon midnight or shadow crossing epoch
             eclipsed = cs.checkEclipseManouver(this.time);
             for i = 1: size(eclipsed,2)
@@ -5660,7 +5686,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.active_ids = false(size(this.obs,1),1);
             end
             this.initAvailIndex();
-            % for each receiver
+            % for each satellite
             [~, id] = unique(this.go_id);
             for i = id'
                 go_id = this.go_id(i);
@@ -7734,7 +7760,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                        end
                        rw_loops = 0; % number of re-weight loops                       
                     end
-                    this.remBadTracking();
+                    this.remBadTracking(sys_list);
                     
                     if ~this.hasGoodApriori
                         this.updateAllTOT();
@@ -7828,11 +7854,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function remBadTracking(this) %%% important check!! if ph obervation with no code are deleted elsewhere
+        function remBadTracking(this, sys_list) %%% important check!! if ph obervation with no code are deleted elsewhere
+            if nargin < 2 || isempty(sys_list)
+                sys_list = unique(this.system);
+            end
             % requires approximate position and approx clock estimate
-            [pr, lid_pr] = this.getPseudoRanges;
+            [pr, lid_pr] = this.getPseudoRanges(sys_list);
             %[ph, wl, id_ph] = this.getPhases;
-            sensor = (pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
+            sensor = (pr - this.getSyntPrObs(sys_list) - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
             sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
             cc =  Core.getConstellationCollector();
             sensor_bad_sat = sensor;
