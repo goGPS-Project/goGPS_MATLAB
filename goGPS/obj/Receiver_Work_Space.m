@@ -3989,7 +3989,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             id_pr = this.obs_code(:, 1) == 'C';
             if (nargin == 2)
-                id_pr = id_pr & (this.system == sys_c)';
+                id_pr = id_pr & ismember(this.system, sys_c)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
         end
@@ -4001,7 +4001,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             id_dop = this.obs_code(:, 1) == 'D';
             if (nargin == 2)
-                id_dop = id_dop & (this.system == sys_c)';
+                id_dop = id_dop & ismember(this.system, sys_c)';
             end
             dop = zero2nan(this.obs(id_dop, :)');
             wl = this.wl(id_dop);
@@ -4024,7 +4024,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_snr = this.obs_code(:, 1) == 'S' & this.obs_code(:, 2) == freq_c;
                 end
                 if (nargin >= 2) && ~isempty(sys_c)
-                    id_snr = id_snr & (this.system == sys_c)';
+                    id_snr = id_snr & ismember(this.system, sys_c)';
                 end
                 if isempty(this.obs)
                     snr = [];
