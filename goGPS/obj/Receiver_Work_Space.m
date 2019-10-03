@@ -5506,7 +5506,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
             sys_list = this.getActiveSys();
             for sys_c = sys_list
-                this.rin_obs_code.(sys_) = serialize(this.getAvailableCode(sys_)')';
+                this.rin_obs_code.(sys_c) = serialize(this.getAvailableCode(sys_)')';
             end
         end
         
