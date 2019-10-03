@@ -159,63 +159,69 @@ classdef LS_Manipulator < Exportable
             this.log = Core.getLogger();
         end
         
-        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx, tropo_idx_vec)
+        function id_sync = setUpPPP(this, rec, sys_list, id_sync,  cut_off, dynamic, pos_idx, tropo_idx_vec)
             % Init the object for the phase stand alone positioning
             %
             % SYNTAX
-            %   id_sync = this.setUpPPP(rec, id_sync,  <cut_off>, <dynamic>, <pos_idx>)
-            if nargin < 4
+            %   id_sync = this.setUpPPP(rec, sys_list, id_sync,  <cut_off>, <dynamic>, <pos_idx>)                  
+
+            if nargin < 5
                 cut_off = [];
             end
-            if nargin < 5
+            if nargin < 6
                 dynamic = false;
             end
-            if nargin < 6
+            if nargin < 7
                 pos_idx = [];
             end
-            if nargin < 7
+            if nargin < 8
                 tropo_idx_vec = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off, '', dynamic, pos_idx,tropo_idx_vec);
+            id_sync = this.setUpSA(rec, sys_list, id_sync, 'L', cut_off, '', dynamic, pos_idx,tropo_idx_vec);
         end
         
-        function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
+        function id_sync = setUpCodeSatic(this, rec, sys_list, id_sync, cut_off)
             % Init the object for the code static positioning
             %
             % SYNTAX
-            %   id_sync = setUpCodeSatic(this, rec, id_sync, <cut_off>)
-            if nargin < 4
+            %   id_sync = setUpCodeSatic(this, rec, sys_c, id_sync, <cut_off>)
+            if nargin < 5
                 cut_off = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'C', cut_off);
+            id_sync = this.setUpSA(rec, sys_list, id_sync, 'C', cut_off);
         end
         
-        function id_sync = setUpCodeDynamic(this, rec, id_sync, cut_off)
-            if nargin < 4
+        function id_sync = setUpCodeDynamic(this, rec, sys_list, id_sync, cut_off)
+            if nargin < 5
                 cut_off = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'C', cut_off, '', true);
+            id_sync = this.setUpSA(rec, sys_list, id_sync, 'C', cut_off, '', true);
         end
         
-        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec, tropo_rate)
+        function id_sync_out = setUpSA(this, rec, sys_list, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec, tropo_rate)
             % Init the object for static positioning
             % return the id_sync of the epochs to be computed
             %
             % INPUT:
             %    rec : receiver
+            %    sys_list : list of constellations to be used
             %    id_sync : epoch to be used
             %    obs_type : 'C' 'L' 'CL'
             %    cut_off : cut off angle [optional]
             %
             % SYNTAX
-            %   id_sync_out = this.setUpSA(rec, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>)
-            if nargin < 9
+            %   id_sync_out = this.setUpSA(rec, sys_list, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>)
+
+            if isempty(sys_list)
+                sys_list = rec.getActiveSys;
+            end
+            if nargin < 10
                 tropo_rate = [];
             end
-            if nargin < 8
+            if nargin < 9
                 pos_idx_vec = [];
             end
-            if nargin < 7
+            if nargin < 8
                 dynamic = false;
             end   
                         
@@ -226,12 +232,12 @@ classdef LS_Manipulator < Exportable
                 id_sync_out = [];
             else
                 flag_amb_fix = this.state.getAmbFixPPP();
-                if nargin < 6 || isempty(custom_obs_set)
+                if nargin < 7 || isempty(custom_obs_set)
                     obs_set = Observation_Set();
                     if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
                         
                         % Using smoothed iono from geometry free                        
-                        for sys_c = rec.getActiveSys
+                        for sys_c = sys_list
                             for i = 1 : length(obs_type)
                                 if this.state.isIonoFree || ~phase_present
                                     obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
@@ -252,11 +258,11 @@ classdef LS_Manipulator < Exportable
                         end
                     else
                         % Using the best combination available
-                        for sys_c = rec.getActiveSys
-                            f = rec.getFreqs(sys_c);
+                        for sys_list = rec.getActiveSys
+                            f = rec.getFreqs(sys_list);
                             for i = 1 : length(obs_type)
                                 if ~isempty(f)
-                                    c_o_s = rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c);
+                                    c_o_s = rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_list);
                                     c_o_s.sigma = c_o_s.sigma + rec.getResidualIonoError;
                                     obs_set.merge(c_o_s);
                                 end
@@ -315,12 +321,12 @@ classdef LS_Manipulator < Exportable
                 end
                 
                 % remove epochs based on desired sampling
-                if nargin > 2
+                if nargin > 3
                     obs_set.keepEpochs(id_sync_in);
                 end
                 
                 % re-apply cut off if requested
-                if nargin > 4 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
+                if nargin > 5 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
                     obs_set.remUnderCutOff(cut_off);
                 end
                                               
@@ -1459,13 +1465,8 @@ classdef LS_Manipulator < Exportable
             end
             
             if is_network
-                
-               
-                
-                
                 n_obs = size(this.A_idx,1);
                 % create the part of the normal that considers common parameters
-                
                 
                 a_idx_const = unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
                 a_idx_const(a_idx_const == 0) = [];
@@ -1788,8 +1789,9 @@ classdef LS_Manipulator < Exportable
                 B = [B; this.D];
             end
             
-            
+            warning off
             x = N \ B;
+            warning on
             
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)

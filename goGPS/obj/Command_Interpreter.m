@@ -1204,10 +1204,6 @@ classdef Command_Interpreter < handle
                     this.log.smallSeparator();
                     this.log.newLine();
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
-                        if sys_found
-                            state = Core.getCurrentSettings();
-                            state.cc.setActive(sys_list);
-                        end
                         if this.core.state.isRinexSession()
                             this.runLoad(rec, tok);
                         else

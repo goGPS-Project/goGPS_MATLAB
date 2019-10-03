@@ -2042,7 +2042,7 @@ classdef LS_Manipulator_new < handle
             
         end
         
-        function setUpPPP(this, rec_work, id_sync, param_selction, parametrization)
+        function setUpPPP(this, rec_work, sys_list, id_sync, param_selction, parametrization)
             % set up precise point positionign
             %
             % SYNTAX:
@@ -2067,7 +2067,7 @@ classdef LS_Manipulator_new < handle
             this.setUpSA(rec_work, id_sync, '???', param_selction, parametrization);
         end
         
-        function setUpIonoFreePPP(this,rec_work,id_sync)
+        function setUpIonoFreePPP(this,rec_work, id_sync)
             % set up precise point positionign
             %
             % SYNTAX:

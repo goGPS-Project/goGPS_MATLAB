@@ -2867,7 +2867,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ss = cc.getSys(sys);
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
-                    %ismember(this.system, cc.SYS_C);
+                    % ismember(this.system, cc.SYS_C);
                     this.f_id = [this.f_id; f_id];
                     
                     if sys == 'R' % if this is GLONASS
@@ -3425,6 +3425,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx) > 0
                     dtS = Core.getCoreSky.clockInterpolate(this.time.getSubSet(idx), sat);
+                    if any(isnan(dtS))
+                        dtS = nan2zero(dtS);
+                    end
                 else
                     dtS = zeros(0,1);
                 end
@@ -5501,9 +5504,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % update the RINEX observation codes contained into the receiver
             % SYNTAX  this.updateRinObsCode()
             this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
-            sys_c = this.getActiveSys();
-            for ss = sys_c
-                this.rin_obs_code.(ss) = serialize(this.getAvailableCode(ss)')';
+            sys_list = this.getActiveSys();
+            for sys_c = sys_list
+                this.rin_obs_code.(sys_) = serialize(this.getAvailableCode(sys_)')';
             end
         end
         
@@ -7620,30 +7623,28 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % if
                 %this.parent.static = 0;
                 if this.isStatic()
-                    %this.initStaticPositioningOld(obs, prn, sys, flag)
-                    s0 = this.initStaticPositioning();
+                    s0 = this.initStaticPositioning(sys_c);
                 else
                     s0 = this.initDynamicPositioning();
                 end
             end
         end
         
-        function s0 = initStaticPositioning(this)
+        function s0 = initStaticPositioning(this, sys_list)
             % SYNTAX
-            %   this.StaticPositioning(obs, prn, sys, flag)
+            %   this.StaticPositioning(sys_c)
             %
             % INPUT
-            % obs : observations [meters]
-            % prn : prn of observations
-            % sys : sys of observations
-            % flag : name of observation [obs_code1 obs_code2 comb_code]
-            %        comb_code --> Iono Free = I
-            % OUTPUTt_glo11.
+            % sys_c : sys charachet list of constellations to be used
             %
+            % OUTPUT:
+            %   s0
             %
             %   Get positioning using code observables
             
-            
+            if nargin < 2 || isempty(sys_list)
+                sys_list = this.getActiveSys();
+            end
             if this.isEmpty()
                 this.log.addError('Static positioning failed: the receiver object is empty');
             else
@@ -7657,11 +7658,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     obs_set = Observation_Set();
                     if this.isMultiFreq() %% case multi frequency
-                        for sys_c = this.getActiveSys()
+                        for sys_c = sys_list
                             obs_set.merge(this.getPrefIonoFree('C', sys_c));
                         end
                     else
-                        for sys_c = this.getActiveSys()
+                        for sys_c = sys_list
                             f = this.getFreqs(sys_c);
                             if ~isempty(f)
                                 obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
@@ -7686,7 +7687,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     rf_changed = false;
                     if ~this.hasGoodApriori()
-                        this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                        this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                         %                 %----- NEXUS DEBUG
                         %                 this.adjustPrAmbiguity();
                         %                 this.codeStaticPositioning(this.id_sync, 15);
@@ -7727,7 +7728,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                rf_changed = true;
                                rf = Core.getReferenceFrame;
                                rf.setFlag(this.parent.getMarkerName4Ch, 1);
-                               this.codeStaticPositioning(this.id_sync, this.state.cut_off);
+                               this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                            end
                            
                        end
@@ -7742,7 +7743,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         i = 1;
                         while max(abs(corr)) > 0.1 && i < 3
                             rw_loops = 0; % number of re-weight loops
-                            [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                            [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                             % final estimation of time of flight
                             this.updateAllAvailIndex()
                             this.updateAllTOT(true);
@@ -7761,7 +7762,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         pr(id_ko(:,i),this.go_id(id_pr) == i) = 0;
                     end
                     this.setPseudoRanges(pr, id_pr);
-                    [corr, s0] = this.codeStaticPositioning(this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                    [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                     
                     if rf_changed
                         % restore flag in reference frame object
@@ -7776,17 +7777,18 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function s0 = coarsePositioning(this, obs_set)
             % get a very coarse postioning for the receiver
-            cc = Core.getState.getConstellationCollector;
+            cc = Core.getConstellationCollector;
+            sys_list = unique(cc.system(obs_set.go_id));
             if nargin < 2
                 obs_set = Observation_Set();
                 if this.isMultiFreq() %% case multi frequency
-                    for sys_c = cc.sys_c
-                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
+                    for sys_c = sys_list
+                        obs_set.merge(this.getPrefIonoFree('C', sys_));
                     end
                 else
-                    for sys_c = cc.sys_c
-                        f = this.getFreqs(sys_c);
-                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                    for sys_ = sys_list
+                        f = this.getFreqs(sys_);
+                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_));
                     end
                 end
             end
@@ -7797,7 +7799,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             last_ep_coarse = min(100, this.time.length);
             ep_coarse = 1 : last_ep_coarse;
-            while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) & sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
+            while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) && sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
                 ep_coarse = [ep_coarse ep_coarse(end)+1];
                 ep_coarse = min(ep_coarse,this.time.length);
             end
@@ -7808,7 +7810,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
-                [dpos, s0] = this.codeStaticPositioning(ep_coarse);
+                [dpos, s0] = this.codeStaticPositioning([], ep_coarse);
                 if sum(abs(dpos)) > 1e8
                     % Solution is diverging => exit
                     this.log.addError('Data are too bad, positioning is not possible!');
@@ -7822,7 +7824,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.codeStaticPositioning(ep_coarse, 15);
+                this.codeStaticPositioning([], ep_coarse, 15);
             end
         end
         
@@ -7898,29 +7900,32 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.setPseudoRanges(pr, id_pr);
         end
         
-        function [dpos, s0] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
+        function [dpos, s0] = codeStaticPositioning(this, sys_list, id_sync, cut_off, num_reweight)
             % perform static positioning usign code measurements
             %
             % SYNTAX
             %    [dpos, s0] = this.codeStaticPositioning(id_sync, cut_off, num_reweight)
+            if isempty(sys_list)
+                sys_list = this.getActiveSys();
+            end
             ls = LS_Manipulator();
-            if nargin < 2
+            if nargin < 3
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
                     id_sync = 1 : this.time.length;
                 end
             end
-            if nargin < 3
+            if nargin < 4
                 cut_off = this.state.getCutOff();
             end
-            if nargin < 4
+            if nargin < 5
                 num_reweight = 0;
             end
-            ls.setUpCodeSatic( this, id_sync, cut_off);
+            ls.setUpCodeSatic( this, sys_list, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s0] = ls.solve();
-            cc = Core.getState.getConstellationCollector;
+            cc = Core.getConstellationCollector;
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
             for i = 1 : num_reweight
@@ -7963,20 +7968,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [dpos, s0, ls] = codeDynamicPositioning(this, id_sync, cut_off)
+        function [dpos, s0, ls] = codeDynamicPositioning(this, isys_list, d_sync, cut_off)
             cc = Core.getState.getConstellationCollector;
             ls = LS_Manipulator();
-            if nargin < 2
+            if nargin < 3
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
                     id_sync = 1 : this.length();
                 end
             end
-            if nargin < 3
+            if nargin < 4
                 cut_off = this.state.getCutOff();
             end
-            ls.setUpCodeDynamic( this, id_sync, cut_off);
+            ls.setUpCodeDynamic( this, sys_list, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s0] = ls.solve();
             
@@ -8269,7 +8274,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function preProcessing(this, sys_c, flag_apply_corrections)
+        function preProcessing(this, sys_list, flag_apply_corrections)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % Apply active corrections to the data
@@ -8288,9 +8293,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
                 this.pp_status = false;
-                if nargin < 2
+                if nargin < 2 || isempty(sys_list)
                     cc = Core.getState.getConstellationCollector;
-                    sys_c = cc.sys_c;
+                    sys_list = cc.sys_c;
                 end
                 this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                 this.remBad();
@@ -8321,7 +8326,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % Switch satellite coordinates to Antenna phase center apply basic PCO)
                         Core.getCoreSky.toAPC();
                     end
-                    s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
+                    s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
                     if (s02 == 0)
                         this.log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
                     elseif (min(s02) > this.S02_IP_THR)
@@ -8393,7 +8398,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
-                            this.codeStaticPositioning();
+                            this.codeStaticPositioning(sys_list);
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
                             this.combinePhTrackings();
@@ -8436,6 +8441,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             elseif this.quality_info.s0_ip > 10
                 this.log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
             else
+                if nargin < 2 || isempty(sys_list)
+                    sys_list = this.getActiveSys();
+                end
                 if nargin >= 2
                     if ~isempty(sys_list)
                         this.setActiveSys(sys_list);
@@ -8473,7 +8481,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 order_tropo = this.state.spline_tropo_order;
                 order_tropo_g = this.state.spline_tropo_gradient_order;
                 tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
-                id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx, tropo_rate);
+                id_sync = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
                 if isempty(id_sync)
                     this.log.addWarning('No processable epochs found, skipping PPP');
                 else
@@ -8704,7 +8712,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                     
                                     ls = LS_Manipulator(cc);
-                                    id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
+                                    id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx);
                                     ls.Astack2Nstack();
                                     
                                     time = this.time.getSubSet(id_sync_in);
@@ -8773,11 +8781,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             elseif this.quality_info.s0_ip > 10
                 this.log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
             else
+                if nargin < 2 || isempty(sys_list)
+                    sys_list = this.getActiveSys();
+                end
                 if nargin >= 2
                     if ~isempty(sys_list)
                         this.setActiveSys(sys_list);
                     end
                 end
+                
                 if nargin < 3
                     id_sync = (1 : this.time.length())';
                 end
@@ -8836,7 +8848,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Prepare the LS object
-                ls.setUpPPP(this, this.getIdSync, [], parametrization)
+                ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
                 
                 % Set up time dependent regularizations for the tropospheric parameters
                 ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
@@ -9077,7 +9089,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                 
                                 ls = LS_Manipulator(cc);
-                                id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
+                                id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx);
                                 ls.Astack2Nstack();
                                 
                                 time = this.time.getSubSet(id_sync_in);
@@ -9219,7 +9231,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = LS_Manipulator(Core.getConstellationCollector);
-                id_sync = ls.setUpPPP(this, id_sync, this.state.getCutOff, true);
+                id_sync = ls.setUpPPP(this, sys_list, id_sync, this.state.getCutOff, true);
                 ls.Astack2Nstack();
                 
                 time = this.time.getSubSet(id_sync);
@@ -9478,9 +9490,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ\n', txt, xyz(1), xyz(2), xyz(3));
             txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.parent.ant_delta_h, this.parent.ant_delta_en);
             
-            sys = this.getActiveSys();
-            for s = 1 : length(sys)
-                obs_type = this.getAvailableCode(sys(s));
+            sys_list = this.getActiveSys();
+            for s = 1 : length(sys_list)
+                obs_type = this.getAvailableCode(sys_list(s));
                 % Set order CODE PHASE DOPPLER SNR
                 obs_type = obs_type([find(obs_type(:,1) == 'C');
                     find(obs_type(:,1) == 'L');
@@ -9490,9 +9502,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % if the code is unknown use 'the least important code' non empty as obs code
                 % relative to the band
                 for c = find(obs_type(:,3) == ' ')'
-                    ss = cc.getSys(sys(s));
-                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
-                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
+                    sys_c = cc.getSys(sys_list(s));
+                    band = (sys_c.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = sys_c.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
                     obs_type(c, 3) = code;
                 end
                 n_type = length(obs_type);
@@ -9500,7 +9512,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tmp = char(32 * ones(n_line * 13, 4));
                 tmp(1 : n_type, 1:3) = obs_type;
                 tmp = reshape(tmp', 4*13, n_line)';
-                txt = sprintf('%s%-1s   %2d %s SYS / # / OBS TYPES\n', txt, char(sys(s)), n_type, tmp(1, :));
+                txt = sprintf('%s%-1s   %2d %s SYS / # / OBS TYPES\n', txt, char(sys_list(s)), n_type, tmp(1, :));
                 for l = 2 : n_line
                     txt = sprintf('%s       %s SYS / # / OBS TYPES\n', txt, tmp(l, :));
                 end
@@ -9510,21 +9522,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS\n', txt, this.time.first.get6ColDate());
             txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF LAST OBS\n', txt, this.time.last.get6ColDate());
             txt = sprintf('%sCARRIER PHASE SHIFT removed BY goGPS SOFTWARE.              COMMENT\n', txt);
-            for s = 1 : length(sys)
-                obs_type = this.getAvailableCode(sys(s));
+            for s = 1 : length(sys_list)
+                obs_type = this.getAvailableCode(sys_list(s));
                 % Set order CODE PHASE DOPPLER SNR
                 obs_type = obs_type(obs_type(:,1) == 'L', :);
                 for c = find(obs_type(:,3) == ' ')'
-                    ss = cc.getSys(sys(s));
-                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
-                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
+                    sys_c = cc.getSys(sys_list(s));
+                    band = (sys_c.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = sys_c.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
                     obs_type(c, 3) = code;
                 end
                 for l = 1 : size(obs_type, 1)
-                    txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys(s), obs_type(l, :), 0.0);
+                    txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys_list(s), obs_type(l, :), 0.0);
                 end
             end
-            if ~isempty(intersect(sys, 'R'))
+            if ~isempty(intersect(sys_list, 'R'))
                 % If glonas is present
                 %txt = sprintf('%s C1C    0.000 C1P    0.000 C2C    0.000 C2P    0.000        GLONASS COD/PHS/BIS\n', txt);
                 txt = sprintf('%s C1C          C1P          C2C          C2P                 GLONASS COD/PHS/BIS\n', txt);
@@ -9542,18 +9554,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             clock_offset = 0;
             
             obs_code = Core_Utils.code3Char2Num(this.obs_code);
-            for ss = sys
+            for sys_c = sys_list
                 % rin_obs_code tu num;
-                obs_type = reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)';
+                obs_type = reshape(this.rin_obs_code.(sys_c)', 3, length(this.rin_obs_code.(sys_c))/3)';
                 % Set order CODE PHASE DOPPLER SNR
                 obs_type = obs_type([find(obs_type(:,1) == 'C');
                     find(obs_type(:,1) == 'L');
                     find(obs_type(:,1) == 'D');
                     find(obs_type(:,1) == 'S')], :);
                 
-                rin_obs_code.(ss) = Core_Utils.code3Char2Num(obs_type);
-                for t = 1 : numel(rin_obs_code.(ss))
-                    obs_code(obs_code == rin_obs_code.(ss)(t)) = t;
+                rin_obs_code.(sys_c) = Core_Utils.code3Char2Num(obs_type);
+                for t = 1 : numel(rin_obs_code.(sys_c))
+                    obs_code(obs_code == rin_obs_code.(sys_c)(t)) = t;
                 end
             end
             
@@ -9566,15 +9578,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(id_ok)
                     %txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
                     txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
-                    for ss = sys % for each satellite system in view at this epoch
-                        id_ss = id_ok & this.system' == ss;
+                    for sys_c = sys_list % for each satellite system in view at this epoch
+                        id_ss = id_ok & this.system' == sys_c;
                         for prn = unique(this.prn(id_ss))' % for each satellite in view at this epoch (of the current ss)
                             % find which obs type are present
                             id_sat_obs = (id_ss & this.prn == prn);
-                            str_obs = char(32 * ones(16, numel(rin_obs_code.(ss))));
+                            str_obs = char(32 * ones(16, numel(rin_obs_code.(sys_c))));
                             id_rin_col = obs_code(id_sat_obs);
                             str_obs(:, id_rin_col) = reshape(sprintf('%14.3f  ', this.obs(id_sat_obs, e)),16, numel(id_rin_col));
-                            txt = sprintf('%s%c%02d%s\n', txt, ss, prn, str_obs(:)');
+                            txt = sprintf('%s%c%02d%s\n', txt, sys_c, prn, str_obs(:)');
                         end
                     end
                 end
