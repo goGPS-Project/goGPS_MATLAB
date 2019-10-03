@@ -5688,11 +5688,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.initAvailIndex();
             % for each satellite
             [~, id] = unique(this.go_id);
-            for i = id'
-                go_id = this.go_id(i);
-                sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+            go_id = unique(this.go_id);
+            for i = go_id'
+                sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0,1));
-                dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Core_Utils.V_LIGHT;
+                dts_range = ( this.getDtS(i) + this.getRelClkCorr(i) ) * Core_Utils.V_LIGHT;
                 for o = find(sat_idx)'
                     obs_idx_l = this.obs(o,:) ~= 0;
                     obs_idx = find(obs_idx_l);
