@@ -236,7 +236,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.crx               = [];
             this.sat.res               = [];
             this.sat.slant_td          = [];
-            this.sat.cycle_slip           = [];
+            this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = uint16([]);
@@ -1013,7 +1013,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 go_id = this.getGoId(sys(i), prn(i)); % get go_id
                 
                 idx_obs = obs(i,:) ~= 0;
-                this.updateAvailIndex(idx_obs, go_id);
+                this.sat.avail_index(:, go_id) = idx_obs > 0;
                 XS = this.getXSTxRot(go_id);
                 if size(this.xyz,1) == 1
                     [~ , el] = this.computeAzimuthElevationXS(XS);
@@ -5599,9 +5599,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function updateAvailIndex(this, obs, go_gps)
+        function updateAvailIndex(this, go_id)
             %  update avaliabilty of measurement on staellite
-            this.sat.avail_index(:, go_gps) = obs > 0;
+            if isempty(this.sat.avail_index)
+                this.updateAllAvailIndex()
+            else
+                for i = go_id(:)
+                    data_row = this.go_id == i & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+                    this.sat.avail_index(:,i) = any(this.obs(data_row, :));
+                end
+            end            
         end
         
         function updateAllAvailIndex(this)
@@ -6179,26 +6186,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.updateAzimuthElevation(<sat>)
             cc = Core.getState.getConstellationCollector;
-            this.updateAllAvailIndex();
-            if nargin < 2
-                for i = unique(this.go_id)'
-                    if sum(this.go_id == i) > 0
-                        this.updateAzimuthElevation(i);
-                    end
-                end
-            else
-                if isempty(this.sat.el)
-                    this.sat.el = zeros(this.length, cc.getMaxNumSat);
-                end
-                if isempty(this.sat.az)
-                    this.sat.az = zeros(this.length, cc.getMaxNumSat);
-                end
-                if isempty(this.sat.avail_index)
-                    this.sat.avail_index = true(this.length, cc.getMaxNumSat);
-                end
-                av_idx = this.sat.avail_index(:, go_id) ~= 0;
-                [this.sat.az(av_idx, go_id), this.sat.el(av_idx, go_id)] = this.computeAzimuthElevation(go_id);
+            if nargin < 2 || isempty(go_id)
+                go_id = unique(this.go_id);
             end
+            if isempty(this.sat.avail_index)
+                this.updateAllAvailIndex();
+                % this.sat.avail_index = true(this.length, cc.getMaxNumSat);
+            end
+            
+            if isempty(this.sat.el)
+                this.sat.el = zeros(this.length, cc.getMaxNumSat);
+            end
+            if isempty(this.sat.az)
+                this.sat.az = zeros(this.length, cc.getMaxNumSat);
+            end
+            for i = go_id(:)'
+                if sum(this.go_id == i) > 0
+                    av_idx = this.sat.avail_index(:, i) ~= 0;
+                    [this.sat.az(av_idx, i), this.sat.el(av_idx, i)] = this.computeAzimuthElevation(i);
+                end
+            end
+            
         end
         
         function [mf, el_points] = computeEmpMF(this, el_points, show_fig)
@@ -6347,7 +6355,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
             end
             
-            if nargin < 2 || strcmp(go_id, 'all')
+            if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
