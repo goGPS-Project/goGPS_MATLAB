@@ -5532,7 +5532,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
             sys_list = this.getActiveSys();
             for sys_c = sys_list
-                this.rin_obs_code.(sys_c) = serialize(this.getAvailableCode(sys_)')';
+                this.rin_obs_code.(sys_c) = serialize(this.getAvailableCode(sys_c)')';
             end
         end
         
@@ -7809,12 +7809,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs_set = Observation_Set();
                 if this.isMultiFreq() %% case multi frequency
                     for sys_c = sys_list
-                        obs_set.merge(this.getPrefIonoFree('C', sys_));
+                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
                     end
                 else
-                    for sys_ = sys_list
-                        f = this.getFreqs(sys_);
-                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_));
+                    for sys_c = sys_list
+                        f = this.getFreqs(sys_c);
+                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
                     end
                 end
             end
@@ -7836,7 +7836,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
-                [dpos, s0] = this.codeStaticPositioning([], ep_coarse);
+                [dpos, s0] = this.codeStaticPositioning(sys_list, ep_coarse);
                 if sum(abs(dpos)) > 1e8
                     % Solution is diverging => exit
                     this.log.addError('Data are too bad, positioning is not possible!');
@@ -7850,7 +7850,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.codeStaticPositioning([], ep_coarse, 15);
+                this.codeStaticPositioning(sys_list, ep_coarse, 15);
             end
         end
         

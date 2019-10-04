@@ -1506,7 +1506,7 @@ classdef Core_Utils < handle
         
         function [id_ko] = snoopGatt(ssat_err, thr, thr_propagate)
             % mark the residual after one thresdol till their mov max  reenter the
-            % secodn threshold
+            % second threshold
             %
             % SYNTAX:
             %    [w] = Core_Utils.snoopGatt(res, thr, thr_propagate)
