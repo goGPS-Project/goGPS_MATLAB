@@ -83,6 +83,7 @@ classdef Logger < handle
             elseif ispc  % is Windows
                 this.out_file_path = './logs/go_gps_${NOW}.log';
             end
+            this.out_file_path = strrep(this.out_file_path, '${NOW}', datestr(now, 'yyyymmdd_HHMMSS'));
         end
     end
 
