@@ -142,8 +142,12 @@ classdef Core_Utils < handle
                         
                         % faster approach skipping a lot of checks
                         % this is the internal implementation of interp1
-                        fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
-                        data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                        if strcmp(method, 'zeros')
+                            data(lim(l, 1) + id_est, s) = 0;
+                        else
+                            fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
+                            data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                        end
                         
                         diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
                         % restore data for the next interval
