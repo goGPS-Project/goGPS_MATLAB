@@ -3461,9 +3461,14 @@ classdef Receiver_Work_Space < Receiver_Commons
         function dtRel = getRelClkCorr(this, sat)
             %  : get clock offset of the satellite due to
             % special relativity (eccentricity term)
-            idx = this.sat.avail_index(:,sat) > 0;
-            [X,V] = Core.getCoreSky.coordInterpolate(this.time.getSubSet(idx),sat);
-            dtRel = -2 * sum(conj(X) .* V, 2) / (Core_Utils.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
+            if numel(sat) > 1
+                [X,V] = Core.getCoreSky.coordInterpolate(this.time, sat);
+                dtRel = squeeze(-2 * sum(conj(permute(X, [1 3 2])) .* permute(V, [1 3 2]), 2) / (Core_Utils.V_LIGHT ^ 2)); % Relativity correction (eccentricity velocity term)
+            else
+                idx = this.sat.avail_index(:,sat) > 0;
+                [X,V] = Core.getCoreSky.coordInterpolate(this.time.getSubSet(idx),sat);
+                dtRel = -2 * sum(conj(X) .* V, 2) / (Core_Utils.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
+            end
         end
         
         function dtS = getDtS(this, sat)
@@ -3477,9 +3482,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   dtS     = satellite clock errors
             %
             %   Compute the satellite clock error.
-            if nargin < 2
-                dtS = zeros(size(this.sat.avail_index));
-                dtS(this.sat.avail_index(:,s),s) = Core.getCoreSky.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)), 1 : size(dtS,2));
+            if nargin < 2 || isempty(sat)
+                sat = 1 : size(this.sat.avail_index, 2);
+            end            
+            
+            if numel(sat) > 1
+                dtS = nan(size(this.sat.avail_index, 1), numel(sat));
+                dtS = Core.getCoreSky.clockInterpolate(this.time, sat);
             else
                 idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx) > 0
@@ -5718,7 +5727,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function applyDtSatFlag(this,flag)
+        function applyDtSatFlag(this, flag)
             % Apply clock satellite corrections for code and phase
             % IMPORTANT: if no clock is present delete the observation
             
@@ -5727,30 +5736,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             this.initAvailIndex();
             % for each satellite
-            [~, id] = unique(this.go_id);
             go_id = unique(this.go_id);
-            for i = go_id'
-                sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
-                ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0,1));
-                dts_range = ( this.getDtS(i) + this.getRelClkCorr(i) ) * Core_Utils.V_LIGHT;
+            full_dts_range = nan2zero(zero2nan(this.getDtS(go_id)) + zero2nan(this.getRelClkCorr(go_id))) * Core_Utils.V_LIGHT;
+            for s = 1: numel(go_id)
+                sat_idx = (this.go_id == go_id(s)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 for o = find(sat_idx)'
-                    obs_idx_l = this.obs(o,:) ~= 0;
-                    obs_idx = find(obs_idx_l);
-                    dts_idx = obs_idx_l(ep_idx);
-                    if ~isempty(dts_range(dts_idx))
-                        if this.obs_code(o,1) == 'C'
-                            this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
-                        else
-                            this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
-                        end
+                    if this.obs_code(o,1) == 'C'
+                        this.obs(o, :) = zero2nan(this.obs(o, :)) + sign(flag) .* full_dts_range(:,s)';
+                    else
+                        this.obs(o, :) = zero2nan(this.obs(o, :)) + sign(flag) .* full_dts_range(:,s)' ./ this.wl(o);
                     end
-                    dts_range_2 = dts_range(dts_idx);
-                    nan_idx = obs_idx(isnan(dts_range_2));
-                    this.obs(o, nan_idx) = 0;
                 end
             end
         end
-        
+                
         function remDtPPP(this)
             % From the PPP a clock error from the phases have been estimated
             % -> remove it from the observations
@@ -10296,7 +10295,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
                     hold on;
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', [0.7 0.7 0.7]);
+                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', 'b');
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
                         cs = ep(this.sat.cycle_slip_ph_by_ph(:, s) ~= 0);

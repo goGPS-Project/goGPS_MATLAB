@@ -1608,7 +1608,9 @@ classdef Core_Sky < handle
                 sat_in = this.cc.index;
             end
             
-            for sat = sat_in(:)'
+            dts = nan(time.length, numel(sat_in));
+            for s = 1 : numel(sat_in)
+                sat = sat_in(s);
                 interval = this.clock_rate;
                 
                 %find the SP3 epoch closest to the interpolation time
@@ -1656,7 +1658,7 @@ classdef Core_Sky < handle
                 if numel(sat_in) == 1
                     dts = dts_tmp(:);
                 else
-                    dts(:,sat) = dts_tmp(:);
+                    dts(:,s) = dts_tmp(:);
                 end
             end
             
@@ -1835,16 +1837,18 @@ classdef Core_Sky < handle
             n_border = ((size(this.coord, 1) - size(poly, 4)) / 2);
             
             % Find the polynomial id at the interpolation time
-            pid_floor = floor((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
+            %t_diff = round(t.getRefTime(this.time_ref_coord.getMatlabTime),7); % round to 7 digits, t - ref_time cannot hold more precision
+            t_diff = t.getRefTime(this.time_ref_coord.getMatlabTime);
+            
+            pid_floor = floor(t_diff / this.coord_rate) + 1 - n_border;
             pid_floor(pid_floor < 1) = 1;
             pid_floor(pid_floor > size(this.getPolyCoeff, 4)) = size(this.getPolyCoeff, 4);
-            pid_ceil = ceil((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
+            pid_ceil = ceil(t_diff / this.coord_rate) + 1 - n_border;
             pid_ceil(pid_ceil < 1) = 1;
             pid_ceil(pid_ceil > size(this.getPolyCoeff, 4)) = size(this.getPolyCoeff, 4);
             
             c_times = this.getCoordTime();
             c_times = c_times - this.time_ref_coord;
-            t_diff = t - this.time_ref_coord;
             
             poly = permute(poly(:,:,sat_idx, :),[1 3 2 4]);
             
@@ -1852,25 +1856,36 @@ classdef Core_Sky < handle
             w = zeros(t.length, 1);
             X_sat = zeros(t.length, n_sat, 3);
             V_sat = zeros(t.length, n_sat, 3);
+            n_epoch_old = 0;
             for id = unique([pid_floor; pid_ceil])'
                 % find the epochs with the same poly
-                p_ids = find(pid_floor == id | pid_ceil == id);
-                n_epoch = length(p_ids);
-                t_fct = ones(n_epoch, poly_order + 1);
-                t_fct(:,2) = (t_diff(p_ids) -  c_times(id + n_border))/this.coord_rate;
-                for o = 3 : poly_order + 1
-                    t_fct(:, o) = t_fct(:, o - 1) .* t_fct(:, 2);
-                end
-                w = 1 ./ t_fct(:,2) .^ 2;
-                w(t_fct(:, 2) == 0, 1) = 1;
-                W_poly(p_ids, 1) = W_poly(p_ids, 1) + w;
-                w = repmat(w, 1, size(poly, 2), size(poly, 3));
-                X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + reshape(t_fct * reshape(poly(:,:,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3) .* w;
-                for o = 2 : poly_order
-                    t_fct(:, o) = o * t_fct(:, o);
-                end
-                if nargout > 1
-                    V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
+                p_ids = (pid_floor == id | pid_ceil == id);
+                n_epoch = sum(p_ids);
+                if n_epoch > 0
+                    if n_epoch ~= n_epoch_old
+                        t_fct = ones(n_epoch, poly_order + 1);
+                        o_mat = repmat(1 : poly_order, n_epoch, 1);
+                    end
+                    t2 = (t_diff(p_ids) -  c_times(id + n_border))/this.coord_rate;
+                    % this is not pre-cached
+                    if (n_epoch ~= n_epoch_old) || (sum(abs(t2 - t2_old)) ~= 0)
+                        t_fct(:,2) = t2;
+                        for o = 3 : poly_order + 1
+                            t_fct(:, o) = t_fct(:, o - 1) .* t2;
+                        end
+                        w = 1 ./ t_fct(:,2) .^ 2;
+                        w(t_fct(:, 2) == 0, 1) = 1;
+                        w = repmat(w, 1, size(poly, 2), size(poly, 3));
+                        n_epoch_old = n_epoch;
+                        t2_old = t2;
+                    end
+                    W_poly(p_ids, 1) = W_poly(p_ids, 1) + w(:,1,1);
+                    
+                    X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + reshape(t_fct * reshape(poly(:,:,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3) .* w;
+                    
+                    if nargout > 1
+                        V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape((t_fct(:, 1 : poly_order) .* o_mat) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
+                    end
                 end
             end
             X_sat = X_sat ./ repmat(W_poly, 1, n_sat, 3);
