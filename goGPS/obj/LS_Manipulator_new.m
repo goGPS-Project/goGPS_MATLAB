@@ -1066,9 +1066,9 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-                        if sum(this.param_class == this.PAR_REC_PPB) > 0
-                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
-                        end
+%                         if sum(this.param_class == this.PAR_REC_PPB) > 0
+%                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
+%                         end
                     end
                 end
             end
@@ -1160,9 +1160,9 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-                        if sum(this.param_class == this.PAR_SAT_PPB) > 0
-                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
-                        end
+%                         if sum(this.param_class == this.PAR_SAT_PPB) > 0
+%                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
+%                         end
                     end
                 end
             end
