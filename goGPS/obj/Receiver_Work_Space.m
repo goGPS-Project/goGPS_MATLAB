@@ -7579,7 +7579,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                         jmp_reset = find(abs(ddt_pr) > 1e-5); % points where the clock is reset
                         d_points_pr = dt_pr_dj(jmp_reset);
-                        drifting_pr = interp1(jmp_reset, d_points_pr, (1 : numel(dt_pr_dj))', 'pchip');
+                        if numel(d_points_pr) < 2
+                            drifting_pr = 0;
+                        else
+                            drifting_pr = interp1(jmp_reset, d_points_pr, (1 : numel(dt_pr_dj))', 'pchip');
+                        end
                         % now correct for dt_bias
                         dt_pr_dj = dt_pr_dj - drifting_pr - mean(dt_pr_dj - drifting_pr, 'omitnan');
                     end
@@ -7587,7 +7591,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         ddt_ph = Core_Utils.diffAndPred(dt_ph_dj);
                         jmp_reset = find(abs(ddt_ph) > 1e-5); % points where the clock is reset
                         d_points_ph = dt_ph_dj(jmp_reset);
-                        drifting_ph = interp1(jmp_reset, d_points_ph, (1 : numel(dt_ph_dj))', 'pchip');
+                        if numel(d_points_ph) < 2
+                            drifting_ph = 0;
+                        else
+                            drifting_ph = interp1(jmp_reset, d_points_ph, (1 : numel(dt_ph_dj))', 'pchip');
+                        end
                         % now correct for dt_bias
                         dt_ph_dj = dt_ph_dj - drifting_ph - mean(dt_ph_dj - drifting_ph, 'omitnan');
                     end
