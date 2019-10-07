@@ -5190,16 +5190,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                 go_id_list = 1 : cc.getMaxNumSat();
             end
             range = zeros(length(go_id_list), n_epochs);
-            XS_loc = [];
+            XS_loc = {};
             for i = 1 : length(go_id_list)
                 go_id = go_id_list(i);
-                XS_loc = this.getXSLoc(go_id);
-                range_tmp = sqrt(sum(XS_loc.^2,2));
+                XS_loc{i} = this.getXSLoc(go_id);
+                range_tmp = sqrt(sum(XS_loc{i}.^2,2));
                 range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:,go_id));
                 
-                XS_loc(isnan(range_tmp),:) = [];
+                XS_loc{i}(isnan(range_tmp),:) = [];
                 %range = range';
                 range(i,:) = nan2zero(range_tmp)';
+            end
+            if numel(go_id_list) == 1
+                XS_loc = XS_loc{1};
             end
         end
         
@@ -5335,18 +5338,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1), size(obs_set.obs,2),3);
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
+            [range, xs_loc_t] = this.getSyntObs(unique(obs_set.go_id));
+            all_go_id = unique(obs_set.go_id);
             for i = 1 : size(synt_obs,2)
-                go_id = obs_set.go_id(i);
-                [range, xs_loc_t] = this.getSyntObs(go_id);
+                % go_id = obs_set.go_id(i);
+                s = all_go_id == obs_set.go_id(i);
+                %[range, xs_loc_t] = this.getSyntObs(go_id);
                 idx_obs = obs_set.obs(:, i) ~= 0;
                 idx_obs_r = idx_ep_obs(idx_obs); % <- to which epoch in the receiver the observation of the satellites in obesrvation set corresponds?
-                idx_obs_r_l = false(size(range)); % get the logical equivalent
+                idx_obs_r_l = false(1, size(range, 2)); % get the logical equivalent
                 idx_obs_r_l(idx_obs_r) = true;
-                range_idx = range ~= 0;
+                range_idx = range(s,:) ~= 0;
                 xs_idx = idx_obs_r_l(range_idx);
-                synt_obs(idx_obs, i) = range(idx_obs_r);
+                synt_obs(idx_obs, i) = range(s, idx_obs_r);
                 if ~isempty(xs_idx)
-                    xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
+                    xs_loc(idx_obs, i, :) = permute(xs_loc_t{s}(xs_idx, :),[1 3 2]);
                 end
             end
         end
