@@ -1475,40 +1475,20 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   this.getEpoch(id)
-            
-            if islogical(id)
-                max_id = find(id == true, 1, 'last');
-            else
-                max_id = max(id);
-            end
-            
-            if id > this.length()
-                id = this.length();
-            end
-            
-            if id == 0
-                new_obj = GPS_Time();
-            else
+                      
+            try
                 switch this.time_type
                     case 0 % I'm in MAT TIME
-                        if (length(this.mat_time) >= max_id)
-                            new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
-                        else
-                            new_obj = GPS_Time();
-                        end
+                        new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
                     case 1 % I'm in UNIX TIME
-                        if (length(this.unix_time) >= max_id)
-                            new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
-                        else
-                            new_obj = GPS_Time();
-                        end
+                        new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
                     case 2 % I'm in REF TIME
-                        if (length(this.time_diff) >= max_id)
-                            new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
-                        else
-                            new_obj = GPS_Time();
-                        end
+                        new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
                 end
+            catch
+                % this is faster than checking if id == 0 or id > this.length() (very limit case)
+                % edit of the 7th of October 2019
+                new_obj = GPS_Time();
             end
         end
         
