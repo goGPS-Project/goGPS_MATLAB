@@ -1486,12 +1486,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             % first time derivative
             phs = this.getSyntPhases;
             %%
-            sensor_ph0 = Core_Utils.diffAndPred(ph - phs);
+            sensor_ph0 = Core_Utils.diffAndPred(ph - phs, 1, [], 'zeros');
             
             % subtract median (clock error)
             if flag_rem_dt
                 %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
                 sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                % predict sensor at the left border of the interval
+                for s = 1 : size(sensor_ph,2)
+                    lim = getOutliers(~isnan(sensor_ph(:,s)));
+                    for l = 1 : size(lim, 1)
+                        if lim(l,2) - lim(l,1) > 1
+                           sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
+                        end
+                    end
+                end
                 sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'),2,'omitnan'),5, 'omitnan')));
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             else
@@ -1531,13 +1540,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             % recompute dt and sensor_ph
             if flag_rem_dt
                 sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                for s = 1 : size(sensor_ph,2)
+                    lim = getOutliers(~isnan(sensor_ph(:,s)));
+                    for l = 1 : size(lim, 1)
+                        if lim(l,2) - lim(l,1) > 1
+                            sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
+                        end
+                    end
+                end
                 sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));
             else
                 sensor_ph = sensor_ph0;
             end
             if false
-                % --------------------------------------------------------------------------------------------
+                %% --------------------------------------------------------------------------------------------
                 % detection on arc edges
                 % flag out for more than 4 cm are bad phases,
                 % expand them but consider outliers only what is out for more than 2 cm
@@ -1554,6 +1571,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % recompute dt and sensor_ph
                 sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
+                for s = 1 : size(sensor_ph,2)
+                    lim = getOutliers(~isnan(sensor_ph(:,s)));
+                    for l = 1 : size(lim, 1)
+                        if lim(l,2) - lim(l,1) > 1
+                            sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
+                        end
+                    end
+                end
                 
                 % --------------------------------------------------------------------------------------------
                 
@@ -1561,7 +1586,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tmp = sensor_ph(~isnan(sensor_ph));
                 tmp(abs(tmp) > 4) = [];
                 std_sensor = mean(movstd(tmp(:),900));
-                %%
+                %
                 % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
                 % use as a sensor the time second derivative
                 if std_sensor > ol_thr
@@ -1570,6 +1595,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % try with second time derivative
                     sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
                     sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                    for s = 1 : size(sensor_ph,2)
+                        lim = getOutliers(~isnan(sensor_ph(:,s)));
+                        for l = 1 : size(lim, 1)
+                            if lim(l,2) - lim(l,1) > 1
+                                sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
+                            end
+                        end
+                    end
                 else
                     der = 1; % use first
                 end
