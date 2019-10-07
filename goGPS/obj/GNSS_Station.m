@@ -4212,17 +4212,22 @@ classdef GNSS_Station < handle
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                    end
+                    
+                    if sub_plot_nsat
+                        ax1 = subplot(3,1,1:2);
+                    else
+                        ax1 = f.Children(end);
+                    end
+                    
+                    if new_fig
                         old_legend = {};
                     else
                         l = legend;
                         old_legend = get(l,'String');
                         f = gcf();
                     end
-                    if sub_plot_nsat
-                        ax1 = subplot(3,1,1:2);
-                    else
-                        ax1 = f.Children(end);
-                    end
+                    
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
                     e = 0;
