@@ -8593,7 +8593,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     this.log.addMessage(this.log.indent('Solving the system'));
-                    [x, res, s0, ~, l_fixed] = ls.solve();
+                    [x, res, s0, ~, l_fixed] = ls.solvePPP();
                     % REWEIGHT ON RESIDUALS
                     if this.state.getReweightPPP > 1
                         flag_recompute = true;
@@ -8610,7 +8610,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if flag_recompute
                             ls.Astack2Nstack();
                             warning off; % Close to singular matrix are annoing
-                            [x, res, s0, ~, l_fixed] = ls.solve();
+                            [x, res, s0, ~, l_fixed] = ls.solvePPP();
                             warning on;
                         end
                     end
@@ -8625,7 +8625,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if flag_recompute
                             ls.Astack2Nstack();
                             warning off; % Close to singular matrix are annoing
-                            [x_new, res_new, s0_new, ~, l_fixed_new] = ls.solve();
+                            [x_new, res_new, s0_new, ~, l_fixed_new] = ls.solvePPP();
                             warning on;
 
                             if (s0_new - 0.005) < s0 % if s0 is not worse (than the old + 5 mm)
