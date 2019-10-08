@@ -5236,14 +5236,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             u_sat = unique(go_id);
             %this.updateAllAvailIndex();
             if ~this.isMultiFreq()
-                this.updateErrIono();
+                this.updateErrIono(u_sat);
             end
             if sum(this.xyz) ~=0
-                this.updateErrTropo();
+                this.updateErrTropo(u_sat);
             end
             % for each unique go_id
             for i = u_sat'
-                
                 sat_cache = this.getSatCache(i);
                 %range = sat_cache.range;
                 range = this.getSyntObs( i);
@@ -5342,7 +5341,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   sat_cache = getSatCache()
             if isempty(this.sat_cache) || (nargin == 3 && force_update)
                 % dirty cache
-                all_go_id = unique(this.go_id);
+                if ~isempty(go_id)
+                    all_go_id = go_id;
+                else
+                    all_go_id = unique(this.go_id);
+                end
                 this.sat_cache.go_id = all_go_id;
                 [this.sat_cache.range, this.sat_cache.xs_loc_t] = this.getSyntObs(all_go_id);
             end          
@@ -5351,7 +5354,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin >= 2 && ~isempty(go_id)
                 [~, id0, id] = intersect(go_id, sat_cache.go_id);
                 if numel(id) < numel(go_id)
-                    Core.getLogger.addError('Requesting satellite positions not in view by the receiver');
+                    Core.getLogger.addWarning('Requesting satellite positions not in cache');
+                    this.sat_cache.go_id = go_id;
+                    [this.sat_cache.range, this.sat_cache.xs_loc_t] = this.getSyntObs(go_id);                   
                 end
                 sat_cache = struct('go_id', go_id(id0), 'range', this.sat_cache.range(id,:), 'xs_loc_t', []);
                 sat_cache.xs_loc_t = this.sat_cache.xs_loc_t(id);
@@ -6466,7 +6471,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
-            this.getSatCache([], true);
+            this.getSatCache(go_id, true);
         end
         
         function reset2AprioriTropo(this)
@@ -7772,10 +7777,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if isempty(this.id_sync)
                     this.id_sync = 1 : this.time.length;
                 end
+                all_go_id = unique(this.go_id(ismember(this.system, sys_list)));
+                
                 % check if the epochs are present
                 % getting the observation set that is going to be used in
                 % setUPSA
-                
+
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     obs_set = Observation_Set();
                     if this.isMultiFreq() %% case multi frequency
@@ -7799,11 +7806,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if s0 > 0
                     this.updateAllAvailIndex();
                     this.updateAllTOT();
-                    this.updateAzimuthElevation()
+                    this.updateAzimuthElevation(all_go_id)
                     if ~this.isMultiFreq()
-                        this.updateErrIono();
+                        this.updateErrIono(all_go_id);
                     end
-                    this.updateErrTropo();
+                    this.updateErrTropo(all_go_id);
                     this.log.addMessage(this.log.indent('Improving estimation'))
 
                     rf_changed = false;
@@ -7864,7 +7871,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         i = 1;
                         while max(abs(corr)) > 0.1 && i < 3
                             rw_loops = 0; % number of re-weight loops
-                            this.getSatCache([], true); % force cache update of satellite orbits here I'm computing it for all the id_sync
+                            this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
                             [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                             % final estimation of time of flight
                             this.updateAllAvailIndex()
@@ -7884,7 +7891,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         pr(id_ko(:,i),this.go_id(id_pr) == i) = 0;
                     end
                     this.setPseudoRanges(pr, id_pr);
-                    this.getSatCache([], true); % force cache update of satellite orbits here I'm computing it for all the id_sync
+                    this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
                     [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                     
                     if rf_changed
@@ -7902,6 +7909,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get a very coarse postioning for the receiver
             cc = Core.getConstellationCollector;
             sys_list = unique(cc.system(obs_set.go_id));
+            all_go_id = unique(obs_set.go_id);
             if nargin < 2
                 obs_set = Observation_Set();
                 if this.isMultiFreq() %% case multi frequency
@@ -7933,7 +7941,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
-                this.getSatCache([], true); % force cache update of satellite orbits
+                this.getSatCache(all_go_id, true); % force cache update of satellite orbits
                 [dpos, s0] = this.codeStaticPositioning(sys_list, ep_coarse);
                 
                 if sum(abs(dpos)) > 1e8
@@ -7945,9 +7953,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if s0 > 0
                 this.updateAzimuthElevation()
-                this.updateErrTropo();
+                this.updateErrTropo(all_go_id);
                 if ~this.isMultiFreq()
-                    this.updateErrIono();
+                    this.updateErrIono(all_go_id);
                 end
                 this.codeStaticPositioning(sys_list, ep_coarse, 15);
             end
@@ -8460,6 +8468,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     elseif (min(s02) > this.S02_IP_THR)
                         this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
                     else
+                        % update azimuth elevation
+                        this.updateAzimuthElevation();
                         this.remUnderCutOff();
                         this.setAvIdx2Visibility();
                         this.meteo_data = [];
@@ -8472,8 +8482,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                         end
                         
-                        % update azimuth elevation
-                        this.updateAzimuthElevation();
                         % Add a model correction for time desync -> observations are now referred to nominal time  #14
                         this.shiftToNominal();
                         
@@ -8485,11 +8493,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                             if enable_sat_pco
                                 Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                             end
-                            
+
                             this.updateAzimuthElevation();
-                            if this.state.isAprIono || this.state.getIonoManagement >= 2
+                            if numel(sys_list) ~= numel(unique(this.system))
+                                % there are other systems to update!!!
+                                this.updateErrTropo();
                                 this.updateErrIono();
-                                this.applyIonoModel();
+                                if this.state.isAprIono || this.state.getIonoManagement >= 2
+                                    this.applyIonoModel();
+                                end
+                            else
+                                if this.state.isAprIono || this.state.getIonoManagement >= 2
+                                    this.updateErrIono();
+                                    this.applyIonoModel();
+                                end
                             end
                             
                             % ph0 = this.getPhases();
@@ -10491,7 +10508,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idx_f = 1;
                 for ss = ss_ok
                     ss_id = find(cc.sys_c == ss);
-                    f = figure; f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
                     f_handle(idx_f) = f;
                     
                     any_data = false;
@@ -10529,6 +10546,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         idx_f = idx_f + 1;
                         Core_UI.beautifyFig(f, 'dark');
                         Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
                     end
                 end
             end
