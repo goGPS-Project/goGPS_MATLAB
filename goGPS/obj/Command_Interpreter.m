@@ -1235,8 +1235,8 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 
-                mode = []; % Take the position from work
-                flag_apr = false; % do not use coordinates as a-rpiori (use them as fixed)
+                mode = 'work'; % Take the position from work
+                flag_apr = false; % do not use coordinates as a-priori (use them as fixed)
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_R_FROM_OUT.par ')*$'], 'once'))
                         mode = 'out';
