@@ -2578,6 +2578,17 @@ classdef GNSS_Station < handle
             end
         end
 
+        function showDataAvailability(sta_list, sys_list)
+            % Show data availability for each receiver workspace
+            %
+            % SYNTAX
+            %   this.showDataAvailability(sys_list)
+
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showDataAvailability(sys_list);
+            end
+        end
+        
         function showProcessingQualityInfo(sta_list)
             % Show quality info about the receiver processing
             % SYNTAX this.showProcessingQualityInfo();
@@ -3915,7 +3926,43 @@ classdef GNSS_Station < handle
                 end
             end
         end
-
+        
+        function showOutliersAndCycleSlip(sta_list, sys_list)
+            % Show Outliers and cycle slips for each receiver workspace
+            % (cartesian plot)
+            %
+            % SYNTAX
+            %   this.showOutliersAndCycleSlip(sys_list)
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showOutliersAndCycleSlip(sys_list);
+            end
+        end
+        
+        function showOutliersAndCycleSlip_p(sta_list, sys_list)
+            % Show Outliers and cycle slips for each receiver workspace
+            % (polar plot)
+            %
+            % SYNTAX
+            %   this.showOutliersAndCycleSlip(sys_list)
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showOutliersAndCycleSlip_p(sys_list);
+            end
+        end
+        
+        function showSNR_p(sta_list, sys_list)
+            % Show SNR for each receiver workspace
+            % (polar plot)
+            %
+            % SYNTAX
+            %   this.showSNR_p(sys_list)
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showSNR_p(sys_list);
+            end
+        end
+        
         function f_handle = showQuality_p(sta_list, type, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX f_handles = this.plotSNR(sys_c)
@@ -4344,9 +4391,9 @@ classdef GNSS_Station < handle
                         end
                     end
                 end
-                f.Visible = 'on';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
 

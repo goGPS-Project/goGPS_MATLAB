@@ -1034,20 +1034,27 @@ classdef Receiver_Output < Receiver_Commons
             
             rec = this;
             if ~isempty(rec)
-                f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                 t = rec.time.getMatlabTime();
-                plot(t, rec.getDesync, '-k', 'LineWidth', 2);
-                hold on;
-                plot(t, (rec.getDtIP), '-', 'LineWidth', 2);
-                if any(rec.getDt)
-                    plot(t, rec.getDt, '-', 'LineWidth', 2);
-                    plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
-                    legend('desync time', 'dt correction from LS on Code', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
+                if isempty(t)
+                    Core.getLogger.addError('No clock found in Receiver Output object\n');
                 else
-                    legend('desync time', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                    plot(t, rec.getDesync, '-k', 'LineWidth', 2);
+                    hold on;
+                    plot(t, (rec.getDtIP), '-', 'LineWidth', 2);
+                    if any(rec.getDt)
+                        plot(t, rec.getDt, '-', 'LineWidth', 2);
+                        plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
+                        legend('desync time', 'dt correction from LS on Code', 'residual dt from last step', 'total dt', 'Location', 'NorthEastOutside');
+                    else
+                        legend('desync time', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
+                    end
+                    xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                    h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
-                xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
-                h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         

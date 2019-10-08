@@ -308,78 +308,135 @@ classdef Command_Interpreter < handle
             this.PAR_S_ALL.name = 'Show all the plots';
             this.PAR_S_ALL.descr = 'SHOWALL';
             this.PAR_S_ALL.par = '(ALL)|(all)';
-
+            this.PAR_S_ALL.class = '';
+            this.PAR_S_ALL.limits = [];
+            this.PAR_S_ALL.accepted_values = [];
+            
             this.PAR_S_DA.name = 'Data availability';
             this.PAR_S_DA.descr = 'DA               Data Availability';
             this.PAR_S_DA.par = '(DA)|(\-\-dataAvailability)|(da)';
+            this.PAR_S_DA.class = '';
+            this.PAR_S_DA.limits = [];
+            this.PAR_S_DA.accepted_values = [];
 
             this.PAR_S_ENU.name = 'ENU positions';
             this.PAR_S_ENU.descr = 'ENU              East Nord Up positions';
             this.PAR_S_ENU.par = '(ENU)|(enu)';
+            this.PAR_S_ENU.class = '';
+            this.PAR_S_ENU.limits = [];
+            this.PAR_S_ENU.accepted_values = [];
 
             this.PAR_S_ENUBSL.name = 'ENU baseline';
             this.PAR_S_ENUBSL.descr = 'ENUBSL           East Nord Up baseline';
             this.PAR_S_ENUBSL.par = '(ENUBSL)|(enu_base)';
+            this.PAR_S_ENUBSL.class = '';
+            this.PAR_S_ENUBSL.limits = [];
+            this.PAR_S_ENUBSL.accepted_values = [];
 
             this.PAR_S_XYZ.name = 'XYZ positions';
             this.PAR_S_XYZ.descr = 'XYZ              XYZ Earth Fixed Earth centered positions';
             this.PAR_S_XYZ.par = '(XYZ)|(xyz)';
+            this.PAR_S_XYZ.class = '';
+            this.PAR_S_XYZ.limits = [];
+            this.PAR_S_XYZ.accepted_values = [];
 
             this.PAR_S_MAP.name = 'Position on map';
             this.PAR_S_MAP.descr = 'MAP              Position on map';
             this.PAR_S_MAP.par = '(MAP)|(map)';
+            this.PAR_S_MAP.class = '';
+            this.PAR_S_MAP.limits = [];
+            this.PAR_S_MAP.accepted_values = [];
 
             this.PAR_S_CK.name = 'Clock Error';
             this.PAR_S_CK.descr = 'CK               Clock errors';
             this.PAR_S_CK.par = '(ck)|(CK)';
+            this.PAR_S_CK.class = '';
+            this.PAR_S_CK.limits = [];
+            this.PAR_S_CK.accepted_values = [];
 
             this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
             this.PAR_S_SNR.descr = 'SNR              Signal to Noise Ratio (polar plot)';
             this.PAR_S_SNR.par = '(snr)|(SNR)';
+            this.PAR_S_SNR.class = '';
+            this.PAR_S_SNR.limits = [];
+            this.PAR_S_SNR.accepted_values = [];
             
             this.PAR_S_OCS.name = 'Outliers and cycle slips';
             this.PAR_S_OCS.descr = 'OCS              Outliers and cycle slips';
             this.PAR_S_OCS.par = '(ocs)|(OCS)';
+            this.PAR_S_OCS.class = '';
+            this.PAR_S_OCS.limits = [];
+            this.PAR_S_OCS.accepted_values = [];
             
             this.PAR_S_OCSP.name = 'Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.descr = 'OCSP             Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.par = '(ocsp)|(OCSP)';
+            this.PAR_S_OCSP.class = '';
+            this.PAR_S_OCSP.limits = [];
+            this.PAR_S_OCSP.accepted_values = [];
             
             this.PAR_S_RES.name = 'Residuals plot';
             this.PAR_S_RES.descr = 'RES              Residual plot';
             this.PAR_S_RES.par = '(res)|(RES)';
+            this.PAR_S_RES.class = '';
+            this.PAR_S_RES.limits = [];
+            this.PAR_S_RES.accepted_values = [];
 
             this.PAR_S_RES_SKY.name = 'Residuals sky plot';
             this.PAR_S_RES_SKY.descr = 'RES_SKY          Residual sky plot';
             this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
+            this.PAR_S_RES_SKY.class = '';
+            this.PAR_S_RES_SKY.limits = [];
+            this.PAR_S_RES_SKY.accepted_values = [];
 
             this.PAR_S_RES_SKYP.name = 'Residuals sky plot (polar plot)';
             this.PAR_S_RES_SKYP.descr = 'RES_SKYP         Residual sky plot (polar plot)';
             this.PAR_S_RES_SKYP.par = '(res_skyp)|(RES_SKYP)';
+            this.PAR_S_RES_SKYP.class = '';
+            this.PAR_S_RES_SKYP.limits = [];
+            this.PAR_S_RES_SKYP.accepted_values = [];
 
             this.PAR_S_ZTD.name = 'ZTD';
             this.PAR_S_ZTD.descr = 'ZTD              Zenith Total Delay';
             this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
+            this.PAR_S_ZTD.class = '';
+            this.PAR_S_ZTD.limits = [];
+            this.PAR_S_ZTD.accepted_values = [];
 
             this.PAR_S_ZWD.name = 'ZWD';
             this.PAR_S_ZWD.descr = 'ZWD              Zenith Wet Delay';
             this.PAR_S_ZWD.par = '(zwd)|(ZWD)';
+            this.PAR_S_ZWD.class = '';
+            this.PAR_S_ZWD.limits = [];
+            this.PAR_S_ZWD.accepted_values = [];
 
             this.PAR_S_PWV.name = 'PWV';
             this.PAR_S_PWV.descr = 'PWV              Precipitable Water Vapour';
             this.PAR_S_PWV.par = '(pwv)|(PWV)';
+            this.PAR_S_PWV.class = '';
+            this.PAR_S_PWV.limits = [];
+            this.PAR_S_PWV.accepted_values = [];
 
             this.PAR_S_PTH.name = 'PTH';
             this.PAR_S_PTH.descr = 'PTH              Pressure / Temperature / Humidity';
             this.PAR_S_PTH.par = '(pth)|(PTH)';
+            this.PAR_S_PTH.class = '';
+            this.PAR_S_PTH.limits = [];
+            this.PAR_S_PTH.accepted_values = [];
 
             this.PAR_S_STD.name = 'ZTD Slant';
             this.PAR_S_STD.descr = 'STD              Zenith Total Delay with slants';
             this.PAR_S_STD.par = '(std)|(STD)';
+            this.PAR_S_STD.class = '';
+            this.PAR_S_STD.limits = [];
+            this.PAR_S_STD.accepted_values = [];
 
             this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
             this.PAR_S_RES_STD.descr = 'RES_STD          Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
+            this.PAR_S_RES_STD.class = '';
+            this.PAR_S_RES_STD.limits = [];
+            this.PAR_S_RES_STD.accepted_values = [];
 
             this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
@@ -538,7 +595,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1574,6 +1631,7 @@ classdef Command_Interpreter < handle
                             rec(r).work.obs = [];
                         end
                         rec(r).work.synt_ph = [];
+                        rec(r).work.sat_cache = [];
                         rec(r).work.sat.avail_index = [];
                         rec(r).work.sat.outliers_ph_by_ph = [];
                         rec(r).work.sat.outliers_pr_by_pr = [];
@@ -1834,6 +1892,7 @@ classdef Command_Interpreter < handle
                 sss_lev = 0;
             end
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            [sys_list, sys_found] = this.getConstellation(tok);
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
@@ -1877,7 +1936,7 @@ classdef Command_Interpreter < handle
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALL.par ')*$'], 'once'))
                                 trg.showAll();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
-                                trg.showDataAvailability();
+                                trg.showDataAvailability(sys_list);
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
                                 trg.showPositionENU();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
@@ -1885,11 +1944,11 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
                                 trg.showDt();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
-                                trg.showSNR_p();
+                                trg.showSNR_p(sys_list);
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
-                                trg.showOutliersAndCycleSlip();
+                                trg.showOutliersAndCycleSlip(sys_list);
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
-                                trg.showOutliersAndCycleSlip_p();
+                                trg.showOutliersAndCycleSlip_p(sys_list);
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
                                 trg.showRes();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
@@ -1901,6 +1960,7 @@ classdef Command_Interpreter < handle
                             end
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
+                            Core_Utils.printEx(ex);
                         end
                     end
                 end

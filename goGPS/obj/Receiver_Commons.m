@@ -930,7 +930,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('Receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~one_plot, subplot(3,1,2); end
@@ -939,7 +939,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [cm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('North [cm]'); h.FontWeight = 'bold';
                         h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,2)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
@@ -948,7 +948,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
                         h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
@@ -994,16 +994,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         if ~one_plot, subplot(3,1,1); end
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [cm]'); h.FontWeight = 'bold';
+                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
+                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
+                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
                             h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
@@ -1044,11 +1044,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     if ~one_plot, subplot(2,1,2); end
                     plot(t, s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 [cm]'); h.FontWeight = 'bold';
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('s0 [cm]'); h.FontWeight = 'bold';
                     grid on;
                     if ~one_plot, subplot(2,1,1); end
                     plot(t, s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 ip [cm]'); h.FontWeight = 'bold';
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('s0 ip [cm]'); h.FontWeight = 'bold';
                     h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     grid on;
                     if one_plot
@@ -1248,7 +1248,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     colors = Core_UI.getColor(1 : n_sat, n_sat);
                     ax_all.ColorOrder = colors; hold(ax_all, 'on');
                     plot(ax_all, work.time.getMatlabTime, zero2nan(work.sat.res)*1e3, '.-');
-                    setTimeTicks(ax_all, 3,'dd/mm/yyyy HH:MMPM');
+                    setTimeTicks(ax_all, 3,'dd/mm/yyyy HH:MM');
                     drawnow; ylabel('residuals [mm]'); grid on;
                     
                     id_ok = false(n_sat, 1);
@@ -1258,7 +1258,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if id_ok(s)
                             plot(ax_sat(s), work.time.getMatlabTime, res, '-', 'LineWidth', 2, 'Color', colors(s, :));
                             grid on; ax_sat(s).YMinorGrid = 'on'; ax_sat(s).XMinorGrid = 'on';
-                            %setTimeTicks(ax_sat(s), 2,'HH:MMPM');
+                            %setTimeTicks(ax_sat(s), 2,'HH:MM');
                         else
                             single_sat(s).Visible = 'off';
                         end
@@ -1416,7 +1416,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 ylim(yl);
                 hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
                 xlim([t(1) t(end)]);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                setTimeTicks(4,'dd/mm/yyyy HH:MM');
                 h = ylabel('ZWD [cm]'); h.FontWeight = 'bold';
                 grid on;
                 
@@ -1502,7 +1502,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                setTimeTicks(4,'dd/mm/yyyy HH:MM');
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
                 h = title(sprintf('Receiver %s ZTD', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -1609,7 +1609,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                    setTimeTicks(4,'dd/mm/yyyy HH:MM');
                     h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -1731,7 +1731,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     plot(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
                 end
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                 
                 sys_list = {};
                 for i = 1 : numel(cc.sys_c)

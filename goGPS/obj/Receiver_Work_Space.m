@@ -364,6 +364,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.ph_idx = [];
             this.if_amb = [];
             this.synt_ph = [];
+            this.sat_cache = [];
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
             
@@ -3244,7 +3245,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if numel(this.dt_pr) >= max(this.id_sync)
                 dt_pr = this.dt_pr(this.id_sync);
             else
-                dt_pr = this.dt_pr(1) * ones(size(this.id_sync));
+                dt_pr = this.dt_pr(1) * ones(numel(this.id_sync), 1);
             end
         end
         
@@ -3252,7 +3253,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if numel(this.dt_ph) >= max(this.id_sync)
                 dt_ph = this.dt_ph(this.id_sync);
             else
-                dt_ph = this.dt_ph(1) * ones(size(this.id_sync));
+                dt_ph = this.dt_ph(1) * ones(numel(this.id_sync), 1);
             end
         end
         
@@ -7731,6 +7732,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             cc = Core.getState.getConstellationCollector;
             
+            if nargin < 2 || isempty(sys_c)
+                sys_c = unique(this.system);
+            end
+            
             if this.isEmpty()
                 this.log.addError('Init positioning failed: the receiver object is empty');
             else
@@ -10239,7 +10244,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             rec = this;
             if ~isempty(rec)
-                f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                 t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
                 nans = zero2nan(double(~rec.getMissingEpochs()));
                 plot(t, rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
@@ -10255,12 +10260,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                         plot(t, rec.getDtPh .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     end
                     plot(t, rec.getTotalDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
+                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from last step', 'total dt', 'Location', 'NorthEastOutside');
                 else
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
+                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from last step', 'Location', 'NorthEastOutside');
                 end
-                xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                xlim([t(1) t(end)]); 
+                setTimeTicks(3,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                Core_UI.beautifyFig(f);
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
@@ -10334,37 +10343,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Plot the outliers found
             % SYNTAX this.showOutliersAndCycleSlip(sys_c_list)
             
-            if nargin == 1
+            if nargin == 1 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
             cc = Core.getState.getConstellationCollector;
-            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
+            %f = figure('Visible','off'); f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             ss_ok = intersect(cc.sys_c, sys_c_list);
-            for sys_c = sys_c_list
-                ss_id = find(cc.sys_c == sys_c);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
-                end
-                
+            for sys_c = ss_ok
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
                 
                 for prn = cc.prn(cc.system == sys_c)'
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn, :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.5 0.5 0.5]);
                     hold on;
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', 'b');
+                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', 'r', 'MarkerSize', 10);
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
                         cs = ep(this.sat.cycle_slip_ph_by_ph(:, s) ~= 0);
@@ -10381,6 +10375,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
@@ -10388,11 +10386,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Plot the outliers found
             % SYNTAX this.showOutliersAndCycleSlip_d(sys_c_list)
             
-            if nargin == 1
+            if nargin == 1 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
             cc = Core.getState.getConstellationCollector;
-            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             ss_ok = intersect(cc.sys_c, sys_c_list);
             
             [ph, id_ph] = this.getObs('L');
@@ -10403,21 +10400,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             cs = this.sat.cycle_slip_ph_by_ph;
             out = this.sat.outliers_ph_by_ph;
             for sys_c = ss_ok
-                ss_id = find(cc.sys_c == sys_c);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
-                end
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
                 
@@ -10435,6 +10418,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
@@ -10443,7 +10429,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX this.showOutliersAndCycleSlip_p(sys_c_list)
             
             % SNRs
-            if nargin == 1
+            if nargin == 1 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
             
@@ -10451,7 +10437,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             for sys_c = sys_c_list
                 [~, ~, ph_id] = this.getPhases(sys_c);
-                f = figure; f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 polarScatter([],[],1,[]);
                 hold on;
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
@@ -10467,7 +10453,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 cut_offed = decl_n(serialize(this.sat.az(:, this.go_id(ph_id))) ~= 0) > ((90 - this.state.getCutOff) / 90);
-                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.95 0.95 0.95]);
+                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.75 0.75 0.75]);
                 
                 for s = unique(this.go_id(ph_id))'
                     az = this.sat.az(:,s);
@@ -10488,6 +10474,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
             
         end
@@ -10528,7 +10517,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         hold on;
                         id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
                         any_data = any_data || any(id_ok);
-                        plot(id_ok, prn * ones(size(id_ok)), '.');
+                        plot(id_ok, prn * ones(size(id_ok)), '.', 'MarkerSize', 15);
                     end
                     if ~any_data
                         close(f);
@@ -10826,18 +10815,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     if any(snr_id) && any(snr(:))
                         idx_f = idx_f +1;
-                        f = figure; f.Name = sprintf('%03d: %s SNR%d %s', f.Number, this.parent.getMarkerName4Ch, b, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s SNR%d %s', f.Number, this.parent.getMarkerName4Ch, b, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                         f_handle(idx_f) = f;
                         id_ok = (~isnan(snr));
                         az = this.sat.az(:,this.go_id(snr_id));
                         el = this.sat.el(:,this.go_id(snr_id));
                         polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                        colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                        colormap(jet);  cax = caxis(); 
+                        % caxis([min(cax(1), 10), max(cax(2), 55)]);
+                        caxis([min(cax(1), 4), max(cax(2), 60)]);
+                        setColorMap([10 55], 0.9); colorbar();
                         h = title(sprintf('SNR%d - receiver %s - %s', b, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none'); 
                         h.FontWeight = 'bold'; 
                         %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                         Core_UI.beautifyFig(f, 'dark');
                         Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
                     end
                 end
             end
