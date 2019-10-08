@@ -5094,7 +5094,7 @@ classdef GNSS_Station < handle
             %  sta_list.fixPos(mode)
             for s = 1 : length(sta_list)
                 if strcmpi(mode,'work') % get from work
-                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
+                    xyz = sta_list(s).work.getMedianPosXYZ();
                     Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 elseif strcmpi(mode,'out')
                     xyz = sta_list(s).out.getPosXYZ();
