@@ -80,7 +80,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         obs_code       % obs code for each line of the data matrix obs
         aligned        % boolean field to check if the code has been aligned to the others , (i.e. DCB(external or estimated from network) applied
         obs            % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
-        synt_ph;       % syntetic phases
+        synt_ph        % syntetic phases
+        sat_cache      % cached range / sat_positions
         
         dop_kin        % dop matrix inberse of the normal builded for a sigle epoch [ x y z dt tropo]
         dop_tdt        % dop matrix inberse of the normal builded for a sigle epoch [dt tropo]
@@ -291,7 +292,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.ph_idx = [];
             this.if_amb = [];
             this.synt_ph = [];
-            
+            this.sat_cache = [];
+
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         end
         
@@ -5012,7 +5014,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
+        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c, sat_cache)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             cc = Core.getState.getConstellationCollector;
@@ -5025,12 +5027,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             iono_pref = iono_pref(is_present,:);
-            [ismf_l1]  = this.getSmoothIonoFree([obs_type iono_pref(1,1)], sys_c);
-            [ismf_l2]  = this.getSmoothIonoFree([obs_type iono_pref(1,2)], sys_c);
+            [ismf_l1]  = this.getSmoothIonoFree([obs_type iono_pref(1,1)], sys_c, sat_cache);
+            [ismf_l2]  = this.getSmoothIonoFree([obs_type iono_pref(1,2)], sys_c, sat_cache);
             
             %             id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
             %             if any(id_ph)
-            %                [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c);
+            %                [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c, sat_cache);
             %             end
             
             fun1 = @(wl1,wl2) 0.65;
@@ -5122,8 +5124,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             [obs_set] =  this.getTwoFreqComb(obs_set1, gf_ph, fun1, fun2);
             obs_set.iono_free = true;
             if false
-                
                 synt_ph = this.getSyntTwin(obs_set);
+                
                 %%% tailored outlier detection
                 sensor_ph = Core_Utils.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
                 sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
@@ -5242,6 +5244,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % for each unique go_id
             for i = u_sat'
                 
+                sat_cache = this.getSatCache(i);
+                %range = sat_cache.range;
                 range = this.getSyntObs( i);
                 
                 sat_idx = find(go_id == i);
@@ -5330,6 +5334,30 @@ classdef Receiver_Work_Space < Receiver_Commons
             synt_pr_obs = zero2nan(this.getSyntCurObs(false, sys_c)');
         end
         
+        function sat_cache = getSatCache(this, go_id, force_update)
+            % Get range and satellite location for cache 
+            % (used into getSynthTwin)
+            %
+            % SYNTAX
+            %   sat_cache = getSatCache()
+            if isempty(this.sat_cache) || (nargin == 3 && force_update)
+                % dirty cache
+                all_go_id = unique(this.go_id);
+                this.sat_cache.go_id = all_go_id;
+                [this.sat_cache.range, this.sat_cache.xs_loc_t] = this.getSyntObs(all_go_id);
+            end          
+            sat_cache = this.sat_cache;
+            
+            if nargin >= 2 && ~isempty(go_id)
+                [~, id0, id] = intersect(go_id, sat_cache.go_id);
+                if numel(id) < numel(go_id)
+                    Core.getLogger.addError('Requesting satellite positions not in view by the receiver');
+                end
+                sat_cache = struct('go_id', go_id(id0), 'range', this.sat_cache.range(id,:), 'xs_loc_t', []);
+                sat_cache.xs_loc_t = this.sat_cache.xs_loc_t(id);
+            end
+        end
+        
         function [synt_obs, xs_loc] = getSyntTwin(this, obs_set)
             %  get the syntethic twin for the observations
             % contained in obs_set
@@ -5338,8 +5366,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1), size(obs_set.obs,2),3);
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
-            [range, xs_loc_t] = this.getSyntObs(unique(obs_set.go_id));
             all_go_id = unique(obs_set.go_id);
+            
+            sat_cache = this.getSatCache(all_go_id);            
+            range = sat_cache.range;
+            xs_loc_t = sat_cache.xs_loc_t;
+            
             for i = 1 : size(synt_obs,2)
                 % go_id = obs_set.go_id(i);
                 s = all_go_id == obs_set.go_id(i);
@@ -5352,7 +5384,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 xs_idx = idx_obs_r_l(range_idx);
                 synt_obs(idx_obs, i) = range(s, idx_obs_r);
                 if ~isempty(xs_idx)
+                    try
                     xs_loc(idx_obs, i, :) = permute(xs_loc_t{s}(xs_idx, :),[1 3 2]);
+                    catch
+                        keyboard
+                    end
                 end
             end
         end
@@ -6430,6 +6466,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
+            this.getSatCache([], true);
         end
         
         function reset2AprioriTropo(this)
@@ -7725,7 +7762,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   s0
             %
             %   Get positioning using code observables
-            
+                        
             if nargin < 2 || isempty(sys_list)
                 sys_list = this.getActiveSys();
             end
@@ -7763,12 +7800,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.updateAllAvailIndex();
                     this.updateAllTOT();
                     this.updateAzimuthElevation()
-                    this.updateErrTropo();
                     if ~this.isMultiFreq()
                         this.updateErrIono();
                     end
+                    this.updateErrTropo();
                     this.log.addMessage(this.log.indent('Improving estimation'))
-                    
+
                     rf_changed = false;
                     if ~this.hasGoodApriori()
                         this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
@@ -7827,6 +7864,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         i = 1;
                         while max(abs(corr)) > 0.1 && i < 3
                             rw_loops = 0; % number of re-weight loops
+                            this.getSatCache([], true); % force cache update of satellite orbits here I'm computing it for all the id_sync
                             [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                             % final estimation of time of flight
                             this.updateAllAvailIndex()
@@ -7846,6 +7884,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         pr(id_ko(:,i),this.go_id(id_pr) == i) = 0;
                     end
                     this.setPseudoRanges(pr, id_pr);
+                    this.getSatCache([], true); % force cache update of satellite orbits here I'm computing it for all the id_sync
                     [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
                     
                     if rf_changed
@@ -7894,7 +7933,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
+                this.getSatCache([], true); % force cache update of satellite orbits
                 [dpos, s0] = this.codeStaticPositioning(sys_list, ep_coarse);
+                
                 if sum(abs(dpos)) > 1e8
                     % Solution is diverging => exit
                     this.log.addError('Data are too bad, positioning is not possible!');
@@ -8051,7 +8092,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
-                this.quality_info.fixing_ratio = 0;
+                this.quality_info.fixing_ratio = 0;               
             end
         end
         
@@ -8488,6 +8529,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.codeStaticPositioning(sys_list);
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
+                            this.getSatCache([], true);
                             this.combinePhTrackings();
                             this.detectOutlierMarkCycleSlip();
                             %this.coarseAmbEstimation();
