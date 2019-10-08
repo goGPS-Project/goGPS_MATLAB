@@ -189,7 +189,7 @@ classdef LS_Manipulator_new < handle
             par_sat_eb = sum(par_sat_eb_lid) > 0;
             par_sat_ppb_lid = param_selection == this.PAR_SAT_PPB;
             par_sat_ppb = sum(par_sat_ppb_lid) > 0;
-            par_sat_ebfr_lid = param_selection == this.PAR_REC_EBFR;
+            par_sat_ebfr_lid = param_selection == this.PAR_SAT_EBFR;
             par_sat_ebfr = sum(par_sat_ebfr_lid) > 0;
             
             par_amb_lid = param_selection == this.PAR_AMB;
@@ -772,7 +772,7 @@ classdef LS_Manipulator_new < handle
                                             steps_set = opt.steps_set;
                                             
                                             if parametriz(2) == ls_parametrization.ALL_REC % you can use differents step for step wise satellite dependent paraters
-                                                steps = steps_set{ss}.getNominalTime(obs_rate).getRefTime(time_min);
+                                                steps = round(steps_set{ss}.getNominalTime(obs_rate).getRefTime(time_min)/obs_rate);
                                                 p_s = 1;
                                                 for st = steps'
                                                     lid_maj = ep_id >= st;
@@ -786,7 +786,7 @@ classdef LS_Manipulator_new < handle
                                                     end
                                                 end
                                             elseif parametriz(3) == ls_parametrization.ALL_SAT  % you can use differents step for step wise receiver dependent paraters
-                                                steps = steps_set{rr}.getNominalTime(obs_rate).getRefTime(time_min);
+                                                steps = round(steps_set{rr}.getNominalTime(obs_rate).getRefTime(time_min)/obs_rate);
                                                 p_s = 1;
                                                 for st = steps'
                                                     lid_maj = ep_id >= st;
@@ -922,14 +922,15 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %    this.markShortArcs(arc_length)
-            amb = double(this.A_idx(~this.outlier_obs,this.param_class == this.PAR_AMB));
-            [occ,u_amb]=hist(amb,unique(amb));
-            to_mark = find(occ <= arc_length);
-            for m = to_mark
-                idx_o = amb == u_amb(m);
-                this.outlier_obs(idx_o) = true;
+            if sum(this.param_class == this.PAR_AMB) > 0
+                amb = double(this.A_idx(~this.outlier_obs,this.param_class == this.PAR_AMB));
+                [occ,u_amb]=hist(amb,unique(amb));
+                to_mark = find(occ <= arc_length);
+                for m = to_mark
+                    idx_o = amb == u_amb(m);
+                    this.outlier_obs(idx_o) = true;
+                end
             end
-            
         end
         
         function markSingledObs(this)
@@ -1068,9 +1069,9 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-%                         if sum(this.param_class == this.PAR_REC_PPB) > 0
-%                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
-%                         end
+                        if sum(this.param_class == this.PAR_REC_PPB) > 0
+                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
+                        end
                     end
                 end
             end
@@ -1152,7 +1153,7 @@ classdef LS_Manipulator_new < handle
                                     chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
                                     idx_idx_par = find(id_obs_par == chosen_id_obs);
                                     idx_rm = [idx_rm; uint32(idx_par_psrange_wl(idx_idx_par))]; % <- all bias of the same observation
-                                    this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange(idx_idx_par(1)))},s)));
+                                    this.log.addMessage(this.log.indent(sprintf('Pseudorange %s choosen as reference for sat %d',this.unique_obs_codes{this.obs_codes_id_par(idx_par_psrange_wl(idx_idx_par(1)))},s)));
                                 else
                                     id_obs_par  = this.obs_codes_id_par(idx_par_phase_wl);
                                     chosen_id_obs = mode(id_obs_par(id_obs_par~=0));
@@ -1162,11 +1163,17 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-%                         if sum(this.param_class == this.PAR_SAT_PPB) > 0
-%                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
-%                         end
+                        if sum(this.param_class == this.PAR_SAT_PPB) > 0
+                            idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
+                        end
                     end
                 end
+            end
+            
+            if sum(this.param_class == this.PAR_SAT_PPB) > 0 && sum(this.param_class == this.PAR_REC_PPB) > 0
+                idx_par = find(this.class_par == this.PAR_REC_PPB &  ~this.out_par); % remove ppb from obe recievr
+                idx_rm = [idx_rm; uint32(idx_par(1))];
+
             end
             
             if sum(this.param_class == this.PAR_SAT_EBFR) > 0 % remove two frequency bias per satellite , one for clock rank deficency other for iono
@@ -1414,7 +1421,7 @@ classdef LS_Manipulator_new < handle
                     end
                     ebs = unique(amb2eb)';
                     rec_eb_const =  this.ls_parametrization.rec_eb(1) == LS_Parametrization.CONST;
-                    if rec_eb_const || sum(this.param_class == this.PAR_REC_PPB) > 0
+                    if (rec_eb_const || sum(this.param_class == this.PAR_REC_PPB) > 0) && sum(this.param_class == this.PAR_AMB) > 0
                         jmps_rec ={};
                         jmps_rec_el ={}; % have been elimated an ambiguity from the block
                         % determine all arcs jum
@@ -1822,7 +1829,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
@@ -1839,7 +1846,7 @@ classdef LS_Manipulator_new < handle
                     l_fixed = false(size(amb_fixed));
                     %                     amb_fixed(l_fixed) = round(amb_fixed(l_fixed));
                     %                     is_fixed = true;
-                    idx_bad = diag(C_amb_amb) > 0.1;
+                    idx_bad = diag(C_amb_amb) > 0.1 | diag(C_amb_amb) < 0;
                     [amb_fixed(~idx_bad,:), is_fixed, l_fixed(~idx_bad,:)] = Fixer.fix(full(amb_float(~idx_bad)), full(C_amb_amb(~idx_bad,~idx_bad)), 'lambda_ILS' );
                     flag_debug = false;
                     if flag_debug
@@ -2340,7 +2347,7 @@ classdef LS_Manipulator_new < handle
                 %if ~isempty(amb_mat) && sum(abs(amb_mat(end,:) )) ~= 0 %<- if last epoch is full start of the arc is not detected
                         jmps = [jmps; find(sum(amb_mat~=0,2) > 0,1,'last')+1];
                 %end
-                this.rec_amb_jmp{r} = min_time.getCopy().addSeconds(jmps*rate-1);
+                this.rec_amb_jmp{r} = min_time.getCopy().addSeconds((jmps-1)*rate);
                 this.ls_parametrization.rec_ppb_opt.steps_set = this.rec_amb_jmp;
 
             end
@@ -2406,7 +2413,7 @@ classdef LS_Manipulator_new < handle
                     %if ~isempty(amb_mat) && sum(abs(amb_mat(end,:) )) ~= 0 %<- if last epoch is full start of the arc is not detected
                         jmps = [jmps; find(sum(amb_mat~=0,2) > 0,1,'last')+1];
                     %end
-                    this.sat_amb_jmp{this.unique_sat_goid(s)} = min_time.getCopy().addSeconds(jmps*rate-1);
+                    this.sat_amb_jmp{this.unique_sat_goid(s)} = min_time.getCopy().addSeconds((jmps-1)*rate);
                 end
                 this.ls_parametrization.sat_ppb_opt.steps_set = this.sat_amb_jmp;
             end
