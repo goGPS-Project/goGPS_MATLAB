@@ -1750,12 +1750,14 @@ classdef LS_Manipulator_new < handle
             rows = [rows(:); rows_pseudo(:)];
             columns = double(zero2n([this.A_idx(:); this.A_idx_pseudo(:)],1));
             values = [this.A(:); this.A_pseudo(:)];
-            A = sparse(rows, columns, values, n_obs, n_par);
+            % Creating A' instead of A
+            % A = sparse(rows, columns, values, n_obs, n_par); % <- this is A
+            A = sparse(columns, rows, values, n_par, n_obs); % <- stupid trick for speed-up MATLAB traspose the sparse matrix!!!
             n_out = sum(this.outlier_obs);
-            A_out = A(this.outlier_obs > 0,:);
+            A_out = A(:, this.outlier_obs > 0)'; % <- this is 1000 time slower with not trasposed A
+            A(:, this.outlier_obs > 0) = [];
+            A = A'; % Re-traspose A since it have been created as trasposed
             A(:, [this.idx_rd; find(this.out_par)]) = [];
-            
-            A(this.outlier_obs > 0, :) = [];
             
             class_par = this.class_par;
             class_par([this.idx_rd; find(this.out_par)]) = [];
