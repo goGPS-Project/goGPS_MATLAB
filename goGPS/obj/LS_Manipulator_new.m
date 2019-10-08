@@ -979,6 +979,8 @@ classdef LS_Manipulator_new < handle
             % TODO make a log of what is taken off to solve the rank
             % deficency
             
+            log = Core.getLogger;
+            log.addMessage(log.indent('Solving the system'));
             cc = Core.getConstellationCollector();
 
             % remove two bias per receiver

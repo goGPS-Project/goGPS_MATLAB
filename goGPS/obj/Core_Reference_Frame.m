@@ -330,7 +330,7 @@ classdef Core_Reference_Frame < handle
         end
         
         function setFlag(this, sta_code, flag)
-            % Set the falg [fixed approximate] for the station sta code
+            % Set the flag [fixed approximate] for the station sta code
             %
             % SYNTAX:
             %  this.setFlag(sta_code,flag)
@@ -341,10 +341,10 @@ classdef Core_Reference_Frame < handle
         end
         
         function flag = getFlag(this, sta_code)
-            % Get the falg [fixed approximate] for the station sta code
+            % Get the flag [fixed / approximate] for the station sta code
             %
             % SYNTAX:
-            %  this.setFlag(sta_code,flag)
+            %  flag = this.getFlag(sta_code)
             sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
             flag = this.flag(sta_idx);
         end
