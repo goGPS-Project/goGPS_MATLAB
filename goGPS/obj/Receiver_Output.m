@@ -145,6 +145,19 @@ classdef Receiver_Output < Receiver_Commons
             time = this(1).time.getCopy();
         end
         
+        function time = getTimePositions(this)
+            % return the time stored in the object
+            % that correspond to position estimation epochs
+            %
+            % OUTPUT
+            %   time     GPS_Time
+            %
+            % SYNTAX
+            %   xyz = this.getTimePositions()
+            
+            time = this(1).time_pos.getCopy();
+        end
+        
         function [P,T,H] = getPTH(this)
             % get ztd
             %
@@ -209,7 +222,11 @@ classdef Receiver_Output < Receiver_Commons
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
+                try
+                    pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
+                catch 
+                    pwv{r} = [];
+                end
                 
                 for s = 2 : size(this, 1)
                     pwv_tmp = this(s, r).pwv(this(s, r).getIdSync);

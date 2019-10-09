@@ -403,6 +403,64 @@ classdef GNSS_Station < handle
                 end
             end
         end
+        
+        function exportPlainMat(sta_list, out_file_name)
+            % Export the Results of the processing as a .mat file
+            % without using objects
+            %
+            % SYNTAX:
+            %    sta_list.exportPlainMat(<out_file_name>)
+            
+            log = Core.getLogger;
+            core = Core.getCurrentCore;
+            if nargin < 2 || isempty(out_file_name)
+                out_dir = core.state.getOutDir();
+                if numel(sta_list) ~= 1
+                    % contains multiple stations
+                    out_file_name = fullfile(out_dir, sprintf('plain_output_full_%s.mat',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
+                else
+                    % contains just one station
+                    out_file_name = fullfile(out_dir, sprintf('plain_output_%s_%s.mat', upper(sta_list(1).getMarkerName4Ch()), GPS_Time.now.toString('yyyymmdd_HHMMSS')));
+                end
+            else
+                if sum(out_file_name == filesep()) == 0
+                    out_dir = core.state.getOutDir();
+                    out_file_name = fullfile(out_dir, out_file_name);
+                end
+            end
+            log.addMarkedMessage(sprintf('Exporting output to "%s"',out_file_name));
+            
+            for r = 1 : numel(sta_list)                
+                if ~sta_list(r).isEmptyOut_mr
+                    rec(r).short_name_4ch = sta_list(r).getMarkerName4Ch();
+                    log.addMessage(log.indent(sprintf(' - processing %s', rec(r).short_name_4ch)));
+                    rec(r).description_short = sta_list(r).getMarkerName();
+                    rec(r).a_priori_xyz = sta_list(r).getMedianPosXYZ();
+                    if ~isempty(sta_list(r).work) && (~sta_list(r).work.isEmpty)
+                        rec(r).active_constellations = unique(sta_list(r).work.system);
+                    else
+                        cc = core.getConstellationCollector;
+                        rec(r).active_constellations = cc.getActiveSysChar();
+                    end
+                    rec(r).observer = sta_list(r).observer;
+                    rec(r).agency = sta_list(r).agency;
+                    rec(r).ant_type = sta_list(r).ant_type;
+                    [n_sat, epoch_time] = sta_list(r).getNumSat();
+                    rec(r).epoch_time = epoch_time.getUnixTime;
+                    rec(r).n_sat = n_sat(:);
+                    rec(r).ztd = sta_list(r).getZtd_mr();
+                    rec(r).zwd = sta_list(r).getZwd_mr();
+                    rec(r).pwv = sta_list(r).getPwv_mr();
+                    [rec(r).pressure, rec(r).temperature, rec(r).humidity] = sta_list(r).getPTH_mr();
+                    [pos_xyz, pos_time] = sta_list(r).getPosXYZ();
+                    rec(r).pos_time = pos_time{1}.getUnixTime();
+                    rec(r).pos_xyz = pos_xyz{1};
+                    rec(r).rate = core.state.getSessionDuration();
+                end
+            end
+            log.addMessage(log.indent('Writing the file...'));
+            save(out_file_name, 'rec', '-v7');
+        end
     end
     % ==================================================================================================================================================
     %% METHODS GETTER - TIME
@@ -780,7 +838,7 @@ classdef GNSS_Station < handle
             end
         end
 
-        function xyz = getPosXYZ(sta_list)
+        function [xyz, time] = getPosXYZ(sta_list)
             % return the positions computed for the receiver
             %
             % OUTPUT
@@ -791,6 +849,7 @@ classdef GNSS_Station < handle
             xyz = {};
             for r = 1 : numel(sta_list)
                 xyz{r} = sta_list(r).out.getPosXYZ();
+                time{r} = sta_list(r).out.getTimePositions();
             end
         end
 

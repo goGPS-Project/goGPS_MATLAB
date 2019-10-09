@@ -140,7 +140,8 @@ classdef Command_Interpreter < handle
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
               
         PAR_E_CORE_MAT  % Export core in .mat format
-        PAR_E_REC_MAT   % Receiver export parameter matlab format
+        PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
+        PAR_E_REC_MAT   % Receiver export parameter MATLAB format
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
         PAR_E_TROPO_SNX % Tropo export Parameter sinex format
         PAR_E_TROPO_MAT % Tropo export Parameter mat format
@@ -446,14 +447,21 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
-            this.PAR_E_CORE_MAT.name = 'CORE Matlab format';
+            this.PAR_E_CORE_MAT.name = 'CORE MATLAB format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
             this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
             this.PAR_E_CORE_MAT.class = '';
             this.PAR_E_CORE_MAT.limits = [];
             this.PAR_E_CORE_MAT.accepted_values = {};
+            
+            this.PAR_E_PLAIN_MAT.name = 'Output inplain MATLAB format';
+            this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT         Save the core as .mat file';
+            this.PAR_E_PLAIN_MAT.par = '(plain_mat)|(PLAIN_MAT)';
+            this.PAR_E_PLAIN_MAT.class = '';
+            this.PAR_E_PLAIN_MAT.limits = [];
+            this.PAR_E_PLAIN_MAT.accepted_values = {};
 
-            this.PAR_E_REC_MAT.name = 'Receiver Matlab format';
+            this.PAR_E_REC_MAT.name = 'Receiver MATLAB format';
             this.PAR_E_REC_MAT.descr = 'REC_MAT          Receiver object as .mat file';
             this.PAR_E_REC_MAT.par = '(rec_mat)|(REC_MAT)';
             this.PAR_E_REC_MAT.class = '';
@@ -474,29 +482,29 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_SNX.limits = [];
             this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
-            this.PAR_E_TROPO_MAT.name = 'TROPO Matlab format';
-            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab as .mat file';
+            this.PAR_E_TROPO_MAT.name = 'TROPO MATLAB format';
+            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters MATLAB as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.class = '';
             this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
-            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters matlab as .csv file';
+            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters MATLAB as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
             this.PAR_E_TROPO_CSV.class = '';
             this.PAR_E_TROPO_CSV.limits = [];
             this.PAR_E_TROPO_CSV.accepted_values = {};
                                     
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
-            this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates Bernese .CRD file';
+            this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
             this.PAR_E_COO_CRD.accepted_values = {};
             
             this.PAR_E_COO_CSV.name = 'Coordinates CSV format';
-            this.PAR_E_COO_CSV.descr = 'COO_CSV            Coordinates .csv file';
+            this.PAR_E_COO_CSV.descr = 'COO_CSV          Coordinates .csv file';
             this.PAR_E_COO_CSV.par = '(coo_csv)|(COO_CSV)';
             this.PAR_E_COO_CSV.class = '';
             this.PAR_E_COO_CSV.limits = [];
@@ -608,7 +616,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -2019,6 +2027,9 @@ classdef Command_Interpreter < handle
             for t = 1 : numel(tok)
                 if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_CORE_MAT.par ')*$'], 'once'))
                     Core.getCurrentCore.exportMat();
+                    do_not_complain = true;
+                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_PLAIN_MAT.par ')*$'], 'once'))
+                    rec(id_trg).exportPlainMat();
                     do_not_complain = true;
                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                     if sss_lev == 0 % run on all the results (out)

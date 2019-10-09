@@ -836,9 +836,8 @@ classdef Core < handle
             end
             core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
 
-            save(out_file_name, 'core', '-v7.3');
-            
-        end
+            save(out_file_name, 'core', '-v7.3');            
+        end        
     end
     
     %% METHODS RUN
