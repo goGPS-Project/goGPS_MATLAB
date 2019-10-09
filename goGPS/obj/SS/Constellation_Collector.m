@@ -43,8 +43,8 @@
 classdef Constellation_Collector < Settings_Interface
     properties (Constant, GetAccess = public)
         N_SYS_TOT = 7; % Max number of available satellite systems
-        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'QZSS', 'BeiDou', 'IRNSS', 'SBAS'}; % full name of the constellation
-        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'QZS', 'BDS', 'IRN', 'SBS'}; % 3 characters name of the constellation
+        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'QZSS', 'BeiDou', 'IRNSS', 'SBAS', 'ALL'}; % full name of the constellation
+        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'QZS', 'BDS', 'IRN', 'SBS', 'ALL'}; % 3 characters name of the constellation
         ID_GPS       = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS   = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO   = 3 % Id of Galileo constellation for goGPS internal use
@@ -52,7 +52,8 @@ classdef Constellation_Collector < Settings_Interface
         ID_BEIDOU    = 5 % Id of BeiDou constellation for goGPS internal use
         ID_IRNSS     = 6 % Id of IRNSS constellation for goGPS internal use
         ID_SBAS      = 7 % Id of SBAS constellation for goGPS internal use
-        SYS_C        = 'GREJCIS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
+        ID_ALL       = 8 % Id of ALL the constellations for goGPS internal use
+        SYS_C        = 'GREJCISA'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
     end
     
     properties (SetAccess = public, GetAccess = public)
@@ -435,10 +436,13 @@ classdef Constellation_Collector < Settings_Interface
                 sys_c = this.SYS_C(this.active_list);
             end
             go_ids = [];
-            for i =1 :length(sys_c)
-                
-                if this.active_list(this.SYS_C == sys_c(i))
-                    go_ids = [go_ids this.getSys(sys_c(i)).go_ids];
+            if sys_c == 'A'
+                go_ids = unique(this.index);
+            else
+                for i =1 :length(sys_c)
+                    if this.active_list(this.SYS_C == sys_c(i))
+                        go_ids = [go_ids this.getSys(sys_c(i)).go_ids];
+                    end
                 end
             end
         end

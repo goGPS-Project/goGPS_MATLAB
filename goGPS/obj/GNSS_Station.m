@@ -3951,6 +3951,30 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showResSky_c(sta_list, sys_list)
+            % Show Residuals for each receiver workspace
+            % (cartesian plot)
+            %
+            % SYNTAX
+            %   this.showResSky_c(sys_list)
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showResSky_c(sys_list);
+            end
+        end
+        
+        function showResSky_p(sta_list, sys_list)
+            % Show Residuals for each receiver workspace
+            % (polar plot)
+            %
+            % SYNTAX
+            %   this.showResSky_p(sys_list)
+            
+            for s = 1 : numel(sta_list)
+                sta_list(s).work.showResSky_p(sys_list);
+            end
+        end
+        
         function showSNR_p(sta_list, sys_list)
             % Show SNR for each receiver workspace
             % (polar plot)
@@ -4009,7 +4033,7 @@ classdef GNSS_Station < handle
             end
         end
 
-        function showResPerSat(sta_list)
+        function showResPerSat(sta_list, sys_list)
             % Plot Satellite Residuals
             % As scatter per satellite
             % (work data only)
@@ -4021,9 +4045,9 @@ classdef GNSS_Station < handle
                 rec = sta_list(r);
                 if ~isempty(rec)
                     if ~rec.out.isEmpty
-                        rec.out.showResPerSat();
+                        rec.out.showResPerSat(sys_list);
                     else
-                        rec.work.showResPerSat();
+                        rec.work.showResPerSat(sys_list);
                     end
                 end
             end
@@ -4160,13 +4184,12 @@ classdef GNSS_Station < handle
             %   sta_list.showPTH()
             [pressure, temperature, humidity, p_time, id_sync] = sta_list.getPTH_mr();
 
-            f = figure;
+            f = figure('Visible', 'off');
             f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
             set(f,'defaultAxesColorOrder', Core_UI.getColor(1 : numel(sta_list), numel(sta_list)));
             ax(1) = subplot(3,1,1);
             plot(p_time.getMatlabTime, pressure, '.');
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Pressure [mbar]'); h.FontWeight = 'bold';
+            h = ylabel('Pres. [mbar]'); h.FontWeight = 'bold';
 
             outm = {};
             for r = 1 : numel(sta_list)
@@ -4181,8 +4204,7 @@ classdef GNSS_Station < handle
 
             ax(2) = subplot(3,1,2);
             plot(p_time.getMatlabTime, temperature, '.');
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Temperaure [�C]'); h.FontWeight = 'bold';
+            h = ylabel('Temp. [deg C]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);
@@ -4193,8 +4215,7 @@ classdef GNSS_Station < handle
 
             ax(3) = subplot(3,1,3);
             plot(p_time.getMatlabTime, humidity, '.');
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('Humidity [%]'); h.FontWeight = 'bold';
+            h = ylabel('Hum. [%]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
             n_entry = numel(outm);
@@ -4205,6 +4226,14 @@ classdef GNSS_Station < handle
 
             linkaxes(ax, 'x');
             xlim([p_time.first.getMatlabTime() p_time.last.getMatlabTime()]);
+            for i = 1:3
+                grid(ax(i), 'minor');
+                setTimeTicks(ax(i), 3,'dd/mm/yyyy HH:MM');                
+            end
+            
+            Core_UI.beautifyFig(f, 'dark');
+            Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on';            
         end
 
         function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
@@ -4349,7 +4378,7 @@ classdef GNSS_Station < handle
                         end
                     end
 
-                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                    setTimeTicks(4,'dd/mm/yyyy HH:MM');
                     h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -4383,7 +4412,7 @@ classdef GNSS_Station < handle
                         dlim(2) = dlim(2) + 1;
                         xlim(tlim);
                         ylim(dlim);
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
                         if new_fig
                             h = ylabel(['# sat']); h.FontWeight = 'bold';
                             grid on;
@@ -4785,6 +4814,10 @@ classdef GNSS_Station < handle
 
         function showZtdSlantRes_p(this, time_start, time_stop)
             for r = 1 : size(this, 2)
+                if nargin == 1
+                    time_start = this(r).out.getTime.first;
+                    time_stop = this(r).out.getTime.last;
+                end
                 ztd = this(r).out.getZtd();
                 slant_td = this(r).out.getSlantTD();
                 if isempty(ztd) || ~any(slant_td(:))
@@ -4854,7 +4887,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
                         if plot_relative_variation
                             h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         else
@@ -4869,7 +4902,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
                         if plot_relative_variation
                             h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         else
@@ -4883,7 +4916,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else
@@ -5256,7 +5289,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else

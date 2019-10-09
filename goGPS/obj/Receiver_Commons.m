@@ -1136,24 +1136,25 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
-                if nargin == 1
+                if nargin == 1 || isempty(sys_c_list)
                     sys_c_list = unique(cc.system);
                 end
                 
                 for sys_c = sys_c_list
                     s = cc.getGoIds(sys_c);%this.go_id(this.system == sys_c);
-                    res = abs(this.sat.res(:, s));
+                    res = abs(this.sat.res(:, s)) * 1e2;
                     
-                    f = figure; f.Name = sprintf('%03d: Res P %s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
                     polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
-                    caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
-                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    caxis([min(abs(this.sat.res(:)*1e2)) min(20, min(6*std(zero2nan(this.sat.res(:)*1e2),'omitnan'), max(abs(zero2nan(this.sat.res(:)*1e2)))))]);
+                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
+                    h = title(sprintf('Satellites residuals - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold';
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
             end
         end
@@ -1165,27 +1166,28 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
             else
-                if nargin == 1
+                if nargin == 1 || isempty(sys_c_list)
                     sys_c_list = unique(cc.system);
                 end
                 
                 for sys_c = sys_c_list
-                    s  = cc.getGoIds(sys_c);%unique(this.go_id(this.system == sys_c));
-                    res = abs(this.sat.res(:, s));
+                    s  = cc.getGoIds(sys_c); %unique(this.go_id(this.system == sys_c));
+                    res = abs(this.sat.res(:, s)) * 1e2;
                     
-                    f = figure; f.Name = sprintf('%03d: Res C %s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                    %this.updateAzimuthElevation()
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    % this.updateAzimuthElevation()
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
                     scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
-                    caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
-                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    caxis([min(abs(this.sat.res(:)*1e2)) min(20, min(6*std(zero2nan(this.sat.res(:)*1e2),'omitnan'), max(abs(zero2nan(this.sat.res(:)*1e2)))))]);
+                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt; ax = gca; ax.Color = 'none';
+                    h = title(sprintf('Satellites residuals - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold';
                     hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
                     hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
                     Core_UI.beautifyFig(f);                    
                     Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';                    
                 end
             end
         end
@@ -1476,7 +1478,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
                 cc = this.getCC;
-                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, cc.sys_c); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant %s', f.Number, this.parent.getMarkerName4Ch, cc.sys_c); f.NumberTitle = 'off';
                 t = rec(:).getTime.getMatlabTime;
                 
                 sztd = rec(:).getSlantZTD(rec(1).parent.slant_filter_win);
@@ -1507,6 +1509,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 grid on;
                 h = title(sprintf('Receiver %s ZTD', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 drawnow;
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
             
             
@@ -1861,7 +1866,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 t = this.time.getEpoch(id_sync).getMatlabTime;
                 
                 sztd = this.getSlantZTD(this.parent.slant_filter_win);
-                sztd = bsxfun(@minus, sztd, this.ztd(id_sync));
+                sztd = bsxfun(@minus, sztd, this.ztd(id_sync)) .* 1e2;
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
                         time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -1879,10 +1884,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
                 el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
                 
-                f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
                 polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
-                caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
+                caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; 
+                cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
                 h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         

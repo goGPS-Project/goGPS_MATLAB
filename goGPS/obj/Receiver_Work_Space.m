@@ -10275,7 +10275,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function showResPerSat(this, res, sys_c_list)
+        function showResPerSat(this, sys_c_list, res)
             % Plot the residuals of phase per Satellite
             %
             % INPUT
@@ -10284,33 +10284,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.showResPerSat(res)
             
-            if nargin < 3
+            if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
-            if nargin < 2
+            if nargin < 3
                 res = this.sat.res;
             end
             
             cc = Core.getState.getConstellationCollector;
             
-            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             ss_ok = intersect(cc.sys_c, sys_c_list);
             for sys_c = sys_c_list
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 ss_id = find(cc.sys_c == sys_c);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
-                end
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
                 
@@ -10320,14 +10306,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if any(s)
                         id_ok = find(~isnan(zero2nan(res(:, go_id))));
                         [~, id_sort] = sort(abs(res(id_ok, go_id)));
-                        scatter(id_ok(id_sort),  prn * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), go_id)), 'filled');
+                        scatter(id_ok(id_sort),  prn * ones(size(id_ok)), 80, 1e3 * (res(id_ok(id_sort), go_id)), 'filled');
                         hold on
                     end
                 end
-                cax = caxis(); caxis([-1 1] * max(abs(cax)));
-                colormap(gat);
+                cax = caxis(); caxis([-1 1] * max(20, max(abs(cax))));
+                colormap(Cmap.get('RdBu', 2^11));
                 if min(abs(cax)) > 5
-                    setColorMapGat(caxis(), 0.99, [-5 5])
+                    setColorMap('RdBu', caxis(), 0.90, [-5 5])
                 end
                 colorbar; ax = gca; ax.Color = [0.7 0.7 0.7];
                 prn_ss = unique(this.prn(this.system == sys_c));
@@ -10338,6 +10324,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s Residuals per sat [mm]', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         

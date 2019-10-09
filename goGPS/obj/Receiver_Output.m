@@ -1144,7 +1144,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function f = showResPerSat(this, res, sys_c_list)
+        function f_handles = showResPerSat(this, sys_c_list, res)
             % Plot the residuals of phase per Satellite
             %
             % INPUT
@@ -1154,72 +1154,77 @@ classdef Receiver_Output < Receiver_Commons
             %   this.showResPerSat(res)
             
             cc = Core.getState.getConstellationCollector;
-            if nargin < 3
+            if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = cc.getAvailableSys;
             end
-            if nargin < 2
+            if nargin < 3
                 res = this.sat.res;
             end
-            
-            ss_ok = intersect(cc.sys_c, sys_c_list);
-            for sys_c = sys_c_list
-                f = figure; f.Name = sprintf('%03d: %s Res per sat', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                ss_id = find(cc.sys_c == sys_c);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
+            if isempty(res)
+                log = Core.getLogger;
+                log.addError(sprintf('No residuals found in %s output', this.parent.getMarkerName4Ch));
+            else
+                f_handles = [];
+                ss_ok = intersect(cc.sys_c, sys_c_list);
+                for sys_c = sys_c_list
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    f_handles = [f_handles f];
+                    ss_id = find(cc.sys_c == sys_c);
+                    
+                    ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
+                    
+                    fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
+                    color = gat(256, [], false);
+                    ax2 = subplot(1, 24, 19:24);
+                    ax1 = subplot(1, 24, 1:16);
+                    ss_id = find(cc.system == sys_c);
+                    data_found = false;
+                    for s = ss_id
+                        id_ok = find(~isnan(zero2nan(res(:, s))));
+                        if any(id_ok)
+                            data_found = true;
+                            [~, id_sort] = sort(abs(res(id_ok, s)));
+                            scatter(ax1, id_ok(id_sort),  cc.prn(s) * ones(size(id_ok)), 80, 1e3 * (res(id_ok(id_sort), s)), 'filled');
+                            hold(ax1, 'on');
+                            err = std(zero2nan(this.sat.res(:,s)), 'omitnan')*1e3;
+                            errorbar(ax2, mean(zero2nan(this.sat.res(:,s)), 'omitnan').*1e3, cc.prn(s), err, '.', 'horizontal', 'MarkerSize', 30, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);
+                            hold(ax2, 'on');
+                        end
+                    end
+                    if ~data_found
+                        close(f)
+                        log = Core.getLogger;
+                        log.addError(sprintf('No data found in %s output for constellation %s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
+                    else
+                        cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
+                        colormap(Cmap.get('RdBu', 2^11));
+                        if min(abs(cax)) > 5
+                            setColorMap('RdBu', caxis(), 0.90, [-5 5])
+                        end
+                        colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
+                        prn_ss = unique(cc.prn(cc.system == sys_c));
+                        xlim(ax1, [1 size(this.sat.res,1)]);
+                        ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                        h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
+                        ax1.YTick = prn_ss;
+                        grid(ax1, 'on');
+                        h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
+                        h = title(ax1, sprintf('%s %s Residuals per sat [mm]', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                        
+                        ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                        xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(this.sat.res(:,:)), 'omitnan'))) * 1e3, ...
+                            max(std(zero2nan(this.sat.res(:,:)), 'omitnan')) * 1e3) + 1));
+                        ax2.YTick = prn_ss; ax2.Color = [1 1 1];
+                        grid(ax2, 'on');
+                        xlabel(ax2, 'mean [mm]');
+                        h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';
+                        linkaxes([ax1, ax2], 'y');
+                        
+                        Core_UI.beautifyFig(f, 'dark');
+                        Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
+                    end
                 end
-                
-                ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
-                
-                fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
-                color = gat(256, [], false);
-                ax2 = subplot(1, 6, 5:6);
-                ax1 = subplot(1, 6, 1:4);
-                ss_id = find(cc.system == sys_c);
-                for s = ss_id
-                    id_ok = find(~isnan(zero2nan(res(:, s))));
-                    [~, id_sort] = sort(abs(res(id_ok, s)));
-                    scatter(ax1, id_ok(id_sort),  cc.prn(s) * ones(size(id_ok)), 50, 1e3 * (res(id_ok(id_sort), s)), 'filled');
-                    hold(ax1, 'on');
-                    err = std(zero2nan(this.sat.res(:,s)), 'omitnan')*1e3;
-                    errorbar(ax2, mean(zero2nan(this.sat.res(:,s)), 'omitnan').*1e3, cc.prn(s), err, '.', 'horizontal', 'MarkerSize', 25, 'LineWidth', 2)%, 'Color', color(fun(err), :));
-                    hold(ax2, 'on');
-                end
-                cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
-                colormap(ax1, gat);
-                if min(abs(cax)) > 5
-                    setColorMapGat(caxis(ax1), 0.99, [-5 5])
-                end
-                colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
-                prn_ss = unique(cc.prn(cc.system == sys_c));
-                xlim(ax1, [1 size(this.sat.res,1)]);
-                ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
-                h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
-                ax1.YTick = prn_ss;
-                grid(ax1, 'on');
-                h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
-                h = title(ax1, sprintf('%s %s Residuals per sat [mm]', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
-                
-                ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
-                xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(this.sat.res(:,:)), 'omitnan'))) * 1e3, ...
-                    max(std(zero2nan(this.sat.res(:,:)), 'omitnan')) * 1e3) + 1));
-                ax2.YTick = prn_ss; ax2.Color = [1 1 1];
-                grid(ax2, 'on');
-                xlabel(ax2, 'mean [mm]');
-                h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
-                f.Position(3) = 900;
             end
         end
         
@@ -1233,22 +1238,7 @@ classdef Receiver_Output < Receiver_Commons
             end
             f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             for sys_c = sys_c_list
-                ss_id = find(cc.sys_c == sys_c);
-                switch numel(sys_c_list)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
-                end
-                
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 
                 for prn = cc.prn(cc.system == sys_c)'
@@ -1269,6 +1259,9 @@ classdef Receiver_Output < Receiver_Commons
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         

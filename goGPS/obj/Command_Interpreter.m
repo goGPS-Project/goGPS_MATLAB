@@ -128,7 +128,8 @@ classdef Command_Interpreter < handle
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
-        PAR_S_RES       % Residuals satellite per satellite
+        PAR_S_RES       % Residuals cartesian
+        PAR_S_RES_PSAT  % Residuals satellite per satellite
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
@@ -382,6 +383,13 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES.limits = [];
             this.PAR_S_RES.accepted_values = [];
 
+            this.PAR_S_RES_PSAT.name = 'Residuals per satellite (colored)';
+            this.PAR_S_RES_PSAT.descr = 'RES_PSAT         Residuals per satellite';
+            this.PAR_S_RES_PSAT.par = '(res_psat)|(RES_PSAT)';
+            this.PAR_S_RES_PSAT.class = '';
+            this.PAR_S_RES_PSAT.limits = [];
+            this.PAR_S_RES_PSAT.accepted_values = [];
+            
             this.PAR_S_RES_SKY.name = 'Residuals sky plot';
             this.PAR_S_RES_SKY.descr = 'RES_SKY          Residual sky plot';
             this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
@@ -595,7 +603,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1076,7 +1084,7 @@ classdef Command_Interpreter < handle
     %% METHODS EXECUTE (PRIVATE)
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
-    methods (Access = public)    
+    methods (Access = public)
         
         function runParInit(this, tok)
             % Load the RINEX file into the object
@@ -1285,7 +1293,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runFixPos(rec, tok)
-           
+            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             
             if ~found
@@ -1348,7 +1356,7 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Computing azimuth and elevation for receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
-                    this.log.newLine();                    
+                    this.log.newLine();
                     if rec(r).isEmpty
                         if sys_found
                             state = Core.getCurrentSettings();
@@ -1417,7 +1425,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-
+        
         function runPPP(this, rec, tok)
             % Execute Precise Point Positioning
             %
@@ -1511,7 +1519,7 @@ classdef Command_Interpreter < handle
                 flag_free_network = false;
                 coo_rate = [];
                 fr_id = 1;
-                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);                
+                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 
                 if found
                     coo_rate = rate;
@@ -1554,32 +1562,32 @@ classdef Command_Interpreter < handle
             end
             %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
-                
+        
         function runRemSat(this, rec, tok)
-                    % Remove satellites from receivers
-                    %
-                    % INPUT
-                    %   rec     list of rec objects
-                    %   tok     list of tokens(parameters) from command line (cell array)
-                    %
-                    % SYNTAX
-                    %   this.runRemSat(rec, tok)
-                    [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-                    if ~found
-                        this.log.addWarning('No target found -> nothing to do');
-                    else
-                        s_idx = 2;
-                        for r = id_trg
-                            sats = strsplit(tok{s_idx},',');
-                            for s = 1 : length(sats)
-                                sys_c = sats{s}(1);
-                                prn = str2double(sats{s}(2:3));
-                                rec(r).work.remSat(sys_c, prn);
-                            end
-                        end
+            % Remove satellites from receivers
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runRemSat(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                s_idx = 2;
+                for r = id_trg
+                    sats = strsplit(tok{s_idx},',');
+                    for s = 1 : length(sats)
+                        sys_c = sats{s}(1);
+                        prn = str2double(sats{s}(2:3));
+                        rec(r).work.remSat(sys_c, prn);
                     end
                 end
-
+            end
+        end
+        
         function runRemObs(this, rec, tok)
             % Remove observation from receivers
             %
@@ -1606,7 +1614,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-
+        
         function runRemTmp(this, rec, tok)
             % Remove data no more needed for pushout
             % This function corrupts the work object and cannot be used for further processing
@@ -1647,7 +1655,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-                
+        
         function runPseudorangeAlign(this, rec, tok)
             % Execute pseudorange alignement
             %
@@ -1661,13 +1669,13 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
-               %this.log.addMarkedMessage(sprintf('Alignign pseudranges on receivers %d', id_trg));
-               net = Network(rec(id_trg));
-               net.alignCodeObservables();
+                %this.log.addMarkedMessage(sprintf('Alignign pseudranges on receivers %d', id_trg));
+                net = Network(rec(id_trg));
+                net.alignCodeObservables();
             end
             %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
-
+        
         function runCodePP(this, rec, tok)
             % Execute Code Point Positioning
             %
@@ -1676,7 +1684,7 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runCodePP(rec, tok)            
+            %   this.runCodePP(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
@@ -1720,7 +1728,7 @@ classdef Command_Interpreter < handle
                         flag_use_plane = true;
                     end
                 end
-
+                
                 if ~found_ref
                     this.log.addWarning('No reference SEID station found -> nothing to do');
                 else
@@ -1896,6 +1904,7 @@ classdef Command_Interpreter < handle
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
+                show_ok = 0;                
                 for t = 1 : numel(tok) % gloabal for all target
                     try
                         if sss_lev == 0
@@ -1905,20 +1914,26 @@ classdef Command_Interpreter < handle
                         end
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
                             trg.showMap();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PTH.par ')*$'], 'once'))
                             rec(id_trg).showPTH();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             trg.showZtd();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD.par ')*$'], 'once'))
                             trg.showZwd();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
                             trg.showPwv();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
                             trg.showZtdSlant();
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENUBSL.par ')*$'], 'once'))
                             trg.showBaselineENU();
-                        end
-                        
+                            show_ok  = show_ok + 1;
+                        end                        
                     catch ex
                         this.log.addError(sprintf('%s',ex.message));
                     end
@@ -1935,35 +1950,53 @@ classdef Command_Interpreter < handle
                             
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALL.par ')*$'], 'once'))
                                 trg.showAll();
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
                                 trg.showDataAvailability(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
                                 trg.showPositionENU();
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
                                 trg.showPositionXYZ();
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
                                 trg.showDt();
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
                                 trg.showSNR_p(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
                                 trg.showOutliersAndCycleSlip(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
                                 trg.showOutliersAndCycleSlip_p(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
                                 trg.showRes();
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PSAT.par ')*$'], 'once'))
+                                trg.showResPerSat(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
-                                trg.showResSky_c();
+                                trg.showResSky_c(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
-                                trg.showResSky_p();
+                                trg.showResSky_p(sys_list);
+                                show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
                                 trg.showZtdSlantRes_p();
+                                show_ok  = show_ok + 1;
                             end
                         catch ex
-                            this.log.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
+                            Core.getLogger.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
                             Core_Utils.printEx(ex);
                         end
                     end
                 end
+            end
+            if show_ok == 0
+                Core.getLogger.addError('No valid command show found');
             end
         end
         
@@ -2218,7 +2251,7 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   [sys, found] = this.getConstellation(tok)
             found = false;            
-            sys = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCIS]*'], 'match', 'once');
+            sys = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCISA]*'], 'match', 'once');
             if ~isempty(sys)
                 found = true;
             end
