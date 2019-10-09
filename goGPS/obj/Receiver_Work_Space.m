@@ -6434,11 +6434,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             if isempty(this.sat.err_tropo)
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
             end
-            
+           
             if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
+            else
+                 go_id = serialize(go_id)';
             end
             this.sat.err_tropo(:, go_id) = 0;
             
@@ -6462,12 +6464,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             [mfh, mfw] = this.getSlantMF();
             if any(mfh(:)) && any(mfw(:))
                 if any(ge(:))
-                    for g = go_id'
+                    for g = go_id
                         this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
                     end
                     
                 else
-                    for g = go_id'
+                    for g = go_id
                         this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
                     end
                 end
