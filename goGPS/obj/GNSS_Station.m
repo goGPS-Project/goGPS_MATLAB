@@ -4352,7 +4352,11 @@ classdef GNSS_Station < handle
                     if sub_plot_nsat
                         ax1 = subplot(3,1,1:2);
                     else
-                        ax1 = f.Children(end);
+                        try
+                            ax1 = f.Children(end);
+                        catch
+                            ax1 = axes();
+                        end
                     end
                     
                     if new_fig
