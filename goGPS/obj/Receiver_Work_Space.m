@@ -6462,12 +6462,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             [mfh, mfw] = this.getSlantMF();
             if any(mfh(:)) && any(mfw(:))
                 if any(ge(:))
-                    for g = go_id
+                    for g = go_id'
                         this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
                     end
                     
                 else
-                    for g = go_id
+                    for g = go_id'
                         this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
                     end
                 end
