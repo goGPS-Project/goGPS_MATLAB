@@ -967,6 +967,85 @@ classdef LS_Manipulator_new < handle
                     this.outlier_obs(obs_par) = true;
                 end
             end
+            if sum(this.param_class == this.PAR_IONO)> 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC % remove phase obe that does not have two pseudorange fro different frequency and phase of a seconde frequency too
+                for r = 1 : length(this.unique_rec_name)
+                    idx_rec = this.receiver_obs == r;
+                    
+                    u_go_id_r = unique(this.satellite_obs(idx_rec));
+                    n_sat = length(u_go_id_r);
+                    
+                    u_oc_ph = unique(this.obs_codes_id_obs(idx_rec  & this.phase_obs ));
+                    n_ch_ph = length(u_oc_ph);
+                    fr_ph = zeros(size(u_oc_ph));
+                    for i = 1 : length(u_oc_ph)
+                        fr_ph(i) = this.unique_obs_codes{u_oc_ph(i)}(3);
+                    end
+                    u_fr_ph = unique(fr_ph);
+                    n_fr_ph = length(u_fr_ph);
+
+                    u_oc_pr = unique(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs ));
+                    n_ch_pr = length(u_oc_pr);
+                    fr_pr = zeros(size(u_oc_pr));
+                    for i = 1 : length(u_oc_pr)
+                        fr_pr(i) = this.unique_obs_codes{u_oc_pr(i)}(3);
+                    end
+                    u_fr_pr = unique(fr_pr);
+                    n_fr_pr = length(u_fr_pr);
+
+
+                    time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
+                    duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+                    time_res.addSeconds(0:this.time_obs.getRate:duration);
+                    % build phase matrix
+                 
+                    ph_pres = false(time_res.length,n_sat,n_fr_ph);
+                    ph_id = zeros(time_res.length,n_sat,n_ch_ph,'uint32');
+                    for c = 1 : n_ch_ph
+                        ch = u_oc_ph(c);
+                        f = find(fr_ph(c) == u_fr_ph);
+                        for s = 1 : n_sat
+                            sat = u_go_id_r(s);
+                            idx_ph = this.obs_codes_id_obs == ch & this.satellite_obs == sat & idx_rec;
+                            if any(idx_ph)
+                                [~,idx_time] = ismember(this.time_obs.getEpoch(idx_ph).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                                ph_pres(idx_time, s,f) = true;
+                                ph_id(idx_time, s,c) = find(idx_ph);
+                            end
+                        end
+                    end
+                    % build pseudorange matrix
+                    pr_pres = false(time_res.length,n_sat,n_fr_pr);
+                    pr_id = zeros(time_res.length,n_sat,n_ch_pr,'uint32');
+                    for c = 1 : n_ch_pr
+                        ch = u_oc_pr(c);
+                        f = find(fr_pr(c) == u_fr_pr);
+                        for s = 1 : n_sat
+                            sat = u_go_id_r(s);
+                            idx_pr = this.obs_codes_id_obs == ch & this.satellite_obs == sat & idx_rec;
+                            if any(idx_pr)
+                                [~,idx_time] = ismember(this.time_obs.getEpoch(idx_pr).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                                pr_pres(idx_time, s,f) = true;
+                                pr_id(idx_time, s,c) = find(idx_pr);
+                            end
+                        end
+                    end
+                    idx_out_pr = sum(pr_pres,3) == 1;
+                    idx_out_ph = find(idx_out_pr | sum(ph_pres,3) == 1);
+                    idx_out_pr = find(idx_out_pr);
+                    
+                     for c = 1 : n_ch_pr
+                         o_idx = pr_id(idx_out_pr+(c-1) * n_sat*time_res.length);
+                         this.outlier_obs(noZero(o_idx)) = true;
+                     end
+                     for c = 1 : n_ch_ph
+                         o_idx = ph_id(idx_out_ph+(c-1) * n_sat*time_res.length);
+                         this.outlier_obs(noZero(o_idx)) = true;
+                     end
+                    
+                end
+                
+            end
+                
             
         end
         
@@ -1829,7 +1908,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
                 % get the ambiguity inverse matrxi
                 idx_amb = find(class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB);
                 if any(idx_amb)
