@@ -2253,18 +2253,20 @@ classdef Command_Interpreter < handle
             end
         end
         
-        function [sys, found] = getConstellation(this, tok)
+        function [sys_list, found] = getConstellation(this, tok)
             % Extract from a set of tokens the constellation parameter
             %
             % INPUT
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [sys, found] = this.getConstellation(tok)
+            %   [sys_list, found] = this.getConstellation(tok)
             found = false;            
-            sys = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCISA]*'], 'match', 'once');
-            if ~isempty(sys)
+            sys_list = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCISA]*'], 'match', 'once');
+            if ~isempty(sys_list)
                 found = true;
+                cc = Core.getConstellationCollector;
+                sys_list = intersect(sys_list, cc.getActiveSysChar);
             end
         end
         

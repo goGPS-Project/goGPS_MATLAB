@@ -2632,7 +2632,7 @@ classdef GNSS_Station < handle
     %   m mixed
     methods (Access = public)
         function showAll(sta_list)
-            % Try to show all the possible plots
+            % Try to show all the possible plots            
             for i = 1:numel(sta_list)
                 sta_list(i).out.showAll;
             end
@@ -2654,7 +2654,10 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   this.showDataAvailability(sys_list)
-
+            
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for s = 1 : numel(sta_list)
                 sta_list(s).work.showDataAvailability(sys_list);
             end
@@ -4006,6 +4009,9 @@ classdef GNSS_Station < handle
             %   this.showOutliersAndCycleSlip(sys_list)
             
             for s = 1 : numel(sta_list)
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
                 sta_list(s).work.showOutliersAndCycleSlip(sys_list);
             end
         end
@@ -4017,6 +4023,9 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.showOutliersAndCycleSlip(sys_list)
             
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for s = 1 : numel(sta_list)
                 sta_list(s).work.showOutliersAndCycleSlip_p(sys_list);
             end
@@ -4029,6 +4038,9 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.showResSky_c(sys_list)
             
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for s = 1 : numel(sta_list)
                 sta_list(s).work.showResSky_c(sys_list);
             end
@@ -4041,6 +4053,9 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.showResSky_p(sys_list)
             
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for s = 1 : numel(sta_list)
                 sta_list(s).work.showResSky_p(sys_list);
             end
@@ -4053,6 +4068,9 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.showSNR_p(sys_list)
             
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for s = 1 : numel(sta_list)
                 sta_list(s).work.showSNR_p(sys_list);
             end
@@ -4112,6 +4130,9 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   sta_list.showResPerSat()
 
+            if nargin < 2
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(r);
                 if ~isempty(rec)

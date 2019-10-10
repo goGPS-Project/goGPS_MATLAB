@@ -440,6 +440,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             rate = t_start;
                             ss_list = t_stop;
                             this.setActiveSys(ss_list);
+                            ss_list = intersect(ss_list, cc.getActiveSysChar);
                             this.importRinex(this.rinex_file_name, [], [], rate, ss_list);
                         elseif ~isa(t_stop, 'GPS_Time')
                             this.importRinex(this.rinex_file_name, t_start, t_stop);
@@ -450,6 +451,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
                     case 5
                         this.setActiveSys(ss_list);
+                        ss_list = intersect(ss_list, cc.getActiveSysChar);
                         this.importRinex(this.rinex_file_name, t_start, t_stop, rate, ss_list);
                 end
                 this.importAntModel();
@@ -5589,7 +5591,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   this.updateStatus();
             cc = Core.getState.getConstellationCollector;
             
-            [~, ss_id] = ismember(this.system, cc.sys_c);
+            [ss_ok, ss_id] = ismember(this.system, cc.sys_c);
+            ss_id = ss_id(ss_ok);
             this.n_freq = numel(unique(this.f_id));
             ss_offset = cumsum([0 cc.n_sat(1:end-1)]);
             ss_offset_id = ss_offset(ss_id');
