@@ -263,6 +263,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
+        STD_TROPO_ABS = 0.5;                            % abs value regularization Std of tropospheric delay [m]
+        STD_TROPO_GRADIENT_ABS = 0.02;                  % abs value regularization Std  of tropospheric gradient [m/h]
         STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
         SPLINE_RATE_TROPO = 300;                        % rate of spline for tropo param [s]
         SPLINE_RATE_TROPO_GRADIENT = 300;               % rate of spline for tropo gradient param [s]
@@ -668,6 +670,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Std of tropospheric delay [m / h]
         std_tropo = Main_Settings.STD_TROPO;
         std_tropo_gradient = Main_Settings.STD_TROPO;
+        std_tropo_abs = Main_Settings.STD_TROPO_ABS;
+        std_tropo_gradient_abs = Main_Settings.STD_TROPO_ABS;
         std_clock = Main_Settings.STD_CLOCK;
         spline_rate_tropo = Main_Settings.SPLINE_RATE_TROPO;
         spline_rate_tropo_gradient = Main_Settings.SPLINE_RATE_TROPO_GRADIENT;
@@ -919,6 +923,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
+                this.std_tropo_abs   = state.getData('std_tropo_abs');
+                this.std_tropo_gradient_abs   = state.getData('std_tropo_gradient_abs');
                 this.std_clock   = state.getData('std_clock');
                 this.spline_rate_tropo   = state.getData('spline_rate_tropo');
                 this.spline_rate_tropo_gradient   = state.getData('spline_rate_tropo_gradient');
@@ -1082,6 +1088,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
+                this.std_tropo_abs = state.std_tropo_abs;
+                this.std_tropo_gradient_abs = state.std_tropo_gradient_abs;
                 this.std_clock = state.std_clock;
                 this.spline_rate_tropo = state.spline_rate_tropo;
                 this.spline_rate_tropo_gradient = state.spline_rate_tropo_gradient;
@@ -1268,9 +1276,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
-            %str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
+            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.std_tropo_abs)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
-            %str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
+            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.std_tropo_gradient_abs)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
             str = [str sprintf(' Spline rate of tropospheric delay:                %g\n\n', this.spline_rate_tropo)];
@@ -1747,12 +1755,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);
-            %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
-            %str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.STD_TROPO_ABS), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo_abs', this.std_tropo_abs, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.4f)', this.STD_TROPO), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
-            %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
-            %str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.STD_TROPO_GRADIENT_ABS), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo_gradient_abs', this.std_tropo_gradient_abs, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
@@ -2408,6 +2416,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Regularization
             this.std_tropo = 0.015;
             this.std_tropo_gradient = 0.001;
+            this.std_tropo_abs = 0.5;
+            this.std_tropo_gradient_abs = 0.02;
             this.std_clock = 1e+30;
             this.spline_rate_tropo = 900;
             this.spline_rate_tropo_gradient = 1800;
@@ -2499,6 +2509,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Regularization
             this.std_tropo = 0.015;
             this.std_tropo_gradient = 0.001;
+            this.std_tropo_abs = 0.5;
+            this.std_tropo_gradient_abs = 0.02;
             this.std_clock = 1e+30;
             this.spline_rate_tropo = 900;
             this.spline_rate_tropo_gradient = 3600;
@@ -2625,9 +2637,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
                         
             % ADV ATMOSPHERE
-            % this.checkNumericField('sigma0_tropo',[1e-11 10]);
+            this.checkNumericField('std_tropo_abs',[1e-11 10]);
             this.checkNumericField('std_tropo',[1e-12 1e50]);
-            % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
+            this.checkNumericField('std_tropo_gradient_abs',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
             this.checkNumericField('std_clock',[1e-12 1e50]);
             this.checkNumericField('spline_rate_tropo',[0 1e50]);

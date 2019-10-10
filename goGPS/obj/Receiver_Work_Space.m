@@ -8640,6 +8640,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     rate = time.getRate();
                     ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
                     if this.state.flag_tropo
+                        ls.setMeanRegularization(ls.PAR_TROPO, this.state.std_tropo_abs^2);% this.state.std_tropo / 3600 * rate  );
                         if order_tropo == 0
                             ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                         else
@@ -8647,6 +8648,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     if this.state.flag_tropo_gradient
+                        ls.setMeanRegularization(ls.PAR_TROPO_N, this.state.std_tropo_gradient_abs^2);% this.state.std_tropo / 3600 * rate  );
+                        ls.setMeanRegularization(ls.PAR_TROPO_E, this.state.std_tropo_gradient_abs^2);% this.state.std_tropo / 3600 * rate  );
                         if order_tropo_g == 0
                             ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                             ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
