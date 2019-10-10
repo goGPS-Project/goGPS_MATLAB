@@ -1030,7 +1030,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     idx_out_pr = sum(pr_pres,3) == 1;
-                    idx_out_ph = find(idx_out_pr | sum(ph_pres,3) == 1);
+                    idx_out_ph = find((sum(pr_pres,3) < 2 & sum(ph_pres,3) > 1) | sum(ph_pres,3) == 1);
                     idx_out_pr = find(idx_out_pr);
                     
                      for c = 1 : n_ch_pr
