@@ -2367,7 +2367,7 @@ end
                 end
                 
                 % If the number of files to check is > 366 or the cache is clean
-                if (max_sss * n_rec > 366) || flag_force
+                if (max_sss * n_rec > 366)
                     % Check if the cache is for the same set of folders
                     cur_unique_dir = unique(dir_path);
                     % back-up cache
