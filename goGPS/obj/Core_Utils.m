@@ -54,7 +54,7 @@ classdef Core_Utils < handle
             % SYNTAX: 
             %  Core_Utils.printEx(ex)
             
-            fprintf('\n----------------------------------------------------------------\n MESSAGE: %s\n----------------------------------------------------------------\n\n', ex.message);
+            fprintf('\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', ex.message);
             for i=1:numel(ex.stack)
                 fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
             end

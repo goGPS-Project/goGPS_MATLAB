@@ -426,24 +426,29 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             if ~isempty(this(1).ztd)
                 [mfh, mfw] = this.getSlantMF();
-                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw, this.getAprZhd);
-                sztd(sztd <= 0) = nan;
-                sztd = sztd(id_extract, :);
-                
-                if nargin >= 2 && smooth_win_size > 0
-                    t = this.getTime.getEpoch(id_extract).getRefTime;
-                    for s = 1 : size(sztd,2)
-                        id_ok = ~isnan(sztd(:, s));
-                        if sum(id_ok) > 3
-                            lim = getOutliers(id_ok);
-                            lim = limMerge(lim, 2 * smooth_win_size / this.getRate);
-                            
-                            %lim = [lim(1) lim(end)];
-                            for l = 1 : size(lim, 1)
-                                if (lim(l, 2) - lim(l, 1) + 1) > 3
-                                    id_ok = lim(l, 1) : lim(l, 2);
-                                    ztd = this.getZtd();
-                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
+                if isempty(mfh)
+                    this(1).log.addWarning('ZTD and slants have not been computed');
+                    sztd = [];
+                else
+                    sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw, this.getAprZhd);
+                    sztd(sztd <= 0) = nan;
+                    sztd = sztd(id_extract, :);
+                    
+                    if nargin >= 2 && smooth_win_size > 0
+                        t = this.getTime.getEpoch(id_extract).getRefTime;
+                        for s = 1 : size(sztd,2)
+                            id_ok = ~isnan(sztd(:, s));
+                            if sum(id_ok) > 3
+                                lim = getOutliers(id_ok);
+                                lim = limMerge(lim, 2 * smooth_win_size / this.getRate);
+                                
+                                %lim = [lim(1) lim(end)];
+                                for l = 1 : size(lim, 1)
+                                    if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                        id_ok = lim(l, 1) : lim(l, 2);
+                                        ztd = this.getZtd();
+                                        sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
+                                    end
                                 end
                             end
                         end
@@ -451,6 +456,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             else
                 this(1).log.addWarning('ZTD and slants have not been computed');
+                sztd = [];
             end
         end
         
@@ -602,7 +608,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %   res = this.getResidual()
-            res = this.sat.res(this.getIdSync(),:);
+            try
+                res = this.sat.res(this.getIdSync(),:);
+            catch
+                res = [];
+            end
         end
         
         function out_prefix = getOutPrefix(this)
@@ -913,7 +923,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     if size(xyz, 1) > 1
                         rec(1).log.addMessage('Plotting positions');
                         
-                        f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         color_order = handle(gca).ColorOrder;
                         
                         xyz = rec.getPosXYZ();
@@ -959,6 +969,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -980,7 +991,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     if size(xyz, 1) > 1
                         rec(1).log.addMessage('Plotting XYZ positions');
                         
-                        f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                         color_order = handle(gca).ColorOrder;
                         
                         xyz = rec(:).getPosXYZ();
@@ -1011,6 +1022,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         linkaxes(ax, 'x');
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
                     else
                         rec.log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -1034,7 +1046,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 if size(xyz, 1) > 1
                     rec(1).log.addMessage('Plotting ENU sigmas');
                     
-                    f = figure; f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
                     color_order = handle(gca).ColorOrder;
                     
                     s0 = rec.quality_info.s0;
@@ -1057,6 +1069,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     linkaxes(ax, 'x');
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 else
                     rec.log.addMessage('Plotting a single point static position is not yet supported');
                 end
@@ -1068,7 +1081,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f = figure('Visible', 'off');
             else
                 f = gcf;
                 hold on;
@@ -1125,6 +1138,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             ylabel('Latitude [deg]');
             Core_UI.beautifyFig(f);            
             Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on';            
         end
         
         
@@ -1482,36 +1496,40 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 t = rec(:).getTime.getMatlabTime;
                 
                 sztd = rec(:).getSlantZTD(rec(1).parent.slant_filter_win);
-                if nargin >= 3
-                    if isa(time_start, 'GPS_Time')
-                        time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                        time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
-                    end
-                    time_start = max(1, time_start);
-                    time_stop = min(size(sztd,1), time_stop);
+                if isempty(sztd)
+                    close(f);
                 else
-                    time_start = 1;
-                    time_stop = size(sztd,1);
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                        end
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
+                    end
+                    
+                    if nargin < 4
+                        win_size = (t(time_stop) - t(time_start)) * 86400;
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    plot(t, sztd,'.-'); hold on;
+                    plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
+                    %ylim(yl);
+                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                    setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                    h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+                    grid on;
+                    h = title(sprintf('Receiver %s ZTD', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    drawnow;
+                    Core_UI.beautifyFig(f, 'dark');
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
-                
-                if nargin < 4
-                    win_size = (t(time_stop) - t(time_start)) * 86400;
-                end
-                
-                %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                
-                plot(t, sztd,'.-'); hold on;
-                plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
-                %ylim(yl);
-                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MM');
-                h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-                grid on;
-                h = title(sprintf('Receiver %s ZTD', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                drawnow;
-                Core_UI.beautifyFig(f, 'dark');
-                Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
             end
             
             
@@ -1586,7 +1604,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     sta_list(1).log.addWarning([par_name ' and slants have not been computed']);
                 else
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         f = gcf;
@@ -1620,6 +1638,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
             end
         end
@@ -1673,15 +1692,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             [az, el] = this.getAzEl();
             [tgn, tge] = this.getGradient();
             res = this.getResidual();
-            
-            cotel = zero2nan(cotd(el));
-            cosaz = zero2nan(cosd(az));
-            sinaz = zero2nan(sind(az));
-            slant_td = nan2zero(zero2nan(res) ...
-                + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+            if isempty(res(:)) || ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
+                slant_td = [];
+            else
+                cotel = zero2nan(cotd(el));
+                cosaz = zero2nan(cosd(az));
+                sinaz = zero2nan(sind(az));
+                slant_td = nan2zero(zero2nan(res) ...
+                    + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
+                    + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
+                    + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+            end
         end
         
         function showPwv(this, new_fig)
@@ -1857,41 +1879,44 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         function showZtdSlantRes_p(this, time_start, time_stop)
-            if isempty(this.ztd)
+            if isempty(this.sat.res)
                 this.log.addWarning('ZTD and slants have not been computed');
-            else
-                
+            else                
                 id_sync = this.getIdSync();
                 
                 t = this.time.getEpoch(id_sync).getMatlabTime;
                 
                 sztd = this.getSlantZTD(this.parent.slant_filter_win);
-                sztd = bsxfun(@minus, sztd, this.ztd(id_sync)) .* 1e2;
-                if nargin >= 3
-                    if isa(time_start, 'GPS_Time')
-                        time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                        time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
-                    end
-                    time_start = max(1, time_start);
-                    time_stop = min(size(sztd,1), time_stop);
+                if isempty(sztd)
+                    this.log.addWarning('ZTD and slants have not been computed');
                 else
-                    time_start = 1;
-                    time_stop = size(sztd,1);
+                    sztd = bsxfun(@minus, sztd, this.ztd(id_sync)) .* 1e2;
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                        end
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                    el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                    
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                    polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
+                    caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95];
+                    cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
+                    h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    Core_UI.beautifyFig(f, 'dark');
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
-                
-                %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                
-                az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
-                
-                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
-                caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; 
-                cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
-                h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                Core_UI.beautifyFig(f, 'dark');
-                Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
             end
         end
         

@@ -1056,21 +1056,41 @@ classdef Receiver_Output < Receiver_Commons
                     Core.getLogger.addError('No clock found in Receiver Output object\n');
                 else
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
-                    plot(t, rec.getDesync, '-k', 'LineWidth', 2);
-                    hold on;
-                    plot(t, (rec.getDtIP), '-', 'LineWidth', 2);
-                    if any(rec.getDt)
-                        plot(t, rec.getDt, '-', 'LineWidth', 2);
-                        plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
-                        legend('desync time', 'dt correction from LS on Code', 'residual dt from last step', 'total dt', 'Location', 'NorthEastOutside');
-                    else
-                        legend('desync time', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
+                    
+                    l_list = {};
+                    data = rec.getDesync;
+                    if ~isempty(data)
+                        l_list = [l_list {'desync_time'}];
+                        plot(t, data, '-k', 'LineWidth', 2);
                     end
-                    xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
-                    h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    Core_UI.beautifyFig(f);
-                    Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    hold on;
+                    data = rec.getDtIP;
+                    if ~isempty(data)
+                        l_list = [l_list {'desync_time'}];
+                        plot(t, data, '-', 'LineWidth', 2);
+                    end
+                    data = rec.getDt();
+                    if ~isempty(data)
+                        l_list = [l_list {'desync_time'}];
+                        plot(t, data, '-', 'LineWidth', 2);
+                    end
+                    data = rec.getTotalDt();
+                    if ~isempty(data)
+                        l_list = [l_list {'desync_time'}];
+                        plot(t, data, '-', 'LineWidth', 2);
+                    end
+                    if isempty(l_list)
+                        Core.getLogger.addError('No clock found in Receiver Output object\n');
+                        close(f);
+                    else
+                        legend(l_list, 'Location', 'NorthEastOutside');
+                        
+                        xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                        h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
+                    end
                 end
             end
         end
@@ -1253,32 +1273,34 @@ classdef Receiver_Output < Receiver_Commons
             if nargin == 1
                 sys_c_list = cc.getAvailableSys;
             end
-            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
             for sys_c = sys_c_list
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
-                
-                for prn = cc.prn(cc.system == sys_c)'
-                    s = cc.getIndex(sys_c, prn);
-                    cs = ep(this.sat.cycle_slip(:, s) ~= 0);
-                    sat_on = ep(this.sat.az(:, s) ~= 0);
-                    plot(sat_on,  prn * ones(size(sat_on)), '.', 'MarkerSize', 10, 'Color', [0.7 0.7 0.7]);
-                    hold on;
-                    plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
-                    out = ep(this.sat.outliers(:, s) ~= 0);
-                    plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                if isempty(ep)
+                    close(f);
+                else
+                    for prn = cc.prn(cc.system == sys_c)'
+                        s = cc.getIndex(sys_c, prn);
+                        cs = ep(this.sat.cycle_slip(:, s) ~= 0);
+                        sat_on = ep(this.sat.az(:, s) ~= 0);
+                        plot(sat_on,  prn * ones(size(sat_on)), '.', 'MarkerSize', 10, 'Color', [0.7 0.7 0.7]);
+                        hold on;
+                        plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
+                        out = ep(this.sat.outliers(:, s) ~= 0);
+                        plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                    end
+                    prn_ss = cc.prn(cc.system == sys_c);
+                    xlim([1 this.time.length]);
+                    ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                    h = ylabel('PRN'); h.FontWeight = 'bold';
+                    ax = gca(); ax.YTick = prn_ss;
+                    grid on;
+                    h = xlabel('epoch'); h.FontWeight = 'bold';
+                    h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                    Core_UI.beautifyFig(f, 'dark');
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
                 end
-                prn_ss = cc.prn(cc.system == sys_c);
-                xlim([1 this.time.length]);
-                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
-                h = ylabel('PRN'); h.FontWeight = 'bold';
-                ax = gca(); ax.YTick = prn_ss;
-                grid on;
-                h = xlabel('epoch'); h.FontWeight = 'bold';
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
-                Core_UI.beautifyFig(f, 'dark');
-                Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
             end
         end
         
@@ -1294,34 +1316,49 @@ classdef Receiver_Output < Receiver_Commons
             end
             
             for sys_c = sys_c_list
-                f = figure; f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
-                polarScatter([],[],1,[]);
-                hold on;
-                
-                for s = cc.getGoIds(sys_c)
-                    az = this.sat.az(:,s);
-                    el = this.sat.el(:,s);
+                if isempty(this.sat.az) || isempty(this.sat.el)
+                    Core.getLogger.addError('No azimuth and elevetion present in the receiver\n');
+                else
+                    is_empty = false;
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
+                    polarScatter([],[],1,[]);
+                    hold on;
                     
-                    cs = sum(this.sat.cycle_slip(:, s), 2) > 0;
-                    out = sum(this.sat.outliers(:, s), 2) > 0;
-                    sat_on = (this.sat.az(:, s) ~= 0);
-                    
-                    decl_n = (serialize(90 - el(sat_on)) / 180*pi) / (pi/2);
-                    x = sin(az(sat_on)/180*pi) .* decl_n; x(az(sat_on) == 0) = [];
-                    y = cos(az(sat_on)/180*pi) .* decl_n; y(az(sat_on) == 0) = [];
-                    plot(x, y, '.', 'MarkerSize', 7, 'Color', [0.7 0.7 0.7]);
-                    
-                    decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
-                    x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
-                    y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
-                    plot(x, y, '.k', 'MarkerSize', 20);
-                    
-                    decl_n = (serialize(90 - el(out)) / 180*pi) / (pi/2);
-                    x = sin(az(out)/180*pi) .* decl_n; x(az(out) == 0) = [];
-                    y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
-                    plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                    for s = cc.getGoIds(sys_c)
+                        az = this.sat.az(:,s);
+                        el = this.sat.el(:,s);
+                        is_empty = is_empty + ~(any(az));
+                        if any(az)
+                            cs = sum(this.sat.cycle_slip(:, s), 2) > 0;
+                            out = sum(this.sat.outliers(:, s), 2) > 0;
+                            sat_on = (this.sat.az(:, s) ~= 0);
+                            
+                            decl_n = (serialize(90 - el(sat_on)) / 180*pi) / (pi/2);
+                            x = sin(az(sat_on)/180*pi) .* decl_n; x(az(sat_on) == 0) = [];
+                            y = cos(az(sat_on)/180*pi) .* decl_n; y(az(sat_on) == 0) = [];
+                            plot(x, y, '.', 'MarkerSize', 7, 'Color', [0.7 0.7 0.7]);
+                            
+                            decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
+                            x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
+                            y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
+                            plot(x, y, '.k', 'MarkerSize', 20);
+                            
+                            decl_n = (serialize(90 - el(out)) / 180*pi) / (pi/2);
+                            x = sin(az(out)/180*pi) .* decl_n; x(az(out) == 0) = [];
+                            y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
+                            plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                        end
+                    end
+                    if is_empty == numel(cc.getGoIds(sys_c))
+                        close(f);
+                        Core.getLogger.addError('No azimuth / elevation found in Receiver Output object\n');
+                    else
+                        h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
+                    end
                 end
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
             
         end

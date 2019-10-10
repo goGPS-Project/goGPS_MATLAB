@@ -1286,30 +1286,39 @@ classdef GNSS_Station < handle
             full_time = [];
             for r = 1 : numel(sta_list)
                 tmp = sta_list(r).out.getTime();
-                time{r} = sta_list(r).out.getTime();
-                if t_ref == 0
-                    t_ref = round(time{r}.getCentralTime.getMatlabTime);
-                end
-                full_time = unique([full_time; round(time{r}.getRefTime(t_ref), 5)]);
-                
-                switch lower(par_name)
-                    case 'ztd'
-                        [tropo{r}] = sta_list(r).out.getZtd();
-                    case 'zwd'
-                        [tropo{r}] = sta_list(r).out.getZwd();
-                        if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
-                            [tropo{r}] = sta_list(r).out.getAprZwd();
-                        end
-                    case 'gn'
-                        [tropo{r}] = sta_list(r).out.getGradient();
-                    case 'ge'
-                        [~,tropo{r}] = sta_list(r).out.getGradient();
-                    case 'pwv'
-                        [tropo{r}] = sta_list(r).out.getPwv();
-                    case 'zhd'
-                        [tropo{r}] = sta_list(r).out.getAprZhd();
-                    case 'nsat'
-                        [tropo{r}] = sta_list(r).out.getNSat();
+                time{r} = tmp;
+                if tmp.isEmpty
+                    tropo{r} = [];
+                else
+                    if t_ref == 0
+                        t_ref = round(time{r}.getCentralTime.getMatlabTime);
+                    end
+                    full_time = unique([full_time; round(time{r}.getRefTime(t_ref), 5)]);
+                    
+                    switch lower(par_name)
+                        case 'ztd'
+                            [tropo{r}] = sta_list(r).out.getZtd();
+                        case 'zwd'
+                            [tropo{r}] = sta_list(r).out.getZwd();
+                            if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
+                                [tropo{r}] = sta_list(r).out.getAprZwd();
+                            end
+                        case 'gn'
+                            [tropo{r}] = sta_list(r).out.getGradient();
+                        case 'ge'
+                            [~,tropo{r}] = sta_list(r).out.getGradient();
+                        case 'pwv'
+                            [tropo{r}] = sta_list(r).out.getPwv();
+                        case 'zhd'
+                            [tropo{r}] = sta_list(r).out.getAprZhd();
+                            if ~any(~isnan(tropo{r}))
+                                ztd = sta_list(r).out.getZtd();
+                                zwd = sta_list(r).out.getZwd();
+                                tropo{r} = ztd-zwd;
+                            end                                
+                        case 'nsat'
+                            [tropo{r}] = sta_list(r).out.getNSat();
+                    end
                 end
             end
             
@@ -1469,7 +1478,7 @@ classdef GNSS_Station < handle
             if flag_show
                 % Plot comparisons
                 for s = 1 : numel(rds)
-                    f = figure;
+                    f = figure('Visible', 'off');
                     f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';
                     
                     % interpolated ZTD
@@ -1495,6 +1504,9 @@ classdef GNSS_Station < handle
                     setTimeTicks; grid minor;
                     drawnow;
                     ax = gca; ax.FontSize = 16;
+                    Core_UI.beautifyFig(gcf, 'dark');
+                    Core_UI.addBeautifyMenu(gcf);
+                    f.Visible = 'on';
                 end
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
@@ -2784,8 +2796,8 @@ classdef GNSS_Station < handle
             clon = nwse([2 4]) + [-0.02 0.02];
             clat = nwse([3 1]) + [-0.02 0.02];
 
-            %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
-            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
+            m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+            %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
             axes
             cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
             
@@ -2961,8 +2973,8 @@ classdef GNSS_Station < handle
             ylim(lat_lim);
             [lon_ggl,lat_ggl, img_ggl] = plot_google_map('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
             
-            %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
-            m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
+            m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+            %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
             drawnow
             m_image(lon_ggl, lat_ggl, img_ggl);
             
@@ -4162,7 +4174,7 @@ classdef GNSS_Station < handle
                             Core.getLogger.addWarning(sprintf('No data found for %s@%c', rec.getMarkerName4Ch, ss));
                         else
                             
-                            f = figure;
+                            f = figure('Visible', 'off');
                             f.Name = sprintf('%03d: ResMap %s@%c', f.Number, rec.getMarkerName4Ch, ss); f.NumberTitle = 'off';
                             if (nargin < 4) || isempty(mode)
                                 mode = 'cart';
@@ -4214,6 +4226,7 @@ classdef GNSS_Station < handle
                             end
                             Core_UI.beautifyFig(gcf, 'dark');
                             Core_UI.addBeautifyMenu(gcf);
+                            f.Visible = 'on';
                         end
                     end
                 end
@@ -4295,10 +4308,22 @@ classdef GNSS_Station < handle
             f.Visible = 'on';            
         end
 
-        function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat)
+        function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, disable_od)
             % one function to rule them all
 
-            [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
+            if nargin < 5 || isempty(disable_od) || ~disable_od
+                [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
+            else
+                [tropo, t] = sta_list.getTropoPar(par_name);
+                for r = 1 : numel(sta_list)
+                    if iscell(tropo)
+                        id_ko{r} = false(size(tropo{r}));
+                    else
+                        id_ko{r} = false(size(tropo));
+                    end
+                end
+            end
+            
             if ~iscell(tropo)
                 tropo = {tropo};
                 t = {t};
@@ -4312,6 +4337,7 @@ classdef GNSS_Station < handle
             sta_list = sta_list(rec_ok);
             tropo = tropo(rec_ok);
             t = t(rec_ok);
+            id_ko = id_ko(rec_ok);
             
             flag_ok = false; for i = 1 : numel(tropo); flag_ok = flag_ok || any(tropo{i}); end;
             
@@ -4323,7 +4349,7 @@ classdef GNSS_Station < handle
                     new_fig = true;
                 end
 
-                if nargin < 4
+                if nargin < 4 || isempty(sub_plot_nsat)
                     sub_plot_nsat = false;
                 end
                 
@@ -4511,15 +4537,16 @@ classdef GNSS_Station < handle
             end
         end
 
-        function showZhd(sta_list, new_fig, sub_plot_nsat)
+        function showZhd(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display ZHD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZhd(<new_fig = true>, <sub_plot_nsat = true>)
+            %   sta_list.showZhd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4527,18 +4554,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat)
+            if nargin <= 3 || isempty(disable_od)
+                disable_od = false;
+            end
+            
+            sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat, disable_od)
         end
 
-        function showZwd(sta_list, new_fig, sub_plot_nsat)
+        function showZwd(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display ZWD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZwd(<new_fig = true>, <sub_plot_nsat = true>)
+            %   sta_list.showZwd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4546,18 +4578,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat)
+            if nargin <= 3 || isempty(disable_od)
+                disable_od = false;
+            end
+            
+            sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat, disable_od)
         end
 
-        function showPwv(sta_list, new_fig, sub_plot_nsat)
+        function showPwv(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display PWV values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showPwv(<new_fig = true>, <sub_plot_nsat = true>)
+            %   sta_list.showPwv(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4565,18 +4602,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat)
+            if nargin <= 3 || isempty(disable_od)
+                disable_od = false;
+            end
+            
+            sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat, disable_od)
         end
 
-        function showZtd(sta_list, new_fig, sub_plot_nsat)
+        function showZtd(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display ZTD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZtd(<new_fig = true>, <sub_plot_nsat = true>)
+            %   sta_list.showZtd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4584,15 +4626,20 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat)
+            if nargin <= 3 || isempty(disable_od)
+                disable_od = false;
+            end
+            
+            sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, disable_od)
         end
 
-        function showGn(sta_list, new_fig, sub_plot_nsat)
+        function showGn(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display ZTD Gradiet North values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
             %   sta_list.showGn(<new_fig = true>, <sub_plot_nsat = true>)
@@ -4603,15 +4650,19 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('GN', new_fig, sub_plot_nsat)
+            if nargin <= 3 || isempty(disable_od)
+                disable_od = false;
+            end
+            sta_list.showTropoPar('GN', new_fig, sub_plot_nsat, disable_od)
         end
 
-        function showGe(sta_list, new_fig, sub_plot_nsat)
+        function showGe(sta_list, new_fig, sub_plot_nsat, disable_od)
             % Display ZTD Gradiet East values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   disable_od      flag to disable outlier detection
             %
             % SYNTAX:
             %   sta_list.showGe(<new_fig = true>, <sub_plot_nsat = true>)
@@ -4622,7 +4673,10 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            sta_list.showTropoPar('GE', new_fig, sub_plot_nsat)
+            if nargin <= 2 || isempty(disable_od)
+                disable_od = false;
+            end
+            sta_list.showTropoPar('GE', new_fig, sub_plot_nsat, disable_od)
         end
 
         function ztd_correction = getZtdReduction(sta_list, degree, xyh, flag_spatial)
@@ -4676,7 +4730,7 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showZtdVsHeight();
-            figure;
+            f = figure('Visible', 'off');
             med_ztd = median(sta_list.getZtd_mr * 1e2, 'omitnan')';
             ax1 = subplot(2,1,1);
             [lat, lon, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
@@ -4716,6 +4770,9 @@ classdef GNSS_Station < handle
             end
             grid on
             ax2.FontSize = 16;
+            Core_UI.beautifyFig(gcf, 'dark');
+            Core_UI.addBeautifyMenu(gcf);
+            f.Visible = 'on';
         end
 
         function showZwdVsHeight(sta_list, degree)
@@ -4723,8 +4780,9 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   sta_list.showZwdVsHeight();
-            figure;
+            f = figure('Visible', 'off');
             med_zwd = median(sta_list.getZwd_mr * 1e2, 'omitnan')';
+            
             ax1 = subplot(2,1,1);
             [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
             plot(h_o, med_zwd, '.', 'MarkerSize', 20); hold on;
@@ -4755,7 +4813,9 @@ classdef GNSS_Station < handle
                 end
             end
             grid on
-            ax1.FontSize = 16;
+            Core_UI.beautifyFig(gcf, 'dark');
+            Core_UI.addBeautifyMenu(gcf);
+            f.Visible = 'on';
         end
 
         function showMedianTropoPar(this, par_name, new_fig)
@@ -4788,9 +4848,10 @@ classdef GNSS_Station < handle
                 sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
+                    f = gcf;
                     l = legend;
                     old_legend = get(l,'String');
                 end
@@ -4809,9 +4870,9 @@ classdef GNSS_Station < handle
                         end
                         [~, ~, ~, h_o] = rec(1).out.getPosGeodetic();
                         if new_fig
-                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 35, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
-                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
+                            plot(h_o, zero2nan(median(tropo,'omitnan')), '.', 'MarkerSize', 35, 'LineWidth', 4); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
                         h_ortho(r) = h_o;
@@ -4844,6 +4905,10 @@ classdef GNSS_Station < handle
                 h = xlabel('Elevation [m]'); h.FontWeight = 'bold';
                 grid on;
                 h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                
+                Core_UI.beautifyFig(gcf, 'dark');
+                Core_UI.addBeautifyMenu(gcf);
+                f.Visible = 'on';
             end
         end
 
