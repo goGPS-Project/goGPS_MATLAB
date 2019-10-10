@@ -6986,7 +6986,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             XR = this.getXR;
-            [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+            [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
             
             pole_tide_corr = zeros(this.time.length,length(sat));
             erp  = Core.getCoreSky.erp;
