@@ -5390,11 +5390,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 xs_idx = idx_obs_r_l(range_idx);
                 synt_obs(idx_obs, i) = range(s, idx_obs_r);
                 if ~isempty(xs_idx)
-                    try
                     xs_loc(idx_obs, i, :) = permute(xs_loc_t{s}(xs_idx, :),[1 3 2]);
-                    catch
-                        keyboard
-                    end
                 end
             end
         end
@@ -6448,6 +6444,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [~, ~, h_full] = this.getMedianPosGeodetic();
             if abs(h_full) > 1e4
                 this.log.addWarning('Height out of reasonable value for terrestrial postioning skipping tropo update')
+                this.getSatCache(go_id, true);
                 return
             end
             % get meteo data
