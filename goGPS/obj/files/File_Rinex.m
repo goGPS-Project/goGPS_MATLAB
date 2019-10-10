@@ -182,158 +182,55 @@ classdef File_Rinex < Exportable
                 % try to find the first and the last epoch stored in the file
                 try
                     %%
-                    fid = fopen(fullfile(this.base_dir{f}, [this.file_name_list{f} this.ext{f}]));
+                    fid = fopen(full_path);
                     if fid < 0
                         this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing'], this.verbosity_lev);
                         this.is_valid_list(f) = false;
                     else
-                        l = 1;
-                        % read by buffer 10k char at a time
-                        buf = fread(fid, 1e4, '*char')';
-                        
-                        % detect windows carriage return
-                        if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))
-                            has_cr = true;  % The file has carriage return - I hate you Bill!
+                        fseek(fid, 0, 'bof'); buf = fread(fid, 80, '*char')';
+                        if length(buf) > 65 && strcmp(buf(61:64), 'CRIN')
+                            this.log.addError(sprintf('Check the following file, it seems to be hatanaka compressed\nDecompress "%s"', full_path));
+                            this.is_valid_list(f) = false;
+                            fclose(fid);
                         else
-                            has_cr = false;  % The file is UNIX standard
-                        end
-                        
-                        % get new line separators
-                        nl = regexp(buf, '\n')';
-                        if nl(end) <  (numel(buf) - double(has_cr))
-                            nl = [nl; numel(buf)];
-                        end
-                        lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                        lim = [lim lim(:,2) - lim(:,1)];
-                        while lim(end,3) < 3
-                            lim(end,:) = [];
-                        end
-                        
-                        % Check for meteo rinex
-                        flag_met = buf(21) == 'M';
-                        
-                        line = buf(lim(l,1) : lim(l,2));
-                        date_start = '';
-                        date_stop = '';
-                        coo = '';
-                        eof = false;
-                        par_to_find = 4;
-                        %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
-                        while ~((length(line) > 61) && (line(61) == 'E')) && not(eof)
-                            l = l + 1;
-                            if l >= size(lim, 1)
-                                % out of buffer
-                                % read block:
-                                buf = [buf char(fread(fid, 1e4))'];
-                                
-                                % get new line separators
-                                nl = regexp(buf, '\n')';
-                                if nl(end) <  (numel(buf) - double(has_cr))
-                                    nl = [nl; numel(buf)];
-                                end
-                                lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                                lim = [lim lim(:,2) - lim(:,1)];
-                                while lim(end,3) < 3
-                                    lim(end,:) = [];
-                                end
-                            end
-                            if l > size(lim, 1)
-                                eof = true;
-                            else
-                                line = buf(lim(l,1) : lim(l,2));
-                                if par_to_find > 0
-                                    if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
-                                        marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
-                                        par_to_find = par_to_find - 1;
-                                    end
-                                    if numel(line) >= 76
-                                        if line(61) == 'T'
-                                            %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
-                                            if line(69) == 'F'
-                                                date_start = strtrim(line(1:48));
-                                                par_to_find = par_to_find - 1;
-                                            elseif line(69) == 'L'
-                                                %tmp = regexp(line, '.*(?=GPS         TIME OF LAST OBS)', 'match', 'once');
-                                                date_stop = strtrim(line(1:48));
-                                                par_to_find = par_to_find - 1;
-                                            end
-                                        else
-                                            %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
-                                            % character to recognize approximate position for met file: 'E' => sensor pos
-                                            % character to recognize approximate position for met file: 'P' => approx position
-                                            pos_char = iif(flag_met, 'E', 'P');
-                                            if line(62) == pos_char % APPROXIMATE POSITION
-                                                coo = strtrim(line(1:43));
-                                                par_to_find = par_to_find - 1;
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        
-                        if ~isempty(coo)
-                            this.coo.append(Coordinates.fromStringXYZ(coo));
-                        else
-                            this.coo.append(Coordinates.fromXYZ([0 0 0]));
-                        end
-                        this.eoh(f) = l;
-                        
-                        % If I did not found date of start and date of end in the file header
-                        % Try to read them
-                        if ~isempty(date_start)
-                            this.first_epoch.addEpoch(date_start, [], true);
-                        else
-                            l = l + 1;
-                            if l > size(lim, 1)
-                                % out of buffer
-                                % read block:
-                                buf = [buf char(fread(fid, 1e4))'];
-                                
-                                % get new line separators
-                                nl = regexp(buf, '\n')';
-                                if nl(end) <  (numel(buf) - double(has_cr))
-                                    nl = [nl; numel(buf)];
-                                end
-                                lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                                lim = [lim lim(:,2) - lim(:,1)];
-                                while lim(end,3) < 3
-                                    lim(end,:) = [];
-                                end
-                            end
-                            epoch_line = buf(lim(l,1) : lim(l,2));
-                            % try to guess the time format
-                            [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
-                            this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
+                            l = 1;
+                            % read by buffer 10k char at a time
+                            fseek(fid, 0, 'bof'); buf = fread(fid, 1e4, '*char')';
                             
-                            this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        end
-                        this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
-                        this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                        
-                        if ~isempty(date_stop)
-                            this.last_epoch.addEpoch(date_stop, [], true);
-                            this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
-                        else
-                            if flag_header_only
-                                this.log.addWarning('Last epoch not found in header, search in file is not enabled\nThe last epoch has not been saved within the  object', this.verbosity_lev);
+                            % detect windows carriage return
+                            if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))
+                                has_cr = true;  % The file has carriage return - I hate you Bill!
                             else
-                                % go to the end of the file to search for the last epoch
-                                % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
-                                fseek(fid, 0, 'eof');
-                                f_size = ftell(fid);
-                                fseek(fid, - min(1e4, f_size - 1), 'eof');
-                                buf = fread(fid, min(1e4, f_size - 1),'*char')';
-                                
-                                % Start searching for a valid epoch
-                                time = [];
-                                loop_n = 1;
-                                while isempty(time) && ~isempty(buf)
-                                    if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))
-                                        has_cr = true;  % The file has carriage return - I hate you Bill!
-                                    else
-                                        has_cr = false;  % The file is UNIX standard
-                                    end
+                                has_cr = false;  % The file is UNIX standard
+                            end
+                            
+                            % get new line separators
+                            nl = regexp(buf, '\n')';
+                            if nl(end) <  (numel(buf) - double(has_cr))
+                                nl = [nl; numel(buf)];
+                            end
+                            lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                            lim = [lim lim(:,2) - lim(:,1)];
+                            while lim(end,3) < 3
+                                lim(end,:) = [];
+                            end
+                            
+                            % Check for meteo rinex
+                            flag_met = buf(21) == 'M';
+                            
+                            line = buf(lim(l,1) : lim(l,2));
+                            date_start = '';
+                            date_stop = '';
+                            coo = '';
+                            eof = false;
+                            par_to_find = 4;
+                            %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
+                            while ~((length(line) > 61) && (line(61) == 'E')) && not(eof)
+                                l = l + 1;
+                                if l >= size(lim, 1)
+                                    % out of buffer
+                                    % read block:
+                                    buf = [buf char(fread(fid, 1e4))'];
                                     
                                     % get new line separators
                                     nl = regexp(buf, '\n')';
@@ -342,30 +239,157 @@ classdef File_Rinex < Exportable
                                     end
                                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                                     lim = [lim lim(:,2) - lim(:,1)];
-                                    lim(lim(:,3) < 20, :) = [];
-                                    
-                                    l = size(lim, 1);
-                                    while (l >= 1) && isempty(time)
-                                        line = buf(lim(l,1) : lim(l,2));
-                                        if ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
-                                            % Check that the read epoch is within 30 days from the first epoch
-                                            % (if it's further in time it's probably a misleading false epoch line)
-                                            time = GPS_Time(line(this.id_date), [], true);
-                                        end
-                                        l = l - 1;
-                                    end
-                                    if isempty(time) || time.isEmpty()
-                                        loop_n = loop_n + 1;
-                                        fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
-                                        buf = fread(fid, 10000, '*char')';
+                                    while lim(end,3) < 3
+                                        lim(end,:) = [];
                                     end
                                 end
-                                this.last_epoch.append(time);
-                                this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
+                                if l > size(lim, 1)
+                                    eof = true;
+                                else
+                                    line = buf(lim(l,1) : lim(l,2));
+                                    if par_to_find > 0
+                                        if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
+                                            marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
+                                            par_to_find = par_to_find - 1;
+                                        end
+                                        if numel(line) >= 76
+                                            if line(61) == 'T'
+                                                %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
+                                                if line(69) == 'F'
+                                                    date_start = strtrim(line(1:48));
+                                                    par_to_find = par_to_find - 1;
+                                                elseif line(69) == 'L'
+                                                    %tmp = regexp(line, '.*(?=GPS         TIME OF LAST OBS)', 'match', 'once');
+                                                    date_stop = strtrim(line(1:48));
+                                                    par_to_find = par_to_find - 1;
+                                                end
+                                            else
+                                                %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
+                                                % character to recognize approximate position for met file: 'E' => sensor pos
+                                                % character to recognize approximate position for met file: 'P' => approx position
+                                                pos_char = iif(flag_met, 'E', 'P');
+                                                if line(62) == pos_char % APPROXIMATE POSITION
+                                                    coo = strtrim(line(1:43));
+                                                    par_to_find = par_to_find - 1;
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
                             end
+                            
+                            if ~isempty(coo)
+                                this.coo.append(Coordinates.fromStringXYZ(coo));
+                            else
+                                this.coo.append(Coordinates.fromXYZ([0 0 0]));
+                            end
+                            this.eoh(f) = l;
+                            
+                            % If I did not found date of start and date of end in the file header
+                            % Try to read them
+                            if ~isempty(date_start)
+                                this.first_epoch.addEpoch(date_start, [], true);
+                            else
+                                l = l + 1;
+                                if l > size(lim, 1)
+                                    % out of buffer
+                                    % read block:
+                                    buf = [buf char(fread(fid, 1e4))'];
+                                    
+                                    % get new line separators
+                                    nl = regexp(buf, '\n')';
+                                    if nl(end) <  (numel(buf) - double(has_cr))
+                                        nl = [nl; numel(buf)];
+                                    end
+                                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                                    lim = [lim lim(:,2) - lim(:,1)];
+                                    while lim(end,3) < 3
+                                        lim(end,:) = [];
+                                    end
+                                end
+                                epoch_line = buf(lim(l,1) : lim(l,2));
+                                % try to guess the time format
+                                [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
+                                this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
+                                
+                                this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
+                            end
+                            this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
+                            this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
+                            
+                            if ~isempty(date_stop)
+                                this.last_epoch.addEpoch(date_stop, [], true);
+                                this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
+                            else
+                                if flag_header_only
+                                    this.log.addWarning('Last epoch not found in header, search in file is not enabled\nThe last epoch has not been saved within the  object', this.verbosity_lev);
+                                else
+                                    % go to the end of the file to search for the last epoch
+                                    % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 10000 characters
+                                    fseek(fid, 0, 'eof');
+                                    f_size = ftell(fid);
+                                    fseek(fid, - min(1e4, f_size - 1), 'eof');
+                                    buf = fread(fid, min(1e4, f_size - 1),'*char')';
+                                    
+                                    % Start searching for a valid epoch
+                                    time = [];
+                                    loop_n = 1;
+                                    file_ko = false;
+                                    while isempty(time) && ~isempty(buf) && ~file_ko
+                                        if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))
+                                            has_cr = true;  % The file has carriage return - I hate you Bill!
+                                        else
+                                            has_cr = false;  % The file is UNIX standard
+                                        end
+                                        
+                                        % get new line separators
+                                        nl = regexp(buf, '\n')';
+                                        if isempty(nl)
+                                            file_ko = true;
+                                        else                                            
+                                            if nl(end) <  (numel(buf) - double(has_cr))
+                                                nl = [nl; numel(buf)];
+                                            end
+                                            lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                                            lim = [lim lim(:,2) - lim(:,1)];
+                                            lim(lim(:,3) < this.id_date(end), :) = [];
+                                            
+                                            l = size(lim, 1);
+                                            while (l >= 1) && isempty(time)
+                                                line = buf(lim(l,1) : lim(l,2));
+                                                if ~isempty(regexp(line(1:15),'( [0-9]{1,4} [ 0-9]{1}[0-9]{1} [ 0-9]{1}[0-9]{1})', 'once'))
+                                                    % Check that the read epoch is within 30 days from the first epoch
+                                                    % (if it's further in time it's probably a misleading false epoch line)
+                                                    time = GPS_Time(line(this.id_date), [], true);
+                                                end
+                                                l = l - 1;
+                                            end
+                                            if ~file_ko
+                                                if isempty(time) || time.isEmpty()
+                                                    loop_n = loop_n + 1;
+                                                    fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
+                                                    buf = fread(fid, 10000, '*char')';
+                                                end
+                                            end
+                                        end
+                                    end
+                                    if file_ko
+                                        this.log.addError(sprintf('Check the following file, it seems to be corrupted\nPath: "%s"', full_path));
+                                        this.first_epoch = this.first_epoch.getEpoch(1 : this.last_epoch.length);
+                                        this.is_valid_list(f) = false;                                        
+                                    elseif isempty(time)
+                                        this.log.addError(sprintf('Check the following file, it seems to be empty\nPath: "%s"', full_path));
+                                        this.first_epoch = this.first_epoch.getEpoch(1 : this.last_epoch.length);
+                                        this.is_valid_list(f) = false;
+                                    else
+                                        this.last_epoch.append(time);
+                                        this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
+                                    end
+                                end
+                            end
+                            fclose(fid);
+                            this.is_valid_list(f) = true;
                         end
-                        fclose(fid);
-                        this.is_valid_list(f) = true;
                     end
                 catch ex
                     this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file or missing'], this.verbosity_lev);
