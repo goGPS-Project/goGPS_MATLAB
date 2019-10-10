@@ -98,7 +98,7 @@ classdef Tropo_Mat_Reader
         function showBaselineENU(this, ref)
             % Show ENU position variations
             if ~isempty(this.data_set)
-                f = figure; f.Name = sprintf('%03d: BSL %s - %s', f.Number, ref.marker, this.marker); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: BSL %s - %s', f.Number, ref.marker, this.marker); f.NumberTitle = 'off';
                         
                 colormap(flipud(gat2));
                 for i = 1 : numel(this.data_set)
@@ -126,7 +126,7 @@ classdef Tropo_Mat_Reader
                 for a = 3:-1:1
                     ax(a) = subplot(3,1,a);
                     h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
-                    setTimeTicks(10,'mmm-dd HH:MM');
+                    setTimeTicks(5,'mmm-dd HH:MM');
                     h = ylabel(label{a}); h.FontWeight = 'bold';
                     grid on;
                     xlim(minMax(time));
@@ -136,6 +136,9 @@ classdef Tropo_Mat_Reader
                     ylim(yl);
                 end
                 linkaxes(ax, 'x');
+                Core_UI.beautifyFig(f, 'light');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
@@ -143,7 +146,7 @@ classdef Tropo_Mat_Reader
             % Show ENU position variations
             if ~isempty(this.data_set)
                 if nargin < 2
-                    f = figure; f.Name = sprintf('%03d: ENU %s ', f.Number, this.marker); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: ENU %s ', f.Number, this.marker); f.NumberTitle = 'off';
                 end
                 
                 for i = 1 : numel(this.data_set)
@@ -170,19 +173,24 @@ classdef Tropo_Mat_Reader
                     else                        
                         h = title(sprintf('%s vs std %.2f [cm]', cur_ax.Title.String, sqrt(var(enu(:,a)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                     end
-                    setTimeTicks(10,'mmm-dd HH:MM');
+                    setTimeTicks(5,'mmm-dd HH:MM');
                     h = ylabel(label{a}); h.FontWeight = 'bold';
                     grid on;
                     xlim(minMax(time));
                 end
                 linkaxes(ax, 'x');
+                Core_UI.beautifyFig(f, 'light');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
         function showAllTropoPar(this, tropo_par, color)
             if ~isempty(this.data_set)
                 if nargin < 3
-                    f = figure; f.Name = sprintf('%03d: %s %s ', f.Number, upper(tropo_par), this.marker); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s ', f.Number, upper(tropo_par), this.marker); f.NumberTitle = 'off';
+                else
+                    f = gcf;
                 end
                 colormap(flipud(gat2));
                 min_time = inf;
@@ -200,6 +208,9 @@ classdef Tropo_Mat_Reader
                 grid minor;
                 setTimeTicks();
                 title(this.marker);
+                Core_UI.beautifyFig(f, 'light');
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         

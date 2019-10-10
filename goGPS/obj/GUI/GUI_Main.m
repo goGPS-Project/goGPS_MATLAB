@@ -1262,10 +1262,12 @@ end
                 'FontSize', Core_UI.getFontSize(8), ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);            
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Absolute regularization', 'std_tropo_abs', 'm', @this.onEditChange, [-1 80 5 70]);            
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'First der. regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);            
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Spline rate', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vl_adv, 'Order of the spline',this.state.SPLINE_TROPO_ORDER_LABEL ,'spline_tropo_order', @this.onPopUpChange, [-1 160]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Absolute regularization', 'std_tropo_gradient_abs', 'm', @this.onEditChange, [-1 80 5 70]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'First der. regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Spline rate', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vr_adv, 'Order of the spline',this.state.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange, [-1 160]);
                         
