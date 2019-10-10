@@ -4315,13 +4315,7 @@ classdef GNSS_Station < handle
                 [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
             else
                 [tropo, t] = sta_list.getTropoPar(par_name);
-                for r = 1 : numel(sta_list)
-                    if iscell(tropo)
-                        id_ko{r} = false(size(tropo{r}));
-                    else
-                        id_ko{r} = false(size(tropo));
-                    end
-                end
+                id_ko = [];
             end
             
             if ~iscell(tropo)
@@ -4337,7 +4331,9 @@ classdef GNSS_Station < handle
             sta_list = sta_list(rec_ok);
             tropo = tropo(rec_ok);
             t = t(rec_ok);
-            id_ko = id_ko(rec_ok);
+            if ~isempty(id_ko)
+                id_ko = id_ko(rec_ok);
+            end
             
             flag_ok = false; for i = 1 : numel(tropo); flag_ok = flag_ok || any(tropo{i}); end;
             
