@@ -139,10 +139,9 @@ classdef GPS_Time < Exportable & handle
             if isempty(strtrim(string_time(:)))
                 % no time = > empty GPS_Time
             else
-                str = string_time(:)';
+                str = regexprep(string_time(:)', '[\/|\:|\-]', ' ');
                 date = sscanf(str,'%f%f%f%f%f%f')';
-                
-                
+                                
                 if numel(date) <= 3
                     % fallback to datevec
                     date_format = 'yyyy mm dd';
