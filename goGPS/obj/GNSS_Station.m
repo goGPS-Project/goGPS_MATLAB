@@ -4329,10 +4329,10 @@ classdef GNSS_Station < handle
             f.Visible = 'on';            
         end
 
-        function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, disable_od)
+        function showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
             % one function to rule them all
 
-            if nargin < 5 || isempty(disable_od) || ~disable_od
+            if nargin < 5 || isempty(flag_od) || flag_od
                 [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
             else
                 [tropo, t] = sta_list.getTropoPar(par_name);
@@ -4554,16 +4554,16 @@ classdef GNSS_Station < handle
             end
         end
 
-        function showZhd(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showZhd(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZHD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZhd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
+            %   sta_list.showZhd(<new_fig = true>, <sub_plot_nsat = true>, <flag_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4571,23 +4571,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 3 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
             end
             
-            sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat, flag_od)
         end
 
-        function showZwd(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showZwd(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZWD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZwd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
+            %   sta_list.showZwd(<new_fig = true>, <sub_plot_nsat = true>, <flag_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4595,23 +4595,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 3 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
             end
             
-            sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat, flag_od)
         end
 
-        function showPwv(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showPwv(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display PWV values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showPwv(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
+            %   sta_list.showPwv(<new_fig = true>, <sub_plot_nsat = true>, <flag_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4619,23 +4619,23 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 3 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
             end
             
-            sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat, flag_od)
         end
 
-        function showZtd(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showZtd(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZTD values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
-            %   sta_list.showZtd(<new_fig = true>, <sub_plot_nsat = true>, <disable_od = false>)
+            %   sta_list.showZtd(<new_fig = true>, <sub_plot_nsat = true>, <flag_od = false>)
 
             if nargin <= 1 || isempty(new_fig)
                 new_fig = true;
@@ -4643,20 +4643,20 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 3 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
             end
             
-            sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od)
         end
 
-        function showGn(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showGn(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZTD Gradiet North values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
             %   sta_list.showGn(<new_fig = true>, <sub_plot_nsat = true>)
@@ -4667,19 +4667,19 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 3 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
             end
-            sta_list.showTropoPar('GN', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('GN', new_fig, sub_plot_nsat, flag_od)
         end
 
-        function showGe(sta_list, new_fig, sub_plot_nsat, disable_od)
+        function showGe(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZTD Gradiet East values
             %
             % INPUT:
             %   new_fig         flag to specify to open a new figure (default = true)
             %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
-            %   disable_od      flag to disable outlier detection
+            %   flag_od         flag to disable outlier detection
             %
             % SYNTAX:
             %   sta_list.showGe(<new_fig = true>, <sub_plot_nsat = true>)
@@ -4690,10 +4690,10 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(sub_plot_nsat)
                 sub_plot_nsat = true;
             end
-            if nargin <= 2 || isempty(disable_od)
-                disable_od = false;
+            if nargin <= 2 || isempty(flag_od)
+                flag_od = false;
             end
-            sta_list.showTropoPar('GE', new_fig, sub_plot_nsat, disable_od)
+            sta_list.showTropoPar('GE', new_fig, sub_plot_nsat, flag_od)
         end
 
         function ztd_correction = getZtdReduction(sta_list, degree, xyh, flag_spatial)
