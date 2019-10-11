@@ -182,6 +182,7 @@ classdef File_Rinex < Exportable
                 % try to find the first and the last epoch stored in the file
                 try
                     %%
+                    this.is_valid_list(f) = true;
                     fid = fopen(full_path);
                     if fid < 0
                         this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing'], this.verbosity_lev);
@@ -322,7 +323,10 @@ classdef File_Rinex < Exportable
                                 this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                             else
                                 if flag_header_only
-                                    this.log.addWarning('Last epoch not found in header, search in file is not enabled\nThe last epoch has not been saved within the  object', this.verbosity_lev);
+                                    this.log.addWarning('Last epoch not found in header, search in file is not enabled\nThe last epoch has not been saved within the object', this.verbosity_lev);
+                                    if ~isempty(this.first_epoch.last.getMatlabTime)
+                                        this.last_epoch.addEpoch(this.first_epoch.last.getMatlabTime, [], true);
+                                    end
                                 else
                                     % go to the end of the file to search for the last epoch
                                     % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 10000 characters
@@ -388,7 +392,6 @@ classdef File_Rinex < Exportable
                                 end
                             end
                             fclose(fid);
-                            this.is_valid_list(f) = true;
                         end
                     end
                 catch ex
