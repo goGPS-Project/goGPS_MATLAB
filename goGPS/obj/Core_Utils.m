@@ -97,7 +97,7 @@ classdef Core_Utils < handle
             % using interp 1 spline method
             %
             % SYNTAX
-            %   Core_Utils.diffAndPred(data, t_ref)
+            %   Core_Utils.diffAndPred(data, n_order, t_ref, method)
             
             if nargin < 3 || isempty(t_ref)
                 t_ref = 1 : size(data,1);
