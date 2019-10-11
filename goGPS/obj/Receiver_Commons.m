@@ -770,16 +770,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if ~exist(out_dir, 'file')
                             mkdir(out_dir);
                         end
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.m']);
+                        old_file_list = dir(fname_old);
+
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                         
-                        this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                        this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                        for f = 1 : numel(old_file_list)
+                            % If I did not overwrite the old file, delete it
+                            if ~strcmp([out_dir filesep old_file_list(f).name], fname)
+                                this(1).log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
+                                delete([out_dir filesep old_file_list(f).name]);
+                            end
+                        end
                     catch ex
-                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: "%s"', ex.message));
                     end
                 else
                     if isempty(max(this(r).quality_info.s0))
-                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
                     else
                         this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                     end
@@ -815,7 +825,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if ~exist(out_dir, 'file')
                             mkdir(out_dir);
                         end
+                        
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.csv']);
+                        old_file_list = dir(fname_old);
+
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.csv']);
+                                                
                         fid = fopen(fname,'w');
                         n_data = time.length;
                         fprintf(fid,'Data               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
@@ -825,14 +840,21 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             reshape(sprintf('%12.6f',ge),12,n_data)' char(44.*ones(n_data,1)) ...
                             reshape(sprintf('%12.6f',gn),12,n_data)' char(10.*ones(n_data,1))];
                         fprintf(fid,data');
-                        fclose(fid);
-                        this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                        fclose(fid);                        
+                        this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                        for f = 1 : numel(old_file_list)
+                            % If I did not overwrite the old file, delete it
+                            if ~strcmp([out_dir filesep old_file_list(f).name], fname)
+                                this(1).log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
+                                delete([out_dir filesep old_file_list(f).name]);
+                            end
+                        end
                     catch ex
-                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                        this(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
                     end
                 else
                     if isempty(max(this(r).quality_info.s0))
-                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
                     else
                         this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                     end
