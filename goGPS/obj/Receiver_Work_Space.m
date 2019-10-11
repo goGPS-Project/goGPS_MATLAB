@@ -1342,8 +1342,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                             % Hp 1
                             % I have different biases per satellite
                             % let's remove them on the least precise trackings
-                            trk_bia = round(median((res(:,:,t) - res(:,:,1) - round(res(:,:,t) - res(:,:,1))), 'omitnan'), 4);
-                            res(:, :, t) = bsxfun(@minus, res(:, :, t), trk_bia);
+                            trk_bia = median(round(median((res(:,:,t) - res(:,:,1) - round(res(:,:,t) - res(:,:,1))), 'omitnan') * 4) / 4, 'omitnan');
+                            trk_bia = nan2zero(round(median((res(:,:,t) - res(:,:,1) - round(res(:,:,t) - res(:,:,1))) - trk_bia, 'omitnan'), 4)) + trk_bia;
+                            res(:, :, t) = bsxfun(@minus, zero2nan(res(:, :, t)), trk_bia);
                             
                             % Merge arc by arc to detect outliers and cycle sleep
                             for s = 1 : size(res,2)
@@ -1383,7 +1384,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                                 end
                                             end
                                         end
-                                        res(id_arc, s, t) = res(id_arc, s, t)  - corr;
+                                        res(id_arc, s, t) = res(id_arc, s, t) - corr;
                                     end
                                 end
                             end
@@ -1401,14 +1402,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 weight = nan(size(el_interp, 1), numel(trk_avail));
                                 for t = 1 : numel(trk_avail)
                                     trk = ['L' f trk_avail(t)];
-                                    sat_var(:,t) = zero2nan(movvar(Core_Utils.diffAndPred(res(:,s,t)),5));
-                                    min_val = mean(sat_var(el(:,s) > el_interp(round(numel(el_interp)/5*4)), t));
-                                    n_reg = 1 * size(sat_var, 1);
-                                    weight(:, t) = 1 ./ max(min_val/2, Core_Utils.interp1LS(zero2nan([serialize(el(:,s)); (el_interp(end) + 5) * ones(n_reg,1)]), [zero2nan(serialize(sat_var(:,t))); min_val * ones(n_reg, 1)], 3, el_interp));
+                                    tmp = Core_Utils.diffAndPred(res(:, s, t), 1, [], 'linear');
+                                    sat_var(:,t) = zero2nan(movvar(tmp, 5));
+                                    id_ok = ~isnan(sat_var(:,t));
+                                    if ~any(id_ok)
+                                        weight(:, t) = 0;
+                                        id_ko(:, t) = true;
+                                    else
+                                        min_val = mean(sat_var(el(:,s) > min(max(serialize(el(id_ok,s)))/5*4, el_interp(round(numel(el_interp)/5*4))), t), 'omitnan');
+                                        n_reg = 1 * size(sat_var, 1);
+                                        weight(:, t) = 1 ./ min(max(sat_var(:,t)), max(min_val/2, Core_Utils.interp1LS(zero2nan([serialize(el(id_ok,s)); (el_interp(end) + 5) * ones(n_reg,1)]), [zero2nan(serialize(sat_var(id_ok,t))); min_val * ones(n_reg, 1)], 3, el_interp)));
                                     
-                                    tmp = Core_Utils.diffAndPred(res(:, s, t));
-                                    thr = 0.4; % this is a threshold in cycle to be calibrated
-                                    id_ko(:, t) = abs(tmp-movmedian(tmp, 5)) > thr;
+                                        thr = 0.4; % this is a threshold in cycle to be calibrated
+                                        id_ko(:, t) = abs(tmp-movmedian(tmp, 5)) > thr;
+                                    end
                                 end
                                 % Do not consider outliers if there is only one observation available
                                 id_ko = id_ko | squeeze(isnan(res(:, s, :)));
@@ -1417,7 +1424,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 weight = interp1q(el_interp, weight, el(:,s));
                                 %weight = weight*0 + 1;
                                 weight(id_ko) = 0;
-                                weight = bsxfun(@rdivide, weight, sum(weight,2));
+                                % for now keep only the data when the best tracking is available
+                                weight(id_ko(:,1),2:end) = 0; % <= to be checked in the future
+                                
+                                weight = bsxfun(@rdivide, weight, sum(weight,2) + eps);
                                 % plot(squeeze(res(:,s,:)), 'o');
                                 % hold on; plot(zero2nan(sum(squeeze(nan2zero(res(:, s, :))) .* weight, 2)), '.k');
                                 res(:, s, 1) = zero2nan(sum(squeeze(nan2zero(res(:, s, :))) .* weight, 2));
@@ -8554,7 +8564,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
                             this.getSatCache([], true);
-                            this.combinePhTrackings();
+                            if this.state.isCombineTrk
+                                this.combinePhTrackings();
+                            end
                             this.detectOutlierMarkCycleSlip();
                             %this.coarseAmbEstimation();
                             this.pp_status = true;
@@ -8572,15 +8584,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % EXAMPLE:
             %   Use the full dataset to compute a PPP solution
-            %    - this.parent.staticPPP();
+            %    - this.staticPPP();
             %
             %   Use just GPS + GLONASS + Galileo to compute a PPP solution
             %   using epochs from 501 to 2380
-            %    - this.parent.staticPPP('GRE', 501:2380);
+            %    - this.staticPPP('GRE', 501:2380);
             %
             %   Use all the available satellite system to compute a PPP solution
             %   using epochs from 501 to 2380
-            %    - this.parent.staticPPP([], 500:2380);
+            %    - this.staticPPP([], 500:2380);
             
             cc = Core.getState.getConstellationCollector;
             if this.isEmpty()
