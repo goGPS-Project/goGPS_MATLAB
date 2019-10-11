@@ -1604,6 +1604,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 t = {t};
             end
             
+            unit_convert = iif(ismember(lower(par_name), {'ztd', 'zhd', 'zwd', 'pwv', 'gn', 'ge'}), 1e2, 1);            
+            
             rec_ok = false(numel(sta_list), 1);
             for r = 1 : size(sta_list, 2)
                 rec_ok(r) = ~isempty(tropo{r});
@@ -1636,9 +1638,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4); hold on;
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.', 'LineWidth', 4); hold on;
                         end
                         outm{r} = rec(1).parent.getMarkerName();
                     end
@@ -1655,7 +1657,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                     setTimeTicks(4,'dd/mm/yyyy HH:MM');
-                    h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
+                    h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     Core_UI.beautifyFig(f);
