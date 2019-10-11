@@ -200,17 +200,16 @@ classdef Command_Settings < Settings_Interface
             end
             
             cmd = Core.getCommandInterpreter();
-            [~, err_list, ~, ~, ~, key_lev] = cmd.fastCheck(this.cmd_list);
+            [cmd_list, err_list, ~, ~, ~, key_lev] = cmd.fastCheck(this.cmd_list);
             % find how to indent commands:
             key_lev = key_lev - (diff([0 key_lev]) > 0);
-            this.cmd_list = this.cmd_list(~err_list);
+            this.cmd_list = cmd_list;
             % To be moved in the manual in the future            
             for l = 1 : numel(this.cmd_list)
                 str_cell = [str_cell; {sprintf('%s%s', char(32 * ones(1,3 * key_lev(l))), strtrim(this.cmd_list{l}))}];
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
-        
     end
    
     % =========================================================================

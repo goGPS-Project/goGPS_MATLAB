@@ -2381,6 +2381,8 @@ classdef Command_Interpreter < handle
                         str_loop = [str_loop 'F'];
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_END.id)
+                        % clear legacy commands
+                        cmd_list{c} = regexprep(cmd_list{c},'ENDPAR|ENDFOR', 'END');
                         if str_loop(end) == 'P'
                             % I need to loop
                             is_par = 0;
