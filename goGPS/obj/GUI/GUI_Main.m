@@ -213,7 +213,7 @@ end
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
             
             tab_panel = uix.TabPanel('Parent', panel_g_border, ...
-                'TabWidth', 100, ...
+                'TabWidth', 90, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'SelectionChangedFcn', @this.onTabChange);
@@ -237,18 +237,21 @@ end
             % Main Panel > tab5 CRD of the stations
             this.insertTabRecSpecificParameters(tab_panel);
 
-            % Main Panel > tab6 processing options
+            % Main Panel > tab6 pre-processing options
+            this.insertTabPrePro(tab_panel);
+
+            % Main Panel > tab7 processing options
             this.insertTabProcessing(tab_panel);
-            
-            % Main Panel > tab7 atmosphere options
+
+            % Main Panel > tab8 atmosphere options
             this.insertTabAtmosphere(tab_panel);
             
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
             else
-                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
             end
             
             % Botton Panel ---------------------------------------------------------------------------------------------
@@ -594,7 +597,7 @@ end
             box_g.Heights = [-1 23 5 23];
         end
                 
-        function insertTabProcessing(this, container)
+        function insertTabPrePro(this, container)
             data_selection_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
@@ -618,10 +621,14 @@ end
             
             Core_UI.insertHBarLight(ds_box_g);
             
-            ds_h_box = uix.HBox('Parent', ds_box_g, ...
+            ds_v_box = uix.VBox('Parent', ds_box_g, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            err_box_g = uix.VBox('Parent', ds_h_box, ...
+            ss_panel  = this.insertSatSelector(ds_v_box); %#ok<NASGU>
+            
+            Core_UI.insertEmpty(ds_v_box);            
+            
+            err_box_g = uix.VBox('Parent', ds_v_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [175 40 5 50]);
@@ -644,12 +651,8 @@ end
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [175 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
             err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
-            
-            Core_UI.insertEmpty(ds_h_box);
-            
-            ss_panel  = this.insertSatSelector(ds_h_box); %#ok<NASGU>
-            
-            ds_h_box.Widths = [280 3 -1];
+                        
+            ds_v_box.Heights = [168 10 -1];
             
             %Core_UI.insertEmpty(ds_box_g);
             
@@ -658,8 +661,31 @@ end
             Core_UI.insertEmpty(tab);
             
             % --------------------------------------------------------
-            %  ----h-----------------
-            %  -ppp--E--r--E--out--
+            
+            opt_left = uix.Grid('Parent', tab, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                                      
+            % left top left right
+            ppp_panel = this.insertPreProOptions(opt_left); %#ok<NASGU>
+            opt_left.Widths = 190;
+            opt_left.Heights = 75;
+            
+            % --------------------------------------------------------
+            
+            ds_box_g.Heights = [18 15 -1];
+            
+            tab.Widths = [-1 5 190];
+            
+            this.uip.tab_pre_proc = tab;
+        end
+        
+        function insertTabProcessing(this, container)
+            data_selection_bg = Core_UI.LIGHT_GREY_BG;
+            tab = uix.Grid('Parent', container, ...
+                'Padding', 5, ...
+                'BackgroundColor', data_selection_bg);
+            
+            % --------------------------------------------------------
             
             opt_h = uix.HBox('Parent', tab, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -679,9 +705,9 @@ end
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                          
             % left top left
-            pp_panel = this.insertTabProcessingOptions(opt_tll);
-            Core_UI.insertEmpty(opt_tll);            
             coo_panel = this.insertCooOptions(opt_tll);
+            Core_UI.insertEmpty(opt_tll);            
+            pp_panel = this.insertTabProcessingOptions(opt_tll);
             
             % left top left right
             ppp_panel = this.insertCorrections(opt_tlr); %#ok<NASGU>
@@ -689,15 +715,14 @@ end
             % left bottom
             Core_UI.insertEmpty(opt_l);
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
-            Core_UI.insertEmpty(opt_l);
 
             Core_UI.insertEmpty(opt_h);
             
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [267 1 23 -1];
-            opt_tll.Heights = [165, 5, 93];
+            opt_l.Heights = [267 -1 23];
+            opt_tll.Heights = [93, 5, 165];
             opt_tlr.Heights = sum(opt_tll.Heights);
             
             opt_tlh.Widths = [-1 5 195];
@@ -707,7 +732,7 @@ end
             
             ds_box_g.Heights = [18 15 -1];
             
-            tab.Heights = [230 5 -1];
+            tab.Heights = -1;
             
             this.uip.tab_proc = tab;
         end
@@ -845,6 +870,7 @@ end
             n_b_irn.ButtonSize(1) = 72;
             n_b_sbs.ButtonSize(1) = 72;
             
+            v_bx_freq.Heights = 0 * v_bx_freq.Heights + 20;
             h_box_cc.Widths = [80 20 -1];
         end
         
@@ -866,24 +892,36 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',           'flag_out_quality', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange);           
-            opt_container.Heights = [264];
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
+            opt_v.Heights = ones(1, numel(opt_v.Heights)) * 22;
+            opt_container.Heights = -1;
             %Core_UI.insertEmpty(opt_container);
             %opt_container.Heights = [264 -1];
+        end
+
+        function ppp_panel = insertPreProOptions(this, container)
+            %%% processing options
+            ppp_panel = Core_UI.insertPanelLight(container, 'Input manipulation');
+            opt_vbox = uix.VBox('Parent', ppp_panel,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
+            ttip = 'Align satellite clocks among each file';
+            if verLessThan('matlab','9.5')
+                this.check_boxes{end}.TooltipString = ttip;
+            else
+                this.check_boxes{end}.Tooltip = ttip;
+            end
+            Core_UI.insertEmpty(opt_vbox);
+            
+            opt_vbox.Heights = [22 22 -1];
         end
         
         function ppp_panel = insertCorrections(this, container)
             %%% processing options
-            ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
+            ppp_panel = Core_UI.insertPanelLight(container, 'PPP "corrections"');
             opt_vbox = uix.VBox('Parent', ppp_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
-            if verLessThan('matlab','9.5')
-                this.check_boxes{end}.TooltipString = 'Align satellite clocks among each file';
-            else
-                this.check_boxes{end}.Tooltip = 'Align satellite clocks among each file';
-            end
-            Core_UI.insertHBarLight(opt_vbox);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);              
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
@@ -895,7 +933,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             Core_UI.insertEmpty(opt_vbox);
              
-            opt_vbox.Heights = [22 5 ones(1, 9) * 22 -1];
+            opt_vbox.Heights = [ones(1, 9) * 22 -1];
         end
         
         function insertTabRecSpecificParameters(this, container)

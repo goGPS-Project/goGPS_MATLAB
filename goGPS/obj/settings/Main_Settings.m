@@ -185,6 +185,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % PROCESSING PARAMETERS
         FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
+        FLAG_COMBINE_TRK = true;                        % Flag for enabling tracking combination
         W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
@@ -602,7 +603,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %------------------------------------------------------------------
 
         % Flag for enabling cycle slip restoration
-        flag_repair = Main_Settings.FLAG_REPAIR;
+        flag_repair = Main_Settings.FLAG_REPAIR;                
+        
+        % Flag for enabling trackings combination
+        flag_combine_trk = Main_Settings.FLAG_COMBINE_TRK;
+        
 
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Main_Settings.W_MODE;
@@ -880,6 +885,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.getData('flag_repair');
+                this.flag_combine_trk = state.getData('flag_combine_trk');
+                
                 this.w_mode = state.getData('w_mode');
                 
                 this.ppp_reweight_mode = state.getData('ppp_reweight_mode');
@@ -1047,7 +1054,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
 
                 % PROCESSING PARAMETERS
-                this.flag_repair = state.flag_repair;                
+                this.flag_repair = state.flag_repair;   
+                this.flag_combine_trk = state.flag_combine_trk;   
+                
                 this.w_mode = state.w_mode;
                 this.ppp_reweight_mode = state.ppp_reweight_mode;
                 this.net_reweight_mode = state.net_reweight_mode;
@@ -1243,6 +1252,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
+            str = [str sprintf(' Enable phase tracking combination                 %d\n', this.flag_combine_trk)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
             str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable for single frequency receiverrs:       %d\n\n', this.flag_ppp_force_single_freq)];
@@ -1645,6 +1655,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable cycle slip repair (0/1) Experimental', str_cell);
             str_cell = Ini_Manager.toIniString('flag_repair', this.flag_repair, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable phase trackings combination', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_combine_trk', this.flag_combine_trk, str_cell);
+            
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
@@ -2380,6 +2393,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_ppp_force_single_freq = 0; % If you don't know what you are doing this is risky
 
             this.flag_repair = 0; % (too much experimental)
+            
+            this.flag_combine_trk = 1; % Usually it improves the results
+            
             this.flag_amb_pass = 0;
             this.flag_ppp_amb_fix = 0; % not yet woking stable enough
             this.flag_amb_pass = 0; % (too much experimental)
@@ -2473,6 +2489,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.net_amb_fix_approach = 2; % fix ambiguities with lambda
             
             this.flag_repair = 0; % (too much experimental)
+            this.flag_combine_trk = 1; % Usually it improves the results
+            
             this.flag_amb_pass = 0;
             this.flag_ppp_amb_fix = 0; % not yet woking stable enough
             this.flag_amb_pass = 0; % (too much experimental)
@@ -2587,6 +2605,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_repair');
+            this.checkLogicalField('flag_combine_trk');
             
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             this.checkNumericField('ppp_reweight_mode',[1 numel(this.PPP_REWEIGHT_SMODE)]);
@@ -4440,6 +4459,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   flag = this.isRepairOn()
             flag = this.flag_repair;
+        end
+        
+        function flag = isCombineTrk(this)
+            % Get the status of trackings combination
+            %
+            % SYNTAX
+            %   flag = this.isCombineTrk()
+            flag = this.flag_combine_trk;
         end
         
         function flag = isBlockForceStabilizationOn(this)
