@@ -767,9 +767,9 @@ classdef GPS_Time < Exportable & handle
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     % due to numerical error propagation I can keep only 4 decimal
-                    time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
+                    time_s =  (double(this.mat_time) - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    rounding = 10.^(round(16 - max(0,log10(this.mat_time * 86400 + eps(this.mat_time * 86400))))); % 52 bits of mantissa
+                    rounding = 10.^(round(16 - max(0,log10(double(this.mat_time) * 86400 + eps(double(this.mat_time) * 86400))))); % 52 bits of mantissa
                     this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
@@ -782,10 +782,10 @@ classdef GPS_Time < Exportable & handle
                     this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
-                    time_s = (this.time_ref - 719529) * 86400;
+                    time_s = (double(this.time_ref) - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
                     rounding = 2.^(round(47 - max(0,log2(time_s + eps(time_s))))); % 52 bits of mantissa -> but I need to consider only 47 bits to keep precision
-                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding + this.time_diff;
+                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding + double(this.time_diff);
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
                     this.unix_time_f = this.unix_time_f + second_correction;
