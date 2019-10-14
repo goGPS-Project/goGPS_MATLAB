@@ -180,7 +180,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
-        PP_MAX_CODE_ERR_THR = 10;                       % Threshold on the maximum residual of code observations [m] (pre-processing)
+        PP_MAX_CODE_ERR_THR = 20;                       % Threshold on the maximum residual of code observations [m] (pre-processing)
         MAX_CODE_ERR_THR = 10;                          % Threshold on the maximum residual of code observations [m]
         MAX_PHASE_ERR_THR = 0.10;                       % Threshold on the maximum residual of phase observations [m]
 
