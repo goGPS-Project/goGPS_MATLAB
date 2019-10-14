@@ -2377,6 +2377,13 @@ classdef LS_Manipulator < Exportable
             %   this.remObs(idx_obs)
             param_to_el = unique(this.A_idx(idx_obs,:));
             epoch_to_el = unique(this.epoch(idx_obs));
+            
+            if sum(this.param_class == this.PAR_AMB) > 0
+                inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
+                amb_to_el = unique(this.amb_idx(inearInd));
+                this.amb_idx(inearInd) = 0;
+            end
+            
             % remove lines from the design matrix
             this.A_idx(idx_obs,:) = [];
             this.A_ep(idx_obs,:) = [];
@@ -2388,7 +2395,7 @@ classdef LS_Manipulator < Exportable
             this.rw(idx_obs) = [];
             this.res(idx_obs) = [];
             this.y(idx_obs) = [];
-            
+                        
             param_actual = unique(this.A_idx);
             %change paramter indexes
             el_count = 0;
@@ -2417,11 +2424,7 @@ classdef LS_Manipulator < Exportable
             end
             this.n_epochs = length(unique(this.epoch));
             % If I have ambiguities in the receiver
-            if sum(this.param_class == this.PAR_AMB) > 0
-                inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
-                amb_to_el = unique(this.amb_idx(inearInd));
-                
-                this.amb_idx(inearInd) = 0;
+            if sum(this.param_class == this.PAR_AMB) > 0                
                 amb_actual = unique(this.amb_idx);
                 %change paramter indexes
                 for i = 1: length(amb_to_el)
