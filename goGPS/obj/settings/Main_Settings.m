@@ -2612,7 +2612,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('min_n_sat',[1 300]);
             this.checkNumericField('cut_off',[0 90]);
             this.checkNumericField('snr_thr',[0 70]);
-            this.checkNumericField('min_arc',[1 1800]);
+            this.checkNumericField('min_arc',[2 1800]);
 
             % ADV DATA SELECTION
             this.checkLogicalField('flag_outlier');
