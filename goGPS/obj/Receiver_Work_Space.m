@@ -8096,10 +8096,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.reweightHuber();
                 if i == num_reweight - 1
                     id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
-                    ls.remObs(id_ko);
+                    if any(~id_ko)
+                        ls.remObs(id_ko);
+                    end
                 elseif i == num_reweight
                     id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
-                    ls.remObs(id_ko);
+                    if any(~id_ko)
+                        ls.remObs(id_ko);
+                    end
                 end
                 ls.Astack2Nstack();
                 [x, res, s0] = ls.solve();
