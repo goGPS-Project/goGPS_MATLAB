@@ -7959,7 +7959,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
                 this.getSatCache(all_go_id, true); % force cache update of satellite orbits
-                [dpos, s0] = this.codeStaticPositioning(sys_list, ep_coarse);
+                [dpos, s0] = this.codeStaticPositioning(sys_list, ep_coarse, [], 0);
                 
                 if sum(abs(dpos)) > 1e8
                     % Solution is diverging => exit
@@ -7974,7 +7974,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~this.isMultiFreq()
                     this.updateErrIono(all_go_id);
                 end
-                this.codeStaticPositioning(sys_list, ep_coarse, 15);
+                this.codeStaticPositioning(sys_list, ep_coarse, 15, 0);
             end
         end
         
@@ -8069,7 +8069,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_sync = 1 : this.time.length;
                 end
             end
-            if nargin < 4
+            if nargin < 4 || isempty(cut_off)
                 cut_off = this.state.getCutOff();
             end
             ls.setUpCodeSatic( this, sys_list, id_sync, cut_off);
@@ -8095,12 +8095,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             for i = 1 : num_reweight
                 ls.reweightHuber();
                 if i == num_reweight - 1
-                    id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
+                    %id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
+                    id_ko = Core_Utils.snoopGatt(ls.res, 2 * Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP);
                     if any(~id_ko)
                         ls.remObs(id_ko);
                     end
                 elseif i == num_reweight
-                    id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
+                    % id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
+                    id_ko = Core_Utils.snoopGatt(ls.res, Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP/2);
                     if any(~id_ko)
                         ls.remObs(id_ko);
                     end
