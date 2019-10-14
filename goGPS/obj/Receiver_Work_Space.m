@@ -10527,6 +10527,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f_handle = [];
                 ss_ok = intersect(cc.sys_c, sys_c);
                 idx_f = 1;
+                time = this.time.getMatlabTime();
                 for ss = ss_ok
                     ss_id = find(cc.sys_c == ss);
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
@@ -10541,11 +10542,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                         id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & band_id, :),1));
                         any_data = any_data || any(id_ok);
-                        plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                        plot(time(id_ok), prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
                         hold on;
                         id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C' & band_id, :),1));
                         any_data = any_data || any(id_ok);
-                        plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0 0 0]);
+                        plot(time(id_ok), prn * ones(size(id_ok)), 'o', 'Color', [0 0 0]);
                         hold on;
                         id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
                         any_data = any_data || any(id_ok);
@@ -10555,7 +10556,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         close(f);
                     else
                         prn_ss = unique(this.prn(this.system == ss));
-                        xlim([1 size(this.obs,2)]);
+                        xlim([time(1) time(end)]);
+                        setTimeTicks();
                         if ~isempty(prn_ss)
                             ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
                             ax = gca(); ax.YTick = prn_ss;
