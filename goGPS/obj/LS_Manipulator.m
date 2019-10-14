@@ -2376,10 +2376,8 @@ classdef LS_Manipulator < Exportable
             % SYNTAX:
             %   this.remObs(idx_obs)
             param_to_el = unique(this.A_idx(idx_obs,:));
-            inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
-            amb_to_el = unique(this.amb_idx(inearInd));
             epoch_to_el = unique(this.epoch(idx_obs));
-            %remove lien from the design matrix
+            % remove lines from the design matrix
             this.A_idx(idx_obs,:) = [];
             this.A_ep(idx_obs,:) = [];
             this.N_ep(:,:,idx_obs) = [];
@@ -2390,17 +2388,19 @@ classdef LS_Manipulator < Exportable
             this.rw(idx_obs) = [];
             this.res(idx_obs) = [];
             this.y(idx_obs) = [];
-            this.amb_idx(inearInd) = 0;
             
             param_actual = unique(this.A_idx);
             %change paramter indexes
             el_count = 0;
             for i = 1: length(param_to_el)
-                if sum(param_to_el(i) == param_actual) ==0
+                if sum(param_to_el(i) == param_actual) == 0
                     idx_maj = this.A_idx > param_to_el(i);
                     this.A_idx(idx_maj) = this.A_idx(idx_maj) - 1;
                     param_actual(param_actual > param_to_el(i)) = param_actual(param_actual > param_to_el(i)) -1;
-                    this.G(:,param_to_el(i)) = [];;
+                    if sum(this.param_class == this.PAR_AMB) > 0
+                        % this matrix exist only when ambiguities are present
+                        this.G(:,param_to_el(i)) = [];
+                    end
                     param_to_el = param_to_el -1;
                 end
             end
@@ -2416,14 +2416,21 @@ classdef LS_Manipulator < Exportable
                 end
             end
             this.n_epochs = length(unique(this.epoch));
-            amb_actual = unique(this.amb_idx);
-            %change paramter indexes
-            for i = 1: length(amb_to_el)
-                if sum(amb_to_el(i) == amb_actual) ==0
-                    idx_maj = this.amb_idx > amb_to_el(i);
-                    this.amb_idx(idx_maj) = this.amb_idx(idx_maj) - 1;
-                    amb_actual(amb_actual > amb_to_el(i)) = amb_actual(amb_actual > amb_to_el(i)) -1;
-                    amb_to_el = amb_to_el -1;
+            % If I have ambiguities in the receiver
+            if sum(this.param_class == this.PAR_AMB) > 0
+                inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
+                amb_to_el = unique(this.amb_idx(inearInd));
+                
+                this.amb_idx(inearInd) = 0;
+                amb_actual = unique(this.amb_idx);
+                %change paramter indexes
+                for i = 1: length(amb_to_el)
+                    if sum(amb_to_el(i) == amb_actual) ==0
+                        idx_maj = this.amb_idx > amb_to_el(i);
+                        this.amb_idx(idx_maj) = this.amb_idx(idx_maj) - 1;
+                        amb_actual(amb_actual > amb_to_el(i)) = amb_actual(amb_actual > amb_to_el(i)) -1;
+                        amb_to_el = amb_to_el -1;
+                    end
                 end
             end
         end

@@ -7830,6 +7830,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.updateErrTropo(all_go_id);
                     this.log.addMessage(this.log.indent('Improving estimation'))
 
+                    corr = 2000;
                     rf_changed = false;
                     if ~this.hasGoodApriori()
                         this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
@@ -7873,7 +7874,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                rf_changed = true;
                                rf = Core.getReferenceFrame;
                                rf.setFlag(this.parent.getMarkerName4Ch, 1);
-                               this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
+                               [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                            end
                            
                        end
@@ -7884,9 +7885,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if ~this.hasGoodApriori
                         this.updateAllTOT();
                         this.log.addMessage(this.log.indent('Final estimation'))
-                        corr = 2000;
                         i = 1;
-                        while max(abs(corr)) > 0.1 && i < 3
+                        while max(abs(corr)) > 0.2 && i < 3
                             rw_loops = 0; % number of re-weight loops
                             this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
                             [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
@@ -7909,13 +7909,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.setPseudoRanges(pr, id_pr);
                     this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
-                    [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                    [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, 1); % no reweight
                     
                     if rf_changed
                         % restore flag in reference frame object
                         rf.setFlag(this.parent.getMarkerName4Ch, 3);
                     end
-                    this.log.addMessage(this.log.indent(sprintf('Estimation sigma0 %.3f m', s0) ))
+                    this.log.addMessage(this.log.indent(sprintf('Final estimation sigma0 %.3f m', s0) ))
                 else
                     this.log.addMessage(this.log.indent(sprintf('A good a-rpiori is set, skipping pre estimation of the coordinates') ))
                 end
@@ -8072,19 +8072,38 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 4
                 cut_off = this.state.getCutOff();
             end
-            if nargin < 5
-                num_reweight = 0;
-            end
             ls.setUpCodeSatic( this, sys_list, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s0] = ls.solve();
+
+            id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
+            if nargin < 5
+                if any(id_ko)
+                    num_reweight = 4;
+                else
+                    num_reweight = 0;                    
+                end
+            end
+            
+            log = Core.getLogger;
+            if num_reweight > 0
+                % show this message only in case of iterations
+                log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (first estimation)', s0)));
+            end
             cc = Core.getConstellationCollector;
-            % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
-            % enable)
+            % REWEIGHT ON RESIDUALS
             for i = 1 : num_reweight
                 ls.reweightHuber();
+                if i == num_reweight - 1
+                    id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
+                    ls.remObs(id_ko);
+                elseif i == num_reweight
+                    id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
+                    ls.remObs(id_ko);
+                end
                 ls.Astack2Nstack();
                 [x, res, s0] = ls.solve();
+                log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (iteration)', s0)));
             end
             
             if isempty(x)

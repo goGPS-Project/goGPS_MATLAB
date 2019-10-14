@@ -42,8 +42,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Main < handle
-    
+classdef GUI_Main < handle        
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
@@ -400,7 +399,7 @@ end
                 'String', 'Command list HELP', ...
                 'Callback', @this.openCommandHelp);
 
-            cmd_box.Heights = [23, -1, 23];
+            cmd_box.Heights = [Core_UI.LINE_HEIGHT, -1, Core_UI.LINE_HEIGHT];
         
             % --------------------------------------------------------
 
@@ -427,7 +426,7 @@ end
             % Inject edit box with the Java Scroll Pane into the main_window
             javacomponent(j_scroll_rri, [1 1 1 1], eg_box);
 
-            eg_box.Heights = [23, -1];
+            eg_box.Heights = [Core_UI.LINE_HEIGHT, -1];
 
             % --------------------------------------------------------
             
@@ -483,7 +482,7 @@ end
             end
             this.ui_sss_start = Core_UI.insertDateSpinnerHour(date_g, ts, @this.onSessionChange);
             this.ui_sss_stop = Core_UI.insertDateSpinnerHour(date_g, te, @this.onSessionChange);
-            date_g.Heights = [23, 23];
+            date_g.Heights = [1, 1] .* Core_UI.LINE_HEIGHT;
             date_g.Widths = [46, 280];
 
             Core_UI.insertEmpty(sss_box_l);
@@ -504,7 +503,7 @@ end
             el_group.Tag = 'sss_duration';
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 60 5 40]);
             this.edit_texts_array{end}.Tag = 'sss_buffer';
-            sss_bounds.Heights = [23 23];
+            sss_bounds.Heights = [1, 1] .* Core_UI.LINE_HEIGHT;
 
             Core_UI.insertEmpty(sss_box_r);
             
@@ -551,7 +550,7 @@ end
             sss_box_l.Heights     = [46 5];
             sss_check_box.Widths  = [300 300 -1];
             sss_box_r.Heights     = [46 5];
-            sss_box_v.Heights     = [51 5 23 5 23];
+            sss_box_v.Heights     = [51 5 Core_UI.LINE_HEIGHT 5 Core_UI.LINE_HEIGHT];
             
             % --------------------------------------------------------
             
@@ -594,7 +593,7 @@ end
                 'String', 'Get missing BLQ', ...
                 'Callback', @this.openGetChalmerString);
             box_gh.Widths = [-1 120];
-            box_g.Heights = [-1 23 5 23];
+            box_g.Heights = [-1 Core_UI.LINE_HEIGHT 5 Core_UI.LINE_HEIGHT];
         end
                 
         function insertTabPrePro(this, container)
@@ -648,9 +647,8 @@ end
             
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [175 40 5 50]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [175 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [175 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
-            err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
+            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,4)) 10 (Core_UI.LINE_HEIGHT * ones(1,2)) -1];
                         
             ds_v_box.Heights = [168 10 -1];
             
@@ -668,7 +666,7 @@ end
             % left top left right
             ppp_panel = this.insertPreProOptions(opt_left); %#ok<NASGU>
             opt_left.Widths = 190;
-            opt_left.Heights = 75;
+            opt_left.Heights = 77;
             
             % --------------------------------------------------------
             
@@ -721,9 +719,9 @@ end
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [267 -1 23];
-            opt_tll.Heights = [93, 5, 165];
-            opt_tlr.Heights = sum(opt_tll.Heights);
+            opt_l.Heights = [352 -1 Core_UI.LINE_HEIGHT];
+            opt_tll.Heights = [93, 5, -1];
+            opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
             
             opt_tlh.Widths = [-1 5 195];
             opt_h.Widths = [-1 5 190];
@@ -752,22 +750,33 @@ end
             %this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
-            set( opt_v, 'Heights', [22 22 22] );
+            set( opt_v, 'Heights', [1 1 1] .* Core_UI.LINE_HEIGHT );
         end
         
         function proc_opt = insertTabProcessingOptions(this, container)
-            proc_opt = Core_UI.insertPanelLight(container, 'Options');
-            opt_grid = uix.VBox('Parent', proc_opt,...
+            vpopt = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
-            Core_UI.insertEmpty(opt_grid);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Enable PPP for receiver containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange);
-            Core_UI.insertEmpty(opt_grid);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            opt_grid.Heights = [22 5 22 22 22 5 22 22];
+            proc_opt = Core_UI.insertPanelLight(vpopt, 'Options Generic');
+            opt_list = uix.VBox('Parent', proc_opt,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max code observation err', 'max_code_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
+            
+            proc_opt_ppp = Core_UI.insertPanelLight(vpopt, 'Options PPP');
+            opt_list_ppp = uix.VBox('Parent', proc_opt_ppp,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_ppp, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'Enable PPP for receivers containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange);
+            
+            proc_opt_net = Core_UI.insertPanelLight(vpopt, 'Options NET');
+            opt_list_net = uix.VBox('Parent', proc_opt_net,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
+            
+            vpopt.Heights = 25 + [3, 3, 2] .* Core_UI.LINE_HEIGHT;
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -893,7 +902,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
-            opt_v.Heights = ones(1, numel(opt_v.Heights)) * 22;
+            opt_v.Heights = ones(1, numel(opt_v.Heights)) * Core_UI.LINE_HEIGHT;
             opt_container.Heights = -1;
             %Core_UI.insertEmpty(opt_container);
             %opt_container.Heights = [264 -1];
@@ -914,7 +923,7 @@ end
             end
             Core_UI.insertEmpty(opt_vbox);
             
-            opt_vbox.Heights = [22 22 -1];
+            opt_vbox.Heights = [[1, 1] .* Core_UI.LINE_HEIGHT -1];
         end
         
         function ppp_panel = insertCorrections(this, container)
@@ -933,7 +942,7 @@ end
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             Core_UI.insertEmpty(opt_vbox);
              
-            opt_vbox.Heights = [ones(1, 9) * 22 -1];
+            opt_vbox.Heights = [ones(1, 9) * Core_UI.LINE_HEIGHT -1];
         end
         
         function insertTabRecSpecificParameters(this, container)
@@ -960,7 +969,7 @@ end
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
 
-            vbox.Heights = [23 23 -1];
+            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             % Create UITable
             this.coo_tbl = uitable('Parent', table_hbox, ...
@@ -1531,7 +1540,7 @@ end
                 'Callback', @this.onSessionSummaryCheck);
             
             Core_UI.insertEmpty(v_text, session_bg);
-            v_text.Heights = [5, 23, -1];
+            v_text.Heights = [5, Core_UI.LINE_HEIGHT, -1];
             Core_UI.insertHBarDark(this.session_info);
             sss_g = uix.VBox('Parent', this.session_info, ...
                 'Padding', 0, ...
@@ -1613,7 +1622,7 @@ end
             
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GREY_BG);
             
-            v_text.Heights = [5, 23, -1];
+            v_text.Heights = [5, Core_UI.LINE_HEIGHT, -1];
             
             rec_g = uix.Grid('Parent', this.info_g, ...
                 'Padding', 0, ...

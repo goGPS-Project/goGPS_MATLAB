@@ -180,8 +180,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
-        PP_MAX_CODE_ERR_THR = 10;                       % Threshold on the maximum residual of code observations [m]
-        PP_MAX_PHASE_ERR_THR = 0.10;                    % Threshold on the maximum residual of phase observations [m]
+        PP_MAX_CODE_ERR_THR = 10;                       % Threshold on the maximum residual of code observations [m] (pre-processing)
+        MAX_CODE_ERR_THR = 10;                          % Threshold on the maximum residual of code observations [m]
+        MAX_PHASE_ERR_THR = 0.10;                       % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
         FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
@@ -593,10 +594,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % Threshold on the code point-positioning least squares estimation error [m]
         pp_spp_thr = Main_Settings.PP_SPP_THR;
-        % Threshold on the maximum residual of code observations [m]
+        % Threshold on the maximum residual of code observations [m] (pre-processing
         pp_max_code_err_thr = Main_Settings.PP_MAX_CODE_ERR_THR;
+        % Threshold on the maximum residual of code observations [m]
+        max_code_err_thr = Main_Settings.MAX_CODE_ERR_THR;
         % Threshold on the maximum residual of phase observations [m]
-        pp_max_phase_err_thr = Main_Settings.PP_MAX_PHASE_ERR_THR;
+        max_phase_err_thr = Main_Settings.MAX_PHASE_ERR_THR;
 
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS
@@ -881,7 +884,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
-                this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
+                this.max_code_err_thr = state.getData('max_code_err_thr');
+                % for legacy reasons
+                if isempty(this.max_code_err_thr)
+                    this.max_phase_err_thr = state.getData('pp_max_phase_err_thr');
+                end
+                % for legacy reasons
+                if isempty(this.max_phase_err_thr)
+                    this.max_phase_err_thr = state.getData('pp_max_phase_err_thr');
+                end
 
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.getData('flag_repair');
@@ -1051,7 +1062,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_outlier = state.flag_outlier;
                 this.pp_spp_thr = state.pp_spp_thr;
                 this.pp_max_code_err_thr = state.pp_max_code_err_thr;
-                this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
+                this.max_code_err_thr = state.max_code_err_thr;
+                this.max_phase_err_thr = state.max_phase_err_thr;
 
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.flag_repair;   
@@ -1247,8 +1259,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- ADV DATA SELECTION --------------------------------------------------' 10 10];
             str = [str sprintf(' Enable Outlier detection                          %d\n', this.flag_outlier)];
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', this.pp_spp_thr)];
-            str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', this.pp_max_code_err_thr)];
-            str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
+            str = [str sprintf(' Threshold on max prepro residual of code obs [m]: %g\n', this.pp_max_code_err_thr)];
+            str = [str sprintf(' Threshold on max residual of code obs [m]:        %g\n', this.max_code_err_thr)];
+            str = [str sprintf(' Threshold on max residual of phase obs [m]:       %g\n\n', this.max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
@@ -1644,10 +1657,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_outlier', this.flag_outlier, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on code LS estimation error [m]', str_cell);
             str_cell = Ini_Manager.toIniString('pp_spp_thr', this.pp_spp_thr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Threshold on maximum (pre-processing) residual of code obs [m]', str_cell);
             str_cell = Ini_Manager.toIniString('pp_max_code_err_thr', this.pp_max_code_err_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('max_code_err_thr', this.max_code_err_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of phase obs [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('pp_max_phase_err_thr', this.pp_max_phase_err_thr, str_cell);
+            str_cell = Ini_Manager.toIniString('max_phase_err_thr', this.max_phase_err_thr, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % PROCESSING PARAMETERS
@@ -2384,7 +2399,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.snr_thr = 0;
             this.min_arc = 10;
             this.pp_max_code_err_thr = 10;
-            this.pp_max_phase_err_thr = 0.10;
+            this.max_code_err_thr = 10;
+            this.max_phase_err_thr = 0.10;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -2480,7 +2496,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.snr_thr = 28;
             this.min_arc = 10;
             this.pp_max_code_err_thr = 10;
-            this.pp_max_phase_err_thr = 0.10;
+            this.max_code_err_thr = 10;
+            this.max_phase_err_thr = 0.10;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -2601,7 +2618,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_outlier');
             this.checkNumericField('pp_spp_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
-            this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
+            this.checkNumericField('max_code_err_thr',[0.001 1e50]);
+            this.checkNumericField('max_phase_err_thr',[0.001 1e50]);
 
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_repair');
@@ -4097,12 +4115,20 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             min_arc = this.min_arc;
         end
 
+        function err_thr = getMaxCodeErrThrPP(this)
+            % Get the maximum error acceptable on code observations for pre-processing
+            %
+            % SYNTAX
+            %   err_thr = this.getMaxCodeErrThrPP()
+            err_thr = this.pp_max_code_err_thr;
+        end
+
         function err_thr = getMaxCodeErrThr(this)
             % Get the maximum error acceptable on code observations
             %
             % SYNTAX
             %   err_thr = this.getMaxCodeErrThr()
-            err_thr = this.pp_max_code_err_thr;
+            err_thr = this.max_code_err_thr;
         end
 
         function err_thr = getMaxPhaseErrThr(this)
@@ -4110,7 +4136,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   err_thr = this.getMaxPhaseErrThr()
-            err_thr = this.pp_max_phase_err_thr;
+            err_thr = this.max_phase_err_thr;
         end
         
         function reweight_mode = getReweightPPP(this)
