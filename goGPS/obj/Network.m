@@ -282,7 +282,7 @@ classdef Network < handle
                         %figure; plot(res(:,:,2)); ylim([-0.05 0.05]); dockAllFigures;
                         if s0 < 0.0025 && ... % low sigma0 of the computation
                                 ~(any(abs(mean(zero2nan(reshape(res, size(res,1), size(res,2) * size(res,3), 1)), 'omitnan')) > 2e-3) && this.state.getReweightNET() == 3) && ... % mean of residuals all below 5 mm
-                                all(abs(res(:)) < this.state.pp_max_phase_err_thr) && ...  % no residuals above thr level
+                                all(abs(res(:)) < this.state.getMaxPhaseErrThr) && ...  % no residuals above thr level
                                 all(std(zero2nan(reshape(permute(res(:,:,:),[1 3 2]), size(res,1) * size(res,3), size(res,2))),1,2,'omitnan') < 9e-3) % low dispersion of the residuals
                             
                             % I can be satisfied
@@ -634,8 +634,6 @@ classdef Network < handle
                 ls.solve();
                 ls.simpleSnoop(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
                 ls.solve();
-                
-                
                 
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
