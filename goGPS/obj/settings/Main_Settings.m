@@ -728,10 +728,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.log.addMarkedMessage('Building settings object...');
             this.log.newLine();
             if (nargin >= 1)
-                if ~exist(ini_settings_file, 'file')
-                    if ~isempty(ini_settings_file)
-                        this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
-                        ini_settings_file = this.LAST_SETTINGS;
+                if ~isa(ini_settings_file,'Main_Settings')
+                    if ~exist(ini_settings_file, 'file')
+                        if ~isempty(ini_settings_file)
+                            this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
+                            ini_settings_file = this.LAST_SETTINGS;
+                        end
                     end
                 end
                 if (nargin >= 2)
@@ -740,13 +742,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             else
                 ini_settings_file = this.LAST_SETTINGS;
             end
-
-            if (exist(ini_settings_file, 'file') == 2)
-                this.importIniFile(ini_settings_file);
+            
+            if (nargin >= 1) && isa(ini_settings_file,'Main_Settings')
+                this.import(ini_settings_file);
             else
-                this.log.addMarkedMessage('Using default settings');
-                this.log.newLine();
-                this.postImportInit();
+                if (exist(ini_settings_file, 'file') == 2)
+                    this.importIniFile(ini_settings_file);
+                else
+                    this.log.addMarkedMessage('Using default settings');
+                    this.log.newLine();
+                    this.postImportInit();
+                end
             end
         end
     end
@@ -1492,7 +1498,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Try to download missing resources from the net (0 / 1)', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniString('flag_download', this.flag_download, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type, valid only for source "igs",', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Preferred ionospheric type,', str_cell);

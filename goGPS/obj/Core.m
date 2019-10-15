@@ -170,7 +170,8 @@ classdef Core < handle
                 else
                     this = unique_instance_core__;
                     if ~skip_init
-                        if nargin == 3 && ~isempty(ini_file_path) && exist(ini_file_path, 'file')
+                        if nargin == 3 && ~isempty(ini_file_path) && ...
+                            (isa(ini_file_path,'Main_Settings') || exist(ini_file_path, 'file'))
                             this.init(force_clean, ini_file_path);
                         else
                             this.init(force_clean);
@@ -645,7 +646,11 @@ classdef Core < handle
             this.log.setColorMode(true);   
             
             if nargin == 3 && ~isempty(ini_file_path)
-                this.state = Main_Settings(ini_file_path);
+                if isa(ini_file_path,'Main_Settings')
+                    this.state  = Main_Settings(ini_file_path);
+                else
+                    this.state = Main_Settings(ini_file_path);
+                end
             else
                 this.state = Main_Settings();
             end
