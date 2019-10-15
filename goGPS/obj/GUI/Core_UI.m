@@ -287,10 +287,12 @@ classdef Core_UI < Logos
                     cb.Color = [0.9 0.9 0.9];
                     cb.FontName = 'Open Sans';
                     cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
-                    cbt = findall(cb.UserData, 'Type', 'text');
-                    cbt.Color = [0.9 0.9 0.9];
-                    cbt.FontName = 'Open Sans';
-                    cbt.FontSize = Core_UI.getFontSize(12)
+                    cbt_list = findall(cb.UserData, 'Type', 'text');
+                    for cbt = cbt_list(:)'
+                        cbt.Color = [0.9 0.9 0.9];
+                        cbt.FontName = 'Open Sans';
+                        cbt.FontSize = Core_UI.getFontSize(12);
+                    end
                 end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
@@ -343,10 +345,12 @@ classdef Core_UI < Logos
                     cb.Color = 1-[0.9 0.9 0.9];
                     cb.FontName = 'Open Sans';
                     cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
-                    cbt = findall(cb.UserData, 'Type', 'text');
-                    cbt.Color = 1-[0.9 0.9 0.9];
-                    cbt.FontName = 'Open Sans';                    
-                    cbt.FontSize = Core_UI.getFontSize(12);
+                    cbt_list = findall(cb.UserData, 'Type', 'text');
+                    for cbt = cbt_list(:)'
+                        cbt.Color = 1-[0.9 0.9 0.9];
+                        cbt.FontName = 'Open Sans';
+                        cbt.FontSize = Core_UI.getFontSize(12);
+                    end
                 end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'

@@ -10858,7 +10858,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         colormap(jet);  cax = caxis(); 
                         % caxis([min(cax(1), 10), max(cax(2), 55)]);
                         caxis([min(cax(1), 4), max(cax(2), 60)]);
-                        setColorMap([10 55], 0.9); colorbar();
+                        setColorMap('jet', [10 55], 0.9); colorbar();
                         h = title(sprintf('SNR%d - receiver %s - %s', b, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none'); 
                         h.FontWeight = 'bold'; 
                         %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';

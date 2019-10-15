@@ -4112,7 +4112,7 @@ classdef GNSS_Station < handle
                     switch type
                         case 'snr'
                             caxis([min(cax(1), 10), max(cax(2), 55)]);
-                            setColorMap([10 55], 0.9);
+                            setColorMap('jet', [10 55], 0.9);
                     end
                     colorbar();
                     h = title(sprintf('%s - receiver %s', upper(type), sta_list(r).getMarkerName4Ch()), 'interpreter', 'none');
