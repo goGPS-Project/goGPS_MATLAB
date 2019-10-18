@@ -86,6 +86,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         dop_kin        % dop matrix inberse of the normal builded for a sigle epoch [ x y z dt tropo]
         dop_tdt        % dop matrix inberse of the normal builded for a sigle epoch [dt tropo]
         
+        vtec           % vertical tec
+        
         
         % CORRECTIONS ------------------------------
         
@@ -159,6 +161,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             'amb_val',          [], ...    % Value of the fixed ambiguity
             'amb_mat',          [], ...    % Full ambiguity matrix
             'amb',              [], ...
+            'stec',             [], ...     % slant tec
             'last_repair',      [] ...     % last integer ambiguity repair per go_id size: [#n_observables x 1],
             ...                            % for easyness of use it is larger than necessary it could be [#n_phases x 1]
             ...                            % it could be changed in the future
@@ -222,6 +225,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
             
+            this.sat.stec = [];
             this.sat.avail_index       = [];
             this.sat.outliers_ph_by_ph    = [];
             this.sat.cycle_slip_ph_by_ph = [];
@@ -718,6 +722,355 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             catch
             end
+        end
+        
+        function computeVTEC(this, flag_exclude_l5_gps)
+            % compute vertical total electron content
+            %
+            % SYNTAX:
+            %    this.computeVTEC(flag_exclude_l5_gps)
+            if nargin < 2
+                flag_exclude_l5_gps = true;
+            end
+            [ph,wl_ph,idx_ph] = this.getPhases();
+            [pr,idx_pr] = this.getPseudoRanges();
+            wl_pr = this.wl(idx_pr);
+            if flag_exclude_l5_gps % remove l5 gps (might be not claibrated)
+                idx_gl5_ph  = this.system(idx_ph)' == 'G' & this.obs_code(idx_ph,2) == '5';
+                ph(:,idx_gl5_ph) = nan;
+                idx_gl5_pr  = this.system(idx_pr)' == 'G' & this.obs_code(idx_pr,2) == '5';
+                pr(:,idx_gl5_pr) = nan;
+            end
+            % [ph,wl_ph,idx_ph] = deal([]);
+
+            % unique codes of obervations
+            o_code_pr = Core_Utils.code4Char2Num([this.system(idx_pr)' this.obs_code(idx_pr,:)]);
+            o_code_ph = Core_Utils.code4Char2Num([this.system(idx_ph)' this.obs_code(idx_ph,:)]); % []; %
+            u_go_id = unique(this.go_id(idx_ph | idx_pr));%
+            go_id_pr = this.go_id(idx_pr);
+            go_id_ph = this.go_id(idx_ph);
+            u_o_code = unique([o_code_pr]);
+            n_sat = length(u_go_id);
+            n_ep = size(pr,1);
+            iono_mf = nan(n_ep,n_sat);
+            stec = nan(n_ep,n_sat);
+            atmo = Atmosphere();
+            
+            % get best code to remove rank deficency
+            cc = Core.getConstellationCollector();
+            rdc = 0;
+            rdc_n = [];
+            u_o_code_str = Core_Utils.num2Code4Char(u_o_code);
+            for s = 'EGCJRI'
+                idx_sys = u_o_code_str(:,1) == s & u_o_code_str(:,2) == 'C';
+                if sum(idx_sys) > 0
+                    bands = cc.getSys(s).CODE_RIN3_2BAND;
+                    for b = bands
+                        idx_bands = u_o_code_str(idx_sys,3) == b ;
+                        if sum(idx_bands)> 0
+                            trck = cc.getSys(s).CODE_RIN3_ATTRIB{find(bands == b)};
+                            for t = trck 
+                                idx_trck = u_o_code_str(idx_bands,4) == t ;
+                                if sum(idx_trck)> 0
+                                    rdc_n = [rdc_n;Core_Utils.code4Char2Num([s 'C' b t])];
+                                    rdc = rdc + 1;
+                                    if rdc == 2
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if rdc == 2
+                            break
+                        end
+                    end
+                end
+                if rdc == 2
+                    break
+                end
+            end
+                      
+
+            
+            n_obs = sum(sum(~isnan(ph))) +  sum(sum(~isnan(pr)));
+            A = zeros(n_obs,3);
+            A(:,1) = 1;
+            A(:,3) = 1;
+
+            A_idx =  zeros(n_obs,3);
+            obs = zeros(n_obs,1);
+            el = zeros(n_obs,1);
+            n_p_o = 0; % num progressive obs
+            n_p_g = 0; % num progressive geometries
+            n_p_a = length(u_o_code); % num progressive ambiguities
+            phase_obs = false(size(obs));
+            for i =1 : n_sat
+                idx_pr_s = find(go_id_pr==u_go_id(i));
+                idx_ph_s = find(go_id_ph==u_go_id(i));
+                is_valid = find(sum(~isnan([ph(:,idx_ph_s) pr(:,idx_pr_s) ]),2) > 0);
+                [~,~,iono_mf] = atmo.getPiercePoint( this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.sat.az(is_valid,u_go_id(i))/180*pi, this.sat.el(is_valid,u_go_id(i))/180*pi, 350, 6371000);
+                for j = idx_pr_s'
+                    alpha = (Core_Utils.V_LIGHT/wl_pr(j))^2/(40.3*1e16);
+                    is_valid_s = find(~isnan(pr(:,j)));
+                    n_c_o = length(is_valid_s);
+                    obs(n_p_o+(1:n_c_o)) = pr(is_valid_s,j);
+                    el(n_p_o+(1:n_c_o)) =  this.sat.el(is_valid_s,u_go_id(i));
+                    [~,prog_idx] = ismember(is_valid_s,is_valid);
+                    A(n_p_o+(1:n_c_o),2) = +alpha*iono_mf(prog_idx); % iono
+                    A_idx(n_p_o+(1:n_c_o),1) = n_p_g + prog_idx; %geom_idx
+                    A_idx(n_p_o+(1:n_c_o),2) = is_valid_s; % iono idx
+                    A_idx(n_p_o+(1:n_c_o),3) = find(o_code_pr(j) == u_o_code);  % bias idx
+                    n_p_o = n_p_o + n_c_o;
+                end
+                n_pr = n_p_o;
+                for j = idx_ph_s'
+                    alpha = (Core_Utils.V_LIGHT/wl_ph(j))^2/(40.3*1e16);
+                    is_valid_s = find(~isnan(ph(:,j)));
+                    n_c_o = length(is_valid_s);
+                    obs(n_p_o+(1:n_c_o)) = ph(is_valid_s,j);
+                    phase_obs(n_p_o+(1:n_c_o)) = true;
+                    el(n_p_o+(1:n_c_o)) =  this.sat.el(is_valid_s,u_go_id(i));
+                    [~,prog_idx] = ismember(is_valid_s,is_valid);
+                    A(n_p_o+(1:n_c_o),2) = -alpha*iono_mf(prog_idx); % iono
+                    A_idx(n_p_o+(1:n_c_o),1) = n_p_g + prog_idx; %geom_idx
+                    A_idx(n_p_o+(1:n_c_o),2) = is_valid_s; % iono idx
+                    amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_ph_by_ph(:,j),ph(:,j));
+                    amb_idx = amb_idx(is_valid_s);
+                    A_idx(n_p_o+(1:n_c_o),3) = n_p_a + amb_idx;  % amb idx
+                    n_p_a = n_p_a + length(unique(amb_idx));
+                    n_p_o = n_p_o + n_c_o;
+                end
+                n_p_g = n_p_g + length(is_valid);
+            end
+            n_geom =  max(A_idx(:,1));
+            A_idx(:,2) = A_idx(:,2) + max(A_idx(:,1));
+            A_idx(:,3) = A_idx(:,3) + max(A_idx(:,2));
+            weight = 1/0.01;
+            w = 1*1./sind(el);
+            w(phase_obs) = w(phase_obs) * 1e3;
+
+            A = A.*repmat(1./w,1,3);
+            obs = obs ./ w; 
+            A = [A; [ones(n_ep-1,1)*weight -ones(n_ep-1,1)*weight zeros(n_ep-1,1)]]; 
+            A_idx = [A_idx; [n_geom+(1:(n_ep-1))' n_geom+(2:n_ep)' zeros(n_ep-1,1)]]; 
+            obs = [obs; zeros((n_ep-1),1)];
+            idx_v_el = A_idx ~= 0;
+            rows = repmat((1:size(A,1))',1,3);
+            A = sparse(rows(idx_v_el), A_idx(idx_v_el), A(idx_v_el), n_obs+n_ep-1, max(A_idx(:,3)));
+            A(:,max(noZero(A_idx(:,2)))+[find(u_o_code == rdc_n(1)) find(u_o_code == rdc_n(2))]) = [];
+
+            N = A'*A;
+            B = A'*obs;
+            idx_geom = 1: n_geom;
+            idx_not_geom = (n_geom+1):(max(A_idx(:,3))-2);
+            % reduce for geometry
+            Ngg = N(idx_geom,idx_geom);
+            iGeom = spdiags(1./diag(Ngg),0,n_geom,n_geom);
+            Ngn = N(idx_geom,idx_not_geom);
+            Nng = N(idx_not_geom,idx_geom);
+            Nnn = N(idx_not_geom,idx_not_geom);
+            Bg = B(idx_geom);
+            Bn = B(idx_not_geom);
+            
+            Nnn = Nnn - Nng*iGeom*Ngn;
+            Bn = Bn - Nng*iGeom*Bg;
+            x = Nnn\Bn;
+            this.vtec = x(1:n_ep);
+        end
+        
+        function computeVTEC2(this, flag_exclude_l5_gps)
+            % compute vertical total electron content
+            %
+            % SYNTAX:
+            %    this.computeVTEC(flag_exclude_l5_gps)
+            if nargin < 2
+                flag_exclude_l5_gps = true;
+            end
+            [ph,wl_ph,idx_ph] = this.getPhases();
+            [pr,idx_pr] = this.getPseudoRanges();
+            wl_pr = this.wl(idx_pr);
+            if flag_exclude_l5_gps % remove l5 gps (might be not claibrated)
+                idx_gl5_ph  = this.system(idx_ph)' == 'G' & this.obs_code(idx_ph,2) == '5';
+                ph(:,idx_gl5_ph) = nan;
+                idx_gl5_pr  = this.system(idx_pr)' == 'G' & this.obs_code(idx_pr,2) == '5';
+                pr(:,idx_gl5_pr) = nan;
+            end
+            % [ph,wl_ph,idx_ph] = deal([]);
+
+            % unique codes of obervations
+            o_code_pr = Core_Utils.code4Char2Num([this.system(idx_pr)' this.obs_code(idx_pr,:)]);
+            o_code_ph = Core_Utils.code4Char2Num([this.system(idx_ph)' this.obs_code(idx_ph,:)]); % []; %
+            u_go_id = unique(this.go_id(idx_ph | idx_pr));%
+            go_id_pr = this.go_id(idx_pr);
+            go_id_ph = this.go_id(idx_ph);
+            u_o_code = unique([o_code_pr]);
+            u_o_code_str = Core_Utils.num2Code4Char(u_o_code);
+            rdc = 0;
+            rdc_n = []
+            cc = Core.getConstellationCollector;
+            for s = 'EGCJRI'
+                idx_sys = u_o_code_str(:,1) == s & u_o_code_str(:,2) == 'C';
+                if sum(idx_sys) > 0
+                    bands = cc.getSys(s).CODE_RIN3_2BAND;
+                    for b = bands
+                        idx_bands = u_o_code_str(idx_sys,3) == b ;
+                        if sum(idx_bands)> 0
+                            trck = cc.getSys(s).CODE_RIN3_ATTRIB{find(bands == b)};
+                            for t = trck 
+                                idx_trck = u_o_code_str(idx_bands,4) == t ;
+                                if sum(idx_trck)> 0
+                                    rdc_n = [rdc_n;Core_Utils.code4Char2Num([s 'C' b t])];
+                                    rdc = rdc + 1;
+                                    if rdc == 2
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if rdc == 2
+                            break
+                        end
+                    end
+                end
+                if rdc == 2
+                    break
+                end
+            end
+            n_sat = length(u_go_id);
+            n_ep = size(pr,1);
+            iono_mf = nan(n_ep,n_sat);
+            stec = nan(n_ep,n_sat);
+            atmo = Atmosphere();
+                      
+
+            
+            n_obs = sum(sum(~isnan(ph))) +  sum(sum(~isnan(pr)));
+            A = zeros(n_obs,3);
+            A(:,1) = 1;
+            A(:,3) = 1;
+
+            A_idx =  zeros(n_obs,3);
+            obs = zeros(n_obs,1);
+            el = zeros(n_obs,1);
+            n_p_o = 0; % num progressive obs
+            n_p_g = 0; % num progressive geometries
+            n_p_a = length(u_o_code); % num progressive ambiguities
+            for i =1 : n_sat
+                idx_pr_s = find(go_id_pr==u_go_id(i));
+                idx_ph_s = find(go_id_ph==u_go_id(i));
+                is_valid = find(sum(~isnan([ph(:,idx_ph_s) pr(:,idx_pr_s) ]),2) > 0);
+                [~,~,iono_mf(is_valid,i)] = atmo.getPiercePoint( this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.sat.az(is_valid,u_go_id(i))/180*pi, this.sat.el(is_valid,u_go_id(i))/180*pi, 350, 6371000);
+                u_o_code_s = unique([o_code_pr(idx_pr_s)]);
+                n_obs_s = sum(sum(~isnan(ph(:,idx_ph_s)))) +  sum(sum(~isnan(pr(:,idx_pr_s))));
+                if n_obs_s > 0
+                A = zeros(n_obs_s,3);
+                A_idx =  zeros(n_obs_s,3);
+                obs = zeros(n_obs_s,1);
+                n_p_o = 0; % num progressive obs
+                n_p_g = 0; % num progressive geometries
+                n_p_a = length(u_o_code_s); % num progressive ambiguities
+                A(:,1) = 1;
+                A(:,3) = 1;
+                for j = idx_pr_s'
+                    alpha = (Core_Utils.V_LIGHT/wl_pr(j))^2/(40.3*1e16);
+                    is_valid_s = find(~isnan(pr(:,j)));
+                    n_c_o = length(is_valid_s);
+                    obs(n_p_o+(1:n_c_o)) = pr(is_valid_s,j);
+                    el(n_p_o+(1:n_c_o)) =  this.sat.el(is_valid_s,u_go_id(i));
+                    [~,prog_idx] = ismember(is_valid_s, is_valid);
+                    A(n_p_o+(1:n_c_o),2) = -alpha; % iono
+                    A_idx(n_p_o+(1:n_c_o),1) = n_p_g + prog_idx; %geom_idx
+                    A_idx(n_p_o+(1:n_c_o),2) = n_p_g + prog_idx; % iono idx
+                    A_idx(n_p_o+(1:n_c_o),3) = find(o_code_pr(j) == u_o_code_s);  % bias idx
+                    n_p_o = n_p_o + n_c_o;
+                end
+                n_pr = n_p_o;
+                for j = idx_ph_s'
+                    alpha = (Core_Utils.V_LIGHT/wl_ph(j))^2/(40.3*1e16);
+                    is_valid_s = find(~isnan(ph(:,j)));
+                    n_c_o = length(is_valid_s);
+                    obs(n_p_o+(1:n_c_o)) = ph(is_valid_s,j);
+                    el(n_p_o+(1:n_c_o)) =  this.sat.el(is_valid_s,u_go_id(i));
+                    [~,prog_idx] = ismember(is_valid_s, is_valid);
+                    A(n_p_o+(1:n_c_o),2) = alpha; % iono
+                    A_idx(n_p_o+(1:n_c_o),1) = n_p_g + prog_idx; %geom_idx
+                    A_idx(n_p_o+(1:n_c_o),2) = n_p_g + prog_idx; % iono idx
+                    amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_ph_by_ph(:,j),ph(:,j));
+                    amb_idx = amb_idx(is_valid_s);
+                    A_idx(n_p_o+(1:n_c_o),3) = n_p_a + amb_idx;  % amb idx
+                    n_p_a = n_p_a + length(unique(amb_idx));
+                    n_p_o = n_p_o + n_c_o;
+                end
+                n_geom =  max(A_idx(:,1));
+                A_idx(:,2) = A_idx(:,2) + max(A_idx(:,1));
+                A_idx(:,3) = A_idx(:,3) + max(A_idx(:,2));
+                weight = 0.001./diff(is_valid);
+                n_i = length(is_valid);
+                w = ones(size(obs));
+                w((n_pr+1):end) = w((n_pr+1):end) / 1e3;
+                A = A.*repmat(1./w,1,3);
+                obs = obs./w;
+                A = [A; [ones(n_i-1,1).*weight -ones(n_i-1,1).*weight zeros(n_i-1,1)]];
+                A_idx = [A_idx; [n_geom+(1:(n_i-1))' n_geom+(2:n_i)' zeros(n_i-1,1)]];
+                obs = [obs; zeros((n_i-1),1)];
+                idx_v_el = A_idx ~= 0;
+                rows = repmat((1:size(A,1))',1,3);
+                A = sparse(rows(idx_v_el), A_idx(idx_v_el), A(idx_v_el), n_obs_s+n_i-1, max(max(A_idx(:,2:3))));
+                A(:,max(noZero(A_idx(:,2)))+[find(u_o_code_s == rdc_n(1)) find(u_o_code_s == rdc_n(2))]) = [];
+%                 N = A'*A;
+%                 B = A'*obs;
+%                 idx_geom = 1: n_geom;
+%                 idx_not_geom = (n_geom+1):(max(A_idx(:,3))-1);
+%                 % reduce for geometry
+%                 Ngg = N(idx_geom,idx_geom);
+%                 iGeom = spdiags(1./diag(Ngg),0,n_geom,n_geom);
+%                 Ngn = N(idx_geom,idx_not_geom);
+%                 Nng = N(idx_not_geom,idx_geom);
+%                 Nnn = N(idx_not_geom,idx_not_geom);
+%                 Bg = B(idx_geom);
+%                 Bn = B(idx_not_geom);
+%                 
+%                 Nnn = Nnn - Nng*iGeom*Ngn;
+%                 Bn = Bn - Nng*iGeom*Bg;
+%                 x = Nnn\Bn;
+                x = A\obs;
+                res = obs - A*x;
+                stec(is_valid,i) = x(unique(A_idx(:,2)));
+                end
+            end
+            this.sat.stec = stec;
+%             n_geom =  max(A_idx(:,1));
+%             A_idx(:,2) = A_idx(:,2) + max(A_idx(:,1));
+%             A_idx(:,3) = A_idx(:,3) + max(A_idx(:,2));
+%             weight = 1/0.1;
+%             w = 1*1./sind(el);
+%             w((n_pr+1):end) = w((n_pr+1):end) * 1e6;
+% 
+%             A = A.*repmat(1./w,1,3);
+%             A = [A; [ones(n_ep-1,1)*weight -ones(n_ep-1,1)*weight zeros(n_ep-1,1)]]; 
+%             A_idx = [A_idx; [n_geom+(1:(n_ep-1))' n_geom+(2:n_ep)' zeros(n_ep-1,1)]]; 
+%             obs = [obs; zeros((n_ep-1),1)];
+%             idx_v_el = A_idx ~= 0;
+%             rows = repmat((1:size(A,1))',1,3);
+%             A = sparse(rows(idx_v_el), A_idx(idx_v_el), A(idx_v_el), n_obs+n_ep-1, max(A_idx(:,3)));
+%             %A(:,min(noZero(A_idx(:,3)))) = [];
+%             N = A'*A;
+%             B = A'*obs;
+%             idx_geom = 1: n_geom;
+%             idx_not_geom = (n_geom+1):(max(A_idx(:,3))-1);
+%             % reduce for geometry
+%             Ngg = N(idx_geom,idx_geom);
+%             iGeom = spdiags(1./diag(Ngg),0,n_geom,n_geom);
+%             Ngn = N(idx_geom,idx_not_geom);
+%             Nng = N(idx_not_geom,idx_geom);
+%             Nnn = N(idx_not_geom,idx_not_geom);
+%             Bg = B(idx_geom);
+%             Bn = B(idx_not_geom);
+%             
+%             Nnn = Nnn - Nng*iGeom*Ngn;
+%             Bn = Bn - Nng*iGeom*Bg;
+%             x = Nnn\Bn;
+%             this.vtec = x(1:n_ep);
         end
         
         function remObsByFlag(this, flag, sys_c)
@@ -5352,7 +5705,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   sat_cache = getSatCache()
-            if isempty(this.sat_cache) || (nargin == 3 && force_update)
+            if numel(go_id) > 1 || isempty(this.sat_cache) || (nargin == 3 && force_update)
                 % dirty cache
                 if ~isempty(go_id)
                     all_go_id = go_id;
@@ -6493,6 +6846,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX: this.reset2AprioriTropo()
             
             this.zwd(:) = 0;
+            this.ztd(:) = 0;
             this.updateErrTropo();
         end
         
