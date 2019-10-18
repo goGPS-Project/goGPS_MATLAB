@@ -60,15 +60,19 @@ classdef Core_Utils < handle
             end
         end
         
-        function exportCurFig(out_path)
+        function exportCurFig(out_path, mode)
             % Eport Current Figure
             %
             % EXAMPLE
             %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
-            Core_Utils.exportFig(gcf, out_path);
+            if nargin == 2
+                Core_Utils.exportFig(gcf, out_path, mode);
+            else
+                Core_Utils.exportFig(gcf, out_path);
+            end
         end
         
-        function exportFig(fh, out_path)
+        function exportFig(fh, out_path, mode)
             % Export Figure
             %
             % SYNTAX
@@ -77,15 +81,17 @@ classdef Core_Utils < handle
             %
             % EXAMPLE
             %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
-            if nargin == 1
+            if nargin <= 1 
                 out_path = fh;
                 fh = gcf;
             end
             %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
-            col = fh.Color;
-            fh.Color = [1 1 1];
             ws_bk = fh.WindowStyle;
             fh.WindowStyle = 'normal';
+            if nargin < 3 || ~isempty(mode)
+                Core_UI.beautifyFig(fh, mode);
+            end
+            col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
             export_fig(fh, out_path, '-transparent', '-r150');
             fh.WindowStyle = ws_bk;

@@ -404,6 +404,71 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         % tropo
+        function [tropo, time] = getTropoPar(sta_list, par_name)
+            % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getAprZhd()
+            
+            tropo = {};
+            time = {};
+            for r = 1 : numel(sta_list)
+                time{r} = sta_list(r).getTime();
+                switch lower(par_name)
+                    case 'ztd'
+                        [tropo{r}] = sta_list(r).getZtd();
+                    case 'zwd'
+                        [tropo{r}] = sta_list(r).getZwd();
+                        if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
+                            [tropo{r}] = sta_list(r).getAprZwd();
+                        end
+                        
+                    case 'gn'
+                        [tropo{r}] = sta_list(r).getGradient();
+                    case 'ge'
+                        [~,tropo{r}] = sta_list(r).getGradient();
+                    case 'pwv'
+                        [tropo{r}] = sta_list(r).getPwv();
+                    case 'zhd'
+                        [tropo{r}] = sta_list(r).getAprZhd();
+                    case 'nsat'
+                        [tropo{r}] = sta_list(r).getNSat();
+                end
+            end
+            
+            if numel(tropo) == 1
+                tropo = tropo{1};
+                time = time{1};
+            end
+        end
+        
+        function slant_td = getSlantTD(this)
+            % Get the slant total delay
+            %
+            % SYNTAX
+            %   slant_td = this.getSlantTD();
+            
+            [mfh, mfw] = this.getSlantMF();
+            n_sat = size(mfh,2);
+            zwd = this.getZwd();
+            apr_zhd = this.getAprZhd();
+            [az, el] = this.getAzEl();
+            [tgn, tge] = this.getGradient();
+            res = this.getResidual();
+            if isempty(res(:)) || ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
+                slant_td = [];
+            else
+                cotel = zero2nan(cotd(el));
+                cosaz = zero2nan(cosd(az));
+                sinaz = zero2nan(sind(az));
+                slant_td = nan2zero(zero2nan(res) ...
+                    + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
+                    + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
+                    + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+            end
+        end
+        
         function ztd = getZtd(this)
             % get ztd
             %
@@ -483,6 +548,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   [n_sat, n_sat_ss] = this.getNSat()
             cc = this.getCC;
             
+            n_sat_ss.G = [];
             if isempty(this.n_sat_ep)
                 % retrieve the n_sat from residuals
                 if this.state.isSatOut && ~isempty(this.sat.res)
@@ -500,7 +566,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     n_sat_ss.G = n_sat;
                 else
                     n_sat = this.n_sat_ep(this.getIdSync);
-                    if ~any(n_sat)
+                    if any(serialize(this.sat.res(this.getIdSync,:)))
                         % retrieve the n_sat from residuals
                         n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
                         for sys_c = cc.sys_c
@@ -508,6 +574,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         end
                     end
                 end
+            end
+            if isempty(n_sat_ss.G)
+                n_sat_ss.G = n_sat;
             end
         end
         
@@ -833,7 +902,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                                 
                         fid = fopen(fname,'w');
                         n_data = time.length;
-                        fprintf(fid,'Data               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
+                        fprintf(fid,'Date               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
                         data = [time.toString('dd/mm/yyyy HH:MM:SS') char(44.*ones(n_data,1)) ...
                             reshape(sprintf('%12.6f',ztd),12,n_data)' char(44.*ones(n_data,1)) ...
                             reshape(sprintf('%12.6f',zwd),12,n_data)' char(44.*ones(n_data,1)) ...
@@ -931,21 +1000,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
-        function showPositionENU(this, one_plot)
+        function fh_list = showPositionENU(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
             if nargin == 1
                 one_plot = false;
             end
             
+            fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
                     if size(xyz, 1) > 1
+                        
                         rec(1).log.addMessage('Plotting positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('ENU_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         xyz = rec.getPosXYZ();
@@ -999,13 +1073,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showPositionXYZ(this, one_plot)
+        function fh_list = showPositionXYZ(this, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if nargin == 1
                 one_plot = false;
             end
             
+            fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
@@ -1014,6 +1089,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         rec(1).log.addMessage('Plotting XYZ positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('XYZ_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         xyz = rec(:).getPosXYZ();
@@ -1052,7 +1130,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showPositionSigmas(this, one_plot)
+        function fh_list = showPositionSigmas(this, one_plot)
             % Show Sigmas of the solutions
             %
             % SYNTAX
@@ -1062,6 +1140,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 one_plot = false;
             end
             
+            fh_list = [];
             rec = this;
             if ~isempty(rec)
                 xyz = rec(1).getPosXYZ();
@@ -1069,6 +1148,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     rec(1).log.addMessage('Plotting ENU sigmas');
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('ENU_s0_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
                     color_order = handle(gca).ColorOrder;
                     
                     s0 = rec.quality_info.s0;
@@ -1098,7 +1180,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showMap(sta_list, new_fig)
+        
+        function fh_list = showMap(sta_list, new_fig)
             if nargin < 2
                 new_fig = true;
             end
@@ -1108,6 +1191,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 f = gcf;
                 hold on;
             end
+            fh_list = f;
+            fig_name = sprintf('RecMap');
+            f.UserData = struct('fig_name', fig_name);
+            
             maximizeFig(f);
             [lat, lon] = sta_list.getMedianPosGeodetic();
             
@@ -1164,10 +1251,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         
-        function showResSky_p(this, sys_c_list)
+        function fh_list = showResSky_p(this, sys_c_list)
             % Plot residuals of the solution on polar scatter
             % SYNTAX this.plotResSkyPolar(sys_c)
             
+            fh_list = [];
             cc = this.getCC;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
@@ -1181,6 +1269,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     res = abs(this.sat.res(:, s)) * 1e2;
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('SNR_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
+                    
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
@@ -1195,9 +1288,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showResSky_c(this, sys_c_list)
+        function fh_list = showResSky_c(this, sys_c_list)
             % Plot residuals of the solution on cartesian axes
             % SYNTAX this.plotResSkyCart()
+            fh_list = [];
             cc = this.getCC;
             if isempty(this.sat.res)
                 this.log.addWarning('Residuals have not been computed');
@@ -1211,6 +1305,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     res = abs(this.sat.res(:, s)) * 1e2;
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('SNR_cartesian_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
+                    
                     % this.updateAzimuthElevation()
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
@@ -1228,8 +1327,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showRes(sta_list)
+        function fh_list = showRes(sta_list)
             % In a future I could use multiple tabs for each constellation
+            fh_list = [];
             for r = numel(sta_list)
                 cc = sta_list(r).getCC;
                 work = sta_list(r);
@@ -1240,6 +1340,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         'units', 'normalized', ...
                         'outerposition', [0 0 1 1]); % create maximized figure
                     win.Name = sprintf('%03d - %s residuals', win.Number, work.parent.getMarkerName4Ch);
+                    
+                    fh_list = [fh_list; win]; %#ok<AGROW>
+                    fig_name = sprintf('ENU_s0_%s_%s', work.parent.getMarkerName4Ch, work.getTime.first.toString('yyyymmdd_HHMM'));
+                    win.UserData = struct('fig_name', fig_name);
+                    
+                    this
                     v_main = uix.VBoxFlex('Parent', win, ...
                         'Spacing', 5);
                     
@@ -1308,12 +1414,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
         end
         
-        function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
+        function fh_list = showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             sztd = this.getSlantZTD(this.parent.slant_filter_win);
+            
+            fh_list = [];
             if isempty(this.ztd) || ~any(sztd(:))
                 this.log.addWarning('ZTD and slants have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('ZTD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
                 
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1416,11 +1527,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showAniZwdSlant(this, time_start, time_stop, show_map)
+        function fh_list = showAniZwdSlant(this, time_start, time_stop, show_map)
+            fh_list = [];
             if isempty(this.zwd) || ~any(this.sat.slant_td(:))
                 this.log.addWarning('ZWD and slants have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('ZWD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 szwd = this.getSlantZWD(this.parent.slant_filter_win);
                 
                 if nargin >= 3
@@ -1505,16 +1622,21 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showZtdSlant(this, time_start, time_stop)
+        function fh_list = showZtdSlant(this, time_start, time_stop)
             %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
             %    this(1).log.addWarning('ZTD and/or slants have not been computed');
             %else
+            fh_list = [];
             rec = this;
             if isempty(rec)
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
                 cc = this.getCC;
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant %s', f.Number, this.parent.getMarkerName4Ch, cc.sys_c); f.NumberTitle = 'off';
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('ZTD_Slant_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 t = rec(:).getTime.getMatlabTime;
                 
                 sztd = rec(:).getSlantZTD(rec(1).parent.slant_filter_win);
@@ -1557,47 +1679,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
         end
         
-        function [tropo, time] = getTropoPar(sta_list, par_name)
-            % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
-            %
-            % SYNTAX
-            %  [tropo, p_time] = sta_list.getAprZhd()
-            
-            tropo = {};
-            time = {};
-            for r = 1 : numel(sta_list)
-                time{r} = sta_list(r).getTime();
-                switch lower(par_name)
-                    case 'ztd'
-                        [tropo{r}] = sta_list(r).getZtd();
-                    case 'zwd'
-                        [tropo{r}] = sta_list(r).getZwd();
-                        if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
-                            [tropo{r}] = sta_list(r).getAprZwd();
-                        end
-                        
-                    case 'gn'
-                        [tropo{r}] = sta_list(r).getGradient();
-                    case 'ge'
-                        [~,tropo{r}] = sta_list(r).getGradient();
-                    case 'pwv'
-                        [tropo{r}] = sta_list(r).getPwv();
-                    case 'zhd'
-                        [tropo{r}] = sta_list(r).getAprZhd();
-                    case 'nsat'
-                        [tropo{r}] = sta_list(r).getNSat();
-                end
-            end
-            
-            if numel(tropo) == 1
-                tropo = tropo{1};
-                time = time{1};
-            end
-        end
         
-        function showTropoPar(sta_list, par_name, new_fig)
+        function fh_list = showTropoPar(sta_list, par_name, new_fig)
             % one function to rule them all
             
+            fh_list = [];
             [tropo, t] = sta_list.getTropoPar(par_name);
             if ~iscell(tropo)
                 tropo = {tropo};
@@ -1635,6 +1721,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         l = legend;
                         old_legend = get(l,'String');
                     end
+                    
+                    fh_list = [fh_list; f];
+                    if numel(sta_list) == 1 
+                        % If I have only one receiver use as name the name of the receiver
+                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.parent.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                    else
+                        % If I have more than one receiver use as name the name of the project
+                        fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
+                    end
+                    f.UserData = struct('fig_name', fig_name);
+                    
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
@@ -1667,89 +1764,122 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function showZhd(this, new_fig)
+        function fh_list = showZhd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('ZHD', new_fig)
+            fh_list = this.showTropoPar('ZHD', new_fig);
         end
         
-        function showZwd(this, new_fig)
+        function fh_list = showZwd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('ZWD', new_fig)
+            fh_list = this.showTropoPar('ZWD', new_fig);
         end
         
-        function showZtd(this, new_fig)
+        function fh_list = showZtd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('ZTD', new_fig)
+            fh_list = this.showTropoPar('ZTD', new_fig);
         end
-        
-        
-        function showGn(this, new_fig)
-            if nargin == 1
-                new_fig = true;
-            end
-            this.showTropoPar('GN', new_fig)
-        end
-        
-        
-        function showGe(this, new_fig)
-            if nargin == 1
-                new_fig = true;
-            end
-            this.showTropoPar('GE', new_fig)
-        end
-        
-        function slant_td = getSlantTD(this)
-            % Get the slant total delay
-            % SYNTAX
-            %   slant_td = this.getSlantTD();
+
+        function fh_list = showZtdSlantRes_p(this, time_start, time_stop)
             
-            [mfh, mfw] = this.getSlantMF();
-            n_sat = size(mfh,2);
-            zwd = this.getZwd();
-            apr_zhd = this.getAprZhd();
-            [az, el] = this.getAzEl();
-            [tgn, tge] = this.getGradient();
-            res = this.getResidual();
-            if isempty(res(:)) || ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
-                slant_td = [];
-            else
-                cotel = zero2nan(cotd(el));
-                cosaz = zero2nan(cosd(az));
-                sinaz = zero2nan(sind(az));
-                slant_td = nan2zero(zero2nan(res) ...
-                    + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                    + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                    + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+            fh_list = [];
+            if isempty(this.sat.res)
+                this.log.addWarning('ZTD and slants have not been computed');
+            else                
+                id_sync = this.getIdSync();
+                
+                t = this.time.getEpoch(id_sync).getMatlabTime;
+                
+                sztd = this.getSlantZTD(this.parent.slant_filter_win);
+                if isempty(sztd)
+                    this.log.addWarning('ZTD and slants have not been computed');
+                else
+                    sztd = bsxfun(@minus, sztd, this.ztd(id_sync)) .* 1e2;
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                        end
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                    el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                    
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                    
+                    fh_list = f;
+                    if numel(this) == 1 
+                        % If I have only one receiver use as name the name of the receiver
+                        fig_name = sprintf('%s_%s_%s', 'ZTDS', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                    else
+                        % If I have more than one receiver use as name the name of the project
+                        fig_name = sprintf('%s_%s', 'ZTDS', strrep(Core.getState.getPrjName,' ', '_'));
+                    end
+                    f.UserData = struct('fig_name', fig_name);
+                    
+                    polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
+                    caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95];
+                    cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
+                    h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    Core_UI.beautifyFig(f, 'dark');
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on';
+                end
             end
         end
-        
-        function showPwv(this, new_fig)
+
+        function fh_list = showGn(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('PWV', new_fig)
+            fh_list = this.showTropoPar('GN', new_fig);
         end
-        
-        function showNSat(this, new_fig)
+         
+        function fh_list = showGe(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showTropoPar('nsat', new_fig)
+            fh_list = this.showTropoPar('GE', new_fig);
+        end
+              
+        function fh_list = showPwv(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            fh_list = this.showTropoPar('PWV', new_fig)
         end
         
-        function showNSatSS(this)
+        function fh_list = showNSat(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            fh_list = this.showTropoPar('nsat', new_fig);
+        end
+        
+        function fh_list = showNSatSS(this)
             % Show number of satellites in view per constellation
+            fh_list = [];
             cc = this.getCC;
             if ~this.isEmpty()
-                [n_sat, n_sat_ss] = this.getNSat;
-                f = figure; f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                [n_sat, n_sat_ss] = this.getNSat();
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                       
                 %                 if isfield(n_sat_ss, 'S')
                 %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
                 %                 end
@@ -1777,10 +1907,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     for sys_c = cc.sys_c
                         plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
                     end
-                    plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
+                    if numel(cc.sys_c) > 1
+                        plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
+                    end
                 else % If I'm plotting less than 24 hours of satellites number
                     plot(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
-                    plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                    if numel(cc.sys_c) > 1
+                        plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                    end
                 end
                 setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                 
@@ -1788,16 +1922,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 for i = 1 : numel(cc.sys_c)
                     sys_list = [sys_list, {cc.sys_c(i)}];
                 end
-                legend([sys_list, {'All'}]);
+                if numel(cc.sys_c) > 1                    
+                    legend([sys_list, {'All'}]);
+                else
+                    legend(sys_list);
+                end
                 %legend(sys_list);
                 ylim([0 (max(serialize(n_sat)) + 1)]);
                 grid minor;
                 h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
+                
+                Core_UI.beautifyFig(f);
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
+       
         
-        function showMedianTropoPar(this, par_name, new_fig)
+        function fh_list = showMedianTropoPar(this, par_name, new_fig);
             % one function to rule them all
+            fh_list = [];
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2)
                 rec_ok(r) = any(~isnan(this(:,r).getZtd));
@@ -1827,12 +1971,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 if new_fig
                     cc = this.getCC;
-                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
+                    f = gcf;
                     l = legend;
                     old_legend = get(l,'String');
                 end
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                % If I have more than one receiver use as name the name of the project
+                fig_name = sprintf('%s_Median_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 for r = 1 : size(rec_list, 2)
                     rec = rec_list(~rec_list(:,r).isEmpty, r);
                     if ~isempty(rec)
@@ -1871,79 +2021,40 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 h = xlabel('Elevation [m]'); h.FontWeight = 'bold';
                 grid on;
                 h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                Core_UI.beautifyFig(f);
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on';
             end
         end
         
-        function showMedianZhd(this, new_fig)
+        function fh_list = showMedianZhd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showMedianTropoPar('ZHD', new_fig)
+            fh_list = this.showMedianTropoPar('ZHD', new_fig);
         end
         
-        function showMedianZwd(this, new_fig)
+        function fh_list = showMedianZwd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showMedianTropoPar('ZWD', new_fig)
+            fh_list = this.showMedianTropoPar('ZWD', new_fig);
         end
         
-        function showMedianZtd(this, new_fig)
+        function fh_list = showMedianZtd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showMedianTropoPar('ZTD', new_fig)
+            fh_list = this.showMedianTropoPar('ZTD', new_fig);
         end
         
-        function showMedianPwv(this, new_fig)
+        function fh_list = showMedianPwv(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            this.showMedianTropoPar('PWV', new_fig)
+            fh_list = this.showMedianTropoPar('PWV', new_fig);
         end
-        
-        function showZtdSlantRes_p(this, time_start, time_stop)
-            if isempty(this.sat.res)
-                this.log.addWarning('ZTD and slants have not been computed');
-            else                
-                id_sync = this.getIdSync();
                 
-                t = this.time.getEpoch(id_sync).getMatlabTime;
-                
-                sztd = this.getSlantZTD(this.parent.slant_filter_win);
-                if isempty(sztd)
-                    this.log.addWarning('ZTD and slants have not been computed');
-                else
-                    sztd = bsxfun(@minus, sztd, this.ztd(id_sync)) .* 1e2;
-                    if nargin >= 3
-                        if isa(time_start, 'GPS_Time')
-                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
-                        end
-                        time_start = max(1, time_start);
-                        time_stop = min(size(sztd,1), time_stop);
-                    else
-                        time_start = 1;
-                        time_stop = size(sztd,1);
-                    end
-                    
-                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                    
-                    az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                    el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
-                    
-                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                    polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
-                    caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95];
-                    cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
-                    h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    Core_UI.beautifyFig(f, 'dark');
-                    Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
-                end
-            end
-        end
-        
         function plotResidual(this, flag_smooth)
             % Legacy plot residuals
             %

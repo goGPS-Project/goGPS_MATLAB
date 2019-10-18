@@ -101,7 +101,10 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
-        PAR_BAND        % Parameter of the band to be used in the adjustemtn
+        PAR_BAND        % Parameter of the band to be used in the adjustment
+
+        PAR_EXPORT      % Export figure
+        PAR_CLOSE       % Close figure after export
         
         PAR_SLAVE       % number of parallel slaves to request
         
@@ -253,6 +256,20 @@ classdef Command_Interpreter < handle
             this.PAR_BAND.class = 'double';
             this.PAR_BAND.limits = [1 5];
             this.PAR_BAND.accepted_values = [];
+
+            this.PAR_EXPORT.name = 'export';
+            this.PAR_EXPORT.descr = '-e=<"name">       export with name_prefix';
+            this.PAR_EXPORT.par = '(\-e)|(\-e\=)|(\-\-export\=)'; % (regexp) parameter prefix: -e --export
+            this.PAR_EXPORT.class = 'char';
+            this.PAR_EXPORT.limits = [];
+            this.PAR_EXPORT.accepted_values = [];
+
+            this.PAR_CLOSE.name = 'close';
+            this.PAR_CLOSE.descr = '-c                 close figure after export (valid only if export is present)';
+            this.PAR_CLOSE.par = '(\-c)|(\-\-close)'; % (regexp) parameter prefix: -c --close
+            this.PAR_CLOSE.class = '';
+            this.PAR_CLOSE.limits = [];
+            this.PAR_CLOSE.accepted_values = [];
 
             %  Method parameter
             
@@ -611,7 +628,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1921,6 +1938,8 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runShow(rec, tok, level)
+            
+            fh_list = [];
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
             end
@@ -1930,7 +1949,7 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 show_ok = 0;                
-                for t = 1 : numel(tok) % gloabal for all target
+                for t = 1 : numel(tok) % global for all target
                     try
                         if sss_lev == 0
                             trg = rec(id_trg);
@@ -1938,25 +1957,25 @@ classdef Command_Interpreter < handle
                             trg = [rec(id_trg).work];
                         end
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
-                            trg.showMap();
-                            show_ok  = show_ok + 1;
+                            fh_list = [fh_list; trg.showMap()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;                            
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PTH.par ')*$'], 'once'))
-                            rec(id_trg).showPTH();
+                            fh_list = [fh_list; trg.showPTH()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
-                            trg.showZtd();
+                            fh_list = [fh_list; trg.showZtd()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD.par ')*$'], 'once'))
-                            trg.showZwd();
+                            fh_list = [fh_list; trg.showZwd()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
-                            trg.showPwv();
+                            fh_list = [fh_list; trg.showPwv()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
-                            trg.showZtdSlant();
+                            fh_list = [fh_list; trg.showZtdSlant()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENUBSL.par ')*$'], 'once'))
-                            trg.showBaselineENU();
+                            fh_list = [fh_list; trg.showBaselineENU()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         end                        
                     catch ex
@@ -1965,6 +1984,7 @@ classdef Command_Interpreter < handle
                 end
                 
                 for r = id_trg % different for each target
+                    
                     for t = 1 : numel(tok)
                         try
                             if sss_lev == 0
@@ -1977,40 +1997,40 @@ classdef Command_Interpreter < handle
                                 trg.showAll();
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
-                                trg.showDataAvailability(sys_list);
+                                fh_list = [fh_list; trg.showDataAvailability(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
-                                trg.showPositionENU();
+                                fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
-                                trg.showPositionXYZ();
+                                fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
-                                trg.showDt();
+                                fh_list = [fh_list; trg.showDt()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
-                                trg.showSNR_p(sys_list);
+                                fh_list = [fh_list; trg.showSNR_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
-                                trg.showOutliersAndCycleSlip(sys_list);
+                                fh_list = [fh_list; trg.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
-                                trg.showOutliersAndCycleSlip_p(sys_list);
+                                fh_list = [fh_list; trg.showOutliersAndCycleSlip_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
-                                trg.showRes();
+                                fh_list = [fh_list; trg.showRes()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PSAT.par ')*$'], 'once'))
-                                trg.showResPerSat(sys_list);
+                                fh_list = [fh_list; trg.showResPerSat(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
-                                trg.showResSky_c(sys_list);
+                                fh_list = [fh_list; trg.showResSky_c(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
-                                trg.showResSky_p(sys_list);
+                                fh_list = [fh_list; trg.showResSky_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
-                                trg.showZtdSlantRes_p();
+                                fh_list = [fh_list; trg.showZtdSlantRes_p()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             end
                         catch ex
@@ -2020,6 +2040,41 @@ classdef Command_Interpreter < handle
                     end
                 end
             end
+            
+            if ~isempty(fh_list)
+                [export_file_name, export_found, flag_close] = this.getExportFig(tok);
+                if export_found
+                    for fh  = fh_list(:)'
+                        file_name = fullfile(Core.getState.getOutDir, 'Images', [fh.UserData.fig_name export_file_name]);
+                        [file_dir, file_name, file_ext] = fileparts(file_name);
+                        if ~isempty(file_dir)
+                            if ~exist(file_dir, 'file')
+                                mkdir(file_dir);
+                            end
+                        end
+                        if isempty(file_ext)
+                            file_ext = '.png';
+                        end
+                        if isempty(file_name)
+                            Core.getLogger.addWarning('No filename found for the figure export');
+                        end
+                        if isempty(file_name)
+                            file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')]; %#ok<AGROW>
+                        end
+                        file_name = fullfile(file_dir, [file_name file_ext]);
+                        
+                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                        if flag_close
+                            delete(fh);
+                        else
+                            if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
+                                Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                            end
+                        end
+                    end
+                end
+            end
+
             if show_ok == 0
                 Core.getLogger.addError('No valid command show found');
             end
@@ -2268,6 +2323,24 @@ classdef Command_Interpreter < handle
             if ~isempty(num) && ~isnan(num)
                 found = true;
             end
+        end
+        
+        function [file_name, found, flag_close] = getExportFig(this, tok)
+            % Extract from a set of tokens the file_name of the figure to export
+            % and tell if the figure must be closed after export
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [file_name, found, flag_close] = this.getExportFig(tok)
+            found = ~isempty(regexp([tok{:}], this.PAR_EXPORT.par, 'match', 'once'));
+            file_name = '${STYPE}_${M_LIST}_${NOW}.png';
+            tmp = strrep(regexp([tok{:}], ['(?<=' this.PAR_EXPORT.par ')(?<=(=))".*"'], 'match', 'once'),'"', '');
+            if ~isempty(file_name)
+                file_name = tmp;
+            end
+            flag_close = ~isempty(regexp([tok{:}], this.PAR_CLOSE.par, 'match', 'once'));            
         end
         
         function [sys_list, found] = getConstellation(this, tok)

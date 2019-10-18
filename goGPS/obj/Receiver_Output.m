@@ -38,13 +38,13 @@
 %--------------------------------------------------------------------------
 classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
+    
     %% PROPERTIES POSITION
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
         time_pos % time of the positions
-    end
-    
+    end    
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
     
@@ -1043,12 +1043,13 @@ classdef Receiver_Output < Receiver_Commons
             this.showDt();
         end
         
-        function showDt(this)
+        function fh_list = showDt(this)
             % Plot Clock error
             %
             % SYNTAX
             %   this.plotDt
             
+            fh_list = [];
             rec = this;
             if ~isempty(rec)
                 t = rec.time.getMatlabTime();
@@ -1056,6 +1057,10 @@ classdef Receiver_Output < Receiver_Commons
                     Core.getLogger.addError('No clock found in Receiver Output object\n');
                 else
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                    
+                    fh_list = f;
+                    fig_name = sprintf('Dt_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
                     
                     l_list = {};
                     data = rec.getDesync;
@@ -1095,7 +1100,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function showProcessingQualityInfo(this)
+        function fh_list = showProcessingQualityInfo(this)
             % Show quality info indexes for processing
             %   number of epochs
             %   number of observations
@@ -1105,12 +1110,18 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX:
             %   this.showProcessingQualityInfo
+            
+            fh_list = [];
             if ~(this.isEmpty) && size(this.quality_info.n_obs, 1) > 1
                 this.log.addMessage('Plotting processing quality info');
                 
                 win = figure('Visible', 'on', ...
                     'NumberTitle', 'off');
                 win.Name = sprintf('%03d: %s, Quality Info', win.Number, this.parent.getMarkerName4Ch);
+                
+                fh_list = [fh_list; win]; 
+                fig_name = sprintf('Quality_Info_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                win.UserData = struct('fig_name', fig_name);
                 
                 % Single index
                 n_plot = 6;
@@ -1181,7 +1192,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function f_handles = showResPerSat(this, sys_c_list, res)
+        function fh_list = showResPerSat(this, sys_c_list, res)
             % Plot the residuals of phase per Satellite
             %
             % INPUT
@@ -1190,6 +1201,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %   this.showResPerSat(res)
             
+            fh_list = [];
             cc = Core.getState.getConstellationCollector;
             if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = cc.getAvailableSys;
@@ -1201,11 +1213,14 @@ classdef Receiver_Output < Receiver_Commons
                 log = Core.getLogger;
                 log.addError(sprintf('No residuals found in %s output', this.parent.getMarkerName4Ch));
             else
-                f_handles = [];
                 ss_ok = intersect(cc.sys_c, sys_c_list);
                 for sys_c = sys_c_list
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                    f_handles = [f_handles f];
+
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('Res_Per_Sat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
+                    
                     ss_id = find(cc.sys_c == sys_c);
                     
                     ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
@@ -1265,16 +1280,22 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function showOutliersAndCycleSlip(this, sys_c_list)
+        function fh_list = showOutliersAndCycleSlip(this, sys_c_list)
             % Plot the outliers found
             % SYNTAX this.showOutliers()
             
+            fh_list = [];
             cc = Core.getState.getConstellationCollector;
             if nargin == 1
                 sys_c_list = cc.getAvailableSys;
             end
             for sys_c = sys_c_list
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('OCS_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 if isempty(ep)
                     close(f);
@@ -1310,6 +1331,7 @@ classdef Receiver_Output < Receiver_Commons
             
             cc = Core.getState.getConstellationCollector;
             
+            fh_list = [];
             % SNRs
             if nargin == 1
                 sys_c_list = cc.getAvailableSys;
@@ -1323,6 +1345,11 @@ classdef Receiver_Output < Receiver_Commons
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
                     polarScatter([],[],1,[]);
                     hold on;
+                    
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
+
                     
                     for s = cc.getGoIds(sys_c)
                         az = this.sat.az(:,s);
@@ -1361,7 +1388,6 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
             
-        end
-        
+        end        
     end
 end

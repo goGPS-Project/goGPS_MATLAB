@@ -10278,15 +10278,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             dockAllFigures();
         end
         
-        function showDt(this)
+        function fh_list = showDt(this)
             % Plot Clock error
             %
             % SYNTAX
             %   this.plotDt
             
+            fh_list = [];
             rec = this;
             if ~isempty(rec)
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                
+                fh_list = f;
+                fig_name = sprintf('Dt_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
                 nans = zero2nan(double(~rec.getMissingEpochs()));
                 plot(t, rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
@@ -10315,7 +10321,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function showResPerSat(this, sys_c_list, res)
+        function fh_list = showResPerSat(this, sys_c_list, res)
             % Plot the residuals of phase per Satellite
             %
             % INPUT
@@ -10332,10 +10338,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             cc = Core.getState.getConstellationCollector;
-            
+            fh_list = [];
             ss_ok = intersect(cc.sys_c, sys_c_list);
             for sys_c = sys_c_list
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('Res_Per_Sat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                    
                 ss_id = find(cc.sys_c == sys_c);
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
@@ -10365,16 +10376,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s Residuals per sat [mm]', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on';
             end
         end
         
-        function showOutliersAndCycleSlip(this, sys_c_list)
+        function fh_list = showOutliersAndCycleSlip(this, sys_c_list)
             % Plot the outliers found
             % SYNTAX this.showOutliersAndCycleSlip(sys_c_list)
             
+            fh_list = [];
             if nargin == 1 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
@@ -10383,6 +10395,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             ss_ok = intersect(cc.sys_c, sys_c_list);
             for sys_c = ss_ok
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('OCS_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
                 
                 for prn = cc.prn(cc.system == sys_c)'
@@ -10408,16 +10425,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on';
             end
         end
         
-        function showOutliersAndCycleSlip_d(this, sys_c_list)
+        function fh_list = showOutliersAndCycleSlip_d(this, sys_c_list)
             % Plot the outliers found
             % SYNTAX this.showOutliersAndCycleSlip_d(sys_c_list)
             
+            fh_list = [];
             if nargin == 1 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
@@ -10432,13 +10450,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             cs = this.sat.cycle_slip_ph_by_ph;
             out = this.sat.outliers_ph_by_ph;
             for sys_c = ss_ok
-                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('OCS_on_obs_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
                 
                 id_ss = find(this.system(id_ph) == sys_c);
                 dph_diff = Core_Utils.diffAndPred(bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
                 dph_diff = (bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
+                dt_stimation = detrend(cumsum(median(Core_Utils.diffAndPred(dph_diff), 2, 'omitnan')));
+                dph_diff = bsxfun(@minus, dph_diff, dt_stimation);
                 plot(dph_diff, 'Color', [0.7 0.7 0.7]); hold on;
                 % fopr each sat visualize outliers and CS
                 for s = 1 : numel(id_ss)
@@ -10450,15 +10474,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
-                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on';
             end
         end
         
-        function showOutliersAndCycleSlip_p(this, sys_c_list)
+        function fh_list = showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.showOutliersAndCycleSlip_p(sys_c_list)
+            
+            fh_list = [];
             
             % SNRs
             if nargin == 1 || isempty(sys_c_list)
@@ -10470,6 +10496,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             for sys_c = sys_c_list
                 [~, ~, ph_id] = this.getPhases(sys_c);
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+
                 polarScatter([],[],1,[]);
                 hold on;
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
@@ -10506,14 +10537,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
-                Core_UI.beautifyFig(f, 'dark');
+                Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on';
             end
             
         end
         
-        function f_handle = showDataAvailability(this, sys_c, band)
+        function fh_list = showDataAvailability(this, sys_c, band)
             % Plot all the satellite seen by the system
             % SYNTAX this.plotDataAvailability(sys_c)
             
@@ -10524,14 +10555,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (nargin == 1)
                     sys_c = cc.sys_c;
                 end
-                f_handle = [];
+                fh_list = [];
                 ss_ok = intersect(cc.sys_c, sys_c);
                 idx_f = 1;
                 time = this.time.getMatlabTime();
                 for ss = ss_ok
-                    ss_id = find(cc.sys_c == ss);
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
-                    f_handle(idx_f) = f;
+                    
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('Data_availability_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
                     
                     any_data = false;
                     for prn = cc.prn(cc.system == ss)'
@@ -10550,7 +10583,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         hold on;
                         id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L' & band_id, :),1));
                         any_data = any_data || any(id_ok);
-                        plot(id_ok, prn * ones(size(id_ok)), '.', 'MarkerSize', 15);
+                        plot(time(id_ok), prn * ones(size(id_ok)), '.', 'MarkerSize', 15);
                     end
                     if ~any_data
                         close(f);
@@ -10567,7 +10600,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         h = xlabel('epoch'); h.FontWeight = 'bold';
                         title(cc.getSysName(ss));
                         idx_f = idx_f + 1;
-                        Core_UI.beautifyFig(f, 'dark');
+                        Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
                         f.Visible = 'on';
                     end
@@ -10575,22 +10608,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function showObsVsSynt_m(this, sys_c)
+        function fh_list = showObsVsSynt_m(this, sys_c)
             % Plots phases and pseudo-ranges aginst their synthesised values
             % SYNTAX
             %   this.plotVsSynt_m(<sys_c>)
             
+            fh_list = [];
             cc = Core.getState.getConstellationCollector;
             % Phases
             if nargin == 1
                 [ph, ~, id_ph] = this.getPhases;
                 sensor_ph = Core_Utils.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                f = figure; f.Name = sprintf('%03d: VsSynt', f.Number); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: VsSynt', f.Number); f.NumberTitle = 'off';
             else
                 [ph, ~, id_ph] = this.getPhases(sys_c);
                 sensor_ph = Core_Utils.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                f = figure('Visible', 'off'); f.Name = sprintf('%03d: VsSynt%s', f.Number, cc.getSysName(sys_c)); f.NumberTitle = 'off';
             end
+            
+            fh_list = [fh_list; f];
+            fig_name = sprintf('ShowObsVsSynt_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+            f.UserData = struct('fig_name', fig_name);
             
             subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
             
@@ -10616,14 +10654,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             caxis([-20 20]); colorbar();
             subplot(2,3,5); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]);
+            
+            Core_UI.beautifyFig(f);
+            Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on';
         end
         
-        function showObsStats(this)
+        function fh_list = showObsStats(this)
             % Show statistics about the observations stored in the object
             %
             % SYNTAX
             %   this.showObsStats()
             
+            fh_list = [];
+
             % CODE
             [pr, id_pr] = this.getPseudoRanges();
             id_pr = find(id_pr);
@@ -10738,7 +10782,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             for sys_c = unique(this.system)
                 s = s + 1;
-                figure; clf; hold on;
+                f = figure; clf; hold on;
+                
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
                 id_sys = find(this.system(id_ph) == sys_c);
                 prn  = this.prn(id_ph(id_sys));
                 band = unique(str2num(this.obs_code(id_ph(id_sys), 2)));
@@ -10807,7 +10856,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             %%
             c = categorical(sys_full_name);
             if numel(c) > 1
-                figure; clf; ax = gca; hold on
+                f = figure;
+                fh_list = [fh_list; f]; %#ok<AGROW>
+                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                f.UserData = struct('fig_name', fig_name);
+                
+                clf; ax = gca; hold on
                 ax.ColorOrder = Core_UI.getColor(1:9,9);
                 bar(c, std_stat(:,:,1)); title([this.parent.getMarkerName4Ch ' )  pseudo-ranges - synthesised (second temporal derivative)']);
                 legend('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'Location', 'NorthEastOutside');
@@ -10828,10 +10882,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %%
         end
         
-        function f_handle = showSNR_p(this, sys_c_list, flag_smooth)
+        function fh_list = showSNR_p(this, sys_c_list, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX f_handles = this.plotSNR(sys_c)
+            % SYNTAX fh_lists = this.plotSNR(sys_c)
             
+            fh_list = [];
             % SNRs
             if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
@@ -10842,35 +10897,47 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx_f = 0;
             for sys_c = sys_c_list
                 for b = 1 : 9 % try all the bands
-                    [snr, snr_id] = this.getSNR(sys_c, num2str(b));
+                    [snr_freq, snr_id_freq] = this.getSNR(sys_c, num2str(b));
+                    snr_id_freq = find(snr_id_freq);
                     if nargin > 2 && flag_smooth
-                        snr = Receiver_Commons.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                        snr_freq = Receiver_Commons.smoothSatData([],[],zero2nan(snr_freq), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
                     end
                     
-                    if any(snr_id) && any(snr(:))
-                        idx_f = idx_f +1;
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s SNR%d %s', f.Number, this.parent.getMarkerName4Ch, b, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                        f_handle(idx_f) = f;
-                        id_ok = (~isnan(snr));
-                        az = this.sat.az(:,this.go_id(snr_id));
-                        el = this.sat.el(:,this.go_id(snr_id));
-                        polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                        colormap(jet);  cax = caxis(); 
-                        % caxis([min(cax(1), 10), max(cax(2), 55)]);
-                        caxis([min(cax(1), 4), max(cax(2), 60)]);
-                        setColorMap('jet', [10 55], 0.9); colorbar();
-                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none'); 
-                        h.FontWeight = 'bold'; 
-                        %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                        Core_UI.beautifyFig(f, 'dark');
-                        Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                    if any(snr_id_freq) && any(snr_freq(:))
+                        % Get all the trackings for this SNR
+                        obs_code =  unique(this.obs_code(snr_id_freq, 3)); obs_code = [repmat(this.obs_code(snr_id_freq(1), 1:2), size(obs_code, 1), 1) obs_code];
+                        
+                        for trk = obs_code(:,3)'
+                            id_ok = this.obs_code(snr_id_freq, 3) == trk;
+                            snr_id = snr_id_freq(id_ok);
+                            snr = snr_freq(:, id_ok);
+                            idx_f = idx_f + 1;
+                            f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s S%d%c %s', f.Number, this.parent.getMarkerName4Ch, b, trk, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                            fh_list = [fh_list; f]; %#ok<AGROW>
+                            fig_name = sprintf('SNR_%s_S%d%c_%s_%s', cc.getSysName(sys_c), b, trk, this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                            f.UserData = struct('fig_name', fig_name);
+                
+                            id_ok = (~isnan(snr));
+                            az = this.sat.az(:,this.go_id(snr_id));
+                            el = this.sat.el(:,this.go_id(snr_id));
+                            polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                            colormap(jet);  cax = caxis();
+                            % caxis([min(cax(1), 10), max(cax(2), 55)]);
+                            caxis([min(cax(1), 4), max(cax(2), 60)]);
+                            setColorMap('jet', [10 55], 0.9); colorbar();
+                            h = title(sprintf('S%d%c - receiver %s - %s', b, trk, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');
+                            h.FontWeight = 'bold';
+                            %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                            Core_UI.beautifyFig(f);
+                            Core_UI.addBeautifyMenu(f);
+                            f.Visible = 'on';
+                        end
                     end
                 end
             end
             
             if idx_f == 0
-                f_handle = [];
+                fh_list = [];
             end
         end
     end
