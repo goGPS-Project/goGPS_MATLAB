@@ -4123,15 +4123,25 @@ classdef GNSS_Station < handle
                             if strcmp(par_name, 'nsat')
                                 plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             else
-                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
-                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                if any(id_ko_tmp)
+                                    mode = '.';
+                                else
+                                    mode = '.-';
+                                end
+                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             end
                         else
                             if strcmp(par_name, 'nsat')
                                 plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2); hold on;
                             else
-                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, '.', 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
-                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, '.', 'LineWidth', 2); hold on;
+                                if any(id_ko_tmp)
+                                    mode = '.';
+                                else
+                                    mode = '.-';
+                                end
+                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2); hold on;
                             end
                         end
                         childs = ax1.Children;
@@ -4274,7 +4284,7 @@ classdef GNSS_Station < handle
                 flag_od = false;
             end
             
-            fh_list = sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('ZHD', new_fig, sub_plot_nsat, flag_od);
         end
 
         function fh_list = showZwd(sta_list, new_fig, sub_plot_nsat, flag_od)
@@ -4298,7 +4308,7 @@ classdef GNSS_Station < handle
                 flag_od = false;
             end
             
-            fh_list = sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('ZWD', new_fig, sub_plot_nsat, flag_od);
         end
 
         function fh_list = showPwv(sta_list, new_fig, sub_plot_nsat, flag_od)
@@ -4322,7 +4332,7 @@ classdef GNSS_Station < handle
                 flag_od = false;
             end
             
-            fh_list = sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('PWV', new_fig, sub_plot_nsat, flag_od);
         end
 
         function fh_list = showZtd(sta_list, new_fig, sub_plot_nsat, flag_od)
@@ -4346,7 +4356,7 @@ classdef GNSS_Station < handle
                 flag_od = false;
             end
             
-            fh_list = sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od);
         end
 
         function fh_list = showGn(sta_list, new_fig, sub_plot_nsat, flag_od)
@@ -4369,7 +4379,7 @@ classdef GNSS_Station < handle
             if nargin <= 3 || isempty(flag_od)
                 flag_od = false;
             end
-            fh_list = sta_list.showTropoPar('GN', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('GN', new_fig, sub_plot_nsat, flag_od);
         end
 
         function fh_list = showGe(sta_list, new_fig, sub_plot_nsat, flag_od)
@@ -4392,7 +4402,7 @@ classdef GNSS_Station < handle
             if nargin <= 2 || isempty(flag_od)
                 flag_od = false;
             end
-            fh_list = sta_list.showTropoPar('GE', new_fig, sub_plot_nsat, flag_od)
+            fh_list = sta_list.showTropoPar('GE', new_fig, sub_plot_nsat, flag_od);
         end
         
         function fh_list = showZtdVsHeight(sta_list, degree)
