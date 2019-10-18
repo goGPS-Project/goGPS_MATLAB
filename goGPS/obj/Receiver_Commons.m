@@ -814,6 +814,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %  - h_ellips
             %  - h_ortho
             %  - ztd
+            %  - zwd
             %  - time_utc in matlab format
             %
             % SYNTAX
@@ -833,6 +834,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         h_ellips = this(r).h_ellips; %#ok<NASGU>
                         h_ortho = this(r).h_ortho; %#ok<NASGU>
                         ztd = this(r).getZtd(); %#ok<NASGU>
+                        zwd = this(r).getZwd(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
                         out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
@@ -843,7 +845,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         old_file_list = dir(fname_old);
 
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.mat']);
-                        save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
+                        save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
                         for f = 1 : numel(old_file_list)
