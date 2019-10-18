@@ -11124,11 +11124,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             max_pr_prn = [];
             s = 0;
             fprintf('\n');
-            fprintf('      |  PR                                            |  PH                                   |\n');
-            fprintf('      |----------------------------------------------------------------------------------------|\n');
-            fprintf('      |   median  |        std |        min |      max |   median |    std |     min |     max |\n');
-            fprintf('      |----------------------------------------------------------------------------------------|\n');
-            std_stat = zeros(numel(unique(this.system)), 9, 2); % N const, n bands, pr/ph
+            fprintf('       |  PR                                            |   PH                                   |\n');
+            fprintf('       |-----------------------------------------------------------------------------------------|\n');
+            fprintf('       |   median  |        std |        min |      max |    median |    std |     min |     max |\n');
+            fprintf('       |-----------------------------------------------------------------------------------------|\n');
+            all_trk = unique(this.obs_code(:,3))';
+            std_stat = zeros(numel(unique(this.system)), 9, 2, numel(all_trk)); % N const, n bands, pr/ph
             sys_full_name = {};
             cc = Core.getState.getConstellationCollector;
             for sys_c = unique(this.system)
@@ -11145,35 +11146,42 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_sys = find(this.system(id_ph) == sys_c);
                 prn  = this.prn(id_ph(id_sys));
                 band = unique(str2num(this.obs_code(id_ph(id_sys), 2)));
-                legend_on = false(max(band), 1);
+                legend_on = false(numel(all_trk), 1);
                 legend_s{1} = {};
                 legend_s{2} = {};
                 for p = unique(prn)'
+                    i = 0;
                     id_prn = find(prn == p);
                     band = str2num(this.obs_code(id_ph(id_sys(id_prn)), 2));
                     for b = unique(band)'
                         id_band = find(band == b);
-                        id_obs = id_sys(id_prn(id_band));
-                        [v_min, id_min] = min(zero2nan(std(sensor_pr2(:, id_obs),'omitnan')));
-                        id_band = id_band(id_min);
-                        id_obs = id_sys(id_prn(id_band));
-                        mean_ph_prn(prn(id_prn(id_band)), b, s) = (zero2nan(median(sensor_ph0(:, id_obs),'omitnan'))) * 1e3;
-                        mean_pr_prn(prn(id_prn(id_band)), b, s) = (zero2nan(median(sensor_pr0(:, id_obs),'omitnan'))) * 1e3;
-                        std_ph_prn(prn(id_prn(id_band)), b, s) = (zero2nan(std(sensor_ph2(:, id_obs),'omitnan'))) * 1e3;
-                        std_pr_prn(prn(id_prn(id_band)), b, s) = (zero2nan(std(sensor_pr2(:, id_obs),'omitnan'))) * 1e3;
-                        min_ph_prn(prn(id_prn(id_band)), b, s) = (min(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
-                        min_pr_prn(prn(id_prn(id_band)), b, s) = (min(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
-                        max_ph_prn(prn(id_prn(id_band)), b, s) = (max(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
-                        max_pr_prn(prn(id_prn(id_band)), b, s) = (max(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
-                        subplot(2,1,1)
-                        plot(prn(id_prn(id_band)), std_ph_prn(prn(id_prn(id_band)), b, s), '.', 'MarkerSize', 30, 'Color', Core_UI.getColor(b, 9)); hold on;
-                        subplot(2,1,2)
-                        plot(prn(id_prn(id_band)), std_pr_prn(prn(id_prn(id_band)), b, s), 'o', 'MarkerSize', 10, 'LineWidth', 3, 'Color', Core_UI.getColor(b, 9)); hold on;
-                        obs_code = this.obs_code(id_ph(id_sys(id_prn(id_band))), :);
-                        if ~legend_on(b)
-                            legend_on(b) = true;
-                            legend_s{1} = [legend_s{1} {['PH ' obs_code(1:2)]}];
-                            legend_s{2} = [legend_s{2} {['PR ' obs_code(1:2)]}];
+                        trk_ok = this.obs_code(id_ph(id_prn(id_band)), 3);
+                        for trk = unique(trk_ok)'
+                            i = i + 1;
+                            id_trk = find(trk_ok == trk);
+                            id_obs = id_sys(id_prn(id_band(id_trk)));
+                            [v_min, id_min] = min(zero2nan(std(sensor_pr2(:, id_obs),'omitnan')));
+                            id_trk = id_trk(id_min);
+                            id_obs = id_sys(id_prn(id_band(id_trk)));
+                            t = find(all_trk == trk);
+                            mean_ph_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (zero2nan(median(sensor_ph0(:, id_obs),'omitnan'))) * 1e3;
+                            mean_pr_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (zero2nan(median(sensor_pr0(:, id_obs),'omitnan'))) * 1e3;
+                            std_ph_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (zero2nan(std(sensor_ph2(:, id_obs),'omitnan'))) * 1e3;
+                            std_pr_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (zero2nan(std(sensor_pr2(:, id_obs),'omitnan'))) * 1e3;
+                            min_ph_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (min(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
+                            min_pr_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (min(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
+                            max_ph_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (max(zero2nan(sensor_ph2(:, id_obs)))) * 1e3;
+                            max_pr_prn(prn(id_prn(id_band(id_trk))), b, s, t) = (max(zero2nan(sensor_pr2(:, id_obs)))) * 1e3;
+                            subplot(2,1,1)
+                            plot(prn(id_prn(id_band(id_trk))), std_ph_prn(prn(id_prn(id_band(id_trk))), b, s, t), '.', 'MarkerSize', 30, 'Color', Core_UI.getColor(i, 9)); hold on;
+                            subplot(2,1,2)
+                            plot(prn(id_prn(id_band(id_trk))), std_pr_prn(prn(id_prn(id_band(id_trk))), b, s, t), 'o', 'MarkerSize', 10, 'LineWidth', 3, 'Color', Core_UI.getColor(i, 9)); hold on;
+                            obs_code = this.obs_code(id_ph(id_sys(id_prn(id_band(id_trk)))), :);
+                            if ~legend_on(i)
+                                legend_on(i) = true;
+                                legend_s{1} = [legend_s{1} {['PH ' obs_code(1:3)]}];
+                                legend_s{2} = [legend_s{2} {['PR ' obs_code(1:3)]}];
+                            end
                         end
                     end
                 end
@@ -11191,19 +11199,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 fh = gcf; fh.Name = sprintf('%d %s) %c obs-synth', fh.Number, this.parent.getMarkerName4Ch, sys_c); fh.NumberTitle = 'off';
                 
                 for b = 1 : size(mean_pr_prn, 2)
-                    if ~isnan(mean(zero2nan(mean_pr_prn(:, b, s)), 'omitnan'))
-                        fprintf(' %c L%d | %9.2f | %10.2f | %10.2f | %7.2f | %8.2f | %6.2f | %7.2f | %7.2f |\n', ...
-                            sys_c(1), b, ...
-                            mean(zero2nan(mean_pr_prn(:, b, s)), 'omitnan'), ...
-                            mean(zero2nan(std_pr_prn(:, b, s)), 'omitnan'), ...
-                            mean(zero2nan(min_pr_prn(:, b, s)), 'omitnan'), ...
-                            mean(zero2nan(max_pr_prn(:, b, s)), 'omitnan'), ...
-                            mean(zero2nan(mean_ph_prn(:, b, s)), 'omitnan'), ...
-                            mean(zero2nan(std_ph_prn(:, b, s)), 'omitnan'), ...
-                            min(zero2nan(min_ph_prn(:, b, s))), ...
-                            max(zero2nan(max_ph_prn(:, b, s))));
-                        std_stat(s, b, 1) = mean(zero2nan(std_pr_prn(:, b, s)), 'omitnan');
-                        std_stat(s, b, 2) = mean(zero2nan(std_ph_prn(:, b, s)), 'omitnan');
+                    for t = 1 : size(mean_pr_prn, 4)
+                        if ~isnan(mean(zero2nan(mean_pr_prn(:, b, s, t)), 'omitnan'))
+                            fprintf(' %c L%d%c | %9.2f | %10.2f | %10.2f | %8.2f | %9.2f | %6.2f | %7.2f | %7.2f |\n', ...
+                                sys_c(1), b, all_trk(t), ...
+                                mean(zero2nan(mean_pr_prn(:, b, s, t)), 'omitnan'), ...
+                                mean(zero2nan(std_pr_prn(:, b, s, t)), 'omitnan'), ...
+                                mean(zero2nan(min_pr_prn(:, b, s, t)), 'omitnan'), ...
+                                mean(zero2nan(max_pr_prn(:, b, s, t)), 'omitnan'), ...
+                                mean(zero2nan(mean_ph_prn(:, b, s, t)), 'omitnan'), ...
+                                mean(zero2nan(std_ph_prn(:, b, s, t)), 'omitnan'), ...
+                                min(zero2nan(min_ph_prn(:, b, s, t))), ...
+                                max(zero2nan(max_ph_prn(:, b, s, t))));
+                            std_stat(s, b, 1, t) = mean(zero2nan(std_pr_prn(:, b, s, t)), 'omitnan');
+                            std_stat(s, b, 2, t) = mean(zero2nan(std_ph_prn(:, b, s, t)), 'omitnan');
+                        end
                     end
                 end
             end
