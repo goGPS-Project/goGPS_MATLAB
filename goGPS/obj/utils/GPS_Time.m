@@ -443,7 +443,7 @@ classdef GPS_Time < Exportable & handle
                     end
                     % With three parameters the thirsd is a flag (is_gps)
                 case 3
-                    if isempty(arg2)
+                    if isempty(arg2) && ~isa(arg1,'uint32')
                         if isa(arg1,'char')
                             % string time (matlab time)
                             this.GPS_Time_str(arg1, arg3);
@@ -590,7 +590,7 @@ classdef GPS_Time < Exportable & handle
                 
                 % When not specified the new format is the format of the append
                 if (nargin < 3)
-                    time_type = time.time_type;
+                    time_type = this.time_type;
                 end
                 if (nargin < 4)
                     is_gps = time.is_gps;
@@ -605,21 +605,21 @@ classdef GPS_Time < Exportable & handle
                         this.toMatlabTime();
                         time.toMatlabTime();
                         
-                        this.mat_time = [this.mat_time(:); time.mat_time(:)];
+                        this.mat_time = [double(this.mat_time(:)); time.mat_time(:)];
                         
                     case 1 % I'm in UNIX TIME
                         this.toUnixTime();
                         time.toUnixTime();
                         
-                        this.unix_time = [this.unix_time; time.unix_time];
-                        this.unix_time_f = [this.unix_time_f; time.unix_time_f];
+                        this.unix_time = [uint32(this.unix_time); time.unix_time];
+                        this.unix_time_f = [double(this.unix_time_f); time.unix_time_f];
                         
                     case 2 % I'm in REF TIME
                         this.toRefTime();
                         time.toRefTime();
                         
                         % keep the reference of the this
-                        this.time_diff = [this.time_diff; (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
+                        this.time_diff = [double(this.time_diff); (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
                 end
                 
                 % Convert into correct format time
@@ -1483,11 +1483,13 @@ classdef GPS_Time < Exportable & handle
                         new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
                     case 2 % I'm in REF TIME
                         new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
+                        new_obj.time_type = 2; % if is empty GPS_Time cannot recognize the input
                 end
             catch
                 % this is faster than checking if id == 0 or id > this.length() (very limit case)
                 % edit of the 7th of October 2019
                 new_obj = GPS_Time();
+                new_obj.time_type = this.time_type;
             end
         end
         
