@@ -2397,10 +2397,10 @@ end
             persistent unique_dir dir_list 
             
             if (tot_rec < 10000) || flag_force
-                % If last check is older than 15 minutes ago
+                % If last check is older than 30 minutes ago
                 % force_check
                 persistent last_check
-                if isempty(last_check) || (now - last_check) > (900 / 86400)
+                if isempty(last_check) || (now - last_check) > (1800 / 86400)
                     last_check = now;
                     flag_force = true;
                 end
