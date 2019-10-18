@@ -70,6 +70,7 @@ classdef LS_Parametrization < handle
         SING_TRACK = 1;
         SING_FREQ = 2;
         FREQ_CONST = 6;
+        SING_BAND = 7;
         SING_FREQ_BIN = 4;
         ALL_FREQ = 3;
         RULE = 5; % warnign only sequential & allowed
@@ -95,7 +96,7 @@ classdef LS_Parametrization < handle
         
         sat_eb = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
         sat_ppb = [LS_Parametrization.STEP_CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
-        sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_FREQ];
+        sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
@@ -106,7 +107,7 @@ classdef LS_Parametrization < handle
         tropo_n = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_e = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_s =  [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-        tropo_v = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_v = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
               
         iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
              
@@ -151,7 +152,7 @@ classdef LS_Parametrization < handle
             this.rec_eb_opt_lin.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
         end
        
-        function [parametriz, option] = getParametrization(this, par_class)
+        function [parametriz, option] = getParametrization(this, par_class, obs_code)
             % get the parametrization and the options for the paramter
             % class p
             %
@@ -218,6 +219,33 @@ classdef LS_Parametrization < handle
                 case LS_Manipulator_new.PAR_SAT_EBFR
                     parametriz = this.sat_ebfr;
                     option = this.sat_ebfr_opt;
+            end
+            
+            if nargin > 2 && parametriz(4) == this.RULE % if an obseravtion code is specified give the paramterization for thata specific obsservation code
+                rule = option.rule;
+                for r = 1 : length(rule)
+                    parts = strsplit(rule{r},':');
+                    cond = parts{1};
+                    optt = parts{2};
+                    conds = strsplit(cond,'&');
+                    cond_passed = true;
+                    for c = conds
+                        if strcmpi('PSRANGE',c)
+                            cond_passed = cond_passed && obs_code(2) == 'C';
+                        elseif strcmpi('PHASE',c)
+                            cond_passed = cond_passed && obs_code(2) == 'L';
+                        elseif strcmpi('GLONASS',c)
+                            cond_passed = cond_passed && obs_code(1) == 'R';
+                        elseif strcmpi('NOT*GLONASS',c)
+                            cond_passed = cond_passed && obs_code(1) ~= 'R';
+                        else
+                            cond_passed = false;
+                        end
+                    end
+                    if cond_passed
+                        parametriz(4) = str2num(optt);
+                    end
+                end
             end
         end
     end
