@@ -2192,7 +2192,15 @@ classdef LS_Manipulator < Exportable
             end
             
             warning off
+            if (size(N, 1) > 1e5)
+                log = Core.getLogger();
+                log.addMessage(log.indent(sprintf('The full system is sparse %d x %d\nplease wait for the solver to end...', size(N, 1), size(N, 2))));
+                ts = tic();
+            end
             x = N \ B;
+            if (size(N, 1) > 1e5)
+                toc(ts)
+            end
             warning on
             
             x_class = zeros(size(x));
