@@ -1837,7 +1837,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMarkedMessage('Cleaning observations');
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
-            cs_thr = 0.7*this.state.getCycleSlipThr(); % CYCLE SLIP THR
+            cs_thr = 0.7 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
             sa_thr = this.state.getMinArc();  % short arc threshold
             
             %----------------------------
@@ -1848,7 +1848,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get observed values
             [ph, wl, lid_ph] = this.getPhases;
             this.sat.outliers_ph_by_ph = false(size(ph));
-            this.sat.cycle_slip_ph_by_ph = false(size(ph));
+            % inititalize cycle slips with the beginning of the arcs
+            this.sat.cycle_slip_ph_by_ph = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
@@ -2106,7 +2107,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
             this.sat.outliers_ph_by_ph = sparse((this.sat.outliers_ph_by_ph | poss_out_idx) & ~(poss_slip_idx));
             n_out = full(sum(this.sat.outliers_ph_by_ph(:)));
-            this.sat.cycle_slip_ph_by_ph = sparse(poss_slip_idx);
+            this.sat.cycle_slip_ph_by_ph = sparse(this.sat.cycle_slip_ph_by_ph | poss_slip_idx);
             % Remove short arcs
             this.addOutliers(this.sat.outliers_ph_by_ph, true);
             if this.isMultiFreq % if the receiver is multifrequency there is the oppotunity to check again the cycle slip using geometry free and melbourne wubbena comniations
@@ -2115,7 +2116,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % "best" combination on th base of the wavelength of the
                 % signal and ont the best tracking.
                 % A better approch capable to deal with all the information
-                % at once shpuld be found
+                % at once should be found
                 [ph,wl,lid_ph] = this.getPhases;
                 id_ph = find(lid_ph);
                 go_id_ph = this.go_id(lid_ph);
@@ -2161,7 +2162,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         id_2 = id_sat_ph(id_fr_sat(id_not_cs(1)));
                                         jmp = mean(ph(ce:cs_aft,id_1) - ph(ce:cs_aft,id_2) ,'omitnan') - mean(ph(cs_bf:(ce-1),id_1) - ph(cs_bf:(ce-1),id_2),'omitnan');
                                         i_jmp = round(jmp/wl_sat(id_fr_sat(1)));
-                                        if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for sgnificance
+                                        if abs(jmp/wl_sat(id_fr_sat(1)) - i_jmp) < 0.05% very rough test for significance
                                             this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
                                             if i_jmp ~= 0
                                                 ph(ce:end,id_1) = ph(ce:end,id_1) - i_jmp*wl_sat(id_fr_sat(1));
@@ -2175,7 +2176,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         lid_cs_ep = sum(ph_sat_cs,2) > 0; % epoch with a cycle slip
                         id_cs_ep = find(lid_cs_ep);
                         %2) check the geometry free and the melbourne
-                        % wubbena if one of the two detec a cycle slip then
+                        % wubbena if one of the two detect a cycle slip then
                         % is really a cycle slip otherwise remove it
                         for ce = id_cs_ep'
                             fr_jmp = false(size(u_fr_ph));
@@ -2188,8 +2189,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             if sum(ph_sat_cs(ce, :) | isnan(ph(ce,id_sat_ph))) ~= length(ph_sat_cs(ce, :)) % if not everything jumps
                                 for cs = find(ph_sat_cs(ce, :))
                                     if ce > 10 && sum(isnan(ph((ce-10):(ce-1),id_sat_ph(cs)))) < 9 % check if is the start of an arc
-                                        %find a pivot -> use the one witht the
-                                        %wavelength closer to the cycle slip
+                                        %find a pivot -> use the one with the
+                                        % wavelength closer to the cycle slip
                                         idx_n_jmp = find(~ph_sat_cs(ce, :));
                                         wl_n_jmp = wl(id_sat_ph(idx_n_jmp));
                                         wl_jmp = wl(id_sat_ph(cs));
@@ -2228,23 +2229,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         else
                                             mwb = zeros(size(gf));
                                         end
-                                        id_jmp2 = ce -cs_bf +1; % id of the jmp in the pahse combination
+                                        id_jmp2 = ce -cs_bf +1; % id of the jmp in phase combination
                                         dgf = diff(gf);
                                         if (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
                                             this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
-                                        end
-                                        
+                                        end                                        
                                     end
                                 end
                             end
                         end
                     end
                 end
-                this.setPhases(ph,wl,lid_ph); % ste back phases                
+                this.setPhases(ph,wl,lid_ph); % set back phases                
             end
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
         end
-        
+                
         function repairCycleSlipRough(this)
             % to be called after a PPP with prceise clock correction
             [phases, wl,lid] = this.getPhases;
