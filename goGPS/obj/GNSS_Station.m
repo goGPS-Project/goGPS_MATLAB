@@ -4709,7 +4709,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
@@ -5608,5 +5608,126 @@ classdef GNSS_Station < handle
             end
         end
         
+        function exportHydroNET(sta_list)
+            % Export the troposphere into a hydroNet readable data format file
+            % The data exported are:
+            %  - ztd
+            %  - zwd
+            %  - east gradient
+            %  - north gradient
+            %  - time_utc in matlab format
+            %
+            % SYNTAX
+            %   this.exportHydroNET
+            
+                         try
+            min_time = GPS_Time();
+            max_time = GPS_Time();
+            for r = 1 : numel(sta_list)
+                min_time.append(sta_list(r).out.time.minimum);
+                max_time.append(sta_list(r).out.time.maximum);
+                
+            end
+            min_time = min_time.minimum;
+            max_time = max_time.maximum;
+            min_time.toUtc();
+            max_time.toUtc();
+            [year,doy] = min_time.getDOY();
+            t_start = min_time.toString('HHMM');
+            
+            
+            
+            out_dir = fullfile( Core.getState.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+            if ~exist(out_dir, 'file')
+                mkdir(out_dir);
+            end
+            
+            
+            if length(sta_list) == 1
+                prefix = sta_list(1).getMarkerName4Ch;
+            else
+                prefix = 'HNTD';
+            end
+            fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
+            fid = fopen(fname,'w');
+            
+            
+            % write header
+            fprintf(fid,'[Variables]\n');
+            
+            fprintf(fid,'Code,Name,Unit\n');
+            
+            fprintf(fid,'ZTD,Zenith Total Delay,m\n');
+            
+            fprintf(fid,'ZWD,Zenith Wet Delay,m\n');
+            
+            fprintf(fid,'GE,East Gradient,m\n');
+            
+            fprintf(fid,'GN,North Gradient,m\n');
+            
+            fprintf(fid,'\n');
+            
+            fprintf(fid,'[Locations]\n');
+            
+            fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
+            
+            for r = 1 : numel(sta_list)
+                coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:));
+                [x,y,h_ellipse,zone] = coo.getENU();
+                %                     ondu = coo.getOrthometricCorrection();
+                %                     h_ortho = h_ellipse - ondu;
+                fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['326' zone(1:2)]);
+            end
+            
+            fprintf(fid,'\n');
+            
+            
+            fprintf(fid,'[Time]\n');
+            fprintf(fid,'UTC time zone offset,Model date,Start date,End date\n');
+            
+            fprintf(fid,'|+0000,,%s,%s\n',min_time.toString('yyyy-mm-dd HH:MM:SS'),max_time.toString('yyyy-mm-dd HH:MM:SS'));
+            
+            
+            fprintf(fid,'\n');
+            
+            fprintf(fid,'[Data]\n');
+            fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
+            for r = 1 : numel(sta_list)
+                if max(sta_list(r).out.quality_info.s0) < 0.10
+                    
+                    time = sta_list(r).out.getTime();
+                    time.toUtc();
+                    
+                    
+                    ztd = sta_list(r).out.getZtd();
+                    zwd = sta_list(r).out.getZwd();
+                    [gn,ge ] =  sta_list(r).out.getGradient();
+                    mk_code = sta_list(r).getMarkerName4Ch;
+                    for t = 1 : time.length
+                        time_str = time.getEpoch(t).toString('yyyy-mm-dd HH:MM:SS');
+                        fprintf(fid,'%s,%s,ZTD,%0.4f,,1\n',time_str,mk_code,ztd(t));
+                        fprintf(fid,'%s,%s,ZWD,%0.4f,,1\n',time_str,mk_code,zwd(t));
+                        fprintf(fid,'%s,%s,GN,%0.5f,,1\n',time_str,mk_code,gn(t));
+                        fprintf(fid,'%s,%s,GE,%0.5f,,1\n',time_str,mk_code,ge(t));
+                        
+                    end
+                    
+                    
+                else
+                    if isempty(max(this(r).quality_info.s0))
+                        sta_list(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
+                    else
+                        sta_list(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                    end
+                end
+            end
+            fclose(fid);
+            sta_list(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+            
+            
+                        catch ex
+                            sta_list(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
+                        end
+        end
     end
 end

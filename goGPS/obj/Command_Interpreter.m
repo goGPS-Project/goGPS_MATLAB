@@ -149,6 +149,8 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_SNX % Tropo export Parameter sinex format
         PAR_E_TROPO_MAT % Tropo export Parameter mat format
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
+        PAR_E_TROPO_HN % Tropo export Parameter hn format
+
         PAR_E_COO_CRD   % Coordinates in bernese crd format
         PAR_E_COO_CSV   % Coordinates in bernese crd format
 
@@ -506,6 +508,13 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
+            this.PAR_E_TROPO_HN.name = 'TROPO HydroNet format';
+            this.PAR_E_TROPO_HN.descr = 'TRP_HN          Tropo parameters as a hydroNet (CSV like) file';
+            this.PAR_E_TROPO_HN.par = '(trp_hn)|(TRP_HN)';
+            this.PAR_E_TROPO_HN.class = '';
+            this.PAR_E_TROPO_HN.limits = [];
+            this.PAR_E_TROPO_HN.accepted_values = {};
+            
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
             this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters MATLAB as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
@@ -633,7 +642,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -882,7 +891,7 @@ classdef Command_Interpreter < handle
             end
             
             t0 = tic();
-            try
+%             try
                 cur_session = core.getCurrentSession;
                 [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
                 level = level + level_add;
@@ -1038,7 +1047,7 @@ classdef Command_Interpreter < handle
                             end
                             l = par_cmd_id(end);
                         else
-                            try
+%                             try
                                 switch upper(tok{1})
                                     case this.CMD_PINIT.name                % PINIT
                                         this.runParInit(tok(2:end));
@@ -1099,21 +1108,21 @@ classdef Command_Interpreter < handle
                                             this.runOutDet(core.rec, tok);
                                     end
                                 end
-                            catch ex
-                                this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
-                                Core_Utils.printEx(ex);
-                                ex_number = ex_number + 1;
-                                ex_list{end + 1} = ex;
-                            end
+%                             catch ex
+%                                 this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+%                                 Core_Utils.printEx(ex);
+%                                 ex_number = ex_number + 1;
+%                                 ex_list{end + 1} = ex;
+%                             end
                         end
                     end
                 end
-            catch ex
-                this.log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
-                Core_Utils.printEx(ex);
-                ex_number = ex_number + 1;
-                ex_list{end + 1} = ex;
-            end
+%             catch ex
+%                 this.log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
+%                 Core_Utils.printEx(ex);
+%                 ex_number = ex_number + 1;
+%                 ex_list{end + 1} = ex;
+%             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
                 this.log.addMessage(this.log.indent('--------------------------------------------------'));
                 this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
@@ -1504,7 +1513,7 @@ classdef Command_Interpreter < handle
                         if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
                             this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                         else
-                            try
+                            %try
                                 if flag_uncombined
                                     this.log.addWarning('Experimental uncombined engine enabled');
                                     if sys_found
@@ -1519,10 +1528,10 @@ classdef Command_Interpreter < handle
                                         rec(r).work.staticPPP();
                                     end
                                 end
-                            catch ex
-                                this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
-                                Core_Utils.printEx(ex);
-                            end
+%                             catch ex
+%                                 this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+%                                 Core_Utils.printEx(ex);
+%                             end
                         end
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
@@ -1589,17 +1598,17 @@ classdef Command_Interpreter < handle
                         fr_id = str2num(tok{t}(fr_id+1));
                     end
                 end
-                try
+%                 try
                     if flag_uncombined
                         this.log.addWarning('Experimental uncombined engine enabled');
                         net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
                     else
                         net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
                     end
-                catch ex
-                    this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
-                    Core_Utils.printEx(ex);
-                end
+%                 catch ex
+%                     this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+%                     Core_Utils.printEx(ex);
+%                 end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();
@@ -2167,6 +2176,9 @@ classdef Command_Interpreter < handle
                                         else
                                             rec(r).out.exportTropoCSV();
                                         end
+                                        not_exported = false;
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_HN.par ')*$'], 'once'))
+                                        rec(r).exportHydroNET();
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_REC_MAT.par ')*$'], 'once'))
                                         rec(r).exportMat();
