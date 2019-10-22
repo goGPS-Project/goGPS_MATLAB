@@ -891,7 +891,7 @@ classdef Command_Interpreter < handle
             end
             
             t0 = tic();
-%             try
+             try
                 cur_session = core.getCurrentSession;
                 [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
                 level = level + level_add;
@@ -1047,7 +1047,7 @@ classdef Command_Interpreter < handle
                             end
                             l = par_cmd_id(end);
                         else
-%                             try
+                             try
                                 switch upper(tok{1})
                                     case this.CMD_PINIT.name                % PINIT
                                         this.runParInit(tok(2:end));
@@ -1108,21 +1108,21 @@ classdef Command_Interpreter < handle
                                             this.runOutDet(core.rec, tok);
                                     end
                                 end
-%                             catch ex
-%                                 this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
-%                                 Core_Utils.printEx(ex);
-%                                 ex_number = ex_number + 1;
-%                                 ex_list{end + 1} = ex;
-%                             end
+                            catch ex
+                                this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+                                Core_Utils.printEx(ex);
+                                ex_number = ex_number + 1;
+                                ex_list{end + 1} = ex;
+                            end
                         end
                     end
                 end
-%             catch ex
-%                 this.log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
-%                 Core_Utils.printEx(ex);
-%                 ex_number = ex_number + 1;
-%                 ex_list{end + 1} = ex;
-%             end
+            catch ex
+                this.log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
+                Core_Utils.printEx(ex);
+                ex_number = ex_number + 1;
+                ex_list{end + 1} = ex;
+            end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
                 this.log.addMessage(this.log.indent('--------------------------------------------------'));
                 this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
@@ -1513,7 +1513,7 @@ classdef Command_Interpreter < handle
                         if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
                             this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                         else
-                            %try
+                            try
                                 if flag_uncombined
                                     this.log.addWarning('Experimental uncombined engine enabled');
                                     if sys_found
@@ -1528,10 +1528,10 @@ classdef Command_Interpreter < handle
                                         rec(r).work.staticPPP();
                                     end
                                 end
-%                             catch ex
-%                                 this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
-%                                 Core_Utils.printEx(ex);
-%                             end
+                            catch ex
+                                this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+                                Core_Utils.printEx(ex);
+                            end
                         end
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
@@ -1598,17 +1598,17 @@ classdef Command_Interpreter < handle
                         fr_id = str2num(tok{t}(fr_id+1));
                     end
                 end
-%                 try
+                 try
                     if flag_uncombined
                         this.log.addWarning('Experimental uncombined engine enabled');
                         net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
                     else
                         net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
                     end
-%                 catch ex
-%                     this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
-%                     Core_Utils.printEx(ex);
-%                 end
+                catch ex
+                    this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+                    Core_Utils.printEx(ex);
+                end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();
