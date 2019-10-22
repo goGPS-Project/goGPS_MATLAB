@@ -5676,7 +5676,12 @@ classdef GNSS_Station < handle
                 [x,y,h_ellipse,zone] = coo.getENU();
                 %                     ondu = coo.getOrthometricCorrection();
                 %                     h_ortho = h_ellipse - ondu;
-                fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['326' zone(1:2)]);
+                if zone(4) < 'N'
+                    hemi = '7';
+                else
+                    hemi = '6';
+                end
+                fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
             end
             
             fprintf(fid,'\n');
