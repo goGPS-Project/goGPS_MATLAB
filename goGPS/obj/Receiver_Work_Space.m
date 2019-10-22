@@ -10917,7 +10917,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
                     
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('Data_availability_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('Data_availability_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(ss), this.getTime.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     
                     any_data = false;
