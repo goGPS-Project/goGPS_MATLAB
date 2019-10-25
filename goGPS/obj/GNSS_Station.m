@@ -472,7 +472,10 @@ classdef GNSS_Station < handle
             % fix the position of the receiver into the reference frame
             % object
             %
-            % SYNTAX:
+            % INPUT
+            %   mode    it could be 'out' (dafault), 'work', ...(future modes)
+            %
+            % SYNTAX
             %  sta_list.fixPos(mode)
             
             %create a new RF
