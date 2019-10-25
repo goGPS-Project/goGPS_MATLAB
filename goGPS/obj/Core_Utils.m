@@ -88,7 +88,7 @@ classdef Core_Utils < handle
             %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
             ws_bk = fh.WindowStyle;
             fh.WindowStyle = 'normal';
-            if nargin < 3 || ~isempty(mode)
+            if nargin == 3 && ~isempty(mode)
                 Core_UI.beautifyFig(fh, mode);
             end
             col = fh.Color;
