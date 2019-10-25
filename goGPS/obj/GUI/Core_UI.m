@@ -208,6 +208,11 @@ classdef Core_UI < Logos
             %
             % SYNTAX
             %   Core_Utils.addBeautifyMenu(fig_handle)
+            
+            if nargin == 0 || isempty(fig_handle)
+                fig_handle = gcf;
+            end
+            
             m = findall(fig_handle.Children, 'Type', 'uimenu', 'Label', 'Aspect');
             if ~isempty(m)
                 m = m(1);
@@ -254,6 +259,9 @@ classdef Core_UI < Logos
             %
             % SYNTAX:
             %   Core_UI.beautifyFig(fig_handle, color_mode)
+            if nargin == 0 || isempty(fig_handle)
+                fig_handle = gcf;
+            end
             if nargin < 2 || isempty(color_mode)
                 color_mode = Core_UI.DEFAULT_MODE;
             end

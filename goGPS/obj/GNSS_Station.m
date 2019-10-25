@@ -567,6 +567,9 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   req_rec = sta_list.get(marker_name)
+            %
+            % SEE ALSO
+            %   sta_list.printStationList()
             req_rec = [];
             id_rec = [];
             for r = 1 : size(sta_list,2)
@@ -604,8 +607,7 @@ classdef GNSS_Station < handle
                 log.addMessage('List of available stations:');
                 for r = 1 : numel(sta_list)
                     try
-                        log.addMessage(sprintf('%4d) %s', r, char(sta_list(r).getMarkerName)));
-                        marker4ch_list
+                        log.addMessage(sprintf('%4d) %s - %s', r, char(sta_list(r).getMarkerName4Ch), sta_list(r).getMarkerName));
                     catch
                         % the name is shorter or missing => ignore
                     end
