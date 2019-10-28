@@ -1533,7 +1533,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     
-                    if (sum(this.param_class == this.PAR_REC_CLK) > 0) 
+                    if (sum(this.param_class == this.PAR_REC_CLK) > 0) &&  size(this.rec_xyz,1) < 2
                         % find the elecronic bias assoictaed with each ambiguity
                         idx_ambs = find(this.class_par == this.PAR_AMB);
                         amb2eb = zeros(size(idx_ambs));
