@@ -1369,7 +1369,7 @@ classdef Core < handle
                 n_ok(r) = sum(fr(r).is_valid_list);
                 n_ko(r) = sum(~fr(r).is_valid_list);
                 if verbosity
-                    this.log.addMessage(sprintf('%s (%03d ok - %03d ko)', char(8 * ones(1, 2 + 18)), n_ok(r), n_ko(r)));
+                    this.log.addMessage(sprintf('%s (%03d ok - %03d ko)', char(8 * ones(1, 2 + 15)), n_ok(r), n_ko(r)));
                 end
             end            
             
