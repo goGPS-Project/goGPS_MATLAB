@@ -1189,7 +1189,7 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+            if sum(this.param_class == this.PAR_IONO) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0 
                 % for each satellite if there is not ata least one double frequrency receiver observing the satellite remove the iono paramter, the delay is going to be absorbed by the clock
                 for s = this.unique_sat_goid
                     idx_par = find(this.class_par == this.PAR_IONO & this.sat_par == s & ~this.out_par); % two code biases not from the same frequency
@@ -1356,7 +1356,7 @@ classdef LS_Manipulator_new < handle
             end
             
             % remove one linear trend bias per signal from one recievr
-            if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0
+            if  sum(this.param_class == this.PAR_SAT_EB) > 0 && sum(this.param_class == this.PAR_REC_EB_LIN) > 0 
                 for e = 1: length(this.unique_obs_codes)
                     idx_par = find(this.class_par == this.PAR_REC_EB_LIN & this.obs_codes_id_par == e & ~this.out_par);
                     if ~isempty(idx_par)
@@ -1533,7 +1533,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     
-                    if (sum(this.param_class == this.PAR_REC_CLK) > 0)
+                    if (sum(this.param_class == this.PAR_REC_CLK) > 0) 
                         % find the elecronic bias assoictaed with each ambiguity
                         idx_ambs = find(this.class_par == this.PAR_AMB);
                         amb2eb = zeros(size(idx_ambs));
@@ -1993,7 +1993,7 @@ classdef LS_Manipulator_new < handle
             
             clearvars Aw
             % ------ reduce for sat clock, rec clock and iono
-            idx_reduce_sat_clk = class_par == this.PAR_SAT_CLK;
+            idx_reduce_sat_clk =  class_par == this.PAR_SAT_CLK;
             idx_reduce_rec_clk = class_par == this.PAR_REC_CLK;
             idx_reduce_iono = class_par == this.PAR_IONO;
             
@@ -2115,7 +2115,8 @@ classdef LS_Manipulator_new < handle
                     end
                     else
                         % reducing for everything else except ambiguities
-                       
+                                                 idx_b = find(~idx_amb);
+
                         [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
                         tol = 1e-3;
                         rm_id_b = (diag(D) < tol); % find amb to be removed
@@ -2127,9 +2128,10 @@ classdef LS_Manipulator_new < handle
 %                         P = P(~rm_id_b_o, ~rm_id_b_o);
                         C_bb = zeros(sum(~idx_amb));
                         C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
+                        Nbb = N(~idx_amb, ~idx_amb);
+                        C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
                         %Bbb =  B(~idx_amb);
-                        idx_b = find(~idx_amb);
-                        BB = N(idx_b, idx_amb)'*C_bb;
+                        BB = N(idx_amb,idx_b )*C_bb;
                         N_amb_amb = N(idx_amb, idx_amb) - BB*N(idx_b, idx_amb);
                         B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
                         %amb_float = C_amb_amb * Baa(~rm_id); 
@@ -2164,7 +2166,7 @@ classdef LS_Manipulator_new < handle
 
                         
                         % try to fix
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'round_then_ILS' );
                         ambs = zeros(size(N_amb_amb,1),1);
                         if is_fixed
                             ambs(rm_id==0) = amb_fixed(:,1);
@@ -2188,7 +2190,7 @@ classdef LS_Manipulator_new < handle
                 end
                 
             else
-                x_reduced = N\L;
+                x_reduced = N\B;
             end
             
             % ------- substitute back

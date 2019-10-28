@@ -1,3 +1,4 @@
+
 %   CLASS Fixer
 % =========================================================================
 %
@@ -88,18 +89,19 @@ classdef Fixer < handle
             if ~strcmp(approach, 'sequential_best_integer_equivariant')
                 % Regularize the ambiguity covariance matrix
                 % => improves LAMBDA approach
-                amb_ok = (abs(diag(C_amb_amb)) < 1e10); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
-                C_amb_amb(amb_ok, amb_ok) = eigRegularizer(full(C_amb_amb(amb_ok, amb_ok)), 1e6);
-                C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
+                 amb_ok = (abs(diag(C_amb_amb)) < 1e3); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
+%                  C_amb_amb(amb_ok, amb_ok) = eigRegularizer(full(C_amb_amb(amb_ok, amb_ok)), 1e6);
+%                C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
             else
-                amb_ok = (abs(diag(C_amb_amb)) < 1); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
+                amb_ok = (abs(diag(C_amb_amb)) < 1e10); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
+                C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
+                               
             end
             
             switch approach
                 case {'lambda_ILS'}
-                    [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), 5*full(C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
+                    [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
                     %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
-                    
                     mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
                     ratio = sq_norm(1) / sq_norm(2);
                     
@@ -110,6 +112,29 @@ classdef Fixer < handle
                         is_fixed = is_fixed + ~all(amb_ok);
                     end
                     l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
+                case {'round_then_ILS'}
+                    % round amboguities very nera to zero then apply
+                    % lambbda
+                    amb_ok = find(amb_ok);
+                    sigma_float = sqrt(diag(C_amb_amb(amb_ok, amb_ok)));
+                    pmf = Fixer.oneDimPMF(amb_float(amb_ok), sigma_float);
+                    idx_round = abs(fracFNI(amb_float(amb_ok))) < 0.1 & pmf > 0.999; % we can round right away no need for LAMBDA
+                    amb_fixed = repmat(amb_fixed, 1, 2);
+                    l_fixed   = false(size(amb_fixed));
+                    l_fixed(amb_ok(idx_round),:) = true;
+                    amb_fixed(amb_ok(idx_round),:) = repmat(round(amb_float(amb_ok(idx_round))),1,2);
+                    amb_float(amb_ok(~idx_round)) = amb_float(amb_ok(~idx_round)) - C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * (amb_float(amb_ok(idx_round)) - amb_fixed(amb_ok(idx_round),1));
+                    C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   =   C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   -   C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * C_amb_amb(amb_ok(idx_round), amb_ok(~idx_round));
+                    [amb_fixed(amb_ok(~idx_round),:), sq_norm, success_rate] = LAMBDA(amb_float(amb_ok(~idx_round)), full(C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))), 1, 'P0', this.p0, 'mu', this.mu);
+                    %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
+                    mu = ratioinv(this.p0, 1 - success_rate, length(amb_ok(~idx_round)));
+                    ratio = sq_norm(1) / sq_norm(2);
+                    is_fixed  = ratio <= mu;
+                    if is_fixed
+                        l_fixed(amb_ok(~idx_round),:) = true;
+
+                    end
+                    is_fixed = true;
                 case {'lambda_bootstrapping'}
                     [tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',this.mu);
                     
@@ -123,6 +148,8 @@ classdef Fixer < handle
                     [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
                     is_fixed = true;
                     l_fixed   = amb_ok;
+                    amb_fixed(amb_ok, 1) = tmp_amb_fixed(:,1);
+
                 case {'bayesian_with_monte_carlo'}
                     [tmp_amb_fixed] = this.bayesianAmbFixing(amb_float(amb_ok), full( C_amb_amb(amb_ok, amb_ok)));
                     amb_fixed(amb_ok, :) = tmp_amb_fixed;
@@ -137,7 +164,7 @@ classdef Fixer < handle
                     % boostrap solution starting from the most probable and
                     % not the one with lower formal errror
                     l_fixed = amb_ok;
-                    [amb_fixed(amb_ok), l_fixed(amb_ok),  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),5*(C_amb_amb(amb_ok, amb_ok)));
+                    [amb_fixed(amb_ok), l_fixed(amb_ok),  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),(C_amb_amb(amb_ok, amb_ok)));
                     is_fixed = true;
             end
         end

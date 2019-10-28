@@ -5703,7 +5703,7 @@ classdef GNSS_Station < handle
             fprintf(fid,'[Data]\n');
             fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
             for r = 1 : numel(sta_list)
-                if max(sta_list(r).out.quality_info.s0) < 0.10
+                if ~this(r).isEmpty & ~isempty(this(r).out.quality_info.s0) & max(sta_list(r).out.quality_info.s0) < 0.10
                     
                     time = sta_list(r).out.getTime();
                     time.toUtc();
