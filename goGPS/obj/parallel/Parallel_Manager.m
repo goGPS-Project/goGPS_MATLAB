@@ -67,7 +67,7 @@ classdef Parallel_Manager < Com_Interface
     
     properties (GetAccess = private, SetAccess = private)
         worker_id = {}; % list of active workers        
-        timeout = 15; % additional wait time for fast remote answers
+        timeout = 25; % additional wait time for fast remote answers
     end
     
     %% METHOD CREATOR
@@ -298,12 +298,20 @@ classdef Parallel_Manager < Com_Interface
             % and restart them
             this.resurgit([], false);
             % Check for life
-            this.testWorkers();
+            n_searched = this.testWorkers();
             if isunix() && ~ismac()
-                pause(1);
+                % On our Linux box, this update takes longer
+                pause(0.5);
             end
+            
             % Check for slaves
             slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN Go_Slave.SLAVE_WAIT_PREFIX '*']));
+            i = 0;
+            while (n_searched > numel(slave_list)) && (i < 2)
+                i = i + 1;
+                pause(1);
+                slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN Go_Slave.SLAVE_WAIT_PREFIX '*']));
+            end
             n_slaves = numel(slave_list);
             if n_slaves > 0
                 this.log.addMessage(this.log.indent(sprintf('I already have %d living %s', n_slaves, iif(n_slaves == 1, 'slave', 'slaves'))));
