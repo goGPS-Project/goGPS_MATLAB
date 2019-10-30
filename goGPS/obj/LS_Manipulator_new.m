@@ -59,6 +59,7 @@ classdef LS_Manipulator_new < handle
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
         PAR_TROPO_V = 10;
+        PAR_TROPO_Z = 10;
         PAR_SAT_CLK = 11;
         PAR_ANT_MP = 12;
         PAR_IONO = 13;
@@ -222,6 +223,9 @@ classdef LS_Manipulator_new < handle
             par_tropo_s_lid = param_selection == this.PAR_TROPO_S;
             par_tropo_s = sum(par_tropo_s_lid) > 0;
             
+            par_tropo_z_lid = param_selection == this.PAR_TROPO_Z;
+            par_tropo_z = sum(par_tropo_z_lid) > 0;
+            
             par_iono_lid = param_selection == this.PAR_IONO;
             par_iono = sum(par_iono_lid) > 0;
             
@@ -318,8 +322,8 @@ classdef LS_Manipulator_new < handle
                     obs(lines_stream) = obs_stream;
                     satellite_obs(lines_stream) = s_go_id;
                     variance_obs(lines_stream) =  obs_set.sigma(s)^2;
-                    azimuth_obs(lines_stream) =  obs_set.sigma(s)^2;
-                    elevation_obs(lines_stream) =  obs_set.sigma(s)^2;
+                    azimuth_obs(lines_stream) =  obs_set.az(id_ok_stream,s);
+                    elevation_obs(lines_stream) =  obs_set.el(id_ok_stream,s);
                     obs_codes_id_obs(lines_stream) = s_s_id;
                     phase_obs(lines_stream) = phase_s(s);
                     wl_obs(lines_stream) = wl_id;
@@ -408,6 +412,9 @@ classdef LS_Manipulator_new < handle
                     end
                     if par_tropo_v
                         A(lines_stream, par_tropo_v_lid) = mfw_stream*rec.h_ellips;
+                    end
+                    if par_tropo_z
+                        A(lines_stream, par_tropo_z_lid) = mfw_stream*rec.h_ellips;
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
@@ -1956,6 +1963,11 @@ classdef LS_Manipulator_new < handle
             this.generateOutliedParIdx();
             % ------ remove full rank deficencies
             this.removeFullRankDeficency();
+            % apply elevation dependent weighting
+            state = Core.getCurrentSettings();
+            if state.getWeigthingStrategy == 2
+               this.sinElevationWeigth();
+            end
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
             n_par = double(max(max(this.A_idx)));
@@ -2252,6 +2264,23 @@ classdef LS_Manipulator_new < handle
         function res = getResidual(this)
         end
         
+        function elevationWeigth(this, fun)
+            % weight observation by elevation
+            %
+            % SYNTAX:
+            %   this.elevationWeigth( fun)
+            this.variance_obs = this.variance_obs .* fun(this.elevation_obs);
+        end
+        
+        function sinElevationWeigth(this)
+            % weight observation by elevation by 1/sin
+            %
+            % SYNTAX:
+            %   this.sinElevationWeigth()
+           fun = @(el) (3./sin(el)).^2;
+           this.elevationWeigth( fun)
+        end
+        
         function simpleSnoop(this, ph_thr, pr_thr)
             % simple threshold on residual
             %
@@ -2261,6 +2290,26 @@ classdef LS_Manipulator_new < handle
             idx_out_pr = this.phase_obs == 0 & abs(this.res) > pr_thr;
             this.outlier_obs(idx_out_pr) = true;
         end
+        
+        function snoopGatt(this, ph_thr, pr_thr)
+            % simple threshold on residual
+            %
+            % this.Snoop(this, ph_thr, pr_thr)
+            idx_out_ph = this.phase_obs & abs(this.res) > ph_thr;
+            this.outlier_obs(idx_out_ph) = true;
+            idx_out_pr = this.phase_obs == 0 & abs(this.res) > pr_thr;
+            this.outlier_obs(idx_out_pr) = true;
+            for r = 1 : size(this.rec_xyz,1)
+                [res_ph] = getPhRes(this, r);
+                idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, ph_thr/2);
+                this.setPhFlag(r,idx_ko);
+                [res_pr] = getPrRes(this, r);
+                idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, pr_thr/2);
+                this.setPrFlag(r,idx_ko);
+            end
+
+        end
+        
         
         function [res_ph, sat, obs_id, res_id] = getPhRes(this, rec)
             % Get phase residual
@@ -2276,7 +2325,7 @@ classdef LS_Manipulator_new < handle
             if nargin <2
                 rec = 1;
             end
-            idx_rec = find(this.receiver_obs == rec);
+            idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
             time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
@@ -2306,7 +2355,7 @@ classdef LS_Manipulator_new < handle
             if nargin <2
                 rec = 1;
             end
-            idx_rec = find(this.receiver_obs == rec);
+            idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
             time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
@@ -2331,19 +2380,19 @@ classdef LS_Manipulator_new < handle
             % set phase outlier
             %
             % SYNTAX:  setPhFlag(this,rec,flag)
-            idx_rec = find(this.receiver_obs == rec);
+            idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time.getRate:duration);
+            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
+            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+            time_res.addSeconds(0:this.time_obs.getRate:duration);
             for i = 1 : n_stream
                 sat(i) = rem(u_stream(i) ,1000);
                 obs_id(i) = floor(u_stream(i)/1000);
                 idx_res = find(this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i));
                 if any(idx_res)
                     [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
-                    this.outlier_obs(idx_res) = flag(idx_tim,i);
+                    this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
         end
@@ -2352,19 +2401,19 @@ classdef LS_Manipulator_new < handle
             % set phase outlier
             %
             % SYNTAX:  setPhFlag(this,rec,flag)
-            idx_rec = find(this.receiver_obs == rec);
+            idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time.getRate:duration);
+            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
+            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
+            time_res.addSeconds(0:this.time_obs.getRate:duration);
             for i = 1 : n_stream
                 sat(i) = rem(u_stream(i) ,1000);
                 obs_id(i) = floor(u_stream(i)/1000);
                 idx_res = find(this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i));
                 if any(idx_res)
                     [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
-                    this.outlier_obs(idx_res) = flag(idx_tim,i);
+                    this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
         end
