@@ -59,7 +59,7 @@ classdef LS_Manipulator_new < handle
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
         PAR_TROPO_V = 10;
-        PAR_TROPO_Z = 10;
+        PAR_TROPO_Z = 24;
         PAR_SAT_CLK = 11;
         PAR_ANT_MP = 12;
         PAR_IONO = 13;
@@ -266,7 +266,7 @@ classdef LS_Manipulator_new < handle
             [~, obs_wl_id] = ismember(round(obs_set.wl*1e7), round(this.unique_wl*1e7));
             
             
-            mfw_on =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V) > 0;
+            mfw_on =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V | param_selection == this.PAR_TROPO_Z) > 0;
             % get the mapping function for tropo
             if mfw_on
                 id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
@@ -414,7 +414,9 @@ classdef LS_Manipulator_new < handle
                         A(lines_stream, par_tropo_v_lid) = mfw_stream*rec.h_ellips;
                     end
                     if par_tropo_z
-                        A(lines_stream, par_tropo_z_lid) = mfw_stream*rec.h_ellips;
+                        n_pol = sum(par_tropo_z_lid);
+                        degree = ceil(-3/2 + sqrt(9/4 + 2*(n_pol -1)));
+                        A(lines_stream, par_tropo_z_lid) = repmat(mfw_stream,1,n_pol).*Core_Utils.getAllZernike(degree, az_stream, el_stream);
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
@@ -2047,7 +2049,7 @@ classdef LS_Manipulator_new < handle
             % ------- fix the ambiguities
             % solve the ambiguoties rank deficencies using lagrange multiplier
         
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || true
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
                 % get the ambiguity inverse matrxi
                 idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
                 if any(idx_amb)
@@ -2460,6 +2462,7 @@ classdef LS_Manipulator_new < handle
                     this.PAR_TROPO;
                     this.PAR_TROPO_N;
                     this.PAR_TROPO_E;
+%                     repmat(this.PAR_TROPO_Z,10,1);
                     this.PAR_IONO];  %
             end
             if nargin < 5
