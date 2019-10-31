@@ -48,55 +48,9 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
-        function printEx(ex)
-            % Print exception to screen
-            %
-            % SYNTAX: 
-            %  Core_Utils.printEx(ex)
-            
-            fprintf('\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', ex.message);
-            for i=1:numel(ex.stack)
-                fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
-            end
-        end
-        
-        function exportCurFig(out_path, mode)
-            % Eport Current Figure
-            %
-            % EXAMPLE
-            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
-            if nargin == 2
-                Core_Utils.exportFig(gcf, out_path, mode);
-            else
-                Core_Utils.exportFig(gcf, out_path);
-            end
-        end
-        
-        function exportFig(fh, out_path, mode)
-            % Export Figure
-            %
-            % SYNTAX
-            %   Core_Utils.exportFig(<fh>, out_path)
-            %   Core_Utils.exportFig(out_path)
-            %
-            % EXAMPLE
-            %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
-            if nargin <= 1 
-                out_path = fh;
-                fh = gcf;
-            end
-            %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
-            ws_bk = fh.WindowStyle;
-            fh.WindowStyle = 'normal';
-            if nargin == 3 && ~isempty(mode)
-                Core_UI.beautifyFig(fh, mode);
-            end
-            col = fh.Color;
-            Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
-            export_fig(fh, out_path, '-transparent', '-r150');
-            fh.WindowStyle = ws_bk;
-            fh.Color = col;
-        end
+        %--------------------------------------------------------------------------
+        % FILTERS AND INTERPOLATORS
+        %--------------------------------------------------------------------------
         
         function diff_data = diffAndPred(data, n_order, t_ref, method)
             % compute diff predicting epoch 0 of each arc
@@ -142,7 +96,7 @@ classdef Core_Utils < handle
                     for l = 1 : size(lim, 1)
                         id_data = lim(l, 1) : lim(l, 2);
                         id_est = 0 : (n_order - 1);
-
+                        
                         % slower approach with interp1
                         % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
                         
@@ -164,6 +118,419 @@ classdef Core_Utils < handle
             % diff_data = diff(data, n_order); % now it is done arc by arc
         end
         
+        
+        function y_out = interp1LS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 1D dataset
+            %
+            % SYNTAX
+            %   y_out = interp1LS(x_in, y_in, degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                if size(y_in, 1) == 1
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~isnan(x_in(:));
+                x_tmp = x_in(id_ok);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = numel(x_tmp);
+                A = zeros(n_obs, degree + 1);
+                A(:, 1) = ones(n_obs, 1);
+                for d = 1 : degree
+                    A(:, d + 1) = x_tmp .^ d;
+                end
+                
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
+                    A2 = A;
+                else
+                    n_out = numel(x_out);
+                    A2 = zeros(n_out, degree + 1);
+                    A2(:, 1) = ones(n_out, 1);
+                    for d = 1 : degree
+                        A2(:, d + 1) = x_out .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')
+            end
+        end
+        
+        function [y_out] = interpPlaneLS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 3D dataset
+            % Estimate a plane on x, y + polynomial on z
+            % y_in is an array containing m set of data (1 set per column)
+            % e.g. degree = 2
+            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
+            %
+            % SYNTAX
+            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                % try to correct orientation of x
+                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
+                x_tmp = x_in(id_ok, :);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = size(x_tmp, 1);
+                A = zeros(n_obs, degree + 3);
+                A(:, 1) = ones(n_obs, 1);
+                A(:, 2) = x_tmp(:, 1); % y
+                A(:, 3) = x_tmp(:, 2); % x
+                for d = 1 : degree
+                    A(:, d + 3) = x_tmp(:, 3) .^ d;
+                end
+                
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
+                    A2 = A;
+                else
+                    n_out = size(x_out, 1);
+                    A2 = zeros(n_out, degree + 3);
+                    A2(:, 1) = ones(n_out, 1);
+                    A2(:, 2) = x_out(:, 1); % y
+                    A2(:, 3) = x_out(:, 2); % x
+                    for d = 1 : degree
+                        A2(:, d + 3) = x_out(:, 3) .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')
+            end
+        end
+        
+        function [y_out] = interp22nLS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 3D dataset
+            % Estimate a plane on x, y + polynomial on z
+            % y_in is an array containing m set of data (1 set per column)
+            % e.g. degree = 2
+            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
+            %
+            % SYNTAX
+            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                % try to correct orientation of x
+                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
+                end
+                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
+                x_tmp = x_in(id_ok, :);
+                y_tmp = y_tmp(id_ok);
+                
+                n_obs = size(x_tmp, 1);
+                A = zeros(n_obs, degree + 6);
+                A(:, 1) = ones(n_obs, 1);
+                A(:, 2) = x_tmp(:, 1); % y
+                A(:, 3) = x_tmp(:, 2); % x
+                A(:, 4) = x_tmp(:, 1) .^ 2; % x^2
+                A(:, 5) = x_tmp(:, 2) .^ 2; % y^2
+                A(:, 6) = x_tmp(:, 1) .* x_tmp(:, 2); % x*y
+                for d = 1 : degree
+                    A(:, d + 6) = x_tmp(:, 3) .^ d;
+                end
+                
+                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
+                    A2 = A;
+                else
+                    n_out = size(x_out, 1);
+                    A2 = zeros(n_out, degree + 6);
+                    A2(:, 1) = ones(n_out, 1);
+                    A2(:, 2) = x_out(:, 1); % y
+                    A2(:, 3) = x_out(:, 2); % x
+                    A2(:, 4) = x_out(:, 1) .^ 2; % x^2
+                    A2(:, 5) = x_out(:, 2) .^ 2; % y^2
+                    A2(:, 6) = x_out(:, 1) .* x_out(:, 2); % x*y
+                    for d = 1 : degree
+                        A2(:, d + 6) = x_out(:, 3) .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')
+            end
+        end
+        
+        function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
+            % Interpolate values froma data on a gepgraphical grid with multiple epoch
+            % data structure:
+            %        first dimension : dlat (+) south pole -> north pole
+            %        second dimension : dlon (+) west -> east
+            %        third dimension : dr (+) time usual direction
+            %        NOTE: dlat, dlon,dt do not have to be positive
+            %
+            % INPUT:
+            %      data - the data to be interpolate
+            %      fist_lat - value of first lat value (max lat)
+            %      dlat - px size lat
+            %      first_lon - value of first lon value
+            %      dlon - px size lon
+            %      first_t - value of first time
+            %      dt - px size time
+            %      lat - lat at what we want to interpolate
+            %      lon - lon at what we ant to interpolate
+            %      gps_time - time at what we want to interpolate
+            % NOTES 1 - all lat values should have same unit of measure
+            %       2 - all lon values should have same unit of measure
+            %       3 - all time values should have same unit of measure
+            %       4 - the method will interpolate first in the dimesnion with less time
+            % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
+            [nlat , nlon, nt] = size(data);
+            n_in_lat = length(lat);
+            n_in_lon = length(lon);
+            n_in_t = length(t);
+            assert(n_in_lat == n_in_lon);
+            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t);
+            if n_in_lat > n_in_t % time first
+                
+                it = it*ones(size(ilat));
+                % interpolate along time
+                % [ 1 2  <= index of the cell at the smae time
+                %   3 4]
+                idx1 = sub2ind([nlat nlon nt], ilat, ilons, it);
+                idx2 = sub2ind([nlat nlon nt], ilat, ilons, it+1);
+                vallu = data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt], ilat   , ilone , it);
+                idx2 = sub2ind([nlat nlon nt],ilat   , ilone , it+1);
+                valru = data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilons , it);
+                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilons , it+1);
+                valld =  data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilone , it);
+                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilone , it+1);
+                valrd =  data(idx1).*(1-st) + data(idx2).*st;
+                
+                %interpolate along long
+                valu = vallu.*(1-slon) + valru.*slon;
+                vald = valld.*(1-slon) + valrd.*slon;
+                
+                %interpolate along lat
+                val = valu.*(1-slat) + vald.*slat;
+                
+            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+                % interpolate along lon
+                valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
+                valau = permute(data(ilat   , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat   , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
+                valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
+                valad = permute(data(ilat+1 , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat+1 , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                val = valb.*(1-st) + vala.*st;
+            end
+            
+        end
+        
+        
+        function [val] = cubicSpline(t)
+            % Compute matrix entry for cubic spline
+            %
+            % INPUT
+            %   t -> 0 : 1
+            %   order -> 1,3
+            %
+            % SYNTAX:
+            %  Core_Utils.cubicSplic(t)
+            val = zeros(numel(t),4);
+            val(:,1) = (1 - t).^3/6;
+            val(:,2) = ((2-t).^3 - 4*(1-t).^3)/6;
+            val(:,3) = ((1+t).^3 - 4*(t).^3)/6;
+            val(:,4) = (t).^3/6;
+        end
+        
+        function [val] = linearSpline(t)
+            % Compute matrix entry for linear spline
+            %
+            % INPUT
+            %   t -> 0 : 1
+            %   order -> 1,3
+            %
+            % SYNTAX:
+            %  Core_Utils.cubicSplic(t)
+            val = zeros(numel(t),2);
+            val(:,1) = 1 -t;
+            val(:,2) = t;
+        end
+        
+        function [idx, val] = hemisphereCubicSpline(n_az, n_el, az, el)
+            % give the index of the hemisphere spline idx
+            % first the equator then the first parallel then the second
+            % parallel
+            %
+            % SYNTAX:
+            %  [idx] = hemisphereSpline(n_az,n_el,az,el)
+            el_step = 90/n_el;
+            idx_el = repmat(ceil(el / el_step),1,4);
+            idx_el(:,2) = idx_el(:,2) + 1;
+            idx_el(:,3) = idx_el(:,3) + 2;
+            idx_el(:,4) = idx_el(:,4) + 3;
+            az_step = 360/n_el;
+            idx_az = repmat(ceil(az / az_step),1,4);
+            idx_az(:,2) = idx_az(:,2) + 1;
+            idx_az(:,3) = idx_az(:,3) + 2;
+            idx_az(:,4) = idx_az(:,4) + 3;
+            idx_az(idx_az > n_az) = idx_az(idx_az > n_az) - n_az;
+            idx = idx_az + (idx_el -1).*n_el;
+            idx = [idx idx+1 idx+2 idx+3];
+            
+            t_el = rem(el/el_step);
+            t_az = rem(az/az_step);
+            val_el = Core_Utils.cubicSpline(t_el);
+            val_az = Core_Utils.cubicSpline(t_az);
+            
+            val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
+        end
+        
+        function x = despline(x,spline_base)
+            % despline signal x
+            %
+            % SYNTAX:
+            %   x = despline(x,<spline_base>)
+            if nargin <2
+                spline_base = round(size(x,1)/7);
+            end
+            for i = 1: size(x,2)
+                x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
+            end
+        end
+        
+        function z = getAllZerniche(l_max, m_max, az, el)
+            % Generate all the Zernike parameters combinations
+            %
+            % SINTAX
+            %   z = getAllZerniche(l_max, az, el)
+            %   z = getAllZerniche(l_max, m_max, az, el)
+            if nargin == 3
+                el = az;
+                az = m_max;
+                m_max = l_max;
+            end
+            
+            n_par = l_max * (l_max + 3) / 2 + 1;
+            
+            l = zeros(n_par, 1);
+            m = zeros(n_par, 1);
+            i = 0;
+            for degree = 0 : l_max
+                i = i(end) + (1 : degree + 1);
+                l(i) = degree;
+                m(i) = -degree : 2 : degree;
+            end
+            
+            l(abs(m) > m_max) = [];
+            m(abs(m) > m_max) = [];
+            
+            z = Core_Utils.getZerniche(l, m, az, el);
+        end
+            
+        function z = getZerniche(l, m, az, el)
+            % Get Zerniche values for the polynomials
+            %
+            % SINTAX
+            %   z = getZerniche(l, m, az, el)
+            
+            r = 0.5 - (el(:) / pi);
+            %r = cos(el(:));
+            theta = az(:);
+            z = zernfun(l, m, r, theta);
+        end
+
+        %--------------------------------------------------------------------------
+        % OTHER FUNCTIONS
+        %--------------------------------------------------------------------------
+        
+        function printEx(ex)
+            % Print exception to screen
+            %
+            % SYNTAX:
+            %  Core_Utils.printEx(ex)
+            
+            fprintf('\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', ex.message);
+            for i=1:numel(ex.stack)
+                fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
+            end
+        end
+        
+        function exportCurFig(out_path, mode)
+            % Eport Current Figure
+            %
+            % EXAMPLE
+            %   Core_Utilis.exportCurFig(fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
+            if nargin == 2
+                Core_Utils.exportFig(gcf, out_path, mode);
+            else
+                Core_Utils.exportFig(gcf, out_path);
+            end
+        end
+        
+        function exportFig(fh, out_path, mode)
+            % Export Figure
+            %
+            % SYNTAX
+            %   Core_Utils.exportFig(<fh>, out_path)
+            %   Core_Utils.exportFig(out_path)
+            %
+            % EXAMPLE
+            %   Core_Utilis.exportFig(fh, fullfile('/Users/Andrea/Library/Mobile Documents/com~apple~CloudDocs/MyDocuments/GIMS/title.png'))
+            if nargin <= 1 
+                out_path = fh;
+                fh = gcf;
+            end
+            %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
+            ws_bk = fh.WindowStyle;
+            fh.WindowStyle = 'normal';
+            if nargin == 3 && ~isempty(mode)
+                Core_UI.beautifyFig(fh, mode);
+            end
+            col = fh.Color;
+            Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
+            export_fig(fh, out_path, '-transparent', '-r150');
+            fh.WindowStyle = ws_bk;
+            fh.Color = col;
+        end
+                
         function idx = findMO(find_list, to_find_el)
             % find the postion of the elements of to_find_el into find_list
             % find list should have unique elements
@@ -1002,251 +1369,7 @@ classdef Core_Utils < handle
             response = time1_st <= time2_end & time1_end >= time2_st;
             %(time2_st <= time1_st & time2_end >= time1_st) | (time2_st <= time1_en & time2_end >= time1_en);
         end
-        
-        function y_out = interp1LS(x_in, y_in, degree, x_out)
-            % Least squares interpolant of a 1D dataset
-            %
-            % SYNTAX
-            %   y_out = interp1LS(x_in, y_in, degree, x_out)
-            
-            if nargin < 4
-                x_out = x_in;
-            end
-            
-            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
-                if size(y_in, 1) == 1
-                    y_tmp = y_in';
-                else
-                    y_tmp = y_in(:, c);
-                end
-                id_ok = ~isnan(y_tmp(:)) & ~isnan(x_in(:));
-                x_tmp = x_in(id_ok);
-                y_tmp = y_tmp(id_ok);
                 
-                n_obs = numel(x_tmp);
-                A = zeros(n_obs, degree + 1);
-                A(:, 1) = ones(n_obs, 1);
-                for d = 1 : degree
-                    A(:, d + 1) = x_tmp .^ d;
-                end
-                
-                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
-                    A2 = A;
-                else
-                    n_out = numel(x_out);
-                    A2 = zeros(n_out, degree + 1);
-                    A2(:, 1) = ones(n_out, 1);
-                    for d = 1 : degree
-                        A2(:, d + 1) = x_out .^ d;
-                    end
-                end
-                
-                warning('off')
-                if min(size(y_in)) == 1
-                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
-                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
-                else
-                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
-                end
-                warning('on')
-            end
-        end
-        
-        function [y_out] = interpPlaneLS(x_in, y_in, degree, x_out)
-            % Least squares interpolant of a 3D dataset
-            % Estimate a plane on x, y + polynomial on z
-            % y_in is an array containing m set of data (1 set per column)
-            % e.g. degree = 2
-            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
-            %
-            % SYNTAX
-            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
-            
-            if nargin < 4
-                x_out = x_in;
-            end
-            
-            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
-                % try to correct orientation of x
-                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
-                    y_tmp = y_in';
-                else
-                    y_tmp = y_in(:, c);
-                end
-                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
-                x_tmp = x_in(id_ok, :);
-                y_tmp = y_tmp(id_ok);
-                
-                n_obs = size(x_tmp, 1);
-                A = zeros(n_obs, degree + 3);
-                A(:, 1) = ones(n_obs, 1);
-                A(:, 2) = x_tmp(:, 1); % y
-                A(:, 3) = x_tmp(:, 2); % x
-                for d = 1 : degree
-                    A(:, d + 3) = x_tmp(:, 3) .^ d;
-                end
-                
-                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
-                    A2 = A;
-                else
-                    n_out = size(x_out, 1);
-                    A2 = zeros(n_out, degree + 3);
-                    A2(:, 1) = ones(n_out, 1);
-                    A2(:, 2) = x_out(:, 1); % y
-                    A2(:, 3) = x_out(:, 2); % x
-                    for d = 1 : degree
-                        A2(:, d + 3) = x_out(:, 3) .^ d;
-                    end
-                end
-                
-                warning('off')
-                if min(size(y_in)) == 1
-                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
-                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
-                else
-                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
-                end
-                warning('on')
-            end
-        end
-        
-        function [y_out] = interp22nLS(x_in, y_in, degree, x_out)
-            % Least squares interpolant of a 3D dataset
-            % Estimate a plane on x, y + polynomial on z
-            % y_in is an array containing m set of data (1 set per column)
-            % e.g. degree = 2
-            %   f(x,y,z) =  a*x + b*y + c + d*z^2 + e*z
-            %
-            % SYNTAX
-            %   y_out = interpPlane1LS(x_in, y_in, z_degree, x_out)
-            
-            if nargin < 4
-                x_out = x_in;
-            end
-            
-            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
-                % try to correct orientation of x
-                if size(y_in, 1) == 1 && size(y_tmp, 1) ~= size(x_tmp, 1)
-                    y_tmp = y_in';
-                else
-                    y_tmp = y_in(:, c);
-                end
-                id_ok = ~isnan(y_tmp(:)) & ~any(isnan(x_in), 2);
-                x_tmp = x_in(id_ok, :);
-                y_tmp = y_tmp(id_ok);
-                
-                n_obs = size(x_tmp, 1);
-                A = zeros(n_obs, degree + 6);
-                A(:, 1) = ones(n_obs, 1);
-                A(:, 2) = x_tmp(:, 1); % y
-                A(:, 3) = x_tmp(:, 2); % x
-                A(:, 4) = x_tmp(:, 1) .^ 2; % x^2
-                A(:, 5) = x_tmp(:, 2) .^ 2; % y^2
-                A(:, 6) = x_tmp(:, 1) .* x_tmp(:, 2); % x*y
-                for d = 1 : degree
-                    A(:, d + 6) = x_tmp(:, 3) .^ d;
-                end
-                
-                if (nargin < 4) && numel(x_out) == numel(x_tmp) &&  (sum(x_out(:) - x_tmp(:)) == 0)
-                    A2 = A;
-                else
-                    n_out = size(x_out, 1);
-                    A2 = zeros(n_out, degree + 6);
-                    A2(:, 1) = ones(n_out, 1);
-                    A2(:, 2) = x_out(:, 1); % y
-                    A2(:, 3) = x_out(:, 2); % x
-                    A2(:, 4) = x_out(:, 1) .^ 2; % x^2
-                    A2(:, 5) = x_out(:, 2) .^ 2; % y^2
-                    A2(:, 6) = x_out(:, 1) .* x_out(:, 2); % x*y
-                    for d = 1 : degree
-                        A2(:, d + 6) = x_out(:, 3) .^ d;
-                    end
-                end
-                
-                warning('off')
-                if min(size(y_in)) == 1
-                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
-                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 3));
-                else
-                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
-                end
-                warning('on')
-            end
-        end
-        
-        function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
-            % Interpolate values froma data on a gepgraphical grid with multiple epoch
-            % data structure:
-            %        first dimension : dlat (+) south pole -> north pole
-            %        second dimension : dlon (+) west -> east
-            %        third dimension : dr (+) time usual direction
-            %        NOTE: dlat, dlon,dt do not have to be positive
-            %
-            % INPUT:
-            %      data - the data to be interpolate
-            %      fist_lat - value of first lat value (max lat)
-            %      dlat - px size lat
-            %      first_lon - value of first lon value
-            %      dlon - px size lon
-            %      first_t - value of first time
-            %      dt - px size time
-            %      lat - lat at what we want to interpolate
-            %      lon - lon at what we ant to interpolate
-            %      gps_time - time at what we want to interpolate
-            % NOTES 1 - all lat values should have same unit of measure
-            %       2 - all lon values should have same unit of measure
-            %       3 - all time values should have same unit of measure
-            %       4 - the method will interpolate first in the dimesnion with less time
-            % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
-            [nlat , nlon, nt] = size(data);
-            n_in_lat = length(lat);
-            n_in_lon = length(lon);
-            n_in_t = length(t);
-            assert(n_in_lat == n_in_lon);
-            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t);
-            if n_in_lat > n_in_t % time first
-                
-                it = it*ones(size(ilat));
-                % interpolate along time
-                % [ 1 2  <= index of the cell at the smae time
-                %   3 4]
-                idx1 = sub2ind([nlat nlon nt], ilat, ilons, it);
-                idx2 = sub2ind([nlat nlon nt], ilat, ilons, it+1);
-                vallu = data(idx1).*(1-st) + data(idx2).*st;
-                idx1 = sub2ind([nlat nlon nt], ilat   , ilone , it);
-                idx2 = sub2ind([nlat nlon nt],ilat   , ilone , it+1);
-                valru = data(idx1).*(1-st) + data(idx2).*st;
-                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilons , it);
-                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilons , it+1);
-                valld =  data(idx1).*(1-st) + data(idx2).*st;
-                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilone , it);
-                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilone , it+1);
-                valrd =  data(idx1).*(1-st) + data(idx2).*st;
-                
-                %interpolate along long
-                valu = vallu.*(1-slon) + valru.*slon;
-                vald = valld.*(1-slon) + valrd.*slon;
-                
-                %interpolate along lat
-                val = valu.*(1-slat) + vald.*slat;
-                
-            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
-                % interpolate along lon
-                valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
-                valau = permute(data(ilat   , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat   , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
-                valad = permute(data(ilat+1 , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat+1 , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                
-                %interpolate along lat
-                valb = valbd.*(1-slat) + valbu.*slat;
-                vala = valad.*(1-slat) + valau.*slat;
-                
-                %interpolate along time
-                val = valb.*(1-st) + vala.*st;
-            end
-            
-        end
-        
         function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % get  interpolating index
             [nlat , nlon, nt] = size(data);
@@ -1525,112 +1648,7 @@ classdef Core_Utils < handle
                 id_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
             end
         end
-        
-        function [val] = cubicSpline(t)
-            % Compute matrix entry for cubic spline
-            %
-            % INPUT
-            %   t -> 0 : 1
-            %   order -> 1,3
-            %
-            % SYNTAX:
-            %  Core_Utils.cubicSplic(t)
-            val = zeros(numel(t),4);
-            val(:,1) = (1 - t).^3/6;
-            val(:,2) = ((2-t).^3 - 4*(1-t).^3)/6;
-            val(:,3) = ((1+t).^3 - 4*(t).^3)/6;
-            val(:,4) = (t).^3/6;
-        end
-        
-        function [val] = linearSpline(t)
-            % Compute matrix entry for linear spline
-            %
-            % INPUT
-            %   t -> 0 : 1
-            %   order -> 1,3
-            %
-            % SYNTAX:
-            %  Core_Utils.cubicSplic(t)
-            val = zeros(numel(t),2);
-            val(:,1) = 1 -t;
-            val(:,2) = t;
-        end
-        
-        function [idx, val] = hemisphereCubicSpline(n_az, n_el, az, el)
-            % give the index of the hemisphere spline idx
-            % first the equator then the first parallel then the second
-            % parallel
-            %
-            % SYNTAX:
-            %  [idx] = hemisphereSpline(n_az,n_el,az,el)
-            el_step = 90/n_el;
-            idx_el = repmat(ceil(el / el_step),1,4);
-            idx_el(:,2) = idx_el(:,2) + 1;
-            idx_el(:,3) = idx_el(:,3) + 2;
-            idx_el(:,4) = idx_el(:,4) + 3;
-            az_step = 360/n_el;
-            idx_az = repmat(ceil(az / az_step),1,4);
-            idx_az(:,2) = idx_az(:,2) + 1;
-            idx_az(:,3) = idx_az(:,3) + 2;
-            idx_az(:,4) = idx_az(:,4) + 3;
-            idx_az(idx_az > n_az) = idx_az(idx_az > n_az) - n_az;
-            idx = idx_az + (idx_el -1).*n_el;
-            idx = [idx idx+1 idx+2 idx+3];
-            
-            t_el = rem(el/el_step);
-            t_az = rem(az/az_step);
-            val_el = Core_Utils.cubicSpline(t_el);
-            val_az = Core_Utils.cubicSpline(t_az);
-            
-            val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
-            
-            
-        end
-        
-        function x = despline(x,spline_base)
-            % despline signal x
-            %
-            % SYNTAX:
-            %   x = despline(x,<spline_base>)
-            if nargin <2
-                spline_base = round(size(x,1)/7);
-            end
-            for i = 1: size(x,2)
-                x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
-            end
-        end
-        %
-        %           function [idx, val] = 4DCubicSpline(x, y, z, k)
-        %             % give the index of the hemisphere spline idx
-        %             % first the equator then the first parallel then the second
-        %             % parallel
-        %             %
-        %             % SYNTAX:
-        %             %  [idx] = hemisphereSpline(n_az,n_el,az,el)
-        %
-        %             t_x = rem(x/x_step);
-        %             t_y = rem(y/y_step);
-        %             t_z = rem(z/z_step);
-        %             t_k = rem(k/k_step);
-        %
-        %             i_x = floor(x/x_step);
-        %             i_y = floor(y/y_step);
-        %             i_z = floor(z/z_step);
-        %             i_k = floor(k/k_step);
-        %
-        %             val_x = Core_Utils.cubicSpline(t_x);
-        %             val_y = Core_Utils.cubicSpline(t_y);
-        %             val_z = Core_Utils.cubicSpline(t_z);
-        %             val_k = Core_Utils.cubicSpline(t_k);
-        %
-        %
-        %
-        %
-        %             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
-        %
-        %
-        %         end
-        
+                
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is
             % much faster than computing the whole inverse in case of very sparse
@@ -1685,6 +1703,7 @@ classdef Core_Utils < handle
             lid = false(n_el,1);
             lid(id) = true;
         end
+        
         function [dtm, lat, lon, georef, info] = getDTM(nwse, res)
             % Get the dtm of an area delimited by geographical coordinates nwse
             %
