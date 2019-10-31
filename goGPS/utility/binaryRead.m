@@ -40,10 +40,15 @@ function data = binaryRead(file_name)
     % open the file to read
 
     fid = fopen(file_name, 'r');
-    r = fread(fid, 1, 'int');
-    c = fread(fid, 1, 'int');
-
-    % allocate matrix memory
-    data = fread(fid, r * c, 'double');
-    data = reshape(data, r, c);
-    fclose(fid);
+    if fid <= 0
+        fprintf('ERROR: loading %s\n', file_name);
+        data = [];
+    else
+        r = fread(fid, 1, 'int');
+        c = fread(fid, 1, 'int');
+        
+        % allocate matrix memory
+        data = fread(fid, r * c, 'double');
+        data = reshape(data, r, c);
+        fclose(fid);
+    end
