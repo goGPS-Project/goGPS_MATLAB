@@ -106,8 +106,10 @@ classdef LS_Parametrization < handle
         tropo = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_n = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_e = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        tropo_s =  [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        tropo_s = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         tropo_v = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+
               
         iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
              
@@ -136,6 +138,8 @@ classdef LS_Parametrization < handle
         ant_mp_opt;
         iono_opt;
         tropo_s_opt= struct('spline_rate',900);
+        tropo_z_opt= struct('spline_rate',1800);
+
         sat_x_opt;
         sat_y_opt;
         sat_z_opt;
@@ -201,6 +205,9 @@ classdef LS_Parametrization < handle
                 case LS_Manipulator_new.PAR_TROPO_V
                     parametriz = this.tropo_v;
                     option = this.tropo_v_opt;
+                case LS_Manipulator_new.PAR_TROPO_Z
+                    parametriz = this.tropo_z;
+                    option = this.tropo_z_opt;
                 case LS_Manipulator_new.PAR_IONO
                     parametriz = this.iono;
                     option = this.iono_opt;
