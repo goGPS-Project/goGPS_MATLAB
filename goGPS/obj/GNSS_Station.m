@@ -4835,7 +4835,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
