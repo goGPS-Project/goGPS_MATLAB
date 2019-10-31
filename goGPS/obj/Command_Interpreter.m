@@ -943,8 +943,7 @@ classdef Command_Interpreter < handle
                                         % substitute $ with the current target
                                         cmd_list_loop{c} = strrep(cmd_list_loop{c},'$', num2str(t));
                                     end
-                                    id1 = level(execution_block == execution_block(l));
-                                    this.exec(core, cmd_list_loop, level(id1(1)));
+                                    this.exec(core, cmd_list_loop, level(sid + 1));
                                 end
                                 
                                 % Auto-push if no parallel sessions are present
