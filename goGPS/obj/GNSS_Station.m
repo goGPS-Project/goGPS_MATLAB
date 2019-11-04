@@ -133,6 +133,105 @@ classdef GNSS_Station < handle
             %   this.importRinexes(rin_list, time_start, time_stop, rate)
             this.work.importRinexFileList(rin_list, time_start, time_stop, rate, sys_c_list);
         end
+        
+        function synthetizeWork(this, xyz, time, system)
+            % synththize observations
+            %
+            % SYNTAX:
+            %   this.synthetizeWork(xyz)
+            work = this.work;
+            work.xyz = xyz;
+            work.time = time;
+            
+            % two pseudoranges and two phases per satellites
+            cc = Core.getConstellationCollector;
+            work.go_id  = repmat(cc.index,4,1);
+            work.prn    = repmat(cc.prn,4,1);
+            work.system = repmat(cc.system,1,4);
+            
+            o_code1 = [];
+            o_code2 = [];
+            wl1 = [];
+            wl2 = [];
+            for ss_ch = unique(work.system)
+                n_sat = sum(cc.system == ss_ch);
+                sys = cc.getSys(ss_ch);
+                if ss_ch == 'G'
+                    trk = 2;
+                else
+                    trk = 1;
+                end
+                o_code1 = [o_code1; repmat([sys.CODE_RIN3_2BAND(1) sys.CODE_RIN3_ATTRIB{1}(trk)],n_sat,1)];
+                o_code2 = [o_code2; repmat([sys.CODE_RIN3_2BAND(2) sys.CODE_RIN3_ATTRIB{2}(trk)],n_sat,1)];
+                if ss_ch ~= 'R'
+                    wl1 = [wl1; repmat(sys.L_VEC(1),n_sat,1)];
+                    wl2 = [wl2; repmat(sys.L_VEC(2),n_sat,1)];
+                else
+                    wl1 = [wl1; sys.L_VEC(ss.PRN2IDCH(min(sys.PRN, sys.N_SAT))')];
+                    wl2 = [wl2; sys.L_VEC(size(sys.L_VEC, 1) + ss.PRN2IDCH(min(sys.PRN, sys.N_SAT))')];
+                end
+            end
+            
+            work.obs_code = [[repmat('C',size(o_code1,1),1) o_code1]; [repmat('L',size(o_code1,1),1) o_code1]; [repmat('C',size(o_code2,1),1) o_code2]; [repmat('L',size(o_code2,1),1) o_code2]];
+            work.wl = [wl1;wl1;wl2;wl2];
+            work.f_id = [ones(size(wl1));ones(size(wl1));2*ones(size(wl2));2*ones(size(wl2))];
+            work.active_ids = true(size(work.wl));
+            work.obs = zeros(size(work.obs_code,1),work.time.length);
+            work.sat.avail_index = true(size(work.obs'));
+            work.updateAzimuthElevation();
+            work.sat.avail_index = work.sat.el > 2;
+            work.n_spe = sum(work.sat.avail_index,2);
+            work.updateAzimuthElevation();
+            work.updateErrIono();
+            err_iono = work.sat.err_iono; % consider add random fluctuataions
+            work.updateErrTropo();
+            L1SQ = GPS_SS.L_VEC(1)^2;
+            rec_set = Receiver_Settings;
+            dt = cumsum(randn(1,work.time.length));
+            for i = 1:4
+                [range] = work.getSyntObs( unique(work.go_id));
+                work.sat.tot = nan2zero((zero2nan(range)'- repmat(dt',1,size(range,1),1) + err_iono*L1SQ)) / Core_Utils.V_LIGHT;
+            end
+
+            for ss_ch = unique(work.system)
+                sys = cc.getSys(ss_ch);
+                idx_sat = cc.index(cc.system == ss_ch);
+                [range] = work.getSyntObs( unique(work.go_id(work.system == ss_ch)));
+                % systethize C1
+                idx_obs = work.obs_code(:,1) == 'C' & work.system' == ss_ch & work.obs_code(:,2) == sys.CODE_RIN3_2BAND(1);
+                noise = rec_set.getStd(ss_ch, work.obs_code(find(idx_obs,1,'first'),:));
+                work.obs(idx_obs,:) = nan2zero(zero2nan(range) - zero2nan(err_iono(:,idx_sat)'.*repmat(work.wl(idx_obs),1,work.time.length).^2) + rand(1) + noise * randn(size(range))); 
+                % systethize C2
+                idx_obs = work.obs_code(:,1) == 'C' & work.system' == ss_ch & work.obs_code(:,2) == sys.CODE_RIN3_2BAND(2);
+                noise = rec_set.getStd(ss_ch, work.obs_code(find(idx_obs,1,'first'),:));
+                work.obs(idx_obs,:) = nan2zero(zero2nan(range) - zero2nan(err_iono(:,idx_sat)'.*repmat(work.wl(idx_obs),1,work.time.length).^2) + rand(1) + noise * randn(size(range))); 
+                % systethize L1
+                idx_obs = work.obs_code(:,1) == 'L' & work.system' == ss_ch & work.obs_code(:,2) == sys.CODE_RIN3_2BAND(1);
+                noise = rec_set.getStd(ss_ch, work.obs_code(find(idx_obs,1,'first'),:));
+                work.obs(idx_obs,:) = nan2zero(zero2nan(range) + zero2nan(err_iono(:,idx_sat)'.*repmat(work.wl(idx_obs),1,work.time.length).^2) + rand(1) + noise * randn(size(range))); 
+                
+                % systethize L2
+                idx_obs = work.obs_code(:,1) == 'L' & work.system' == ss_ch & work.obs_code(:,2) == sys.CODE_RIN3_2BAND(2);
+                noise = rec_set.getStd(ss_ch, work.obs_code(find(idx_obs,1,'first'),:));
+                work.obs(idx_obs,:) = nan2zero(zero2nan(range) + zero2nan(err_iono(:,idx_sat)'.*repmat(work.wl(idx_obs),1,work.time.length).^2) + rand(1) + noise * randn(size(range)));
+            end
+            work.group_delay_status= true;
+            work.dts_delay_status= true;
+            work.sh_delay_status= true;
+            work.pcv_delay_status= true;
+            work.ol_delay_status= true;
+            work.pt_delay_status= true;
+            work.pw_delay_status= true;
+            work.et_delay_status= true;
+            work.hoi_delay_status= true;
+            work.atm_load_delay_status= true;
+            % add dt
+            work.obs = nan2zero(zero2nan(work.obs) + repmat(dt,size(work.obs,1),1));
+            idx_phase = work.obs_code(:,1) == 'L';
+            work.obs(idx_phase,:) = work.obs(idx_phase,:)./repmat(work.wl(idx_phase),1,size( work.obs(idx_phase,:),2));
+            
+
+        end
 
         function clearHandles(this)
             % Clear handles
