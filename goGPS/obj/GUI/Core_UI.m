@@ -318,7 +318,7 @@ classdef Core_UI < Logos
                     for txt = text_label(:)'
                         txt.Color = [0.9 0.9 0.9];
                         txt.FontName = 'Open Sans';
-                        txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(8), Core_UI.getFontSize(9));
                     end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
@@ -376,7 +376,7 @@ classdef Core_UI < Logos
                     for txt = text_label(:)'
                         txt.Color = 1-[0.9 0.9 0.9];
                         txt.FontName = 'Open Sans';
-                        txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(8), Core_UI.getFontSize(9));
                     end
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');

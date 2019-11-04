@@ -550,22 +550,38 @@ classdef Core_Utils < handle
             filtered_data = A * z_par;
         end
 
-        function fh = showZerniche(l, m, z_par)
+        function fh = showZerniche(l, m, z_par, el_min)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
             %   fh = showZerniche(l, m, z_par)
             
-            [theta, r_synt] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
             % [x, y] = pol2cart(theta, r_synt);
+            if nargin == 4
+                r_max = 1 - (2 * el_min / pi);
+                [theta, r_synt] = meshgrid(linspace(0, 2*pi, 361), linspace(0, r_max, 101));
+            else
+                [theta, r_synt] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
+            end
+                
             z = nan(size(theta));
             z(:) = zernfun(l, m, r_synt(:), theta(:)) * z_par;
             
             fh = figure(102);
-            polarplot3d(z, 'PlotType','surfn','TickSpacing',8,'RadLabels',3,'RadLabelLocation',{180 'max'},'RadLabelColor','red');
-            zlim([-4 60]);
-            caxis([-4 60]);
+            title('Zerniche expansion')
+            %polarplot3d(z, 'PlotType','surfn');
+            polarplot3d(z,'PlotType','surfn','PolarGrid',{4 24},'TickSpacing',8,...
+                   'AngularRange',[0 360]*pi/180,'RadialRange', [0 1],...
+                   'RadLabels',4,'RadLabelLocation',{180 'max'},'RadLabelColor','black', 'AxisLocation', 'mean');
+            ar = get(gca,'DataAspectRatio');
+            set(gca, 'DataAspectRatio', [1 1 ar(3)]);
+            
             colormap(jet);
+            material([ 0.4 0.9 0.55])
+            l1=light('position',[200 -300 400], 'color', [0.6 0.6 0.6]);
+            l2=light('position',[-600 600 900], 'color', [0.6 0.6 0.6]);
+            
+            Core_UI.beautifyFig(fh, 'dark');            
         end
 
         %--------------------------------------------------------------------------
