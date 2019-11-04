@@ -1957,10 +1957,10 @@ classdef Command_Interpreter < handle
             end
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             [sys_list, sys_found] = this.getConstellation(tok);
+            show_ok = 0;
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
-                show_ok = 0;                
                 for t = 1 : numel(tok) % global for all target
                     try
                         if sss_lev == 0
