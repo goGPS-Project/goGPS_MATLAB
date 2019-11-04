@@ -549,7 +549,6 @@ classdef Network < handle
                     ls.PAR_REC_Y;
                     ls.PAR_REC_Z;
                     ls.PAR_REC_PPB;
-
                     ls.PAR_REC_EB;
                     ls.PAR_SAT_PPB;
                     ls.PAR_SAT_EBFR;
@@ -562,7 +561,8 @@ classdef Network < handle
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
                 end
-                
+%                 param_selection = [param_selection;
+%                         ls.PAR_TROPO_V;];
                 if this.state.flag_tropo_gradient
                     param_selection = [param_selection;
                         ls.PAR_TROPO_N;
@@ -576,7 +576,7 @@ classdef Network < handle
                         glonass_r_sum = glonass_r_sum + 1;
                     end
                 end
-                if glonass_r_sum
+                if glonass_r_sum && false
                     param_selection = [param_selection;
                         ls.PAR_REC_EB_LIN;];
                 end
@@ -631,10 +631,9 @@ classdef Network < handle
                     
                 end
                 this.common_time = ls.unique_time;
-                ls.solve();
-                ls.simpleSnoop(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
-                ls.solve();
-                
+                ls.solve(Core.getState.net_amb_fix_approach >0);
+                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+                ls.solve(Core.getState.net_amb_fix_approach >0);                
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
                     % initialize array for results
