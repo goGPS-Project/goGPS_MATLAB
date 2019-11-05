@@ -10644,7 +10644,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                 
                 fh_list = f;
-                fig_name = sprintf('Dt_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('Dt_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
@@ -10698,7 +10698,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('Res_Per_Sat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('Res_Per_Sat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                     
                 ss_id = find(cc.sys_c == sys_c);
@@ -10751,7 +10751,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('OCS_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('OCS_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
@@ -10807,7 +10807,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('OCS_on_obs_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('OCS_on_obs_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers_ph_by_ph, 2));
@@ -10852,7 +10852,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';                
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
 
                 polarScatter([],[],1,[]);
@@ -10917,7 +10917,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s DA %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(ss)); f.NumberTitle = 'off';
                     
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('Data_availability_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(ss), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('Data_availability_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(ss), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     
                     any_data = false;
@@ -10981,7 +10981,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             fh_list = [fh_list; f];
-            fig_name = sprintf('ShowObsVsSynt_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+            fig_name = sprintf('ShowObsVsSynt_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
             f.UserData = struct('fig_name', fig_name);
             
             subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
@@ -11140,7 +11140,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure; clf; hold on;
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 id_sys = find(this.system(id_ph) == sys_c);
@@ -11222,7 +11222,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if numel(c) > 1
                 f = figure;
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('ObsStat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 clf; ax = gca; hold on
@@ -11278,7 +11278,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             idx_f = idx_f + 1;
                             f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s S%d%c %s', f.Number, this.parent.getMarkerName4Ch, b, trk, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                             fh_list = [fh_list; f]; %#ok<AGROW>
-                            fig_name = sprintf('SNR_%s_S%d%c_%s_%s', cc.getSysName(sys_c), b, trk, this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                            fig_name = sprintf('SNR_%s_S%d%c_%s_%s', cc.getSysName(sys_c), b, trk, this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                             f.UserData = struct('fig_name', fig_name);
                 
                             id_ok = (~isnan(snr));

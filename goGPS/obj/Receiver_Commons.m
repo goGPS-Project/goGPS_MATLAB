@@ -1020,7 +1020,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('ENU_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('ENU_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
@@ -1092,7 +1092,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('XYZ_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('XYZ_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
@@ -1151,7 +1151,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('ENU_s0_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('ENU_s0_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     color_order = handle(gca).ColorOrder;
                     
@@ -1273,7 +1273,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
 
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('SNR_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('SNR_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     
                     id_ok = (res~=0);
@@ -1309,7 +1309,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
                     
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('SNR_cartesian_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('SNR_cartesian_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     
                     % this.updateAzimuthElevation()
@@ -1344,7 +1344,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     win.Name = sprintf('%03d - %s residuals', win.Number, work.parent.getMarkerName4Ch);
                     
                     fh_list = [fh_list; win]; %#ok<AGROW>
-                    fig_name = sprintf('ENU_s0_%s_%s', work.parent.getMarkerName4Ch, work.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('ENU_s0_%s_%s', work.parent.getMarkerName4Ch, work.time.first.toString('yyyymmdd_HHMM'));
                     win.UserData = struct('fig_name', fig_name);
                     
                     this
@@ -1425,7 +1425,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('ZTD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('ZTD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 if nargin >= 3
@@ -1537,7 +1537,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('ZWD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('ZWD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 szwd = this.getSlantZWD(this.parent.slant_filter_win);
@@ -1636,7 +1636,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 cc = this.getCC;
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant %s', f.Number, this.parent.getMarkerName4Ch, cc.sys_c); f.NumberTitle = 'off';
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('ZTD_Slant_%s_%s', rec.parent.getMarkerName4Ch, rec.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('ZTD_Slant_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
                 t = rec(:).getTime.getMatlabTime;
@@ -1727,7 +1727,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     fh_list = [fh_list; f];
                     if numel(sta_list) == 1 
                         % If I have only one receiver use as name the name of the receiver
-                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.parent.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.parent.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
                     else
                         % If I have more than one receiver use as name the name of the project
                         fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
@@ -1824,7 +1824,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     fh_list = f;
                     if numel(this) == 1 
                         % If I have only one receiver use as name the name of the receiver
-                        fig_name = sprintf('%s_%s_%s', 'ZTDS', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('%s_%s_%s', 'ZTDS', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                     else
                         % If I have more than one receiver use as name the name of the project
                         fig_name = sprintf('%s_%s', 'ZTDS', strrep(Core.getState.getPrjName,' ', '_'));
@@ -1879,7 +1879,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
                 
                 fh_list = [fh_list; f]; %#ok<AGROW>
-                fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                        
                 %                 if isfield(n_sat_ss, 'S')

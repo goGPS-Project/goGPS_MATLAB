@@ -3872,7 +3872,7 @@ classdef GNSS_Station < handle
                     f = figure; f.Name = sprintf('%03d: %s', f.Number, upper(type)); f.NumberTitle = 'off';
                     
                     fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('Quality_Polar_%s_%s', sta_list(r).getMarkerName4Ch, this.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('Quality_Polar_%s_%s', sta_list(r).getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
 
                     id_ok = (~isnan(quality));
@@ -3970,7 +3970,7 @@ classdef GNSS_Station < handle
                             f = figure('Visible', 'off');
                             
                             fh_list = [fh_list; f]; %#ok<AGROW>
-                            fig_name = sprintf('Res_map_%s_%s_%s', rec.getMarkerName4Ch, cc.getSysName(ss), this.getTime.first.toString('yyyymmdd_HHMM'));
+                            fig_name = sprintf('Res_map_%s_%s_%s', rec.getMarkerName4Ch, cc.getSysName(ss), this.time.first.toString('yyyymmdd_HHMM'));
                             f.UserData = struct('fig_name', fig_name);
                             
                             f.Name = sprintf('%03d: ResMap %s@%c', f.Number, Core_UI.beautifyFig(f).getMarkerName4Ch, ss); f.NumberTitle = 'off';
@@ -4060,7 +4060,7 @@ classdef GNSS_Station < handle
             fh_list = f;
             if numel(sta_list) == 1
                 % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('%s_%s_%s', PTH, sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('%s_%s_%s', PTH, sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
             else
                 % If I have more than one receiver use as name the name of the project
                 fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
@@ -4187,7 +4187,7 @@ classdef GNSS_Station < handle
                     fh_list = [fh_list; f];
                     if numel(sta_list) == 1 
                         % If I have only one receiver use as name the name of the receiver
-                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
                     else
                         % If I have more than one receiver use as name the name of the project
                         fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
@@ -4813,7 +4813,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).time.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
@@ -4934,7 +4934,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).time.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
@@ -5056,7 +5056,7 @@ classdef GNSS_Station < handle
             fh_list = [fh_list; f];
             if numel(sta_list) == 1
                 % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
             else
                 % If I have more than one receiver use as name the name of the project
                 fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
