@@ -11246,6 +11246,68 @@ classdef Receiver_Work_Space < Receiver_Commons
             %%
         end
         
+        function fh_list = showSNR_z(this, sys_c_list, l_max)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX fh_lists = this.plotSNR(sys_c)
+            
+            fh_list = [];
+            % SNRs
+            if nargin < 2 || isempty(sys_c_list)
+                sys_c_list = unique(this.system);
+            end
+            
+            cc = Core.getState.getConstellationCollector;
+            
+            idx_f = 0;
+            for sys_c = sys_c_list
+                for b = 1 : 9 % try all the bands
+                    [snr_freq, snr_id_freq] = this.getSNR(sys_c, num2str(b));
+                    snr_id_freq = find(snr_id_freq);
+                    
+                    if any(snr_id_freq) && any(snr_freq(:))
+                        % Get all the trackings for this SNR
+                        obs_code =  unique(this.obs_code(snr_id_freq, 3)); obs_code = [repmat(this.obs_code(snr_id_freq(1), 1:2), size(obs_code, 1), 1) obs_code];
+                        
+                        for trk = obs_code(:,3)'
+                            id_ok = this.obs_code(snr_id_freq, 3) == trk;
+                            snr_id = snr_id_freq(id_ok);
+                            snr = snr_freq(:, id_ok);
+                            idx_f = idx_f + 1;
+                
+                            id_ok = (~isnan(snr));
+                            az = this.sat.az(:,this.go_id(snr_id));
+                            el = this.sat.el(:,this.go_id(snr_id));
+                            if nargin < 3 || isempty(l_max)                                
+                                fh = Core_Utils.polarZerMap(21, 21, az(id_ok) / 180 * pi, el(id_ok) / 180 * pi, snr(id_ok));
+                            else
+                                fh = Core_Utils.polarZerMap(l_max, l_max, az(id_ok) / 180 * pi, el(id_ok) / 180 * pi, snr(id_ok));
+                            end
+                            
+                            fh.Name = sprintf('%03d: %s S%d%c %s', fh.Number, this.parent.getMarkerName4Ch, b, trk, cc.getSysName(sys_c)); fh.NumberTitle = 'off';
+                            fh_list = [fh_list; fh]; %#ok<AGROW>
+                            fig_name = sprintf('SNR_%s_S%d%c_%s_%s', cc.getSysName(sys_c), b, trk, this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
+                            fh.UserData = struct('fig_name', fig_name);
+
+                            colormap(jet);  cax = caxis();
+                            % caxis([min(cax(1), 10), max(cax(2), 55)]);
+                            caxis([max(0, min(cax(1), 4)), max(cax(2), 60)]);
+                            setColorMap('jet', [10 55], 0.9); colorbar();
+                            h = title(sprintf('S%d%c - receiver %s - %s', b, trk, this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');
+                            h.FontWeight = 'bold';
+                            %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                            Core_UI.beautifyFig(fh);
+                            Core_UI.addBeautifyMenu(fh);
+                            fh.Visible = 'on';
+                        end
+                    end
+                end
+            end
+            
+            if idx_f == 0
+                fh_list = [];
+            end
+        end
+
         function fh_list = showSNR_p(this, sys_c_list, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX fh_lists = this.plotSNR(sys_c)

@@ -561,8 +561,7 @@ classdef GNSS_Station < handle
             save(out_file_name, 'rec', '-v7');
         end
     end
-    % ==================================================================================================================================================
-    
+    % ==================================================================================================================================================    
     %% METHODS EXPORT
     % ==================================================================================================================================================
     
@@ -602,8 +601,7 @@ classdef GNSS_Station < handle
             Core.getLogger.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));
             rf.export(out_file_name);
         end
-    end
-    
+    end    
     %% METHODS GETTER
     % ==================================================================================================================================================
 
@@ -2876,7 +2874,7 @@ classdef GNSS_Station < handle
             for r = 1 : numel(sta_list)
                 name = upper(sta_list(r).getMarkerName4Ch());
                 t = text(lon(r), lat(r), ['   ' name], ...
-                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                    'FontWeight', 'bold', 'FontSize', 12, 'Color', [0.1 0.1 0.1], ...
                     ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
@@ -3841,6 +3839,26 @@ classdef GNSS_Station < handle
             end
         end
         
+        function fh_list = showSNR_z(sta_list, sys_list, l_max)
+            % Show SNR for each receiver workspace
+            % (polar plot Zerniche interpolated)
+            %
+            % SYNTAX
+            %   this.showSNR_p(sys_list)
+            
+            if nargin < 2 || isempty(sys_list)
+                sys_list = Core.getConstellationCollector.getAvailableSys();
+            end
+            fh_list = [];
+            for s = 1 : numel(sta_list)
+                if nargin == 3
+                    fh_list = [fh_list; sta_list(s).work.showSNR_z(sys_list, l_max)]; %#ok<AGROW>
+                else
+                    fh_list = [fh_list; sta_list(s).work.showSNR_z(sys_list)]; %#ok<AGROW>
+                end
+            end
+        end
+        
         function fh_list = showQuality_p(sta_list, type, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX f_handles = this.plotSNR(sys_c)
@@ -3869,11 +3887,11 @@ classdef GNSS_Station < handle
                     log = Logger.getInstance();
                     log.addError('Number of elements for az different from quality data\nPlotting id not possible');
                 else
-                    f = figure; f.Name = sprintf('%03d: %s', f.Number, upper(type)); f.NumberTitle = 'off';
+                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: %s %s', fh.Number, upper(type), sta_list(r).getMarkerName4Ch); fh.NumberTitle = 'off';
                     
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('Quality_Polar_%s_%s', sta_list(r).getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
-                    f.UserData = struct('fig_name', fig_name);
+                    fh_list = [fh_list; fh]; %#ok<AGROW>
+                    fig_name = sprintf('Quality_Polar_%s_%s', sta_list(r).getMarkerName4Ch, sta_list(r).getTime.first.toString('yyyymmdd_HHMM'));
+                    fh.UserData = struct('fig_name', fig_name);
 
                     id_ok = (~isnan(quality));
                     polarScatter(serialize(az(id_ok)) / 180 * pi, serialize(90 - el(id_ok)) / 180 * pi, 45, serialize(quality(id_ok)), 'filled');
@@ -3886,9 +3904,13 @@ classdef GNSS_Station < handle
                     colorbar();
                     h = title(sprintf('%s - receiver %s', upper(type), sta_list(r).getMarkerName4Ch()), 'interpreter', 'none');
                     h.FontWeight = 'bold'; h.Units = 'pixels';
-                    h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    
+                    Core_UI.beautifyFig(fh);
+                    Core_UI.addBeautifyMenu(fh);
+                    fh.Visible = 'on';
                 end
             end
+            
         end
 
         function fh_list = showResPerSat(sta_list, sys_list)
@@ -3970,10 +3992,10 @@ classdef GNSS_Station < handle
                             f = figure('Visible', 'off');
                             
                             fh_list = [fh_list; f]; %#ok<AGROW>
-                            fig_name = sprintf('Res_map_%s_%s_%s', rec.getMarkerName4Ch, cc.getSysName(ss), this.time.first.toString('yyyymmdd_HHMM'));
+                            fig_name = sprintf('Res_map_%s_%s_%s', rec.getMarkerName4Ch, cc.getSysName(ss), rec.getTime.first.toString('yyyymmdd_HHMM'));
                             f.UserData = struct('fig_name', fig_name);
                             
-                            f.Name = sprintf('%03d: ResMap %s@%c', f.Number, Core_UI.beautifyFig(f).getMarkerName4Ch, ss); f.NumberTitle = 'off';
+                            f.Name = sprintf('%03d: ResMap %s@%c', f.Number, rec.getMarkerName4Ch, ss); f.NumberTitle = 'off';
                             if (nargin < 4) || isempty(mode)
                                 mode = 'cart';
                             end
@@ -4060,7 +4082,7 @@ classdef GNSS_Station < handle
             fh_list = f;
             if numel(sta_list) == 1
                 % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('%s_%s_%s', PTH, sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('%s_%s_%s', PTH, sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
             else
                 % If I have more than one receiver use as name the name of the project
                 fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
@@ -4187,7 +4209,7 @@ classdef GNSS_Station < handle
                     fh_list = [fh_list; f];
                     if numel(sta_list) == 1 
                         % If I have only one receiver use as name the name of the receiver
-                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('%s_%s_%s', upper(par_name), sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
                     else
                         % If I have more than one receiver use as name the name of the project
                         fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
@@ -4813,7 +4835,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).time.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_ENU_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
@@ -4934,7 +4956,7 @@ classdef GNSS_Station < handle
                         f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).time.first.toString('yyyymmdd_HHMM'));
+                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
                         f.UserData = struct('fig_name', fig_name);
                        
                         color_order = handle(gca).ColorOrder;
@@ -5056,7 +5078,7 @@ classdef GNSS_Station < handle
             fh_list = [fh_list; f];
             if numel(sta_list) == 1
                 % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.time.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
             else
                 % If I have more than one receiver use as name the name of the project
                 fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));

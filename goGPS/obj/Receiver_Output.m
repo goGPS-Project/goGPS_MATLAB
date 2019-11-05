@@ -1065,24 +1065,24 @@ classdef Receiver_Output < Receiver_Commons
                     l_list = {};
                     data = rec.getDesync;
                     if ~isempty(data)
-                        l_list = [l_list {'desync_time'}];
-                        plot(t, data, '-k', 'LineWidth', 2);
+                        l_list = [l_list {'De-Sync time (from RINEX)'}];
+                        plot(t, data * Core_Utils.V_LIGHT, '-k', 'LineWidth', 2);
                     end
                     hold on;
                     data = rec.getDtIP;
                     if ~isempty(data)
-                        l_list = [l_list {'desync_time'}];
-                        plot(t, data, '-', 'LineWidth', 2);
+                        l_list = [l_list {'{\Delta}t from pre-processing'}];
+                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     data = rec.getDt();
                     if ~isempty(data)
-                        l_list = [l_list {'desync_time'}];
-                        plot(t, data, '-', 'LineWidth', 2);
+                        l_list = [l_list {'{\Delta}t from the last step'}];
+                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     data = rec.getTotalDt();
                     if ~isempty(data)
-                        l_list = [l_list {'desync_time'}];
-                        plot(t, data, '-', 'LineWidth', 2);
+                        l_list = [l_list {'{\Delta}t final '}];
+                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     if isempty(l_list)
                         Core.getLogger.addError('No clock found in Receiver Output object\n');
@@ -1090,7 +1090,7 @@ classdef Receiver_Output < Receiver_Commons
                     else
                         legend(l_list, 'Location', 'NorthEastOutside');
                         
-                        xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                        xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [m]'); h.FontWeight = 'bold';
                         h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
@@ -1120,7 +1120,7 @@ classdef Receiver_Output < Receiver_Commons
                 win.Name = sprintf('%03d: %s, Quality Info', win.Number, this.parent.getMarkerName4Ch);
                 
                 fh_list = [fh_list; win]; 
-                fig_name = sprintf('Quality_Info_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('Quality_Info_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                 win.UserData = struct('fig_name', fig_name);
                 
                 % Single index
@@ -1325,7 +1325,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function showOutliersAndCycleSlip_p(this, sys_c_list)
+        function fh_list = showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
             
@@ -1349,7 +1349,6 @@ classdef Receiver_Output < Receiver_Commons
                     fh_list = [fh_list; f]; %#ok<AGROW>
                     fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
-
                     
                     for s = cc.getGoIds(sys_c)
                         az = this.sat.az(:,s);
