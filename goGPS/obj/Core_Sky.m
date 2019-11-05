@@ -123,7 +123,7 @@ classdef Core_Sky < handle
                 stop_date = start_date.last();
                 start_date = start_date.first();
             end
-            if nargin < 3 || isempty(cc)
+            if nargin <= 3 || isempty(cc)
                 this.cc = Core.getState.getConstellationCollector;
             else
                 this.cc = cc;
