@@ -259,6 +259,8 @@ classdef Core_UI < Logos
             %
             % SYNTAX:
             %   Core_UI.beautifyFig(fig_handle, color_mode)
+            FONT = 'Open Sans';
+            %FONT = 'Helvetica';
             if nargin == 0 || isempty(fig_handle)
                 fig_handle = gcf;
             end
@@ -277,11 +279,11 @@ classdef Core_UI < Logos
                 'DefaultAxesYColor', 'k', ...
                 'DefaultAxesFontUnits', 'points', ...
                 'DefaultAxesFontSize', Core_UI.getFontSize(8), ...
-                'DefaultAxesFontName', 'Open Sans', ...
+                'DefaultAxesFontName', FONT, ...
                 'DefaultLineLineWidth', 1, ...
                 'DefaultTextFontUnits', 'Points', ...
                 'DefaultTextFontSize', Core_UI.getFontSize(13), ...
-                'DefaultTextFontName', 'Open Sans', ...
+                'DefaultTextFontName', FONT, ...
                 'DefaultTextFontWeight', 'bold', ...
                 'DefaultAxesBox', 'off', ...
                 'DefaultAxesTickLength', [0.02 0.025]);
@@ -294,12 +296,12 @@ classdef Core_UI < Logos
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
                     cb.Color = [0.9 0.9 0.9];
-                    cb.FontName = 'Open Sans';
+                    cb.FontName = FONT;
                     cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = [0.9 0.9 0.9];
-                        cbt.FontName = 'Open Sans';
+                        cbt.FontName = FONT;
                         cbt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
@@ -313,35 +315,36 @@ classdef Core_UI < Logos
                     ax.XColor = [0.9 0.9 0.9];
                     ax.YColor = [0.9 0.9 0.9];
                     ax.ZColor = [0.9 0.9 0.9];
+                    ax.FontName = FONT;
                     ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         txt.Color = [0.9 0.9 0.9];
-                        txt.FontName = 'Open Sans';
-                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(8), Core_UI.getFontSize(9));
+                        txt.FontName = FONT;
+                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(9), Core_UI.getFontSize(12));
                     end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
-                    lg.FontName = 'Open Sans';
+                    lg.FontName = FONT;
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
                     lg.TextColor = 1-[0.9 0.9 0.9];
@@ -352,12 +355,12 @@ classdef Core_UI < Logos
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
                     cb.Color = 1-[0.9 0.9 0.9];
-                    cb.FontName = 'Open Sans';
+                    cb.FontName = FONT;
                     cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = 1-[0.9 0.9 0.9];
-                        cbt.FontName = 'Open Sans';
+                        cbt.FontName = FONT;
                         cbt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
@@ -371,35 +374,36 @@ classdef Core_UI < Logos
                     ax.XColor = 1-[0.9 0.9 0.9];
                     ax.YColor = 1-[0.9 0.9 0.9];
                     ax.ZColor = 1-[0.9 0.9 0.9];
+                    ax.FontName = FONT;
                     ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         txt.Color = 1-[0.9 0.9 0.9];
-                        txt.FontName = 'Open Sans';
+                        txt.FontName = FONT;
                         txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(8), Core_UI.getFontSize(9));
                     end
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = 'Open Sans';
+                    txt.FontName = FONT;
                     txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
-                    lg.FontName = 'Open Sans';
+                    lg.FontName = FONT;
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
                     lg.TextColor = 1-[0.9 0.9 0.9];

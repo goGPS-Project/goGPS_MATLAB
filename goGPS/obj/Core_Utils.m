@@ -472,9 +472,13 @@ classdef Core_Utils < handle
             % SINTAX
             %   z = getZernike(l, m, az, el)
             
-            r = 1 - (2 * el(:) / pi);
-            %r = cos(el(:));
+            %r = 1 - (2 * el(:) / pi);            
+            r = cos(el(:));
             theta = az(:);
+            
+            %[x,y,z] = sph2cart(az, el, 1);
+            %[theta1, r1] = cart2pol(x,y);
+            
             z = zernfun(l, m, r, theta);
         end
         
@@ -487,7 +491,7 @@ classdef Core_Utils < handle
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, l_max, m_max, az, el);
+            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az, el);
             z_interp(id_ok) = A * z_par;
         end
         
@@ -500,7 +504,7 @@ classdef Core_Utils < handle
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
-            A = Core_Utils.getZernike(l, m, l_max, m_max, az, el);
+            A = Core_Utils.getZernike(l, m, az, el);
             z_interp(id_ok) = A * z_par;
         end
         
@@ -551,36 +555,109 @@ classdef Core_Utils < handle
         end
 
         function fh = showZerniche(l, m, z_par, el_min)
-            % Get Zernike polynomials parameters 
+            % Show 3D plot of Zernike polynomials 
             %
             % SINTAX
             %   fh = showZerniche(l, m, z_par)
             
+            fh = figure();
+            %%% INTERNAL PARAMETER
+            scale = 1;
+            %%%
+
+            x = -1 : 0.005 : 1;
+            y = x;
+            [X,Y] = meshgrid(x,y);
+            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection 
+            % but not the right one for Zerniche
+            r_zern = sin(r_prj / scale * pi / 2);
+            if nargin == 4
+                r_max = 1 - (2 * el_min / pi);
+                idx = r_prj <= r_max;
+            else
+                idx = r_prj <= 1;
+            end
+            z = nan(size(X));
+            z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
+            
+            %h = scatter(X(~isnan(z)),Y(~isnan(z)),160,z(~isnan(z)),'filled');
+            h = imagesc(x,y,z);
+            h.AlphaData = ~isnan(z);
+            ax = gca;
+            ax.YDir = 'normal';
+            hold_state = ishold();
+            if nargin < 6 || plot_bg
+                hold on
+                %plot parallel
+                az_l = [0:pi/200:2*pi];
+                d_step = 15/180*pi;
+                decl_s = ([0:d_step:pi/2]/(pi/2))*scale;
+                for d = decl_s
+                    x = cos(az_l).*d;
+                    y = sin(az_l).*d;
+                    text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');
+                    plot(x,y,'color',[0.6 0.6 0.6]);                    
+                end
+                %plot meridian
+                az_step = 30/180 *pi;
+                az_s = [0:az_step:2*pi];
+                decl_l = ([0 1])*scale;
+                for a = az_s
+                    x = cos(a).*decl_l;
+                    y = sin(a).*decl_l;
+                    if abs(a-2*pi) > 0.0001
+                        text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
+                    end
+                    plot(x,y,'color',[0.6 0.6 0.6]);
+                    
+                end
+                axis equal
+                axis off
+                set(gcf,'color','w');
+                if ~hold_state
+                    hold off
+                end
+                xlim([-1.15 1.15]); ylim([-1.15 1.15]);
+                colormap(jet);
+                colorbar;
+            end
+            fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');            
+        end
+        
+        function fh = showZerniche3(l, m, z_par, el_min)
+            % Show 3D plot of Zernike polynomials 
+            %
+            % SINTAX
+            %   fh = showZerniche3(l, m, z_par)
+            
             % [x, y] = pol2cart(theta, r_synt);
             if nargin == 4
                 r_max = 1 - (2 * el_min / pi);
-                [theta, r_synt] = meshgrid(linspace(0, 2*pi, 361), linspace(0, r_max, 101));
+                [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, r_max, 101));
             else
-                [theta, r_synt] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
+                [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
             end
-                
+            % r_prj is the correct radius for my polar projection 
+            % but not the right one for Zerniche
+            r_zern = sin(r_prj * pi / 2);
+    
             z = nan(size(theta));
-            z(:) = zernfun(l, m, r_synt(:), theta(:)) * z_par;
+            z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
             
-            fh = figure(102);
+            fh = figure();
             title('Zerniche expansion')
             %polarplot3d(z, 'PlotType','surfn');
-            polarplot3d(z,'PlotType','surfn','PolarGrid',{4 24},'TickSpacing',8,...
-                   'AngularRange',[0 360]*pi/180,'RadialRange', [0 1],...
-                   'RadLabels',4,'RadLabelLocation',{180 'max'},'RadLabelColor','black', 'AxisLocation', 'mean');
+            polarplot3d(z,'PlotType','surfn','PolarGrid',{4 24}, 'PolarDirection', 'cw', 'TickSpacing',5,...
+                   'RadLabels',4, 'RadLabelLocation',{180 'max'}, 'RadLabelColor','black', 'AxisLocation', 'mean');
             ar = get(gca,'DataAspectRatio');
             set(gca, 'DataAspectRatio', [1 1 ar(3)]);
             
             colormap(jet);
             material([ 0.4 0.9 0.55])
-            l1=light('position',[200 -300 400], 'color', [0.6 0.6 0.6]);
-            l2=light('position',[-600 600 900], 'color', [0.6 0.6 0.6]);
-            
+            l1 = light('position',[200 -300 400], 'color', [0.6 0.6 0.6]);
+            l2 = light('position',[-600 600 900], 'color', [0.6 0.6 0.6]);
+            l3 = light('position',[0 2 100], 'color', [0.6 0.6 0.6]);
+            view(35, 45);
             Core_UI.beautifyFig(fh, 'dark');            
         end
 
