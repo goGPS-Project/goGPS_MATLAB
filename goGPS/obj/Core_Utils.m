@@ -472,6 +472,7 @@ classdef Core_Utils < handle
             % SINTAX
             %   z = getZernike(l, m, az, el)
             
+            %
             %r = 1 - (2 * el(:) / pi);            
             r = cos(el(:));
             theta = az(:);
@@ -540,7 +541,7 @@ classdef Core_Utils < handle
             z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
         end
                 
-        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, el, data, max_reg)           
+        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
@@ -571,6 +572,7 @@ classdef Core_Utils < handle
             [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection 
             % but not the right one for Zerniche
             r_zern = sin(r_prj / scale * pi / 2);
+            %r_zern = r_prj;
             if nargin == 4
                 r_max = 1 - (2 * el_min / pi);
                 idx = r_prj <= r_max;
@@ -640,6 +642,7 @@ classdef Core_Utils < handle
             % r_prj is the correct radius for my polar projection 
             % but not the right one for Zerniche
             r_zern = sin(r_prj * pi / 2);
+            %r_zern = r_prj;
     
             z = nan(size(theta));
             z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
