@@ -483,12 +483,12 @@ classdef Core_Utils < handle
             z = zernfun(l, m, r, theta);
         end
         
-        function [z_interp, l, m] = zAnalisysAll(l_max, m_max, az, el, z_par)
+        function [z_interp, l, m] = zSinthesysAll(l_max, m_max, az, el, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
             % SINTAX
-            %   [z_interp] = zAnalisysAll(l_max, m_max, az, el, data)
+            %   [z_interp] = zSinthesysAll(l_max, m_max, az, el, data)
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
@@ -496,12 +496,12 @@ classdef Core_Utils < handle
             z_interp(id_ok) = A * z_par;
         end
         
-        function [z_interp, l, m] = zAnalisys(l, m, az, el, z_par)
+        function [z_interp, l, m] = zSinthesys(l, m, az, el, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
             % SINTAX
-            %   [z_interp] = zAnalisys(l, m, az, el, data)
+            %   [z_interp] = zSinthesys(l, m, az, el, data)
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
@@ -509,11 +509,11 @@ classdef Core_Utils < handle
             z_interp(id_ok) = A * z_par;
         end
         
-        function [z_par, l, m, A] = zSinthesysAll(l_max, m_max, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
-            %   [z_par, l, m, A] = zSinthesysAll(l_max, m_max, az, el, data, <max_reg = 1>)
+            %   [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
             [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), el(id_ok));
@@ -525,11 +525,11 @@ classdef Core_Utils < handle
             z_par = (A'*A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
         end
         
-        function [z_par, l, m, A] = zSinthesys(l, m, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisy(l, m, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
-            %   [z_par, l, m, A] = zSinthesysAll(l_max, m_max, az, el, data, <max_reg = 1>)
+            %   [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
             A = Core_Utils.getZernike(l, m, az(id_ok), el(id_ok));
@@ -548,9 +548,9 @@ classdef Core_Utils < handle
             %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
             
             if nargin == 6
-                [z_par, l, m, A] = Core_Utils.zSinthesysAll(l_max, m_max, az, el, data, max_reg);
+                [z_par, l, m, A] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data, max_reg);
             else
-                [z_par, l, m, A] = Core_Utils.zSinthesysAll(l_max, m_max, az, el, data);
+                [z_par, l, m, A] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data);
             end
             filtered_data = A * z_par;
         end
@@ -662,6 +662,12 @@ classdef Core_Utils < handle
             l3 = light('position',[0 2 100], 'color', [0.6 0.6 0.6]);
             view(35, 45);
             Core_UI.beautifyFig(fh, 'dark');            
+        end
+        
+        function fh = polarZerMap(l_max, m_max, az, el, data)
+            % Take scattered observation and plot a polar interpolation
+            [z_par, l, m] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data, 1);
+            fh = Core_Utils.showZerniche(l, m, z_par);
         end
 
         %--------------------------------------------------------------------------
