@@ -4444,6 +4444,59 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function [vxvyvz] = computeVelocity(this)
+            % compute velocity using variometry
+            %
+            % SYNTAX:
+            %     computeVelocity(this)
+            
+            [ph,wl,id] = this.getPhases();
+            [ph_s] = this.getSyntPhases;
+            id = find(id);
+            d_ph = diff(zero2nan(ph - ph_s));
+            d_ph(this.sat.cycle_slip_ph_by_ph(2:end,:)) = nan;
+            u_goid = unique(this.go_id);
+            goid2ugoid = nan(max(u_goid),1);
+            goid2ugoid(u_goid) = 1: length(u_goid);
+            XS_loc = nan(size(ph,1),length(u_goid),3);
+            for u =1 : length(u_goid)
+                 xs_temp = this.getXSLoc(u_goid(u));
+                 xs_temp = rowNormalize(xs_temp);
+                 XS_loc(:,u,:) = xs_temp;
+            end
+            XS_loc = (XS_loc(1:end-1,:,:) + XS_loc(2:end,:,:))/2;
+            vxvyvz = nan(size(XS_loc,1),3);
+            iono_const = GPS_SS.L_VEC(1)^2;
+            for i = 1 : size(vxvyvz,1)
+                o_idx = ~isnan(d_ph(i,:));
+                o_goid = this.go_id(id(o_idx));
+                o_ugoid = unique(o_goid);
+                o_goid2ugoid = nan(max(o_ugoid),1);
+                o_goid2ugoid(o_ugoid) = 1: length(o_ugoid);
+                o_wl = wl(o_idx);
+                iono_coeff = -o_wl.^2./iono_const;
+                A = zeros(sum(o_idx),4 + length(o_ugoid));
+                obs = d_ph(i,o_idx)';
+                A(:,1:3) = XS_loc(i,goid2ugoid(o_goid),:);
+                el = this.sat.el(i,o_goid);
+                w = sind(el)';
+                A(:,4) = 1;
+                idx_a = sub2ind(size(A),(1:size(A,1))',o_goid2ugoid(o_goid)+4);
+                A(idx_a) = iono_coeff;
+                A = A .* repmat(w,1,size(A,2));
+                A = sparse(A);
+                obs = obs .* w;
+                x = A\obs;
+                res = obs - A*x;
+                out_lid = res > 2.5*std(res);
+                A(out_lid,:) = [];
+                obs(out_lid) = [];
+                x = A\obs;
+                vxvyvz(i,:) = x(1:3);
+            end
+            
+        end
+        
         function [snr_bt, snr_code] = getElTrackingSNR(this)
             % Get one single "mean" SNR per tracking/band
             % Defined as a polynomial of degree 2 in sin(el) space
