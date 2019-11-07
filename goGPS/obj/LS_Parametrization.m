@@ -102,7 +102,12 @@ classdef LS_Parametrization < handle
 
         rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-      
+        
+        rec_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        sat_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        rec_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        sat_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        
         tropo = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_n = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         tropo_e = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
@@ -135,6 +140,10 @@ classdef LS_Parametrization < handle
         tropo_e_opt;
         tropo_v_opt;
         sat_clk_opt;
+        rec_clk_pr_opt;
+        sat_clk_pr_opt;
+        rec_clk_ph_opt;
+        sat_clk_ph_opt;
         ant_mp_opt;
         iono_opt;
         tropo_s_opt= struct('spline_rate',900);
@@ -190,6 +199,18 @@ classdef LS_Parametrization < handle
                 case LS_Manipulator_new.PAR_SAT_CLK
                     parametriz = this.sat_clk;
                     option = this.sat_clk_opt;
+                case LS_Manipulator_new.PAR_REC_CLK_PR
+                    parametriz = this.rec_clk_pr;
+                    option = this.rec_clk_pr_opt;
+                case LS_Manipulator_new.PAR_SAT_CLK_PR
+                    parametriz = this.sat_clk_pr;
+                    option = this.sat_clk_pr_opt;
+                case LS_Manipulator_new.PAR_REC_CLK_PH
+                    parametriz = this.rec_clk_ph;
+                    option = this.rec_clk_ph_opt;
+                case LS_Manipulator_new.PAR_SAT_CLK_PH
+                    parametriz = this.sat_clk_ph;
+                    option = this.sat_clk_ph_opt;
                 case LS_Manipulator_new.PAR_TROPO
                     parametriz = this.tropo;
                     option = this.tropo_opt;

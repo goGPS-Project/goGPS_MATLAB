@@ -73,6 +73,11 @@ classdef LS_Manipulator_new < handle
         PAR_SAT_PPB = 21; % phase psudorange bias (to make ambiguity integer with common phase pseudorange obervables)
         PAR_REC_EBFR = 22; % electrinic bias frequency depandant
         PAR_SAT_EBFR = 23; % electrinic bias frequency depandant
+        PAR_REC_CLK_PH = 25;
+        PAR_REC_CLK_PR = 26;
+        PAR_SAT_CLK_PH = 27;
+        PAR_SAT_CLK_PR = 28;
+
         
         CLASS_NAME = {'REC_X', 'REC_Y', 'REC_Z', 'REC_EB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'TROPO_V', 'SAT_CLK', 'ANT_MP', 'IONO', 'TROPO_S', 'SAT_X', 'SAT_Y', 'SAT_Z', 'SAT_EB', 'REC_EB_LIN', 'REC_PPB', 'SAT_PPB', 'REC_EBFR', 'SAT_EBFR'};
     end
@@ -228,6 +233,18 @@ classdef LS_Manipulator_new < handle
             
             par_iono_lid = param_selection == this.PAR_IONO;
             par_iono = sum(par_iono_lid) > 0;
+            
+            par_rec_clk_pr_lid = param_selection == this.PAR_REC_CLK_PR;
+            par_rec_clk_pr = sum(par_rec_clk_pr_lid) > 0;
+            
+            par_rec_clk_ph_lid = param_selection == this.PAR_REC_CLK_PH;
+            par_rec_clk_ph = sum(par_rec_clk_ph_lid) > 0;
+            
+            par_sat_clk_pr_lid = param_selection == this.PAR_SAT_CLK_PR;
+            par_sat_clk_pr = sum(par_sat_clk_pr_lid) > 0;
+            
+            par_sat_clk_ph_lid = param_selection == this.PAR_SAT_CLK_PH;
+            par_sat_clk_ph = sum(par_sat_clk_ph_lid) > 0;
             
             % ---- add the recever to the recibers
             if Core_Utils.findAinB(rec.parent.getMarkerName,this.unique_rec_name) == 0
@@ -395,6 +412,18 @@ classdef LS_Manipulator_new < handle
                     end
                     if par_sat_clk
                         A(lines_stream, par_sat_clk_lid) = 1;
+                    end
+                    if par_rec_clk_pr  && ~phase_s(s)
+                        A(lines_stream, par_rec_clk_pr_lid) = 1;
+                    end
+                    if par_sat_clk_pr  && ~phase_s(s)
+                        A(lines_stream, par_sat_clk_pr_lid) = 1;
+                    end
+                    if par_rec_clk_ph  && phase_s(s)
+                        A(lines_stream, par_rec_clk_ph_lid) = 1;
+                    end
+                    if par_sat_clk_ph  && phase_s(s)
+                        A(lines_stream, par_sat_clk_ph_lid) = 1;
                     end
                     % ----------- ZTD ------------------
                     if par_tropo
