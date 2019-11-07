@@ -4444,57 +4444,172 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [vxvyvz] = computeVelocity(this)
-            % compute velocity using variometry
+        function [v_xyz, t, dt, deg_free] = getVelocity(this, flag_debug)
+            % Compute velocity using variometry
             %
-            % SYNTAX:
-            %     computeVelocity(this)
+            % INPUT
+            %   flag_debug     show some plots
+            %
+            % SYNTAX
+            %    [v_xyz, t, dt, deg_free] = getVelocity(this, flag_debug)
             
-            [ph,wl,id] = this.getPhases();
-            [ph_s] = this.getSyntPhases;
-            id = find(id);
-            d_ph = diff(zero2nan(ph - ph_s));
-            d_ph(this.sat.cycle_slip_ph_by_ph(2:end,:)) = nan;
-            u_goid = unique(this.go_id);
-            goid2ugoid = nan(max(u_goid),1);
-            goid2ugoid(u_goid) = 1: length(u_goid);
-            XS_loc = nan(size(ph,1),length(u_goid),3);
-            for u =1 : length(u_goid)
-                 xs_temp = this.getXSLoc(u_goid(u));
-                 xs_temp = rowNormalize(xs_temp);
-                 XS_loc(:,u,:) = xs_temp;
+            if ~this.isPreProcessed()
+                if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
+                    this.log.addError('Pre-Processing is required to compute a Variometric solution');
+                else
+                    this.log.addError('Pre-Processing failed: skipping Variometric solution');
+                end
+            else
+                [ph, wl, lid] = this.getPhases();
+                [ph_s] = this.getSyntPhases;
+                
+                id = find(lid);
+                
+                % Get  phases - synthesised
+                t_diff = diff(this.time.getRefTime);                
+                d_ph = diff(zero2nan(ph - ph_s)) ./ t_diff;
+                if this.isStatic
+                    sensor = bsxfun(@minus, d_ph, median(d_ph, 2, 'omitnan'));
+                    d_ph(abs(sensor) > 5e-3) = nan; % a residual motion > 5 mm / s is an error
+                end
+                
+                % Every time there is a cycle slip break the data continuity
+                if ~isempty(this.sat.cycle_slip_ph_by_ph)
+                    d_ph(this.sat.cycle_slip_ph_by_ph(2:end,:)) = nan;
+                end
+                % Do not consider outliers;
+                if ~isempty(this.sat.outliers_ph_by_ph)
+                    d_ph(this.sat.outliers_ph_by_ph(2:end,:)) = nan;                    
+                end
+                
+                u_goid = unique(this.go_id);
+                goid2ugoid = nan(max(u_goid),1);
+                goid2ugoid(u_goid) = 1: length(u_goid);
+                XS_loc = nan(size(ph,1),length(u_goid),3);
+                for u =1 : length(u_goid)
+                    xs_temp = this.getXSLoc(u_goid(u));
+                    xs_temp = rowNormalize(xs_temp);
+                    XS_loc(:,u,:) = xs_temp;
+                end
+                XS_loc = (XS_loc(1:end-1,:,:) + XS_loc(2:end,:,:))/2;
+                
+                % prepare output
+                v_xyz = nan(size(XS_loc,1),3);
+                dt = nan(size(XS_loc,1), 1);
+                deg_free = nan(size(XS_loc,1), 1, 'double'); % it should be int16 but nan is not supported
+                iono_const = GPS_SS.L_VEC(1)^2;
+                %res_all = nan(size(d_ph));
+                
+                % Set basic threshold for basic outlier rejection
+                thr = 5e-4; % m/s
+                min_n_sat = 4;
+                for i = 1 : size(v_xyz, 1)
+                    % Epoch wise solution
+                    o_idx = ~isnan(d_ph(i,:));
+                    o_goid = this.go_id(id(o_idx));
+                    o_ugoid = unique(o_goid);
+                    
+                    % quantities:
+                    n_iono = length(o_ugoid);
+                    n_fix_par = 4;
+                    n_par = n_fix_par + n_iono;
+                    n_obs = sum(o_idx);
+                    
+                    deg_free(i) = n_obs - n_par;
+                    % compute a solution only if the number of satellite is > min_n_sat
+                    if numel(o_ugoid) >= min_n_sat % && deg_free(i) >= 0
+                        o_goid2ugoid = nan(max(o_ugoid),1);
+                        o_goid2ugoid(o_ugoid) = 1 : length(o_ugoid);
+                        o_wl = wl(o_idx);
+                        iono_coeff = -o_wl.^2 ./ iono_const;
+                        A = zeros(sum(o_idx), n_par);
+                        obs = d_ph(i, o_idx)';
+                        A(:, 1:3) = XS_loc(i,goid2ugoid(o_goid),:);
+                        
+                        % Get elevation
+                        el = this.sat.el(i,o_goid);
+                        % Weight on elevation
+                        w = sind(el)';
+                        
+                        % Clock
+                        A(:,4) = 1;
+                        % Iono
+                        idx_a = sub2ind(size(A), (1:size(A,1))', o_goid2ugoid(o_goid) + n_fix_par);
+                        A(idx_a) = iono_coeff;
+                        
+                        % Weight observations with elevation
+                        A = A .* repmat(w, 1, size(A, 2));
+                        A = [A; 1e-3 * [zeros(n_iono, n_fix_par) eye(n_iono)]];
+                        obs = [obs .* w; zeros(n_iono, 1)];
+                        % A = sparse(A); % this is not necessary it slow down computation
+                        x = A \ obs;
+                        res = obs - A * x;
+                        
+                        % Outlier rejection
+                        %res_all(i, o_idx) = res;
+                        %out_lid = res > 2.5*std(res);
+                        out_lid = res > thr;
+                        n_obs = n_obs - sum(out_lid);
+                        
+                        % Do outlier rejection only if there is no rank deficiency
+                        if n_obs >= 4
+                            if any(out_lid)
+                                A(out_lid, :) = [];
+                                obs(out_lid) = [];
+                                x = A \ obs;
+                            end
+                            v_xyz(i,:) = x(1:3);
+                            dt(i) = x(4);
+                            deg_free(i) = size(A, 1) - size(A, 2);
+                        end
+                    else
+                        deg_free(i) = nan;
+                    end
+                end
             end
-            XS_loc = (XS_loc(1:end-1,:,:) + XS_loc(2:end,:,:))/2;
-            vxvyvz = nan(size(XS_loc,1),3);
-            iono_const = GPS_SS.L_VEC(1)^2;
-            for i = 1 : size(vxvyvz,1)
-                o_idx = ~isnan(d_ph(i,:));
-                o_goid = this.go_id(id(o_idx));
-                o_ugoid = unique(o_goid);
-                o_goid2ugoid = nan(max(o_ugoid),1);
-                o_goid2ugoid(o_ugoid) = 1: length(o_ugoid);
-                o_wl = wl(o_idx);
-                iono_coeff = -o_wl.^2./iono_const;
-                A = zeros(sum(o_idx),4 + length(o_ugoid));
-                obs = d_ph(i,o_idx)';
-                A(:,1:3) = XS_loc(i,goid2ugoid(o_goid),:);
-                el = this.sat.el(i,o_goid);
-                w = sind(el)';
-                A(:,4) = 1;
-                idx_a = sub2ind(size(A),(1:size(A,1))',o_goid2ugoid(o_goid)+4);
-                A(idx_a) = iono_coeff;
-                A = A .* repmat(w,1,size(A,2));
-                A = sparse(A);
-                obs = obs .* w;
-                x = A\obs;
-                res = obs - A*x;
-                out_lid = res > 2.5*std(res);
-                A(out_lid,:) = [];
-                obs(out_lid) = [];
-                x = A\obs;
-                vxvyvz(i,:) = x(1:3);
+                        
+            if nargin == 2 && ~isempty(flag_debug) && flag_debug
+                % Really basic plots
+                fh_list = [];
+                t = this.time.getMatlabTime;
+                t = t(1 : end - 1) - (diff(t)/2);
+                
+                % Speed
+                fh = figure; plot(t, (v_xyz));
+                title('Speed (XYZ [m / s])');
+                setTimeTicks();
+                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh_list = [fh_list fh];
+                
+                % Coordinates
+                coo = Coordinates.fromXYZ(cumsum(nan2zero(v_xyz .* t_diff)) + this.getMedianPosXYZ);
+                enu = bsxfun(@minus, coo.getENU(), median(coo.getENU()));
+                enu(isnan(v_xyz)) = nan;
+                fh = figure; plot(t, 1e2 * enu);
+                title('Coordinates stability [cm]');
+                legend('East', 'North', 'Up');
+                setTimeTicks();                
+                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh_list = [fh_list fh];
+                
+                % Clock plot
+                fh = figure;
+                plot(t, dt, '-'); hold on;
+                setTimeTicks();                
+                title('Residual receiver clock error [m]');
+                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh_list = [fh_list fh];
+                
+                % Degree of freedom
+                fh = figure;
+                plot(t, deg_free, 'LineWidth', 2);
+                setTimeTicks();                
+                title('Degree of freedom of the system');
+                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh_list = [fh_list fh]; %#ok<NASGU>                
             end
-            
+            t = this.time.getEpoch(1:this.time.length - 1);
+            t.addSeconds(+t_diff/2);            
         end
         
         function [snr_bt, snr_code] = getElTrackingSNR(this)
