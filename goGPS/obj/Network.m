@@ -548,15 +548,17 @@ classdef Network < handle
                 param_selection = [ls.PAR_REC_X ;
                     ls.PAR_REC_Y;
                     ls.PAR_REC_Z;
-                    ls.PAR_REC_PPB;
+                    %ls.PAR_REC_PPB;
                     ls.PAR_REC_EB;
-                    ls.PAR_SAT_PPB;
+                    %ls.PAR_SAT_PPB;
                     ls.PAR_SAT_EBFR;
                     ls.PAR_SAT_EB;
                     ls.PAR_AMB;
                     ls.PAR_IONO;
                     ls.PAR_REC_CLK;
-                    ls.PAR_SAT_CLK;];
+                    ls.PAR_SAT_CLK;
+                    ls.PAR_REC_CLK_PH;
+                    ls.PAR_SAT_CLK_PH;];
                 if this.state.flag_tropo
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
