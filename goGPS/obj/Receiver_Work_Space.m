@@ -878,7 +878,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.vtec = x(1:n_ep);
         end
         
-        function computeVTEC2(this, flag_exclude_l5_gps)
+        function computeSTEC(this, flag_exclude_l5_gps)
             % compute vertical total electron content
             %
             % SYNTAX:
@@ -997,6 +997,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     A_idx(n_p_o+(1:n_c_o),2) = n_p_g + prog_idx; % iono idx
                     amb_idx = Core_Utils.getAmbIdx(this.sat.cycle_slip_ph_by_ph(:,j),ph(:,j));
                     amb_idx = amb_idx(is_valid_s);
+                    amb_idx = amb_idx - min(amb_idx) +1;
                     A_idx(n_p_o+(1:n_c_o),3) = n_p_a + amb_idx;  % amb idx
                     n_p_a = n_p_a + length(unique(amb_idx));
                     n_p_o = n_p_o + n_c_o;
@@ -1016,61 +1017,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idx_v_el = A_idx ~= 0;
                 rows = repmat((1:size(A,1))',1,3);
                 A = sparse(rows(idx_v_el), A_idx(idx_v_el), A(idx_v_el), n_obs_s+n_i-1, max(max(A_idx(:,2:3))));
-                A(:,max(noZero(A_idx(:,2)))+[find(u_o_code_s == rdc_n(1)) find(u_o_code_s == rdc_n(2))]) = [];
-%                 N = A'*A;
-%                 B = A'*obs;
-%                 idx_geom = 1: n_geom;
-%                 idx_not_geom = (n_geom+1):(max(A_idx(:,3))-1);
-%                 % reduce for geometry
-%                 Ngg = N(idx_geom,idx_geom);
-%                 iGeom = spdiags(1./diag(Ngg),0,n_geom,n_geom);
-%                 Ngn = N(idx_geom,idx_not_geom);
-%                 Nng = N(idx_not_geom,idx_geom);
-%                 Nnn = N(idx_not_geom,idx_not_geom);
-%                 Bg = B(idx_geom);
-%                 Bn = B(idx_not_geom);
-%                 
-%                 Nnn = Nnn - Nng*iGeom*Ngn;
-%                 Bn = Bn - Nng*iGeom*Bg;
-%                 x = Nnn\Bn;
+                A(:,max(noZero(A_idx(:,2)))+[find(u_o_code_s == rdc_n(1)) find(u_o_code_s == rdc_n(2))]) = []; % fix the rankk deficency eleimtaing the bias for the first two pseudoranges
                 x = A\obs;
                 res = obs - A*x;
                 stec(is_valid,i) = x(unique(A_idx(:,2)));
                 end
             end
             this.sat.stec = stec;
-%             n_geom =  max(A_idx(:,1));
-%             A_idx(:,2) = A_idx(:,2) + max(A_idx(:,1));
-%             A_idx(:,3) = A_idx(:,3) + max(A_idx(:,2));
-%             weight = 1/0.1;
-%             w = 1*1./sind(el);
-%             w((n_pr+1):end) = w((n_pr+1):end) * 1e6;
-% 
-%             A = A.*repmat(1./w,1,3);
-%             A = [A; [ones(n_ep-1,1)*weight -ones(n_ep-1,1)*weight zeros(n_ep-1,1)]]; 
-%             A_idx = [A_idx; [n_geom+(1:(n_ep-1))' n_geom+(2:n_ep)' zeros(n_ep-1,1)]]; 
-%             obs = [obs; zeros((n_ep-1),1)];
-%             idx_v_el = A_idx ~= 0;
-%             rows = repmat((1:size(A,1))',1,3);
-%             A = sparse(rows(idx_v_el), A_idx(idx_v_el), A(idx_v_el), n_obs+n_ep-1, max(A_idx(:,3)));
-%             %A(:,min(noZero(A_idx(:,3)))) = [];
-%             N = A'*A;
-%             B = A'*obs;
-%             idx_geom = 1: n_geom;
-%             idx_not_geom = (n_geom+1):(max(A_idx(:,3))-1);
-%             % reduce for geometry
-%             Ngg = N(idx_geom,idx_geom);
-%             iGeom = spdiags(1./diag(Ngg),0,n_geom,n_geom);
-%             Ngn = N(idx_geom,idx_not_geom);
-%             Nng = N(idx_not_geom,idx_geom);
-%             Nnn = N(idx_not_geom,idx_not_geom);
-%             Bg = B(idx_geom);
-%             Bn = B(idx_not_geom);
-%             
-%             Nnn = Nnn - Nng*iGeom*Ngn;
-%             Bn = Bn - Nng*iGeom*Bg;
-%             x = Nnn\Bn;
-%             this.vtec = x(1:n_ep);
         end
         
         function remObsByFlag(this, flag, sys_c)
