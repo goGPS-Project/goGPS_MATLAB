@@ -475,27 +475,68 @@ classdef GNSS_Station < handle
                 end
             end
         end
-
+    end
+    % ==================================================================================================================================================    
+    %% METHODS EXPORT
+    % ==================================================================================================================================================
+    
+    methods
+        function exportCRD(sta_list, mode, flag)
+            % fix the position of the receiver into the reference frame
+            % object
+            %
+            % INPUT
+            %   mode    it could be 'out' (dafault), 'work', ...(future modes)
+            %
+            % SYNTAX
+            %  sta_list.fixPos(mode)
+            
+            %create a new RF
+            rf = Core_Reference_Frame;
+            if nargin < 3 || isempty(flag)
+                flag = 3; % use this coordinate for prepro
+            end
+            if nargin <2 || isempty(mode)
+                mode = 'out'; % use median out coordinates
+            end
+            
+            for s = 1 : length(sta_list)
+                if strcmpi(mode,'out') || isempty(sta_list(s).out) || (sta_list(s).out.isEmpty)
+                    xyz = sta_list(s).out.getPosXYZ();
+                    xyz = xyz(end,:);
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                else %if strcmpi(mode,'work') % get from work
+                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                end
+            end
+            
+            out_dir = Core.getState.getOutDir();
+            out_file_name = fullfile(out_dir, sprintf('coordinates_%s.crd',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
+            Core.getLogger.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));
+            rf.export(out_file_name);
+        end
+        
         function exportMat(sta_list)
             % Export the receiver into a MATLAB file (work properties is not saved )
             %
             % SYNTAX
             %   sta_list.exportMat()
-
+            
             for r = 1 : numel(sta_list)
                 try
                     % Get time span of the receiver
                     time = sta_list(r).getTime().getEpoch([1 sta_list(r).getTime().length()]);
                     time.toUtc();
-
+                    
                     fname = fullfile(sta_list(r).state.getOutDir(), sprintf('full_%s-%s-%s-rec%04d%s', sta_list(r).getMarkerName4Ch, time.first.toString('yyyymmdd_HHMMSS'), time.last.toString('yyyymmdd_HHMMSS'), r, '.mat'));
-
+                    
                     rec = sta_list(r);
                     tmp_work = rec.work; % back-up current out
                     rec.work = Receiver_Work_Space(rec);
                     save(fname, 'rec');
                     rec.work = tmp_work;
-
+                    
                     rec.log.addStatusOk(sprintf('Receiver %s: %s', rec.getMarkerName4Ch, fname));
                 catch ex
                     sta_list(r).log.addError(sprintf('saving Receiver %s in matlab format failed: %s', sta_list(r).getMarkerName4Ch, ex.message));
@@ -560,48 +601,108 @@ classdef GNSS_Station < handle
             log.addMessage(log.indent('Writing the file...'));
             save(out_file_name, 'rec', '-v7');
         end
-    end
-    % ==================================================================================================================================================    
-    %% METHODS EXPORT
-    % ==================================================================================================================================================
-    
-    methods
-        function exportCRD(sta_list, mode, flag)
-            % fix the position of the receiver into the reference frame
-            % object
-            %
-            % INPUT
-            %   mode    it could be 'out' (dafault), 'work', ...(future modes)
+        
+        function exportHydroNET(sta_list)
+            % Export the troposphere into a hydroNet readable data format file
+            % The data exported are:
+            %  - ztd
+            %  - zwd
+            %  - east gradient
+            %  - north gradient
+            %  - time_utc in matlab format
             %
             % SYNTAX
-            %  sta_list.fixPos(mode)
+            %   this.exportHydroNET
             
-            %create a new RF
-            rf = Core_Reference_Frame;
-            if nargin < 3 || isempty(flag)
-                flag = 3; % use this coordinate for prepro
-            end
-            if nargin <2 || isempty(mode)
-                mode = 'out'; % use median out coordinates
-            end
-            
-            for s = 1 : length(sta_list)
-                if strcmpi(mode,'out') || isempty(sta_list(s).out) || (sta_list(s).out.isEmpty)
-                    xyz = sta_list(s).out.getPosXYZ();
-                    xyz = xyz(end,:);
-                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
-                else %if strcmpi(mode,'work') % get from work
-                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
-                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+            try
+                min_time = GPS_Time();
+                max_time = GPS_Time();
+                for r = 1 : numel(sta_list)
+                    min_time.append(sta_list(r).out.time.minimum);
+                    max_time.append(sta_list(r).out.time.maximum);
                 end
+                min_time = min_time.minimum;
+                max_time = max_time.maximum;
+                min_time.toUtc();
+                max_time.toUtc();
+                [year,doy] = min_time.getDOY();
+                t_start = min_time.toString('HHMM');
+                 
+                out_dir = fullfile( Core.getState.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                if ~exist(out_dir, 'file')
+                    mkdir(out_dir);
+                end
+                 
+                if length(sta_list) == 1
+                    prefix = sta_list(1).getMarkerName4Ch;
+                else
+                    prefix = 'HNTD';
+                end
+                fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
+                fid = fopen(fname,'w');
+                
+                % write header
+                fprintf(fid,'[Variables]\n');
+                fprintf(fid,'Code,Name,Unit\n');
+                fprintf(fid,'ZTD,Zenith Total Delay,m\n');
+                fprintf(fid,'ZWD,Zenith Wet Delay,m\n');
+                fprintf(fid,'GE,East Gradient,m\n');
+                fprintf(fid,'GN,North Gradient,m\n');
+                fprintf(fid,'\n');
+                fprintf(fid,'[Locations]\n');
+                fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
+                for r = 1 : numel(sta_list)
+                    coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:));
+                    [x,y,h_ellipse,zone] = coo.getENU();
+                    %                     ondu = coo.getOrthometricCorrection();
+                    %                     h_ortho = h_ellipse - ondu;
+                    if zone(4) < 'N'
+                        hemi = '7';
+                    else
+                        hemi = '6';
+                    end
+                    fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
+                end
+                fprintf(fid,'\n');
+                 
+                fprintf(fid,'[Time]\n');
+                fprintf(fid,'UTC time zone offset,Model date,Start date,End date\n');
+                fprintf(fid,'|+0000,,%s,%s\n',min_time.toString('yyyy-mm-dd HH:MM:SS'),max_time.toString('yyyy-mm-dd HH:MM:SS'));
+                fprintf(fid,'\n');
+                
+                fprintf(fid,'[Data]\n');
+                fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
+                for r = 1 : numel(sta_list)
+                    if ~sta_list(r).isEmpty && ~sta_list(r).isEmptyOut_mr && ~isempty(sta_list(r).out.quality_info.s0) && max(sta_list(r).out.quality_info.s0) < 0.10
+                        time = sta_list(r).out.getTime();
+                        time.toUtc();
+                        
+                        ztd = sta_list(r).out.getZtd();
+                        zwd = sta_list(r).out.getZwd();
+                        [gn,ge ] =  sta_list(r).out.getGradient();
+                        mk_code = sta_list(r).getMarkerName4Ch;
+                        for t = 1 : time.length
+                            time_str = time.getEpoch(t).toString('yyyy-mm-dd HH:MM:SS');
+                            fprintf(fid,'%s,%s,ZTD,%0.4f,,1\n',time_str,mk_code,ztd(t));
+                            fprintf(fid,'%s,%s,ZWD,%0.4f,,1\n',time_str,mk_code,zwd(t));
+                            fprintf(fid,'%s,%s,GN,%0.5f,,1\n',time_str,mk_code,gn(t));
+                            fprintf(fid,'%s,%s,GE,%0.5f,,1\n',time_str,mk_code,ge(t));
+                        end
+                    else
+                        if isempty(max(sta_list(r).out.quality_info.s0))
+                            sta_list(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
+                        else
+                            sta_list(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(sta_out(r).out.quality_info.s0)));
+                        end
+                    end
+                end
+                fclose(fid);
+                sta_list(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+            catch ex
+                sta_list(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
             end
-            
-            out_dir = Core.getState.getOutDir();
-            out_file_name = fullfile(out_dir, sprintf('coordinates_%s.crd',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
-            Core.getLogger.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));
-            rf.export(out_file_name);
         end
-    end    
+    end
     %% METHODS GETTER
     % ==================================================================================================================================================
 
@@ -5732,133 +5833,6 @@ classdef GNSS_Station < handle
                 
                 Logger.getInstance.addStatusOk('The map is ready ^_^');
             end
-        end
-        
-        function exportHydroNET(sta_list)
-            % Export the troposphere into a hydroNet readable data format file
-            % The data exported are:
-            %  - ztd
-            %  - zwd
-            %  - east gradient
-            %  - north gradient
-            %  - time_utc in matlab format
-            %
-            % SYNTAX
-            %   this.exportHydroNET
-            
-                         try
-            min_time = GPS_Time();
-            max_time = GPS_Time();
-            for r = 1 : numel(sta_list)
-                min_time.append(sta_list(r).out.time.minimum);
-                max_time.append(sta_list(r).out.time.maximum);
-                
-            end
-            min_time = min_time.minimum;
-            max_time = max_time.maximum;
-            min_time.toUtc();
-            max_time.toUtc();
-            [year,doy] = min_time.getDOY();
-            t_start = min_time.toString('HHMM');
-            
-            
-            
-            out_dir = fullfile( Core.getState.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
-            if ~exist(out_dir, 'file')
-                mkdir(out_dir);
-            end
-            
-            
-            if length(sta_list) == 1
-                prefix = sta_list(1).getMarkerName4Ch;
-            else
-                prefix = 'HNTD';
-            end
-            fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
-            fid = fopen(fname,'w');
-            
-            
-            % write header
-            fprintf(fid,'[Variables]\n');
-            
-            fprintf(fid,'Code,Name,Unit\n');
-            
-            fprintf(fid,'ZTD,Zenith Total Delay,m\n');
-            
-            fprintf(fid,'ZWD,Zenith Wet Delay,m\n');
-            
-            fprintf(fid,'GE,East Gradient,m\n');
-            
-            fprintf(fid,'GN,North Gradient,m\n');
-            
-            fprintf(fid,'\n');
-            
-            fprintf(fid,'[Locations]\n');
-            
-            fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
-            
-            for r = 1 : numel(sta_list)
-                coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:));
-                [x,y,h_ellipse,zone] = coo.getENU();
-                %                     ondu = coo.getOrthometricCorrection();
-                %                     h_ortho = h_ellipse - ondu;
-                if zone(4) < 'N'
-                    hemi = '7';
-                else
-                    hemi = '6';
-                end
-                fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
-            end
-            
-            fprintf(fid,'\n');
-            
-            
-            fprintf(fid,'[Time]\n');
-            fprintf(fid,'UTC time zone offset,Model date,Start date,End date\n');
-            
-            fprintf(fid,'|+0000,,%s,%s\n',min_time.toString('yyyy-mm-dd HH:MM:SS'),max_time.toString('yyyy-mm-dd HH:MM:SS'));
-            
-            
-            fprintf(fid,'\n');
-            
-            fprintf(fid,'[Data]\n');
-            fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
-            for r = 1 : numel(sta_list)
-                if ~this(r).isEmpty & ~isempty(this(r).out.quality_info.s0) & max(sta_list(r).out.quality_info.s0) < 0.10
-                    
-                    time = sta_list(r).out.getTime();
-                    time.toUtc();
-                    
-                    
-                    ztd = sta_list(r).out.getZtd();
-                    zwd = sta_list(r).out.getZwd();
-                    [gn,ge ] =  sta_list(r).out.getGradient();
-                    mk_code = sta_list(r).getMarkerName4Ch;
-                    for t = 1 : time.length
-                        time_str = time.getEpoch(t).toString('yyyy-mm-dd HH:MM:SS');
-                        fprintf(fid,'%s,%s,ZTD,%0.4f,,1\n',time_str,mk_code,ztd(t));
-                        fprintf(fid,'%s,%s,ZWD,%0.4f,,1\n',time_str,mk_code,zwd(t));
-                        fprintf(fid,'%s,%s,GN,%0.5f,,1\n',time_str,mk_code,gn(t));
-                        fprintf(fid,'%s,%s,GE,%0.5f,,1\n',time_str,mk_code,ge(t));
-                        
-                    end
-                    
-                    
-                else
-                    if isempty(max(this(r).quality_info.s0))
-                        sta_list(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
-                    else
-                        sta_list(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
-                    end
-                end
-            end
-            fclose(fid);
-            sta_list(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
-            
-            
-                        catch ex
-                            sta_list(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
-                        end
-        end
+        end        
     end
 end
