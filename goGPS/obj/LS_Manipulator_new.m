@@ -1218,7 +1218,7 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-                        if sum(this.param_class == this.PAR_REC_PPB) > 0
+                        if sum(this.param_class == this.PAR_REC_PPB) > 0 | sum(this.param_class == this.PAR_REC_CLK_PH) > 0 
                             if ~isempty(idx_par_phase)
                             idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
                             end
@@ -1314,7 +1314,7 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         end
-                        if sum(this.param_class == this.PAR_SAT_PPB) > 0
+                        if sum(this.param_class == this.PAR_SAT_PPB) > 0 | sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 
                             if ~isempty(idx_par_phase)
                                 idx_rm = [idx_rm; uint32(idx_par_phase(1))];% remove one phase to put it as reference
                             end
@@ -1328,6 +1328,8 @@ classdef LS_Manipulator_new < handle
                 idx_rm = [idx_rm; uint32(idx_par(1))];
                 
             end
+            
+        
             
             if sum(this.param_class == this.PAR_SAT_EBFR) > 0 % remove two frequency bias per satellite , one for clock rank deficency other for iono
                 for s = this.unique_sat_goid
@@ -1408,6 +1410,28 @@ classdef LS_Manipulator_new < handle
             u_ep = unique(this.time_par);
             if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
                 idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
+                for e = u_ep'
+                    idx_par = idx_rec_par(time_par_tmp == e);
+                    if length(idx_par)>1
+                        [~,idx_rm_rm] = min(this.rec_par(idx_par));
+                        idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
+                    end
+                end
+            end
+            if sum(this.param_class == this.PAR_REC_CLK_PH) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PH  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
+                for e = u_ep'
+                    idx_par = idx_rec_par(time_par_tmp == e);
+                    if length(idx_par)>1
+                        [~,idx_rm_rm] = min(this.rec_par(idx_par));
+                        idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
+                    end
+                end
+            end
+            if sum(this.param_class == this.PAR_REC_CLK_PR) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PR  & ~this.out_par);
                 time_par_tmp = this.time_par(idx_rec_par,1);
                 for e = u_ep'
                     idx_par = idx_rec_par(time_par_tmp == e);
@@ -2036,8 +2060,8 @@ classdef LS_Manipulator_new < handle
             
             clearvars Aw
             % ------ reduce for sat clock, rec clock and iono
-            idx_reduce_sat_clk =  class_par == this.PAR_SAT_CLK;
-            idx_reduce_rec_clk = class_par == this.PAR_REC_CLK;
+            idx_reduce_sat_clk = class_par == this.PAR_SAT_CLK | class_par == this.PAR_SAT_CLK_PH | class_par == this.PAR_SAT_CLK_PR;
+            idx_reduce_rec_clk = class_par == this.PAR_REC_CLK | class_par == this.PAR_REC_CLK_PH | class_par == this.PAR_REC_CLK_PR;
             idx_reduce_iono = class_par == this.PAR_IONO;
             
             iono = sum(class_par  == this.PAR_IONO) > 0;
@@ -2055,7 +2079,7 @@ classdef LS_Manipulator_new < handle
             if sat_clk
                 i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
                 n_clk_sat = sum(i_sat_clk_tmp);
-                iSatClk = spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                iSatClk =   inv(N(i_sat_clk_tmp,i_sat_clk_tmp));%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                 Nx_satclk = N(~i_sat_clk_tmp, i_sat_clk_tmp);
                 Nt = Nx_satclk * iSatClk;
                 N = N(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt * N(i_sat_clk_tmp, ~i_sat_clk_tmp);
@@ -2078,7 +2102,7 @@ classdef LS_Manipulator_new < handle
             % ------- fix the ambiguities
             % solve the ambiguoties rank deficencies using lagrange multiplier
         
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix || false
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix
                 % get the ambiguity inverse matrxi
                 idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
                 if any(idx_amb)
@@ -2158,7 +2182,7 @@ classdef LS_Manipulator_new < handle
                     end
                     else
                         % reducing for everything else except ambiguities
-                                                 idx_b = find(~idx_amb);
+                        idx_b = find(~idx_amb);
 
                         [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
                         tol = 1e-3;
@@ -2170,7 +2194,7 @@ classdef LS_Manipulator_new < handle
 %                         rm_id_b = P*rm_id_b;
 %                         P = P(~rm_id_b_o, ~rm_id_b_o);
                         C_bb = zeros(sum(~idx_amb));
-                        C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
+%                         C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
                         Nbb = N(~idx_amb, ~idx_amb);
                         C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
                         %Bbb =  B(~idx_amb);
@@ -2209,7 +2233,7 @@ classdef LS_Manipulator_new < handle
 
                         
                         % try to fix
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'round_then_ILS' );
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
                         ambs = zeros(size(N_amb_amb,1),1);
                         if is_fixed
                             ambs(rm_id==0) = amb_fixed(:,1);
@@ -2484,10 +2508,11 @@ classdef LS_Manipulator_new < handle
                 param_selction = [this.PAR_REC_X;
                     this.PAR_REC_Y;
                     this.PAR_REC_Z;
-                    this.PAR_REC_PPB;
+                  %  this.PAR_REC_PPB;
                     this.PAR_REC_EB;
                     this.PAR_AMB;
                     this.PAR_REC_CLK;
+                    this.PAR_REC_CLK_PH;
                     this.PAR_TROPO;
                     this.PAR_TROPO_N;
                     this.PAR_TROPO_E;
@@ -2608,7 +2633,7 @@ classdef LS_Manipulator_new < handle
                 
             end
             this.bondParamsGenerateIdx(parametrization);
-            this.absValRegularization(this.PAR_IONO, 1e4);
+            %this.absValRegularization(this.PAR_IONO, 1e4);
             
         end
         
