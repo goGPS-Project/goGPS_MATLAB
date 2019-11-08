@@ -4503,6 +4503,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Set basic threshold for basic outlier rejection
                 thr = 5e-4; % m/s
                 min_n_sat = 4;
+                flag_est_clock_error = true;
+                n_fix_par = 3 + flag_est_clock_error; % 3 vel + clock
                 for i = 1 : size(v_xyz, 1)
                     % Epoch wise solution
                     o_idx = ~isnan(d_ph(i,:));
@@ -4511,7 +4513,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     % quantities:
                     n_iono = length(o_ugoid);
-                    n_fix_par = 4;
                     n_par = n_fix_par + n_iono;
                     n_obs = sum(o_idx);
                     
@@ -4532,7 +4533,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         w = sind(el)';
                         
                         % Clock
-                        A(:,4) = 1;
+                        if flag_est_clock_error
+                            A(:,4) = 1;
+                        end
                         % Iono
                         idx_a = sub2ind(size(A), (1:size(A,1))', o_goid2ugoid(o_goid) + n_fix_par);
                         A(idx_a) = iono_coeff;
@@ -9459,7 +9462,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        %this.smoothAndApplyDt(0, false, false, 2);
+                        this.smoothAndApplyDt(0, false, false, 2);
                         %this.pushResult();
                     end
                 end
