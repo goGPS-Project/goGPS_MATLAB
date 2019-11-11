@@ -8573,14 +8573,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             for i = 1 : num_reweight
                 ls.reweightHuber();
                 if i == num_reweight - 1
-                    %id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
-                    id_ko = Core_Utils.snoopGatt(ls.res, 2 * Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP);
+                    id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
+                    % snoopGatt cannot be used in this way, arcs should be splitted
+                    %id_ko = Core_Utils.snoopGatt(ls.res, 2 * Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP);
                     if any(~id_ko)
                         ls.remObs(id_ko);
                     end
                 elseif i == num_reweight
-                    % id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
-                    id_ko = Core_Utils.snoopGatt(ls.res, Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP/2);
+                    id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
+                    % snoopGatt cannot be used in this way, arcs should be splitted
+                    %id_ko = Core_Utils.snoopGatt(ls.res, Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP/2);
                     if any(~id_ko)
                         ls.remObs(id_ko);
                     end
