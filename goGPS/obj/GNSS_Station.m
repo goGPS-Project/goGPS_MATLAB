@@ -613,7 +613,6 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   this.exportHydroNET
-            
             try
                 min_time = GPS_Time();
                 max_time = GPS_Time();
@@ -690,16 +689,21 @@ classdef GNSS_Station < handle
                         end
                     else
                         if isempty(max(sta_list(r).out.quality_info.s0))
-                            sta_list(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
+                            Core.getLogger().addWarning(sprintf('no solution have been found, station skipped'));
                         else
-                            sta_list(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(sta_out(r).out.quality_info.s0)));
+                            Core.getLogger().addWarning(sprintf('s02 (%f m) too bad, station skipped', max(sta_out(r).out.quality_info.s0)));
                         end
                     end
                 end
                 fclose(fid);
                 sta_list(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
             catch ex
-                sta_list(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
+                if all(sta_list.isEmptyOut_mr)
+                    sta_list(1).log.addWarning(sprintf('no solution have been found, station skipped'));
+                else
+                    Core_Utils.printEx(ex);
+                    sta_list(1).log.addError(sprintf('saving Tropo in CSV (HydroNet) format failed: "%s"', ex.message));
+                end
             end
         end
     end
@@ -3870,9 +3874,10 @@ classdef GNSS_Station < handle
             fh_list = [];
             for s = 1 : numel(sta_list)
                 if nargin < 2
-                    sys_list = Core.getConstellationCollector.getAvailableSys();
+                    fh_list = [fh_list; sta_list(s).work.showOutliersAndCycleSlip()]; %#ok<AGROW>
+                else
+                    fh_list = [fh_list; sta_list(s).work.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
                 end
-                fh_list = [fh_list; sta_list(s).work.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
             end
         end
         
