@@ -4406,12 +4406,22 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %    [v_xyz, t, dt, deg_free] = getVelocity(this, flag_debug)
             
+                
+            % Set basic threshold for basic outlier rejection
+            thr = 5e-4; % m/s
+            min_n_sat = 4;
+            flag_est_clock_error = true;
+            
             if ~this.isPreProcessed()
                 if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
                     this.log.addError('Pre-Processing is required to compute a Variometric solution');
                 else
                     this.log.addError('Pre-Processing failed: skipping Variometric solution');
                 end
+                v_xyz = [];
+                t = [];
+                dt = [];
+                deg_free = [];
             else
                 [ph, wl, lid] = this.getPhases();
                 [ph_s] = this.getSyntPhases;
@@ -4452,11 +4462,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 deg_free = nan(size(XS_loc,1), 1, 'double'); % it should be int16 but nan is not supported
                 iono_const = GPS_SS.L_VEC(1)^2;
                 %res_all = nan(size(d_ph));
-                
-                % Set basic threshold for basic outlier rejection
-                thr = 5e-4; % m/s
-                min_n_sat = 4;
-                flag_est_clock_error = true;
                 n_fix_par = 3 + flag_est_clock_error; % 3 vel + clock
                 for i = 1 : size(v_xyz, 1)
                     % Epoch wise solution
@@ -4538,23 +4543,38 @@ classdef Receiver_Work_Space < Receiver_Commons
                 fh_list = [fh_list fh];
                 
                 % Coordinates
+                v_xyz = movmedian(v_xyz, 7); % try to smooth
                 coo = Coordinates.fromXYZ(cumsum(nan2zero(v_xyz .* t_diff)) + this.getMedianPosXYZ);
                 enu = bsxfun(@minus, coo.getENU(), median(coo.getENU()));
+                enu(:,1) = detrend(enu(:,1));
+                enu(:,2) = detrend(enu(:,2));
+                enu(:,3) = detrend(enu(:,3));
                 enu(isnan(v_xyz)) = nan;
-                fh = figure; plot(t, 1e2 * enu);
-                title('Coordinates stability [cm]');
+                fh = figure; plot(t, 1e2 * enu, 'LineWidth', 2);
+                title('Coordinates stability (detrended) [cm]');
                 legend('East', 'North', 'Up');
                 setTimeTicks();                
                 Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh_list = [fh_list fh];
                 
-                % Clock plot
-                fh = figure;
-                plot(t, dt, '-'); hold on;
-                setTimeTicks();                
-                title('Residual receiver clock error [m]');
+                fh = figure; 
+                scatter(1e2 * enu(:, 1), 1e2 * enu(:, 2), 25, t);
+                title('Planar Coordinates stability (detrended) [cm]');
+                axis equal
+                ylabel('North [cm]');
+                xlabel('East [cm]');
                 Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
-                fh_list = [fh_list fh];
+                fh_list = [fh_list fh];                
+                
+                % Clock plot
+                if flag_est_clock_error
+                    fh = figure;
+                    plot(t, dt, '-'); hold on;
+                    setTimeTicks();
+                    title('Residual receiver clock error rate [m/s]');
+                    Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                    fh_list = [fh_list fh];
+                end
                 
                 % Degree of freedom
                 fh = figure;
@@ -10887,7 +10907,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.5 0.5 0.5]);
                     hold on;
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', 'r', 'MarkerSize', 10);
+                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', Core_UI.getColor(1), 'MarkerSize', 10);
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
                         cs = ep(this.sat.cycle_slip_ph_by_ph(:, s) ~= 0);
@@ -10941,7 +10961,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_ss = find(this.system(id_ph) == sys_c);
                 dph_diff = Core_Utils.diffAndPred(bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
                 dph_diff = (bsxfun(@rdivide, ph(:,id_ss) - phs(:,id_ss), wl(id_ss)'));
-                dt_stimation = detrend(cumsum(median(Core_Utils.diffAndPred(dph_diff), 2, 'omitnan')));
+                dt_stimation = detrend(cumsum(nan2zero(median(Core_Utils.diffAndPred(dph_diff), 2, 'omitnan'))));
                 dph_diff = bsxfun(@minus, dph_diff, dt_stimation);
                 plot(dph_diff, 'Color', [0.7 0.7 0.7]); hold on;
                 % fopr each sat visualize outliers and CS

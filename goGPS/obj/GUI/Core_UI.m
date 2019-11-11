@@ -1452,7 +1452,11 @@ classdef Core_UI < Logos
             if (nargin == 2) && (color_num > 7)
                 color = Cmap.getColor(color_id, color_num, 'linspaced');
             else
-                color = Cmap.getColor(color_id, color_num);
+                if nargin == 1
+                    color = Cmap.getColor(color_id, 7);
+                else
+                    color = Cmap.getColor(color_id, color_num);
+                end
             end
         end
         
