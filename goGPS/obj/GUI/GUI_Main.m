@@ -1114,21 +1114,27 @@ end
             rec_path = Core.getState.getRecPath();
             data = this.coo_tbl.Data;            
             for r = 1 : numel(rec_path)
-                fr = File_Rinex(rec_path{r}, 100);
-                if fr.isValid()
-                    name = fr.marker_name{1};
-                    name = name(1:min(4, numel(name)));
-                    xyz = median(fr.coo.getXYZ,1,'omitnan');
-                    time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
-                    time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');
-        
-                    if ~isempty(xyz)
-                        if ~isempty(data)
-                            data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0}];
-                        else
-                            data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0};
+                f = numel(rec_path{r});
+                coo_found = false;
+                while f > 0 && ~coo_found
+                    fr = File_Rinex(rec_path{r}{f}, 100);
+                    if fr.isValid()
+                        name = fr.marker_name{1};
+                        name = name(1:min(4, numel(name)));
+                        xyz = median(fr.coo.getXYZ,1,'omitnan');
+                        coo_found = any(xyz);
+                        time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
+                        time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');
+                        
+                        if ~isempty(xyz)
+                            if ~isempty(data)
+                                data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0}];
+                            else
+                                data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0};
+                            end
                         end
                     end
+                    f = f - 1;
                 end
             end
             this.coo_tbl.Data = data;            
@@ -2283,6 +2289,7 @@ end
                     this.state.importIniFile(settings_file);
                     Core.getReferenceFrame.init();
                     this.updateUI();
+                    this.updateRecList();
                 else
                     this.log.addError('Unrecognized input file format!');
                 end
