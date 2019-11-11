@@ -1619,6 +1619,32 @@ classdef Core_Utils < handle
             end
         end
         
+        function [iA] = inverseByPartsDiag(A,idx1,idx2)
+            % inverse by partitioning of a diagonal block matrix
+            %
+            % SYNTAX:
+            %  [iA] = inverseByPartsDiag(A,idx1,idx2)
+            sz1 = sum(idx1);
+            sz2 = sum(idx2);
+            A11 = A(idx1, idx1);
+            A22 = A(idx2, idx2);
+            A21 = A(idx2, idx1);
+            A12 = A(idx1, idx2);
+            iA11 = spdiags(1./diag(A11), 0, sz1, sz1);
+            iA22 = spdiags(1./diag(A22), 0, sz2, sz2);
+            r1 = A12*iA22*A21;
+            r2 = A21*iA11*A12;
+            A21 = -iA22*A21;
+            A12 = -iA11*A12;
+            A11 = A11 - r1;
+            A22 = A22 - r2;
+            iA11 = spdiags(1./diag(A11), 0, sz1, sz1);
+            iA22 = spdiags(1./diag(A22), 0, sz2, sz2);
+            iA = [iA11 A12*iA22;
+                 A21*iA11 iA22];
+                
+        end
+        
         function [fb, frac_b_mat]= estimateFracBias(obs_cy, cycle_slip)
             % estimate the common factional bias to all the obesravtions
             %
