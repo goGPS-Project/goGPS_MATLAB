@@ -684,6 +684,7 @@ classdef Core_Utils < handle
             for i=1:numel(ex.stack)
                 fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
             end
+%             keyboard
         end
         
         function exportCurFig(out_path, mode)
@@ -1640,9 +1641,93 @@ classdef Core_Utils < handle
             A22 = A22 - r2;
             iA11 = spdiags(1./diag(A11), 0, sz1, sz1);
             iA22 = spdiags(1./diag(A22), 0, sz2, sz2);
-            iA = [iA11 A12*iA22;
-                 A21*iA11 iA22];
-                
+            iA = sparse(size(A));
+            iA(idx1,idx1) = iA11;
+            iA(idx1,idx2) = A12*iA22;
+            iA(idx2,idx1) = A21*iA11;
+            iA(idx2,idx2) = iA22;
+        end
+        
+        function [iA] = inverseByRecPartsDiag(A,indices)
+            % inverse by recursive partitioning of a diagonal block matrix 
+            % 
+            % SYNTAX:
+            %    [iA] = inverseByPartsDiags(A,indices)
+            n_blk = length(indices);
+            
+            % slit the indece in two
+            part1 = 1:ceil(n_blk/2);
+            part2 = (ceil(n_blk/2)+1):n_blk;
+            if length(part1) > 1
+                composite1 = true;
+            else
+                composite1 = false;
+                sz1 = sum(indices{part1});
+            end
+            if length(part2) > 1
+                composite2 = true;
+            else
+                composite2 = false;
+                sz2 = sum(indices{part2});
+            end
+            
+            idx1 = false(size(indices{1}));
+            idx2 = false(size(indices{1}));
+
+            for i = 1 : length(part1)
+                idx1 = idx1 | indices{part1(i)};
+            end
+            for i = 1 : length(part2)
+                idx2 = idx2 | indices{part2(i)};
+            end
+            
+            % actual inversion
+            A11 = A(idx1, idx1);
+            A22 = A(idx2, idx2);
+            A21 = A(idx2, idx1);
+            A12 = A(idx1, idx2);
+            if composite1
+                new_indeces1 = {};
+                for i = 1 : length(part1)
+                    idx_tmp  = indices{part1(i)};
+                    new_indeces1{i} = idx_tmp(idx1);
+                end
+                iA11 = Core_Utils.inverseByRecPartsDiag(A11,new_indeces1);
+            else
+                iA11 = spdiags(1./diag(A11), 0, sz1, sz1);
+            end
+            if composite2
+                new_indeces2 = {};
+                for i = 1 : length(part2)
+                    idx_tmp  = indices{part2(i)};
+                    new_indeces2{i} = idx_tmp(idx2);
+                end
+                iA22 = Core_Utils.inverseByRecPartsDiag(A22,new_indeces2);
+            else
+                iA22 = spdiags(1./diag(A22), 0, sz2, sz2);
+            end
+            r1 = A12*iA22*A21;
+            r2 = A21*iA11*A12;
+            A21 = -iA22*A21;
+            A12 = -iA11*A12;
+            A11 = A11 - r1;
+            A22 = A22 - r2;
+            if composite1
+                iA11 = Core_Utils.inverseByRecPartsDiag(A11,new_indeces1);
+            else
+                iA11 = spdiags(1./diag(A11), 0, sz1, sz1);
+            end
+            if composite2
+                iA22 = Core_Utils.inverseByRecPartsDiag(A22,new_indeces2);
+            else
+                iA22 = spdiags(1./diag(A22), 0, sz2, sz2);
+            end
+            iA = sparse(size(A));
+            iA(idx1,idx1) = iA11;
+            iA(idx1,idx2) = A12*iA22;
+            iA(idx2,idx1) = A21*iA11;
+            iA(idx2,idx2) = iA22;
+            
         end
         
         function [fb, frac_b_mat]= estimateFracBias(obs_cy, cycle_slip)
