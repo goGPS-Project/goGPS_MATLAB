@@ -2083,6 +2083,8 @@ classdef LS_Manipulator_new < handle
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
             n_par = double(max(max(this.A_idx)));
+            n_rec = size(this.rec_xyz,1);
+
             rows = repmat((1:size(this.A,1))',1,size(this.A,2));
             rows_pseudo = repmat(size(this.A,1)+(1:size(this.A_pseudo,1))',1,size(this.A_pseudo,2));
             rows = [rows(:); rows_pseudo(:)];
@@ -2103,6 +2105,12 @@ classdef LS_Manipulator_new < handle
             zero_pars = sum(A~=0) == 0;
             A(:,zero_pars) = [];
             class_par(zero_pars) = [];
+            
+            
+            rec_par = this.rec_par;
+            rec_par([this.idx_rd; find(this.out_par)]) = [];
+            rec_par(zero_pars) = [];
+
             valid_pars = find(~Core_Utils.ordinal2logical([this.idx_rd; find(this.out_par)],n_par)); % sometimes with splines spme paramter have a zero entry
             this.idx_rd = [this.idx_rd; valid_pars(zero_pars)];
             vars = [1./this.variance_obs(~this.outlier_obs); 1./this.variance_pseudo];
@@ -2136,7 +2144,10 @@ classdef LS_Manipulator_new < handle
             if sat_clk
                 i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
                 n_clk_sat = sum(i_sat_clk_tmp);
-                iSatClk =   inv(N(i_sat_clk_tmp,i_sat_clk_tmp));%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                cp = class_par( ~idx_reduce_iono);
+                idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK;
+                idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
+                iSatClk = Core_Utils.inverseByPartsDiag(N(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                 Nx_satclk = N(~i_sat_clk_tmp, i_sat_clk_tmp);
                 Nt = Nx_satclk * iSatClk;
                 N = N(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt * N(i_sat_clk_tmp, ~i_sat_clk_tmp);
@@ -2147,7 +2158,19 @@ classdef LS_Manipulator_new < handle
             rec_clk = sum(idx_reduce_rec_clk) > 0;
             if rec_clk
                 i_rec_clk_tmp = idx_reduce_rec_clk(~idx_reduce_iono & ~idx_reduce_sat_clk);
-                iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
+                if n_rec > 1
+                    rp = rec_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
+                    cp = class_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
+
+                    indices = {};
+                    for r = 2 : n_rec
+                        indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
+                        indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
+                    end
+                     iRecClk = Core_Utils.inverseByRecPartsDiag(N(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                else
+                    iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
+                end
                 Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
                 Nt = Nx_recclk * iRecClk;
                 N = N(~i_rec_clk_tmp, ~i_rec_clk_tmp) - Nt * N(i_rec_clk_tmp, ~i_rec_clk_tmp);
