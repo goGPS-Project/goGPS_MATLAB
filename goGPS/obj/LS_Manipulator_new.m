@@ -94,6 +94,8 @@ classdef LS_Manipulator_new < handle
         param_class_o % class id of the originallly requested paramaters
         
         time_obs   % epoch of the observation (GPS_Time)
+        ref_time_obs % epoch of the observation since time mimimum (seconds)
+        rate_obs     % rate of observations
         satellite_obs % goid satellite of the observations
         receiver_obs % receiver of the observations
         azimuth_obs % azimuth of the observations
@@ -1788,58 +1790,61 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
-                idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
-                time_rc = this.time_par(idx_rc,:);
-                rate = this.time_obs.getRate;
+            if false
                 
-                idx_pr = find(~this.outlier_obs & ~this.phase_obs);
-                for r = 1 : n_rec
-                    idx_r = this.rec_par(idx_rc) == r;
-                    idx_rcr = idx_rc(idx_r);
-                    time_rcr = time_rc(idx_r);
+                if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
+                    idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
+                    time_rc = this.time_par(idx_rc,:);
+                    rate = this.time_obs.getRate;
                     
-                    
-                    idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
-                    if ~isempty(idx_o_r)
-                        time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
+                    idx_pr = find(~this.outlier_obs & ~this.phase_obs);
+                    for r = 1 : n_rec
+                        idx_r = this.rec_par(idx_rc) == r;
+                        idx_rcr = idx_rc(idx_r);
+                        time_rcr = time_rc(idx_r);
                         
-                        for e = u_ep'
-                            idx_par = idx_rcr(time_rcr == e);
-                            idx_pre = idx_o_r(time_o_r == e);
+                        
+                        idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
+                        if ~isempty(idx_o_r)
+                            time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
                             
-                            if ~isempty(idx_par) & isempty(idx_pre)
-                                idx_rm = [idx_rm; idx_par];%
+                            for e = u_ep'
+                                idx_par = idx_rcr(time_rcr == e);
+                                idx_pre = idx_o_r(time_o_r == e);
+                                
+                                if ~isempty(idx_par) & isempty(idx_pre)
+                                    idx_rm = [idx_rm; idx_par];%
+                                end
                             end
                         end
+                        
                     end
-                    
                 end
-            end
-            
-            if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
-                idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
-                time_rc = this.time_par(idx_rc,:);
-                rate = this.time_obs.getRate;
                 
-                idx_pr = find(~this.outlier_obs & ~this.phase_obs);
-                for s = 1 : n_sat
-                    idx_s = this.sat_par(idx_rc) == s;
-                    idx_rcr = idx_rc(idx_s);
-                    time_rcr = time_rc(idx_s);
+                if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+                    idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
+                    time_rc = this.time_par(idx_rc,:);
+                    rate = this.time_obs.getRate;
                     
-                    
-                    idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
-                    if ~isempty(idx_o_r)
+                    idx_pr = find(~this.outlier_obs & ~this.phase_obs);
+                    for s = 1 : n_sat
+                        idx_s = this.sat_par(idx_rc) == s;
+                        idx_rcr = idx_rc(idx_s);
+                        time_rcr = time_rc(idx_s);
                         
-                        time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
                         
-                        for e = u_ep'
-                            idx_par = idx_rcr(time_rcr == e);
-                            idx_pre = idx_o_r(time_o_r == e);
+                        idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
+                        if ~isempty(idx_o_r)
                             
-                            if ~isempty(idx_par) & isempty(idx_pre)
-                                idx_rm = [idx_rm; idx_par];%
+                            time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
+                            
+                            for e = u_ep'
+                                idx_par = idx_rcr(time_rcr == e);
+                                idx_pre = idx_o_r(time_o_r == e);
+                                
+                                if ~isempty(idx_par) & isempty(idx_pre)
+                                    idx_rm = [idx_rm; idx_par];%
+                                end
                             end
                         end
                     end
@@ -2067,6 +2072,8 @@ classdef LS_Manipulator_new < handle
             if nargin < 2
                 fix = false;
             end
+            %------- generate ref time obs (fatser to manipulate)
+            this.computeRefTimeObs();
             % ------ mark short arc as outlier
             this.markShortArcs(1);
             % ------ mark single reciver or satellite epoch as outlier
@@ -2463,11 +2470,11 @@ classdef LS_Manipulator_new < handle
             idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time_obs.getRate:duration);
-            res_ph = nan(time_res.length,n_stream);
-            res_id = zeros(time_res.length,n_stream,'uint32');
+            min_time_res = min(this.ref_time_obs(idx_rec));
+            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            time_res = (0:this.rate_obs:duration);
+            res_ph = nan(length(time_res),n_stream);
+            res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             for i = 1 : n_stream
@@ -2475,7 +2482,7 @@ classdef LS_Manipulator_new < handle
                 obs_id(i) = floor(u_stream(i)/1000);
                 idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     res_ph(idx_time, i) = this.res(idx_res);
                     res_id(idx_time, i) = find(idx_res);
                 end
@@ -2493,10 +2500,10 @@ classdef LS_Manipulator_new < handle
             idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time_obs.getRate:duration);
-            res_pr = nan(time_res.length,n_stream);
+            min_time_res = min(this.ref_time_obs(idx_rec));
+            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            time_res = (0:this.rate_obs:duration);
+            res_pr = nan(length(time_res),n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             for i = 1 : n_stream
@@ -2504,7 +2511,7 @@ classdef LS_Manipulator_new < handle
                 obs_id(i) = floor(u_stream(i)/1000);
                 idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     res_pr(idx_time,i) = this.res(idx_res);
                 end
             end
@@ -2518,15 +2525,15 @@ classdef LS_Manipulator_new < handle
             idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time_obs.getRate:duration);
+            min_time_res = min(this.ref_time_obs(idx_rec));
+            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            time_res = (0:this.rate_obs:duration);
             for i = 1 : n_stream
-                sat(i) = rem(u_stream(i) ,1000);
-                obs_id(i) = floor(u_stream(i)/1000);
-                idx_res = find(this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i));
+                sat = rem(u_stream(i) ,1000);
+                obs_id = floor(u_stream(i)/1000);
+                idx_res = find(this.obs_codes_id_obs == obs_id & this.satellite_obs == sat);
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
@@ -2539,15 +2546,15 @@ classdef LS_Manipulator_new < handle
             idx_rec = this.receiver_obs == rec;
             u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
-            time_res = this.time_obs.getNominalTime.getEpoch(idx_rec).minimum;
-            duration = this.time_obs.getNominalTime.getEpoch(idx_rec).maximum - time_res;
-            time_res.addSeconds(0:this.time_obs.getRate:duration);
+            min_time_res = min(this.ref_time_obs(idx_rec));
+            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            time_res = (0:this.rate_obs:duration);
             for i = 1 : n_stream
-                sat(i) = rem(u_stream(i) ,1000);
-                obs_id(i) = floor(u_stream(i)/1000);
-                idx_res = find(this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i));
+                sat = rem(u_stream(i) ,1000);
+                obs_id = floor(u_stream(i)/1000);
+                idx_res = find(this.obs_codes_id_obs == obs_id & this.satellite_obs == sat);
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.time_obs.getEpoch(idx_res).getNominalTime.getRefTime(time_res.first.getMatlabTime),time_res.getNominalTime.getRefTime(time_res.first.getMatlabTime));
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
@@ -2729,6 +2736,16 @@ classdef LS_Manipulator_new < handle
             time_st.addSeconds( double(this.time_par(idx,1)));
             time_end = this.time_min.getCopy();
             time_end.addSeconds( double(this.time_par(idx,2)));
+        end
+        
+        function computeRefTimeObs(this)
+            % compute referebnce time fro observations
+            %
+            % SYNTAX:
+            %   this.computeRefTimeObs()
+            rate = this.time_obs.getRate();
+            this.rate_obs = rate;
+            this.ref_time_obs = this.time_obs.getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
         end
         
         
