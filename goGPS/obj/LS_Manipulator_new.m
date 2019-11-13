@@ -2167,13 +2167,13 @@ classdef LS_Manipulator_new < handle
                 if n_rec > 1
                     rp = rec_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
                     cp = class_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
-
+                    
                     indices = {};
                     for r = 2 : n_rec
                         indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
                         indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
                     end
-                     iRecClk = Core_Utils.inverseByRecPartsDiag(N(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                    iRecClk = Core_Utils.inverseByRecPartsDiag(N(i_rec_clk_tmp,i_rec_clk_tmp),indices);
                 else
                     iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
                 end
@@ -2192,154 +2192,74 @@ classdef LS_Manipulator_new < handle
                 % get the ambiguity inverse matrxi
                 idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
                 if any(idx_amb)
-                    approach2 = true;
-                    if ~approach2
-                        idx_amb = find(idx_amb);
-                        
-                        n_amb = length(idx_amb);
-                        amb_y  = sparse(idx_amb,1:length(idx_amb),ones(size(idx_amb)),size(N,1),numel(idx_amb));
-                        
-                        C_amb_amb = N \ [B amb_y];
-                        x_reduced = C_amb_amb(:,1);
-                        C_amb_amb = C_amb_amb(:,2:end);
-                        
-                        
-                        idx_rm_line = true(size(N,1),1);
-                        idx_rm_line(idx_amb) = false;
-                        C_amb_amb(idx_rm_line,:) = [];
-                        amb_float = x_reduced(idx_amb);
-                        amb_fixed = [amb_float amb_float];
-                        l_fixed = false(size(amb_fixed));
-                        
-                        idx_bad =  diag(C_amb_amb) < 0; %diag(C_amb_amb) > 0.1 |
-                        [amb_fixed(~idx_bad,:), is_fixed, l_fixed(~idx_bad,:)] = Fixer.fix(full(amb_float(~idx_bad)), full(C_amb_amb(~idx_bad,~idx_bad)), 'lambda_ILS' );
-                        if ~is_fixed
-                            this.log.addWarning('Ambiguity not fixed')
-                        end
-                        flag_debug = false;
-                        if flag_debug
-                            N_old = N;
-                            B_old = B;
-                            figure;
-                            coo =x_reduced(1:3);
-                            
-                            plot3(coo(1),coo(2),coo(3),'o')
-                            grid on;
-                            hold on;
-                            
-                            
-                            
-                            for a = 1 : size(amb_fixed,2)
-                                idx_amb_fixed = idx_amb(l_fixed(:, a));
-                                n_amb_fixed = sum(l_fixed(:, a));
-                                idx_not_amb_fixed = true(size(N,1), 1);
-                                idx_not_amb_fixed(idx_amb_fixed) = false;
-                                Nt = N(idx_not_amb_fixed, idx_amb_fixed);
-                                B(idx_amb_fixed) = [];
-                                B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,a),a),0,n_amb_fixed,n_amb_fixed),2);
-                                N(idx_amb_fixed, :) = [];
-                                N(:, idx_amb_fixed) = [];
-                                
-                                x_fixed = N \ B;
-                                coo =x_fixed(1:3);
-                                plot3(coo(1),coo(2),coo(3),'.','MarkerSize',10)
-                                text(coo(1)+0.01,coo(2)+0.01,coo(3)+0.01,num2str(a));
-                                N = N_old;
-                                B = B_old;
-                            end
-                            
-                        end
-                        if is_fixed
-                            idx_amb_fixed = idx_amb(l_fixed(:, 1));
-                            n_amb_fixed = sum(l_fixed(:, 1));
-                            idx_not_amb_fixed = true(size(N,1), 1);
-                            idx_not_amb_fixed(idx_amb_fixed) = false;
-                            Nt = N(idx_not_amb_fixed, idx_amb_fixed);
-                            B(idx_amb_fixed) = [];
-                            B = B - sum(Nt * spdiags(amb_fixed(l_fixed(:,1),1),0,n_amb_fixed,n_amb_fixed),2);
-                            N(idx_amb_fixed, :) = [];
-                            N(:, idx_amb_fixed) = [];
-                            
-                            x_fixed = N \ B;
-                            
-                            x_reduced(idx_amb_fixed) = amb_fixed(l_fixed(:,1),1);
-                            x_reduced(idx_not_amb_fixed) = x_fixed;
-                            clearvars x_fixed Nt C_amb_amb N B
-                        end
+                    
+                    % reducing for everything else except ambiguities
+                    idx_b = find(~idx_amb);
+                    
+                    [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
+                    tol = 1e-3;
+                    rm_id_b = (diag(D) < tol); % find amb to be removed
+                    iL = inv(L(~rm_id_b, ~rm_id_b));
+                    iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));
+                    %iD = inv(D(~rm_id_b, ~rm_id_b));
+                    %rm_id_b_o = rm_id_b;
+                    %                         rm_id_b = P*rm_id_b;
+                    %                         P = P(~rm_id_b_o, ~rm_id_b_o);
+                    C_bb = sparse(sum(~idx_amb),sum(~idx_amb));
+                    C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
+                    %                         Nbb = N(~idx_amb, ~idx_amb);
+                    %                         C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
+                    %                         %Bbb =  B(~idx_amb);
+                    BB = N(idx_amb,idx_b )*C_bb;
+                    N_amb_amb = N(idx_amb, idx_amb) - BB*N(idx_b, idx_amb);
+                    B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
+                    %amb_float = C_amb_amb * Baa(~rm_id);
+                    
+                    
+                    
+                    %                         chol_f = factorization_lu_sparse(N(~idx_amb,~idx_amb),false);
+                    %                         red = mldivide (chol_f, [N(idx_amb,~idx_amb)' B(~idx_amb)]);
+                    %                         N_amb_amb = N(idx_amb,idx_amb) - N(~idx_amb,idx_amb)'*red(:,1:end-1);
+                    %                         B_amb_amb = B(idx_amb) -  N(~idx_amb,idx_amb)'*red(:,end);
+                    
+                    
+                    % LDL decompisition
+                    [L,D,P] = ldl(N_amb_amb);
+                    % permute
+                    %Naa = P'*N_amb_amb*P;
+                    Baa = P'*B_amb_amb;
+                    
+                    % compute threshold
+                    tol = 10; %1e7*eps(max(abs(diag(D))));
+                    
+                    % find the hard rank deficency
+                    rm_id = (diag(D) < tol); % find amb to be removed
+                    
+                    
+                    % compute the VCV for the ambiguoties an their
+                    % flost solution
+                    iL = inv(L(~rm_id,~rm_id));
+                    iD = inv(D(~rm_id,~rm_id));
+                    C_amb_amb = iL'*iD*iL;
+                    amb_float = C_amb_amb * Baa(~rm_id);
+                    
+                    
+                    % try to fix
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                    ambs = zeros(size(N_amb_amb,1),1);
+                    if is_fixed
+                        ambs(rm_id==0) = amb_fixed(:,1);
                     else
-                        % reducing for everything else except ambiguities
-                        idx_b = find(~idx_amb);
-                        
-                        [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
-                        tol = 1e-3;
-                        rm_id_b = (diag(D) < tol); % find amb to be removed
-                        iL = inv(L(~rm_id_b, ~rm_id_b));
-                        iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));
-                        %iD = inv(D(~rm_id_b, ~rm_id_b));
-                        %rm_id_b_o = rm_id_b;
-                        %                         rm_id_b = P*rm_id_b;
-                        %                         P = P(~rm_id_b_o, ~rm_id_b_o);
-                        C_bb = zeros(sum(~idx_amb));
-                        %                         C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
-                        Nbb = N(~idx_amb, ~idx_amb);
-                        C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
-                        %Bbb =  B(~idx_amb);
-                        BB = N(idx_amb,idx_b )*C_bb;
-                        N_amb_amb = N(idx_amb, idx_amb) - BB*N(idx_b, idx_amb);
-                        B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
-                        %amb_float = C_amb_amb * Baa(~rm_id);
-                        
-                        
-                        
-                        %                         chol_f = factorization_lu_sparse(N(~idx_amb,~idx_amb),false);
-                        %                         red = mldivide (chol_f, [N(idx_amb,~idx_amb)' B(~idx_amb)]);
-                        %                         N_amb_amb = N(idx_amb,idx_amb) - N(~idx_amb,idx_amb)'*red(:,1:end-1);
-                        %                         B_amb_amb = B(idx_amb) -  N(~idx_amb,idx_amb)'*red(:,end);
-                        
-                        
-                        % LDL decompisition
-                        [L,D,P] = ldl(N_amb_amb);
-                        % permute
-                        %Naa = P'*N_amb_amb*P;
-                        Baa = P'*B_amb_amb;
-                        
-                        % compute threshold
-                        tol = 10; %1e7*eps(max(abs(diag(D))));
-                        
-                        % find the hard rank deficency
-                        rm_id = (diag(D) < tol); % find amb to be removed
-                        
-                        
-                        % compute the VCV for the ambiguoties an their
-                        % flost solution
-                        iL = inv(L(~rm_id,~rm_id));
-                        iD = inv(D(~rm_id,~rm_id));
-                        C_amb_amb = iL'*iD*iL;
-                        amb_float = C_amb_amb * Baa(~rm_id);
-                        
-                        
-                        % try to fix
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
-                        ambs = zeros(size(N_amb_amb,1),1);
-                        if is_fixed
-                            ambs(rm_id==0) = amb_fixed(:,1);
-                        else
-                            ambs(rm_id==0) = amb_float;
-                        end
-                        ambs = P*ambs;
-                        
-                        B(idx_b) = B(idx_b) -  N(idx_b,idx_amb)*ambs;
-                        %not_ambs = zeros(sum(~idx_amb),1);
-                        not_ambs = C_bb*B(idx_b);
-                        x_reduced = zeros(size(N,1),1);
-                        x_reduced(~idx_amb) = not_ambs;
-                        x_reduced(idx_amb) = ambs;
-                        
-                        
-                        
-                        
-                        
+                        ambs(rm_id==0) = amb_float;
                     end
+                    ambs = P*ambs;
+                    
+                    B(idx_b) = B(idx_b) -  N(idx_b,idx_amb)*ambs;
+                    %not_ambs = zeros(sum(~idx_amb),1);
+                    not_ambs = C_bb*B(idx_b);
+                    x_reduced = zeros(size(N,1),1);
+                    x_reduced(~idx_amb) = not_ambs;
+                    x_reduced(idx_amb) = ambs;
                 end
                 
             else
