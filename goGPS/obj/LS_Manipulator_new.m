@@ -1796,7 +1796,7 @@ classdef LS_Manipulator_new < handle
                 if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
                     idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
                     time_rc = this.time_par(idx_rc,:);
-                    rate = this.time_obs.getRate;
+                    rate = this.obs_rate;
                     
                     idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                     for r = 1 : n_rec
@@ -1807,7 +1807,7 @@ classdef LS_Manipulator_new < handle
                         
                         idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
                         if ~isempty(idx_o_r)
-                            time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
+                            time_o_r = this.ref_time_obs(idx_o_r);
                             
                             for e = u_ep'
                                 idx_par = idx_rcr(time_rcr == e);
@@ -1825,7 +1825,7 @@ classdef LS_Manipulator_new < handle
                 if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
                     idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
                     time_rc = this.time_par(idx_rc,:);
-                    rate = this.time_obs.getRate;
+                    rate = this.obs_rate;
                     
                     idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                     for s = 1 : n_sat
@@ -1837,7 +1837,7 @@ classdef LS_Manipulator_new < handle
                         idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
                         if ~isempty(idx_o_r)
                             
-                            time_o_r = this.time_obs.getEpoch(idx_o_r).getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
+                            time_o_r = this.ref_time_obs(idx_o_r);
                             
                             for e = u_ep'
                                 idx_par = idx_rcr(time_rcr == e);
@@ -2766,10 +2766,10 @@ classdef LS_Manipulator_new < handle
             n_rec = size(this.rec_xyz,1);
             n_sat = length(this.unique_sat_goid);
             n_phase = this.unique_obs_codes;
-            min_time = this.time_obs.minimum;
+            min_time = this.time_min;
             min_time_mat = min_time.getMatlabTime;
             rate = this.time_obs.getRate();
-            n_epoch = max(this.time_obs.getNominalTime(rate).getRefTime(min_time_mat))/rate+1;
+            n_epoch = max(this.ref_time_obs)/rate+1;
             cur_mast = zeros(n_sat,length(this.unique_obs_codes));
             
             for r  = 1 : n_rec
@@ -2777,7 +2777,7 @@ classdef LS_Manipulator_new < handle
                 n_p = 0;
                 idx_o_r = this.receiver_obs == r;
                 o_code_r = this.obs_codes_id_obs(idx_o_r);
-                time_r = this.time_obs.getEpoch(idx_o_r).getNominalTime.getRefTime(min_time_mat)/rate;
+                time_r = this.ref_time_obs(idx_o_r)/rate;
                 sat_r = this.satellite_obs(idx_o_r);
                 for s = 1 : n_sat
                     id_o_r_s = sat_r == this.unique_sat_goid(s);
@@ -2854,7 +2854,7 @@ classdef LS_Manipulator_new < handle
                     n_p = 0;
                     idx_o_s = this.satellite_obs == this.unique_sat_goid(s);
                     o_code_s = this.obs_codes_id_obs(idx_o_s);
-                    time_s = this.time_obs.getEpoch(idx_o_s).getNominalTime(rate).getRefTime(this.time_obs.minimum.getMatlabTime)/rate;
+                    time_s = this.ref_time_obs(idx_o_s)/rate;
                     rec_s = this.receiver_obs(idx_o_s);
                     for r = 1 : n_rec
                         id_o_s_r = rec_s == r;
