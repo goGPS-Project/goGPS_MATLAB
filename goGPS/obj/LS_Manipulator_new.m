@@ -435,10 +435,10 @@ classdef LS_Manipulator_new < handle
                     if par_tropo_n || par_tropo_e
                         cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                         if par_tropo_e
-                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient
+                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term /10; % east gradient
                         end
                         if par_tropo_n
-                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term /10; % noth gradient
                         end
                     end
                     if par_tropo_v
