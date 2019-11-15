@@ -2522,7 +2522,7 @@ classdef LS_Manipulator_new < handle
                 rec = 1;
             end
             idx_rec = this.receiver_obs == rec;
-            u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
+            u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
@@ -2531,10 +2531,16 @@ classdef LS_Manipulator_new < handle
             res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
+            sat_c = 9999;
+            idx_rec = find(idx_rec);
             for i = 1 : n_stream
-                sat(i) = rem(u_stream(i) ,1000);
-                obs_id(i) = floor(u_stream(i)/1000);
-                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
+                obs_id = rem(u_stream(i) ,1000);
+                sat = floor(u_stream(i)/1000);
+                if sat_c ~=  sat
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat);
+                    sat_c = sat;
+                end
+                idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
                     [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     res_ph(idx_time, i) = this.res(idx_res);
@@ -2552,7 +2558,7 @@ classdef LS_Manipulator_new < handle
                 rec = 1;
             end
             idx_rec = this.receiver_obs == rec;
-            u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
+            u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
@@ -2560,10 +2566,17 @@ classdef LS_Manipulator_new < handle
             res_pr = nan(length(time_res),n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
+            sat_c = 9999;
+                        idx_rec = find(idx_rec);
+
             for i = 1 : n_stream
-                sat(i) = rem(u_stream(i) ,1000);
-                obs_id(i) = floor(u_stream(i)/1000);
-                idx_res = this.obs_codes_id_obs == obs_id(i) & this.satellite_obs == sat(i);
+                obs_id = rem(u_stream(i) ,1000);
+                sat = floor(u_stream(i)/1000);
+                if sat_c ~=  sat
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat);
+                    sat_c = sat;
+                end
+                idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
                     [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     res_pr(idx_time,i) = this.res(idx_res);
@@ -2577,15 +2590,22 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:  setPhFlag(this,rec,flag)
             idx_rec = this.receiver_obs == rec;
-            u_stream = unique(uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
+            u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
+            sat_c = 9999;
+                                    idx_rec = find(idx_rec);
+
             for i = 1 : n_stream
-                sat = rem(u_stream(i) ,1000);
-                obs_id = floor(u_stream(i)/1000);
-                idx_res = find(this.obs_codes_id_obs == obs_id & this.satellite_obs == sat);
+                obs_id = rem(u_stream(i) ,1000);
+                sat = floor(u_stream(i)/1000);
+                if sat_c ~=  sat
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat);
+                    sat_c = sat;
+                end
+                idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
                     [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     this.outlier_obs(idx_res) = flag(idx_time,i);
@@ -2598,15 +2618,22 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:  setPhFlag(this,rec,flag)
             idx_rec = this.receiver_obs == rec;
-            u_stream = unique(uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + 1000*uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
+            u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
+             sat_c = 9999;
+                                     idx_rec = find(idx_rec);
+
             for i = 1 : n_stream
-                sat = rem(u_stream(i) ,1000);
-                obs_id = floor(u_stream(i)/1000);
-                idx_res = find(this.obs_codes_id_obs == obs_id & this.satellite_obs == sat);
+                obs_id = rem(u_stream(i) ,1000);
+                sat = floor(u_stream(i)/1000);
+                if sat_c ~=  sat
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat);
+                    sat_c = sat;
+                end
+                idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
                     [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
                     this.outlier_obs(idx_res) = flag(idx_time,i);
@@ -2738,7 +2765,7 @@ classdef LS_Manipulator_new < handle
                         idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
                         if sum(idx_rm) > 0
                             o_tmp.removeColumn(idx_rm);
-                            this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
+                            %this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
                         end
                     end
                     if ~o_tmp.isEmpty
@@ -2751,7 +2778,7 @@ classdef LS_Manipulator_new < handle
                         idx_rm = o_tmp.go_id == str2num(o_codes(o,4:6)) & strLineMatch(o_tmp.obs_code(:,2:4),o_codes(o,1:3));
                         if sum(idx_rm) > 0
                             o_tmp.removeColumn(idx_rm);
-                            this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
+                            %this.log.addMessage(sprintf('Observation %s from satellite %s is seen only from receiver %s : removing from network adjustement',o_codes(o,1:3),  Core.getConstellationCollector.getAntennaId(str2num(o_codes(o,4:6))), sta_list(r).getMarkerName4Ch));
                             
                         end
                     end

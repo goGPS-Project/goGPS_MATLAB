@@ -1306,15 +1306,16 @@ classdef Network < handle
                 this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100; %TBD
                 
                 % residual
+                idx_rec = find( ls.receiver_obs == i);
 %                 % save phase residuals
                     idx_ph = find(this.rec_list(i).work.obs_code(:,1) == 'L');
                     this.rec_list(i).work.sat.res_ph_by_ph = nan(this.rec_list(i).work.time.length, length(idx_ph));
                     for j = 1 : length(idx_ph)
                         ip = idx_ph(j);
                         id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.rec_list(i).work.go_id(ip) & ls.receiver_obs == i;
+                        idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
                         if any(idx_res)
-                            [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.rec_list(i).work.getRate).getRefTime(this.rec_list(i).work.time.first.getMatlabTime),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                            [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
                             this.rec_list(i).work.sat.res_ph_by_ph(idx_time,j) = ls.res(idx_res);
                         end
                     end
@@ -1324,9 +1325,9 @@ classdef Network < handle
                     for j = 1 : length(idx_pr)
                         ip = idx_pr(j);
                         id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.rec_list(i).work.go_id(ip) & ls.receiver_obs == i;
+                        idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
                         if any(idx_res)
-                            [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.rec_list(i).work.getRate).getRefTime(this.rec_list(i).work.time.first.getMatlabTime),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                            [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
                             this.rec_list(i).work.sat.res_pr_by_pr(idx_time,j) = ls.res(idx_res);
                         end
                     end
