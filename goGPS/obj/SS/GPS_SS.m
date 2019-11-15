@@ -70,7 +70,7 @@ classdef GPS_SS < Satellite_System
         PRN = (1 : 32)';  % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'PWXSYLMCN F' 'PWXSYLMCDN F' 'XIQ F'}; % last letter of the observation code
+        CODE_RIN3_ATTRIB  = {'PXWSYLMCN F' 'PXWSYLMCDN F' 'XIQ F'}; % last letter of the observation code
         CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'C' 'Q'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '125'; % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['12';'15';'25'];

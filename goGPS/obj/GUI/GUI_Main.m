@@ -630,25 +630,33 @@ end
             err_box_g = uix.VBox('Parent', ds_v_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [175 40 5 50]);
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [200 40 5 50]);
+            ttip = 'This is not kept in case of snooping';
             if verLessThan('matlab','9.5')
-                grd.Children(end).TooltipString = 'This is not kept in case of snooping';
+                grd.Children(end).TooltipString = ttip;
             else
-                grd.Children(end).Tooltip = 'This is not kept in case of snooping';
+                grd.Children(end).Tooltip = ttip;
             end
 
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [175 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [175 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [175 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [200 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolte threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
+            ttip = 'Different trackings have different scaling factor, rescale them w.r.t. the code error level of the first frequency/tracking';
+            if verLessThan('matlab','9.5')
+                grd.Children(end).TooltipString = ttip;
+            else
+                grd.Children(end).Tooltip = ttip;
+            end
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [200 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
 
             %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Sat to remove', 'sat_to_remove', '', @this.onEditChange, [95 120 0 40 ]);
             %Core_UI.insertEmpty(err_box_g);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [175 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [175 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50]);
             Core_UI.insertEmpty(err_box_g);
-            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,4)) 10 (Core_UI.LINE_HEIGHT * ones(1,2)) -1];
+            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,5)) 10 (Core_UI.LINE_HEIGHT * ones(1,2)) -1];
                         
             ds_v_box.Heights = [168 10 -1];
             

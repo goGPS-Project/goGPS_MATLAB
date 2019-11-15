@@ -174,7 +174,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         CC = Constellation_Collector('G');              % object containing info on the activated constellations
         MIN_N_SAT = 2;                                  % Minimum number of satellites needed to process a valid epoch
         CUT_OFF = 10;                                   % Cut-off [degrees]
-        SNR_THR = 0;                                    % Signal-to-noise ratio threshold [dB]
+        ABS_SNR_THR = 0;                                % Signal-to-noise ratio absolute threshold [dB]
+        SCALED_SNR_THR = 0;                             % Signal-to-noise ratio scaled threshold [dB]
         MIN_ARC = 10;                                   % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
         
         % ADV DATA SELECTION
@@ -581,7 +582,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Cut-off [degrees]
         cut_off = Main_Settings.CUT_OFF;
         % Signal-to-noise ratio threshold [dB]
-        snr_thr = Main_Settings.SNR_THR;
+        abs_snr_thr = Main_Settings.ABS_SNR_THR;
+        scaled_snr_thr = Main_Settings.SCALED_SNR_THR;
         % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
         min_arc = Main_Settings.MIN_ARC;
 
@@ -882,7 +884,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.cc.import(state);
                 this.min_n_sat  = state.getData('min_n_sat');
                 this.cut_off = state.getData('cut_off');
-                this.snr_thr = state.getData('snr_thr');
+                this.abs_snr_thr = state.getData('abs_snr_thr');
+                if isempty(this.abs_snr_thr) % compatibility mode
+                    this.abs_snr_thr = state.getData('snr_thr');
+                end
+                this.abs_snr_thr = state.getData('abs_snr_thr');
+                this.scaled_snr_thr = state.getData('scaled_snr_thr');
                 this.min_arc = state.getData('min_arc');
 
                 % ADV DATA SELECTION
@@ -1062,7 +1069,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.cc.import(state.cc);
                 this.min_n_sat  = state.min_n_sat;
                 this.cut_off = state.cut_off;
-                this.snr_thr = state.snr_thr;
+                this.scaled_snr_thr = state.scaled_snr_thr;
                 this.min_arc = state.min_arc;
 
                 this.flag_outlier = state.flag_outlier;
@@ -1259,7 +1266,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = this.cc.toString(str);
             str = [str sprintf(' Minimum number of satellite per epoch:            %d\n', this.min_n_sat)];
             str = [str sprintf(' Cut-off [degrees]:                                %d\n', this.cut_off)];
-            str = [str sprintf(' Signal-to-noise ratio threshold [dB]:             %d\n', this.snr_thr)];
+            str = [str sprintf(' Signal-to-noise ratio absolute threshold [dB]:    %d\n', this.abs_snr_thr)];
+            str = [str sprintf(' Signal-to-noise ratio scaled threshold [dB]:      %d\n', this.scaled_snr_thr)];
             str = [str sprintf(' Minimum number of epoch in an arc of observations %d\n\n', this.min_arc)];
 
             str = [str '---- ADV DATA SELECTION --------------------------------------------------' 10 10];
@@ -1652,8 +1660,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('min_n_sat', this.min_n_sat, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Cut-off [degrees]', str_cell);
             str_cell = Ini_Manager.toIniString('cut_off', this.cut_off, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio threshold [dB]', str_cell);
-            str_cell = Ini_Manager.toIniString('snr_thr', this.snr_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio absolute threshold [dB]', str_cell);
+            str_cell = Ini_Manager.toIniString('abs_snr_thr', this.abs_snr_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio scaled threshold [dB]', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('scaling is performet with respect to the code error level of the first frequency/tracking (usually 1C)', str_cell);
+            str_cell = Ini_Manager.toIniString('scaled_snr_thr', this.scaled_snr_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of', str_cell);
             str_cell = Ini_Manager.toIniStringComment('consecutive epochs equal or greater than this value)', str_cell);
             str_cell = Ini_Manager.toIniString('min_arc', this.min_arc, str_cell);
@@ -2402,7 +2413,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Data filtering
             this.min_n_sat = 2;
             this.cut_off = 7;
-            this.snr_thr = 0;
+            this.abs_snr_thr = 0;
+            this.scaled_snr_thr = 0;
             this.min_arc = 10;
             this.pp_max_code_err_thr = 10;
             this.max_code_err_thr = 10;
@@ -2499,7 +2511,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Data filtering
             this.min_n_sat = 2;
             this.cut_off = 7;
-            this.snr_thr = 28;
+            this.abs_snr_thr = 6;
+            this.scaled_snr_thr = 28;
             this.min_arc = 10;
             this.pp_max_code_err_thr = 10;
             this.max_code_err_thr = 10;
@@ -2617,7 +2630,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % DATA SELECTION
             this.checkNumericField('min_n_sat',[1 300]);
             this.checkNumericField('cut_off',[0 90]);
-            this.checkNumericField('snr_thr',[0 70]);
+            this.checkNumericField('abs_snr_thr',[0 70]);
+            this.checkNumericField('scaled_snr_thr',[0 70]);
             this.checkNumericField('min_arc',[2 1800]);
 
             % ADV DATA SELECTION
@@ -4097,12 +4111,20 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             cut_off = this.cut_off;
         end
         
-        function snr_thr = getSnrThr(this)
-            % Get the snr threshold
+        function abs_snr_thr = getAbsSnrThr(this)
+            % Get the  absolute snr threshold
             %
             % SYNTAX
-            %   snr_thr = this.getSnrThr();
-            snr_thr = this.snr_thr;
+            %   abs_snr_thr = this.getAbsSnrThr();
+            abs_snr_thr = this.abs_snr_thr;
+        end
+        
+        function scaled_snr_thr = getScaledSnrThr(this)
+            % Get the scaled snr threshold
+            %
+            % SYNTAX
+            %   scaled_snr_thr = this.getScaledSnrThr();
+            scaled_snr_thr = this.scaled_snr_thr;
         end
 
         function min_n_sat = getMinNSat(this)

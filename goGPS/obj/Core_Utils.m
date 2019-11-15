@@ -159,10 +159,11 @@ classdef Core_Utils < handle
                 
                 warning('off')
                 if min(size(y_in)) == 1
-                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    %y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = A2 * (A \ y_tmp(:));
                     y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
                 else
-                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                    y_out(:,c) = A2 * ((A' * A + 1e-6 * eye(size(A,2))) \ (A' * y_tmp(:)));
                 end
                 warning('on')
             end
@@ -441,8 +442,8 @@ classdef Core_Utils < handle
             % Generate all the Zernike parameters combinations
             %
             % SINTAX
-            %   z = getAllZernike(l_max, az, el)
-            %   z = getAllZernike(l_max, m_max, az, el)
+            %   [z, l, m] = getAllZernike(l_max, az, el)
+            %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
             if nargin == 3
                 el = az;
                 az = m_max;
@@ -488,7 +489,7 @@ classdef Core_Utils < handle
             % of their polynomials
             %
             % SINTAX
-            %   [z_interp] = zSinthesysAll(l_max, m_max, az, el, data)
+            %   [z_interp] = zSinthesysAll(l_max, m_max, az, el, z_par)
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
@@ -509,11 +510,11 @@ classdef Core_Utils < handle
             z_interp(id_ok) = A * z_par;
         end
         
-        function [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
-            %   [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, <max_reg = 1>)
+            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
             [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), el(id_ok));
@@ -525,11 +526,11 @@ classdef Core_Utils < handle
             z_par = (A'*A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
         end
         
-        function [z_par, l, m, A] = zAnalisy(l, m, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisys(l, m, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % SINTAX
-            %   [z_par, l, m, A] = zAnalisyAll(l_max, m_max, az, el, data, <max_reg = 1>)
+            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
             A = Core_Utils.getZernike(l, m, az(id_ok), el(id_ok));
@@ -548,9 +549,9 @@ classdef Core_Utils < handle
             %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
             
             if nargin == 6
-                [z_par, l, m, A] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data, max_reg);
+                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data, max_reg);
             else
-                [z_par, l, m, A] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data);
+                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data);
             end
             filtered_data = A * z_par;
         end
@@ -561,7 +562,11 @@ classdef Core_Utils < handle
             % SINTAX
             %   fh = showZerniche(l, m, z_par)
             
-            fh = figure();
+            if ~ishold
+                fh = figure();
+            else
+                fh = gcf;
+            end
             %%% INTERNAL PARAMETER
             scale = 1;
             %%%
@@ -666,8 +671,80 @@ classdef Core_Utils < handle
         
         function fh = polarZerMap(l_max, m_max, az, el, data)
             % Take scattered observation and plot a polar interpolation
-            [z_par, l, m] = Core_Utils.zAnalisyAll(l_max, m_max, az, el, data, 1);
+            %
+            % SYNTAX
+            %   fh = polarZerMap(l_max, m_max, az, el, data)
+            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data, 1);
             fh = Core_Utils.showZerniche(l, m, z_par);
+        end
+        
+        function fh = polarZerMapDual(l_max, m_max, az, el, data)
+            % Take scattered observation and plot:
+            %  - a scattered polar
+            %  - a polar interpolation
+            %
+            % SYNTAX
+            %   fh = polarZerMapDual(l_max, m_max, az, el, data)
+            fh = figure('Visible', 'off'); subplot(1,2,1); hold on;
+            Core_Utils.polarZerMap(l_max, m_max, az, el, data);
+            fh.Visible = false;
+            cax = caxis();
+            subplot(1,2,2); hold on; 
+            polarScatter(az, (pi/2 - el), 50, data, 'filled'); colorbar(); colormap(jet);
+            cax_s = caxis();
+            %cax = [min(cax(1), cax_s(1)) max(cax(2), cax_s(2))];
+            cax = cax_s;
+            caxis(cax);
+            subplot(1,2,1);
+            caxis(cax);
+            fh.Visible = true;
+            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+        end
+        
+        function fh = polarZerMapQuad(l_max, m_max, az, el, data)
+            % Take scattered observation and plot:
+            %  - a scattered polar
+            %  - a polar interpolation
+            %  - a scattered vs el
+            %  - an interpolation vs el
+            %
+            % SYNTAX
+            %   fh = polarZerMapQuad(l_max, m_max, az, el, data)
+            fh = figure('Visible', 'on'); 
+            
+            subplot(2,2,1); hold on;
+            Core_Utils.polarZerMap(l_max, m_max, az, el, data);
+            cax = caxis();
+            
+            subplot(2,2,2); hold on; 
+            polarScatter(az, (pi/2 - el), 50, data, 'filled'); colorbar(); colormap(jet);
+            cax_s = caxis();
+            %cax = [min(cax(1), cax_s(1)) max(cax(2), cax_s(2))];
+            cax = cax_s;
+            caxis(cax);
+            subplot(2,2,1);
+            caxis(cax);
+            
+            subplot(2,2,3); 
+            data_smooth = Core_Utils.zFilter(l_max, m_max, az, el, data); hold on;       
+            plot(el / pi * 180, data_smooth, '.', 'Color', Core_UI.getColor(1));
+            
+            el_grid = 0 : 90;
+            plot(el_grid, Core_Utils.interp1LS(el / pi * 180, data_smooth, 3, el_grid), '--', 'LineWidth', 2, 'Color', Core_UI.getColor(3));
+            
+            ylim(cax);
+            xlim([0 90]);
+            grid minor;
+
+            subplot(2,2,4); hold on; 
+            plot(el / pi * 180, data, '.', 'Color', Core_UI.getColor(2)); hold on;
+            plot(el_grid, Core_Utils.interp1LS(el / pi * 180, data, 3, el_grid), '--', 'LineWidth', 2 , 'Color', Core_UI.getColor(5));
+            ylim(cax);
+            xlim([0 90]);
+            grid minor;
+            
+            fh.Visible = true;
+            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
 
         %--------------------------------------------------------------------------

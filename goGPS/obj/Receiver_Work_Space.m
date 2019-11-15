@@ -1471,30 +1471,155 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function remUnderSnrThr(this, snr_thr)
+        function remUnderSnrThr(this, abs_snr_thr, scaled_snr_thr)
             % remS observations with an SNR smaller than snr_thr
             %
             % SYNTAX
-            %   this.remUnderSnrThr(snr_thr)
+            %   this.remUnderSnrThr(abs_snr_thr, scaled_snr_thr)
             
             if (nargin == 1)
-                snr_thr = this.state.getSnrThr();
+                abs_snr_thr = this.state.getAbsSnrThr();
+                scaled_snr_thr = this.state.getScaledSnrThr();
             end
+            if (nargin == 2)
+                scaled_snr_thr = 0;
+            end
+            if isempty(abs_snr_thr)
+                abs_snr_thr = 0;
+            end
+            if isempty(scaled_snr_thr)
+                scaled_snr_thr = 0;
+            end
+
+            flag_debug = false;
             
-            if snr_thr > 0
-                [snr1, id_snr] = this.getObs('S1');
-                
-                snr1 = Receiver_Commons.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
-                id_snr = find(id_snr);
-                if ~isempty(id_snr)
-                    this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
-                    n_rem = 0;
-                    for s = 1 : numel(id_snr)
-                        snr_test = snr1(:, s) < snr_thr;
-                        this.obs(this.go_id == (this.go_id(id_snr(s))), snr_test) = 0;
-                        n_rem = n_rem + sum(snr_test(:));
+            snr_grid_step = 1;
+            snr_grid = (1 : snr_grid_step : 70);
+            ls_degree = 1; % interpolation degree to rescale SNR
+            if (abs_snr_thr > 0) || (scaled_snr_thr > 0)
+                cc = Core.getConstellationCollector();
+                % for each satellite system
+                for sys_c = this.getAvailableSS
+                    cur_ss = cc.(lower(cc.getSysName(sys_c)));
+                    ss_obs_code = this.getAvailableObsCode('S', sys_c);
+                    
+                    id = 0;
+                    if flag_debug
+                        for ff=100:106; figure(ff); clf; end
                     end
-                    this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', n_rem)));
+                    % for each frequency
+                    for f = unique(ss_obs_code(:,2)')
+                        cur_ref_order = [cur_ss.CODE_RIN3_DEFAULT_ATTRIB{cur_ss.CODE_RIN3_2BAND == f}, ...
+                            cur_ss.CODE_RIN3_ATTRIB{cur_ss.CODE_RIN3_2BAND == f}];
+                        
+                        all_attrib = this.getAvailableObsCode(['S' f], sys_c);
+                        all_attrib = unique(all_attrib(:,3))';
+                        
+                        % sort attribute by preferred list
+                        [~, ido] = intersect(cur_ref_order, all_attrib);
+                        all_attrib = cur_ref_order(sort(ido));
+                        
+                        % for each tracking attribute
+                        for a = all_attrib
+                            id = id + 1;
+                            % extract SNR
+                            [snr, id_snr] = this.getObs(['S' f a], sys_c);
+                            snr = snr';
+                                                        
+                            % extract PR
+                            [pr, id_pr] = this.getObs(['C' f a], sys_c);
+                            pr = pr';
+                            
+                            % get common_sat
+                            [go_id, snr_sat_id, pr_sat_id] = intersect(this.go_id(id_snr), this.go_id(id_pr));
+                            snr = snr(:, snr_sat_id);
+                            pr = pr(:, pr_sat_id);
+                            id_snr = id_snr(snr_sat_id);
+                            id_pr = id_pr(pr_sat_id);
+                            
+                            % Remove all the values of pr under the selected threshold
+                            id_ko = (snr < abs_snr_thr);
+                            pr(id_ko) = nan;
+                            snr(id_ko) = nan;
+                            if any(id_ko)
+                                this.log.addMessage(this.log.indent(sprintf(' - %4d observations of %c C%c%c under absolute SNR threshold', sum(id_ko(:)), sys_c, f, a)));
+                            end
+                                                            
+                            % if I have any SNR for each satellite and data is longer than 15 min
+                            % + scaling is requested
+                            if (scaled_snr_thr > 0) && (any(snr(:)) && (size(snr,1) > 900 / this.getRate))
+                                if flag_debug
+                                    az = this.sat.az(:, go_id);
+                                    el = this.sat.el(:, go_id);
+                                end
+                                snr_ok = ~isnan(snr);
+                                
+                                if flag_debug; figure(100); hold on; plot(pr(:,1)); title('Pseudo-ranges'); end
+                                % Reduce pr for synthetic
+                                prs = this.getSyntObs(this.go_id(id_pr));
+                                pr_red = pr - prs';
+                                if flag_debug; figure(101); hold on; plot(pr_red(:,1)); title('Pseudo-ranges - syntetic'); end
+                                % Reduce for code bias
+                                pr_red = (pr_red - median(zero2nan(pr_red(:)), 'omitnan'));
+                                if flag_debug; figure(102); hold on; plot(pr_red(:,1)); title('Pseudo-ranges - syntetic - DCB'); end
+                                % Reduce low freq (tropo, iono)
+                                pr_red = pr_red - Receiver_Commons.smoothSatData([],[],zero2nan(pr_red), [], 'spline', 600 / this.getRate, 10);
+                                pr_red = bsxfun(@minus, pr_red, median(pr_red, 2, 'omitnan'));
+                                if flag_debug; figure(103); hold on; plot(pr_red(:,1)); title('Pseudo-ranges residuals'); end
+                                %  Compute error level for pr (15min moving window)
+                                noise_pr = zero2nan(movstd(pr_red, 900 / this.getRate, 1, 'omitnan'));
+                                if flag_debug; figure(104); hold on; plot(noise_pr(:,1)); title('Pseudo-ranges error level'); end
+                                pr_ok = ~isnan(noise_pr);
+                                
+                                snr2res{id} = Core_Utils.interp1LS([snr(pr_ok & snr_ok); 70 * ones(1,1)], [noise_pr(pr_ok & snr_ok); min(noise_pr(:)) * ones(1,1)], ls_degree, snr_grid);
+                                if flag_debug
+                                    figure(105); hold on; plot(snr(pr_ok & snr_ok), noise_pr(pr_ok & snr_ok), '.');
+                                    plot(snr_grid, snr2res{id}, '--', 'LineWidth', 2 , 'Color', [0 0 0]);
+                                end
+                                                                
+                                if id == 1
+                                    % Everything will be referred to the first frequency
+                                    scaleSnr = @(snr_in) snr_in;
+                                    if flag_debug
+                                        figure(106); clf; plot(snr(pr_ok & snr_ok), noise_pr(pr_ok & snr_ok), '.'); hold on;
+                                        plot(snr_grid, snr2res{1}, '--', 'LineWidth', 2 , 'Color', [0 0 0]);
+                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, el(snr_ok)/180*pi, (snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
+                                    end
+                                    max_snr = max(snr(:));
+                                elseif id > 1
+                                    scaleSnr = @(snr_in) min(max_snr, interp1(snr2res{1}(:), snr_grid(:), interp1q(snr_grid(:), snr2res{id}(:), snr_in(:))));
+                                    if flag_debug
+                                        figure(106);
+                                        hold on; plot(scaleSnr(snr(pr_ok & snr_ok)), noise_pr(pr_ok & snr_ok), '.');
+                                        snr2res{id} = Core_Utils.interp1LS(scaleSnr(snr(pr_ok & snr_ok)), noise_pr(pr_ok & snr_ok), ls_degree, snr_grid);
+                                        plot(snr_grid, snr2res{id}, '--', 'LineWidth', 2 , 'Color', [0 0 0]);
+                                    
+                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, el(snr_ok)/180*pi, scaleSnr(snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
+                                    end
+                                end
+                                
+                                if flag_debug
+                                    fh.Name = ['S' f a ' SNR'];
+                                    lim = [scaled_snr_thr 65]; subplot(2,2,1); caxis(lim); subplot(2,2,2); caxis(lim); subplot(2,2,3); ylim(lim); subplot(2,2,4); ylim(lim);
+                                    hold off; fh = Core_Utils.polarZerMapQuad(11, 11, az(pr_ok)/180*pi, el(pr_ok)/180*pi, noise_pr(pr_ok)); colormap([(Cmap.get('plasma')); [1 1 1]]);
+                                    lim = [0 1.5]; subplot(2,2,1); caxis(lim); subplot(2,2,2); caxis(lim); subplot(2,2,3); ylim(lim); subplot(2,2,4); ylim(lim);
+                                    fh.Name = ['S' f a ' PR ERROR'];
+                                end
+                                
+                                % Remove all the values of pr under the selected threshold
+                                id_ok = find(~isnan(snr) & ~isnan(pr_red));
+                                id_ko = id_ok(scaleSnr(snr(id_ok)) < scaled_snr_thr);
+                                if numel(id_ko) > 0
+                                    this.log.addMessage(this.log.indent(sprintf(' - %4d observations of %c C%c%c under scaled SNR threshold', numel(id_ko), sys_c, f, a)));
+                                end
+                                pr(id_ko) = nan;
+                                snr(id_ko) = nan;
+                            end
+                            
+                            this.setObs(pr', id_pr);
+                            this.setObs(snr', id_snr);
+                        end
+                    end
                 end
             end
         end
@@ -3159,6 +3284,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % find data lines
                 d_line = find(~[true(t_line(1), 1); (txt(lim(t_line(1)+1:end,1)) == '>')']);
+                d_line = d_line(d_line <= t_line(end) + this.n_spe(end));
                 
                 %all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
                 
@@ -8978,7 +9104,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                 this.remBad();
                 
-                this.remUnderSnrThr(this.state.getSnrThr());
+                this.remUnderSnrThr(this.state.getAbsSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
                 if this.hasGoodApriori
                     [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(false);
@@ -9012,7 +9138,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     else
                         % update azimuth elevation
                         this.updateAzimuthElevation();
-                        this.remUnderCutOff();
+                        %this.remUnderCutOff();
                         this.setAvIdx2Visibility();
                         this.meteo_data = [];
                         this.importMeteoData(); % now with more precise coordinates
@@ -9083,6 +9209,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 this.repairPhases();
                             end
                             
+                            this.remUnderSnrThr([], this.state.getScaledSnrThr());
                             this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
                             this.codeStaticPositioning(sys_list);
