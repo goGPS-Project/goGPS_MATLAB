@@ -85,9 +85,9 @@ classdef LS_Parametrization < handle
         rec_y = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         rec_z = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
         
-        sat_x = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-        sat_y = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-        sat_z = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        sat_x = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        sat_y = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        sat_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
         rec_eb = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
         rec_ppb = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
@@ -131,6 +131,7 @@ classdef LS_Parametrization < handle
         sat_ppb_opt;
         sat_ebfr_opt = struct('rule',1,'spline_rate',900);
 
+
         rec_eb_opt_lin = struct('rule',1);
 
         amb_opt;
@@ -149,9 +150,9 @@ classdef LS_Parametrization < handle
         tropo_s_opt= struct('spline_rate',900);
         tropo_z_opt= struct('spline_rate',1800);
 
-        sat_x_opt;
-        sat_y_opt;
-        sat_z_opt;
+        sat_x_opt = struct('rule',1,'spline_rate',3600);
+        sat_y_opt = struct('rule',1,'spline_rate',3600);
+        sat_z_opt = struct('rule',1,'spline_rate',3600);
     end
     
     methods
@@ -181,6 +182,15 @@ classdef LS_Parametrization < handle
                 case LS_Manipulator_new.PAR_REC_Z
                     parametriz = this.rec_z;
                     option = this.rec_z_opt;
+                case LS_Manipulator_new.PAR_SAT_X
+                    parametriz = this.sat_x;
+                    option = this.sat_x_opt;
+                case LS_Manipulator_new.PAR_SAT_Y
+                    parametriz = this.sat_y;
+                    option = this.sat_y_opt;
+                case LS_Manipulator_new.PAR_SAT_Z
+                    parametriz = this.rec_z;
+                    option = this.sat_z_opt;
                 case LS_Manipulator_new.PAR_REC_EB
                     parametriz = this.rec_eb;
                     option = this.rec_eb_opt;

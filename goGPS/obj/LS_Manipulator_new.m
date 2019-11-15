@@ -372,15 +372,15 @@ classdef LS_Manipulator_new < handle
                     end
                     
                     if par_sat_x
-                        A(lines_stream, par_rec_x_lid) =  los_stream(:,1);
+                        A(lines_stream, par_sat_x_lid) =  los_stream(:,1);
                     end
                     
                     if par_sat_y
-                        A(lines_stream, par_rec_y_lid) =  los_stream(:,2);
+                        A(lines_stream, par_sat_y_lid) =  los_stream(:,2);
                     end
                     
                     if par_sat_z
-                        A(lines_stream, par_rec_z_lid) =  los_stream(:,3);
+                        A(lines_stream, par_sat_z_lid) =  los_stream(:,3);
                     end
                     % ----------- electronic bias ------------------
                     if par_rec_eb
