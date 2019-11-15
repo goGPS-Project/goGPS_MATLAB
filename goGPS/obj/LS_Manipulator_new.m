@@ -1811,28 +1811,13 @@ classdef LS_Manipulator_new < handle
             
             if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
                 idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
-                time_rc = this.time_par(idx_rc,:);
-                rate = this.obs_rate;
-                
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for r = 1 : n_rec
-                    idx_r = this.rec_par(idx_rc) == r;
-                    idx_rcr = idx_rc(idx_r);
-                    time_rcr = time_rc(idx_r);
-                    
-                    
+                    idx_rcr = idx_rc(this.rec_par(idx_rc) == r);                    
                     idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
                     if ~isempty(idx_o_r)
-                        time_o_r = this.ref_time_obs(idx_o_r);
-                        
-                        for e = u_ep'
-                            idx_par = idx_rcr(time_rcr == e);
-                            idx_pre = idx_o_r(time_o_r == e);
-                            
-                            if ~isempty(idx_par) & isempty(idx_pre)
-                                idx_rm = [idx_rm; idx_par];%
-                            end
-                        end
+                        idx_po = unique(this.A_idx(idx_o_r,this.param_class == this.PAR_REC_CLK));
+                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to no code obsevration
                     end
                     
                 end
@@ -1840,29 +1825,15 @@ classdef LS_Manipulator_new < handle
             
             if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
                 idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
-                time_rc = this.time_par(idx_rc,:);
-                rate = this.obs_rate;
-                
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for s = 1 : n_sat
-                    idx_s = this.sat_par(idx_rc) == s;
-                    idx_rcr = idx_rc(idx_s);
-                    time_rcr = time_rc(idx_s);
+                    idx_rcr = idx_rc(this.sat_par(idx_rc) == s);
                     
                     
                     idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
                     if ~isempty(idx_o_r)
-                        
-                        time_o_r = this.ref_time_obs(idx_o_r);
-                        
-                        for e = u_ep'
-                            idx_par = idx_rcr(time_rcr == e);
-                            idx_pre = idx_o_r(time_o_r == e);
-                            
-                            if ~isempty(idx_par) & isempty(idx_pre)
-                                idx_rm = [idx_rm; idx_par];%
-                            end
-                        end
+                        idx_po = unique(this.A_idx(idx_o_r,this.param_class == this.PAR_SAT_CLK));
+                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to no code obsevration
                     end
                 end
             end
@@ -2162,7 +2133,7 @@ classdef LS_Manipulator_new < handle
             
             max_ep = max(this.ref_time_obs);
             ref_time_obs = this.ref_time_obs(~this.outlier_obs);
-            step = 900;
+            step = 1800;
             time_par_red = time_par(idx_reduce,1);
             
             iono = sum(idx_reduce_iono) > 0;
