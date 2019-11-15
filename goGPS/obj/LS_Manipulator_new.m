@@ -1011,43 +1011,55 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %    this.markSingledObs()
+            idx_par_clk = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
+            id_p_clk = this.param_class == this.PAR_SAT_CLK;
             for s = this.unique_sat_goid
-                idx_par = find(this.sat_par == s & this.class_par == this.PAR_SAT_CLK & ~this.out_par);
-                idx_obs = this.satellite_obs == s & ~this.outlier_obs;
+                idx_par = idx_par_clk(this.sat_par(idx_par_clk) == s);
+                idx_obs = find(this.satellite_obs == s & ~this.outlier_obs);
                 num_rec = zeros(length(idx_par),1);
                 for r = 1 : length(this.unique_rec_name)
-                    [~,idx_par_rec] = ismember(unique(this.A_idx(this.receiver_obs == r &  idx_obs, this.param_class == this.PAR_SAT_CLK)),idx_par);
+                    [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.receiver_obs(idx_obs) == r),id_p_clk )),idx_par);
                     num_rec(noZero(idx_par_rec)) = num_rec(noZero(idx_par_rec)) + 1;
                 end
                 idx_el = find(num_rec < 2);
-                par_sat_clk = this.A_idx(this.satellite_obs == s, this.param_class == this.PAR_SAT_CLK);
+                par_sat_clk = this.A_idx(idx_obs,id_p_clk);
                 for i = idx_el'
                     obs_par = par_sat_clk == idx_par(i);
-                    this.outlier_obs(obs_par) = true;
+                    this.outlier_obs(idx_obs(obs_par)) = true;
                 end
             end
+            idx_par_clk = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
+            id_p_clk = this.param_class == this.PAR_REC_CLK;
             for r = 1 : length(this.unique_rec_name)
-                idx_par = find(this.rec_par == r & this.class_par == this.PAR_REC_CLK & ~this.out_par);
-                idx_obs = this.receiver_obs == r & ~this.outlier_obs;
+                idx_par =  idx_par_clk(this.rec_par(idx_par_clk) == r); 
+                idx_obs = find(this.receiver_obs == r & ~this.outlier_obs);
                 num_sat = zeros(length(idx_par),1);
                 for s = this.unique_sat_goid
-                    [~,idx_par_rec] = ismember(unique(this.A_idx(this.satellite_obs == s &  idx_obs, this.param_class == this.PAR_REC_CLK)), idx_par);
+                    [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.satellite_obs(idx_obs) == s), id_p_clk)), idx_par);
                     num_sat(noZero(idx_par_rec)) = num_sat(noZero(idx_par_rec)) + 1;
                 end
                 idx_el = find(num_sat < 2);
+                par_rec_clk = this.A_idx(idx_obs, id_p_clk);
                 for i = idx_el'
-                    obs_par = this.A_idx(:,this.param_class == this.PAR_REC_CLK) == idx_par(i);
-                    this.outlier_obs(obs_par) = true;
+                    obs_par = par_rec_clk == idx_par(i);
+                    this.outlier_obs(idx_obs(obs_par)) = true;
                 end
             end
             if sum(this.param_class == this.PAR_IONO)> 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC % remove phase obe that does not have two pseudorange fro different frequency and phase of a seconde frequency too
+                idx_valid_obs = find(~this.outlier_obs);
+                idx_valid_ph = idx_valid_obs(this.phase_obs(idx_valid_obs) > 0);
+                idx_valid_pr = idx_valid_obs(this.phase_obs(idx_valid_obs) == 0);
                 for r = 1 : length(this.unique_rec_name)
-                    idx_rec = this.receiver_obs == r;
+                    idx_valid_rec_ph = idx_valid_ph(this.receiver_obs(idx_valid_ph) == r);
+                    idx_valid_rec_pr = idx_valid_pr(this.receiver_obs(idx_valid_pr) == r);
+                    idx_valid_rec_obs = idx_valid_obs(this.receiver_obs(idx_valid_obs) == r);
+
+
                     
-                    u_go_id_r = unique(this.satellite_obs(idx_rec));
+                    u_go_id_r = unique(this.satellite_obs(idx_valid_rec_obs));
                     n_sat = length(u_go_id_r);
                     
-                    u_oc_ph = unique(this.obs_codes_id_obs(idx_rec  & this.phase_obs  & ~this.outlier_obs));
+                    u_oc_ph = unique(this.obs_codes_id_obs(idx_valid_rec_ph));
                     n_ch_ph = length(u_oc_ph);
                     fr_ph = zeros(size(u_oc_ph));
                     for i = 1 : length(u_oc_ph)
@@ -1056,7 +1068,7 @@ classdef LS_Manipulator_new < handle
                     u_fr_ph = unique(fr_ph);
                     n_fr_ph = length(u_fr_ph);
                     
-                    u_oc_pr = unique(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs  & ~this.outlier_obs));
+                    u_oc_pr = unique(this.obs_codes_id_obs(idx_valid_rec_pr));
                     n_ch_pr = length(u_oc_pr);
                     fr_pr = zeros(size(u_oc_pr));
                     for i = 1 : length(u_oc_pr)
@@ -1066,8 +1078,8 @@ classdef LS_Manipulator_new < handle
                     n_fr_pr = length(u_fr_pr);
                     
                     
-                    time_res = min(this.ref_time_obs(idx_rec));
-                    duration = max(this.ref_time_obs(idx_rec)) - time_res;
+                    time_res = min(this.ref_time_obs(idx_valid_rec_obs));
+                    duration = max(this.ref_time_obs(idx_valid_rec_obs)) - time_res;
                     time_res = time_res + (0:this.obs_rate:duration);
                     % build phase matrix
                     
@@ -1076,9 +1088,11 @@ classdef LS_Manipulator_new < handle
                     for c = 1 : n_ch_ph
                         ch = u_oc_ph(c);
                         f = find(fr_ph(c) == u_fr_ph);
+                        idx_valid_rec_ph_ch = idx_valid_rec_ph(this.obs_codes_id_obs(idx_valid_rec_ph) == ch);
                         for s = 1 : n_sat
                             sat = u_go_id_r(s);
-                            idx_ph = this.obs_codes_id_obs == ch & this.satellite_obs == sat & idx_rec & ~this.outlier_obs;
+                            idx_ph = idx_valid_rec_ph_ch(this.satellite_obs(idx_valid_rec_ph_ch) == sat);
+                            
                             if any(idx_ph)
                                 [~,idx_time] = ismember(this.ref_time_obs(idx_ph),time_res);
                                 ph_pres(idx_time, s,f) = true;
@@ -1092,9 +1106,12 @@ classdef LS_Manipulator_new < handle
                     for c = 1 : n_ch_pr
                         ch = u_oc_pr(c);
                         f = find(fr_pr(c) == u_fr_pr);
+                        idx_valid_rec_pr_ch = idx_valid_rec_pr(this.obs_codes_id_obs(idx_valid_rec_pr) == ch);
+                        
                         for s = 1 : n_sat
                             sat = u_go_id_r(s);
-                            idx_pr = this.obs_codes_id_obs == ch & this.satellite_obs == sat & idx_rec & ~this.outlier_obs;
+                            idx_pr = idx_valid_rec_pr_ch(this.satellite_obs(idx_valid_rec_pr_ch) == sat);
+                            
                             if any(idx_pr)
                                 [~,idx_time] =ismember(this.ref_time_obs(idx_pr),time_res);
                                 pr_pres(idx_time, s,f) = true;
@@ -1791,61 +1808,59 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            if false
+            
+            if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
+                idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
+                time_rc = this.time_par(idx_rc,:);
+                rate = this.obs_rate;
                 
-                if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
-                    idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
-                    time_rc = this.time_par(idx_rc,:);
-                    rate = this.obs_rate;
+                idx_pr = find(~this.outlier_obs & ~this.phase_obs);
+                for r = 1 : n_rec
+                    idx_r = this.rec_par(idx_rc) == r;
+                    idx_rcr = idx_rc(idx_r);
+                    time_rcr = time_rc(idx_r);
                     
-                    idx_pr = find(~this.outlier_obs & ~this.phase_obs);
-                    for r = 1 : n_rec
-                        idx_r = this.rec_par(idx_rc) == r;
-                        idx_rcr = idx_rc(idx_r);
-                        time_rcr = time_rc(idx_r);
+                    
+                    idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
+                    if ~isempty(idx_o_r)
+                        time_o_r = this.ref_time_obs(idx_o_r);
                         
-                        
-                        idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
-                        if ~isempty(idx_o_r)
-                            time_o_r = this.ref_time_obs(idx_o_r);
+                        for e = u_ep'
+                            idx_par = idx_rcr(time_rcr == e);
+                            idx_pre = idx_o_r(time_o_r == e);
                             
-                            for e = u_ep'
-                                idx_par = idx_rcr(time_rcr == e);
-                                idx_pre = idx_o_r(time_o_r == e);
-                                
-                                if ~isempty(idx_par) & isempty(idx_pre)
-                                    idx_rm = [idx_rm; idx_par];%
-                                end
+                            if ~isempty(idx_par) & isempty(idx_pre)
+                                idx_rm = [idx_rm; idx_par];%
                             end
                         end
-                        
                     end
-                end
-                
-                if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
-                    idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
-                    time_rc = this.time_par(idx_rc,:);
-                    rate = this.obs_rate;
                     
-                    idx_pr = find(~this.outlier_obs & ~this.phase_obs);
-                    for s = 1 : n_sat
-                        idx_s = this.sat_par(idx_rc) == s;
-                        idx_rcr = idx_rc(idx_s);
-                        time_rcr = time_rc(idx_s);
+                end
+            end
+            
+            if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+                idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
+                time_rc = this.time_par(idx_rc,:);
+                rate = this.obs_rate;
+                
+                idx_pr = find(~this.outlier_obs & ~this.phase_obs);
+                for s = 1 : n_sat
+                    idx_s = this.sat_par(idx_rc) == s;
+                    idx_rcr = idx_rc(idx_s);
+                    time_rcr = time_rc(idx_s);
+                    
+                    
+                    idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
+                    if ~isempty(idx_o_r)
                         
+                        time_o_r = this.ref_time_obs(idx_o_r);
                         
-                        idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
-                        if ~isempty(idx_o_r)
+                        for e = u_ep'
+                            idx_par = idx_rcr(time_rcr == e);
+                            idx_pre = idx_o_r(time_o_r == e);
                             
-                            time_o_r = this.ref_time_obs(idx_o_r);
-                            
-                            for e = u_ep'
-                                idx_par = idx_rcr(time_rcr == e);
-                                idx_pre = idx_o_r(time_o_r == e);
-                                
-                                if ~isempty(idx_par) & isempty(idx_pre)
-                                    idx_rm = [idx_rm; idx_par];%
-                                end
+                            if ~isempty(idx_par) & isempty(idx_pre)
+                                idx_rm = [idx_rm; idx_par];%
                             end
                         end
                     end
@@ -2116,6 +2131,10 @@ classdef LS_Manipulator_new < handle
             rec_par = this.rec_par;
             rec_par([this.idx_rd; find(this.out_par)]) = [];
             rec_par(zero_pars) = [];
+            
+            time_par = this.time_par;
+            time_par([this.idx_rd; find(this.out_par)],:) = [];
+            time_par(zero_pars,:) = [];
 
             valid_pars = find(~Core_Utils.ordinal2logical([this.idx_rd; find(this.out_par)],n_par)); % sometimes with splines spme paramter have a zero entry
             this.idx_rd = [this.idx_rd; valid_pars(zero_pars)];
@@ -2124,71 +2143,140 @@ classdef LS_Manipulator_new < handle
             vars = vars ./ mean_vars;
             Cyy =  spdiags(vars,0,n_obs - n_out,n_obs - n_out);
             x_est = zeros(n_par -length(this.idx_rd) - sum(this.out_par),1);
+            y = sparse([this.obs(~this.outlier_obs); zeros(size(this.A_pseudo,1),1)]);
+
             Aw = A'*Cyy;
             N = Aw*A;
-            y = sparse([this.obs(~this.outlier_obs); zeros(size(this.A_pseudo,1),1)]);
             B = Aw*y;
             
-            clearvars Aw
+            %clearvars Aw
             % ------ reduce for sat clock, rec clock and iono
             idx_reduce_sat_clk = class_par == this.PAR_SAT_CLK | class_par == this.PAR_SAT_CLK_PH | class_par == this.PAR_SAT_CLK_PR;
             idx_reduce_rec_clk = class_par == this.PAR_REC_CLK | class_par == this.PAR_REC_CLK_PH | class_par == this.PAR_REC_CLK_PR;
             idx_reduce_iono = class_par == this.PAR_IONO;
             
+            idx_reduce = idx_reduce_rec_clk | idx_reduce_sat_clk | idx_reduce_iono;
+            
+            N = Aw(~idx_reduce,:)*A(:,~idx_reduce);
+            B = Aw(~idx_reduce,:)*y;
+            
+            max_ep = max(this.ref_time_obs);
+            ref_time_obs = this.ref_time_obs(~this.outlier_obs);
+            step = 900;
+            time_par_red = time_par(idx_reduce,1);
+            
             iono = sum(idx_reduce_iono) > 0;
-            if iono
-                n_iono = sum(idx_reduce_iono);
-                iIono = spdiags(1./diag(N(idx_reduce_iono,idx_reduce_iono)),0,n_iono,n_iono);
-                Nx_iono = N(~idx_reduce_iono,idx_reduce_iono); % cross term reduce iono
-                Nt = Nx_iono * iIono;
-                N = N(~idx_reduce_iono,~idx_reduce_iono) - Nt * N(idx_reduce_iono,~idx_reduce_iono);
-                B_iono =  B(idx_reduce_iono);
-                B = B(~idx_reduce_iono) - Nt * B_iono;
-            end
-            
             sat_clk = sum(idx_reduce_sat_clk) > 0;
-            if sat_clk
-                i_sat_clk_tmp = idx_reduce_sat_clk(~idx_reduce_iono);
-                n_clk_sat = sum(i_sat_clk_tmp);
-                cp = class_par( ~idx_reduce_iono);
-                idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK;
-                idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                iSatClk = Core_Utils.inverseByPartsDiag(N(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
-                Nx_satclk = N(~i_sat_clk_tmp, i_sat_clk_tmp);
-                Nt = Nx_satclk * iSatClk;
-                N = N(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt * N(i_sat_clk_tmp, ~i_sat_clk_tmp);
-                B_satclk =  B(i_sat_clk_tmp);
-                B = B(~i_sat_clk_tmp) - Nt * B_satclk;
-            end
-            
             rec_clk = sum(idx_reduce_rec_clk) > 0;
-            if rec_clk
-                i_rec_clk_tmp = idx_reduce_rec_clk(~idx_reduce_iono & ~idx_reduce_sat_clk);
-                if n_rec > 1
-                    rp = rec_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
-                    cp = class_par( ~idx_reduce_sat_clk &  ~idx_reduce_iono);
+
+            cross_terms = {};
+            ii  = 1;
+            for i = 0 : step : floor(max_ep / step) * step % sparse matrix library became very slow in case of big/huge matrix the reduction can be applyed dividing the matrices in parts
+                idx_time_obs = ref_time_obs >= i &  ref_time_obs < (i + step);
+                idx_time_par_red = time_par_red >= i &  time_par_red < (i + step);
+                idx_red_cycle = idx_reduce;
+                idx_red_cycle(idx_red_cycle) = idx_time_par_red;
+                
+                cp_cycle = class_par(idx_red_cycle);
+                rp_cycle = rec_par(idx_red_cycle);
+     
+                idx_reduce_cycle_sat_clk = cp_cycle == this.PAR_SAT_CLK | cp_cycle == this.PAR_SAT_CLK_PH | cp_cycle == this.PAR_SAT_CLK_PR;
+                idx_reduce_cycle_rec_clk = cp_cycle == this.PAR_REC_CLK | cp_cycle == this.PAR_REC_CLK_PH | cp_cycle == this.PAR_REC_CLK_PR;
+                idx_reduce_cycle_iono = cp_cycle == this.PAR_IONO;
+                
+                
+                
+                
+                Awr_t = Aw( idx_red_cycle, idx_time_obs);
+                Ar_t = A(idx_time_obs, idx_red_cycle);
+                Ae_t = A(idx_time_obs, ~idx_reduce);
+                y_t = y(idx_time_obs);
+                
+                Nr_t = Awr_t*Ar_t;
+                Br_t = Awr_t*y_t;
+                
+                Ner_t = Awr_t*Ae_t;
+                
+                if iono
+                    n_iono = sum(idx_reduce_cycle_iono);
+                    iIono = spdiags(1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono)),0,n_iono,n_iono);
+                    Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
+                    Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
+                    Nt = Nx_iono' * iIono;
+                    Nt_cycle = Nx_iono_cycle * iIono;
+                    N = N - Nt * Nx_iono;
+                    Nr_t = Nr_t(~idx_reduce_cycle_iono,~idx_reduce_cycle_iono) - Nt_cycle * Nr_t(idx_reduce_cycle_iono,~idx_reduce_cycle_iono);
+                    Ner_t(~idx_reduce_cycle_iono, :) = Ner_t(~idx_reduce_cycle_iono, :) - Nt_cycle*Nx_iono;
+                    Ner_t(idx_reduce_cycle_iono, :) = [];
+
+                    B_iono = Br_t(idx_reduce_cycle_iono);
+                    B = B - Nt * B_iono;
+                    Br_t = Br_t(~idx_reduce_cycle_iono) - Nt_cycle*B_iono;
                     
-                    indices = {};
-                    for r = 2 : n_rec
-                        indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
-                        indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
-                    end
-                    iRecClk = Core_Utils.inverseByRecPartsDiag(N(i_rec_clk_tmp,i_rec_clk_tmp),indices);
-                else
-                    iRecClk = inv(N(i_rec_clk_tmp,i_rec_clk_tmp));
+                    cross_terms_t{1} = {iIono B_iono [Nx_iono Nx_iono_cycle'] idx_reduce_cycle_iono};
                 end
-                Nx_recclk = N(~i_rec_clk_tmp, i_rec_clk_tmp);
-                Nt = Nx_recclk * iRecClk;
-                N = N(~i_rec_clk_tmp, ~i_rec_clk_tmp) - Nt * N(i_rec_clk_tmp, ~i_rec_clk_tmp);
-                B_recclk = B(i_rec_clk_tmp);
-                B = B(~i_rec_clk_tmp) - Nt * B_recclk;
+                
+                if sat_clk
+                    i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
+                    cp = cp_cycle( ~idx_reduce_cycle_iono);
+                    idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK;
+                    idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
+                    iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                    Nx_satclk = Ner_t(i_sat_clk_tmp, :);
+                    Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
+                    
+                    Nt = Nx_satclk' * iSatClk;
+                    Nt_cycle = Nx_satclk_cyle * iSatClk;
+                    idx_full = sum(Nx_satclk~=0,1) >0;
+                    
+                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt(idx_full,:)) * full(Nx_satclk(:,idx_full)));
+                    Nr_t = Nr_t(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt_cycle * Nr_t(i_sat_clk_tmp, ~i_sat_clk_tmp);
+                    Ner_t(~i_sat_clk_tmp, :) = Ner_t(~i_sat_clk_tmp, :) - Nt_cycle*Nx_satclk;
+                    Ner_t(i_sat_clk_tmp, :) = [];
+                    
+                    
+                    B_satclk =  Br_t(i_sat_clk_tmp);
+                    B = B - Nt * B_satclk;
+                    Br_t = Br_t(~i_sat_clk_tmp) - Nt_cycle * B_satclk;
+                    
+                    cross_terms_t{2} = {iSatClk B_satclk [Nx_satclk Nx_satclk_cyle'] idx_reduce_cycle_sat_clk};
+                    
+                end
+                
+                if rec_clk
+                    i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
+                    if n_rec > 1
+                        rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
+                        cp = cp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
+                        
+                        indices = {};
+                        for r = 2 : n_rec
+                            indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
+                            indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
+                        end
+                        iRecClk = Core_Utils.inverseByRecPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                    else
+                        iRecClk = inv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp));
+                    end
+                    
+                    Nx_recclk = Ner_t(i_rec_clk_tmp, :);
+
+                    Nt = Nx_recclk' * iRecClk;
+                    idx_full = sum(Nx_recclk~=0,1) >0;
+                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt(idx_full,:)) * full(Nx_recclk(:,idx_full)));
+                    
+                    B_recclk = Br_t(i_rec_clk_tmp);
+                    B = B - Nt * B_recclk;
+                    
+                    cross_terms_t{3} = {iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk};
+                end
+                cross_terms{ii} = {cross_terms_t idx_red_cycle}; 
+               ii = ii +1;
             end
-            
             
             % ------- fix the ambiguities
-            % solve the ambiguoties rank deficencies using lagrange multiplier
             
-            if sum(this.param_class == this.PAR_AMB) > 0 && fix
+             if sum(this.param_class == this.PAR_AMB) > 0 && fix
                 % get the ambiguity inverse matrxi
                 idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
                 if any(idx_amb)
@@ -2205,13 +2293,13 @@ classdef LS_Manipulator_new < handle
                     %rm_id_b_o = rm_id_b;
                     %                         rm_id_b = P*rm_id_b;
                     %                         P = P(~rm_id_b_o, ~rm_id_b_o);
-                    C_bb = sparse(sum(~idx_amb),sum(~idx_amb));
-                    C_bb(p(~rm_id_b),p(~rm_id_b)) = iL'*iD*iL;
+                    C_bb = zeros(sum(~idx_amb),sum(~idx_amb));
+                    C_bb(p(~rm_id_b),p(~rm_id_b)) = full(iL'*iD)*full(iL);
                     %                         Nbb = N(~idx_amb, ~idx_amb);
                     %                         C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
                     %                         %Bbb =  B(~idx_amb);
-                    BB = N(idx_amb,idx_b )*C_bb;
-                    N_amb_amb = N(idx_amb, idx_amb) - BB*N(idx_b, idx_amb);
+                    BB = full(N(idx_amb,idx_b ))*C_bb;
+                    N_amb_amb = N(idx_amb, idx_amb) - sparse(BB*full(N(idx_b, idx_amb)));
                     B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
                     %amb_float = C_amb_amb * Baa(~rm_id);
                     
@@ -2240,18 +2328,44 @@ classdef LS_Manipulator_new < handle
                     % flost solution
                     iL = inv(L(~rm_id,~rm_id));
                     iD = inv(D(~rm_id,~rm_id));
-                    C_amb_amb = iL'*iD*iL;
-                    amb_float = C_amb_amb * Baa(~rm_id);
+                    C_amb_amb = full(iL'*iD)*full(iL);
+                    Baa = Baa(~rm_id);
+                    amb_float = C_amb_amb * Baa;
                     
                     
                     % try to fix
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_float), full(C_amb_amb), 'lambda_ILS' );
+                    
+                    % fix by receiver
+                    ra = rec_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
+                    ra = int16(P'*double(ra(idx_amb)));
+                    ra(rm_id) = [];
+                    not_rm_id = ~Core_Utils.ordinal2logical(rm_id,size(N_amb_amb,1));
                     ambs = zeros(size(N_amb_amb,1),1);
-                    if is_fixed
-                        ambs(rm_id==0) = amb_fixed(:,1);
-                    else
-                        ambs(rm_id==0) = amb_float;
+
+                    for r = n_rec : -2 : 1
+                        if r ~= 1
+                        rec_amb_id = ra == r | ra == (r-1);
+                        else
+                            rec_amb_id = ra == r;
+                        end
+                            
+                        if sum(rec_amb_id) > 0
+                            amb_rec = amb_float(rec_amb_id);
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_rec), full(C_amb_amb(rec_amb_id,rec_amb_id)), 'lambda_ILS' );
+                            rec_amb_id_fix = rec_amb_id;
+                            rec_amb_id_fix(rec_amb_id_fix) = l_fixed(:,1);
+                            if is_fixed 
+                                amb_rec(l_fixed(:,1)) = amb_fixed(l_fixed(:,1),1);
+                                iaa = inv(C_amb_amb(rec_amb_id_fix,rec_amb_id_fix));
+                                 C_amb_amb(~rec_amb_id,~rec_amb_id) = C_amb_amb(~rec_amb_id,~rec_amb_id) - C_amb_amb(~rec_amb_id,rec_amb_id_fix)*iaa*C_amb_amb(rec_amb_id_fix,~rec_amb_id);
+                                 amb_float(~rec_amb_id) = amb_float(~rec_amb_id) - C_amb_amb(~rec_amb_id,rec_amb_id_fix)*iaa*(amb_float(rec_amb_id_fix) - amb_rec(l_fixed(:,1)));
+                            end
+                            rec_amb_id_fix = not_rm_id;
+                            rec_amb_id_fix(not_rm_id) = rec_amb_id;
+                            ambs(rec_amb_id_fix) = amb_rec;
+                        end
                     end
+                    
                     ambs = P*ambs;
                     
                     B(idx_b) = B(idx_b) -  N(idx_b,idx_amb)*ambs;
@@ -2265,34 +2379,55 @@ classdef LS_Manipulator_new < handle
             else
                 x_reduced = N\B;
             end
-            
             % ------- substitute back
+            ii = 1;
             x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
-            
-            % receiver clock
-            if rec_clk
-                B_recclk = B_recclk - sum(Nx_recclk' * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
-                x_rec_clk = iRecClk * B_recclk;
-                x_est(idx_reduce_rec_clk) = x_rec_clk;
+            for i = 0 : step : floor(max_ep / step) * step
+                % receiver clock
+                if rec_clk
+                    B_recclk = cross_terms{ii}{1}{3}{2};
+                    Nx_recclk = cross_terms{ii}{1}{3}{3};
+                    iRecClk = cross_terms{ii}{1}{3}{1};
+                    idx_reduce_cycle_rec_clk = cross_terms{ii}{2};
+                    idx_reduce_cycle_rec_clk(idx_reduce_cycle_rec_clk) = cross_terms{ii}{1}{3}{4};
+                    B_recclk = B_recclk - sum(Nx_recclk * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
+                    x_rec_clk = iRecClk * B_recclk;
+                    x_est(idx_reduce_cycle_rec_clk) = x_rec_clk;
+                end
+                
+                % satellite clcok
+                if sat_clk
+                    B_satclk = cross_terms{ii}{1}{2}{2};
+                    Nx_satclk = cross_terms{ii}{1}{2}{3};
+                    iSatClk = cross_terms{ii}{1}{2}{1};
+                    idx_reduce_cycle_sat_clk = cross_terms{ii}{2};
+                    idx_reduce_cycle_sat_clk(idx_reduce_cycle_sat_clk) = cross_terms{ii}{1}{2}{4};
+                    idx_est1 = ~idx_reduce ;
+                    idx_est2 = idx_reduce_cycle_rec_clk;
+                    n_est = sum(idx_est1) + sum(idx_est2);
+                    B_satclk = B_satclk -   sum(Nx_satclk * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
+                    x_sat_clk = iSatClk * B_satclk;
+                    x_est(idx_reduce_cycle_sat_clk) = x_sat_clk;
+                end
+                
+                % iono
+                if iono
+                    B_iono = cross_terms{ii}{1}{1}{2};
+                    Nx_iono = cross_terms{ii}{1}{1}{3};
+                    iIono = cross_terms{ii}{1}{1}{1};
+                    idx_reduce_cycle_iono = cross_terms{ii}{2};
+                    idx_reduce_cycle_iono(idx_reduce_cycle_iono) = cross_terms{ii}{1}{1}{4};
+                    idx_est1 = ~idx_reduce ;
+                    idx_est2 = idx_reduce_cycle_rec_clk | idx_reduce_cycle_sat_clk;
+                    n_est = sum(idx_est1) + sum(idx_est2);
+                    B_iono = B_iono -   sum(Nx_iono * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
+                    x_iono = iIono * B_iono;
+                    x_est(idx_reduce_cycle_iono) = x_iono;
+                end
+                ii = ii + 1;
             end
             
-            % satellite clcok
-            if sat_clk
-                n_sat_clk = size(B_recclk,1);
-                idx_est = ~ idx_reduce_iono & ~idx_reduce_sat_clk ;
-                B_satclk = B_satclk -   sum(Nx_satclk' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
-                x_sat_clk = iSatClk * B_satclk;
-                x_est(idx_reduce_sat_clk) = x_sat_clk;
-            end
             
-            % iono
-            if iono
-                n_iono = size(B_iono,1);
-                idx_est = ~ idx_reduce_iono;
-                B_iono = B_iono -   sum(Nx_iono' * spdiags(x_est(idx_est),0,sum(idx_est),sum(idx_est)),2);
-                x_iono = iIono * B_iono;
-                x_est(idx_reduce_iono) = x_iono;
-            end
             x = zeros(n_par,1);
             idx_est = true(n_par,1);
             idx_est([this.idx_rd ; find(this.out_par)]) = false;
