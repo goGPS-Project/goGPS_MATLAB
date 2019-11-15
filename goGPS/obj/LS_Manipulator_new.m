@@ -2117,8 +2117,6 @@ classdef LS_Manipulator_new < handle
             y = sparse([this.obs(~this.outlier_obs); zeros(size(this.A_pseudo,1),1)]);
 
             Aw = A'*Cyy;
-            N = Aw*A;
-            B = Aw*y;
             
             %clearvars Aw
             % ------ reduce for sat clock, rec clock and iono
@@ -2195,19 +2193,19 @@ classdef LS_Manipulator_new < handle
                     iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                     Nx_satclk = Ner_t(i_sat_clk_tmp, :);
                     Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
-                    
-                    Nt = Nx_satclk' * iSatClk;
-                    Nt_cycle = Nx_satclk_cyle * iSatClk;
                     idx_full = sum(Nx_satclk~=0,1) >0;
+
+                    Nt = Nx_satclk(:,idx_full)' * iSatClk;
+                    Nt_cycle = Nx_satclk_cyle * iSatClk;
                     
-                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt(idx_full,:)) * full(Nx_satclk(:,idx_full)));
+                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_satclk(:,idx_full)));
                     Nr_t = Nr_t(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt_cycle * Nr_t(i_sat_clk_tmp, ~i_sat_clk_tmp);
                     Ner_t(~i_sat_clk_tmp, :) = Ner_t(~i_sat_clk_tmp, :) - Nt_cycle*Nx_satclk;
                     Ner_t(i_sat_clk_tmp, :) = [];
                     
                     
                     B_satclk =  Br_t(i_sat_clk_tmp);
-                    B = B - Nt * B_satclk;
+                    B(idx_full) = B(idx_full) - Nt * B_satclk;
                     Br_t = Br_t(~i_sat_clk_tmp) - Nt_cycle * B_satclk;
                     
                     cross_terms_t{2} = {iSatClk B_satclk [Nx_satclk Nx_satclk_cyle'] idx_reduce_cycle_sat_clk};
@@ -2216,7 +2214,7 @@ classdef LS_Manipulator_new < handle
                 
                 if rec_clk
                     i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
-                    if n_rec > 1
+                    if n_rec > 1 
                         rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
                         cp = cp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
                         
@@ -2232,12 +2230,12 @@ classdef LS_Manipulator_new < handle
                     
                     Nx_recclk = Ner_t(i_rec_clk_tmp, :);
 
-                    Nt = Nx_recclk' * iRecClk;
+                    Nt = Nx_recclk(:,idx_full)' * iRecClk;
                     idx_full = sum(Nx_recclk~=0,1) >0;
-                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt(idx_full,:)) * full(Nx_recclk(:,idx_full)));
+                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_recclk(:,idx_full)));
                     
                     B_recclk = Br_t(i_rec_clk_tmp);
-                    B = B - Nt * B_recclk;
+                    B(idx_full) = B(idx_full) - Nt * B_recclk;
                     
                     cross_terms_t{3} = {iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk};
                 end
