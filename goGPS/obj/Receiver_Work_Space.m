@@ -9138,7 +9138,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     else
                         % update azimuth elevation
                         this.updateAzimuthElevation();
-                        %this.remUnderCutOff();
+                        this.remUnderCutOff();
                         this.setAvIdx2Visibility();
                         this.meteo_data = [];
                         this.importMeteoData(); % now with more precise coordinates
