@@ -8702,7 +8702,10 @@ classdef Receiver_Work_Space < Receiver_Commons
 
             id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
             if nargin < 5
-                if any(id_ko)
+                % loop if:
+                %  - there are big outliers > 3 times the thr
+                %  - outliers + (s0 > 1)
+                if any(abs(ls.res) > 3 * Core.getState.getMaxCodeErrThrPP) || (any(id_ko) && (s0 > 1))
                     num_reweight = 4;
                 else
                     num_reweight = 0;                    
@@ -8717,12 +8720,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             cc = Core.getConstellationCollector;
             % REWEIGHT ON RESIDUALS
             for i = 1 : num_reweight
-                ls.reweightHuber();
+                flag_recompute = false;
                 if i == num_reweight - 1
                     id_ko = abs(ls.res) > 2 * Core.getState.getMaxCodeErrThrPP;
                     % snoopGatt cannot be used in this way, arcs should be splitted
                     %id_ko = Core_Utils.snoopGatt(ls.res, 2 * Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP);
                     if any(~id_ko)
+                        flag_recompute = true;
                         ls.remObs(id_ko);
                     end
                 elseif i == num_reweight
@@ -8730,12 +8734,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % snoopGatt cannot be used in this way, arcs should be splitted
                     %id_ko = Core_Utils.snoopGatt(ls.res, Core.getState.getMaxCodeErrThrPP, Core.getState.getMaxCodeErrThrPP/2);
                     if any(~id_ko)
+                        flag_recompute = true;
                         ls.remObs(id_ko);
                     end
+                else
+                    flag_recompute = true;
+                    ls.reweightHuber();
                 end
-                ls.Astack2Nstack();
-                [x, res, s0] = ls.solve();
-                log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (iteration)', s0)));
+                if flag_recompute
+                    ls.Astack2Nstack();
+                    [x, res, s0] = ls.solve();
+                    log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (iteration)', s0)));
+                else
+                    log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (iteration skipped)', s0)));
+                end
             end
             
             if isempty(x)

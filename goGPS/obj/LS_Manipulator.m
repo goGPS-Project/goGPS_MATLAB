@@ -2004,7 +2004,7 @@ classdef LS_Manipulator < Exportable
                     x_res(N2A_idx) = x(1:end-size(this.G,1));
                 end
                 if sum(isnan(x_res)) ==0
-                    [res,av_res] = this.getResiduals(x_res);
+                    [res, av_res] = this.getResiduals(x_res);
                     s0 = mean(abs(res(res~=0)));
                 else
                     res = [];
