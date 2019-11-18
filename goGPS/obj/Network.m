@@ -65,6 +65,8 @@ classdef Network < handle
         tropo_idx        % index of the splien tropo
         tropo_g_idx      % index fo the spline tropo gradient
         sat_wb           % staellite widelane biases
+        rec_eb           % electronic bias of the receiver
+        sat_eb           % electronic bias of the satellites
         
         apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
@@ -894,7 +896,7 @@ classdef Network < handle
                 else
                     this.coo(i,:) = nan2zero(this.coo(i,:));
                 end
-                idx_clk = ls.class_par == LS_Manipulator.PAR_REC_CLK & idx_rec;
+                idx_clk = ls.class_par == LS_Manipulator_new.PAR_REC_CLK & idx_rec;
                 clk = ls.x(idx_clk);
                 time_clk = ls.time_par(idx_clk);
                 [~,idx_time_clk] = ismember(time_clk, this.common_time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
@@ -902,7 +904,7 @@ classdef Network < handle
                 
                 if this.state.flag_tropo
                     if this.state.spline_rate_tropo ~= 0 && this.state.spline_tropo_order > 0
-                        idx_trp = ls.class_par == LS_Manipulator.PAR_TROPO & idx_rec;
+                        idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         tropo = ls.x(idx_trp);
                         tropo_dt = rem(this.common_time.getNominalTime - ls.getTimePar(idx_trp).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
                         tropo_idx = floor((this.common_time.getNominalTime - ls.getTimePar(idx_trp).minimum)/this.state.spline_rate_tropo);
@@ -915,7 +917,7 @@ classdef Network < handle
                         ztd = sum(spline_base.*tropo(repmat(tropo_idx,1,this.state.spline_tropo_order+1)+repmat((0:this.state.spline_tropo_order),numel(tropo_idx),1)),2);
                         this.ztd(:,i) = nan2zero(this.ztd(:,i))  + ztd;
                     else
-                        idx_trp = ls.class_par == LS_Manipulator.PAR_TROPO & idx_rec;
+                        idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         tropo = ls.x(idx_trp);
                         time_tropo = ls.time_par(idx_trp);
                         [~,idx_time_tropo] = ismember(time_tropo, this.common_time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
@@ -925,9 +927,9 @@ classdef Network < handle
                 
                 if this.state.flag_tropo_gradient
                     if this.state.spline_rate_tropo_gradient ~= 0 && this.state.spline_tropo_gradient_order > 0
-                        idx_trp_n = ls.class_par == LS_Manipulator.PAR_TROPO & idx_rec;
+                        idx_trp_n = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         tropo_n = ls.x(idx_trp_n);
-                        idx_trp_e = ls.class_par == LS_Manipulator.PAR_TROPO & idx_rec;
+                        idx_trp_e = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         
                         tropo_e = ls.x(idx_trp_e);
                         tropo_dt = rem(this.common_time.getNominalTime - ls.getTimePar(idx_trp_n).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
@@ -941,19 +943,21 @@ classdef Network < handle
                         this.ztd_gn(:,i) = nan2zero(this.ztd_gn(:,i))  + tropo_n;
                         this.ztd_ge(:,i) = nan2zero(this.ztd_ge(:,i))  + tropo_e;
                     else
-                        idx_tropo_n = ls.class_par == LS_Manipulator.PAR_TROPO_N & idx_rec;
+                        idx_tropo_n = ls.class_par == LS_Manipulator_new.PAR_TROPO_N & idx_rec;
                         tropo_n = ls.x(idx_tropo_n);
                         time_tropo_n = ls.time_par(idx_tropo_n);
                         [~,idx_time_tropo_n] = ismember(time_tropo_n, this.common_time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
                         this.ztd_gn(idx_time_tropo_n,i) = nan2zero(this.clock(idx_time_tropo_n,i)) + tropo_n;
                         
-                        idx_tropo_e = ls.class_par == LS_Manipulator.PAR_TROPO_E & idx_rec;
+                        idx_tropo_e = ls.class_par == LS_Manipulator_new.PAR_TROPO_E & idx_rec;
                         tropo_e = ls.x(idx_tropo_e);
                         time_tropo_e = ls.time_par(idx_tropo_e);
                         [~,idx_time_tropo_e] = ismember(time_tropo_e, this.common_time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
                         this.ztd_ge(idx_time_tropo_e,i) = nan2zero(this.clock(idx_time_tropo_e,i)) + tropo_n;
                     end
                 end
+                
+                
             end
         end
         
@@ -1256,7 +1260,11 @@ classdef Network < handle
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
                 this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
+                
             end
+            
+            
+            
         end
         
         function pushBackInReceiverNew(this,ls)
@@ -1307,30 +1315,75 @@ classdef Network < handle
                 
                 % residual
                 idx_rec = find( ls.receiver_obs == i);
-%                 % save phase residuals
-                    idx_ph = find(this.rec_list(i).work.obs_code(:,1) == 'L');
-                    this.rec_list(i).work.sat.res_ph_by_ph = nan(this.rec_list(i).work.time.length, length(idx_ph));
-                    for j = 1 : length(idx_ph)
-                        ip = idx_ph(j);
-                        id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
-                        if any(idx_res)
-                            [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
-                            this.rec_list(i).work.sat.res_ph_by_ph(idx_time,j) = ls.res(idx_res);
+                %                 % save phase residuals
+                idx_ph = find(this.rec_list(i).work.obs_code(:,1) == 'L');
+                this.rec_list(i).work.sat.res_ph_by_ph = nan(this.rec_list(i).work.time.length, length(idx_ph));
+                for j = 1 : length(idx_ph)
+                    ip = idx_ph(j);
+                    id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
+                    idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
+                    if any(idx_res)
+                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                        this.rec_list(i).work.sat.res_ph_by_ph(idx_time,j) = ls.res(idx_res);
+                    end
+                end
+                % save phase residuals
+                idx_pr = find(this.rec_list(i).work.obs_code(:,1) == 'C');
+                this.rec_list(i).work.sat.res_pr_by_pr = nan(this.rec_list(i).work.time.length, length(idx_ph));
+                for j = 1 : length(idx_pr)
+                    ip = idx_pr(j);
+                    id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
+                    idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
+                    if any(idx_res)
+                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                        this.rec_list(i).work.sat.res_pr_by_pr(idx_time,j) = ls.res(idx_res);
+                    end
+                end
+                % push back electronic bias
+                if sum(ls.class_par == LS_Manipulator_new.PAR_REC_EB) > 0
+                    idx_eb = find(ls.class_par == LS_Manipulator_new.PAR_REC_EB & ls.rec_par == i);
+                    for ii = idx_eb'
+                        o_code = ls.unique_obs_codes{ls.obs_codes_id_par(ii)};
+                        data = ls.x(ii);
+                        this.rec_list(i).work.tracking_bias{ii} = Electronic_Bias(o_code,data);
+                    end
+                end
+            end
+            if sum(ls.param_class == LS_Manipulator_new.PAR_SAT_EB) > 0
+                cs = Core.getCoreSky();
+                n_sat = max(ls.sat_par);
+                for s = 1 : n_sat
+                    idx_eb = find(ls.class_par == LS_Manipulator_new.PAR_SAT_EB & ls.sat_par == s);
+                    for ii = idx_eb'
+                        if sum(ls.class_par == LS_Manipulator_new.PAR_SAT_EBFR) > 0
+                            wl_id = ls.wl_id_par(ii);
+                            eb_fr_id = find(ls.class_par == LS_Manipulator_new.PAR_SAT_EBFR & ls.wl_id_par == wl_id & ls.sat_par == s);
+                            o_code = ls.unique_obs_codes{ls.obs_codes_id_par(ii)};
+                            data = ls.x(eb_fr_id) + ls.x(ii);
+                            time_data = ls.getTimePar(eb_fr_id);
+                            time_data_min = time_data.minimum;
+                            ref_time = time_data.getRefTime(time_data_min.getMatlabTime);
+                            % time_apr has to be sampled regualarly
+                            time_data_final = 0 : time_data.getRate : (time_data.maximum - time_data_min);
+                            [~,iii] = ismembertol(ref_time,time_data_final, 1e-7);
+                            iii = Core_Utils.ordinal2logical(iii,length(time_data_final));
+                            data_final = zeros(size(time_data_final));
+                            data_final(iii) = data;
+                            not_fill = find(~iii);
+                            iii = find(iii);
+                            for nn = not_fill'
+                                [~,i_dist ]= min(abs(nn - iii));
+                                data_final(nn) = data_final(iii(i_dist));
+                            end
+                            prm  = ls.ls_parametrization.getParametrization(LS_Manipulator_new.PAR_SAT_EBFR);
+                            cs.tracking_bias{s}{ii} = Electronic_Bias(o_code, data_final, time_data_final, prm);
+                        else
+                            o_code = ls.unique_obs_codes{ls.obs_codes_id_par(ii)};
+                            data = ls.x(ii);
+                            cs.tracking_bias{s}{ii} = Electronic_Bias(o_code, data);
                         end
                     end
-                    % save phase residuals
-                    idx_pr = find(this.rec_list(i).work.obs_code(:,1) == 'C');
-                    this.rec_list(i).work.sat.res_pr_by_pr = nan(this.rec_list(i).work.time.length, length(idx_ph));
-                    for j = 1 : length(idx_pr)
-                        ip = idx_pr(j);
-                        id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
-                        if any(idx_res)
-                            [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
-                            this.rec_list(i).work.sat.res_pr_by_pr(idx_time,j) = ls.res(idx_res);
-                        end
-                    end
+                end
             end
         end
         

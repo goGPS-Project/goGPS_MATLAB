@@ -66,7 +66,7 @@ classdef Electronic_Bias < handle
             elseif nargin == 3
                 this.type = this.SPLINE_LIN;
             elseif nargin == 4
-                this.type = type
+                this.type = type;
                 this.time_data = time_data;
             end
         end

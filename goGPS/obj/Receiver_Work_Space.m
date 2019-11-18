@@ -121,6 +121,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         flag_currupted = false;
         residual_std_iono = 5; % std of the ionpsheric residual error
+        
+        tracking_bias 
+        
     end
     % ==================================================================================================================================================
     %% PROPERTIES POSITION
