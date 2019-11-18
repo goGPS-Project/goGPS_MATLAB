@@ -1023,10 +1023,11 @@ classdef Core_Utils < handle
         function str2 = num2Code2Char(num)
             % Convert a numeric value (float) of a 2 char string
             % SYNTAX
-            %   str3 = Core_Utils.num2Code3ch(num)
+            %   str2 = Core_Utils.num2Code2ch(num)
+            num = double(num);
             str2 = char(zeros(numel(num), 2));
             str2(:,1) = char(floor(num / 2^8));
-            num = num - str2(:,2) * 2^8;
+            num = num - str2(:,1) * 2^8;
             str2(:,2) = char(num);
         end
         
