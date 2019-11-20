@@ -635,9 +635,9 @@ classdef Network < handle
                     
                 end
                 this.common_time = ls.unique_time;
-                ls.solve(Core.getState.net_amb_fix_approach >0);
+                ls.solve(Core.getState.net_amb_fix_approach >1);
                 ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
-                ls.solve(Core.getState.net_amb_fix_approach >0);                
+                ls.solve(Core.getState.net_amb_fix_approach >1);                
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
                     % initialize array for results
