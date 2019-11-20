@@ -3529,16 +3529,19 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function is_fixed = isFixed(this)
-            is_fixed = this.rf.isFixed(this.parent.getMarkerName4Ch);
+            rf = Core.getReferenceFrame;
+            is_fixed = rf.isFixed(this.parent.getMarkerName4Ch);
         end
         
         function is_fixed = hasGoodApriori(this)
             % this is meant to skip any positionin based on code and estimate the postionon only in PPP or network phase adjutsment
-            is_fixed = this.rf.hasGoodAPriori(this.parent.getMarkerName4Ch);
+            rf = Core.getReferenceFrame;
+            is_fixed = rf.hasGoodAPriori(this.parent.getMarkerName4Ch);
         end
         
         function has_apr = hasAPriori(this)
-            has_apr = this.rf.hasAPriori(this.parent.getMarkerName4Ch);
+            rf = Core.getReferenceFrame;
+            has_apr = rf.hasAPriori(this.parent.getMarkerName4Ch);
         end
         
         function has_ph = hasPhases(this)
@@ -8459,6 +8462,8 @@ classdef Receiver_Work_Space < Receiver_Commons
 
                     corr = 2000;
                     rf_changed = false;
+                   
+
                     if ~this.hasGoodApriori()
                         this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                         %                 %----- NEXUS DEBUG
@@ -8466,7 +8471,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         %                 this.codeStaticPositioning(this.id_sync, 15);
                         %------
                     else
-                       % Outlier detection on code
+                       % Outlier detection on code , the purtpose of this
+                       % block of code is to verify wether the position
+                       % provided is really a good one
                        if Core.getState.isOutlierRejectionOn
                            %% This happens when bad orbits are provided (e.g. interpolated missing data)
                            [pr , id_pr] = this.getPseudoRanges;

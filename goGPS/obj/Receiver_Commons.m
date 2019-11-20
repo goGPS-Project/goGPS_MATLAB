@@ -119,7 +119,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         log                                    % handle to log
-        rf                                     % handle to reference farme
+        %rf                                     % handle to reference farme
     end
     
     % ==================================================================================================================================================
@@ -131,14 +131,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function clearHandles(this)
             this.log = [];
             this.state = [];
-            this.rf = [];
             this.w_bar = [];
         end
         
         function initHandles(this)
             this.log = Core.getLogger();
             this.state = Core.getState();
-            this.rf = Core.getReferenceFrame();
             this.w_bar = Go_Wait_Bar.getInstance();
         end
         
