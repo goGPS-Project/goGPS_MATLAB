@@ -1361,7 +1361,11 @@ classdef LS_Manipulator_new < handle
                     if any(idx_par)
                         bnd_par  = this.obs_codes_id_par(idx_par);
                         for bb = 1 : length(bnd_par)
-                            bnd_par(bb) = this.unique_obs_codes_band(this.ch_set{iif(bnd_par(bb) < 0,-bnd_par(bb),bnd_par(bb))}(1));
+                            if bnd_par(bb) < 0
+                                bnd_par(bb) = this.unique_obs_codes_band(this.ch_set{-bnd_par(bb)}(1));
+                            else
+                                 bnd_par(bb) = this.unique_obs_codes_band(bnd_par(bb));
+                            end
                         end
                         if sum(this.param_class == this.PAR_SAT_CLK) > 0
                             if sum(bnd_par == bnd(1)) > 0
@@ -2229,9 +2233,9 @@ classdef LS_Manipulator_new < handle
                     end
                     
                     Nx_recclk = Ner_t(i_rec_clk_tmp, :);
+                    idx_full = sum(Nx_recclk~=0,1) >0;
 
                     Nt = Nx_recclk(:,idx_full)' * iRecClk;
-                    idx_full = sum(Nx_recclk~=0,1) >0;
                     N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_recclk(:,idx_full)));
                     
                     B_recclk = Br_t(i_rec_clk_tmp);
