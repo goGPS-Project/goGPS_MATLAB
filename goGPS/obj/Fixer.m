@@ -148,6 +148,7 @@ classdef Fixer < handle
                     [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 5, 'P0', 0.995, 'mu', this.mu);
                     is_fixed = true;
                     l_fixed   = amb_ok;
+                    l_fixed(l_fixed) = abs(fracFNI(tmp_amb_fixed(:,1))) < 1e-9;
                     amb_fixed(amb_ok, 1) = tmp_amb_fixed(:,1);
 
                 case {'bayesian_with_monte_carlo'}
