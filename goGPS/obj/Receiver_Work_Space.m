@@ -4413,6 +4413,26 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
         
+        function [res_ph, wl, id_ph] = getResPhases(this, sys_c, freq_c)
+            % get the phases residual observations in meter (not cycles)
+            % SYNTAX [ph, wl, id_ph] = this.getResPhases(<sys_c>, <freq_c>)
+            % SEE ALSO: 
+            idx_ph_all = find(this.obs_code(:, 1) == 'L');
+            if nargin > 2
+                id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
+            else
+                id_ph = this.obs_code(:, 1) == 'L';
+            end
+            
+            if (nargin == 2) && ~isempty(sys_c)
+                id_ph = id_ph & (this.system == sys_c)';
+            end
+            wl = this.wl(id_ph);
+            [~,idx_ph_ph] = intersect(find(id_ph),idx_ph_all);
+            res_ph = this.sat.res_ph_by_ph(:, idx_ph_ph);
+            
+        end
+        
         function [obs_set] = getObsSet(this, flag, sys_c, prn)
             % get observation set corrspondiung to the requested
             % observation
@@ -4477,16 +4497,39 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [pr, id_pr] = getPseudoRanges(this, sys_c)
+        function [pr, id_pr] = getPseudoRanges(this, sys_c, freq_c)
             % get the pseudo ranges observations in meter (not cycles)
-            % SYNTAX [pr, id_pr] = this.getPseudoRanges(<sys_c>)
+            % SYNTAX [pr, id_pr] = this.getPseudoRanges(<sys_c>, <freq_c>)
             % SEE ALSO: getPhases setPhases setPseudoRanges
-            
-            id_pr = this.obs_code(:, 1) == 'C';
+            if nargin > 2
+                id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c;
+            else
+                id_pr = this.obs_code(:, 1) == 'C';
+            end
             if (nargin == 2)
                 id_pr = id_pr & ismember(this.system, sys_c)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
+        end
+        
+        function [res_pr, id_pr] = getResPseudoRanges(this, sys_c, freq_c)
+            % get the phases residual observations in meter (not cycles)
+            % SYNTAX [ph, wl, id_pr] = this.getResPseudoRanges(<sys_c>, <freq_c>)
+            % SEE ALSO: 
+            idx_pr_all = find(this.obs_code(:, 1) == 'C');
+            if nargin > 2
+                id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c;
+            else
+                id_pr = this.obs_code(:, 1) == 'C';
+            end
+            
+            if (nargin == 2) && ~isempty(sys_c)
+                id_pr = id_pr & (this.system == sys_c)';
+            end
+            wl = this.wl(id_pr);
+            [~,idx_pr_pr] = intersect(find(id_pr),idx_pr_all);
+            res_pr = this.sat.res_pr_by_pr(:, idx_pr_pr);
+            
         end
         
         function [dop, wl, id_dop] = getDoppler(this, sys_c)
