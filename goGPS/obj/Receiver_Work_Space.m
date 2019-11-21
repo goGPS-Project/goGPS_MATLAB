@@ -7508,8 +7508,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.oceanLoading(-1);
                 this.ol_delay_status = 0; %not applied
             end
-        end
-        
+        end                
         
         
         function [ocean_load_corr] = computeOceanLoading(this, sat) % WARNING: to be tested
@@ -8245,6 +8244,131 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.applyOceanLoading();
             this.applyHOI();
             this.applyAtmload();
+        end
+        
+        
+        
+        function [zmap_err, pr_ko] = getZernicheCodeWeights(this, l_max, m_max, std_thr_offset, flag_debug)
+            % This function try to estimate the map of noise level of the code observations,
+            % it works best on multi-tracking receivers.
+            % The procedure is the following
+            %  1) take pr
+            %  2) reduce it by synthesised pseudo-ranges
+            %  3) reduce sat by sat by the commond part among all observables (smoothed with 10 min spline)
+            %  4) use a movstd with a span of about 15 minutes
+            %  5) disregard a border of 5 epoch (border effect of the moving window)
+            %  6) analyse data estimating zernike polynomials 
+            %  7) flag everything above the map of more than "std_thr_offset"
+            %  8) re-perform analysis if needed (this will clean arcs with very bad noise) 
+            %  9) The End 
+            % 
+            % OUTPUT
+            %   zmap_err    struct with fields <Constellation letter>C<frequency><tracking> containing zerniche polinomials
+            %               e.g.   zmap_err.EC1X  .zpol -> set of coefficients
+            %                                     .l    -> degree list
+            %                                     .m    -> order list
+            %   pr_ok       struct with fields -> one field per constellation (G, R, E, J, C, I)
+            %
+            % EXAMPLE
+            %   [zmap_err, pr_ko] = this.getZernicheCodeWeights();
+            %
+            % SYNTAX
+            %   [zmap_err, pr_ko] = getZernicheCodeWeights(this, <l_max = 11>, <m_max = 11>, <std_thr_offset = 0.5>, <flag_debug = false>)
+                        
+            if nargin < 2 || isempty(l_max)
+                l_max = 11;
+            end
+            
+            if nargin < 3 || isempty(m_max)
+                m_max = l_max;
+            end
+            
+            if nargin < 4 || isempty(std_thr_offset)
+                std_thr_offset = 0.5; % Every data with variance > 0.75m above the weight mask is considered an outlier!
+            end
+            
+            if nargin < 5 || isempty(flag_debug)
+                flag_debug = false;
+            end
+
+           
+            % for each satellite system            
+            zmap_err = []; 
+            pr_ko = [];
+            for sys_c = this.getAvailableSS
+                % Read all pr and put them in a 3-D matrix
+                [pr, id_pr] = this.getObs('C??', sys_c);
+                go_id_list = unique(this.go_id(id_pr));
+                prs = this.getSyntObs(go_id_list);
+                
+                obs_code_num = Core_Utils.code2Char2Num(this.obs_code(id_pr,2:3));
+                obs_code_list = unique(obs_code_num);
+                
+                n_obs = size(pr, 2);
+                n_sat = numel(go_id_list);
+                n_cod = numel(obs_code_list);
+                
+                noise_pr = zeros(n_obs, n_sat, n_cod);
+                id2noise = zeros(size(pr, 1), 2);
+                for  i = 1 : size(pr, 1)
+                    o = find(obs_code_list == obs_code_num(i));
+                    s = find(go_id_list == this.go_id(id_pr(i)));
+                    id2noise(i, 1) = s;
+                    id2noise(i, 2) = o;
+                    
+                    % remove synthetic
+                    tmp = (pr(i, :) - prs(s, :))';
+                    % remove DCB
+                    tmp = tmp - mean(tmp, 1, 'omitnan');
+                    noise_pr(:, s, o) = tmp;
+                end
+                
+                % remove the common part (tropo + iono)
+                for s = 1 : n_sat
+                    % remove 10 minutes splines
+                    tmp = Receiver_Commons.smoothSatData([],[],zero2nan(mean(noise_pr(:, s, :), 3, 'omitnan')), [], 'spline', 600 / this.getRate, 0);
+                    noise_pr(:, s, :) = bsxfun(@minus, noise_pr(:, s, :), tmp);
+                end
+                noise_pr = zero2nan(movstd(noise_pr, 900 / this.getRate, 1, 'omitnan'));
+                
+                az = this.sat.az(:, go_id_list);
+                el = this.sat.el(:, go_id_list);
+                
+                % Array of data with variance too high
+                id_ko = false(size(noise_pr));
+                for o = 1 : numel(obs_code_list)
+                    data = noise_pr(:, :, o);
+                    pr_ok = ~isnan(data); % Consider that stdmov have a border effect, ignore the first and last 5 epochs
+                    pr_int = flagShrink(pr_ok, 5); % Consider that stdmov have a border effect, ignore the first and last 5 epochs                    
+                    
+                    [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az(pr_int)/180*pi, el(pr_int)/180*pi, data(pr_int));
+                    % all the data with a variance bigger than thr_offset w.r.t. std_map is considered outlier
+                    id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, z_par)) > 0;
+                    
+                    if any(id_ko(:))
+                        pr_int = pr_int & ~id_ko;
+                        %  reestimate zernike without outliers
+                        z_par = Core_Utils.zAnalisys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, data(pr_ok));
+                        % all the data with a variance bigger than thr_offset w.r.t. std_map is considered outlier
+                        if (nargout >= 2)
+                            id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, z_par)) > 0;
+                        end
+                    end
+                    
+                    if flag_debug && any(pr_ok(:))
+                        pr_ok = pr_ok & ~id_ko(:, :, o);
+                        fh = figure; clf; hold on; fh = Core_Utils.polarZerMapQuad(l_max, m_max, az(pr_ok)/180*pi, el(pr_ok)/180*pi, data(pr_ok));  colormap([[1 1 1]; flipud(Cmap.get('plasma')); [0.6 0.6 0.6]]);
+                        lim = [0 1]; subplot(2,2,1); caxis(lim); subplot(2,2,2); caxis(lim); subplot(2,2,3); ylim(lim); subplot(2,2,4); ylim(lim);
+                        fh.Name = sprintf('%d) POST %c C%s', fh.Number, sys_c, Core_Utils.num2Code2Char(obs_code_list(o)));
+                        fh.NumberTitle = 'off';
+                    end
+                    zmap_err.(sprintf('%cC%s', sys_c, Core_Utils.num2Code2Char(obs_code_list(o)))) = struct('z_pol', z_par, 'l', l, 'm', m);
+                end
+                % Export id_ok to the same format of all pr
+                if (nargout >= 2)
+                    pr_ko.(sys_c) = id_ko(:, id2noise(:,1) + n_sat * (id2noise(:,2) - 1));
+                end
+            end
         end
     end
     
