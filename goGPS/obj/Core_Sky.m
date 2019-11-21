@@ -1990,7 +1990,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this, t, no_moon)
+        function [sun_ECEF, moon_ECEF ] = sunMoonInterpolate(this, t, no_moon)
             % SYNTAX:
             %   [X_sat]=Eph_Tab.sunInterpolate(t,sat)
             %
@@ -2069,7 +2069,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [sun_ECEF , moon_ECEF] = computeSunMoonPos(this, time, no_moon)
+        function [sun_ECEF, moon_ECEF] = computeSunMoonPos(this, time, no_moon)
             % SYNTAX:
             %   this.computeSunMoonPos(p_time)
             %

@@ -562,7 +562,7 @@ classdef Core_Utils < handle
             % SINTAX
             %   fh = showZerniche(l, m, z_par)
             
-            if ~ishold
+            if ~isempty(findobj('Type', 'figure')) && ~ishold
                 fh = figure();
             else
                 fh = gcf;
@@ -710,7 +710,11 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   fh = polarZerMapQuad(l_max, m_max, az, el, data)
-            fh = figure('Visible', 'on'); 
+            if ~isempty(findobj('Type', 'figure')) && ~ishold
+                fh = gcf;
+            else
+                fh = figure('Visible', 'on'); 
+            end
             
             subplot(2,2,1); hold on;
             Core_Utils.polarZerMap(l_max, m_max, az, el, data);

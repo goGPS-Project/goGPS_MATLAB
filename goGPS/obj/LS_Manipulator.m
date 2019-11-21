@@ -757,7 +757,6 @@ classdef LS_Manipulator < Exportable
                 
                 amb_flag = 1;
             else
-                
                 n_amb = 0;
                 amb_flag = 0;
             end
@@ -789,7 +788,7 @@ classdef LS_Manipulator < Exportable
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             n_u_obs_code = size(u_obs_code, 1);
             this.log.addMessage(this.log.indent(sprintf('Setting up SA system using %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
-            % if multiple observations types are present inter observations biases need be compouted
+            % if multiple observations types are present inter observations biases need be computed
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
                 idx_b = strLineMatch(obs_set.obs_code, u_obs_code(c, :));
@@ -805,7 +804,7 @@ classdef LS_Manipulator < Exportable
             apc_p_idx =  zeros(length(obs_set.wl),3);
             u_sys_c = unique(obs_set.obs_code(:,1));
             idx_gps = u_sys_c == 'G';
-            if sum(idx_gps) > 0 % put gps in first position if presetn
+            if sum(idx_gps) > 0 % put gps in first position if present
                 u_sys_c(idx_gps) = [];
                 u_sys_c = ['G'; u_sys_c(:)];
             end
@@ -881,7 +880,7 @@ classdef LS_Manipulator < Exportable
                     edges = [edges rec.time.length];
                 end
                 tropo_g_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
-                if isempty(this.tropo_time_start);
+                if isempty(this.tropo_time_start)
                     tropo_g_idx = tropo_g_idx - tropo_g_idx(1) +1;
                 end
                 this.tropo_g_idx = tropo_g_idx;
@@ -1042,8 +1041,6 @@ classdef LS_Manipulator < Exportable
             if dynamic
                 p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g), ones(tropo_v_g)];
             else
-                
-                
                 p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
            
