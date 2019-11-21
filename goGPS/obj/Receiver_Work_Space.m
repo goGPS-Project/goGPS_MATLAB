@@ -5877,16 +5877,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                 go_id_list = 1 : cc.getMaxNumSat();
             end
             range = zeros(length(go_id_list), n_epochs);
-            XS_loc = {};
-            for i = 1 : length(go_id_list)
-                go_id = go_id_list(i);
-                XS_loc{i} = this.getXSLoc(go_id);
-                range_tmp = sqrt(sum(XS_loc{i}.^2,2));
-                range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:,go_id));
-                
-                XS_loc{i}(isnan(range_tmp),:) = [];
-                %range = range';
-                range(i,:) = nan2zero(range_tmp)';
+            if (nargout == 1)
+                for i = 1 : length(go_id_list)
+                    go_id = go_id_list(i);
+                    range_tmp = sqrt(sum(this.getXSLoc(go_id).^2, 2));
+                    range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:, go_id));
+                    
+                    range(i,:) = nan2zero(range_tmp)';
+                end
+            else
+                XS_loc = {};
+                for i = 1 : length(go_id_list)
+                    go_id = go_id_list(i);
+                    XS_loc{i} = this.getXSLoc(go_id);
+                    range_tmp = sqrt(sum(XS_loc{i}.^2,2));
+                    range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:, go_id));
+                    
+                    XS_loc{i}(isnan(range_tmp),:) = [];
+                    range(i,:) = nan2zero(range_tmp)';
+                end
             end
             if numel(go_id_list) == 1
                 XS_loc = XS_loc{1};
