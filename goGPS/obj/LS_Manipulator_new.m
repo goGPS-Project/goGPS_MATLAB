@@ -1481,7 +1481,7 @@ classdef LS_Manipulator_new < handle
             % other keeping in mind that after the first no receiver can be
             % completely removed
             if true
-                if sum(this.param_class == this.PAR_AMB) > 0 && (sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0)
+                if sum(this.class_par(~this.out_par) == this.PAR_AMB) > 0 && (sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK) > 0)
                     sat_eb_prmz = this.ls_parametrization.getParametrization(this.PAR_SAT_EB);
                     prmz_1 = sat_eb_prmz(4) == LS_Parametrization.SING_TRACK; % first parametrization
                     prmz_2 = sat_eb_prmz(4) == LS_Parametrization.RULE && sum(this.param_class == this.PAR_SAT_EBFR) > 0; % second parametrization
@@ -2135,7 +2135,7 @@ classdef LS_Manipulator_new < handle
             
             max_ep = max(this.ref_time_obs);
             ref_time_obs = this.ref_time_obs(~this.outlier_obs);
-            step = 1800;
+            step = 3600;
             time_par_red = time_par(idx_reduce,1);
             
             iono = sum(idx_reduce_iono) > 0;
@@ -2198,7 +2198,6 @@ classdef LS_Manipulator_new < handle
                     Nx_satclk = Ner_t(i_sat_clk_tmp, :);
                     Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
                     idx_full = sum(Nx_satclk~=0,1) >0;
-
                     Nt = Nx_satclk(:,idx_full)' * iSatClk;
                     Nt_cycle = Nx_satclk_cyle * iSatClk;
                     
@@ -2227,6 +2226,16 @@ classdef LS_Manipulator_new < handle
                             indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
                             indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
                         end
+                        n_i = length(indices);
+                        jj = 1;
+                        while  jj <= n_i
+                            if sum(indices{jj}) == 0
+                                indices(jj) = [];
+                                jj = jj - 1;
+                                n_i = n_i - 1;
+                            end
+                            jj = jj +1;
+                        end
                         iRecClk = Core_Utils.inverseByRecPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),indices);
                     else
                         iRecClk = inv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp));
@@ -2248,11 +2257,10 @@ classdef LS_Manipulator_new < handle
             end
             
             % ------- fix the ambiguities
-            
-             if sum(this.param_class == this.PAR_AMB) > 0 && fix
+            idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
+             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
                 % get the ambiguity inverse matrxi
-                idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
-                if any(idx_amb)
+                
                     
                     % reducing for everything else except ambiguities
                     idx_b = find(~idx_amb);
@@ -2261,33 +2269,20 @@ classdef LS_Manipulator_new < handle
                     tol = 1e-3;
                     rm_id_b = (diag(D) < tol); % find amb to be removed
                     iL = inv(L(~rm_id_b, ~rm_id_b));
-                    iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));
-                    %iD = inv(D(~rm_id_b, ~rm_id_b));
-                    %rm_id_b_o = rm_id_b;
-                    %                         rm_id_b = P*rm_id_b;
-                    %                         P = P(~rm_id_b_o, ~rm_id_b_o);
+                    iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));     
                     C_bb = zeros(sum(~idx_amb),sum(~idx_amb));
                     C_bb(p(~rm_id_b),p(~rm_id_b)) = full(iL'*iD)*full(iL);
-                    %                         Nbb = N(~idx_amb, ~idx_amb);
-                    %                         C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
+%                     Nbb = N(~idx_amb, ~idx_amb);
+%                     C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
                     %                         %Bbb =  B(~idx_amb);
                     BB = full(N(idx_amb,idx_b ))*C_bb;
                     N_amb_amb = N(idx_amb, idx_amb) - sparse(BB*full(N(idx_b, idx_amb)));
                     B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
-                    %amb_float = C_amb_amb * Baa(~rm_id);
-                    
-                    
-                    
-                    %                         chol_f = factorization_lu_sparse(N(~idx_amb,~idx_amb),false);
-                    %                         red = mldivide (chol_f, [N(idx_amb,~idx_amb)' B(~idx_amb)]);
-                    %                         N_amb_amb = N(idx_amb,idx_amb) - N(~idx_amb,idx_amb)'*red(:,1:end-1);
-                    %                         B_amb_amb = B(idx_amb) -  N(~idx_amb,idx_amb)'*red(:,end);
                     
                     
                     % LDL decompisition
                     [L,D,P] = ldl(N_amb_amb);
                     % permute
-                    %Naa = P'*N_amb_amb*P;
                     Baa = P'*B_amb_amb;
                     
                     % compute threshold
@@ -2315,16 +2310,14 @@ classdef LS_Manipulator_new < handle
                     not_rm_id = ~Core_Utils.ordinal2logical(rm_id,size(N_amb_amb,1));
                     ambs = zeros(size(N_amb_amb,1),1);
 
-                    for r = n_rec : -2 : 1
-                        if r ~= 1
-                        rec_amb_id = ra == r | ra == (r-1);
-                        else
-                            rec_amb_id = ra == r;
-                        end
+                    for r = n_rec : -4 : 1
+                            
+                        rec_amb_id = ra == r | ra == max(1,(r-1)) | ra == max(1,(r-2)) | ra == max(1,(r-3));
+                       
                             
                         if sum(rec_amb_id) > 0
                             amb_rec = amb_float(rec_amb_id);
-                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(full(amb_rec), full(C_amb_amb(rec_amb_id,rec_amb_id)), 'lambda_ILS' );
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_rec, C_amb_amb(rec_amb_id,rec_amb_id), 'lambda_partial' );
                             rec_amb_id_fix = rec_amb_id;
                             rec_amb_id_fix(rec_amb_id_fix) = l_fixed(:,1);
                             if is_fixed 
@@ -2347,7 +2340,6 @@ classdef LS_Manipulator_new < handle
                     x_reduced = zeros(size(N,1),1);
                     x_reduced(~idx_amb) = not_ambs;
                     x_reduced(idx_amb) = ambs;
-                end
                 
             else
                 x_reduced = N\B;
