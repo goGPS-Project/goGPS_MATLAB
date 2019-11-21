@@ -8719,7 +8719,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.setPseudoRanges(pr, id_pr);
                     this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
-                    [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, 1); % no reweight
+                    [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, 0); % no reweight
                     
                     if rf_changed
                         % restore flag in reference frame object
@@ -8864,7 +8864,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [dpos, s0] = codeStaticPositioning(this, sys_list, id_sync, cut_off, num_reweight)
-            % perform static positioning usign code measurements
+            % perform static positioning using code measurements
             %
             % SYNTAX
             %    [dpos, s0] = this.codeStaticPositioning(id_sync, cut_off, num_reweight)
@@ -8872,7 +8872,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sys_list = this.getActiveSys();
             end
             ls = LS_Manipulator();
-            if nargin < 3
+            if nargin < 3 || isempty(id_sync)
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
@@ -8887,7 +8887,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [x, res, s0] = ls.solve();
 
             id_ko = abs(ls.res) > Core.getState.getMaxCodeErrThrPP;
-            if nargin < 5
+            if nargin < 5 || isempty(num_reweight)
                 % loop if:
                 %  - there are big outliers > 3 times the thr
                 %  - outliers + (s0 > 1)
@@ -8904,7 +8904,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 log.addMessage(log.indent(sprintf('PREPRO s0 = %.4f (first estimation)', s0)));
             end
             cc = Core.getConstellationCollector;
-            % REWEIGHT ON RESIDUALS
+            % REWEIGHT ON RESIDUALS AND OUTLIER REJECTION
             for i = 1 : num_reweight
                 flag_recompute = false;
                 if i == num_reweight - 1
@@ -9410,7 +9410,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.remUnderSnrThr([], this.state.getScaledSnrThr());
                             this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
-                            this.codeStaticPositioning(sys_list);
+                            this.codeStaticPositioning(sys_list); % <== to be substituted with U2
                             this.applyDtRec(this.dt);
                             this.shiftToNominal;
                             this.getSatCache([], true);
@@ -10090,7 +10090,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     
-                    
                     % -------------------- estimate additional coordinate set
                     if this.state.flag_coo_rate
                         for i = 1 : 3
@@ -10139,7 +10138,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                         end
                     end
-                    %this.smoothAndApplyDt(0, false, false, 2);
+                    this.smoothAndApplyDt(0, false, false, 2);
                     %this.pushResult();
                 end
             end
