@@ -5896,9 +5896,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     XS_loc{i}(isnan(range_tmp),:) = [];
                     range(i,:) = nan2zero(range_tmp)';
                 end
-            end
-            if numel(go_id_list) == 1
-                XS_loc = XS_loc{1};
+                if numel(go_id_list) == 1
+                    XS_loc = XS_loc{1};
+                end
             end
         end
         
