@@ -823,10 +823,10 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   marker_name = getMarkerName4Ch(this)
-            if ~isempty(this.work.rinex_file_name)
-                marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
-            else
+            if ~isempty(this.marker_name)
                 marker_name = this.marker_name;
+            else
+                marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
             end
             marker_name = marker_name(1 : min(4, length(marker_name)));
         end
