@@ -291,7 +291,7 @@ classdef LS_Manipulator_new < handle
             if mfw_on
                 id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
                 [~, mfw] = rec.getSlantMF(id_sync_out);
-                mfw(mfw  > 60 ) = nan;
+               % mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
