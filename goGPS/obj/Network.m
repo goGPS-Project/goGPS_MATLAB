@@ -555,18 +555,19 @@ classdef Network < handle
                     %ls.PAR_SAT_PPB;
                     ls.PAR_SAT_EBFR;
                     ls.PAR_SAT_EB;
-                    ls.PAR_AMB;
+                     ls.PAR_AMB;
                     ls.PAR_IONO;
-                    ls.PAR_REC_CLK;
-                    ls.PAR_SAT_CLK;
-                    ls.PAR_REC_CLK_PH;
-                    ls.PAR_SAT_CLK_PH;];
+                    ls.PAR_REC_CLK_PR;
+                    ls.PAR_SAT_CLK_PR;
+                     ls.PAR_REC_CLK_PH;
+                     ls.PAR_SAT_CLK_PH;
+];
                 if this.state.flag_tropo
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
                 end
-%                 param_selection = [param_selection;
-%                         ls.PAR_TROPO_V;];
+                %                 param_selection = [param_selection;
+                %                         ls.PAR_TROPO_V;];
                 if this.state.flag_tropo_gradient
                     param_selection = [param_selection;
                         ls.PAR_TROPO_N;

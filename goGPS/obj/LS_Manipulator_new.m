@@ -88,6 +88,7 @@ classdef LS_Manipulator_new < handle
         %%% entry
         A % observations
         A_idx
+        A_full 
         obs
         res
         param_class % class id of the column of A
@@ -1011,40 +1012,6 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %    this.markSingledObs()
-            idx_par_clk = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
-            id_p_clk = this.param_class == this.PAR_SAT_CLK;
-            for s = this.unique_sat_goid
-                idx_par = idx_par_clk(this.sat_par(idx_par_clk) == s);
-                idx_obs = find(this.satellite_obs == s & ~this.outlier_obs);
-                num_rec = zeros(length(idx_par),1);
-                for r = 1 : length(this.unique_rec_name)
-                    [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.receiver_obs(idx_obs) == r),id_p_clk )),idx_par);
-                    num_rec(noZero(idx_par_rec)) = num_rec(noZero(idx_par_rec)) + 1;
-                end
-                idx_el = find(num_rec < 2);
-                par_sat_clk = this.A_idx(idx_obs,id_p_clk);
-                for i = idx_el'
-                    obs_par = par_sat_clk == idx_par(i);
-                    this.outlier_obs(idx_obs(obs_par)) = true;
-                end
-            end
-            idx_par_clk = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
-            id_p_clk = this.param_class == this.PAR_REC_CLK;
-            for r = 1 : length(this.unique_rec_name)
-                idx_par =  idx_par_clk(this.rec_par(idx_par_clk) == r); 
-                idx_obs = find(this.receiver_obs == r & ~this.outlier_obs);
-                num_sat = zeros(length(idx_par),1);
-                for s = this.unique_sat_goid
-                    [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.satellite_obs(idx_obs) == s), id_p_clk)), idx_par);
-                    num_sat(noZero(idx_par_rec)) = num_sat(noZero(idx_par_rec)) + 1;
-                end
-                idx_el = find(num_sat < 2);
-                par_rec_clk = this.A_idx(idx_obs, id_p_clk);
-                for i = idx_el'
-                    obs_par = par_rec_clk == idx_par(i);
-                    this.outlier_obs(idx_obs(obs_par)) = true;
-                end
-            end
             if sum(this.param_class == this.PAR_IONO)> 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC % remove phase obe that does not have two pseudorange fro different frequency and phase of a seconde frequency too
                 idx_valid_obs = find(~this.outlier_obs);
                 idx_valid_ph = idx_valid_obs(this.phase_obs(idx_valid_obs) > 0);
@@ -1134,8 +1101,55 @@ classdef LS_Manipulator_new < handle
                     end
                     
                 end
-                
+             
             end
+            
+            for par = [ this.PAR_SAT_CLK this.PAR_SAT_CLK_PR this.PAR_SAT_CLK_PH]
+                idx_par_clk = find(this.class_par == par & ~this.out_par);
+                id_p_clk = this.param_class == par;
+                if any(id_p_clk)
+                for s = this.unique_sat_goid
+                    idx_par = idx_par_clk(this.sat_par(idx_par_clk) == s);
+                    idx_obs = find(this.satellite_obs == s & ~this.outlier_obs);
+                    idx_obs = idx_obs(this.A(idx_obs, id_p_clk) ~= 0);
+                    num_rec = zeros(length(idx_par),1);
+                    for r = 1 : length(this.unique_rec_name)
+                        [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.receiver_obs(idx_obs) == r),id_p_clk )),idx_par);
+                        num_rec(noZero(idx_par_rec)) = num_rec(noZero(idx_par_rec)) + 1;
+                    end
+                    idx_el = find(num_rec < 2);
+                    par_sat_clk = this.A_idx(idx_obs,id_p_clk);
+                    for i = idx_el'
+                        obs_par = par_sat_clk == idx_par(i);
+                        this.outlier_obs(idx_obs(obs_par)) = true;
+                    end
+                end
+                end
+            end
+            for par = [ this.PAR_REC_CLK this.PAR_REC_CLK_PR this.PAR_REC_CLK_PH]
+                idx_par_clk = find(this.class_par == par & ~this.out_par);
+                id_p_clk = this.param_class == par;
+                                if any(id_p_clk)
+
+                for r = 1 : length(this.unique_rec_name)
+                    idx_par =  idx_par_clk(this.rec_par(idx_par_clk) == r);
+                    idx_obs = find(this.receiver_obs == r & ~this.outlier_obs);
+                    idx_obs = idx_obs(this.A(idx_obs, id_p_clk) ~= 0);
+                    num_sat = zeros(length(idx_par),1);
+                    for s = this.unique_sat_goid
+                        [~,idx_par_rec] = ismember(unique(this.A_idx(idx_obs(this.satellite_obs(idx_obs) == s), id_p_clk)), idx_par);
+                        num_sat(noZero(idx_par_rec)) = num_sat(noZero(idx_par_rec)) + 1;
+                    end
+                    idx_el = find(num_sat < 2);
+                    par_rec_clk = this.A_idx(idx_obs, id_p_clk);
+                    for i = idx_el'
+                        obs_par = par_rec_clk == idx_par(i);
+                        this.outlier_obs(idx_obs(obs_par)) = true;
+                    end
+                end
+                                end
+            end
+            
             
             
         end
@@ -1813,7 +1827,7 @@ classdef LS_Manipulator_new < handle
             end
             
             
-            if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
+            if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0 
                 idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for r = 1 : n_rec
@@ -1918,6 +1932,41 @@ classdef LS_Manipulator_new < handle
             %             end
         end
         
+        
+        function removeEstParam(this, idx)
+            % reomve and estimated paramter from the system
+            %
+            % SYNTAX:
+            %   this.removeEstParam(idx)
+             A = this.A_full(1: length(this.obs),idx);
+             this.obs = this.obs - A * this.x(idx);
+             this.remPar(idx);
+        end
+        
+        
+        function remPar(this,idx)
+            % remove paramter form the system
+            %
+            % SYNTAX:
+            %    this.remPar(idx)
+            this.x(idx) = [];
+            n_par = length(this.class_par);
+            this.class_par(idx) = [];
+            this.time_par(idx,:) = [];
+            this.param_par(idx,:) = [];
+            this.rec_par(idx) = [];
+            this.sat_par(idx) = [];
+            this.obs_codes_id_par(idx) = [];
+            this.wl_id_par(idx) = [];
+            this.out_par(idx) = [];
+            this.phase_par(idx) = [];
+            new_par_num = zeros(n_par,1);
+            new_par_num(~idx) = 1 : (n_par - sum(idx));
+            n_zero = this.A_idx ~= 0;
+            this.A_idx(n_zero) = new_par_num(this.A_idx(n_zero));
+            n_zero = this.A_idx_pseudo ~= 0;
+            this.A_idx_pseudo(n_zero) = new_par_num(this.A_idx_pseudo(n_zero));
+        end
         
         function absValRegularization(this,p_class, var)
             % regularize parameters to zero (Tykhnov aka ridge aka L2)
@@ -2089,6 +2138,7 @@ classdef LS_Manipulator_new < handle
             % Creating A' instead of A
             % A = sparse(rows, columns, values, n_obs, n_par); % <- this is A
             A = sparse(columns, rows, values, n_par, n_obs); % <- stupid trick for speed-up MATLAB traspose the sparse matrix!!!
+            this.A_full = A'; % save it for use in other methods
             n_out = sum(this.outlier_obs);
             A_out = A(:, this.outlier_obs > 0)'; % <- this is 1000 time slower with not trasposed A
             A(:, this.outlier_obs > 0) = [];
@@ -2145,8 +2195,8 @@ classdef LS_Manipulator_new < handle
             cross_terms = {};
             ii  = 1;
             for i = 0 : step : floor(max_ep / step) * step % sparse matrix library became very slow in case of big/huge matrix the reduction can be applyed dividing the matrices in parts
-                idx_time_obs = ref_time_obs >= i &  ref_time_obs < (i + step);
-                idx_time_par_red = time_par_red >= i &  time_par_red < (i + step);
+                idx_time_obs = ref_time_obs > (i-this.obs_rate/10) &  ref_time_obs < (i + step -this.obs_rate/10 );
+                idx_time_par_red = time_par_red > (i-this.obs_rate/10)  &  time_par_red < (i + step -this.obs_rate/10 );
                 idx_red_cycle = idx_reduce;
                 idx_red_cycle(idx_red_cycle) = idx_time_par_red;
                 
@@ -2192,9 +2242,14 @@ classdef LS_Manipulator_new < handle
                 if sat_clk
                     i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
                     cp = cp_cycle( ~idx_reduce_cycle_iono);
-                    idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK;
+                    idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                     idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                    iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                    if sum(idx_2) > 0 
+                        iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                    else
+                        n_sat_clk = sum(i_sat_clk_tmp);
+                        iSatClk = spdiags(1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp)),0,n_sat_clk,n_sat_clk);
+                    end
                     Nx_satclk = Ner_t(i_sat_clk_tmp, :);
                     Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
                     idx_full = sum(Nx_satclk~=0,1) >0;
@@ -2223,7 +2278,7 @@ classdef LS_Manipulator_new < handle
                         
                         indices = {};
                         for r = 2 : n_rec
-                            indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK;
+                            indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & (cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR);
                             indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
                         end
                         n_i = length(indices);
@@ -2258,7 +2313,7 @@ classdef LS_Manipulator_new < handle
             
             % ------- fix the ambiguities
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
-             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
+            if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
                 % get the ambiguity inverse matrxi
                 
                     
@@ -2266,7 +2321,7 @@ classdef LS_Manipulator_new < handle
                     idx_b = find(~idx_amb);
                     
                     [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
-                    tol = 1e-3;
+                    tol = 1e-7;
                     rm_id_b = (diag(D) < tol); % find amb to be removed
                     iL = inv(L(~rm_id_b, ~rm_id_b));
                     iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));     
