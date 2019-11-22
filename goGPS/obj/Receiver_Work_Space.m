@@ -1408,8 +1408,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         is = st_idx(i);
                         ie = end_idx(i);
                         c_rate = cs.coord_rate;
-                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())-1));
-                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())+1));
+                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 11)/this.getRate())-1));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 11)/this.getRate())+1));
                         this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                     end
                 else
@@ -6400,7 +6400,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             data_row = (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
             go_id = this.go_id(data_row);
-            datachk = (this.obs(data_row, :))' ~= 0;
+            datachk = (this.obs(data_row, :))'~=0 & ~isnan((this.obs(data_row, :))');
             for s = unique(go_id)'
                 av_idx = any(datachk(:,go_id == s), 2);
                 this.sat.avail_index(:,s) = av_idx;
@@ -8671,11 +8671,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                            id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10, 5); % flag above 6 meters
                            if any(id_ko(:))
                                n_out = sum(id_ko(:)) ;
-                               this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
                            end
                            pr(id_ko) = nan;
                            if any(pr(:)) && ~too_many_flags % I've flagged less than 80% of data
                                this.setPseudoRanges(pr, id_pr);
+                               this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
+
                            elseif n_out > 0 
                                % No data are present                               
                                % The good position was not so good
