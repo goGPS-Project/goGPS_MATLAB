@@ -2438,7 +2438,11 @@ classdef LS_Manipulator_new < handle
                     idx_reduce_cycle_iono = cross_terms{ii}{2};
                     idx_reduce_cycle_iono(idx_reduce_cycle_iono) = cross_terms{ii}{1}{1}{4};
                     idx_est1 = ~idx_reduce ;
-                    idx_est2 = idx_reduce_cycle_rec_clk | idx_reduce_cycle_sat_clk;
+                    if sat_clk
+                        idx_est2 = idx_reduce_cycle_rec_clk | idx_reduce_cycle_sat_clk;
+                    else
+                         idx_est2 = idx_reduce_cycle_rec_clk;
+                    end
                     n_est = sum(idx_est1) + sum(idx_est2);
                     B_iono = B_iono -   sum(Nx_iono * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
                     x_iono = iIono * B_iono;
