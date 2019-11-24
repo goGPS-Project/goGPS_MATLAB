@@ -375,7 +375,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_spe', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
             
             this.a_fix = [];
             this.s_rate = [];
@@ -8965,9 +8965,26 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
                 this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
+                this.quality_info.n_spe = length(sum(~isnan(res)));
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;               
+
+                % Get sat number per epoch
+                [~, id] = intersect(cc.index, ls.sat_go_id);
+                sys_c_list = cc.system(id);
+                all_sys_c = unique(sys_c_list);
+                this.quality_info.n_spe = struct('A', uint8(sum((res(id_sync, ls.sat_go_id)) ~= 0, 2)), ...
+                    'G', zeros(numel(id_sync), 1, 'uint8'), ...
+                    'R', zeros(numel(id_sync), 1, 'uint8'), ...
+                    'E', zeros(numel(id_sync), 1, 'uint8'), ...
+                    'J', zeros(numel(id_sync), 1, 'uint8'), ...
+                    'C', zeros(numel(id_sync), 1, 'uint8'), ...
+                    'I', zeros(numel(id_sync), 1, 'uint8'));
+                for sys_c = all_sys_c
+                    id_sys = ls.sat_go_id(sys_c_list == sys_c);
+                    this.quality_info.n_spe.(sys_c) = uint8(sum((res(id_sync, id_sys)) ~= 0, 2));
+                end
             end
         end
         
@@ -9074,7 +9091,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
-                [~, s0, ls] = this.codeDynamicPositioning(this.id_sync, 15);
+                [res, s0, ls] = this.codeDynamicPositioning(this.id_sync, 15);
                 this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
@@ -9083,6 +9100,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;
+                
+                % Get sat number per epoch
+                [~, id] = intersect(cc.index, ls.sat_go_id);
+                sys_c_list = cc.system(id);
+                all_sys_c = unique(sys_c_list);
+                this.quality_info.n_spe = struct('A', uint8(sum((res(:, ls.sat_go_id)) ~= 0, 2)), ...
+                    'G', zeros(size(res, 1), 1, 'uint8'), ...
+                    'R', zeros(size(res, 1), 1, 'uint8'), ...
+                    'E', zeros(size(res, 1), 1, 'uint8'), ...
+                    'J', zeros(size(res, 1), 1, 'uint8'), ...
+                    'C', zeros(size(res, 1), 1, 'uint8'), ...
+                    'I', zeros(size(res, 1), 1, 'uint8'));
+                for sys_c = all_sys_c
+                    id_sys = ls.sat_go_id(sys_c_list == sys_c);
+                    this.quality_info.n_spe.(sys_c) = uint8(sum((res(:, id_sys)) ~= 0  , 2));
+                end
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
@@ -9597,8 +9630,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
                     end
                     
-                    
-                    
                     this.id_sync = id_sync;
                     
                     this.sat.res = zeros(this.time.length, n_sat, 'single');
@@ -9651,6 +9682,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                     if this.state.getAmbFixPPP
                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
+                    end
+                                        
+                    % Get sat number per epoch
+                    [~, id] = intersect(cc.index, ls.sat_go_id);
+                    sys_c_list = cc.system(id);
+                    all_sys_c = unique(sys_c_list);
+                    this.quality_info.n_spe = struct('A', uint8(sum((res(id_sync, ls.sat_go_id)) ~= 0, 2)), ...
+                        'G', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'R', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'E', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'J', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'C', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'I', zeros(numel(id_sync), 1, 'uint8'));
+                    for sys_c = all_sys_c
+                        id_sys = ls.sat_go_id(sys_c_list == sys_c);
+                        this.quality_info.n_spe.(sys_c) = uint8(sum((res(id_sync, id_sys) ~= 0), 2));
                     end
                     
                     if s0 > 0.10
@@ -10064,6 +10111,29 @@ classdef Receiver_Work_Space < Receiver_Commons
 %                     if this.state.getAmbFixPPP
 %                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
 %                     end
+                    
+                    % Get sat number per epoch
+                    [res_ph, sat, obs_id] = ls.getPhRes(1);
+                    go_id_list = unique(sat);
+                    obs_ok = false(size(res_ph,1), numel(go_id_list));
+                    for s = 1 : numel(go_id_list)
+                        obs_ok(:,s) = any(res_ph(:, sat == go_id_list(s)), 2);
+                    end
+                    [~, id] = intersect(cc.index, go_id_list);
+                    sys_c_list = cc.system(id);
+                    all_sys_c = unique(sys_c_list);
+                    this.quality_info.n_spe = struct('A', uint8(sum(obs_ok, 2)), ...
+                        'G', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'R', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'E', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'J', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'C', zeros(numel(id_sync), 1, 'uint8'), ...
+                        'I', zeros(numel(id_sync), 1, 'uint8'));
+                    for sys_c = all_sys_c
+                        id_sys = sat(sys_c_list == sys_c);
+                        this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(id_sync, id_sys), 2));
+                    end
+                    clear res_ph sat obs_id obs_ok
                     
                     % save phase residuals
                     idx_ph = find(this.obs_code(:,1) == 'L');
