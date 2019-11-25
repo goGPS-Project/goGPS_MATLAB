@@ -293,6 +293,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         FLAG_OUT_OCS = true;        % outliers and cycle slips        
         FLAG_OUT_QUALITY = true;    % Quality (SNR)        
+        FLAG_OUT_NSPE = true;       % Quality (n sat per epoch)
         FLAG_OUT_AZEL = true;       % Azimuth / Elevation        
         FLAG_OUT_RES = true;        % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
@@ -711,6 +712,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         flag_out_ocs = true;        % outliers and cycle slips        
         flag_out_quality = true;    % quality (SNR)        
+        flag_out_nspe = true;       % quality (number of satellite per epoch)        
         flag_out_azel = true;       % azimuth / elevation        
         flag_out_res = true;        % residuals
         flag_out_mf = true;         % mapping functions (wet / hydrostatic)
@@ -979,6 +981,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.flag_out_ocs = state.getData('flag_out_ocs');              % outliers and cycle slips
                 this.flag_out_quality = state.getData('flag_out_quality');      % quality (SNR)
+                this.flag_out_nspe = state.getData('flag_out_nspe');            % number of satellites per epoch
                 this.flag_out_azel = state.getData('flag_out_azel');            % azimuth / elevation
                 this.flag_out_res = state.getData('flag_out_res');              % residuals
                 this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
@@ -1149,6 +1152,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.flag_out_ocs = state.flag_out_ocs;              % outliers and cycle slips
                 this.flag_out_quality = state.flag_out_quality;      % quality (SNR)
+                this.flag_out_nspe = state.flag_out_nspe;            % number of satellites per epoch
                 this.flag_out_azel = state.flag_out_azel;            % azimuth / elevation
                 this.flag_out_res = state.flag_out_res;              % residuals
                 this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)                
@@ -1340,6 +1344,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str = [str sprintf(' Keep satellite outlier flags and cycle slips      %d\n', this.flag_out_ocs)];
             str = [str sprintf(' Keep satellite quality (snr)                      %d\n', this.flag_out_quality)];
+            str = [str sprintf(' Keep satellite number of satellite per epoch      %d\n', this.flag_out_nspe)];
             str = [str sprintf(' Keep satellite azimuth and elevation              %d\n', this.flag_out_azel)];
             str = [str sprintf(' Keep satellite residuals                          %d\n', this.flag_out_res)];
             str = [str sprintf(' Keep mapping functions (wet / hydrostatic)        %d\n', this.flag_out_mf)];
@@ -1850,6 +1855,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_out_ocs', this.flag_out_ocs, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite quality (snr)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_quality', this.flag_out_quality, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep number of satellites per epoch', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_nspe', this.flag_out_nspe, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite azimuth and elevation', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_azel', this.flag_out_azel, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite satellite residuals', str_cell);
@@ -2489,6 +2496,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_pth = 1;
             this.flag_out_ocs = 1;
             this.flag_out_quality = 1;
+            this.flag_out_nspe = 1;            
             this.flag_out_azel = 1;
             this.flag_out_res = 1;
             this.flag_out_mf = 1;
@@ -2580,6 +2588,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_pth = 0;
             this.flag_out_ocs = 1;
             this.flag_out_quality = 1;
+            this.flag_out_nspe = 1;
             this.flag_out_azel = 1;
             this.flag_out_res = 1;
             this.flag_out_mf = 1;
@@ -2718,6 +2727,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_out_pth');
             this.checkLogicalField('flag_out_ocs');
             this.checkLogicalField('flag_out_quality');
+            this.checkLogicalField('flag_out_nspe');
             this.checkLogicalField('flag_out_azel');
             this.checkLogicalField('flag_out_res');
             this.checkLogicalField('flag_out_mf');
@@ -4466,7 +4476,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             flag = this.flag_out_res; % && ... ad here other sat specific parameters when getNumSat is expanded
         end
-                    
+           
+        function flag = isNSatOut(this)
+            % flag: is exporting of num sate per epoch requested?
+            %
+            % SYNTAX
+            %   flag = isNSatOut(this)
+            
+            flag = this.flag_out_nspe;
+        end
+        
         function flag = isPreCleaningOn(this)
             % Try to correct cycle slips / discontinuities in the observations and increase spike variance
             %

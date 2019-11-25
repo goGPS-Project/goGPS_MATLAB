@@ -105,7 +105,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     properties
-        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', []);
         a_fix
         s_rate
         n_sat_ep
@@ -149,7 +149,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'fixing_ratio', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', []);
             
             this.a_fix = [];
             this.s_rate = [];
@@ -544,37 +544,44 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
-            cc = this.getCC;
             
-            n_sat_ss.G = [];
-            if isempty(this.n_sat_ep)
-                % retrieve the n_sat from residuals
-                if this.state.isSatOut && ~isempty(this.sat.res)
-                    n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
-                    for sys_c = cc.sys_c
-                        n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
-                    end
-                else
-                    n_sat = nan(size(this.getIdSync));
-                    n_sat_ss.G = n_sat;
+            cc = this.getCC;
+            if ~isempty(this.quality_info.n_spe)
+                n_sat = this.quality_info.n_spe.A;
+                for sys_c = cc.getActiveSysChar()
+                    n_sat_ss.(sys_c) = this.quality_info.n_spe.(sys_c);
                 end
-            else
-                if (max(this.getIdSync) > numel(this.n_sat_ep))
-                    n_sat = nan(size(this.getIdSync), 'single');
-                    n_sat_ss.G = n_sat;
-                else
-                    n_sat = this.n_sat_ep(this.getIdSync);
-                    if any(serialize(this.sat.res(this.getIdSync,:)))
-                        % retrieve the n_sat from residuals
+            else                
+                n_sat_ss.G = [];
+                if isempty(this.n_sat_ep)
+                    % retrieve the n_sat from residuals
+                    if this.state.isSatOut && ~isempty(this.sat.res)
                         n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
                         for sys_c = cc.sys_c
                             n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
                         end
+                    else
+                        n_sat = nan(size(this.getIdSync));
+                        n_sat_ss.G = n_sat;
+                    end
+                else
+                    if (max(this.getIdSync) > numel(this.n_sat_ep))
+                        n_sat = nan(size(this.getIdSync), 'single');
+                        n_sat_ss.G = n_sat;
+                    else
+                        n_sat = this.n_sat_ep(this.getIdSync);
+                        if any(serialize(this.sat.res(this.getIdSync,:)))
+                            % retrieve the n_sat from residuals
+                            n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
+                            for sys_c = cc.sys_c
+                                n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
+                            end
+                        end
                     end
                 end
-            end
-            if isempty(n_sat_ss.G)
-                n_sat_ss.G = n_sat;
+                if isempty(n_sat_ss.G)
+                    n_sat_ss.G = n_sat;
+                end
             end
         end
         
