@@ -4474,6 +4474,9 @@ classdef GNSS_Station < handle
 
         function fh_list = showNSat(sta_list, new_fig)
             % Show total number of satellites in view (epoch by epoch) for each satellite
+            %
+            % SYNTAX:
+            %   fh_list = sta_list.showNSat()
             if nargin == 1
                 new_fig = true;
             end
@@ -4484,6 +4487,9 @@ classdef GNSS_Station < handle
 
         function fh_list = showNSatSS(sta_list)
             % Show total number of satellites in view (epoch by epoch) for each satellite
+            %
+            % SYNTAX:
+            %   fh_list = sta_list.showNSatSS()
 
             fh_list = [];
             for r = 1 : numel(sta_list)
