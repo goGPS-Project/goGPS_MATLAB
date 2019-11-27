@@ -2110,7 +2110,11 @@ classdef Core_Utils < handle
                 res = 'low';
             end
             
-            dtm_path = fullfile(Core.getState.getHomeDir, 'reference' , 'DTM');
+            dtm_path = File_Name_Processor.getFullDirPath(fullfile(Core.getInstallDir(), '../data/reference/DTM/'));
+            local_dtm_path = fullfile(Core.getState.getHomeDir, 'reference' , 'DTM');
+            if ~(exist(dtm_path, 'dir') == 7)
+                dtm_path = local_dtm_path;
+            end
             dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
             if ~exist(dtm_path, 'dir')
                 try
@@ -2130,19 +2134,23 @@ classdef Core_Utils < handle
                 end
             end
             if ~exist(fullfile(dtm_path, dtm_name), 'file')
-                if ispc()
-                    aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
-                elseif ismac()
-                    aria2c_path = '/usr/local/bin/aria2c';
-                else % is linux
-                    aria2c_path = '/usr/local/bin/aria2c';
-                    if ~exist(aria2c_path, 'file')
-                        aria2c_path = '/usr/bin/aria2c';
+                if exist(fullfile(local_dtm_path, dtm_name), 'file')
+                    dtm_path = local_dtm_path;
+                else
+                    if ispc()
+                        aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                    elseif ismac()
+                        aria2c_path = '/usr/local/bin/aria2c';
+                    else % is linux
+                        aria2c_path = '/usr/local/bin/aria2c';
+                        if ~exist(aria2c_path, 'file')
+                            aria2c_path = '/usr/bin/aria2c';
+                        end
                     end
+                    aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
+                    Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
+                    dos(aria_call)
                 end
-                aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
-                Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
-                dos(aria_call)
             end
             
             % Read DTM
