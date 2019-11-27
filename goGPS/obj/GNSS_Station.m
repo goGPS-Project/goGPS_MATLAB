@@ -2452,6 +2452,249 @@ classdef GNSS_Station < handle
             bsl_ids = bsl_ids(bsl_ids(:, 1) > 0 & bsl_ids(:, 2) > 0, :);
         end
     end
+    %% STATIC FUNCTIONS used as tools
+    % ==================================================================================================================================================
+    methods (Static, Access = public)
+        function showGlobalMap(new_fig, flag_labels, flag_polar)
+            % Show Map of the stations
+            % downloading the DTM and showing it
+            %
+            % CITATION:
+            %   Pawlowicz, R., 2019. "M_Map: A mapping package for MATLAB", version 1.4k, [Computer software],
+            %   available online at www.eoas.ubc.ca/~rich/map.html.
+            %
+            % INPUT
+            %   new_fig     open a new figure
+            %   flag_labels show/not show labels
+            %   flag_polar  could be 'N' / 'S' / false
+            %
+            % SYNTAX
+            %   GNSS_Station.showGlobalMap(new_fig, flag_labels, flag_polar);
+            %
+            % EXAMPLE
+            %   GNSS_Station.showGlobalMap()
+            
+            if nargin < 2 || isempty(flag_labels)
+                flag_labels = false;
+            end
+            if nargin < 3 || isempty(flag_polar)
+                flag_polar = false;
+            end
+            flag_large_points = true;
+            point_size = 20;
+            large_point_size = iif(flag_polar, 50, 25);
+            point_color = [14, 25, 41]/256;
+            resolution = 'high';
+            
+            if nargin < 2 || isempty(new_fig)
+                new_fig = true;
+            end
+            if new_fig
+                f = figure('Visible', 'off');
+            else
+                f = gcf;
+                hold on;
+            end
+            
+            fh_list = f;
+            fig_name = sprintf('WorldRecMapDtm');
+            f.UserData = struct('fig_name', fig_name);
+                                    
+            Logger.getInstance.addMarkedMessage('Preparing map, please wait...');
+            
+            maximizeFig(f);
+            f.Color = [1 1 1];
+            
+            
+            [coo, name] = GNSS_Station.getStationFromWorldArchive();
+            [lat, lon, h] =  coo.getGeodetic;
+            lat = lat / pi * 180;
+            lon = lon / pi * 180;
+                        
+            % set map limits
+            if numel(name) == 1
+                lon_lim = minMax(lon) + [-0.05 0.05];
+                lat_lim = minMax(lat) + [-0.05 0.05];
+            else
+                lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim)/15;
+                lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
+            end
+            
+            lon_lim = max(-179.999, min(179.999, lon_lim));
+            lat_lim = max(-89.999, min(89.999, lat_lim));
+            
+            nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+            clon = nwse([2 4]) + [-0.02 0.02];
+            clat = nwse([3 1]) + [-0.02 0.02];
+            clon = max(-180, min(180, clon));
+            clat = max(-90, min(90, clat));
+            
+            if (flag_polar)
+                if flag_polar == 'S'                    
+                    m_proj('stereographic','lat',-90,'long',0,'radius', 25);
+                    id_ko = lat > -65;
+                else
+                    m_proj('stereographic','lat',90,'long',0,'radius', 25);
+                    id_ko = lat < 65;
+                end
+                lat(id_ko) = [];
+                lon(id_ko) = [];
+                name = name(~id_ko);
+            else
+                %m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+                m_proj('miller', 'lon', clon, 'lat', clat);   % Projection
+            end
+            
+            axes
+            cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
+            
+            % retrieve external DTM
+            if flag_polar
+                % use ETOPO instead
+                colormap(gca, cmap(100 : end - 100, :))
+                m_etopo2('shadedrelief', 'gradient', 3);
+            else
+                try
+                    cmap = flipud(gray(1000)); colormap(gca, cmap(150: end, :));
+                    [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', resolution);
+
+                    sensor_pole = sum(~isnan(dtm) / size(dtm, 2),2);
+                    id_pole = (find(sensor_pole > 0.5, 1, 'first') - 1);
+                    if any(id_pole)
+                        dtm(1 : id_pole, :) = repmat(dtm(id_pole + 1, : ), id_pole, 1);
+                    end
+                    dtm = flipud(dtm);
+                    id_pole = (find(flipud(sensor_pole) > 0.5, 1, 'first') - 1);
+                    if any(id_pole)
+                        dtm(1 : id_pole, :) = repmat(dtm(id_pole + 1, : ), id_pole, 1);
+                    end
+                    
+                    % comment the following line to have bathimetry
+                    dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
+                    
+                    % uncomment the following line to have colors
+                    %colormap(gca, Cmap.adaptiveTerrain(minMax(dtm(:))));
+                    drawnow;
+                    
+                    warning off;
+                    [shaded_dtm, x, y] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1]);
+                    warning on;
+                    %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
+                    %h_dtm.CData = shaded_dtm;
+                    
+                    m_image(lon_dtm, lat_dtm, shaded_dtm);
+                catch ex
+                    % use ETOPO1 instead
+                    colormap(gca, cmap(100 : end, :))
+                    m_etopo2('shadedrelief','gradient', 3);
+                end
+            end
+            
+            % read shapefile
+            shape = 'none';
+            if (~strcmp(shape,'none'))
+                if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                    if (strcmp(shape,'10m'))
+                        M = m_shaperead('countries_10m');
+                    elseif (strcmp(shape,'30m'))
+                        M = m_shaperead('countries_30m');
+                    else
+                        M = m_shaperead('countries_50m');
+                    end
+                    [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                    [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
+                    for k = 1 : length(M.ncst)
+                        lam_c = M.ncst{k}(:,1);
+                        ids = lam_c <  min(lon);
+                        lam_c(ids) = lam_c(ids) + 360;
+                        phi_c = M.ncst{k}(:,2);
+                        [x, y] = m_ll2xy(lam_c, phi_c);
+                        if sum(~isnan(x))>1
+                            x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                            line(x,y,'color', [0.3 0.3 0.3]);
+                        end
+                    end
+                else
+                    if (strcmp(shape,'coast'))
+                        m_coast('line','color', lineCol);
+                    else
+                        m_coast('patch',lineCol);
+                    end
+                end
+            end
+            
+            hold on;
+            
+            if (flag_polar)
+                if flag_polar == 'S'
+                    m_grid('XaxisLocation', 'top', 'tickdir','in', 'fontsize', 16);
+                else
+                    m_grid('tickdir','in', 'fontsize', 16);
+                end
+                % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+                ylim([-0.47 0.47]);
+                drawnow
+            else
+                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+                drawnow
+                % m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+            end
+            
+            [x, y] = m_ll2xy(lon, lat);
+            %point_color = Cmap.get('viridis', numel(x));
+            %point_size = 25;
+            if size(point_color, 1) > 1
+                scatter(x(:), y(:), point_size, 1:numel(x), 'filled'); hold on;
+                colormap(point_color);
+            else
+                plot(x(:), y(:),'.', 'MarkerSize', point_size, 'Color', point_color); hold on;
+            end
+            if flag_labels
+                % Label BG (in background w.r.t. the point)
+                for r = 1 : numel(x)
+                    tmp = name{r};
+                    text(x(r), y(r), char(32 * ones(1, 4 + 2 * length(tmp), 'uint8')), ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                end
+            end
+            
+            if flag_large_points
+                plot(x(:), y(:), 'ko', 'MarkerSize', large_point_size/3, 'LineWidth', 1 + 1 * logical(flag_polar));
+                clim = minMax(h(:));
+                n_col = ceil(diff(clim)/10);
+                color = round((h(:) - clim(1)) / 10) + 1;
+                colormap(Cmap.linspaced);
+                cb = colorbar; title(cb, '[m]');
+                caxis(clim);                
+                for r = 1 : numel(x)                    
+                    plot(x(r), y(r), '.', 'MarkerSize', large_point_size, 'Color', Core_UI.getColor(color(r), n_col));
+                end
+                plot(x(:), y(:), '.k', 'MarkerSize', large_point_size/7);
+            end
+            
+            if flag_labels
+                for r = 1 : numel(x)
+                    tmp = name{r};
+                    t = text(x(r), y(r), ['   ' tmp], ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                        ...%'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                        ...%'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                        'Margin', 2, 'LineWidth', 2, ...
+                        'HorizontalAlignment','left');
+                end
+            end
+            Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f, 'light');
+            f.Visible = 'on';
+            title(sprintf('Stations position\\fontsize{5} \n'), 'FontSize', 16);
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
+            ax = gca; ax.FontSize = 16;
+            Logger.getInstance.addStatusOk('The map is ready ^_^');
+        end
         
         function [coo, marker_name, flag] = getStationFromWorldArchive(marker_filter)
             % Read the coordinates present in:
