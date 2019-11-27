@@ -2852,8 +2852,7 @@ classdef LS_Manipulator_new < handle
             this.obs_rate = rate;
             this.ref_time_obs = this.time_obs.getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
         end
-        
-        
+                
         function s0 = getSigma0Ph(this)
             % Get sigma0 of phase (PPP solution)
             %
@@ -2861,8 +2860,6 @@ classdef LS_Manipulator_new < handle
             %  s0 = this.getSigma0Ph()
             s0 = mean(abs(this.res(this.phase_obs > 0)));
         end
-        
-        
         
         function computeAmbJmps(this)
             % determine if a loss of lock tracking happened simultaneusly

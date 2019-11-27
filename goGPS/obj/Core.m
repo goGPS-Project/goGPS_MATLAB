@@ -1715,11 +1715,10 @@ classdef Core < handle
             this.log.addMarkedMessage(sprintf('Core object created at %s\n', this.creation_time.toString));
             fprintf('----------------------------------------------------------------------------------\n')
             this.log.newLine();
-        end
+        end        
     end
 
-    methods (Static) % Public Access
-        
+    methods (Static) % Public Access        
         function clearSingletons()
             % clear all singletons
             %
@@ -1732,6 +1731,14 @@ classdef Core < handle
                 Go_Wait_Bar ...
                 Logger;
         end        
+        
+        function install_dir = getInstallDir()
+            % Get the directory that contains goGPS.m aka the install dir
+            %
+            % SYNTAX
+            %   install_dir = Core.getInstallDir()
+            [install_dir, name, ext] = fileparts(which('goGPS'));
+        end
     end
 
 end

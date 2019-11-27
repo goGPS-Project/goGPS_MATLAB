@@ -353,8 +353,9 @@ classdef Core_UI < Logos
                     lg.TextColor = 1-[0.9 0.9 0.9];
                     lg.EdgeColor = [0.5 0.5 0.5];
                 end
+                
             elseif strcmp(color_mode, 'light')
-                fig_handle.Color = [0.94 0.94 0.94];
+                fig_handle.Color = [1 1 1];
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
                     cb.Color = 1-[0.9 0.9 0.9];
