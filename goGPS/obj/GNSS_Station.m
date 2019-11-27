@@ -2452,6 +2452,89 @@ classdef GNSS_Station < handle
             bsl_ids = bsl_ids(bsl_ids(:, 1) > 0 & bsl_ids(:, 2) > 0, :);
         end
     end
+        
+        function [coo, marker_name, flag] = getStationFromWorldArchive(marker_filter)
+            % Read the coordinates present in:
+            %   INSTALL_DIR/../data/station/CRD/gred_world_archive.xyz
+            %
+            % INPUT 
+            %   marker_filter      when it is specified a filter is applied
+            %
+            % SYNTAX
+            %   [coo, marker_name, flag] = GNSS_Station.getStationFromWorldArchive(<marker_name>);
+            
+            crd_dir = File_Name_Processor.getFullDirPath(fullfile(Core.getInstallDir(), '../data/station/CRD/'));
+            file_name = fullfile(crd_dir, 'gred_world_archive.xyz');
+            if ~exist(file_name, 'file')
+                Core.getLogger.addError(sprintf('"%s" not found', file_name));
+                crd_list = [];
+            else
+                fid = fopen(file_name,'r');
+                if fid <= 0
+                    Core.getLogger.addError(sprintf('"%s" cannot be read', file_name));
+                    crd_list = [];
+                else
+                    txt = fread(fid,'*char')';
+                    % try to see if carriage return is present in the file (Windows stupid standard)
+                    % On Windows file lines ends with char(13) char(10)
+                    % instead of just using char(10)
+                    if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
+                        has_cr = true;  % The file has carriage return - I hate you Bill!
+                    else
+                        has_cr = false;  % The file is UNIX standard
+                    end
+                    % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
+                    fclose(fid);
+                    
+                    % get new line separators
+                    nl = regexp(txt, '\n')';
+                    if nl(end) <  (numel(txt) - double(has_cr))
+                        nl = [nl; numel(txt)];
+                    end
+                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                    lim = [lim lim(:,2) - lim(:,1)];
+                    while lim(end,3) < 3
+                        lim(end,:) = [];
+                    end
+                    
+                    % removing empty lines at end of file
+                    while (lim(end,1) - lim(end-1,1))  < 2
+                        lim(end,:) = [];
+                    end
+                    
+                    name_list = txt(lim(3:end,1) + (0:18));
+                    flag = txt(lim(3:end,1) + 61);
+                    
+                    % strip unique coordinates from marker names
+                    id_sta = flag == '1';
+                    name_list(id_sta, :) = reshape(regexprep(serialize(name_list(id_sta, :)')', '\_\d{4}\_\d{4}', '          '), 19, sum(id_sta))';
+                    
+                    % coordinates
+                    xyz = reshape(sscanf(serialize(txt(lim(3 : end,1) + (19:60))')', '%f'), 3, size(lim, 1) -2)';
+                    
+                    % remove recievers with 0 coordinate
+                    id_sta = flag == '0';
+                    name_list(id_sta, :) = [];
+                    xyz(id_sta, :) = [];
+                    flag(id_sta) = [];
+                                        
+                    marker_name = {};
+                    id_ok = true(size(name_list, 1), 1);
+                    for s = 1 : size(name_list, 1)
+                        marker_name{s} = strtrim(name_list(s, :));
+                        if nargin == 1 && ~isempty(marker_filter)
+                            id_ok(s) = contains(marker_name{s}, marker_filter);
+                        end
+                    end
+                    
+                    marker_name = marker_name(id_ok);
+                    xyz = xyz(id_ok, :);
+                    flag = flag(id_ok);
+                    coo = Coordinates.fromXYZ(xyz);
+                end
+            end
+        end
+        
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
 

@@ -78,6 +78,7 @@
 /data/station/CRD/*
 !/data/station/CRD/.gitignore
 !/data/station/CRD/stations.crd
+!/data/station/CRD/gred_world_archive.xyz
 !/data/station/MET
 /data/station/MET/*
 !/data/station/MET/.gitignore
