@@ -125,18 +125,22 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods
-        function t = getTime(this)
-            % Get Coordinates as cartesian Earth Centered Earth Fixed Coordinates
+        function coo = getElement(this, id_el)
+            % get a copy of the coordinates relative to a specific id (or epoch)
             %
-            % OUTPUT
-            %   time   [GPS_Time]
+            % UNFINISHED FUNCITON: 
+            %   covariances and precisions are not extracted
             %
-            % SYNTAX 
-            %   t = this.getTime()
-            
-            t = this.time;
+            % SYNTAX
+            %   coo = getElement(this, id_el)
+            try
+                coo = Coordinates.fromXYZ(this.xyz(id_el, :));
+            catch
+                Core.getLogger.addWarning('Coordinates get Element out of bound');
+                coo = Coordinates();
+            end           
         end
-        
+                
         function [xyz, y, z] = getXYZ(this)
             % Get Coordinates as cartesian Earth Centered Earth Fixed Coordinates
             %
