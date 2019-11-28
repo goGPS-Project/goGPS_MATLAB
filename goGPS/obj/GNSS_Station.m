@@ -2778,23 +2778,42 @@ classdef GNSS_Station < handle
             end
         end
         
-        function marker_list = getCloseStations(lat, lon, n_stations)
+        function [coo, marker_list, flag] = getCloseStations(lat, lon, n_stations)
             % Get the marker name of the stations in a certain area,
             % or close to a point
             %
             % SYNTAX
-            %   marker_list = getCloseStations(lat_lim, lon_lim);
-            %   marker_list = getCloseStations(lat, lon, n_stations)
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations(lat_lim, lon_lim);
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations(lat, lon, n_stations)
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations(world_marker, [], n_stations)
             %
             % EXAMPLE
-            %   marker_list = Radiosonde.getCloseStations([45.25 45.75], [9 9.5]);
-            %   marker_list = Radiosonde.getCloseStations(45.43, 9.28, 3)
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations([45.25 45.75], [9 9.5]);
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations(45.43, 9.28, 3)
+            %   [coo, marker_list, flag] = GNSS_Station.getCloseStations('MIL2', [], 3)
             
-            [coo, marker_list] = GNSS_Station.getStationFromWorldArchive();
+            if nargin >= 1 && ischar(lat)
+                % in this case I search for coordinates in the World map
+                marker_filter = lat;
+                [coo, marker_name] = GNSS_Station.getStationFromWorldArchive(marker_filter);
+                
+                if isempty(marker_name)
+                    Core.getLogger.addWarning(sprintf('No station containing "%s" found', marker_filter))
+                else
+                    if numel(marker_name) > 1
+                        Core.getLogger.addWarning(sprintf('Multiple stations containing "%s" found\nChosing the first\n Check GNSS_Station.getCloseStations()', marker_filter));
+                    end
+                    [lat, lon] =  coo.getElement(1).getGeodetic();
+                    lat = lat / pi * 180;
+                    lon = lon / pi * 180;
+                end
+            end
+            
+            [coo, marker_list, flag] = GNSS_Station.getStationFromWorldArchive();
             [lat_sta, lon_sta, h] =  coo.getGeodetic;
             lat_sta = lat_sta / pi * 180;
             lon_sta = lon_sta / pi * 180;
-                                    
+            
             if numel(lat) > 1
                 % lat is a limit
                 lat = sort(lat);
@@ -2803,15 +2822,21 @@ classdef GNSS_Station < handle
                 id_ok = (lat_sta >= lat(1)) & (lat_sta <= lat(2)) & ...
                     (lon_sta >= lon(1)) & (lon_sta <= lon(2));
                 marker_list = marker_list(id_ok);
+                coo = coo.getElement(id_ok);
             else
                 % distance from a coordinate
                 d = sphericalDistance(lat_sta, lon_sta, lat, lon);
-                [d, ids] = sort(d);
-                marker_list = marker_list(ids);
+                [d, id_ok] = sort(d);
+                marker_list = marker_list(id_ok);
+                coo = coo.getElement(id_ok);
+                flag = flag(id_ok);
             end
             
             if nargin == 3 && ~isempty(n_stations)
-                marker_list = marker_list(1 : n_stations);
+                id_ok = 1 : min(n_stations, length(marker_list));
+                marker_list = marker_list(id_ok);
+                coo = coo.getElement(id_ok);
+                flag = flag(id_ok);                
             end            
         end
     end
