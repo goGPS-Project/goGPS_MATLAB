@@ -2774,6 +2774,16 @@ classdef GNSS_Station < handle
                     xyz = xyz(id_ok, :);
                     flag = flag(id_ok);
                     coo = Coordinates.fromXYZ(xyz);
+                    
+                    [~, ~, h] =  coo.getGeodetic;
+                    id_ok = (h > -200); % Coordinates with elevation < 200m are definitely not valid
+                    
+                    if any(~id_ok)
+                        marker_name = marker_name(id_ok);
+                        xyz = xyz(id_ok, :);
+                        flag = flag(id_ok);
+                        coo = Coordinates.getElement(id_ok);
+                    end
                 end
             end
         end
