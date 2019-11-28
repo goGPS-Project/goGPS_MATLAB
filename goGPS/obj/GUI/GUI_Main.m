@@ -1008,6 +1008,11 @@ end
                 'TooltipString', 'Import from RINEX', ...
                 'Callback', @this.rin2Crd); %#ok<NASGU>
             
+            ispectRinTrck = uicontrol( 'Parent', but_box, ...
+                'String', 'Inspect RINEX Tracking', ...
+                'TooltipString', 'Inspect Trackigns present RINEX', ...
+                'Callback', @this.inspectRinexTrck); %#ok<NASGU>
+            
             Core_UI.insertEmpty(but_box);
 
             save = uicontrol( 'Parent', but_box, ...
@@ -1031,8 +1036,9 @@ end
                 'String', 'ShowMap', ...
                 'TooltipString', 'Show stations on a map', ...
                 'Callback', @this.showCrdMap); %#ok<NASGU>
+       
 
-            but_box.Heights = [25 25 25 25 -1 25 25 25 15 25];
+            but_box.Heights = [25 25 25 25 25 -1  25 25 25 15 25];
             this.coo_tbl.Position = [25 40 250 100];
             
             this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
@@ -1147,6 +1153,77 @@ end
                 end
             end
             this.coo_tbl.Data = data;            
+        end
+        
+        function inspectRinexTrck(this, caller, event)
+            % Add a new row to the CRD table
+
+            rec_path = Core.getState.getRecPath();
+            data = [];
+            data_chk = [];
+            for r = 1 : numel(rec_path)
+                f = numel(rec_path{r});
+                coo_found = false;
+                while f > 0 && ~coo_found
+                    fr = File_Rinex(rec_path{r}{f}, 100);
+                    if fr.isValid()
+                        name = fr.marker_name{1};
+                        trk_aval = fr.trck_availability;
+                        this.log.addMessage(sprintf('Inspecting %s',name));
+                        if any(trk_aval)
+                            if ~isempty(data)
+                                 data = [data; trk_aval'];
+                                names = [names; {name}];
+                            else
+                                data = [trk_aval'];
+                                names = {name};
+                            end
+                        end
+                    end
+                    f = f - 1;
+                end
+            end
+            idx_el = sum(data) == 0;
+            data(:,idx_el) = [];
+            datac = char(double(data));
+            datac(data) = 'o';
+            datac(~data) = '.';
+            f = figure('Position',[100 100 1500 800]);
+            
+            trtab = uitable('Position',[10 10 1480 780]);
+            gd = Core_Sky.group_delays_flags;
+            gd(idx_el,:) = [];
+            datas = [names{1} num2cell(datac(1,:))];
+            for i = 2 : length(names)
+                datas = [datas; [names{i} num2cell(datac(i,:))]];
+            end
+            col_names = [{'Marker Name'};cellstr(gd)];
+            
+            for i = 1 : size(datas,1)
+                for j = 1 : size(datas,2)
+                    if j > 1
+                        sys_c = col_names{j}(1);
+                        band =  col_names{j}(3);
+                        clr = GUI_Main.getColorTrck(sys_c,band,rem(i,2));
+                    else
+                        if rem(i,2) == 1
+                            clr = '#fffffff';
+                        else
+                            clr = '#ededed';
+                        end
+                    end
+                    
+                    datas(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas{i,j},'</center>']};
+                end
+            end
+            
+            trtab.ColumnName = col_names;
+            trtab.ColumnFormat =['char' repmat({'char'},1,size(gd,1))];
+            trtab.ColumnWidth = repmat({45},1,size(gd,1)+1);
+            trtab.Data = datas;
+            
+
+
         end
         
         function showCrdMap(this, caller, event)
@@ -2598,6 +2675,109 @@ end
             uimenu(this.menu.project, ...
                 'Label', 'Save As', ...
                 'Callback', @this.saveAsState);
+        end
+    end
+    
+    methods (Static)
+        function clr = getColorTrck(sys_c, band, parity)
+            Gcol = '#a6cee3';
+            Rcol = '#1f78b4';
+            Ecol = '#b2df8a';
+            Jcol = '#33a02c';
+            Icol = '#fb9a99';
+            Scol = '#e31a1c';
+            Ccol = '#fdbf6f';
+            if sys_c == 'G'
+                clr = Gcol;
+                rgb = hex2rgb(clr);
+                
+                if band == '1'
+                    
+                elseif band == '2'
+                    rgb = max(rgb -20/255,0);
+                    
+                elseif band == '5'
+                    rgb = max(rgb -10/255,0);
+                    
+                end
+            elseif sys_c == 'R'
+                clr = Rcol;
+                rgb = hex2rgb(clr);
+                
+                if band == '1'
+                    
+                elseif band == '2'
+                    rgb = max(rgb -20/255,0);
+                    
+                elseif band == '3'
+                    rgb = max(rgb -10/255,0);
+                    
+                end
+            elseif sys_c == 'E'
+                
+                clr = Ecol;
+                rgb = hex2rgb(clr);
+                
+                if band == '1'
+                    
+                elseif band == '5'
+                    rgb = max(rgb -20/255,0);
+                    
+                elseif band == '7'
+                    rgb = max(rgb -10/255,0);
+                elseif band == '6'
+                    rgb = min(rgb +20/255,1);
+                end
+            elseif sys_c == 'C'
+                clr = Ccol;
+                rgb = hex2rgb(clr);
+                
+                if band == '2'
+                elseif band == '7'
+                    rgb = max(rgb -20/255,0);
+                elseif band == '6'
+                    rgb = max(rgb -10/255,0);
+                end
+            elseif sys_c == 'J'
+                clr = Jcol;
+                rgb = hex2rgb(clr);
+                
+                if band == '1'
+                elseif band == '2'
+                    rgb = max(rgb -20/255,0);
+                elseif band == '5'
+                    rgb = max(rgb -10/255,0);
+                elseif band == '6'
+                    rgb = min(rgb +20/255,1);
+                end
+            elseif sys_c == 'I'
+                clr = Icol;
+                rgb = hex2rgb(clr);
+                
+                if band == '5'
+                elseif band == '9'
+                    rgb = max(rgb -20/255,0);
+                end
+            elseif sys_c == 'S'
+                clr = Icol;
+                rgb = hex2rgb(clr);
+                
+                if band == '1'
+                elseif band == '5'
+                    rgb = max(rgb -20/255,0);
+                end
+            else
+                clr = '#fcfcfc';
+                rgb = hex2rgb(clr);
+                
+            end
+            if parity
+                rgb = min(rgb +6/255,1);
+            else
+                rgb = max(rgb -6/255,0);
+                
+            end
+            clr = rgb2hex(rgb);
         end
     end
 end

@@ -54,6 +54,8 @@ classdef File_Rinex < Exportable
         is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
 
         is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...
+        
+        trck_availability                            % boolean to get tracking availabilty the tracking are in Core_sky.group_delays_flags
 
         marker_name = {};                            % marker name of the files
         coo = Coordinates.fromXYZ([0 0 0])           % receiver coordinates
@@ -221,6 +223,9 @@ classdef File_Rinex < Exportable
                             
                             line = buf(lim(l,1) : lim(l,2));
                             date_start = '';
+                            trck_name = Core_Sky.group_delays_flags;
+                            trck_availability = false(size(trck_name,1),1);
+                            cur_trck_sys = '';
                             date_stop = '';
                             coo = '';
                             eof = false;
@@ -264,6 +269,19 @@ classdef File_Rinex < Exportable
                                                     date_stop = strtrim(line(1:48));
                                                     par_to_find = par_to_find - 1;
                                                 end
+                                            elseif line(76) == 'Y' %  SYS / # / OBS TYPES
+                                                if line(1) ~= ' '
+                                                    cur_trck_sys = line(1);
+                                                end
+                                                trcks = strsplit(line(8:59),' ');
+                                                for t = trcks
+                                                    if ~isempty(t{1})
+                                                        t = t{1};
+                                                        idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
+                                                        trck_availability(idx) = true;
+                                                    end
+                                                end
+                                                    
                                             else
                                                 %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
                                                 % character to recognize approximate position for met file: 'E' => sensor pos
@@ -277,6 +295,10 @@ classdef File_Rinex < Exportable
                                         end
                                     end
                                 end
+                            end
+                            
+                            if ~isempty(trck_availability)
+                                this.trck_availability = trck_availability;
                             end
                             
                             if ~isempty(coo)
@@ -311,8 +333,11 @@ classdef File_Rinex < Exportable
                                 epoch_line = buf(lim(l,1) : lim(l,2));
                                 % try to guess the time format
                                 [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
+                                try
                                 this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
-                                
+                                catch ex
+                                    keyboard
+                                end
                                 this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                             end
                             this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
@@ -693,5 +718,6 @@ classdef File_Rinex < Exportable
             this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
             this.is_valid_list = this.is_valid_list(id);
         end
+        
     end
 end

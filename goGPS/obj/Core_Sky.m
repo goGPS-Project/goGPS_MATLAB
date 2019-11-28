@@ -31,6 +31,17 @@ classdef Core_Sky < handle
     %--------------------------------------------------------------------------
     % 01100111 01101111 01000111 01010000 01010011
     %--------------------------------------------------------------------------
+    properties (Constant)
+        group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... % GPS codes
+            'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
+            'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; 'EC6A'; 'EC6B'; 'EC6C'; 'EC6X'; 'EC6Z';...          % GALILEO codes
+            'JC1C' ; 'JC1S' ; 'JC1L' ; 'JC1X' ; 'JC1Z' ; 'JC2S' ; 'JC2L' ; 'JC2X' ; 'JC2M' ; 'JC5I' ; 'JC5Q' ; 'JC5X' ; 'JC6S' ; 'JC6L' ; 'JC6X' ; ... % QZSS codes
+            'CC2I' ; 'CC2Q' ; 'CC2X' ; 'CC7I' ; 'CC7Q' ; 'CC7X' ; 'CC6I' ; 'CC6Q' ; 'CC6X' ; ...                                                       % BeiDou codes
+            'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
+            'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
+            ];
+    end
+    
     
     properties
         time_ref_coord         % GPS Times of ephemerides
@@ -53,14 +64,7 @@ classdef Core_Sky < handle
         
         erp                    % Earth Rotation Parameters
         
-        group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... % GPS codes
-            'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
-            'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; 'EC6A'; 'EC6B'; 'EC6C'; 'EC6X'; 'EC6Z';...          % GALILEO codes
-            'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
-            'CC2I' ; 'CC2Q' ; 'CC2X' ; 'CC7I' ; 'CC7Q' ; 'CC7X' ; 'CC6I' ; 'CC6Q' ; 'CC6X' ; ...                                                       % BeiDou codes
-            'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
-            'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
-            ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
+        % ALL Rinex 3 code observations flags + first letter indicationg the constellation
         
         group_delays = zeros(32,82); % group delay of code measurements (meters) referenced to their constellation reference:
         %    GPS     -> Iono free linear combination C1P C2P
@@ -71,6 +75,8 @@ classdef Core_Sky < handle
         %    IRNSS   -> Iono free linear combination
         %    SABS    -> Iono free linear combination
         group_delays_times           % 77x1 GPS_Time
+        
+        tracking_bias
         
         ant_pco1              % satellites antenna phase center offset for the first frequency (used in toCOM toAPC)
         
