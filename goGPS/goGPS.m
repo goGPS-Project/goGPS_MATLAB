@@ -66,8 +66,22 @@ function goGPS(ini_settings, use_gui, flag_online)
         % add all the subdirectories to the search path
         addPathGoGPS;
     end
+    
+    if nargin < 2 || isempty(use_gui)
+        if isdeployed
+            use_gui = true;
+        else
+            use_gui = true;
+        end
+    end
+        
     log = Logger.getInstance();
-    log.disableFileOut();
+    if use_gui
+        log.enableGUIOut();
+        Core.getMsgGUI(true);
+    else
+        log.disableGUIOut();
+    end
     
     % Show coloured header
     cm = log.getColorMode();
@@ -81,13 +95,7 @@ function goGPS(ini_settings, use_gui, flag_online)
         core = Core.getInstance(true); % Init Core
     end
     
-    if nargin < 2 || isempty(use_gui)
-        if isdeployed
-            use_gui = true;
-        else
-            use_gui = true;
-        end
-    end
+        
     
     if nargin < 3 || isempty(flag_online)
         flag_online = true;

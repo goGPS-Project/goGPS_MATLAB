@@ -47,18 +47,12 @@ classdef GUI_Msg < handle
         BG_COLOR = Core_UI.DARK_GREY_BG;
     end
     
-    %% PROPERTIES SINGLETON POINTERS
-    % ==================================================================================================================================================
-    properties % Utility Pointers to Singletons
-        log
-        state
-    end
-    
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
         w_main      % Handle of the main window 
-        win         % Handle to this window        
+        win         % Handle to this window
+        jedt        % j edit handle (java logger element)
     end    
     
     %% PROPERTIES STATUS
@@ -82,29 +76,27 @@ classdef GUI_Msg < handle
     % ==================================================================================================================================================
     methods
         function init(this)
-            this.log = Core.getLogger();
-            this.state = Core.getState();
         end
         
         function openGUI(this)
             % Main Window ----------------------------------------------------------------------------------------------
             
-            win = figure( 'Name', 'About', ...
-                'Visible', 'on', ...
+            win = figure( 'Name', 'goGPS log', ...
+                'Visible', 'off', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
-                'Position', [0 0 400 600], ...
-                'Resize', 'off');
+                'Position', [0 0 480 720], ...
+                'Resize', 'on');
             
             this.win = win;
             
             if isunix && not(ismac())
-                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
-                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
+                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
             else
-                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
+                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
             end
                         
             try
@@ -112,10 +104,11 @@ classdef GUI_Msg < handle
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARKER_GREY_BG);                
             catch
-                this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                log = Core.getLogger;
+                log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
-                this.log.newLine();
-                this.log.addWarning('After installation re-run goGPS');
+                log.newLine();
+                log.addWarning('After installation re-run goGPS');
                 close(win);
                 return;
             end
@@ -156,32 +149,39 @@ classdef GUI_Msg < handle
             title = uix.HBox('Parent', right_tvb, ...
                 'BackgroundColor', logo_GUI_Msg.BG_COLOR);
             
-            txt = this.insertBoldText(title, 'goGPS', 10, Core_UI.LBLUE, 'left');
+            txt = this.insertBoldText(title, 'goGPS', 12, Core_UI.LBLUE, 'left');
             txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;
             title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Msg.BG_COLOR);
-            title.Widths = [54 -1];
+            title.Widths = [60 -1];
             Core_UI.insertEmpty(title_l, logo_GUI_Msg.BG_COLOR)
-            txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 8, [], 'left');
+            txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 9, [], 'left');
             txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;
             title_l.Heights = [2, -1];
             
             % Disclaimer Panel -----------------------------------------------------------------------------------------------
             Core_UI.insertEmpty(right_tvb, logo_GUI_Msg.BG_COLOR)
-            txt = this.insertText(right_tvb, {['This release is loosely based on the original goGPS software, most of the code has '...
-                'been rewritten for better performances, automation, flexibility, but with the primary goal of quasi static processing. ' ...
-                'Legacy version can still be found at:'], ...
-                'https://github.com/goGPS-Project/goGPS_MATLAB/tree/legacy'}, 7, [], 'left');
-            txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;
+             txt = this.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, [], 'left');
+             txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;            
+            right_tvb.Heights = [25 3 -1];
             
-            right_tvb.Heights = [20 3 -1];
+            % Logging Panel --------------------------------------------------------------------------------------------------
+            log_container = uix.VBox('Parent', main_vb, 'Padding', 5, 'BackgroundColor', GUI_Msg.BG_COLOR);
+            [j_edit_box, h_log_panel] = Core_UI.insertLog(log_container);
+            this.win.UserData = struct('jedt', j_edit_box);
+            this.jedt = j_edit_box;
             
+            Core_UI.logMessage(j_edit_box, ['<p>Welcome to goGPS!!!</p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a> ^_^']);
+%             Core_UI.logMessage(j_edit_box, 'a warning message...', 'warn');
+%             Core_UI.logMessage(j_edit_box, 'an error message!!!', 'error');
+%             Core_UI.logMessage(j_edit_box, 'a marked message again...', 'marked');
+%             Core_UI.logMessage(j_edit_box, 'a regular message again...');
 
             % Manage dimension -------------------------------------------------------------------------------------------
             
-            main_vb.Heights = [84];
+            main_vb.Heights = [84 -1];
                         
-            this.win.Visible = 'on';            
-        end
+            this.win.Visible = 'on';    
+        end                
     end
     %% METHODS INSERT
     % ==================================================================================================================================================
@@ -217,12 +217,36 @@ classdef GUI_Msg < handle
                 'HorizontalAlignment', alignment, ...
                 'FontSize', Core_UI.getFontSize(font_size), ...
                 'BackgroundColor', GUI_Msg.BG_COLOR);
-        end
-            
+        end                
     end
-    %% METHODS getters
+    %% METHODS setters
     % ==================================================================================================================================================
     methods
+        function addMessage(this, text, type)
+            % Add a message to the logger
+            % 
+            % INPUT
+            %   text    text in HTML format
+            %   type    'm'     marked message
+            %           'w'     warning message
+            %           'e'     error message
+            %           otherwise normal
+            
+            if nargin < 3 || isempty(type)
+                type = 'n';
+            end
+            Core_UI.logMessage(this.jedt, text, type);
+        end
+        
+        function addHTML(this, html_txt)
+            % Add a message to the logger
+            % 
+            % INPUT
+            %   text    text in HTML format
+
+            
+            Core_UI.logHTML(this.jedt, html_txt);
+        end
     end
     
     %% METHODS EVENTS

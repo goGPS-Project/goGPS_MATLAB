@@ -63,6 +63,7 @@ classdef Logger < handle
         out_file_path                             % Path to the logging file
         file_out_mode = 'w+';                     % log to file in (w/a) mode (w+ = new file, a+ = append)
         fid                                       % File handler
+        win
     end
 
     methods (Access = private)
@@ -126,6 +127,16 @@ classdef Logger < handle
             is_active =  bitand(this.std_out, 2, 'uint8') > 0;
         end
         
+        function is_active = isGUIOut(this)
+            % Return show log on GUI window
+            %
+            % SYNTAX
+            %   is_active = isGUIOut(this)
+            
+            % get second bit
+            is_active =  bitand(this.std_out, 4, 'uint8') > 0;
+        end
+        
         function disableFileOut(this)
             % Disable logging on file
             %
@@ -133,7 +144,7 @@ classdef Logger < handle
             %   log.disableFileOut()
             
             while this.isFileOut
-                this.setOutMode([], false);
+                this.setOutMode([], false, []);
             end
         end
         
@@ -144,11 +155,33 @@ classdef Logger < handle
             %   log.enableFileOut()
             
             while ~this.isFileOut
-                this.setOutMode([], true);
+                this.setOutMode([], true, []);
             end
         end
         
-        function setOutMode(this, screen_out, file_out)
+        function disableGUIOut(this)
+            % Disable logging on file
+            %
+            % SYNTAX
+            %   log.disableFileOut()
+            
+            while this.isGUIOut
+                this.setOutMode([], [], false);
+            end
+        end
+        
+        function enableGUIOut(this)
+            % Disable logging on file
+            %
+            % SYNTAX
+            %   log.enableGUIOut()
+            
+            while ~this.isGUIOut
+                this.setOutMode([], [], true);
+            end
+        end
+        
+        function setOutMode(this, screen_out, file_out, gui_out)
             % Enable and disable various output mode
             % Inputs are boolean or empty
             %
@@ -171,6 +204,15 @@ classdef Logger < handle
                     this.std_out = bitor(this.std_out, 2, 'uint8');
                 else
                     this.std_out = bitxor(this.std_out, 2, 'uint8');
+                end
+            end
+            
+            if (nargin > 3) && ~isempty(gui_out)
+                % set third bit
+                if gui_out
+                    this.std_out = bitor(this.std_out, 4, 'uint8');
+                else
+                    this.std_out = bitxor(this.std_out, 4, 'uint8');
                 end
             end
         end
@@ -261,7 +303,7 @@ classdef Logger < handle
             % SYNTAX
             %   log.closeFile()
             
-                try fclose(this.fid); catch; end % if is not open do nothing            
+            try fclose(this.fid); catch; end % if is not open do nothing
         end
         
         function out_file_path = getFilePath(this)
@@ -347,6 +389,11 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % GUI
+                    msg = Core.getMsgGUI();
+                    msg.addHTML('<span color=gray>_______________________________________________________________</span>');
+                end
+                
                 if this.isScreenOut % Screen
                     if this.color_mode && ~(nargin < 3 || isempty(color))
                         cprintf(color, '----------------------------------------------------------------------------');
@@ -369,6 +416,10 @@ classdef Logger < handle
             end            
             
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % GUI
+                    msg.addHTML('<span color=gray>***************************************************************</span>');
+                end
+                
                 if this.isScreenOut % Screen
                     if this.color_mode && ~(nargin < 3 || isempty(color))
                         cprintf(color, '  **********************************************************************');
@@ -389,6 +440,10 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % GUI
+                    msg = Core.getMsgGUI();
+                    msg.addHTML('<span color=#CCCCCC>_______________________________________________________________</span>');
+                end
                 if this.isScreenOut % Screen
                     fprintf('  --------------------------------------------------------------------\n');
                 end
@@ -403,9 +458,17 @@ classdef Logger < handle
             if (nargin < 3)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
-            text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
-            text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '</br>');
+                    gui_text = strrep(gui_text, '\n', '</br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text, 'm');
+                end
+                
+                text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
+                text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
                 if this.isScreenOut % Screen
                     if this.color_mode
                         text = strrep(text, '\', '\\');
@@ -452,6 +515,13 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '</br>');
+                    gui_text = strrep(gui_text, '\\n', '</br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text);
+                end
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
                 if this.isScreenOut % Screen
@@ -497,6 +567,14 @@ classdef Logger < handle
                 verbosity_level = this.WARNING_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '</br>');
+                    gui_text = strrep(gui_text, '\n', '</br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text, 'w');
+                end
+                
                 this.printWarning(text);
             end
         end
@@ -507,6 +585,14 @@ classdef Logger < handle
                 verbosity_level = this.ERROR_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '</br>');
+                    gui_text = strrep(gui_text, '\n', '</br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text, 'e');
+                end
+
                 this.printError(text);
             end
         end
@@ -633,7 +719,6 @@ classdef Logger < handle
                 color_mode = true;
             end
             
-            
             if this.isScreenOut % Screen
                 if color_mode
                     cprintf('blue',' [ ');
@@ -653,14 +738,6 @@ classdef Logger < handle
                         otherwise, fprintf('!!');
                     end
                     fprintf(' ] ');
-                end
-            end
-            if this.isFileOut % File
-                switch (status)
-                    case 0, fprintf(this.getOutFId, ' [ ok ] ');
-                    case 1, fprintf(this.getOutFId, ' [ WW ] ');
-                    case 2, fprintf(this.getOutFId, ' [ -- ] ');
-                    otherwise, fprintf(this.getOutFId, ' [ !! ] ');
                 end
             end
         end

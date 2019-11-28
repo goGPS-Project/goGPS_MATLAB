@@ -174,18 +174,18 @@ classdef Core_UI < Logos
                 cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   '); cprintf('text',[iif(Core.isGReD, 'GReD', 'OPEN') ' EDITION     v ']); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
-                fprintf('--------------------------------------------------------------------------\n');
             else
                 %fprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.GO_GPS_VERSION);
                 fprintf(['\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   ' iif(Core.isGReD, 'GReD', 'OPEN') ' EDITION     v %s\n'], Core.GO_GPS_VERSION);
                 fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
-                fprintf('--------------------------------------------------------------------------\n');
             end
             %this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
+            this.log.simpleSeparator();
             this.log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
-            fprintf('--------------------------------------------------------------------------\n\n');
+            this.log.simpleSeparator();
+            fprintf('\n');
         end
         
         function str_out = getTextHeader()
@@ -1157,6 +1157,23 @@ classdef Core_UI < Logos
             box_handle.Widths = [widths(1) repmat(widths(2:3), 1, num_boxes) widths(4)];
             box_handle.Heights = 23;
         end
+        
+        function [j_edit_box, h_log_panel] = insertLog(parent)
+            % Insert a log editbox
+            %
+            % SYNTAX
+            %   [j_edit_box, h_log_panel] = Core_UI.insertLog(parent)
+            h_log_panel = uicontrol('style','edit', 'max', 5, 'Parent', parent, 'Units','norm', 'Position', [0,0.2,1,0.8], 'Background', 'w');
+            % Get the underlying Java editbox, which is contained within a scroll-panel
+            jScrollPanel = findjobj(h_log_panel);
+            try
+                jScrollPanel.setVerticalScrollBarPolicy(jScrollPanel.java.VERTICAL_SCROLLBAR_AS_NEEDED);
+                jScrollPanel = jScrollPanel.getViewport;
+            catch
+                % may possibly already be the viewport, depending on release/platform etc.
+            end
+            j_edit_box = handle(jScrollPanel.getView,'CallbackProperties');
+        end
     end     
     %% METHODS ELEMENT MODIFIER
     % ==================================================================================================================================================
@@ -1302,6 +1319,68 @@ classdef Core_UI < Logos
                     end
                 end
             end
+        end
+        
+        function logMessage(j_edit_box, text, severity)
+            % Log messages in a Log element
+            %
+            % SYNTAX
+            %   Core_UI.logMessage(jEditbox, text, severity)
+            
+            % Ensure we have an HTML-ready editbox
+            HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
+            if ~isa(j_edit_box.getEditorKit,HTMLclassname)
+                j_edit_box.setContentType('text/html');
+            end
+            % Parse the severity and prepare the HTML message segment
+            if nargin < 3,  severity='none';  end
+            flag_icon = true;
+            switch lower(severity(1))
+                case 'm',  icon = 'greenarrowicon.gif'; color='black';
+                case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];
+                case 'e',  icon = 'demoicon.gif';       color='red';    text = ['ERROR: ', text];
+                otherwise, flag_icon = false;           color='gray';
+            end
+                   
+            msg_txt = ['<font color=', color, ' face="Curier, Helvetica, Arial, sans-serif">', text, '</font>'];
+                        
+            if flag_icon
+                icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
+                icon_txt =['<img src="file:///', icon, '" height=16 width=16 style="height: 16px; width: 16px;"/>'];
+                new_text = ['<table style="width:100%;"><tr><td style="width:16px">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];
+            else
+                icon_txt = '&nbsp;';
+                new_text = ['<table style="width:100%;"><tr><td style="width:17px">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];            
+            end            
+            
+            % Place the HTML message segment at the bottom of the editbox
+            doc = j_edit_box.getDocument();
+            j_edit_box.getEditorKit().read(java.io.StringReader(new_text), doc, doc.getLength());
+            j_edit_box.setCaretPosition(doc.getLength());
+
+            end_pos = j_edit_box.getDocument.getLength;
+            j_edit_box.setCaretPosition(end_pos); % end of content
+        end
+        
+        function logHTML(j_edit_box, html_txt)
+            % Log messages in a Log element
+            %
+            % SYNTAX
+            %   Core_UI.logMessage(jEditbox, text, severity)
+            
+            % Ensure we have an HTML-ready editbox
+            HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
+            if ~isa(j_edit_box.getEditorKit,HTMLclassname)
+                j_edit_box.setContentType('text/html');
+            end
+                        
+            % Place the HTML message segment at the bottom of the editbox
+            doc = j_edit_box.getDocument();
+            j_edit_box.getEditorKit().read(java.io.StringReader(html_txt), doc, doc.getLength());
+            j_edit_box.setCaretPosition(doc.getLength());
+
+            end_pos = j_edit_box.getDocument.getLength;
+            j_edit_box.setCaretPosition(end_pos); % end of content
         end
     end
     %% METHODS EVENTS

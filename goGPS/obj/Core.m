@@ -74,6 +74,7 @@ classdef Core < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log         % Logger handler
+        log_gui     % Message window
         w_bar       % Wait_Bar handler
         
         state       % state
@@ -99,7 +100,6 @@ classdef Core < handle
         
         net             % List of all the network used
     end
-
     
     %% METHOD CREATOR
     % ==================================================================================================================================================
@@ -111,12 +111,22 @@ classdef Core < handle
             % init logger
             this.log = Logger.getInstance();            
         end
+    end
+    
+    methods (Access = private)
+        function delete(this)
+            if ~isempty(this.log_gui)
+                if ishandle(this.log_gui.win)
+                    close(this.log_gui.win);
+                end
+            end
+        end
     end    
     
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance(force_clean, skip_init, ini_file_path)                        
+        function this = getInstance(force_clean, skip_init, ini_file_path)
             % Get the persistent instance of the class
             %
             % INPUT
@@ -179,8 +189,7 @@ classdef Core < handle
                     end
                 end
             end
-        end
-        
+        end        
         
         function this = setInstance(core)
             % Set the persistent instance of the class
@@ -319,6 +328,27 @@ classdef Core < handle
                 log = Logger.getInstance();
                 core.log = log;
             end            
+        end
+        
+        function msg_gui = getMsgGUI(flag_reset)
+            % Return the pointer to the Logger Object
+            %
+            % SYNTAX
+            %   log = Core.getMsgGUI(flag_reset)
+            
+            if nargin < 1
+                flag_reset = false;
+            end
+            core = Core.getInstance(false, true);
+            msg_gui = core.log_gui;
+            if isempty(msg_gui) || ~ishandle(msg_gui.win)
+                msg_gui = GUI_Msg;
+                core.log_gui = msg_gui;
+            elseif flag_reset && ishandle(msg_gui.win)
+                close(msg_gui.win);
+                msg_gui = GUI_Msg;
+                core.log_gui = msg_gui;
+            end
         end
         
         function wb = getWaitBar()
@@ -520,7 +550,7 @@ classdef Core < handle
             %   cc = Core.getConstellationCollector()
             cc = Core.getState.getConstellationCollector;
         end
-                
+                        
         function core = setCurrentCore(core)
             % Set the pointer to the actual Core instance
             %
