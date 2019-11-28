@@ -164,6 +164,8 @@ end
             
             this.w_main = win;            
             
+             set(win, 'CloseRequestFcn', @this.close);
+             
             if isunix && not(ismac())
                 win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
                 win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
@@ -1227,8 +1229,8 @@ end
         end
         
         function showCrdMap(this, caller, event)
-            f = figure;
-            maximizeFig(f);            
+            fh = figure('Visible', 'off', 'Name', 'Map of the receivers with coordinates', 'NumberTitle', 'off');
+            maximizeFig(fh);            
             data = this.coo_tbl.Data;
             
             % get marker names:
@@ -1293,6 +1295,8 @@ end
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
+            fh.Visible = 'on';
+            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
         
         function addCrdRow(this, caller, event)
@@ -2420,7 +2424,11 @@ end
         end
         
         function close(this, caller, event)
-            close(this.w_main);
+            delete(this.w_main);
+            if ~this.ok_go
+                msg_gui = Core.getMsgGUI();
+                msg_gui.close();
+            end
         end
         
         function go(this, caller, event)
@@ -2428,8 +2436,8 @@ end
             this.log.addMarkedMessage('Starting computation!');
             
             this.state.save(Main_Settings.LAST_SETTINGS);
-            close(this.w_main);
             this.ok_go = true;
+            close(this.w_main);
         end
         
         function updateUI(this)

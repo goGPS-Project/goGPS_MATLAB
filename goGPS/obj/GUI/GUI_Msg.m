@@ -86,7 +86,7 @@ classdef GUI_Msg < handle
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
-                'Position', [0 0 480 720], ...
+                'Position', [0 0 500 640], ...
                 'Resize', 'on');
             
             this.win = win;
@@ -170,7 +170,8 @@ classdef GUI_Msg < handle
             this.win.UserData = struct('jedt', j_edit_box);
             this.jedt = j_edit_box;
             
-            Core_UI.logMessage(j_edit_box, ['<p>Welcome to goGPS!!!</p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a> ^_^']);
+            Core_UI.logMessage(j_edit_box, ['<p>' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '</p>']);
+            Core_UI.logMessage(j_edit_box, ['<p><b>Welcome to goGPS!</b></p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a>'], 'm');
 %             Core_UI.logMessage(j_edit_box, 'a warning message...', 'warn');
 %             Core_UI.logMessage(j_edit_box, 'an error message!!!', 'error');
 %             Core_UI.logMessage(j_edit_box, 'a marked message again...', 'marked');
@@ -181,7 +182,13 @@ classdef GUI_Msg < handle
             main_vb.Heights = [84 -1];
                         
             this.win.Visible = 'on';    
-        end                
+        end
+        
+        function close(this)
+            if ~isempty(this.win) && ishandle(this.win)
+                close(this.win);
+            end
+        end
     end
     %% METHODS INSERT
     % ==================================================================================================================================================

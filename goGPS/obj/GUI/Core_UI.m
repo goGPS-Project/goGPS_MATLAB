@@ -1334,24 +1334,22 @@ classdef Core_UI < Logos
             end
             % Parse the severity and prepare the HTML message segment
             if nargin < 3,  severity='none';  end
-            flag_icon = true;
             switch lower(severity(1))
-                case 'm',  icon = 'greenarrowicon.gif'; color='black';
-                case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];
-                case 'e',  icon = 'demoicon.gif';       color='red';    text = ['ERROR: ', text];
-                otherwise, flag_icon = false;           color='gray';
+                %case 'm',  icon = 'greenarrowicon.gif'; color='black';
+                %case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];                
+                %case 'e',  icon = 'demoicon.gif';       color='red';    text = ['ERROR: ', text];
+                case 'm',  icon = 'info32b.png';          color='black';
+                case 'w',  icon = 'alert-yellow32b.png';  color='orange'; text = ['WARNING: ', text];                
+                case 'e',  icon = 'error32b.png';         color='red';    text = ['ERROR: ', text];
+                otherwise, icon = 'empty32b.png';         color='gray';
             end
                    
-            msg_txt = ['<font color=', color, ' face="Curier, Helvetica, Arial, sans-serif">', text, '</font>'];
-                        
-            if flag_icon
-                icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
-                icon_txt =['<img src="file:///', icon, '" height=16 width=16 style="height: 16px; width: 16px;"/>'];
-                new_text = ['<table style="width:100%;"><tr><td style="width:16px">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];
-            else
-                icon_txt = '&nbsp;';
-                new_text = ['<table style="width:100%;"><tr><td style="width:17px">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];            
-            end            
+            msg_txt = ['<font color=', color, ' face="Helvetica, Arial, sans-serif">', text, '</font>'];
+            
+            %icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
+            icon = fullfile(Core.getInstallDir, '../icons', icon);
+            icon_txt =['<img src="file:///', icon, '" height=20 width=16 style="height: 20px; width: 16px;"/>'];
+            new_text = ['<table style="width:100%;"><tr><td style="width:16px;vertical-align:top">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];
             
             % Place the HTML message segment at the bottom of the editbox
             doc = j_edit_box.getDocument();

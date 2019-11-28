@@ -391,7 +391,8 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
                     msg = Core.getMsgGUI();
-                    msg.addHTML('<span color=gray>_______________________________________________________________</span>');
+                    % msg.addHTML('<span color=gray>__________________________________________________________________</span>');
+                    msg.addHTML('<span color=gray>------------------------------------------------------------------------------------------</span>');
                 end
                 
                 if this.isScreenOut % Screen
@@ -442,7 +443,7 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
                     msg = Core.getMsgGUI();
-                    msg.addHTML('<span color=#CCCCCC>_______________________________________________________________</span>');
+                    msg.addHTML('<span color=#CCCCCC>------------------------------------------------------------------------------------------</span>');
                 end
                 if this.isScreenOut % Screen
                     fprintf('  --------------------------------------------------------------------\n');
@@ -516,8 +517,8 @@ classdef Logger < handle
             end
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % file
-                    gui_text = strrep(text, char(10), '</br>');
-                    gui_text = strrep(gui_text, '\\n', '</br>');
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\\n', '<br>');
                     
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text);
@@ -568,8 +569,8 @@ classdef Logger < handle
             end
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % file
-                    gui_text = strrep(text, char(10), '</br>');
-                    gui_text = strrep(gui_text, '\n', '</br>');
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\n', '<br>');
                     
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'w');
@@ -586,8 +587,8 @@ classdef Logger < handle
             end
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % file
-                    gui_text = strrep(text, char(10), '</br>');
-                    gui_text = strrep(gui_text, '\n', '</br>');
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\n', '<br>');
                     
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'e');
