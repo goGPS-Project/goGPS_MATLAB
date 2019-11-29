@@ -582,6 +582,19 @@ classdef Receiver_Output < Receiver_Commons
                         this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
                     end
                     
+                     if this.state.isNSatOut()
+                        cc = Core.getState.getConstellationCollector;
+                        % all sats
+                        if isempty(this.quality_info.n_spe)
+                            this.quality_info.n_spe = struct('A', [], 'G', [], 'R', [], 'E', [], 'J', [], 'C', [], 'I', []);
+                        end
+                        this.quality_info.n_spe.A = Core_Utils.injectData(this.quality_info.n_spe.A, rec_work.quality_info.n_spe.A, idx1, idx2);
+                        % for each constellations
+                        for sys_c = cc.getActiveSysChar
+                            this.quality_info.n_spe.(sys_c) = Core_Utils.injectData(this.quality_info.n_spe.(sys_c), rec_work.quality_info.n_spe.(sys_c), idx1, idx2);
+                        end
+                    end
+                    
                     %%% single results
                     if isempty(this.time_pos)
                         idx1 = 1;
@@ -603,18 +616,7 @@ classdef Receiver_Output < Receiver_Commons
                     this.quality_info.n_out     = Core_Utils.injectData(this.quality_info.n_out, rec_work.quality_info.n_out, idx1, idx2, [data_len, 1]);
                     this.quality_info.n_sat     = Core_Utils.injectData(this.quality_info.n_sat, rec_work.quality_info.n_sat, idx1, idx2, [data_len, 1]);
             
-                    if this.state.isNSatOut()
-                        cc = Core.getState.getConstellationCollector;
-                        % all sats
-                        if isempty(this.quality_info.n_spe)
-                            this.quality_info.n_spe = struct('A', [], 'G', [], 'R', [], 'E', [], 'J', [], 'C', [], 'I', []);
-                        end
-                        this.quality_info.n_spe.A = Core_Utils.injectData(this.quality_info.n_spe.A, rec_work.quality_info.n_spe.A, idx1, idx2);
-                        % for each constellations
-                        for sys_c = cc.getActiveSysChar
-                            this.quality_info.n_spe.(sys_c) = Core_Utils.injectData(this.quality_info.n_spe.(sys_c), rec_work.quality_info.n_spe.(sys_c), idx1, idx2);
-                        end
-                    end
+                  
                     
                     this.quality_info.n_sat_max = Core_Utils.injectData(this.quality_info.n_sat_max, rec_work.quality_info.n_sat_max, idx1, idx2, [data_len, 1]);
                     this.quality_info.fixing_ratio = Core_Utils.injectData(this.quality_info.fixing_ratio, rec_work.quality_info.fixing_ratio, idx1, idx2, [data_len, 1]);
