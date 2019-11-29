@@ -1123,9 +1123,9 @@ classdef Command_Interpreter < handle
                 ex_list{end + 1} = ex;
             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
-                this.log.addMessage(this.log.indent('--------------------------------------------------'));
+                this.log.smallSeparator()
                 this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
-                this.log.addMessage(this.log.indent('--------------------------------------------------'));
+                this.log.smallSeparator()
                 this.log.newLine();
             end
             if ex_number > 0
@@ -1318,21 +1318,18 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
-                        if this.core.state.isRinexSession()
-                            this.runLoad(rec, tok);
-                        else
-                            this.runLoad(rec, tok);
-                        end
-                    end
-                    if sys_found
-                        rec(r).work.preProcessing(sys_list);
+                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, pre-processing is not possible.', r, rec(r).getMarkerName()));
                     else
-                        rec(r).work.preProcessing();
+                        this.log.newLine();
+                        this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
+                        this.log.smallSeparator();
+                        this.log.newLine();
+                        if sys_found
+                            rec(r).work.preProcessing(sys_list);
+                        else
+                            rec(r).work.preProcessing();
+                        end
                     end
                 end
             end
@@ -1464,17 +1461,21 @@ classdef Command_Interpreter < handle
                     this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
-                    if rec(r).isEmpty
-                        if sys_found
-                            state = Core.getCurrentSettings();
-                            state.cc.setActive(sys_list);
-                        end
-                        rec(r).load();
-                    end
-                    if sys_found
-                        rec(r).computeBasicPosition(sys_list);
+                    %if rec(r).isEmpty
+                    %    if sys_found
+                    %        state = Core.getCurrentSettings();
+                    %        state.cc.setActive(sys_list);
+                    %    end
+                    %    rec(r).load();
+                    %end
+                    if rec(r).work.loaded_session ~=  this.core.getCurSession()
+                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, basic positioning is not possible.', r, rec(r).getMarkerName()));
                     else
-                        rec(r).computeBasicPosition();
+                        if sys_found
+                            rec(r).computeBasicPosition(sys_list);
+                        else
+                            rec(r).computeBasicPosition();
+                        end
                     end
                 end
             end
@@ -1504,36 +1505,42 @@ classdef Command_Interpreter < handle
                 end
                 
                 for r = id_trg
-                    if rec(r).work.isStatic
-                        this.log.newLine();
-                        this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
-                        this.log.smallSeparator();
-                        this.log.newLine();
-                        if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
-                            this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
-                        else
-                            try
-                                if flag_uncombined
-                                    this.log.addWarning('Experimental uncombined engine enabled');
-                                    if sys_found
-                                        rec(r).work.staticPPPNew(sys_list);
-                                    else
-                                        rec(r).work.staticPPPNew();
-                                    end
-                                else
-                                    if sys_found
-                                        rec(r).work.staticPPP(sys_list);
-                                    else
-                                        rec(r).work.staticPPP();
-                                    end
-                                end
-                            catch ex
-                                this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
-                                Core_Utils.printEx(ex);
-                            end
-                        end
+                    if rec(r).work.loaded_session ~=  this.core.getCurSession()
+                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, PPP is not possible.', r, rec(r).getMarkerName()));
+                    elseif ~rec(r).work.isPreProcessed
+                        this.log.addError(sprintf('Receiver %d: %s has not been pre-processed, PPP is not possible.', r, rec(r).getMarkerName()));
                     else
-                        this.log.addError('PPP for moving receiver not yet implemented :-(');
+                        if rec(r).work.isStatic
+                            this.log.newLine();
+                            this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
+                            this.log.smallSeparator();
+                            this.log.newLine();
+                            if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
+                                this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
+                            else
+                                try
+                                    if flag_uncombined
+                                        this.log.addWarning('Experimental uncombined engine enabled');
+                                        if sys_found
+                                            rec(r).work.staticPPPNew(sys_list);
+                                        else
+                                            rec(r).work.staticPPPNew();
+                                        end
+                                    else
+                                        if sys_found
+                                            rec(r).work.staticPPP(sys_list);
+                                        else
+                                            rec(r).work.staticPPP();
+                                        end
+                                    end
+                                catch ex
+                                    this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+                                    Core_Utils.printEx(ex);
+                                end
+                            end
+                        else
+                            this.log.addError('PPP for moving receiver not yet implemented :-(');
+                        end
                     end
                 end
             end

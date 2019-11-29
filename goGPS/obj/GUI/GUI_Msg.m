@@ -50,7 +50,6 @@ classdef GUI_Msg < handle
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window 
         win         % Handle to this window
         jedt        % j edit handle (java logger element)
     end    
@@ -62,16 +61,30 @@ classdef GUI_Msg < handle
     
     %% METHOD CREATOR
     % ==================================================================================================================================================
-    methods (Static)
-        function this = GUI_Msg(w_main)
+    methods  (Static, Access = private)
+        function this = GUI_Msg()
             % GUI_MAIN object creator
             this.init();
             this.openGUI();
-            if nargin == 1
-                this.w_main = w_main;
+        end
+    end         
+    
+    methods (Static, Access = public)
+        function this = getInstance()
+            % Get the persistent instance of the class
+            persistent unique_instance_gui_msg__
+            
+            if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.win)
+                this = GUI_Msg();
+                unique_instance_gui_msg__ = this;
+            else
+                this = unique_instance_gui_msg__;
+                this.init();
+                this.openGUI();
             end
         end
-    end    
+    end
+    
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -178,12 +191,7 @@ classdef GUI_Msg < handle
             this.win.UserData = struct('jedt', j_edit_box);
             this.jedt = j_edit_box;
             
-            Core_UI.logMessage(j_edit_box, ['<p>' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '</p>']);
-            Core_UI.logMessage(j_edit_box, ['<p><b>Welcome to goGPS!</b></p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a>'], 'm');
-%             Core_UI.logMessage(j_edit_box, 'a warning message...', 'warn');
-%             Core_UI.logMessage(j_edit_box, 'an error message!!!', 'error');
-%             Core_UI.logMessage(j_edit_box, 'a marked message again...', 'marked');
-%             Core_UI.logMessage(j_edit_box, 'a regular message again...');
+            this.clear();
 
             % Manage dimension -------------------------------------------------------------------------------------------
             
@@ -246,21 +254,39 @@ classdef GUI_Msg < handle
             %           'w'     warning message
             %           'e'     error message
             %           otherwise normal
+            %
+            % SYNTAX
+            %   this.addHTML(text, type)
             
             if nargin < 3 || isempty(type)
                 type = 'n';
             end
-            Core_UI.logMessage(this.jedt, text, type);
+            Core_UI.guiAddMessage(this.jedt, text, type);
         end
         
         function addHTML(this, html_txt)
             % Add a message to the logger
             % 
             % INPUT
-            %   text    text in HTML format
+            %   html_txt    text in HTML format
+            %
+            % SYNTAX
+            %   this.addHTML(html_txt)
 
             
-            Core_UI.logHTML(this.jedt, html_txt);
+            Core_UI.guiAddHTML(this.jedt, html_txt);
+        end
+        
+        function clear(this)
+            % Add a message to the logger
+            % 
+            % SYNTAX
+            %   this.clear()
+            
+            Core_UI.guiClearLog(this.jedt);
+            Core_UI.guiAddMessage(this.jedt, ['<p>' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '</p>']);
+            Core_UI.guiAddMessage(this.jedt, ['<p><b>Welcome to goGPS!</b></p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a>'], 'm');            
+            this.addHTML('<font color=gray face="Courier">————————————————————————————————————————————————————————</font>');
         end
     end
     

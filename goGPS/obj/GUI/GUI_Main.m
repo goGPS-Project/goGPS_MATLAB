@@ -105,7 +105,7 @@ classdef GUI_Main < handle
             if isempty(unique_instance_gui_main__)
                 this = GUI_Main();
                 unique_instance_gui_main__ = this;
-                if isvalid(this.w_main)                
+                if isvalid(this.w_main)
                     uiwait(this.w_main);
                 end
             else
@@ -116,8 +116,8 @@ classdef GUI_Main < handle
                     uiwait(this.w_main);
                 end
             end
+        end
     end
-end
     %% METHODS INIT
     % ==================================================================================================================================================
     methods                
@@ -135,7 +135,7 @@ end
             %
             
             if ~isempty(this.w_main) && isvalid(this.w_main)
-                close(this.w_main);
+                delete(this.w_main);
             end
             % Close the old goGPS windows
             old_win = findobj('UserData', 'goGPSwin');
@@ -2425,9 +2425,12 @@ end
         
         function close(this, caller, event)
             delete(this.w_main);
+            
+            % Close also log
             if ~this.ok_go
-                msg_gui = Core.getMsgGUI();
-                msg_gui.close();
+                % or not? ...for now let's keep it commented
+                %msg_gui = Core.getMsgGUI();
+                %msg_gui.close();
             end
         end
         

@@ -179,9 +179,9 @@ classdef Core_UI < Logos
                 fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
+                fprintf('\n--------------------------------------------------------------------------\n');
             end
             % log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
-            log.simpleSeparator();
             log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
             log.simpleSeparator();
             fprintf('\n');
@@ -1319,11 +1319,11 @@ classdef Core_UI < Logos
             end
         end
         
-        function logMessage(j_edit_box, text, severity)
+        function guiAddMessage(j_edit_box, text, severity)
             % Log messages in a Log element
             %
             % SYNTAX
-            %   Core_UI.logMessage(jEditbox, text, severity)
+            %   Core_UI.guiAddMessage(jEditbox, text, severity)
             
             % Ensure we have an HTML-ready editbox
             HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
@@ -1361,11 +1361,11 @@ classdef Core_UI < Logos
             j_edit_box.setCaretPosition(end_pos); % end of content
         end
         
-        function logHTML(j_edit_box, html_txt)
+        function guiAddHTML(j_edit_box, html_txt)
             % Log messages in a Log element
             %
             % SYNTAX
-            %   Core_UI.logMessage(jEditbox, text, severity)
+            %   Core_UI.guiAddMessage(jEditbox, text, severity)
             
             % Ensure we have an HTML-ready editbox
             HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
@@ -1380,6 +1380,22 @@ classdef Core_UI < Logos
 
             end_pos = j_edit_box.getDocument.getLength;
             j_edit_box.setCaretPosition(end_pos); % end of content
+        end
+        
+        function guiClearLog(j_edit_box, html_txt)
+            % Empty the logging Window
+            %
+            % SYNTAX
+            %   Core_UI.guiClearLog(jEditbox, text, severity)
+            
+            % Ensure we have an HTML-ready editbox
+            HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
+            if ~isa(j_edit_box.getEditorKit,HTMLclassname)
+                j_edit_box.setContentType('text/html');
+            end
+                        
+            % Place the HTML message segment at the bottom of the editbox
+            j_edit_box.setText('');% end of content
         end
     end
     %% METHODS EVENTS

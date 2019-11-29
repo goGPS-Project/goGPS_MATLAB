@@ -382,9 +382,9 @@ classdef Antenna < handle
                 [~, id_near] = min(abs(fr_gps-fr_trg));
                 f_id = gps_id(id_near);
                 if isempty(f_id)
-                    log.addMessage(log.indent(sprintf('No corrections found for antenna type "%s" on frequency %s', strtrim(this.type), f_code)));
+                    log.addWarning(sprintf('No corrections found for antenna type "%s" on frequency %s', strtrim(this.type), f_code));
                 else
-                    log.addMessage(log.indent(sprintf('No corrections found for antenna type "%s" on frequency %s, using %s instead', strtrim(this.type), f_code, this.f_code(gps_id(id_near),:))));
+                    log.addWarning(sprintf('No corrections found for antenna type "%s" on frequency %s, using %s instead', strtrim(this.type), f_code, this.f_code(gps_id(id_near),:)));
                 end
             end
         end

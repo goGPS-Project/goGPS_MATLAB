@@ -413,8 +413,7 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
                     msg = Core.getMsgGUI();
-                    % msg.addHTML('<span color=gray>__________________________________________________________________</span>');
-                    msg.addHTML('<span color=gray>------------------------------------------------------------------------------------------</span>');
+                    msg.addHTML('<font color=gray face="Courier">————————————————————————————————————————————————————————</font>');
                 end
                 
                 if this.isScreenOut % Screen
@@ -440,7 +439,8 @@ classdef Logger < handle
             
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
-                    msg.addHTML('<span color=gray>***************************************************************</span>');
+                    msg = Core.getMsgGUI();
+                    msg.addHTML('<span color=gray>****************************************************************</span>');
                 end
                 
                 if this.isScreenOut % Screen
@@ -656,7 +656,7 @@ classdef Logger < handle
             end
 
             if isempty(text)
-                fprintf('\b');
+                if this.isScreenOut; fprintf('\b'); end
             else
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
@@ -686,7 +686,7 @@ classdef Logger < handle
             this.opStatus(2, color_mode);
 
             if isempty(text)
-                fprintf('\b');
+                if this.isScreenOut; fprintf('\b'); end
             else
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));

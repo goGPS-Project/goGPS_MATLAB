@@ -342,12 +342,10 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             msg_gui = core.log_gui;
             if isempty(msg_gui) || ~ishandle(msg_gui.win)
-                msg_gui = GUI_Msg;
+                msg_gui = GUI_Msg.getInstance();
                 core.log_gui = msg_gui;
             elseif flag_reset && ishandle(msg_gui.win)
-                close(msg_gui.win);
-                msg_gui = GUI_Msg;
-                core.log_gui = msg_gui;
+                msg_gui.clear();
             end
         end
         

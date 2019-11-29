@@ -213,12 +213,12 @@ classdef FTP_Downloader < handle
                         
                         if isempty(fpath)
                             status = false;
-                            fprintf('\b');
+                            if this.log.isScreenOut; fprintf('\b'); end
                             this.log.addMessage(' Failed');
                             return
                         else
                             status = true;
-                            fprintf('\b');
+                            if this.log.isScreenOut; fprintf('\b'); end
                             this.log.addMessage(' Done');
                             [~, ~, fext] = fileparts(fpath{1});
                             if strcmp(fext,'.Z') || strcmp(fext,'.gz')

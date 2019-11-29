@@ -134,7 +134,9 @@ function goGPS(ini_settings, use_gui, flag_online)
         % log.setOutFile(); <= to enable system logging (save into system folder)
         log.disableFileOut();
         fnp = File_Name_Processor();
-        log.addMessage(sprintf('Logging to: %s\n', fnp.getRelDirPath(log.getFilePath, core.state.getHomeDir)));
+        log.simpleSeparator()
+        log.addMarkedMessage(sprintf('Logging to: "%s"\n', fnp.getRelDirPath(log.getFilePath, core.state.getHomeDir)));
+        log.simpleSeparator()
         log.enableFileOut();
         log.addMessageToFile(Core_UI.getTextHeader());
         core.logCurrentSettings();
@@ -185,6 +187,14 @@ function goGPS(ini_settings, use_gui, flag_online)
         log.addMarkedMessage('Now you should be able to see 2 variables in workspace:');
         log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
         log.addMessage(log.indent(' - rec       the array of Receivers'));
+        
+        screen_log = log.isScreenOut;
+        if ~screen_log; log.enableScreenOut(); end
+        log.simpleSeparator();
+        log.addStatusOk(['Execution completed at ' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '      ^_^']);       
+        log.simpleSeparator();
+        if ~screen_log; log.disableScreenOut(); end
+        
     end
 end
 
