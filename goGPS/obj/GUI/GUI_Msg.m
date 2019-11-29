@@ -86,19 +86,27 @@ classdef GUI_Msg < handle
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
-                'Position', [0 0 500 640], ...
+                'Position', [0 0 1040, 640], ...
                 'Resize', 'on');
             
             this.win = win;
             
             if isunix && not(ismac())
-                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
-                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
+                % top right
+                % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
+                % win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
+                % centered
+                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
             else
-                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
-                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
+                % top right
+                % win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
+                % win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
+                % centered
+                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-                        
+            
             try
                 main_vb = uix.VBox('Parent', win, ...
                     'Padding', 5, ...

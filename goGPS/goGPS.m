@@ -4,8 +4,11 @@ function goGPS(ini_settings, use_gui, flag_online)
 %
 % INPUT:
 %   ini_settings_file       path to the settings file
-%   use_gui                 (0/1) flag to activate GUI editing of the settings
-%                           default = 0 (false
+%   use_gui                 flag to activate GUI editing of the settings
+%                           0   MATLAB Command Window only
+%                           1   GUI only
+%                           -1  GUI but do not open settings GUI 
+%                           2   GUI + MATLAB Command Window only
 %
 % DESCRIPTION:
 %   function launcher for goGPS
@@ -78,8 +81,10 @@ function goGPS(ini_settings, use_gui, flag_online)
     log = Logger.getInstance();
     if use_gui
         log.enableGUIOut();
+        log.disableScreenOut();
         Core.getMsgGUI(true);
     else
+        log.enableScreenOut();
         log.disableGUIOut();
     end
     
@@ -89,13 +94,17 @@ function goGPS(ini_settings, use_gui, flag_online)
     Core_UI.showTextHeader();
     log.setColorMode(cm);
     
+    if abs(use_gui) == 1
+        log.disableScreenOut();
+    else
+        log.enableScreenOut();
+    end
+    
     if nargin >= 1 && ~isempty(ini_settings)
         core = Core.getInstance(true, false, ini_settings);    
     else
         core = Core.getInstance(true); % Init Core
-    end
-    
-        
+    end        
     
     if nargin < 3 || isempty(flag_online)
         flag_online = true;
@@ -108,7 +117,7 @@ function goGPS(ini_settings, use_gui, flag_online)
         end
     end
     
-    if use_gui
+    if use_gui > 0
         ui = Core_UI.getInstance();
         ui.openGUI();
         

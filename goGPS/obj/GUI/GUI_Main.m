@@ -122,7 +122,6 @@ end
     % ==================================================================================================================================================
     methods                
         function init(this)
-            this.log = Core.getLogger();
             this.state = Core.getState();
         end
         
@@ -173,16 +172,17 @@ end
                 win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-                        
+            
+            log = Core.getLogger;
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARK_GREY_BG);
             catch ex
-                this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
                 open('GUI Layout Toolbox 2.3.1.mltbx');
-                this.log.newLine();
-                this.log.addWarning('After installation re-run goGPS');
+                log.newLine();
+                log.addWarning('After installation re-run goGPS');
                 close(win);
                 return;
             end
@@ -326,10 +326,10 @@ end
             drawnow
             this.w_main.Visible = 'on';
             t_win = toc(t0);
-            cm = this.log.getColorMode();
-            this.log.setColorMode(false);
-            this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
-            this.log.setColorMode(cm);
+            cm = log.getColorMode();
+            log.setColorMode(false);
+            log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
+            log.setColorMode(cm);
         end
     end
     %% METHODS INSERT
@@ -1087,9 +1087,9 @@ end
                 obj = findobj('UserData', 'crd_name'); obj.String = file_name;
                 obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
                 rf.export(crd_path);
-                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
+                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
             catch ex
-                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+                Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
         
@@ -1106,9 +1106,9 @@ end
                 obj = findobj('UserData', 'crd_name'); obj.String = file_name;
                 obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
                 rf.export(crd_path);
-                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
+                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
             catch ex
-                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+                Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
         
@@ -1171,7 +1171,7 @@ end
                     if fr.isValid()
                         name = fr.marker_name{1};
                         trk_aval = fr.trck_availability;
-                        this.log.addMessage(sprintf('Inspecting %s',name));
+                        Core.getLogger.addMessage(sprintf('Inspecting %s',name));
                         if any(trk_aval)
                             if ~isempty(data)
                                  data = [data; trk_aval'];
@@ -2074,12 +2074,12 @@ end
                         str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                         this.j_settings.setText(str);
                     catch ex
-                        this.log.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
+                        Core.getLogger.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                     end
                 else
                     % Check is always needed
                     this.state.check()
-                    % this.log.addWarning('Warning invalid config can not updating j_settings');
+                    % Core.getLogger.addWarning('Warning invalid config can not updating j_settings');
                 end
             end
         end
@@ -2116,7 +2116,7 @@ end
                 catch ex
                     % Check is always needed
                     this.state.check()
-                    this.log.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
+                    Core.getLogger.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                 end
             end
         end
@@ -2286,7 +2286,7 @@ end
             % this.rec_tbl.Data = cell(1,4);
             % for r = 1 : n_rec
             %     name = File_Name_Processor.getFileName(rec_path{r}{1});
-            %     this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+            %     Core.getLogger.addMessage(sprintf('Checking %s', upper(name(1:4))));
             %     fr = File_Rinex(rec_path{r}, 100);
             %     n_ok = sum(fr.is_valid_list);
             %     n_ko = sum(~fr.is_valid_list);
@@ -2298,7 +2298,7 @@ end
             %     this.rec_tbl.Data{r,3} = n_ok;
             %     this.rec_tbl.Data{r,4} = n_ko;
             % end
-            % this.log.addMessage('File availability checked');
+            % Core.getLogger.addMessage('File availability checked');
         end
         
         function updateAndPlotRecList(this, caller, event)
@@ -2312,7 +2312,7 @@ end
             state.updateObsFileName;
             Core.getCurrentCore.plotRecList();
            
-            this.log.addMessage('File availability plotted');
+            Core.getLogger.addMessage('File availability plotted');
         end
         
         function createNewProject(this, caller, event)
@@ -2381,7 +2381,7 @@ end
                     this.updateUI();
                     this.updateRecList();
                 else
-                    this.log.addError('Unrecognized input file format!');
+                    Core.getLogger.addError('Unrecognized input file format!');
                 end
             end
         end
@@ -2393,9 +2393,9 @@ end
                 this.state.import(Ini_Manager(txt{1}));
                 this.state.save();
                 this.updateUI();
-                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', this.state.getFilePath));
+                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', this.state.getFilePath));
             catch ex
-                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+                Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
         
@@ -2417,9 +2417,9 @@ end
                 this.state.import(Ini_Manager(txt{1}));
                 this.state.save(settings_file);
                 this.updateUI();
-                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
+                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
             catch ex
-                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+                Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
         
@@ -2433,7 +2433,7 @@ end
         
         function go(this, caller, event)
             this.crd2RefFrame;
-            this.log.addMarkedMessage('Starting computation!');
+            Core.getLogger.addMarkedMessage('Starting computation!');
             
             this.state.save(Main_Settings.LAST_SETTINGS);
             this.ok_go = true;
@@ -2476,7 +2476,8 @@ end
                 return
             end
             
-            this.log.addMessage(this.log.indent('Checking file presence'));
+            log = Core.getLogger;
+            log.addMessage(log.indent('Checking file presence'));
             
             state = Core.getCurrentSettings();
             state.updateObsFileName;
@@ -2529,7 +2530,7 @@ end
                         if ~isempty(id_old)
                             dir_list(d) = old_dir_list(id_old);
                         else
-                            Core.getLogger.addMessage(this.log.indent(sprintf(' - Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*'))));
+                            log.addMessage(log.indent(sprintf(' - Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*'))));
                             dir_list{d} = dir(fullfile(cur_unique_dir{d}, '*.*'));
                             flag_force = true;
                         end
@@ -2549,7 +2550,7 @@ end
                 % Update rec table
                 this.rec_tbl.Data = cell(1, 4);
                 for r = 1 : n_rec
-                    Core.getLogger.addMessage(this.log.indent(sprintf('Checking receiver %d of %d', r, n_rec)));
+                    log.addMessage(log.indent(sprintf('Checking receiver %d of %d', r, n_rec)));
                     if ~isempty(available_files)
                         [~, file_name] = fileparts(rec_path{r}{1});
                         tmp_files = available_files(starting_letter == file_name(1));
@@ -2590,10 +2591,10 @@ end
                 end
                 
                 if toc(t0) > 1
-                    this.log.addMessage(this.log.indent('Receiver files checked'));
+                    log.addMessage(log.indent('Receiver files checked'));
                 end
             else
-                this.log.addWarning('There are a lot of files to check, press check to force the execution of the routine');
+                log.addWarning('There are a lot of files to check, press check to force the execution of the routine');
             end
         end
         

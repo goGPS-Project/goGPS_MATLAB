@@ -129,7 +129,6 @@ classdef Core_UI < Logos
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        log
         state
         w_bar
     end
@@ -167,8 +166,8 @@ classdef Core_UI < Logos
             %
             % SYNTAX:
             %   Core_UI.showTextHeader();
-            this.log = Logger.getInstance();
-            if this.log.getColorMode()
+            log = Core.getLogger.getInstance();
+            if log.getColorMode()
                 %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 %cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   '); cprintf('text',[iif(Core.isGReD, 'GReD', 'OPEN') ' EDITION     v ']); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
@@ -181,10 +180,10 @@ classdef Core_UI < Logos
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
             end
-            %this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
-            this.log.simpleSeparator();
-            this.log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
-            this.log.simpleSeparator();
+            % log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
+            log.simpleSeparator();
+            log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
+            log.simpleSeparator();
             fprintf('\n');
         end
         
@@ -450,7 +449,6 @@ classdef Core_UI < Logos
     % ==================================================================================================================================================
     methods
         function init(this)
-            this.log = Core.getLogger();
             this.state = Core.getState();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
@@ -1338,9 +1336,12 @@ classdef Core_UI < Logos
                 %case 'm',  icon = 'greenarrowicon.gif'; color='black';
                 %case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];                
                 %case 'e',  icon = 'demoicon.gif';       color='red';    text = ['ERROR: ', text];
-                case 'm',  icon = 'info32b.png';          color='black';
+                case 'm',  icon = 'info32b.png';          color='#222222';
                 case 'w',  icon = 'alert-yellow32b.png';  color='orange'; text = ['WARNING: ', text];                
                 case 'e',  icon = 'error32b.png';         color='red';    text = ['ERROR: ', text];
+                case 'v',  icon = 'ok32b.png';            color='#222222';
+                case 'x',  icon = 'ko32b.png';            color='#222222';
+                case '-',  icon = 'off32b.png';           color='#222222';
                 otherwise, icon = 'empty32b.png';         color='gray';
             end
                    

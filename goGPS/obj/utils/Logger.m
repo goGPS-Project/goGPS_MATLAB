@@ -137,6 +137,28 @@ classdef Logger < handle
             is_active =  bitand(this.std_out, 4, 'uint8') > 0;
         end
         
+        function disableScreenOut(this)
+            % Disable logging on screen (MATLAB console)
+            %
+            % SYNTAX
+            %   log.disableScreenOut()
+            
+            while this.isScreenOut
+                this.setOutMode(false, [], []);
+            end
+        end
+        
+        function enableScreenOut(this)
+            % Enable logging on screen (MATLAB console)
+            %
+            % SYNTAX
+            %   log.enableScreenOut()
+            
+            while ~this.isScreenOut
+                this.setOutMode(true, [], []);
+            end
+        end
+        
         function disableFileOut(this)
             % Disable logging on file
             %
@@ -545,6 +567,14 @@ classdef Logger < handle
                 text = '';
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\\n', '<br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text, 'v');
+                end
+                
                 this.printStatusOk(text);
             end
         end
@@ -558,6 +588,13 @@ classdef Logger < handle
                 text = '';
             end
             if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\\n', '<br>');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addMessage(gui_text, '-');
+                end
                 this.printStatusDisabled(text);
             end
         end
