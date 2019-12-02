@@ -552,7 +552,9 @@ classdef Receiver_Output < Receiver_Commons
                             this.quality_info.n_spe.A = Core_Utils.injectData(this.quality_info.n_spe.A, rec_work.quality_info.n_spe.A(rec_work.getIdSync), idx1, idx2);
                             % for each constellations
                             for sys_c = cc.getActiveSysChar
-                                this.quality_info.n_spe.(sys_c) = Core_Utils.injectData(this.quality_info.n_spe.(sys_c), rec_work.quality_info.n_spe.(sys_c)(rec_work.getIdSync), idx1, idx2);
+                                if ~isempty(rec_work.quality_info.n_spe.(sys_c))
+                                    this.quality_info.n_spe.(sys_c) = Core_Utils.injectData(this.quality_info.n_spe.(sys_c), rec_work.quality_info.n_spe.(sys_c)(rec_work.getIdSync), idx1, idx2);
+                                end
                             end
                         end
                         

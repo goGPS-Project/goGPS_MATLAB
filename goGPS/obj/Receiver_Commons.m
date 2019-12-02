@@ -549,7 +549,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if ~isempty(this.quality_info.n_spe)
                 n_sat = this.quality_info.n_spe.A(this.getIdSync);
                 for sys_c = cc.getActiveSysChar()
-                    n_sat_ss.(sys_c) = this.quality_info.n_spe.(sys_c)(this.getIdSync);
+                    if ~isempty(this.quality_info.n_spe.(sys_c))
+                        n_sat_ss.(sys_c) = this.quality_info.n_spe.(sys_c)(this.getIdSync);
+                    else
+                        n_sat_ss.(sys_c) = [];
+                    end
                 end
             else                
                 n_sat_ss.G = [];
