@@ -413,7 +413,7 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
                     msg = Core.getMsgGUI();
-                    msg.addHTML('<font color=gray face="Courier">————————————————————————————————————————————————————————</font>');
+                    msg.addHTML(['<font color=gray face="Courier">' repmat('&mdash;', 1, 56) ' </font>']);
                 end
                 
                 if this.isScreenOut % Screen
