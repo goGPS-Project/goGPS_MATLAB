@@ -286,7 +286,7 @@ classdef GUI_Msg < handle
             Core_UI.guiClearLog(this.jedt);
             Core_UI.guiAddMessage(this.jedt, ['<p>' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '</p>']);
             Core_UI.guiAddMessage(this.jedt, ['<p><b>Welcome to goGPS!</b></p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a>'], 'm');            
-            this.addHTML('<font color=gray face="Courier">————————————————————————————————————————————————————————</font>');
+            this.addHTML(['<font color=gray face="Courier">' repmat('&mdash;', 1, 56) ' </font>']);
         end
     end
     
