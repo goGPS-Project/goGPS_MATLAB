@@ -8983,7 +8983,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 [~, id] = intersect(cc.index, ls.sat_go_id);
                 sys_c_list = cc.system(id);
                 all_sys_c = unique(sys_c_list);
-                this.quality_info.n_spe = struct('A', uint8(sum((res(id_sync, ls.sat_go_id)) ~= 0, 2)), ...
+                this.quality_info.n_spe = struct('A', uint8(sum((res(:, ls.sat_go_id)) ~= 0, 2)), ...
                     'G', [], ...
                     'R', [], ...
                     'E', [], ...
@@ -8992,7 +8992,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     'I', []);
                 for sys_c = all_sys_c
                     id_sys = ls.sat_go_id(sys_c_list == sys_c);
-                    this.quality_info.n_spe.(sys_c) = uint8(sum((res(id_sync, id_sys)) ~= 0, 2));
+                    this.quality_info.n_spe.(sys_c) = uint8(sum((res(:, id_sys)) ~= 0, 2));
                 end
             end
         end
@@ -9697,7 +9697,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [~, id] = intersect(cc.index, ls.sat_go_id);
                     sys_c_list = cc.system(id);
                     all_sys_c = unique(sys_c_list);
-                    this.quality_info.n_spe = struct('A', uint8(sum((res(id_sync, ls.sat_go_id)) ~= 0, 2)), ...
+                    this.quality_info.n_spe = struct('A', uint8(sum((res(:, ls.sat_go_id)) ~= 0, 2)), ...
                         'G', [], ...
                         'R', [], ...
                         'E', [], ...
@@ -9706,7 +9706,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         'I', []);
                     for sys_c = all_sys_c
                         id_sys = ls.sat_go_id(sys_c_list == sys_c);
-                        this.quality_info.n_spe.(sys_c) = uint8(sum((res(id_sync, id_sys) ~= 0), 2));
+                        this.quality_info.n_spe.(sys_c) = uint8(sum((res(:, id_sys) ~= 0), 2));
                     end
                     
                     if s0 > 0.10
@@ -10140,7 +10140,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         'I', []);
                     for sys_c = all_sys_c
                         id_sys = sat(sys_c_list == sys_c);
-                        this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(id_sync, id_sys), 2));
+                        this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(:, id_sys), 2));
                     end
                     clear res_ph sat obs_id obs_ok
                     
