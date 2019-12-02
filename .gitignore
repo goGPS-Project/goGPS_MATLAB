@@ -167,6 +167,9 @@ goGPS_batch_multiple_station.m
 
 goGPS/untitled\.m
 
+goGPS/testing*
+goGPS/tmp.mat
+
 remote_data
 
 \.fuse_hidden0000392c00000001
