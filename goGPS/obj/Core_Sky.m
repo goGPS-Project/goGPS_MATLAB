@@ -2778,6 +2778,12 @@ classdef Core_Sky < handle
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
                         % [Eph_G, iono_G] = RINEX_get_nav(filename, cc); % Old implementation slower but support RINEX 2
                         [Eph_G, iono_G] = Core_Sky.loadNavParameters(filename, cc);
+                        for sys_c = iif(flag_mixed, cc.SYS_C(cc.active_list), 'G')
+                            % Detect and remove satellites with "high" PRN,
+                            % usually connected with satellites under testing
+                            id_testing = Eph_G(1,:) > cc.getSys(sys_c).N_SAT & Eph_G(31,:) == sys_c;
+                            Eph_G(:, id_testing) = [];
+                        end
                         if(~only_iono), log.addStatusOk(); end
                     else
                         log.addWarning('GPS navigation file not found. GPS positioning may not work. \n');
@@ -2790,6 +2796,10 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (GLONASS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
                         [Eph_R, iono_R] = Core_Sky.loadNavParameters([filename(1:end-1) 'g'], cc);
+                        % Detect and remove satellites with "high" PRN,
+                        % usually connected with satellites under testing
+                        id_testing = Eph_R(1,:) > GLONASS_SS.N_SAT & Eph_R(31,:) == 'R';
+                        Eph_R(:, id_testing) = [];
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('GLONASS navigation file not found. GLONASS positioning may not work. \n');
@@ -2802,6 +2812,10 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (Galileo)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
                         [Eph_E, iono_E] = Core_Sky.loadNavParameters([filename(1:end-1) 'l'], cc);
+                        % Detect and remove satellites with "high" PRN,
+                        % usually connected with satellites under testing
+                        id_testing = Eph_E(1,:) > GLONASS_SS.N_SAT & Eph_E(31,:) == 'E';
+                        Eph_E(:, id_testing) = [];
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('Galileo navigation file not found. Galileo positioning may not work. \n');
@@ -2814,6 +2828,10 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (BeiDou)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
                         [Eph_C, iono_C] = Core_Sky.loadNavParameters([filename(1:end-1) 'c'], cc);
+                        % Detect and remove satellites with "high" PRN,
+                        % usually connected with satellites under testing
+                        id_testing = Eph_C(1,:) > GLONASS_SS.N_SAT & Eph_C(31,:) == 'C';
+                        Eph_C(:, id_testing) = [];
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('BeiDou navigation file not found. BeiDou positioning may not work. \n');
@@ -2826,6 +2844,10 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (QZSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
                         [Eph_J, iono_J] = Core_Sky.loadNavParameters([filename(1:end-1) 'q'], cc);
+                        % Detect and remove satellites with "high" PRN,
+                        % usually connected with satellites under testing
+                        id_testing = Eph_J(1,:) > GLONASS_SS.N_SAT & Eph_J(31,:) == 'J';
+                        Eph_J(:, id_testing) = [];
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('QZSS navigation file not found. QZSS positioning may not work. \n');
@@ -2838,6 +2860,10 @@ classdef Core_Sky < handle
                         %parse RINEX navigation file (IRNSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
                         [Eph_I, iono_I] = Core_Sky.loadNavParameters([filename(1:end-1) 'i'], cc);
+                        % Detect and remove satellites with "high" PRN,
+                        % usually connected with satellites under testing
+                        id_testing = Eph_I(1,:) > GLONASS_SS.N_SAT & Eph_I(31,:) == 'I';
+                        Eph_I(:, id_testing) = [];
                         if(~only_iono), log.addStatusOk(); end
                     elseif (~flag_mixed)
                         log.addWarning('IRNSS navigation file not found. QZSS positioning may not work. \n');
