@@ -736,6 +736,20 @@ classdef GNSS_Station < handle
             end
         end
 
+        function sys_c = getActiveSys(this)
+            % Get the active system stored into the object
+            %
+            % SYNTAX 
+            %   sys_c = this.getActiveSys()
+            
+            % Select only the systems still present in the object           
+            if ~isempty(this.work) && ~(this.work.isEmpty)
+                sys_c = this.work.getActiveSys;
+            else
+                sys_c = this.getCC.getActiveSysChar;
+            end
+        end
+        
         function cc = getCC(this)
             % Get Constellation collector
             %
