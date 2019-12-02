@@ -1499,6 +1499,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             snr_grid_step = 1;
             snr_grid = (1 : snr_grid_step : 70);
             ls_degree = 1; % interpolation degree to rescale SNR
+            max_snr = 100; % init max_snr
             if (abs_snr_thr > 0) || (scaled_snr_thr > 0)
                 cc = Core.getConstellationCollector();
                 % for each satellite system
@@ -1511,11 +1512,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         for ff=100:106; figure(ff); clf; end
                     end
                     % for each frequency
-                    for f = unique(ss_obs_code(:,2)')
+                    for f = sort(unique(ss_obs_code(:,2)'))
                         cur_ref_order = [cur_ss.CODE_RIN3_DEFAULT_ATTRIB{cur_ss.CODE_RIN3_2BAND == f}, ...
                             cur_ss.CODE_RIN3_ATTRIB{cur_ss.CODE_RIN3_2BAND == f}];
                         
-                        all_attrib = this.getAvailableObsCode(['S' f], sys_c);
+                        all_attrib = this.getAvailableObsCode(['C' f], sys_c);
                         all_attrib = unique(all_attrib(:,3))';
                         
                         % sort attribute by preferred list
@@ -1527,6 +1528,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                             id = id + 1;
                             % extract SNR
                             [snr, id_snr] = this.getObs(['S' f a], sys_c);
+                            if isempty(snr) && (a ~= ' ')
+                                % if the single tracking is not available try to get the SNR with an empty attribute
+                                [snr, id_snr] = this.getObs(['S' f ' '], sys_c);                                
+                            end
                             snr = snr';
                                                         
                             % extract PR
@@ -1590,6 +1595,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     end
                                     max_snr = max(snr(:));
                                 elseif id > 1
+                                    % If the first frequency is not seen init max_snr
+                                    if max_snr == 100
+                                        max_snr = max(snr(:));
+                                    end
                                     scaleSnr = @(snr_in) min(max_snr, interp1(snr2res{1}(:), snr_grid(:), interp1q(snr_grid(:), snr2res{id}(:), snr_in(:))));
                                     if flag_debug
                                         figure(106);
