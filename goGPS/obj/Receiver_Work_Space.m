@@ -11456,7 +11456,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 Core.getLogger.addWarning(sprintf('Receiver %s is empty', this.parent.getMarkerName4Ch));
             else
                 cc = Core.getState.getConstellationCollector;
-                if (nargin == 1)
+                if (nargin == 1) || isempty(sys_c)
                     sys_c = cc.sys_c;
                 end
                 fh_list = [];
@@ -11637,30 +11637,31 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor_ph = Core_Utils.diffAndPred(ph_diff,2);
             %%
             % for each constellations
-            fprintf('\n---------------------------------------------------\n')
-            fprintf(' Overall statistics on observations - synthesised\n')
-            fprintf('---------------------------------------------------\n')
+            str_out = '';
+            str_out = sprintf('%s%s', str_out, '\n---------------------------------------------------\n');
+            str_out = sprintf('%s%s', str_out, ' Overall statistics on observations - synthesised\n');
+            str_out = sprintf('%s%s', str_out, '---------------------------------------------------\n');
             sensor_pr0 = pr_diff;
             sensor_ph0 = ph_diff;
             for sys_c = unique(this.system)
                 id_ok = this.system(id_ph) == sys_c;
-                fprintf('%c) std = %.2f mm - std = %.2f mm\n', sys_c, mean(std(sensor_pr0(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph0(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+                str_out = sprintf('%s%c) std = %.2f mm - std = %.2f mm\n', str_out, sys_c, mean(std(sensor_pr0(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph0(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
-            fprintf('\nfirst temporal derivative:\n')
+            str_out = sprintf('%s%s', str_out, '\nfirst temporal derivative:\n');
             sensor_pr1 = Core_Utils.diffAndPred(pr_diff,1);
             sensor_ph1 = Core_Utils.diffAndPred(ph_diff,1);
             for sys_c = unique(this.system)
                 id_ok = this.system(id_ph) == sys_c;
-                fprintf('%c) std = %.2f mm/e - std = %.2f mm/e\n', sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+                str_out = sprintf('%s%c) std = %.2f mm/e - std = %.2f mm/e\n', str_out, sys_c, mean(std(sensor_pr1(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph1(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
-            fprintf('\nsecond temporal derivative:\n')
+            str_out = sprintf('%s%s', str_out, '\nsecond temporal derivative:\n');
             sensor_pr2 = Core_Utils.diffAndPred(pr_diff,2);
             sensor_ph2 = Core_Utils.diffAndPred(ph_diff,2);
             for sys_c = unique(this.system)
                 id_ok = this.system(id_ph) == sys_c;
-                fprintf('%c) std = %.2f mm/e^2 - std = %.2f mm/e^2\n', sys_c, mean(std(sensor_pr2(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph2(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
+                str_out = sprintf('%s%c) std = %.2f mm/e^2 - std = %.2f mm/e^2\n', str_out, sys_c, mean(std(sensor_pr2(:, id_ok)*1e3, 'omitnan'), 'omitnan'), mean(std(sensor_ph2(:, id_ok)*1e3, 'omitnan'), 'omitnan'));
             end
             
             %%
@@ -11673,11 +11674,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             max_ph_prn = [];
             max_pr_prn = [];
             s = 0;
-            fprintf('\n');
-            fprintf('       |  PR                                            |   PH                                   |\n');
-            fprintf('       |-----------------------------------------------------------------------------------------|\n');
-            fprintf('       |   median  |        std |        min |      max |    median |    std |     min |     max |\n');
-            fprintf('       |-----------------------------------------------------------------------------------------|\n');
+            str_out = sprintf('%s%s', str_out, '\n');
+            str_out = sprintf('%s%s', str_out, '       |  PR                                            |   PH                                   |\n');
+            str_out = sprintf('%s%s', str_out, '       |-----------------------------------------------------------------------------------------|\n');
+            str_out = sprintf('%s%s', str_out, '       |   median  |        std |        min |      max |    median |    std |     min |     max |\n');
+            str_out = sprintf('%s%s', str_out, '       |-----------------------------------------------------------------------------------------|\n');
             all_trk = unique(this.obs_code(:,3))';
             std_stat = zeros(numel(unique(this.system)), 9, 2, numel(all_trk)); % N const, n bands, pr/ph
             sys_full_name = {};
@@ -11751,7 +11752,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 for b = 1 : size(mean_pr_prn, 2)
                     for t = 1 : size(mean_pr_prn, 4)
                         if ~isnan(mean(zero2nan(mean_pr_prn(:, b, s, t)), 'omitnan'))
-                            fprintf(' %c L%d%c | %9.2f | %10.2f | %10.2f | %8.2f | %9.2f | %6.2f | %7.2f | %7.2f |\n', ...
+                            str_out = sprintf('%s %c L%d%c | %9.2f | %10.2f | %10.2f | %8.2f | %9.2f | %6.2f | %7.2f | %7.2f |\n', str_out, ...
                                 sys_c(1), b, all_trk(t), ...
                                 mean(zero2nan(mean_pr_prn(:, b, s, t)), 'omitnan'), ...
                                 mean(zero2nan(std_pr_prn(:, b, s, t)), 'omitnan'), ...
@@ -11766,6 +11767,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
+                Core.getLogger.addMonoMessage(str_out);
             end
             %%
             c = categorical(sys_full_name);

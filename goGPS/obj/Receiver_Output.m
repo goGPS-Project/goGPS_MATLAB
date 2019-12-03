@@ -133,7 +133,7 @@ classdef Receiver_Output < Receiver_Commons
                     fprintf(' ----------------------------------------------------------\n')
                 end
             end
-        end
+        end                
         
         function time = getTime(this)
             % return the time stored in the object

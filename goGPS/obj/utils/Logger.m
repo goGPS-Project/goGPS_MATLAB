@@ -532,6 +532,34 @@ classdef Logger < handle
             end
         end
         
+        function addMonoMessage(this, text, verbosity_level)
+            % Send a message through the standard interface
+            % using monospaced font if supported
+            if (nargin < 3)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                if this.isGUIOut % file
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\n', '<br>');
+                    gui_text = strrep(gui_text, ' ', '&nbsp;');
+                    
+                    msg = Core.getMsgGUI();
+                    msg.addHTML(['<font face="Menlo,Monospaced,Courier" style="font-size:10px">' gui_text '</font>']);
+                end
+                text = strrep(text, char(10), char([10, 32]));
+                text = strrep(text, '\n', char([10, 32]));
+                if this.isScreenOut % Screen
+                    fprintf(' %s\n', text);
+                end
+                if this.isFileOut % file
+                    if (this.getOutFId > 0)
+                        fprintf(this.getOutFId, ' %s\n', text);
+                    end
+                end                
+            end
+        end
+        
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
