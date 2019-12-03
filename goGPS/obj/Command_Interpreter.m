@@ -68,14 +68,14 @@ classdef Command_Interpreter < handle
         CMD_EMPTYOUT    % Reset the receiver output container
         CMD_AZEL        % Compute (or update) Azimuth and Elevation
         CMD_BASICPP     % Basic Point positioning with no correction (useful to compute azimuth and elevation)
-        CMD_FIX_POS         % Fix (position) of a receiver
+        CMD_FIX_POS     % Fix (position) of a receiver
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
         CMD_NET         % Network undifferenced solution
         CMD_PSRALIGN    % Pseudorange alignement
         CMD_SEID        % SEID processing (synthesise L2)
-        CMD_SID        % SID processing (synthesise L2)
+        CMD_SID         % SID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
@@ -129,6 +129,8 @@ classdef Command_Interpreter < handle
         PAR_S_MAP       % positions on map
         PAR_S_CK        % Clock Error
         PAR_S_SNR       % SNR Signal to Noise Ratio
+        PAR_S_SNRI      % SNR Signal to Noise Ratio with Zerniche interpolation
+        PAR_S_OBSSTAT   % Observation statistics
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
         PAR_S_RES       % Residuals cartesian
@@ -381,6 +383,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_SNR.class = '';
             this.PAR_S_SNR.limits = [];
             this.PAR_S_SNR.accepted_values = [];
+            
+            this.PAR_S_SNRI.name = 'SNRI Signal to Noise Ratio Interpolated Map';
+            this.PAR_S_SNRI.descr = 'SNRI              Signal to Noise Ratio (polar plot, interpolated map)';
+            this.PAR_S_SNRI.par = '(snri)|(SNRI)';
+            this.PAR_S_SNRI.class = '';
+            this.PAR_S_SNRI.limits = [];
+            this.PAR_S_SNRI.accepted_values = [];
+
+            this.PAR_S_OBSSTAT.name = 'OBS_STAT Observation statistics';
+            this.PAR_S_OBSSTAT.descr = 'OBS_STAT         Observation stat (last session)';
+            this.PAR_S_OBSSTAT.par = '(obs_stat)|(OBS_STAT)';
+            this.PAR_S_OBSSTAT.class = '';
+            this.PAR_S_OBSSTAT.limits = [];
+            this.PAR_S_OBSSTAT.accepted_values = [];
             
             this.PAR_S_OCS.name = 'Outliers and cycle slips';
             this.PAR_S_OCS.descr = 'OCS              Outliers and cycle slips';
@@ -637,7 +653,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -2030,6 +2046,12 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showSNR_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNRI.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.showSNR_z(sys_list)]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OBSSTAT.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.showObsStats()]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;                                
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
@@ -2288,6 +2310,9 @@ classdef Command_Interpreter < handle
                     str_rec = strrep(str_rec, 'end', num2str(n_key));
                     str_rec = strrep(str_rec, 'END', num2str(n_key));
                     str_rec = strrep(str_rec, 'E', num2str(n_key));
+                    if (type == 'S')
+                        str_rec = strrep(str_rec, 'CUR', sprintf('%d', Core.getCurrentSession));
+                    end
                     take_all = ~isempty(regexp(str_rec,'[\*]*', 'once'));
                     if take_all
                         id_key = 1 : n_key;
@@ -2518,7 +2543,9 @@ classdef Command_Interpreter < handle
                 flag_parallel(c) = is_par;
                 
                 if err_list(c) > 0
-                    this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
+                    if ~isempty(cmd_list{c}) && (cmd_list{c}(1) ~= '#')
+                        this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
+                    end
                 end
                 if err_list(c) < 0 && err_list(c) > -100
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));

@@ -556,13 +556,22 @@ classdef Core_Utils < handle
             filtered_data = A * z_par;
         end
 
+        function flag_is_hold = isHold()
+            % Return if there is an open figure on hold
+            %
+            % SYNTAX
+            %   Core_Utils.isHold()
+            
+            flag_is_hold = ~isempty(findobj('Type', 'figure')) && ishold;
+        end
+        
         function fh = showZerniche(l, m, z_par, el_min)
             % Show 3D plot of Zernike polynomials 
             %
             % SINTAX
             %   fh = showZerniche(l, m, z_par)
             
-            if ~isempty(findobj('Type', 'figure')) && ~ishold
+            if ~Core_Utils.isHold()
                 fh = figure();
             else
                 fh = gcf;

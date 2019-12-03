@@ -743,9 +743,11 @@ classdef GNSS_Station < handle
             %   sys_c = this.getActiveSys()
             
             % Select only the systems still present in the object           
-            if ~isempty(this.work) && ~(this.work.isEmpty)
+            if ~isempty(this.out) && ~(this.out.isEmpty) && ~isempty(this.out.used_sys_c)
+                sys_c = this.out.used_sys_c;
+            elseif ~isempty(this.work) && ~(this.work.isEmpty)
                 sys_c = this.work.getActiveSys;
-            else
+            else                
                 sys_c = this.getCC.getActiveSysChar;
             end
         end
