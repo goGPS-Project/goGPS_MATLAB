@@ -52,6 +52,12 @@ classdef GUI_Inspector < handle
     properties
         win         % Handle to this window
         rec_tbl     % Handle to the table with all the receivers
+        j_cmd       % Handle to the j_cmd java component
+        
+        edit_texts = {} % Handle to all the edit boxes
+        flag_list = {}  % Handle to all the FLAGS
+        
+        flag_auto_exec % Handle to automatic exec flag
     end    
     
     %% PROPERTIES STATUS
@@ -89,10 +95,11 @@ classdef GUI_Inspector < handle
     methods
         function init(this)
             this.updateRecList();
+            this.updateUI();
         end
         
         function openGUI(this)
-            % Main Window ----------------------------------------------------------------------------------------------
+            % Main Window ---------------------------------------------------------------------------------------------
             
             win = figure( 'Name', 'goGPS inspector', ...
                 'Visible', 'on', ...
@@ -139,7 +146,7 @@ classdef GUI_Inspector < handle
                 'BackgroundColor', logo_GUI_Inspector.BG_COLOR, ...
                 'Padding', 5);
             
-            % Logo/title box -------------------------------------------------------------------------------------------
+            % Logo/title box ------------------------------------------------------------------------------------------
             
             logo_g = uix.Grid('Parent', left_tbv, ...
                 'Padding', 5, ...
@@ -159,7 +166,7 @@ classdef GUI_Inspector < handle
             Core_UI.insertEmpty(left_tbv, logo_GUI_Inspector.BG_COLOR);
             left_tbv.Heights = [82 -1];
             
-            % Title Panel -----------------------------------------------------------------------------------------------
+            % Title Panel ---------------------------------------------------------------------------------------------
             right_tvb = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
@@ -178,28 +185,45 @@ classdef GUI_Inspector < handle
             txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
             title_l.Heights = [2, -1];
             
-            % Disclaimer Panel -----------------------------------------------------------------------------------------------
+            % Top Panel -----------------------------------------------------------------------------------------------
+            
             Core_UI.insertEmpty(right_tvb, logo_GUI_Inspector.BG_COLOR)
             txt = this.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, [], 'left');
             txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
             right_tvb.Heights = [25 3 -1];
             
-            
             Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
             
-            % Logging Panel --------------------------------------------------------------------------------------------------
+            % Bottom Panel --------------------------------------------------------------------------------------------
             
             main_hb = uix.HBox('Parent', main_vb, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
-            main_vb.Heights = [84 5 -1];
+            
+            Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
+            bottom = uix.HBox('Parent', main_vb, ...
+                'Padding', 5, ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            [grp, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(bottom, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
+            grp.BackgroundColor = Core_UI.DARK_GREY_BG;
+            grp.Children(3).BackgroundColor = Core_UI.DARK_GREY_BG;
+            grp.Children(3).ForegroundColor = [1 1 1];
+                       
+            main_vb.Heights = [84 5 -1 5 35];
+            
+            % Left Panel ----------------------------------------------------------------------------------------------
             
             this.insertRecList(main_hb);
             Core_UI.insertEmpty(main_hb, Core_UI.DARK_GREY_BG)
-            Core_UI.insertEmpty(main_hb, Core_UI.DARKER_GREY_BG)
+            tab_panel = uix.TabPanel('Parent', main_hb, ...
+                'TabWidth', 90, ...
+                'Padding', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                'SelectionChangedFcn', @this.onTabChange);            
+            this.j_cmd = this.insertTabCommands(tab_panel);
             main_hb.Widths = [175 5 -1];
             
-            % Manage dimension -------------------------------------------------------------------------------------------
+            % Manage dimension ----------------------------------------------------------------------------------------
             
                         
             this.win.Visible = 'on';    
@@ -273,10 +297,10 @@ classdef GUI_Inspector < handle
                         
             select_but = uicontrol( 'Parent', list_but, ...
                 'String', 'Select All', ...
-                'Callback', @this.selectAll); %#ok<NASGU>
+                'Callback', @this.onSelectAll); %#ok<NASGU>
             clear_but = uicontrol( 'Parent', list_but, ...
                 'String', 'Clear All', ...
-                'Callback', @this.unselectAll); %#ok<NASGU>           
+                'Callback', @this.onUnselectAll); %#ok<NASGU>           
                         
             tv_text.Heights = [20 25];                        
             
@@ -292,6 +316,134 @@ classdef GUI_Inspector < handle
             this.rec_tbl.ColumnEditable = [true false false false];
             this.rec_tbl.ColumnWidth = {20, 45, 60, 46};        
             lv_box.Heights = [50 -1]; 
+        end
+
+        function j_cmd = insertTabCommands(this, container)
+            cmd_bg = Core_UI.LIGHT_GREY_BG;
+            tab = uix.HBox('Parent', container, ...
+                'Padding', 5, ...
+                'BackgroundColor', cmd_bg);
+             
+            v_left = uix.VBox('Parent', tab, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            Core_UI.insertEmpty(tab);
+            v_right = uix.VBox('Parent', tab, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            tab.Widths = [-2 5 -3];
+            
+            % --------------------------------------------------------
+            % COMMAND LIST
+            % --------------------------------------------------------
+            eg_box = uix.VBox('Parent', v_left);
+                        
+            % uicontrol('Parent', eg_box, ...
+            %     'Style', 'Text', ...
+            %     'String', 'Execution examples:', ...
+            %     'ForegroundColor', Core_UI.BLACK, ...
+            %     'HorizontalAlignment', 'left', ...
+            %     'FontSize', Core_UI.getFontSize(9), ...
+            %     'BackgroundColor', cmd_bg);
+            
+            this.flag_auto_exec = uicontrol('Parent', eg_box,...
+                'Style', 'checkbox',...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'String', 'Immediate execution');
+                        
+            Core_UI.insertEmpty(eg_box);
+
+            last_sss_box = Core_UI.insertPanelLight(eg_box, 'Last Session (Work-Space)');
+            workspace_box = uix.VButtonBox('Parent', last_sss_box, ...
+                'ButtonSize', [200 28] , ...
+                'Spacing', 0, ...
+                'HorizontalAlignment', 'left', ...
+                'VerticalAlignment', 'top', ...
+                'BackgroundColor', cmd_bg);
+            
+            uicontrol( 'Parent', workspace_box, ...
+                'String', 'Show Data Availability', ...
+                'UserData', {'SHOW T@ DA'}, ...
+                'Callback', @this.onInsertCommand);
+            
+            uicontrol( 'Parent', workspace_box, ...
+                'String', 'Show SNR (polar)', ...
+                'UserData', {'SHOW T@ SNR'}, ...
+                'Callback', @this.onInsertCommand);
+            
+            uicontrol( 'Parent', workspace_box, ...
+                'String', 'Show SNR (polar - interpolated)', ...
+                'UserData', {'SHOW T@ SNRI'}, ...
+                'Callback', @this.onInsertCommand);
+
+            uicontrol( 'Parent', workspace_box, ...
+                'String', 'Show Observation Stats', ...
+                'UserData', {'SHOW T@ OBS_STAT'}, ...
+                'Callback', @this.onInsertCommand);
+
+            scroller = uix.ScrollingPanel('Parent', eg_box);
+            container = uix.Grid('Parent', scroller, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+
+            eg_box.Heights = [Core_UI.LINE_HEIGHT, 5, -1, -1];
+
+            % --------------------------------------------------------
+            
+            % COMMAND LIST
+            % --------------------------------------------------------
+            cmd_box = uix.VBox('Parent', v_right, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            Core_UI.insertEmpty(cmd_box);
+                        
+            uicontrol('Parent', cmd_box, ...
+                'Style', 'Text', ...
+                'String', 'Insert here the goGPS command list:', ...
+                'FontWeight', 'normal', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', cmd_bg);
+
+            j_cmd = com.mathworks.widgets.SyntaxTextPane;
+            codeType = j_cmd.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            j_cmd.setContentType(codeType);
+            str = '';
+            j_cmd.setText(str);
+            % Create the ScrollPanel containing the widget
+            j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_box);
+                    
+            % HELP
+            Core_UI.insertEmpty(cmd_box, cmd_bg);
+            
+            list_but = uix.HButtonBox( 'Parent', cmd_box, ...
+                'Spacing', 5, ...
+                'HorizontalAlignment', 'right', ...
+                'ButtonSize', [120 28] , ...
+                'BackgroundColor', cmd_bg);
+                        
+            help = uicontrol( 'Parent', list_but, ...
+                'String', 'Command list HELP', ...
+                'Callback', @this.onOpenCommandHelp);
+            clr = uicontrol( 'Parent', list_but, ...
+                'String', 'Clear', ...
+                'Callback', @this.onClearCommands);
+            check = uicontrol( 'Parent', list_but, ...
+                'String', 'Check validity', ...
+                'Callback', @this.onCheckValidity);
+            exec = uicontrol( 'Parent', list_but, ...
+                'String', 'EXEC', ...
+                'Callback', @this.exec);
+            
+            cmd_box.Heights = [1, Core_UI.LINE_HEIGHT, -1, 2, 30];
+        
+            % --------------------------------------------------------
+            
+            v_left.Heights = [-1];
         end
 
     end
@@ -344,24 +496,147 @@ classdef GUI_Inspector < handle
             end
         end
         
-        function selectAll(this, caller, event)
+        function updateUI(this)
+            state = Core.getState();
+            for i = 1 : length(this.edit_texts)
+                value = state.getProperty(this.edit_texts{i}.UserData);
+                if ~isempty(value)
+                    this.edit_texts{i}.String = value;
+                end
+            end
+            
+            this.updateFlagList
+        end
+        
+        function updateFlagList(this)
+            Core_UI.checkFlag(this.flag_list)
+        end               
+
+        function cleaned_cmd_list = checkCommands(this)
+            % Check Commands
+            cleaned_cmd_list = {};
+            if isempty(char(this.j_cmd.getText))
+                this.j_cmd.setText('% Write here the commands to be executed');
+            else
+                cmd_list = textscan(strrep(char(this.j_cmd.getText),'%','#'),'%s','Delimiter', '\n');
+                cmd = Core.getCommandInterpreter();
+                if ~isempty(cmd_list)
+                    [cleaned_cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push, flag_parallel] = cmd.fastCheck(cmd_list{1});
+                    key_lev = key_lev - (diff([0 key_lev]) > 0);
+                    
+                    cid = 0; % index running on valid commands
+                    for c = 1 : numel(cmd_list{1})
+                        cid = cid + ~err_list(c);
+                        
+                        cur_cmd = cmd_list{1}{c};
+                        if (length(cur_cmd) > 1) && (cur_cmd(1) ~= '#') && err_list(c)
+                            cur_cmd = ['# ' cur_cmd ' - ERROR: CMD UNKNOWN']; %#ok<AGROW>
+                            cmd_list{1}{c} = cur_cmd;
+                        elseif ~err_list(c)
+                            cmd_list{1}{c} = sprintf('%s%s', char(32 * ones(1,3 * key_lev(cid))), strtrim(cleaned_cmd_list{cid}));
+                        end
+                    end
+                    str = strrep(strCell2Str(cmd_list{1}, 10),'#','%');
+                    this.j_cmd.setText(str);
+                end
+            end
+            Core.getLogger.addMarkedMessage('The command validity has been checked');
+        end
+
+        function trg_list = getTargetList(this)
+            % Get the target list from the Receiver list checked boxes
+            %
+            % SYNTAX
+            %   trg_list = this.getTargetList()
+            
+            trg = [this.rec_tbl.Data{:,1}];
+            trg_list = '';
+            if all(trg)
+                trg_list = 'T*';
+            elseif any(trg)
+                trg = sprintf('%d,', find(trg));
+                trg_list = ['T', trg(1:end-1)];
+            end
+        end
+    end
+    
+    %% METHODS EVENTS
+    % ==================================================================================================================================================
+    methods (Access = public)         
+        function onSelectAll(this, caller, event)
             % Select all the receivers
             for r = 1 : size(this.rec_tbl.Data, 1)
                 this.rec_tbl.Data{r,1} = true;
             end
         end
         
-        function unselectAll(this, caller, event)
+        function onUnselectAll(this, caller, event)
             % Select all the receivers
             for r = 1 : size(this.rec_tbl.Data, 1)
                 this.rec_tbl.Data{r,1} = false;
             end
         end
+        
+        function onTabChange(this, caller, event)
+        end
+        
+        function onOpenCommandHelp(this, caller, event)
+            % Open Help Window
+            GUI_Command_Help;
+        end
 
-    end
-    
-    %% METHODS EVENTS
-    % ==================================================================================================================================================
-    methods (Access = public)         
+        function onCheckValidity(this, caller, event)
+            % Check Validity of the command window
+            this.checkCommands();
+        end
+        
+        function onClearCommands(this, caller, event)
+            % Clear the command window
+            this.j_cmd.setText('');
+            this.checkCommands();
+        end
+        
+        function exec(this, caller, event)
+            cleaned_cmd_list = this.checkCommands();
+            if ~isempty(cleaned_cmd_list)
+                Core.getCurrentCore.exec(cleaned_cmd_list);
+            end
+        end
+                
+        function onInsertCommand(this, caller, event)
+            cmd_list = {};
+            txt = char(this.j_cmd.getText);
+            if ~isempty(txt)
+                cmd_list = textscan(strrep(txt, '%', '#'), '%s', 'Delimiter', '\n');
+                cmd_list = cmd_list{1};
+            end
+            new_cmd = strrep(caller.UserData(:), 'T@', this.getTargetList());
+            cmd_list = [cmd_list; new_cmd];
+            str = strrep(strCell2Str(cmd_list, 10),'#','%');
+            this.j_cmd.setText(str);
+            this.checkCommands();
+            
+            % If immediate execution is required            
+            if this.flag_auto_exec.Value
+                core = Core.getCurrentCore();
+                cmd = core.getCommandInterpreter();
+                core.exec(cmd.fastCheck(new_cmd));
+            end            
+        end
+        
+        function onEditChange(this, caller, event)
+            % Manage edit box change events
+            state = Core.getState;
+            prop = state.getProperty(caller.UserData);
+            if ~isnumeric(prop)
+                state.setProperty(caller.UserData, caller.String);
+            else
+                state.setProperty(caller.UserData, str2num(caller.String));
+            end
+            
+            state.check();
+            caller.String = state.getProperty(caller.UserData);            
+            this.updateFlagList();
+        end
     end
 end
