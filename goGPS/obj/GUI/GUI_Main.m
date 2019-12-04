@@ -90,29 +90,33 @@ classdef GUI_Main < handle
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
-        function this = GUI_Main()
+        function this = GUI_Main(flag_wait)
             % GUI_MAIN object creator
             this.init();
-            this.openGUI();
+            this.openGUI(flag_wait);
         end
     end    
     
     methods (Static, Access = public)
-        function this = getInstance()
+        function this = getInstance(flag_wait)
+            if (nargin < 1) || isempty(flag_wait)
+                flag_wait = false;
+            end
+                
             % Get the persistent instance of the class
             persistent unique_instance_gui_main__
             
             if isempty(unique_instance_gui_main__)
-                this = GUI_Main();
+                this = GUI_Main(flag_wait);
                 unique_instance_gui_main__ = this;
-                if isvalid(this.w_main)
+                if isvalid(this.w_main) && flag_wait
                     uiwait(this.w_main);
                 end
             else
                 this = unique_instance_gui_main__;
                 this.init();
-                this.openGUI();
-                if isvalid(this.w_main)
+                this.openGUI(flag_wait);
+                if isvalid(this.w_main) && flag_wait
                     uiwait(this.w_main);
                 end
             end
@@ -125,7 +129,7 @@ classdef GUI_Main < handle
             this.state = Core.getState();
         end
         
-        function openGUI(this)
+        function openGUI(this, flag_wait)
             % WIN CONFIGURATION
             % L| N|    W
             %
@@ -133,7 +137,7 @@ classdef GUI_Main < handle
             % ----------
             % b      b b
             %
-            
+                        
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 delete(this.w_main);
             end
@@ -306,12 +310,15 @@ classdef GUI_Main < handle
             save_as_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'Save As', ...
                 'Callback', @this.saveAsState); %#ok<NASGU>
-            go_but = uicontrol( 'Parent', bottom_bhr, ...
-                'String', 'go!', ...
-                'FontAngle', 'italic', ...
-                'Callback', @this.go, ...
-                'FontWeight', 'bold'); %#ok<NASGU>
             
+            if flag_wait
+                % Show go button only if I'm executing the interface from goGPS script
+                go_but = uicontrol( 'Parent', bottom_bhr, ...
+                    'String', 'go!', ...
+                    'FontAngle', 'italic', ...
+                    'Callback', @this.go, ...
+                    'FontWeight', 'bold'); %#ok<NASGU>
+            end
             % Manage dimension -------------------------------------------------------------------------------------------
             
             main_bv.Heights = [-1 30];

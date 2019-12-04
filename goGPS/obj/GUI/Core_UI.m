@@ -453,8 +453,11 @@ classdef Core_UI < Logos
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
         
-        function openGUI(this)
-            this.main = GUI_Main.getInstance();
+        function openGUI(this, flag_wait)
+            if (nargin < 1) || isempty(flag_wait)
+                flag_wait = false;
+            end
+            this.main = GUI_Main.getInstance(flag_wait);
         end
     end
     %% METHODS INSERT

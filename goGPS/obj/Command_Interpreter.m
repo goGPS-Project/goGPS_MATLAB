@@ -128,6 +128,7 @@ classdef Command_Interpreter < handle
         PAR_S_XYZ       % XYZ positions
         PAR_S_MAP       % positions on map
         PAR_S_CK        % Clock Error
+        PAR_S_CKW       % Clock Error of the last session
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_SNRI      % SNR Signal to Noise Ratio with Zerniche interpolation
         PAR_S_OBSSTAT   % Observation statistics
@@ -213,14 +214,14 @@ classdef Command_Interpreter < handle
             this.PAR_NAME.par = '.';
 
             this.PAR_RATE.name = 'rate';
-            this.PAR_RATE.descr = '@<rate>            processing rate in seconds (e.g. @30s, -r=30s)';
+            this.PAR_RATE.descr = '@<rate>            Processing rate in seconds (e.g. @30s, -r=30s)';
             this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
             this.PAR_RATE.class = 'double';
             this.PAR_RATE.limits = [0.000001 900];
             this.PAR_RATE.accepted_values = [];
             
             this.PAR_CUTOFF.name = 'cut-off';
-            this.PAR_CUTOFF.descr = '-e=<elevation>     elevation in degree (e.g. -e=7)';
+            this.PAR_CUTOFF.descr = '-e=<elevation>     Elevation in degree (e.g. -e=7)';
             this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: @ | -e= | --cutoff= 
             this.PAR_CUTOFF.class = 'double';
             this.PAR_CUTOFF.limits = [0 90];
@@ -234,14 +235,14 @@ classdef Command_Interpreter < handle
             this.PAR_SNRTHR.accepted_values = [];
 
             this.PAR_SS.name = 'constellation';
-            this.PAR_SS.descr = '-s=<sat_list>      active constellations (e.g. -s=GRE)';
+            this.PAR_SS.descr = '-s=<sat_list>      Active constellations (e.g. -s=GRE)';
             this.PAR_SS.par = '(\-s\=)|(\-\-constellation\=)'; % (regexp) parameter prefix: -s --constellation
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
             
             this.PAR_SYNC.name = 'sync results';
-            this.PAR_SYNC.descr = '--sync             use syncronized time only';
+            this.PAR_SYNC.descr = '--sync             Use syncronized time only';
             this.PAR_SYNC.par = '(\-\-sync)';
             this.PAR_SYNC.class = '';
             this.PAR_SYNC.limits = [];
@@ -262,14 +263,14 @@ classdef Command_Interpreter < handle
             this.PAR_BAND.accepted_values = [];
 
             this.PAR_EXPORT.name = 'export';
-            this.PAR_EXPORT.descr = '-e=<"name">       export with name_prefix';
+            this.PAR_EXPORT.descr = '-e=<"name">        Export with name_prefix';
             this.PAR_EXPORT.par = '(\-e)|(\-e\=)|(\-\-export\=)'; % (regexp) parameter prefix: -e --export
             this.PAR_EXPORT.class = 'char';
             this.PAR_EXPORT.limits = [];
             this.PAR_EXPORT.accepted_values = [];
 
             this.PAR_CLOSE.name = 'close';
-            this.PAR_CLOSE.descr = '-c                 close figure after export (valid only if export is present)';
+            this.PAR_CLOSE.descr = '-c                 Close figure after export (valid only if export is present)';
             this.PAR_CLOSE.par = '(\-c)|(\-\-close)'; % (regexp) parameter prefix: -c --close
             this.PAR_CLOSE.class = '';
             this.PAR_CLOSE.limits = [];
@@ -278,35 +279,35 @@ classdef Command_Interpreter < handle
             %  Method parameter
             
             this.PAR_M_UNCOMBINED.name = 'Use the Uncombined new experimental engine';
-            this.PAR_M_UNCOMBINED.descr = '-u               (flag) use the new (experimental) uncombined engine';
+            this.PAR_M_UNCOMBINED.descr = '-u                 (flag) use the new (experimental) uncombined engine';
             this.PAR_M_UNCOMBINED.par = '(-u)|(-U)|(--uncombined)|(--UNCOMBINED)';
             this.PAR_M_UNCOMBINED.class = '';
             this.PAR_M_UNCOMBINED.limits = [];
             this.PAR_M_UNCOMBINED.accepted_values = [];
 
             this.PAR_M_FREE_NET.name = 'Free network';
-            this.PAR_M_FREE_NET.descr = '--free                let the network free';
+            this.PAR_M_FREE_NET.descr = '--free              Let the network free';
             this.PAR_M_FREE_NET.par = '(-f)(--free)|(--FREE)';
             this.PAR_M_FREE_NET.class = '';
             this.PAR_M_FREE_NET.limits = [];
             this.PAR_M_FREE_NET.accepted_values = [];
         
             this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
-            this.PAR_M_IONO.descr = '--iono              reduce for ionosphere delay';
+            this.PAR_M_IONO.descr = '--iono             Reduce for ionosphere delay';
             this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)';
             this.PAR_M_IONO.class = '';
             this.PAR_M_IONO.limits = [];
             this.PAR_M_IONO.accepted_values = [];
             
             this.PAR_M_CLK.name = 'Export clock';
-            this.PAR_M_CLK.descr = '--clk                export common Parameter in network';
+            this.PAR_M_CLK.descr = '--clk              Export common Parameter in network';
             this.PAR_M_CLK.par = '(-c)|(-C)|(--clk)|(--Clk)|(--CLK)';
             this.PAR_M_CLK.class = '';
             this.PAR_M_CLK.limits = [];
             this.PAR_M_CLK.accepted_values = [];
 
             this.PAR_M_SEID_PLANE.name = 'Use original plane based SEID';
-            this.PAR_M_SEID_PLANE.descr = 'PLANE            (flag) use a plane for the interpolation of the geometry free';
+            this.PAR_M_SEID_PLANE.descr = 'PLANE              (flag) use a plane for the interpolation of the geometry free';
             this.PAR_M_SEID_PLANE.par = '(PLANE)|(plane)|(OLD)|(old)';
             this.PAR_M_SEID_PLANE.class = '';
             this.PAR_M_SEID_PLANE.limits = [];
@@ -315,11 +316,11 @@ classdef Command_Interpreter < handle
             % Receiver parameter
             
             this.PAR_R_FROM_OUT.name = 'From OUT';
-            this.PAR_R_FROM_OUT.descr = 'FROM_OUT         (flag) use data from Receiver Output object';
+            this.PAR_R_FROM_OUT.descr = 'FROM_OUT           (flag) use data from Receiver Output object';
             this.PAR_R_FROM_OUT.par = '(FROM_OUT)|(from_out)';
 
             this.PAR_R_FROM_WORK.name = 'From WORK';
-            this.PAR_R_FROM_WORK.descr = 'FROM_WORK        (flag) use data from Work Space (current session)';
+            this.PAR_R_FROM_WORK.descr = 'FROM_WORK          (flag) use data from Work Space (current session)';
             this.PAR_R_FROM_WORK.par = '(FROM_WORK)|(from_work)';
             
             this.PAR_R_FIX_APR.name = 'Approximate position';
@@ -336,217 +337,224 @@ classdef Command_Interpreter < handle
             this.PAR_S_ALL.accepted_values = [];
             
             this.PAR_S_DA.name = 'Data availability';
-            this.PAR_S_DA.descr = 'DA               Data Availability';
+            this.PAR_S_DA.descr = 'DA                 Data Availability';
             this.PAR_S_DA.par = '(DA)|(\-\-dataAvailability)|(da)';
             this.PAR_S_DA.class = '';
             this.PAR_S_DA.limits = [];
             this.PAR_S_DA.accepted_values = [];
 
             this.PAR_S_ENU.name = 'ENU positions';
-            this.PAR_S_ENU.descr = 'ENU              East Nord Up positions';
+            this.PAR_S_ENU.descr = 'ENU                East Nord Up positions';
             this.PAR_S_ENU.par = '(ENU)|(enu)';
             this.PAR_S_ENU.class = '';
             this.PAR_S_ENU.limits = [];
             this.PAR_S_ENU.accepted_values = [];
 
             this.PAR_S_ENUBSL.name = 'ENU baseline';
-            this.PAR_S_ENUBSL.descr = 'ENUBSL           East Nord Up baseline';
+            this.PAR_S_ENUBSL.descr = 'ENUBSL             East Nord Up baseline';
             this.PAR_S_ENUBSL.par = '(ENUBSL)|(enu_base)';
             this.PAR_S_ENUBSL.class = '';
             this.PAR_S_ENUBSL.limits = [];
             this.PAR_S_ENUBSL.accepted_values = [];
 
             this.PAR_S_XYZ.name = 'XYZ positions';
-            this.PAR_S_XYZ.descr = 'XYZ              XYZ Earth Fixed Earth centered positions';
+            this.PAR_S_XYZ.descr = 'XYZ                XYZ Earth Fixed Earth centered positions';
             this.PAR_S_XYZ.par = '(XYZ)|(xyz)';
             this.PAR_S_XYZ.class = '';
             this.PAR_S_XYZ.limits = [];
             this.PAR_S_XYZ.accepted_values = [];
 
             this.PAR_S_MAP.name = 'Position on map';
-            this.PAR_S_MAP.descr = 'MAP              Position on map';
+            this.PAR_S_MAP.descr = 'MAP                Position on map';
             this.PAR_S_MAP.par = '(MAP)|(map)';
             this.PAR_S_MAP.class = '';
             this.PAR_S_MAP.limits = [];
             this.PAR_S_MAP.accepted_values = [];
 
             this.PAR_S_CK.name = 'Clock Error';
-            this.PAR_S_CK.descr = 'CK               Clock errors';
+            this.PAR_S_CK.descr = 'CK                 Clock errors';
             this.PAR_S_CK.par = '(ck)|(CK)';
             this.PAR_S_CK.class = '';
             this.PAR_S_CK.limits = [];
             this.PAR_S_CK.accepted_values = [];
 
+            this.PAR_S_CKW.name = 'Clock Error of the last session (work-space)';
+            this.PAR_S_CKW.descr = 'CKW                Clock errors of the last session';
+            this.PAR_S_CKW.par = '(ckw)|(CKW)';
+            this.PAR_S_CKW.class = '';
+            this.PAR_S_CKW.limits = [];
+            this.PAR_S_CKW.accepted_values = [];
+
             this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
-            this.PAR_S_SNR.descr = 'SNR              Signal to Noise Ratio (polar plot)';
+            this.PAR_S_SNR.descr = 'SNR                Signal to Noise Ratio (polar plot)';
             this.PAR_S_SNR.par = '(snr)|(SNR)';
             this.PAR_S_SNR.class = '';
             this.PAR_S_SNR.limits = [];
             this.PAR_S_SNR.accepted_values = [];
             
             this.PAR_S_SNRI.name = 'SNRI Signal to Noise Ratio Interpolated Map';
-            this.PAR_S_SNRI.descr = 'SNRI              Signal to Noise Ratio (polar plot, interpolated map)';
+            this.PAR_S_SNRI.descr = 'SNRI               Signal to Noise Ratio (polar plot, interpolated map)';
             this.PAR_S_SNRI.par = '(snri)|(SNRI)';
             this.PAR_S_SNRI.class = '';
             this.PAR_S_SNRI.limits = [];
             this.PAR_S_SNRI.accepted_values = [];
 
             this.PAR_S_OBSSTAT.name = 'OBS_STAT Observation statistics';
-            this.PAR_S_OBSSTAT.descr = 'OBS_STAT         Observation stat (last session)';
+            this.PAR_S_OBSSTAT.descr = 'OBS_STAT           Observation stat (last session)';
             this.PAR_S_OBSSTAT.par = '(obs_stat)|(OBS_STAT)';
             this.PAR_S_OBSSTAT.class = '';
             this.PAR_S_OBSSTAT.limits = [];
             this.PAR_S_OBSSTAT.accepted_values = [];
             
             this.PAR_S_OCS.name = 'Outliers and cycle slips';
-            this.PAR_S_OCS.descr = 'OCS              Outliers and cycle slips';
+            this.PAR_S_OCS.descr = 'OCS                Outliers and cycle slips';
             this.PAR_S_OCS.par = '(ocs)|(OCS)';
             this.PAR_S_OCS.class = '';
             this.PAR_S_OCS.limits = [];
             this.PAR_S_OCS.accepted_values = [];
             
             this.PAR_S_OCSP.name = 'Outliers and cycle slips (polar plot)';
-            this.PAR_S_OCSP.descr = 'OCSP             Outliers and cycle slips (polar plot)';
+            this.PAR_S_OCSP.descr = 'OCSP               Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.par = '(ocsp)|(OCSP)';
             this.PAR_S_OCSP.class = '';
             this.PAR_S_OCSP.limits = [];
             this.PAR_S_OCSP.accepted_values = [];
             
             this.PAR_S_RES.name = 'Residuals plot';
-            this.PAR_S_RES.descr = 'RES              Residual plot';
+            this.PAR_S_RES.descr = 'RES                Residual plot';
             this.PAR_S_RES.par = '(res)|(RES)';
             this.PAR_S_RES.class = '';
             this.PAR_S_RES.limits = [];
             this.PAR_S_RES.accepted_values = [];
 
             this.PAR_S_RES_PSAT.name = 'Residuals per satellite (colored)';
-            this.PAR_S_RES_PSAT.descr = 'RES_PSAT         Residuals per satellite';
+            this.PAR_S_RES_PSAT.descr = 'RES_PSAT           Residuals per satellite';
             this.PAR_S_RES_PSAT.par = '(res_psat)|(RES_PSAT)';
             this.PAR_S_RES_PSAT.class = '';
             this.PAR_S_RES_PSAT.limits = [];
             this.PAR_S_RES_PSAT.accepted_values = [];
             
             this.PAR_S_RES_SKY.name = 'Residuals sky plot';
-            this.PAR_S_RES_SKY.descr = 'RES_SKY          Residual sky plot';
+            this.PAR_S_RES_SKY.descr = 'RES_SKY            Residual sky plot';
             this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
             this.PAR_S_RES_SKY.class = '';
             this.PAR_S_RES_SKY.limits = [];
             this.PAR_S_RES_SKY.accepted_values = [];
 
             this.PAR_S_RES_SKYP.name = 'Residuals sky plot (polar plot)';
-            this.PAR_S_RES_SKYP.descr = 'RES_SKYP         Residual sky plot (polar plot)';
+            this.PAR_S_RES_SKYP.descr = 'RES_SKYP           Residual sky plot (polar plot)';
             this.PAR_S_RES_SKYP.par = '(res_skyp)|(RES_SKYP)';
             this.PAR_S_RES_SKYP.class = '';
             this.PAR_S_RES_SKYP.limits = [];
             this.PAR_S_RES_SKYP.accepted_values = [];
 
             this.PAR_S_ZTD.name = 'ZTD';
-            this.PAR_S_ZTD.descr = 'ZTD              Zenith Total Delay';
+            this.PAR_S_ZTD.descr = 'ZTD                Zenith Total Delay';
             this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
             this.PAR_S_ZTD.class = '';
             this.PAR_S_ZTD.limits = [];
             this.PAR_S_ZTD.accepted_values = [];
 
             this.PAR_S_ZWD.name = 'ZWD';
-            this.PAR_S_ZWD.descr = 'ZWD              Zenith Wet Delay';
+            this.PAR_S_ZWD.descr = 'ZWD                Zenith Wet Delay';
             this.PAR_S_ZWD.par = '(zwd)|(ZWD)';
             this.PAR_S_ZWD.class = '';
             this.PAR_S_ZWD.limits = [];
             this.PAR_S_ZWD.accepted_values = [];
 
             this.PAR_S_PWV.name = 'PWV';
-            this.PAR_S_PWV.descr = 'PWV              Precipitable Water Vapour';
+            this.PAR_S_PWV.descr = 'PWV                Precipitable Water Vapour';
             this.PAR_S_PWV.par = '(pwv)|(PWV)';
             this.PAR_S_PWV.class = '';
             this.PAR_S_PWV.limits = [];
             this.PAR_S_PWV.accepted_values = [];
 
             this.PAR_S_PTH.name = 'PTH';
-            this.PAR_S_PTH.descr = 'PTH              Pressure / Temperature / Humidity';
+            this.PAR_S_PTH.descr = 'PTH                Pressure / Temperature / Humidity';
             this.PAR_S_PTH.par = '(pth)|(PTH)';
             this.PAR_S_PTH.class = '';
             this.PAR_S_PTH.limits = [];
             this.PAR_S_PTH.accepted_values = [];
 
             this.PAR_S_STD.name = 'ZTD Slant';
-            this.PAR_S_STD.descr = 'STD              Zenith Total Delay with slants';
+            this.PAR_S_STD.descr = 'STD                Zenith Total Delay with slants';
             this.PAR_S_STD.par = '(std)|(STD)';
             this.PAR_S_STD.class = '';
             this.PAR_S_STD.limits = [];
             this.PAR_S_STD.accepted_values = [];
 
             this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
-            this.PAR_S_RES_STD.descr = 'RES_STD          Slants Total Delay residuals (polar plot)';
+            this.PAR_S_RES_STD.descr = 'RES_STD            Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
             this.PAR_S_RES_STD.class = '';
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
             this.PAR_E_CORE_MAT.name = 'CORE MATLAB format';
-            this.PAR_E_CORE_MAT.descr = 'CORE_MAT         Save the core as .mat file';
+            this.PAR_E_CORE_MAT.descr = 'CORE_MAT           Save the core as .mat file';
             this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
             this.PAR_E_CORE_MAT.class = '';
             this.PAR_E_CORE_MAT.limits = [];
             this.PAR_E_CORE_MAT.accepted_values = {};
             
             this.PAR_E_PLAIN_MAT.name = 'Output inplain MATLAB format';
-            this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT         Save the core as .mat file';
+            this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT          Save the core as .mat file';
             this.PAR_E_PLAIN_MAT.par = '(plain_mat)|(PLAIN_MAT)';
             this.PAR_E_PLAIN_MAT.class = '';
             this.PAR_E_PLAIN_MAT.limits = [];
             this.PAR_E_PLAIN_MAT.accepted_values = {};
 
             this.PAR_E_REC_MAT.name = 'Receiver MATLAB format';
-            this.PAR_E_REC_MAT.descr = 'REC_MAT          Receiver object as .mat file';
+            this.PAR_E_REC_MAT.descr = 'REC_MAT            Receiver object as .mat file';
             this.PAR_E_REC_MAT.par = '(rec_mat)|(REC_MAT)';
             this.PAR_E_REC_MAT.class = '';
             this.PAR_E_REC_MAT.limits = [];
             this.PAR_E_REC_MAT.accepted_values = {};
 
             this.PAR_E_REC_RIN.name = 'RINEX v3';
-            this.PAR_E_REC_RIN.descr = 'REC_RIN          Rinex file containing the actual data stored in rec.work';
+            this.PAR_E_REC_RIN.descr = 'REC_RIN            Rinex file containing the actual data stored in rec.work';
             this.PAR_E_REC_RIN.par = '(REC_RIN)|(rec_rin)|(rin3)|(RIN3)';
             this.PAR_E_REC_RIN.class = '';
             this.PAR_E_REC_RIN.limits = [];
             this.PAR_E_REC_RIN.accepted_values = {};
 
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
-            this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters as SINEX file';
+            this.PAR_E_TROPO_SNX.descr = 'TRP_SNX            Tropo parameters as SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
             this.PAR_E_TROPO_SNX.class = '';
             this.PAR_E_TROPO_SNX.limits = [];
             this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
             this.PAR_E_TROPO_MAT.name = 'TROPO MATLAB format';
-            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters MATLAB as .mat file';
+            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT            Tropo parameters MATLAB as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.class = '';
             this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_TROPO_HN.name = 'TROPO HydroNet format';
-            this.PAR_E_TROPO_HN.descr = 'TRP_HN          Tropo parameters as a hydroNet (CSV like) file';
+            this.PAR_E_TROPO_HN.descr = 'TRP_HN             Tropo parameters as a hydroNet (CSV like) file';
             this.PAR_E_TROPO_HN.par = '(trp_hn)|(TRP_HN)';
             this.PAR_E_TROPO_HN.class = '';
             this.PAR_E_TROPO_HN.limits = [];
             this.PAR_E_TROPO_HN.accepted_values = {};
             
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
-            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV          Tropo parameters MATLAB as .csv file';
+            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV            Tropo parameters MATLAB as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
             this.PAR_E_TROPO_CSV.class = '';
             this.PAR_E_TROPO_CSV.limits = [];
             this.PAR_E_TROPO_CSV.accepted_values = {};
                                     
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
-            this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
+            this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates Bernese .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
             this.PAR_E_COO_CRD.accepted_values = {};
             
             this.PAR_E_COO_CSV.name = 'Coordinates CSV format';
-            this.PAR_E_COO_CSV.descr = 'COO_CSV          Coordinates .csv file';
+            this.PAR_E_COO_CSV.descr = 'COO_CSV            Coordinates .csv file';
             this.PAR_E_COO_CSV.par = '(coo_csv)|(COO_CSV)';
             this.PAR_E_COO_CSV.class = '';
             this.PAR_E_COO_CSV.limits = [];
@@ -653,12 +661,12 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_COO_CSV this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -2039,6 +2047,9 @@ classdef Command_Interpreter < handle
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CKW.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.work.showDt()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showDt()]; %#ok<AGROW>
