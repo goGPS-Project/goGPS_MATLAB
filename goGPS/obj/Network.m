@@ -556,12 +556,15 @@ classdef Network < handle
                     ls.PAR_SAT_EBFR;
                     ls.PAR_SAT_EB;
                      ls.PAR_AMB;
-                    ls.PAR_IONO;
+                   
                     ls.PAR_REC_CLK_PR;
-                    ls.PAR_SAT_CLK_PR;
+                   ls.PAR_SAT_CLK_PR;
                      ls.PAR_REC_CLK_PH;
-                     ls.PAR_SAT_CLK_PH;
-];
+                     ls.PAR_SAT_CLK_PH;             
+                     ];
+                 if reduce_iono
+                     ls.PAR_IONO;
+                 end
                 if this.state.flag_tropo
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
@@ -637,7 +640,10 @@ classdef Network < handle
                 end
                 this.common_time = ls.unique_time;
                 ls.solve(Core.getState.net_amb_fix_approach >1);
-                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+%                 idx_fix = ls.class_par == ls.PAR_AMB;
+%                 idx_fix(idx_fix) = abs(fracFNI(ls.x(idx_fix))) < 1e-9; % fixed ambiguoty
+%                 ls.removeEstParam(idx_fix);
+                ls.simpleSnoop(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
                 ls.solve(Core.getState.net_amb_fix_approach >1);                
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
@@ -1348,6 +1354,27 @@ classdef Network < handle
                         data = ls.x(ii);
                         this.rec_list(i).work.tracking_bias{ii} = Electronic_Bias(o_code,data);
                     end
+                end
+                % push back ambiguities
+                if sum(ls.class_par == LS_Manipulator_new.PAR_AMB) > 0
+                    idx_fix = ls.class_par == ls.PAR_AMB & ls.rec_par == i;
+                    idx_fix(idx_fix) = abs(fracFNI(ls.x(idx_fix))) < 1e-9; % fixed ambiguoty
+                    idx_fix = find(idx_fix);
+                    [ ph,wl,id_ph ] = this.rec_list(i).work.getPhases();
+                    amb_mat = Core_Utils.getAmbIdx(this.rec_list(i).work.sat.cycle_slip_ph_by_ph, ph);
+                    rec_time_ref = this.rec_list(i).work.time.getRefTime(ls.time_min.getMatlabTime);
+                    for amb = idx_fix'
+                        % get the index in phases and add them
+                        o_code = ls.unique_obs_codes{ls.obs_codes_id_par(amb)};
+                        sat = ls.sat_par(amb);
+                        time_amb = ls.time_par(amb, :);
+                        col_idx = strLineMatch(this.rec_list(i).work.obs_code(id_ph,:),o_code(2:end)) & this.rec_list(i).work.go_id(id_ph) == sat;
+                        row_idx = rec_time_ref >= time_amb(1) & rec_time_ref < time_amb(2);
+                        a_id = amb_mat(row_idx,col_idx);
+                        a_id = a_id(1);
+                        ph(amb_mat == a_id) = ph(amb_mat == a_id) - ls.x(amb)*wl(col_idx);
+                    end
+                    this.rec_list(i).work.setPhases(ph,wl,id_ph );
                 end
             end
             if sum(ls.param_class == LS_Manipulator_new.PAR_SAT_EB) > 0
