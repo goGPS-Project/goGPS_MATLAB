@@ -2804,8 +2804,8 @@ classdef LS_Manipulator_new < handle
                 parametrization = LS_Parametrization();
             end
             
-            this.setUpSA(rec_work, id_sync, 'L??', param_selction, parametrization);
-            this.absValRegularization(this.PAR_IONO, 1e-1);
+            this.setUpSA(rec_work, id_sync, '???', param_selction, parametrization);
+            this.absValRegularization(this.PAR_IONO, 1e-2);
         end
         
         function setUpIonoFreePPP(this,rec_work, id_sync)
@@ -2953,7 +2953,7 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %  s0 = this.getSigma0Ph()
-            s0 = mean(abs(this.res(this.phase_obs > 0)));
+            s0 = mean(abs(this.res(this.phase_obs & ~ this.outlier_obs > 0)));
         end
         
         function computeAmbJmps(this)
