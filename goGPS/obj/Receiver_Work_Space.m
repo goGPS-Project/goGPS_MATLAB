@@ -1528,9 +1528,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             id = id + 1;
                             % extract SNR
                             [snr, id_snr] = this.getObs(['S' f a], sys_c);
+                            flag_rescale = true;
                             if isempty(snr) && (a ~= ' ')
                                 % if the single tracking is not available try to get the SNR with an empty attribute
-                                [snr, id_snr] = this.getObs(['S' f ' '], sys_c);                                
+                                [snr, id_snr] = this.getObs(['S' f ' '], sys_c);
+                                % if this happen I should not do rescaling of SNR
+                                flag_rescale = false;
                             end
                             snr = snr';
                                                         
@@ -1599,7 +1602,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if max_snr == 100
                                         max_snr = max(snr(:));
                                     end
-                                    scaleSnr = @(snr_in) min(max_snr, interp1(snr2res{1}(:), snr_grid(:), interp1q(snr_grid(:), snr2res{id}(:), snr_in(:))));
+                                    if flag_rescale
+                                        scaleSnr = @(snr_in) min(max_snr, interp1(snr2res{1}(:), snr_grid(:), interp1q(snr_grid(:), snr2res{id}(:), snr_in(:))));
+                                    else
+                                        scaleSnr = @(snr_in) snr_in;
+                                    end
                                     if flag_debug
                                         figure(106);
                                         hold on; plot(scaleSnr(snr(pr_ok & snr_ok)), noise_pr(pr_ok & snr_ok), '.');
@@ -1621,6 +1628,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 % Remove all the values of pr under the selected threshold
                                 id_ok = find(~isnan(snr) & ~isnan(pr_red));
                                 id_ko = id_ok(scaleSnr(snr(id_ok)) < scaled_snr_thr);
+
                                 if numel(id_ko) > 0
                                     this.log.addMessage(this.log.indent(sprintf(' - %4d observations of %c C%c%c under scaled SNR threshold', numel(id_ko), sys_c, f, a)));
                                 end
