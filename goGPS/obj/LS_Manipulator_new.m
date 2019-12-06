@@ -2481,7 +2481,7 @@ classdef LS_Manipulator_new < handle
             res = nan(size(this.obs));
             
             % generate esatimations also for the out par (to get a residual)
-            if n_out > 0
+            if n_out > 0 && false % to be debugged                            
                 res_out = this.obs(this.outlier_obs) - A_out(:,~this.out_par & ~Core_Utils.ordinal2logical(this.idx_rd,n_par))*x_est;
                 red_out = res_out;
                 A_res_red = A_out(:,this.out_par);
@@ -2793,9 +2793,9 @@ classdef LS_Manipulator_new < handle
                     this.PAR_AMB;
                     this.PAR_REC_CLK_PR;
                     this.PAR_REC_CLK_PH;
-                  %  this.PAR_TROPO;
-                  %  this.PAR_TROPO_N;
-                  %  this.PAR_TROPO_E;
+                    this.PAR_TROPO;
+                    this.PAR_TROPO_N;
+                    this.PAR_TROPO_E;
                     %                     repmat(this.PAR_TROPO_Z,10,1);
                     this.PAR_IONO
                     ];  %
@@ -2805,7 +2805,7 @@ classdef LS_Manipulator_new < handle
             end
             
             this.setUpSA(rec_work, id_sync, 'L??', param_selction, parametrization);
-          %  this.absValRegularization(this.PAR_IONO, 1e-2);
+            this.absValRegularization(this.PAR_IONO, 1e-1);
         end
         
         function setUpIonoFreePPP(this,rec_work, id_sync)
