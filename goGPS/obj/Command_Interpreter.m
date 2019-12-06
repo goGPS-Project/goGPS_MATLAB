@@ -2532,22 +2532,27 @@ classdef Command_Interpreter < handle
                     if err_list(c) == 0 && (cmd.id == this.KEY_END.id)
                         % clear legacy commands
                         cmd_list{c} = regexprep(cmd_list{c},'ENDPAR|ENDFOR', 'END');
-                        eb_counter = eb_counter - 1;
-                        if str_loop(end) == 'P'
-                            % I need to loop
-                            is_par = 0;
-                            par_id_counter = par_id_counter + 1;
-                            lev = lev - 1;
-                            trg = [];
-                            sss = sss(end);
+                        if isempty(str_loop)
+                            % there is an end that is not closing anything
+                            err_list(c) = true;
                         else
-                            % I need to loop
-                            if ~(c > 1 && flag_parallel(c - 1))
+                            eb_counter = eb_counter - 1;
+                            if str_loop(end) == 'P'
+                                % I need to loop
+                                is_par = 0;
+                                par_id_counter = par_id_counter + 1;
+                                lev = lev - 1;
+                                trg = [];
                                 sss = sss(end);
+                            else
+                                % I need to loop
+                                if ~(c > 1 && flag_parallel(c - 1))
+                                    sss = sss(end);
+                                end
+                                lev = lev - 1;
                             end
-                            lev = lev - 1;
+                            str_loop(end) = []; % close the last loop
                         end
-                        str_loop(end) = []; % close the last loop
                     end
                 end
                 
