@@ -58,8 +58,8 @@ function setTimeTicks(num,format,ax)
         num = 4;
     end
     
-    if nargin < 2
-        format = 'dd/mm/yyyy HH:MMPM';
+    if nargin < 2 || isempty(format)
+        format = 'auto';
     end
 
     if (nargin == 3)
