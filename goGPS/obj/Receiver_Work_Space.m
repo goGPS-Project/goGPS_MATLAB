@@ -269,6 +269,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.ph_shift     = [];
             
             this.xyz          = [0 0 0];  % approximate position of the receiver (XYZ geocentric)
+            this.xyz_vcv      = zeros(1,6); % 
             
             this.parent.static       = true;     % the receivers are considered static unless specified
             
@@ -7986,9 +7987,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                         sh_delays = this.computeShapirodelay(s);
                         for o = find(obs_idx_f)'
-                            pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                            pcv_idx = nan2zero(this.obs(o, this.sat.avail_index(:, s))) ~=0; %find which correction to apply
                             if sum(pcv_idx) > 0
-                                o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                o_idx = nan2zero(this.obs(o, :)) ~=0; %find where apply corrections
                                 if  this.obs_code(o,1) == 'L'
                                     this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
                                 else
@@ -8114,8 +8115,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
                                     pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
                                     for o = find(obs_idx_f)'
-                                        pcv_idx = this.obs(this.sat.avail_index(:, s), o) ~= 0; % find which correction to apply
-                                        o_idx = this.obs(:, o) ~= 0; % find where apply corrections
+                                        pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
+                                        o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections
                                         if  this.obs_code(o, 1) == 'L'
                                             this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
                                         else
@@ -9005,7 +9006,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [dpos, s0, ls] = codeDynamicPositioning(this, isys_list, d_sync, cut_off)
+        function [dpos, s0, ls] = codeDynamicPositioning(this, sys_list, id_sync, cut_off)
             cc = Core.getState.getConstellationCollector;
             ls = LS_Manipulator();
             if nargin < 3
@@ -9972,7 +9973,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_x) > 0
                         x_coo = ls.x(idx_x);
                         [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                        idx_save = x_coo_time1 - int_lim.first > -eps & x_coo_time2 - int_lim.last < eps;
+                        idx_save = x_coo_time1 - int_lim.first > -1e-3 & x_coo_time2 - int_lim.last < 1e-3;
                         cox = mean(x_coo(idx_save));
                     else
                         cox = 0;
@@ -9982,7 +9983,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_y) > 0
                         y_coo = ls.x(idx_y);
                         [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
-                        idx_save = y_coo_time1 - int_lim.first > -eps & y_coo_time2 - int_lim.last < eps;
+                        idx_save = y_coo_time1 - int_lim.first > -1e-3 & y_coo_time2 - int_lim.last < 1e-3;
                         coy = mean(y_coo(idx_save));
                     end
                     
@@ -9990,7 +9991,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_z) > 0
                         z_coo = ls.x(idx_z);
                         [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
-                        idx_save = z_coo_time1 - int_lim.first > -eps & z_coo_time2 - int_lim.last < eps;
+                        idx_save = z_coo_time1 - int_lim.first > -1e-3 & z_coo_time2 - int_lim.last < 1e-3;
                         coz = mean(z_coo(idx_save));
                         
                     else
@@ -10013,35 +10014,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_pr(s));
                         this.sat.res_pr_by_pr(ep_pr(idx_o),s) = ls.res(idx_o);
                     end
-                    if this.state.spline_tropo_order == 0
-                        idx_trpe = ls.class_par == ls.PAR_TROPO_E;
-                        idx_trpn = ls.class_par == ls.PAR_TROPO_N;
-                        [~,valid_ep] = ismember(ls.getTimePar(idx_trpe).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                        getropo =  ls.x(idx_trpe);
-                        gntropo =  ls.x(idx_trpn);
-                        
-                    else
-                        idx_trpe = ls.class_par == ls.PAR_TROPO_E;
-                        idx_trpn = ls.class_par == ls.PAR_TROPO_N;
-                        
-                        tropoe =  ls.x(idx_trpe);
-                        tropon =  ls.x(idx_trpn);
-                        
-                        tropo_dt = rem(this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
-                        tropo_idx = floor((this.time.getNominalTime(this.time.getRate) - ls.getTimePar(idx_trpe).minimum)/this.state.spline_rate_tropo_gradient);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime(this.time.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
-                        valid_ep = tropo_idx ~=0;
-                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
-                        
-                        getropo =sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                        gntropo =sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                        
-                    end
+                  
                     %this.sat.res_ph_by_ph(ep_pr + ls.sat_ob = zeros(this.time.length, n_ph, 'single');
                     
                     
                     % Push clock from LS object to rec
-                    idx_clk = ls.class_par == ls.PAR_REC_CLK;
+                    idx_clk = ls.class_par == ls.PAR_REC_CLK | ls.class_par == ls.PAR_REC_CLK_PH;
                     [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                     this.dt(ep_pr) = this.dt(ep_pr) + ls.x(idx_clk)/ Core_Utils.V_LIGHT;
                     
@@ -10147,7 +10125,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         'C', [], ...
                         'I', []);
                     for sys_c = all_sys_c
-                        id_sys = sat(sys_c_list == sys_c);
+                        [~,id_sys] = intersect(sat(sys_c_list == sys_c),go_id_list);
                         this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(:, id_sys), 2));
                     end
                     clear res_ph sat obs_id obs_ok

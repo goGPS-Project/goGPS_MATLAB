@@ -52,7 +52,7 @@ function [flag_intervals] = getOutliers(flags, split_point)
     if nargin == 2 && ~isempty(split_point)
         split_point = split_point & flags;
         d_tmp = diff_tmp; 
-        d_tmp(1 : end-1) = (d_tmp(1 : end-1) - 2 * int8(split_point));
+        d_tmp(1 : end-1) = (d_tmp(1 : end-1) - 2 * int8(full(split_point)));
         f_i1 = find(d_tmp < 0);
         f_i2 = find([split_point; false] | d_tmp > 0);
         for i = 1 : numel(f_i1)

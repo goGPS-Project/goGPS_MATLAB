@@ -50,6 +50,7 @@ classdef Network < handle
         common_time      % gps_time
         rec_time_indexes % indexes
         coo              % [n_coo x n_rec x n_sol] receiver coordinates
+        coo_vcv          % [6 x n_rec x n_sol] receiver coordinates
         coo_rate         % rate of the coordinate solution in seconds
         clock            % [n_epoch x n_rec] reciever clock
         ztd              % [n_epoch x n_rec] reciever ZTD
@@ -97,6 +98,7 @@ classdef Network < handle
             this.common_time = [];
             this.rec_time_indexes = [];
             this.coo = [];
+            this.coo_vcv = [];
             this.coo_rate = [];
             this.clock = [];
             this.ztd = [];
@@ -746,6 +748,7 @@ classdef Network < handle
             this.central_coo = ls.central_coo;
             this.clock = zeros(n_time, n_rec);
             this.coo = nan(n_rec, 3, n_set_coo);
+            this.coo_vcv = nan(n_rec, 6, n_set_coo);
             this.ztd = nan(n_time, n_rec);
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
@@ -760,6 +763,7 @@ classdef Network < handle
             end
             this.clock = zeros(n_time, n_rec);
             this.coo = nan(n_rec, 3, n_set_coo);
+            this.coo_vcv = nan(n_rec, 6, n_set_coo);
             this.ztd = nan(n_time, n_rec);
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
@@ -845,6 +849,9 @@ classdef Network < handle
         function addAdjValuesNew(this, ls)
             n_rec = length(this.rec_list);
             % --- fill the correction values in the network
+            rec_vcv = ls.rec_par([find(ls.class_par == ls.PAR_REC_X); find(ls.class_par == ls.PAR_REC_Y); find(ls.class_par == ls.PAR_REC_Z)]);
+            rec_vcv(rec_vcv == this.id_ref) = [];
+
             for i = 1 : n_rec
                 % if all value in the receiver are set to nan initilaize them to zero
                 if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
@@ -857,7 +864,7 @@ classdef Network < handle
                 [~, int_lim] = this.state.getSessionLimits();
                 
                 if i > 0 % coordiantes are always zero on first receiver
-                    
+                    coo_vcv = [];
                     if this.state.isSepCooAtBoundaries
                         % Push coordinates from LS object to rec
                         idx_x = ls.class_par == ls.PAR_REC_X & idx_rec;
@@ -891,6 +898,14 @@ classdef Network < handle
                         
                         coo = [cox coy coz];
                     else
+                        if i ~= this.id_ref
+                            coo_vcv = ls.coo_vcv(rec_vcv == i,rec_vcv == i);
+                            if ~isempty(coo_vcv)
+                                coo_vcv = [coo_vcv(1,1) (coo_vcv(1,2) + coo_vcv(2,1))/2  (coo_vcv(1,3) + coo_vcv(3,1))/2 coo_vcv(2,2) (coo_vcv(2,3) + coo_vcv(3,2))/2 coo_vcv(3,3)];
+                            else
+                                coo_vcv = zeros(1,6);
+                            end
+                        end
                         coo = [mean(ls.x( ls.class_par == ls.PAR_REC_X & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Y & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Z & idx_rec))];
                     end
                     
@@ -899,6 +914,9 @@ classdef Network < handle
                     end
                     
                     this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                    if ~isempty(coo_vcv)
+                        this.coo_vcv(i,:) = coo_vcv;
+                    end
                     
                 else
                     this.coo(i,:) = nan2zero(this.coo(i,:));
@@ -1294,6 +1312,7 @@ classdef Network < handle
             % --- push back the results in the receivers
             for i = 1 : n_rec
                 this.rec_list(i).work.xyz = this.coo(i,:);
+                this.rec_list(i).work.xyz_vcv = this.coo_vcv(i,:);
                 idx_res_av = ~isnan(this.clock(:, i));
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);

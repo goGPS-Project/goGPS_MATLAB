@@ -58,6 +58,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     
     properties (SetAccess = public, GetAccess = public)
         xyz            % position of the receiver (XYZ geocentric)
+        xyz_vcv        % vcv matrix of the receiver (XYZ geocentric) var_x2 var_xy var_xz var_y2 var_yz var_z2
         enu            % position of the receiver (ENU local)
         
         lat            % ellipsoidal latitude
@@ -284,6 +285,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
         end
+        
+        function xyz_vcv = getVCVXYZ(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX
+            %   xyz = this.getPosXYZ()
+            xyz_vcv = [];
+            for r = 1 : numel(this)
+                if ~isempty(this(r).xyz_vcv)
+                    xyz_vcv = [xyz_vcv; this(r).xyz_vcv]; %#ok<AGROW>
+                else
+                    xyz_vcv = [xyz_vcv; this(r).parent.work.xyz_vcv]; %#ok<AGROW>
+                end
+            end
+        end
+        
+        
         
         % position
         function [lat, lon, h_ellips, h_ortho] = getPosGeodetic(this)

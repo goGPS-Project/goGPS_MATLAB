@@ -154,6 +154,8 @@ classdef LS_Manipulator_new < handle
         
         x
         
+        coo_vcv; % variance covariance matrix of the coordinates
+        
         log
     end
     
@@ -1642,7 +1644,7 @@ classdef LS_Manipulator_new < handle
                         % find to which electrinuc bias the ambiguity is tied
                         for e = 1: length(idx_ambs)
                             idx_obs_sample = find( all_ambs == idx_ambs(e),1,'first');
-                            amb2eb(e) = this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB));
+                            amb2eb(e) = unique(this.obs_codes_id_par(this.A_idx(idx_obs_sample,this.param_class == this.PAR_REC_EB)));
                         end
                         ebs = unique(amb2eb)';
                         rec_eb_const =  this.ls_parametrization.rec_eb(1) == LS_Parametrization.CONST;
@@ -2283,6 +2285,7 @@ classdef LS_Manipulator_new < handle
                 
                 if rec_clk
                     i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
+                    n_rec_clk = sum(i_rec_clk_tmp);
                     if n_rec > 1 
                         if sat_clk
                         rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
@@ -2303,7 +2306,11 @@ classdef LS_Manipulator_new < handle
                             end
                             jj = jj +1;
                         end
-                        iRecClk = Core_Utils.inverseByRecPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                        if length(indices) > 1
+                            iRecClk = Core_Utils.inverseByRecPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                        else
+                            iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
+                        end
                         else
                             cp = cp_cycle( ~idx_reduce_cycle_iono);
                             idx_1 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR;
@@ -2311,7 +2318,6 @@ classdef LS_Manipulator_new < handle
                             if sum(idx_2) > 0
                                 iRecClk = Core_Utils.inverseByPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),idx_1, idx_2);
                             else
-                                n_rec_clk = sum(i_rec_clk_tmp);
                                 iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
                             end
                         end
@@ -2378,6 +2384,8 @@ classdef LS_Manipulator_new < handle
                     amb_float = C_amb_amb * Baa;
                     
                     
+                    C_amb_amb_r = C_amb_amb;
+                    
                     % try to fix
                     
                     % fix by receiver
@@ -2386,40 +2394,76 @@ classdef LS_Manipulator_new < handle
                     ra(rm_id) = [];
                     not_rm_id = ~Core_Utils.ordinal2logical(rm_id,size(N_amb_amb,1));
                     ambs = zeros(size(N_amb_amb,1),1);
-
-                    for r = n_rec : -4 : 1
-                            
+                    is_fixed_amb = false(size(ambs));
+                    is_fixed_amb((P*rm_id) > 0) = true;
+                    for r = n_rec : -4 : 1            
                         rec_amb_id = ra == r | ra == max(1,(r-1)) | ra == max(1,(r-2)) | ra == max(1,(r-3));
-                       
-                            
                         if sum(rec_amb_id) > 0
                             amb_rec = amb_float(rec_amb_id);
-                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_rec, C_amb_amb(rec_amb_id,rec_amb_id), 'lambda_partial' );
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_rec, C_amb_amb_r(rec_amb_id,rec_amb_id), 'lambda_partial' );
                             rec_amb_id_fix = rec_amb_id;
                             rec_amb_id_fix(rec_amb_id_fix) = l_fixed(:,1);
                             if is_fixed 
                                 amb_rec(l_fixed(:,1)) = amb_fixed(l_fixed(:,1),1);
-                                iaa = inv(C_amb_amb(rec_amb_id_fix,rec_amb_id_fix));
-                                 C_amb_amb(~rec_amb_id,~rec_amb_id) = C_amb_amb(~rec_amb_id,~rec_amb_id) - C_amb_amb(~rec_amb_id,rec_amb_id_fix)*iaa*C_amb_amb(rec_amb_id_fix,~rec_amb_id);
-                                 amb_float(~rec_amb_id) = amb_float(~rec_amb_id) - C_amb_amb(~rec_amb_id,rec_amb_id_fix)*iaa*(amb_float(rec_amb_id_fix) - amb_rec(l_fixed(:,1)));
+                                iaa = inv(C_amb_amb_r(rec_amb_id_fix,rec_amb_id_fix));
+                                 C_amb_amb_r(~rec_amb_id,~rec_amb_id) = C_amb_amb_r(~rec_amb_id,~rec_amb_id) - C_amb_amb_r(~rec_amb_id,rec_amb_id_fix)*iaa*C_amb_amb_r(rec_amb_id_fix,~rec_amb_id);
+                                 amb_float(~rec_amb_id) = amb_float(~rec_amb_id) - C_amb_amb_r(~rec_amb_id,rec_amb_id_fix)*iaa*(amb_float(rec_amb_id_fix) - amb_rec(l_fixed(:,1)));
                             end
                             rec_amb_id_fix = not_rm_id;
                             rec_amb_id_fix(not_rm_id) = rec_amb_id;
                             ambs(rec_amb_id_fix) = amb_rec;
+                            is_fixed_amb(rec_amb_id_fix) = l_fixed(:,1);
                         end
                     end
                     
                     ambs = P*ambs;
                     
-                    B(idx_b) = B(idx_b) -  N(idx_b,idx_amb)*ambs;
-                    %not_ambs = zeros(sum(~idx_amb),1);
+                    cp_red = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
+                    idx_x = find(cp_red  == this.PAR_REC_X);
+                    idx_y = find(cp_red  == this.PAR_REC_Y);
+                    idx_z = find(cp_red  == this.PAR_REC_Z);
+                    if sum(cp_red  == this.PAR_REC_X)> 0 & (length(idx_x) == length(idx_y))& (length(idx_x) == length(idx_z)) & this.ls_parametrization.rec_x(1) == LS_Parametrization.CONST
+                        C_amb_amb = P(~rm_id,~rm_id)*C_amb_amb*P(~rm_id,~rm_id)';
+                        is_fixed_amb = P*is_fixed_amb;
+                        coo_vcv_B = sparse(zeros(size(N,1),length(idx_x)*3));
+                        for c = 1 : length(idx_x)
+                            coo_vcv_B( idx_x(c),(c-1)*3 + 1) = 1;
+                            coo_vcv_B( idx_y(c),(c-1)*3 + 2) = 1;
+                            coo_vcv_B( idx_z(c),(c)*3) = 1;
+                        end
+                        C_amb_amb = C_amb_amb(~is_fixed_amb,~is_fixed_amb);
+                        nn = N(idx_b,idx_amb);
+                        nn = nn(:,~is_fixed_amb);
+                        N(idx_b,idx_b) = N(idx_b,idx_b) -  nn*C_amb_amb*nn';
+                        results = N \ coo_vcv_B;
+                        cp_red = cp_red(idx_b);
+                        idx_coo = cp_red == this.PAR_REC_X | cp_red == this.PAR_REC_Y | cp_red == this.PAR_REC_Z;
+                        this.coo_vcv = results(idx_coo,:);
+                    end
+                    B(idx_b) = B(idx_b) - N(idx_b,idx_amb)*ambs;
                     not_ambs = C_bb*B(idx_b);
                     x_reduced = zeros(size(N,1),1);
                     x_reduced(~idx_amb) = not_ambs;
                     x_reduced(idx_amb) = ambs;
-                
+                    
             else
-                x_reduced = N\B;
+                cp_red = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
+                idx_x = find(cp_red  == this.PAR_REC_X);
+                    idx_y = find(cp_red  == this.PAR_REC_Y);
+                    idx_z = find(cp_red  == this.PAR_REC_Z);
+                if sum(  cp_red  == this.PAR_REC_X)> 0 & (length(idx_x) == length(idx_y))& (length(idx_x) == length(idx_z)) & this.ls_parametrization.rec_x(1) == LS_Parametrization.CONST
+                    coo_vcv_B = sparse(zeros(size(N,1),length(idx_x)*3));
+                    for c = 1 : length(idx_x)
+                         coo_vcv_B( idx_x(c),(c-1)*3+1) = 1;
+                         coo_vcv_B(  idx_y(c),(c-1)*3+2) = 1;
+                         coo_vcv_B(  idx_z(c),(c)*3) = 1;
+                     end
+                     result  = N\[B coo_vcv_B];
+                     x_reduced = result(:,1);
+                     this.coo_vcv = result([idx_x; idx_y; idx_z] ,2 : end);
+                else
+                     x_reduced = N\B;
+                end
             end
             % ------- substitute back
             ii = 1;
@@ -2819,8 +2863,8 @@ classdef LS_Manipulator_new < handle
                % this.PAR_REC_PPB;
                 this.PAR_REC_EB;
                 this.PAR_AMB;
-                this.PAR_REC_CLK_PR;
-                this.PAR_REC_CLK_PH;
+                this.PAR_REC_CLK;
+%                this.PAR_REC_CLK_PH;
 %                 this.PAR_TROPO;
 %                 this.PAR_TROPO_N;
 %                 this.PAR_TROPO_E

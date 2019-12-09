@@ -520,7 +520,7 @@ classdef Receiver_Output < Receiver_Commons
                             this.dt       = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
                             this.desync   = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
                             this.dt_ip    = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
-                            this.n_sat_ep = Core_Utils.injectData(this.n_sat_ep, rec_work.getNSat(), idx1, idx2);
+                            %this.n_sat_ep = Core_Utils.injectData(this.n_sat_ep, rec_work.getNSat(), idx1, idx2);
                         end
                         if this.state.flag_out_apr_tropo
                             this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
@@ -548,7 +548,7 @@ classdef Receiver_Output < Receiver_Commons
                             this.sat.cycle_slip = Core_Utils.injectData(this.sat.cycle_slip, rec_work.getObsCsSat(), idx1, idx2);
                         end
                         
-                        if this.state.isNSatOut()
+                        if this.state.isNSatOut() && false
                             cc = Core.getState.getConstellationCollector;
                             % all sats
                             if isempty(this.quality_info.n_spe)
@@ -614,6 +614,10 @@ classdef Receiver_Output < Receiver_Commons
                     end
                     
                     this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
+                    xyz_vcv = rec_work.getVCVXYZ;
+                    if ~isempty(xyz_vcv)
+                        this.xyz_vcv  = Core_Utils.injectData(this.xyz_vcv, xyz_vcv, idx1, idx2, [data_len, 6]);
+                    end
                     this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
                     
                     this.quality_info.s0_ip     = Core_Utils.injectData(this.quality_info.s0_ip, rec_work.quality_info.s0_ip, idx1, idx2, [data_len, 1]);

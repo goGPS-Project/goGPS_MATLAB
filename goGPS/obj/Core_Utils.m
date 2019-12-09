@@ -2099,6 +2099,18 @@ classdef Core_Utils < handle
             lid(id) = true;
         end
         
+        
+        function x = solveLDL(L,D,b)
+            % solve system where normal matrix has beeen ldl decomposed
+            % NOTE : A = L*D*L' (sparse matrices)
+            %
+            % SYNTAX
+            %    x = Core_Utils.solveLDL(L,D,b)
+            y = L\b;
+            y = y./diag(D);
+            x = L'\y;
+        end
+        
         function [dtm, lat, lon, georef, info] = getDTM(nwse, res)
             % Get the dtm of an area delimited by geographical coordinates nwse
             %
