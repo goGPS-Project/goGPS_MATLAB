@@ -9973,7 +9973,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_x) > 0
                         x_coo = ls.x(idx_x);
                         [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                        idx_save = x_coo_time1 - int_lim.first > -1e-3 & x_coo_time2 - int_lim.last < 1e-3;
+                        idx_save = Core_Utils.timeIntersect(x_coo_time1, x_coo_time2, int_lim.first, int_lim.last);
                         cox = mean(x_coo(idx_save));
                     else
                         cox = 0;
@@ -9983,7 +9983,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_y) > 0
                         y_coo = ls.x(idx_y);
                         [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
-                        idx_save = y_coo_time1 - int_lim.first > -1e-3 & y_coo_time2 - int_lim.last < 1e-3;
+                        idx_save = Core_Utils.timeIntersect(y_coo_time1, y_coo_time2, int_lim.first, int_lim.last);
                         coy = mean(y_coo(idx_save));
                     end
                     
@@ -9991,7 +9991,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if sum(idx_z) > 0
                         z_coo = ls.x(idx_z);
                         [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
-                        idx_save = z_coo_time1 - int_lim.first > -1e-3 & z_coo_time2 - int_lim.last < 1e-3;
+                        idx_save = Core_Utils.timeIntersect(z_coo_time1, z_coo_time2, int_lim.first, int_lim.last);
                         coz = mean(z_coo(idx_save));
                         
                     else
