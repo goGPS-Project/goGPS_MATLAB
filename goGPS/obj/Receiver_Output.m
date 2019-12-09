@@ -809,7 +809,7 @@ classdef Receiver_Output < Receiver_Commons
                     else
                         legend(l_list, 'Location', 'NorthEastOutside');
                         
-                        xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [m]'); h.FontWeight = 'bold';
+                        xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('receiver clock error [m]'); h.FontWeight = 'bold';
                         h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
@@ -901,7 +901,7 @@ classdef Receiver_Output < Receiver_Commons
                         xlim(ax(i), [t(1) t(end)]);
                     end
                     grid(ax(i), 'on');
-                    setTimeTicks(ax(i), 4,'dd/mm/yyyy HH:MM');
+                    setTimeTicks(ax(i), 4, 'auto');
                     ax(i).FontSize = Core_UI.getFontSize(9);
                 end
                 

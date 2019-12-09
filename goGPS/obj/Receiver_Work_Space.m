@@ -441,7 +441,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             rate = t_start;
                             this.importRinex(this.rinex_file_name, [], [], rate);
                         else
-                            this.log.addError('Expected rec.load(rate [double])\nfound rec.load(t_start [GPS_Time])');
+                            Core.getLogger.addError('Expected rec.load(rate [double])\nfound rec.load(t_start [GPS_Time])');
                         end
                     case 3
                         if ~isa(t_start, 'GPS_Time')
@@ -453,7 +453,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         elseif ~isa(t_stop, 'GPS_Time')
                             this.importRinex(this.rinex_file_name, t_start, t_stop);
                         else
-                            this.log.addError('Expected rec.load check input parameters\n');
+                            Core.getLogger.addError('Expected rec.load check input parameters\n');
                         end
                     case 4
                         this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
@@ -1319,7 +1319,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             pr = zero2nan(Core_PP.remShortArcs(pr', 1))';
             this.setPseudoRanges(pr, id_pr);
             n_out = sum((out(:) | out2(:)) & ~inan(:));
-            this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
+            log = Core.getLogger;
+            log.addMessage(log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
         end
         
         function [obs, sys, prn, flag] = remUndCutOff(this, obs, sys, prn, flag, cut_off)
@@ -1472,7 +1473,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             % check empty lines
             this.remEmptyObs();
-            
         end
         
         function remUnderSnrThr(this, abs_snr_thr, scaled_snr_thr)
@@ -9496,17 +9496,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   using epochs from 501 to 2380
             %    - this.staticPPP([], 500:2380);
             
+            log = Core.getLogger;
             cc = Core.getState.getConstellationCollector;
             if this.isEmpty()
-                this.log.addError('staticPPP failed The receiver object is empty');
+                log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
                 if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
-                    this.log.addError('Pre-Processing is required to compute a PPP solution');
+                    log.addError('Pre-Processing is required to compute a PPP solution');
                 else
-                    this.log.addError('Pre-Processing failed: skipping PPP solution');
+                    log.addError('Pre-Processing failed: skipping PPP solution');
                 end
             elseif this.quality_info.s0_ip > 10
-                this.log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
+                log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
             else
                 if nargin < 2 || isempty(sys_list)
                     sys_list = this.getActiveSys();
@@ -9521,8 +9522,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 id_sync_in = id_sync;
-                this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-                this.log.addMessage(this.log.indent('Preparing the system'));
+                log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                log.addMessage(log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 if this.state.getAmbFixPPP()
@@ -9550,7 +9551,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
                 id_sync = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
                 if isempty(id_sync)
-                    this.log.addWarning('No processable epochs found, skipping PPP');
+                    log.addWarning('No processable epochs found, skipping PPP');
                 else
                     ls.Astack2Nstack();
                     time = this.time.getSubSet(id_sync);
@@ -9575,7 +9576,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
                         end
                     end
-                    this.log.addMessage(this.log.indent('Solving the system'));
+                    log.addMessage(log.indent('Solving the system'));
                     [x, res, s0, ~, l_fixed] = ls.solvePPP();
                     % REWEIGHT ON RESIDUALS
                     if this.state.getReweightPPP > 1
@@ -9685,7 +9686,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     gntropo = x(x(:,2) == 8,1);
                     getropo = x(x(:,2) == 9,1);
-                    this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
+                    log.addMessage(log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
                     
                     valid_ep = ls.true_epoch;
                     this.dt(valid_ep, 1) = clock / Core_Utils.V_LIGHT;
@@ -9719,7 +9720,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     if s0 > 0.10
-                        this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
+                        log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                     end
                     if s0 < 0.5 % with over 50cm of error the results are not meaningfull
                         if isempty(pos_idx) || this.state.isSepCooAtBoundaries
@@ -9743,18 +9744,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd), 'single');
-                            if ~isempty(this.meteo_data) || true
-                                degCtoK = 273.15;
-                                [~,Tall, H] = this.getPTH();
-                                % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                                Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
-                                
-                                % Askne and Nordius formula (from Bevis et al., 1994)
-                                Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-                                
-                                % precipitable Water Vapor
-                                this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
-                            end
+                            if isempty(this.meteo_data)
+                                log.addWarning('Computing PWV without meteorological observed data might be inaccurate');
+                            end                            
+                            degCtoK = 273.15;
+                            [~,Tall, H] = this.getPTH();
+                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                            
+                            % Askne and Nordius formula (from Bevis et al., 1994)
+                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                            
+                            % precipitable Water Vapor
+                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                            
                             this.sat.amb = amb;
                         end
                         if this.state.flag_tropo_gradient
@@ -9809,7 +9812,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                                         ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                                     end
-                                    this.log.addMessage(this.log.indent('Solving the system'));
+                                    log.addMessage(log.indent('Solving the system'));
                                     [x, res, s0]  = ls.solve();
                                     
                                     coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
@@ -9853,17 +9856,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   using epochs from 501 to 2380
             %    - this.parent.staticPPP([], 500:2380);
             
+            log = Core.getLogger();
             cc = Core.getState.getConstellationCollector;
             if this.isEmpty()
-                this.log.addError('staticPPP failed The receiver object is empty');
+                log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
                 if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
-                    this.log.addError('Pre-Processing is required to compute a PPP solution');
+                    log.addError('Pre-Processing is required to compute a PPP solution');
                 else
-                    this.log.addError('Pre-Processing failed: skipping PPP solution');
+                    log.addError('Pre-Processing failed: skipping PPP solution');
                 end
             elseif this.quality_info.s0_ip > 10
-                this.log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
+                log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
             else
                 if nargin < 2 || isempty(sys_list)
                     sys_list = this.getActiveSys();
@@ -9879,8 +9883,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 id_sync_in = id_sync;
-                this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-                this.log.addMessage(this.log.indent('Preparing the system'));
+                log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                log.addMessage(log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = LS_Manipulator_new();
@@ -9963,7 +9967,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                                                 
                 if s0 > 0.10
-                    this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
+                    log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                 end
                 
                 if s0 < 0.5 % with over 50cm of error the results are not meaningfull
@@ -10046,19 +10050,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                         this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        
+                        % Computing PWV
                         this.pwv = nan(size(this.zwd), 'single');
-                        if ~isempty(this.meteo_data)
-                            degCtoK = 273.15;
-                            [~,Tall, H] = this.getPTH();
-                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
-                            
-                            % Askne and Nordius formula (from Bevis et al., 1994)
-                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-                            
-                            % precipitable Water Vapor
-                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                        if isempty(this.meteo_data)
+                            log.addWarning('Computing PWV without meteorological observed data might be inaccurate');
                         end
+                        degCtoK = 273.15;
+                        [~,Tall, H] = this.getPTH();
+                        % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                        Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                        
+                        % Askne and Nordius formula (from Bevis et al., 1994)
+                        Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                        
+                        % precipitable Water Vapor
+                        this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                        
                     end
                     
                     % Push tropo gradients from LS object to rec
@@ -10185,7 +10193,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                                 end
-                                this.log.addMessage(this.log.indent('Solving the system'));
+                                log.addMessage(log.indent('Solving the system'));
                                 [x, res, s0]  = ls.solve();
                                 
                                 coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
@@ -10290,13 +10298,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   using epochs from 501 to 2380
             %    - this.parent.dynamicPPP([], 500:2380);
             
+            log = Core.getLogger();
             if this.isEmpty()
-                this.log.addError('dynamicPPP failed The receiver object is empty');
+                log.addError('dynamicPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
                 if (this.quality_info.s0_ip < Inf)
-                    this.log.addError('Pre-Processing is required to compute a PPP solution');
+                    log.addError('Pre-Processing is required to compute a PPP solution');
                 else
-                    this.log.addError('Pre-Processing failed: skipping PPP solution');
+                    log.addError('Pre-Processing failed: skipping PPP solution');
                 end
             else
                 if nargin >= 2
@@ -10309,8 +10318,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_sync = (1 : this.time.length())';
                 end
                 
-                this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-                this.log.addMessage(this.log.indent('Preparing the system'));
+                log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                log.addMessage(log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = LS_Manipulator(Core.getConstellationCollector);
@@ -10345,7 +10354,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
-                this.log.addMessage(this.log.indent('Solving the system'));
+                log.addMessage(log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
                 % enable)
@@ -10678,8 +10687,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.w_bar.go(e);
             end
             fclose(fid);
-            this.log.newLine()
-            this.log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
+            log.newLine()
+            log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
         end
         
         function pushResult(this)
@@ -11203,7 +11212,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from last step', 'Location', 'NorthEastOutside');
                 end
                 xlim([t(1) t(end)]); 
-                setTimeTicks(3,'dd/mm/yyyy HH:MM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                setTimeTicks(3, 'auto'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);

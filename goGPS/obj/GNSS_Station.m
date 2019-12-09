@@ -4652,7 +4652,7 @@ classdef GNSS_Station < handle
             xlim([p_time.first.getMatlabTime() p_time.last.getMatlabTime()]);
             for i = 1:3
                 grid(ax(i), 'minor');
-                setTimeTicks(ax(i), 3,'dd/mm/yyyy HH:MM');                
+                setTimeTicks(ax(i), 3, 'auto');                
             end
             
             Core_UI.beautifyFig(f, 'dark');
@@ -4838,7 +4838,7 @@ classdef GNSS_Station < handle
                         end
                     end
 
-                    setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                    setTimeTicks(4);
                     h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -4872,7 +4872,7 @@ classdef GNSS_Station < handle
                         dlim(2) = dlim(2) + 1;
                         xlim(tlim);
                         ylim(dlim);
-                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                        setTimeTicks(4);
                         if new_fig
                             h = ylabel(['# sat']); h.FontWeight = 'bold';
                             grid on;
@@ -5372,7 +5372,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                        setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         else
@@ -5387,7 +5387,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                        setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         else
@@ -5401,7 +5401,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                        setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else
@@ -5533,7 +5533,7 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MM');
+                        setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else
