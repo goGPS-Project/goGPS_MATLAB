@@ -548,7 +548,7 @@ classdef Receiver_Output < Receiver_Commons
                             this.sat.cycle_slip = Core_Utils.injectData(this.sat.cycle_slip, rec_work.getObsCsSat(), idx1, idx2);
                         end
                         
-                        if this.state.isNSatOut() && false
+                        if this.state.isNSatOut()
                             cc = Core.getState.getConstellationCollector;
                             % all sats
                             if isempty(this.quality_info.n_spe)
