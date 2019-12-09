@@ -11216,7 +11216,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = title(sprintf('dt - receiver %s', rec.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
         
@@ -11277,7 +11277,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
         
@@ -11326,7 +11326,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
         
@@ -11375,7 +11375,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
         
@@ -11438,7 +11438,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
             
         end
@@ -11501,7 +11501,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         idx_f = idx_f + 1;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     end
                 end
             end
@@ -11556,7 +11556,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             Core_UI.beautifyFig(f);
             Core_UI.addBeautifyMenu(f);
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
         end
         
         function fh_list = showObsStats(this)
@@ -11847,7 +11847,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                             Core_UI.beautifyFig(fh);
                             Core_UI.addBeautifyMenu(fh);
-                            fh.Visible = 'on';
+                            fh.Visible = 'on'; drawnow;
                         end
                     end
                 end
@@ -11906,7 +11906,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                             Core_UI.beautifyFig(f);
                             Core_UI.addBeautifyMenu(f);
-                            f.Visible = 'on';
+                            f.Visible = 'on'; drawnow;
                         end
                     end
                 end

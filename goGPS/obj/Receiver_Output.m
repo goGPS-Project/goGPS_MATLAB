@@ -813,7 +813,7 @@ classdef Receiver_Output < Receiver_Commons
                         h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     end
                 end
             end
@@ -993,7 +993,7 @@ classdef Receiver_Output < Receiver_Commons
                         
                         Core_UI.beautifyFig(f, 'dark');
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     end
                 end
             end
@@ -1039,7 +1039,7 @@ classdef Receiver_Output < Receiver_Commons
                     h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                     Core_UI.beautifyFig(f, 'dark');
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
             end
         end
@@ -1101,7 +1101,7 @@ classdef Receiver_Output < Receiver_Commons
                         h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     end
                 end
             end

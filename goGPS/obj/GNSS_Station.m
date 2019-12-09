@@ -2704,7 +2704,7 @@ classdef GNSS_Station < handle
                 end
             end
             Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f, 'light');
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
             title(sprintf('Stations position\\fontsize{5} \n'), 'FontSize', 16);
             %xlabel('Longitude [deg]');
             %ylabel('Latitude [deg]');
@@ -3050,8 +3050,8 @@ classdef GNSS_Station < handle
                 lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
             end
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-0.02 0.02];
-            clat = nwse([3 1]) + [-0.02 0.02];
+            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.02, diff(lon_lim)/15));
+            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.02, diff(lat_lim)/15));
 
             m_proj('equidistant','lon',clon,'lat',clat);   % Projection
             %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
@@ -3161,8 +3161,8 @@ classdef GNSS_Station < handle
                     %t.Units = 'data';
                 end
             end
-            f.Visible = 'on';
-            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
+            f.Visible = 'on'; drawnow;
+            title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
             %xlabel('Longitude [deg]');
             %ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
@@ -3227,13 +3227,15 @@ classdef GNSS_Station < handle
                 lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim)/15;
             end
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-0.02 0.02];
-            clat = nwse([3 1]) + [-0.02 0.02];
-            
+            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.02, diff(lon_lim)/15));
+            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.02, diff(lat_lim)/15));
+
             axes
+            xlim(clon);
+            ylim(clat);
+            [lon_ggl,lat_ggl, img_ggl] = plot_google_map('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
             xlim(lon_lim);
             ylim(lat_lim);
-            [lon_ggl,lat_ggl, img_ggl] = plot_google_map('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
             
             m_proj('equidistant','lon',clon,'lat',clat);   % Projection
             %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
@@ -3324,8 +3326,8 @@ classdef GNSS_Station < handle
                 end
             end
             
-            f.Visible = 'on';
-            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
+            f.Visible = 'on'; drawnow;
+            title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
             %xlabel('Longitude [deg]');
             %ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
@@ -3342,7 +3344,7 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f = figure('Visible', 'off');
             else
                 f = gcf;
                 hold on;
@@ -3404,10 +3406,13 @@ classdef GNSS_Station < handle
             end
 
             plot_google_map('alpha', 0.95, 'MapType', 'satellite');
-            title(sprintf('Receiver position\\fontsize{5} \n'), 'FontSize', 16);
+            title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
             ax = gca; ax.FontSize = 16;
+            f.Children(end).LineWidth = 2;
+            Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f);
+            f.Visible = 'on'; drawnow;
             Logger.getInstance.addStatusOk('The map is ready ^_^');
         end
 
@@ -3845,7 +3850,7 @@ classdef GNSS_Station < handle
                 th2 = title(ax2, sprintf('at ground level\\fontsize{5} \n'), 'FontSize', 20);
             end
             
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
             %Core.getLogger.addMarkedMessage('Press any key to start playing');
             %pause
 
@@ -3879,7 +3884,7 @@ classdef GNSS_Station < handle
                 open(video_out);
             else
                 Core_UI.insertLogo(f, 'SouthEast');
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
             drawnow
             
@@ -4178,7 +4183,7 @@ classdef GNSS_Station < handle
                 end
             end
             
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
             %Core.getLogger.addMarkedMessage('Press any key to start playing');
             %pause
 
@@ -4195,7 +4200,7 @@ classdef GNSS_Station < handle
                 Core_UI.insertLogo(f, 'NorthWest');
                 warning off;                
                 im = {};
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
                 Core.getLogger.addMarkedMessage('Exporting video');
                 fprintf('%5d/%5d', 0, 99999);
                 
@@ -4213,7 +4218,7 @@ classdef GNSS_Station < handle
                 open(video_out);
             else
                 Core_UI.insertLogo(f, 'SouthEast');
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
             drawnow
             
@@ -4427,7 +4432,7 @@ classdef GNSS_Station < handle
                     
                     Core_UI.beautifyFig(fh);
                     Core_UI.addBeautifyMenu(fh);
-                    fh.Visible = 'on';
+                    fh.Visible = 'on'; drawnow;
                 end
             end
             
@@ -4566,7 +4571,7 @@ classdef GNSS_Station < handle
                             end
                             Core_UI.beautifyFig(gcf, 'dark');
                             Core_UI.addBeautifyMenu(gcf);
-                            f.Visible = 'on';
+                            f.Visible = 'on'; drawnow;
                         end
                     end
                 end
@@ -4602,10 +4607,10 @@ classdef GNSS_Station < handle
             fh_list = f;
             if numel(sta_list) == 1
                 % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('%s_%s_%s', PTH, sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                fig_name = sprintf('%s_%s_%s', 'PTH', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
             else
                 % If I have more than one receiver use as name the name of the project
-                fig_name = sprintf('%s_%s', upper(par_name), strrep(Core.getState.getPrjName,' ', '_'));
+                fig_name = sprintf('%s_%s', 'PTH', strrep(Core.getState.getPrjName,' ', '_'));
             end
             f.UserData = struct('fig_name', fig_name);
             
@@ -4638,7 +4643,8 @@ classdef GNSS_Station < handle
             end
 
             ax(3) = subplot(3,1,3);
-            plot(p_time.getMatlabTime, humidity, '.');
+            plot(p_time.getMatlabTime, humidity * 100, '.');
+            ylim([0 100]);
             h = ylabel('Hum. [%]'); h.FontWeight = 'bold';
 
             [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
@@ -4657,7 +4663,7 @@ classdef GNSS_Station < handle
             
             Core_UI.beautifyFig(f, 'dark');
             Core_UI.addBeautifyMenu(f);
-            f.Visible = 'on';            
+            f.Visible = 'on'; drawnow;            
         end
 
         function fh_list = showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
@@ -4901,7 +4907,7 @@ classdef GNSS_Station < handle
                 end
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
 
@@ -5113,9 +5119,9 @@ classdef GNSS_Station < handle
             plot(h_o, med_ztd - y_out, '.', 'MarkerSize', 20); hold on
             %plot(h_o(id_sort(id)), med_ztd(id_sort(id)) - y_out(id_sort(id)), '.', 'MarkerSize', 20); hold on;
 
-            ylabel('residual [cm]');
+            ylabel('Residual [cm]');
             xlabel('Elevation [m]');
-            title('reduced ZTD vs Height', 'FontName', 'Open Sans')
+            title('Reduced ZTD vs Height', 'FontName', 'Open Sans')
 
             sta_strange = find(abs(med_ztd - y_out) > 8);
             if ~isempty(sta_strange)
@@ -5128,7 +5134,7 @@ classdef GNSS_Station < handle
             ax2.FontSize = 16;
             Core_UI.beautifyFig(gcf, 'dark');
             Core_UI.addBeautifyMenu(gcf);
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
         end
 
         function fh_list = showZwdVsHeight(sta_list, degree)
@@ -5162,9 +5168,9 @@ classdef GNSS_Station < handle
             ax2 = subplot(2,1,2);
             plot(h_o, med_zwd - y_out, '.', 'MarkerSize', 20);
 
-            ylabel('residual [cm]');
+            ylabel('Residual [cm]');
             xlabel('Elevation [m]');
-            title('reduced ZWD vs Height', 'FontName', 'Open Sans')
+            title('Reduced ZWD vs Height', 'FontName', 'Open Sans')
 
             sta_strange = find(abs(med_zwd - y_out) > 8);
             if ~isempty(sta_strange)
@@ -5176,7 +5182,7 @@ classdef GNSS_Station < handle
             grid on
             Core_UI.beautifyFig(gcf, 'dark');
             Core_UI.addBeautifyMenu(gcf);
-            f.Visible = 'on';
+            f.Visible = 'on'; drawnow;
         end
 
         function fh_list = showMedianTropoPar(this, par_name, new_fig)
@@ -5278,7 +5284,7 @@ classdef GNSS_Station < handle
                 
                 Core_UI.beautifyFig(gcf, 'dark');
                 Core_UI.addBeautifyMenu(gcf);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
 
@@ -5863,7 +5869,7 @@ classdef GNSS_Station < handle
                     ax = gca; ax.FontSize = 16;
                     Core_UI.beautifyFig(gcf, 'dark');
                     Core_UI.addBeautifyMenu(gcf);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);

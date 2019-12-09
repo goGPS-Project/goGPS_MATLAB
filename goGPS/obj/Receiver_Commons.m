@@ -1097,7 +1097,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -1154,7 +1154,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         linkaxes(ax, 'x');
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on';
+                        f.Visible = 'on'; drawnow;
                     else
                         rec.log.addMessage('Plotting a single point static position is not yet supported');
                     end
@@ -1205,7 +1205,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     linkaxes(ax, 'x');
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 else
                     rec.log.addMessage('Plotting a single point static position is not yet supported');
                 end
@@ -1279,7 +1279,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             ylabel('Latitude [deg]');
             Core_UI.beautifyFig(f);            
             Core_UI.addBeautifyMenu(f);
-            f.Visible = 'on';            
+            f.Visible = 'on'; drawnow;            
         end
         
         
@@ -1315,7 +1315,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = title(sprintf('Satellites residuals - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold';
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
             end
         end
@@ -1354,7 +1354,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
                     Core_UI.beautifyFig(f);                    
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';                    
+                    f.Visible = 'on'; drawnow;                    
                 end
             end
         end
@@ -1420,7 +1420,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     end
                     
                     %% fill the axes
-                    win.Visible = 'on';
+                    win.Visible = 'on'; drawnow;
                     colors = Core_UI.getColor(1 : n_sat, n_sat);
                     ax_all.ColorOrder = colors; hold(ax_all, 'on');
                     plot(ax_all, work.time.getMatlabTime, zero2nan(work.sat.res)*1e3, '.-');
@@ -1704,7 +1704,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     drawnow;
                     Core_UI.beautifyFig(f, 'dark');
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
             end
             
@@ -1810,7 +1810,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = title(ttl); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
             end
         end
@@ -1886,7 +1886,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     Core_UI.beautifyFig(f, 'dark');
                     Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on';
+                    f.Visible = 'on'; drawnow;
                 end
             end
         end
@@ -1985,7 +1985,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
        
@@ -2074,7 +2074,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 Core_UI.beautifyFig(f);
                 Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on';
+                f.Visible = 'on'; drawnow;
             end
         end
         

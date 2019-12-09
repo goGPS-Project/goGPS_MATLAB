@@ -126,7 +126,10 @@ classdef Command_Interpreter < handle
         PAR_S_ENU       % ENU positions
         PAR_S_ENUBSL    % Baseline ENU positions
         PAR_S_XYZ       % XYZ positions
-        PAR_S_MAP       % positions on map
+        PAR_S_MAP       % positions on map GoogleMaps background
+        PAR_S_MAPG      % positions on map GoogleMaps background
+        PAR_S_MAPDTM    % positions on map on DTM
+        PAR_S_MAPL      % positions on map legacy (no borders)
         PAR_S_CK        % Clock Error
         PAR_S_CKW       % Clock Error of the last session
         PAR_S_SNR       % SNR Signal to Noise Ratio
@@ -139,7 +142,10 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
+        PAR_S_ZHD       % ZHD
         PAR_S_ZWD       % ZWD
+        PAR_S_ZTD_VSH   % ZTD vs Height
+        PAR_S_ZWD_VSH   % ZWD vs Height
         PAR_S_PWV       % PWV
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
@@ -364,13 +370,34 @@ classdef Command_Interpreter < handle
             this.PAR_S_XYZ.limits = [];
             this.PAR_S_XYZ.accepted_values = [];
 
-            this.PAR_S_MAP.name = 'Position on map';
-            this.PAR_S_MAP.descr = 'MAP                Position on map';
+            this.PAR_S_MAP.name = 'Map of Receiver locations';
+            this.PAR_S_MAP.descr = 'MAP                Map of station coordinates (Google Maps Background)';
             this.PAR_S_MAP.par = '(MAP)|(map)';
             this.PAR_S_MAP.class = '';
             this.PAR_S_MAP.limits = [];
             this.PAR_S_MAP.accepted_values = [];
 
+            this.PAR_S_MAPG.name = 'Map of Receiver locations';
+            this.PAR_S_MAPG.descr = 'G_MAP              Map of station coordinates (Google Maps Background)';
+            this.PAR_S_MAPG.par = '(G_MAP)|(g_map)';
+            this.PAR_S_MAPG.class = '';
+            this.PAR_S_MAPG.limits = [];
+            this.PAR_S_MAPG.accepted_values = [];
+
+            this.PAR_S_MAPDTM.name = 'Map of Receiver locations';
+            this.PAR_S_MAPDTM.descr = 'DTM_MAP            Map of station coordinates (DTM background)';
+            this.PAR_S_MAPDTM.par = '(DTM_MAP)|(dtm_map)';
+            this.PAR_S_MAPDTM.class = '';
+            this.PAR_S_MAPDTM.limits = [];
+            this.PAR_S_MAPDTM.accepted_values = [];
+
+            this.PAR_S_MAPL.name = 'Map of Receiver locations';
+            this.PAR_S_MAPL.descr = 'L_MAP              Legacy map of station coordinates (Google Maps background)';            
+            this.PAR_S_MAPL.par = '(L_MAP)|(l_map)';
+            this.PAR_S_MAPL.class = '';
+            this.PAR_S_MAPL.limits = [];
+            this.PAR_S_MAPL.accepted_values = [];
+            
             this.PAR_S_CK.name = 'Clock Error';
             this.PAR_S_CK.descr = 'CK                 Clock errors';
             this.PAR_S_CK.par = '(ck)|(CK)';
@@ -455,12 +482,33 @@ classdef Command_Interpreter < handle
             this.PAR_S_ZTD.limits = [];
             this.PAR_S_ZTD.accepted_values = [];
 
+            this.PAR_S_ZTD_VSH.name = 'ZTD_VSH';
+            this.PAR_S_ZTD_VSH.descr = 'ZTD_VSH            Zenith Total Delay vs Height';
+            this.PAR_S_ZTD_VSH.par = '(ztd_vsh)|(ZTD_VSH)';
+            this.PAR_S_ZTD_VSH.class = '';
+            this.PAR_S_ZTD_VSH.limits = [];
+            this.PAR_S_ZTD_VSH.accepted_values = [];
+
+            this.PAR_S_ZHD.name = 'ZHD';
+            this.PAR_S_ZHD.descr = 'ZHD                Zenith Hydrostatic Delay';
+            this.PAR_S_ZHD.par = '(zhd)|(ZHD)';
+            this.PAR_S_ZHD.class = '';
+            this.PAR_S_ZHD.limits = [];
+            this.PAR_S_ZHD.accepted_values = [];
+
             this.PAR_S_ZWD.name = 'ZWD';
             this.PAR_S_ZWD.descr = 'ZWD                Zenith Wet Delay';
             this.PAR_S_ZWD.par = '(zwd)|(ZWD)';
             this.PAR_S_ZWD.class = '';
             this.PAR_S_ZWD.limits = [];
             this.PAR_S_ZWD.accepted_values = [];
+
+            this.PAR_S_ZWD_VSH.name = 'ZWD_VSH';
+            this.PAR_S_ZWD_VSH.descr = 'ZWD_VSH            Zenith Wet Delay vs Height';
+            this.PAR_S_ZWD_VSH.par = '(zwd_vsh)|(ZWD_VSH)';
+            this.PAR_S_ZWD_VSH.class = '';
+            this.PAR_S_ZWD_VSH.limits = [];
+            this.PAR_S_ZWD_VSH.accepted_values = [];
 
             this.PAR_S_PWV.name = 'PWV';
             this.PAR_S_PWV.descr = 'PWV                Precipitable Water Vapour';
@@ -661,7 +709,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZWD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1981,7 +2029,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runShow(rec, tok, level)
-            
+                        
             fh_list = [];
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
@@ -1994,6 +2042,7 @@ classdef Command_Interpreter < handle
             else
                 for t = 1 : numel(tok) % global for all target
                     try
+                        if Core_Utils.isHold; hold off; end
                         if sss_lev == 0
                             trg = rec(id_trg);
                         else
@@ -2002,14 +2051,32 @@ classdef Command_Interpreter < handle
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showMap()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;                            
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPG.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showMapGoogle()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPL.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showMapGoogleLegacy()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPDTM.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showMapDtm()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PTH.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showPTH()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showZtd()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD_VSH.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showZtdVsHeight()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZHD.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showZhd()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showZwd()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD_VSH.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showZwdVsHeight()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showPwv()]; %#ok<AGROW>
@@ -2030,6 +2097,7 @@ classdef Command_Interpreter < handle
                     
                     for t = 1 : numel(tok)
                         try
+                            if Core_Utils.isHold; hold off; end
                             if sss_lev == 0
                                 trg = rec(r);
                             else
