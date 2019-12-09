@@ -1788,7 +1788,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     setTimeTicks(4);
                     h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
-                    h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    
+                     % Generate Name
+                    switch lower(par_name)
+                        case 'ztd'
+                            ttl = 'Estimated Zenith Total Delay (ZTD)';
+                        case 'zwd'
+                            ttl = 'Estimated Zenith Wet Delay (ZWD)';
+                        case 'gn'
+                            ttl = 'Estimated Wet Delay North Gradient';
+                        case 'ge'
+                            ttl = 'Estimated Wet Delay East Gradient';
+                        case 'pwv'
+                            ttl = 'Estimated Precipitable Water Vapour (PWV)';
+                        case 'zhd'
+                            ttl = 'Estimated Zenith Hydrostatic Delay (ZHD)';
+                        case 'nsat'
+                            ttl = 'Number of used satellites';
+                    end
+                    
+                    h = title(ttl); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);
                     f.Visible = 'on';
