@@ -2052,8 +2052,9 @@ classdef Atmosphere < handle
             % Convert C -> K
             T = T + 273.15;
             
-            %height correction
-            %H = H * exp(-0.0006396 * h);
+            % height correction must be done before
+            % (keep the following line commented)
+            % H = H * exp(-0.0006396 * h);
             % Convert humidity
             H = H./100;
             

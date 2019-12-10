@@ -842,16 +842,16 @@ classdef Meteo_Data < handle
             %
             % SYNTAX
             %   data = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, type)
-           
+            
             t_thr = 3000;
-
+            
             q_fun_obs = fun(d_oo) .* repmat(fun(d_op)', size(d_oo,1), 1);
             q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
-
+            
             % getting data
             id_data = find(st_type(:, type));
             % id_pr = id_pr(real_dist(id_pr) < 20e3);
-
+            
             data_obs = zeros(numel(id_data), time.length());
             switch type
                 case Meteo_Data.PR
@@ -870,13 +870,13 @@ classdef Meteo_Data < handle
             
             id_data(sum(isnan(data_obs),2) > 0) = [];
             data_obs(sum(isnan(data_obs),2) > 0, :) = [];
-
+            
             % get the time distance from true observations
             t_dist = zeros(numel(id_data), time.length());
             for s = 1 : numel(id_data)
                 t_dist(s, :) = station(id_data(s)).getTimeInterpDistance(time, station(id_data(s)).time.getEpoch(find(~isnan(station(id_data(s)).getPressure()))));
             end
-
+            
             if isempty(id_data)
                 log =  Core.getLogger();
                 switch type
@@ -896,7 +896,7 @@ classdef Meteo_Data < handle
                 
                 trans = sum(q_fun_obs(id_data, id_data));
                 w = sum(trans)\trans;
-
+                
                 % Rescale weigths epoch by epoch
                 w_all = repmat(w', 1, size(t_dist,2));
                 w_all(t_dist > t_thr) = 0; % eliminate interpolations too much distant in time
@@ -911,44 +911,44 @@ classdef Meteo_Data < handle
                 if ~any(data0(:)) % there are no valid data
                     data = [];
                 else
-                lim = getOutliers(lid_best);
-
-                % adjust pres0 and avoid discontinuities
-                % temporary approach
-                ddata = Core_Utils.diffAndPred(data0'); sensor = abs(ddata - medfilt_mat(ddata, 3));
-                id_jmp = sensor > 1e-3;                
-                ddata_fill = simpleFill1D(ddata, id_jmp, 'linear');
-                data_fill = cumsum(ddata_fill); 
-                data_fill(lid_best) = data0(lid_best);
-                
-                % first block bias
-                if ~isempty(lim) && (lim(1) > 1)
-                    data_fill(1 : lim(1) - 1)  = data_fill(1 : lim(1) - 1) + data0(lim(1)) - data_fill(lim(1) - 1) - ddata_fill(lim(1) - 1);
+                    lim = getOutliers(lid_best);
+                    
+                    % adjust pres0 and avoid discontinuities
+                    % temporary approach
+                    ddata = Core_Utils.diffAndPred(data0'); sensor = abs(ddata - medfilt_mat(ddata, 3));
+                    id_jmp = sensor > 1e-3;
+                    ddata_fill = simpleFill1D(ddata, id_jmp, 'linear');
+                    data_fill = cumsum(ddata_fill);
+                    data_fill(lid_best) = data0(lid_best);
+                    
+                    % first block bias
+                    if ~isempty(lim) && (lim(1) > 1)
+                        data_fill(1 : lim(1) - 1)  = data_fill(1 : lim(1) - 1) + data0(lim(1)) - data_fill(lim(1) - 1) - ddata_fill(lim(1) - 1);
+                    end
+                    
+                    % middle blocks linear interpolations
+                    for l = 2 : size(lim, 1)
+                        m = (data_fill(lim(l,1)) - ddata_fill(lim(l,1) + 1) - data_fill(lim(l,1) - 1) ...
+                            - ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1))) / ...
+                            (lim(l,1) - lim(l-1,2) + 1);
+                        data_fill((lim(l-1, 2) + 1) : (lim(l, 1) - 1)) = data_fill((lim(l-1, 2) + 1) :  (lim(l, 1) - 1)) + ...
+                            m * (0 : (lim(l,1) - 2 - lim(l-1, 2)))' + ...
+                            ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1));
+                    end
+                    
+                    % last block bias
+                    
+                    if ~isempty(lim) && (lim(end) < size(data_fill,1))
+                        data_fill((lim(end) + 1) : end) = data_fill((lim(end) + 1) : end) - data_fill(lim(end) + 1) + data_fill(lim(end)) + ddata_fill(lim(end) + 1);
+                    end
+                    
+                    data = data_fill;
+                    
+                    if type == Meteo_Data.HR
+                        data = min(100, max(0, data));
+                    end
                 end
-                
-                % middle blocks linear interpolations
-                for l = 2 : size(lim, 1)
-                    m = (data_fill(lim(l,1)) - ddata_fill(lim(l,1) + 1) - data_fill(lim(l,1) - 1) ...
-                        - ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1))) / ...
-                        (lim(l,1) - lim(l-1,2) + 1);
-                    data_fill((lim(l-1, 2) + 1) : (lim(l, 1) - 1)) = data_fill((lim(l-1, 2) + 1) :  (lim(l, 1) - 1)) + ...
-                                                                      m * (0 : (lim(l,1) - 2 - lim(l-1, 2)))' + ...
-                                                                      ( data_fill(lim(l-1,2)) + ddata_fill(lim(l-1,2) + 1) - data_fill(lim(l-1,2) + 1));
-                end
-                
-                % last block bias
-                
-                if ~isempty(lim) && (lim(end) < size(data_fill,1))
-                    data_fill((lim(end) + 1) : end) = data_fill((lim(end) + 1) : end) - data_fill(lim(end) + 1) + data_fill(lim(end)) + ddata_fill(lim(end) + 1);
-                end
-                
-                data = data_fill;
-                
-                if type == Meteo_Data.HR
-                    data = min(1, max(0, data));
-                end
-                end
-            end            
+            end
         end
                 
         function md = getVMS(name, xyz, time, station)

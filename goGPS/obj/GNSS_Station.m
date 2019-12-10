@@ -4643,7 +4643,7 @@ classdef GNSS_Station < handle
             end
 
             ax(3) = subplot(3,1,3);
-            plot(p_time.getMatlabTime, humidity * 100, '.');
+            plot(p_time.getMatlabTime, humidity, '.');
             ylim([0 100]);
             h = ylabel('Hum. [%]'); h.FontWeight = 'bold';
 

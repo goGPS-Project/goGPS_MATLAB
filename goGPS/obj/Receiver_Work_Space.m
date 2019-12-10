@@ -4210,14 +4210,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if this.isStatic()
                         [P, T, undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                         H = zeros(l,1);
-                        H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
+                        H(:) = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho); 
                     else
                         P = zeros(l,1);
                         T = zeros(l,1);
                         for i = 1 : l
                             [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(min(l, numel(this.lat)))/180*pi, this.lon(min(l, numel(this.lat)))/180*pi, this.h_ellips(min(l, numel(this.lat))), this.h_ellips(min(l, numel(this.lat))) - this.h_ortho(min(l, numel(this.lat))));
                         end
-                        H = atmo.STD_HUMI* exp(-0.0006396*this.h_ortho);
+                        H = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
                     end
                 case 3 % local meteo data
                     atmo = Core.getAtmosphere();
