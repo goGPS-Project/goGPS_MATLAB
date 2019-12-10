@@ -197,5 +197,9 @@ function goGPS(ini_settings, use_gui, flag_online)
         if ~screen_log; log.disableScreenOut(); end
         
     end
+    
+    if use_gui
+        goInspector;
+    end
 end
 
