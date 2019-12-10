@@ -868,8 +868,10 @@ classdef Core < handle
                 end
             end
             core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
-
+            log_gui = core.log_gui;
+            core.log_gui = [];
             save(out_file_name, 'core', '-v7.3');            
+            core.log_gui = log_gui;
         end        
     end
     
