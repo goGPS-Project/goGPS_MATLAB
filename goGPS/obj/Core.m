@@ -555,7 +555,9 @@ classdef Core < handle
             % SYNTAX
             %   core = Core.setCurrentCore(core)
             
+            core.cmd = [];
             core = Core.getInstance(core);
+            Core.getCommandInterpreter();
         end
 
         function setLogger(log)
