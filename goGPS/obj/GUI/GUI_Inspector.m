@@ -711,14 +711,16 @@ classdef GUI_Inspector < handle
             % Update rec table
             core = Core.getCurrentCore;
             this.rec_tbl.Data = cell(numel(core.rec), 4);
+            tmp = cell(numel(core.rec), 4);
             for r = 1 : numel(core.rec)
                 name = core.rec(r).getMarkerName4Ch;                                
                 
-                this.rec_tbl.Data{r,1} = true;
-                this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
-                this.rec_tbl.Data{r,3} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
-                this.rec_tbl.Data{r,4} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #444444; ">%s', '<html><tr><td width=9999 align=center ', core.rec(r).getActiveSys());
+                tmp{r,1} = true;
+                tmp{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
+                tmp{r,3} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
+                tmp{r,4} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #444444; ">%s', '<html><tr><td width=9999 align=center ', core.rec(r).getActiveSys());
             end
+            this.rec_tbl.Data = tmp;
         end
         
         function updateUI(this)
