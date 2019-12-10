@@ -11787,7 +11787,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 grid on
                 ylabel('STD [mm/e^2]')
                 fh = gcf; fh.Name = sprintf('%d %s) PH stat obs-synth', fh.Number, this.parent.getMarkerName4Ch); fh.NumberTitle = 'off';
-                dockAllFigures
             end
             
             %%

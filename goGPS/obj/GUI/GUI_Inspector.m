@@ -103,7 +103,7 @@ classdef GUI_Inspector < handle
             % Main Window ---------------------------------------------------------------------------------------------
             
             win = figure( 'Name', 'goGPS inspector', ...
-                'Visible', 'on', ...
+                'Visible', 'off', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
@@ -211,7 +211,18 @@ classdef GUI_Inspector < handle
             grp.BackgroundColor = Core_UI.DARK_GREY_BG;
             grp.Children(3).BackgroundColor = Core_UI.DARK_GREY_BG;
             grp.Children(3).ForegroundColor = [1 1 1];
-                       
+
+            list_but = uix.HButtonBox( 'Parent', bottom, ...
+                'ButtonSize', [100 28] , ...
+                'VerticalAlignment', 'top', ...
+                'HorizontalAlignment', 'right', ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            
+            load_core_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Load Core', ...
+                'Callback', @this.onLoadCore); %#ok<NASGU>
+            
+            bottom.Widths = [-1 105];
             main_vb.Heights = [84 5 -1 5 35];
             
             % Middle Tab Panel ----------------------------------------------------------------------------------------
@@ -243,7 +254,7 @@ classdef GUI_Inspector < handle
             
             tab_pnl_right.TabTitles = {'Commands'};
             
-            main_hb.Widths = [175 5 360 5 -1];
+            main_hb.Widths = [190 5 360 5 -1];
             
             % Manage dimension ----------------------------------------------------------------------------------------
             
@@ -781,6 +792,38 @@ classdef GUI_Inspector < handle
             % Select all the receivers
             for r = 1 : size(this.rec_tbl.Data, 1)
                 this.rec_tbl.Data{r,1} = true;
+            end
+        end
+        
+        function onLoadCore(this, caller, event)
+            % Load state settings
+            
+            if ~exist('core', 'var')
+                addPathGoGPS;
+            end
+            core_dir = Core.getState.getOutDir();
+            
+            [file_name, path_name] = uigetfile({'*.mat;','goGPS core from previous session (*.mat)';}, 'Choose file with saved core', core_dir);
+            
+            if path_name ~= 0 % if the user pressed cancelled, then we exit this callback
+                % get the extension (mat/ini):
+                [~, ~, ext] = fileparts(file_name);
+                
+                % build the path name of the file to be loaded
+                core_file = fullfile(path_name, file_name);
+                if strcmp(ext, '.mat')
+                    Core.getLogger.addMarkedMessage(sprintf('Start loading core from "%s"', core_file));
+                    load(core_file);
+                    if ~exist('core', 'var')
+                        Core.getLogger.addError(sprintf('No core variable found in file', core_file));
+                    else
+                        core.setCurrentCore(core);
+                        this.init();
+                        Core.getLogger.addStatusOk(sprintf('Core successifully loaded', core_file));
+                    end
+                else
+                    Core.getLogger.addError('Unrecognized input file format!');
+                end
             end
         end
         
