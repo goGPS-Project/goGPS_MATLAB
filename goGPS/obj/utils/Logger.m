@@ -59,7 +59,7 @@ classdef Logger < handle
     properties (GetAccess = 'private', SetAccess = 'protected')
         color_mode = true;                        % Flag for coloured output messages (if true requires cprintf)
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level
-        std_out = Logger.STD_GUI;                 % Define the standard output of the logger
+        std_out = Logger.STD_OUT;                 % Define the standard output of the logger
         
         out_file_path                             % Path to the logging file
         file_out_mode = 'w+';                     % log to file in (w/a) mode (w+ = new file, a+ = append)
@@ -90,7 +90,12 @@ classdef Logger < handle
     end
 
     methods (Static)
-        function this = getInstance()
+        function this = getInstance(std_out)
+            
+            if (nargin < 1) || isempty(std_out)
+                std_out = Logger.STD_OUT;
+            end
+            
             % Concrete implementation.  See Singleton superclass.
             persistent unique_instance_logger__
             if isempty(unique_instance_logger__)
@@ -99,6 +104,8 @@ classdef Logger < handle
             else
                 this = unique_instance_logger__;
             end
+            
+            this.std_out = std_out;
         end
     end
 
@@ -209,7 +216,7 @@ classdef Logger < handle
             % Inputs are boolean or empty
             %
             % SYNTAX
-            %   this.setOutMode(<screen_out>, <file_out>)
+            %   this.setOutMode(<screen_out>, <file_out>, <gui_out>)
             %
             
             if ~isempty(screen_out)
@@ -217,7 +224,7 @@ classdef Logger < handle
                 if screen_out
                     this.std_out = bitor(this.std_out, 1, 'uint8');
                 else
-                    this.std_out = bitxor(this.std_out, 1, 'uint8');
+                    this.std_out = bitand(this.std_out, 6, 'uint8');
                 end
             end
             
@@ -226,7 +233,7 @@ classdef Logger < handle
                 if file_out
                     this.std_out = bitor(this.std_out, 2, 'uint8');
                 else
-                    this.std_out = bitxor(this.std_out, 2, 'uint8');
+                    this.std_out = bitand(this.std_out, 5, 'uint8');
                 end
             end
             
@@ -235,7 +242,7 @@ classdef Logger < handle
                 if gui_out
                     this.std_out = bitor(this.std_out, 4, 'uint8');
                 else
-                    this.std_out = bitxor(this.std_out, 4, 'uint8');
+                    this.std_out = bitand(this.std_out, 3, 'uint8');
                 end
             end
         end
