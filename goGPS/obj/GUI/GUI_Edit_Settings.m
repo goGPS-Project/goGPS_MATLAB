@@ -1,11 +1,11 @@
-%   CLASS GUI_Main
+%   CLASS GUI_Edit_Settings
 % =========================================================================
 %
 % DESCRIPTION
 %   class to manages the user interface of goGPS
 %
 % EXAMPLE
-%   ui = GUI_Main.getInstance();
+%   ui = GUI_Edit_Settings.getInstance();
 %   ui.openGUI();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Core_UI
@@ -42,7 +42,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Main < handle        
+classdef GUI_Edit_Settings < handle        
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
@@ -55,6 +55,7 @@ classdef GUI_Main < handle
     properties
         w_main      % Handle of the main window
         menu        % Handle of the menu
+        go_but      % Handle to goButton
         
         info_g      % Info group
         rec_tbl     % Receiver table
@@ -90,7 +91,7 @@ classdef GUI_Main < handle
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
-        function this = GUI_Main(flag_wait)
+        function this = GUI_Edit_Settings(flag_wait)
             % GUI_MAIN object creator
             this.init();
             this.openGUI(flag_wait);
@@ -107,7 +108,7 @@ classdef GUI_Main < handle
             persistent unique_instance_gui_main__
             
             if isempty(unique_instance_gui_main__)
-                this = GUI_Main(flag_wait);
+                this = GUI_Edit_Settings(flag_wait);
                 unique_instance_gui_main__ = this;
                 if isvalid(this.w_main) && flag_wait
                     uiwait(this.w_main);
@@ -121,12 +122,60 @@ classdef GUI_Main < handle
                 end
             end
         end
+        
+        function closeGUI()
+            fh_list = get(groot, 'Children');
+            fig_handle = [];
+            
+            % bad code writing style but fast
+            for f = 1 : numel(fh_list)
+                try
+                    if strcmp(fh_list(f).UserData, 'goGPSwin')
+                        fig_handle = fh_list(f);
+                        break
+                    end
+                catch
+                end
+            end
+            if ~isempty(fig_handle)
+                delete(fig_handle);
+            end
+        end
+
     end
     %% METHODS INIT
     % ==================================================================================================================================================
     methods                
         function init(this)
             this.state = Core.getState();
+        end
+                
+        function fig_handle = findThisWin(this)
+            
+            if ~isempty(this.w_main) && isvalid(this.w_main)
+                % if the win is open and stored in this singleton object
+                fig_handle = this.w_main;
+            else
+                % clean way of doing this:
+                % fig_handle = findobj(get(groot, 'Children'), 'UserData', 'goGPSwin');
+                
+                % fast way of doing this:
+                fh_list = get(groot, 'Children');
+                fig_handle = [];
+                
+                % bad code writing style but fast
+                for f = 1 : numel(fh_list)
+                    try
+                        if strcmp(fh_list(f).UserData, 'goGPSwin')
+                            % If there are lone Edit figures close them
+                            fig_handle = fh_list(f);
+                            delete(fig_handle);
+                        end
+                    catch
+                    end
+                end
+                fig_handle = [];
+            end
         end
         
         function openGUI(this, flag_wait)
@@ -137,199 +186,216 @@ classdef GUI_Main < handle
             % ----------
             % b      b b
             %
-                        
-            if ~isempty(this.w_main) && isvalid(this.w_main)
-                delete(this.w_main);
-            end
-            % Close the old goGPS windows
-            old_win = findobj('UserData', 'goGPSwin');
-            close(old_win);
-            
+                                    
             t0 = tic();
             this.ok_go = false;
-            % empty check boxes
-            this.check_boxes = {};
-            this.pop_ups = {};
-            this.edit_texts = {};
-            this.edit_texts_array = {};
-            this.flag_list = {};
-            
-            % Main Window ----------------------------------------------------------------------------------------------
-            
-            win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                'Visible', 'off', ...
-                'MenuBar', 'none', ...
-                'ToolBar', 'none', ...
-                'NumberTitle', 'off', ...
-                'UserData', 'goGPSwin', ...
-                'Renderer', 'opengl', ...
-                'Position', [0 0 1040, 640]);
-            
-            this.w_main = win;            
-            
-             set(win, 'CloseRequestFcn', @this.close);
-             
-            if isunix && not(ismac())
-                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
-                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
-            else
-                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
-            end
-            
+
             log = Core.getLogger;
-            try
-                main_bv = uix.VBox('Parent', win, ...
+
+            % Get the old goGPS windows
+            old_win = this.findThisWin();
+            if ~isempty(old_win)
+                log.addMarkedMessage('Resetting the old Edit Settings Window');
+                win = old_win;
+                this.go_but.Enable = iif(flag_wait, 'on', 'off');
+                
+                if strcmp(this.w_main.Visible, 'off')
+                    if isunix && not(ismac())
+                        win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                        win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                    else
+                        win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                        win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                    end
+                end
+            else
+                log.addMarkedMessage('Opening a new Edit Settings Window');
+                                                   
+                % Main Window ----------------------------------------------------------------------------------------------
+
+                win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
+                    'Visible', 'off', ...
+                    'MenuBar', 'none', ...
+                    'ToolBar', 'none', ...
+                    'NumberTitle', 'off', ...
+                    'UserData', 'goGPSwin', ...
+                    'Renderer', 'opengl', ...
+                    'Position', [0 0 1040, 640]);
+
+                this.w_main = win;            
+
+                % empty check boxes
+                this.check_boxes = {};
+                this.pop_ups = {};
+                this.edit_texts = {};
+                this.edit_texts_array = {};
+                this.flag_list = {};
+
+                try
+                    main_bv = uix.VBox('Parent', win, ...
+                        'Padding', 5, ...
+                        'BackgroundColor', Core_UI.DARK_GREY_BG);
+                catch ex
+                    log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                    open('GUI Layout Toolbox 2.3.1.mltbx');
+                    log.newLine();
+                    log.addWarning('After installation re-run goGPS');
+                    close(win);
+                    return;
+                end
+                top_bh = uix.HBox( 'Parent', main_bv);
+
+                left_bv = uix.VBox('Parent', top_bh, ...
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARK_GREY_BG);
-            catch ex
-                log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                open('GUI Layout Toolbox 2.3.1.mltbx');
-                log.newLine();
-                log.addWarning('After installation re-run goGPS');
-                close(win);
-                return;
-            end
-            top_bh = uix.HBox( 'Parent', main_bv);
-            
-            left_bv = uix.VBox('Parent', top_bh, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            
-            % Set-up menu ----------------------------------------------------------------------------------------------
-            
-            this.addGoMenu();
-            
-            % Logo/title box -------------------------------------------------------------------------------------------
-            
-            Core_UI.insertLogoGUI(left_bv);
-            
-            this.insertSessionInfo(left_bv);
-            
-            this.insertRecList(left_bv);
-            
-            %this.updateRec(left_bv);
-            
-            % Main Panel -----------------------------------------------------------------------------------------------
-            
-            panel_g_border = uix.Grid('Parent', top_bh, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
-            
-            tab_panel = uix.TabPanel('Parent', panel_g_border, ...
-                'TabWidth', 90, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'SelectionChangedFcn', @this.onTabChange);
-            
-            
-            % Main Panel > tab1 settings
-            this.j_settings = this.insertTabAdvanced(tab_panel);
-            
-            % Main Panel > tab2 remote resource ini
-            enable_rri = true;
-            if enable_rri
-                this.insertTabRemoteResource(tab_panel)
-            end
-            
-            % Main Panel > tab3 data sources
-            this.j_cmd = this.insertTabCommands(tab_panel);
-            
-            % Main Panel > tab4 data sources
-            this.insertTabDataSources(tab_panel);            
-            
-            % Main Panel > tab5 CRD of the stations
-            this.insertTabRecSpecificParameters(tab_panel);
 
-            % Main Panel > tab6 pre-processing options
-            this.insertTabPrePro(tab_panel);
+                % Set-up menu ----------------------------------------------------------------------------------------------
 
-            % Main Panel > tab7 processing options
-            this.insertTabProcessing(tab_panel);
+                this.addGoMenu();
 
-            % Main Panel > tab8 atmosphere options
-            this.insertTabAtmosphere(tab_panel);
-            
-            % Tabs settings --------------------------------------------------------------------------------------------
-            
-            if enable_rri
-                tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
-            else
-                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
-            end
-            
-            % Botton Panel ---------------------------------------------------------------------------------------------
-            bottom_bh = uix.HBox( 'Parent', main_bv, ...
-                'Padding', 5, ...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);
-            
-            bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
-                'Spacing', 5, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);
-            
-            ini_name_box = uix.HBox( 'Parent', bottom_bh, ...
-                'Padding', 2, ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);
-            
-            uicontrol('Parent', ini_name_box, ...
-                'Style', 'Text', ...
-                'String', ' Current INI path:', ...
-                'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);   
-            
-            this.ini_path = uicontrol('Parent', ini_name_box, ...
-                'Style', 'Text', ...
-                'String', 'last_settings.ini', ...
-                'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);            
-            
-            ini_name_box.Widths = [100 -1];
-            
-            bottom_bhr = uix.HButtonBox( 'Parent', bottom_bh, ...
-                'Spacing', 5, ...
-                'HorizontalAlignment', 'right', ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);
-            
-            exit_but = uicontrol( 'Parent', bottom_bhl, ...
-                'String', 'Exit', ...
-                'Callback', @this.close); %#ok<NASGU>
-            
-            load_but = uicontrol( 'Parent', bottom_bhr, ...
-                'String', 'Load', ...
-                'Callback', @this.loadState); %#ok<NASGU>
-            save_but = uicontrol( 'Parent', bottom_bhr, ...
-                'String', 'Save', ...
-                'Callback', @this.saveState); %#ok<NASGU>
-            save_as_but = uicontrol( 'Parent', bottom_bhr, ...
-                'String', 'Save As', ...
-                'Callback', @this.saveAsState); %#ok<NASGU>
-            
-            if flag_wait
+                % Logo/title box -------------------------------------------------------------------------------------------
+
+                Core_UI.insertLogoGUI(left_bv);
+
+                this.insertSessionInfo(left_bv);
+
+                this.insertRecList(left_bv);
+
+                %this.updateRec(left_bv);
+
+                % Main Panel -----------------------------------------------------------------------------------------------
+
+                panel_g_border = uix.Grid('Parent', top_bh, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
+                %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
+
+                tab_panel = uix.TabPanel('Parent', panel_g_border, ...
+                    'TabWidth', 90, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'SelectionChangedFcn', @this.onTabChange);
+
+
+                % Main Panel > tab1 settings
+                this.j_settings = this.insertTabAdvanced(tab_panel);
+
+                % Main Panel > tab2 remote resource ini
+                enable_rri = true;
+                if enable_rri
+                    this.insertTabRemoteResource(tab_panel)
+                end
+
+                % Main Panel > tab3 data sources
+                this.j_cmd = this.insertTabCommands(tab_panel);
+
+                % Main Panel > tab4 data sources
+                this.insertTabDataSources(tab_panel);            
+
+                % Main Panel > tab5 CRD of the stations
+                this.insertTabRecSpecificParameters(tab_panel);
+
+                % Main Panel > tab6 pre-processing options
+                this.insertTabPrePro(tab_panel);
+
+                % Main Panel > tab7 processing options
+                this.insertTabProcessing(tab_panel);
+
+                % Main Panel > tab8 atmosphere options
+                this.insertTabAtmosphere(tab_panel);
+
+                % Tabs settings --------------------------------------------------------------------------------------------
+
+                if enable_rri
+                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
+                else
+                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
+                end
+
+                % Botton Panel ---------------------------------------------------------------------------------------------
+                bottom_bh = uix.HBox( 'Parent', main_bv, ...
+                    'Padding', 5, ...
+                    'Spacing', 5, ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+
+                bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
+                    'Spacing', 5, ...
+                    'HorizontalAlignment', 'left', ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+
+                ini_name_box = uix.HBox( 'Parent', bottom_bh, ...
+                    'Padding', 2, ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+
+                uicontrol('Parent', ini_name_box, ...
+                    'Style', 'Text', ...
+                    'String', ' Current INI path:', ...
+                    'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'HorizontalAlignment', 'left', ...
+                    'FontSize', Core_UI.getFontSize(8), ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);   
+
+                this.ini_path = uicontrol('Parent', ini_name_box, ...
+                    'Style', 'Text', ...
+                    'String', 'last_settings.ini', ...
+                    'ForegroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'HorizontalAlignment', 'left', ...
+                    'FontSize', Core_UI.getFontSize(8), ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);            
+
+                ini_name_box.Widths = [100 -1];
+
+                bottom_bhr = uix.HButtonBox( 'Parent', bottom_bh, ...
+                    'Spacing', 5, ...
+                    'HorizontalAlignment', 'right', ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+
+                exit_but = uicontrol( 'Parent', bottom_bhl, ...
+                    'String', 'Exit', ...
+                    'Callback', @this.close); %#ok<NASGU>
+
+                load_but = uicontrol( 'Parent', bottom_bhr, ...
+                    'String', 'Load', ...
+                    'Callback', @this.loadState); %#ok<NASGU>
+                save_but = uicontrol( 'Parent', bottom_bhr, ...
+                    'String', 'Save', ...
+                    'Callback', @this.saveState); %#ok<NASGU>
+                save_as_but = uicontrol( 'Parent', bottom_bhr, ...
+                    'String', 'Save As', ...
+                    'Callback', @this.saveAsState); %#ok<NASGU>
+
                 % Show go button only if I'm executing the interface from goGPS script
-                go_but = uicontrol( 'Parent', bottom_bhr, ...
+                this.go_but = uicontrol( 'Parent', bottom_bhr, ...
                     'String', 'go!', ...
                     'FontAngle', 'italic', ...
+                    'Enable', iif(flag_wait, 'on', 'off'), ...
                     'Callback', @this.go, ...
-                    'FontWeight', 'bold'); %#ok<NASGU>
+                    'FontWeight', 'bold');
+                
+                % Manage dimension -------------------------------------------------------------------------------------------
+
+                main_bv.Heights = [-1 30];
+                %session_height = sum(left_bv.Children(2).Children(1).Heights);
+                session_height = sum(left_bv.Children(2).Heights);
+                left_bv.Heights = [94 session_height -1];
+                top_bh.Widths = [210 -1];
+                bottom_bh.Widths = [60 -1 260];
+                tab_panel.Selection = 3;            
+                            
+                set(win, 'CloseRequestFcn', @this.close);
+                
+                if isunix && not(ismac())
+                    win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                    win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                else
+                    win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                    win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                end
             end
-            % Manage dimension -------------------------------------------------------------------------------------------
             
-            main_bv.Heights = [-1 30];
-            %session_height = sum(left_bv.Children(2).Children(1).Heights);
-            session_height = sum(left_bv.Children(2).Heights);
-            left_bv.Heights = [94 session_height -1];
-            top_bh.Widths = [210 -1];
-            bottom_bh.Widths = [60 -1 260];
             this.updateUI();
             this.updateRecList();
-            tab_panel.Selection = 3;
+                        
             drawnow
             this.w_main.Visible = 'on';
             t_win = toc(t0);
@@ -1218,7 +1284,7 @@ classdef GUI_Main < handle
                     if j > 1
                         sys_c = col_names{j}(1);
                         band =  col_names{j}(3);
-                        clr = GUI_Main.getColorTrck(sys_c,band,rem(i,2));
+                        clr = GUI_Edit_Settings.getColorTrck(sys_c,band,rem(i,2));
                     else
                         if rem(i,2) == 1
                             clr = '#fffffff';
@@ -2436,7 +2502,13 @@ classdef GUI_Main < handle
         end
         
         function close(this, caller, event)
-            delete(this.w_main);
+            
+            % This is closing definitively, I prefer to hide this interface, it takes a while to restore it
+            %delete(this.w_main);
+            if isvalid(this.w_main)
+                this.w_main.Visible = 'off';
+                uiresume(this.w_main);
+            end
             
             % Close also log
             if ~this.ok_go

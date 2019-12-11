@@ -457,7 +457,7 @@ classdef Core_UI < Logos
             if (nargin < 1) || isempty(flag_wait)
                 flag_wait = false;
             end
-            this.main = GUI_Main.getInstance(flag_wait);
+            this.main = GUI_Edit_Settings.getInstance(flag_wait);
         end
     end
     %% METHODS INSERT
