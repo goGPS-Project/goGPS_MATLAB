@@ -48,9 +48,10 @@ classdef Logger < handle
         WARNING_VERBOSITY_LEV   = 3;  % Warning verbosity level
         ERROR_VERBOSITY_LEV     = 1;  % Error verbosity level
         
-        STD_OUT        = 1;     % Output: text only   (first bit set)
-        STD_FILE       = 2;     % Output: file only   (second bit set)    
-        STD_OUT_N_FILE = 3;     % Output: file + text (first and second bit set)
+        STD_OUT        = 1;     % Output: text only   001 (first bit set)
+        STD_FILE       = 2;     % Output: file only   010 (second bit set)    
+        STD_OUT_N_FILE = 3;     % Output: file + text 011 (first and second bit set)        
+        STD_GUI        = 4;     % Output: GUI only    100 (third bit set)
         
         ORANGE = [1 0.65 0];
     end
@@ -58,7 +59,7 @@ classdef Logger < handle
     properties (GetAccess = 'private', SetAccess = 'protected')
         color_mode = true;                        % Flag for coloured output messages (if true requires cprintf)
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level
-        std_out = Logger.STD_OUT;                 % Define the standard output of the logger
+        std_out = Logger.STD_GUI;                 % Define the standard output of the logger
         
         out_file_path                             % Path to the logging file
         file_out_mode = 'w+';                     % log to file in (w/a) mode (w+ = new file, a+ = append)
