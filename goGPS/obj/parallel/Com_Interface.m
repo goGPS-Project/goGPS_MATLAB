@@ -113,6 +113,8 @@ classdef Com_Interface < handle
             % SYNTAX
             %   this.initLogger();
             this.log = Core.getLogger();
+            this.log.setOutMode(1,[],0);
+            this.log.setColorMode(0);
         end
         
         function sendMsg(this, msg, msg_feedback)
