@@ -607,13 +607,13 @@ classdef Network < handle
                 if this.state.spline_tropo_gradient_order == 1
                     parametrization.tropo_e(1)  = LS_Parametrization.SPLINE_LIN;
                     parametrization.tropo_n(1)  = LS_Parametrization.SPLINE_LIN;
-                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo;
-                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo;
+                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo_gradient;
+                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo_gradient;
                 elseif this.state.spline_tropo_gradient_order == 3
                     parametrization.tropo_e(1)  = LS_Parametrization.SPLINE_CUB;
                     parametrization.tropo_n(1)  = LS_Parametrization.SPLINE_CUB;
-                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo;
-                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo;
+                    parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo_gradient;
+                    parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo_gradient;
                 end
                 
                 ls.setUpNET(this.rec_list, coo_rate, '???', param_selection, parametrization);
