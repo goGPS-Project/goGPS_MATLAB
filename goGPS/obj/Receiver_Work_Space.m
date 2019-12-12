@@ -4186,8 +4186,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     atmo = Core.getAtmosphere();
                     this.updateCoordinates();
                     Pr = atmo.STD_PRES;
-                    % temperature [K]
-                    Tr = atmo.STD_TEMP;
+                    % temperature [C]
+                    Tr = atmo.STD_TEMP - 273.15;
                     % humidity [%]
                     Hr = atmo.STD_HUMI;
                     h = this.h_ortho;
