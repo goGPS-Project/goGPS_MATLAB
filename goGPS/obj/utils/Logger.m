@@ -90,12 +90,7 @@ classdef Logger < handle
     end
 
     methods (Static)
-        function this = getInstance(std_out)
-            
-            if (nargin < 1) || isempty(std_out)
-                std_out = Logger.STD_OUT;
-            end
-            
+        function this = getInstance(std_out)                        
             % Concrete implementation.  See Singleton superclass.
             persistent unique_instance_logger__
             if isempty(unique_instance_logger__)
@@ -104,8 +99,10 @@ classdef Logger < handle
             else
                 this = unique_instance_logger__;
             end
-            
-            this.std_out = std_out;
+
+            if (nargin >= 1) && ~isempty(std_out)
+                this.std_out = std_out;
+            end
         end
     end
 

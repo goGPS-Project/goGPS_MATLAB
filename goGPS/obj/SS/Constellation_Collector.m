@@ -200,8 +200,8 @@ classdef Constellation_Collector < Settings_Interface
                 this.n_sys = numel(this.num_id);
                 this.sys_name = this.SYS_NAME(this.num_id);
             else
-                this.log.addWarning('No satellite system selected!\nPay attention to what you are doing, something may not work');
-                %this.log.addError('No satellite system selected -> Enabling GPS');
+                Core.getLogger.addWarning('No satellite system selected!\nPay attention to what you are doing, something may not work');
+                %Core.getLogger.addError('No satellite system selected -> Enabling GPS');
                 %ss = false(this.N_SYS_TOT,1); ss(1) = true;
                 %this.init(ss);
             end
@@ -231,9 +231,7 @@ classdef Constellation_Collector < Settings_Interface
             %
             % DESCRIPTION:
             %   Multi-constellation set-up.
-            
-            this.initLogger();
-            
+                        
             % this f***ing software called MATLAB does not create new
             % constellation objects unless I do this
             this.gps = this.gps.getCopy();
@@ -271,7 +269,7 @@ classdef Constellation_Collector < Settings_Interface
                 active_list = active_list(1:this.N_SYS_TOT);
             end
             if active_list(7)
-                this.log.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
+                Core.getLogger.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
             end
             this.init(active_list);
         end
@@ -456,10 +454,11 @@ classdef Constellation_Collector < Settings_Interface
         function import(this, state)
             % This function import processing settings from another setting object or ini file
             if isa(state, 'Ini_Manager')
-                vl = this.log.getVerbosityLev();
-                this.log.setVerbosityLev(0);
+                log = Core.getLogger();
+                vl = log.getVerbosityLev();
+                log.setVerbosityLev(0);
                 this.init([0 0 0 0 0 0 1]);
-                this.log.setVerbosityLev(vl);
+                log.setVerbosityLev(vl);
                 
                 this.gps.import(state);
                 this.glo.import(state);

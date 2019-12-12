@@ -41,7 +41,10 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Inspector < handle
+classdef GUI_Inspector < GUI_Unique_Win   
+    properties (Constant)
+        WIN_NAME = 'goGPS_Inspector_Win';
+    end
     
     properties (Constant, Access = 'protected')
         BG_COLOR = Core_UI.DARK_GREY_BG;
@@ -101,6 +104,12 @@ classdef GUI_Inspector < handle
         
         function openGUI(this)
             % Main Window ---------------------------------------------------------------------------------------------
+            
+            % If there is still an old logging wondow still open, close it
+            old_win = this.getUniqueWinHandle();
+            if ~isempty(old_win)
+                delete(old_win); 
+            end
             
             win = figure( 'Name', 'goGPS inspector', ...
                 'Visible', 'off', ...

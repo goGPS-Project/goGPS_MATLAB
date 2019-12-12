@@ -41,16 +41,19 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Msg < handle
+classdef GUI_Msg < GUI_Unique_Win   
+    properties (Constant)
+        WIN_NAME = 'goGPS_Msg_Win';
+    end
     
     properties (Constant, Access = 'protected')
         BG_COLOR = Core_UI.DARK_GREY_BG;
     end
-    
+      
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        win         % Handle to this window
+        w_main         % Handle to this window
         jedt        % j edit handle (java logger element)
     end    
     
@@ -74,7 +77,7 @@ classdef GUI_Msg < handle
             % Get the persistent instance of the class
             persistent unique_instance_gui_msg__
             
-            if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.win)
+            if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.w_main)
                 this = GUI_Msg();
                 unique_instance_gui_msg__ = this;
             else
@@ -94,6 +97,12 @@ classdef GUI_Msg < handle
         function openGUI(this)
             % Main Window ----------------------------------------------------------------------------------------------
             
+            % If there is still an old logging wondow still open, close it
+            old_win = this.getUniqueWinHandle();
+            if ~isempty(old_win)
+                delete(old_win); 
+            end
+            
             win = figure( 'Name', 'goGPS log', ...
                 'Visible', 'off', ...
                 'MenuBar', 'none', ...
@@ -102,7 +111,7 @@ classdef GUI_Msg < handle
                 'Position', [0 0 1040, 640], ...
                 'Resize', 'on');
             
-            this.win = win;
+            this.w_main = win;
             
             if isunix && not(ismac())
                 % top right
@@ -188,7 +197,7 @@ classdef GUI_Msg < handle
             % Logging Panel --------------------------------------------------------------------------------------------------
             log_container = uix.VBox('Parent', main_vb, 'Padding', 5, 'BackgroundColor', GUI_Msg.BG_COLOR);
             [j_edit_box, h_log_panel] = Core_UI.insertLog(log_container);
-            this.win.UserData = struct('jedt', j_edit_box);
+            this.w_main.UserData.jedt = j_edit_box;
             this.jedt = j_edit_box;
             
             this.clear();
@@ -197,12 +206,12 @@ classdef GUI_Msg < handle
             
             main_vb.Heights = [84 -1];
                         
-            this.win.Visible = 'on';    
+            this.w_main.Visible = 'on';    
         end
         
         function close(this)
-            if ~isempty(this.win) && ishandle(this.win)
-                close(this.win);
+            if ~isempty(this.w_main) && ishandle(this.w_main)
+                close(this.w_main);
             end
         end
     end

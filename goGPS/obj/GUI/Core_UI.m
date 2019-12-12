@@ -166,7 +166,7 @@ classdef Core_UI < Logos
             %
             % SYNTAX:
             %   Core_UI.showTextHeader();
-            log = Core.getLogger.getInstance();
+            log = Core.getLogger();
             if log.getColorMode()
                 %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 %cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');

@@ -728,14 +728,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   s_obj = Main_Settings(<ini_settings_file>, <prj_home>);
 
-            this.initLogger();
-            this.log.addMarkedMessage('Building settings object...');
-            this.log.newLine();
+            log = Core.getLogger();
+            log.addMarkedMessage('Building settings object...');
+            log.newLine();
             if (nargin >= 1)
                 if ~isa(ini_settings_file,'Main_Settings')
                     if ~exist(ini_settings_file, 'file')
                         if ~isempty(ini_settings_file)
-                            this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
+                            log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
                             ini_settings_file = this.LAST_SETTINGS;
                         end
                     end
@@ -753,8 +753,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 if (exist(ini_settings_file, 'file') == 2)
                     this.importIniFile(ini_settings_file);
                 else
-                    this.log.addMarkedMessage('Using default settings');
-                    this.log.newLine();
+                    log.addMarkedMessage('Using default settings');
+                    log.newLine();
                     this.postImportInit();
                 end
             end
@@ -774,6 +774,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor;
             
             if isa(state, 'Ini_Manager')
+                log = Core.getLogger();
+                
                 % PARALLELISM
                 com_dir = state.getData('com_dir');
                 if isempty(com_dir)
@@ -795,7 +797,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                    this.prj_home = fnp.getFullDirPath(state.getData('prj_home'),  pwd, dir_fallback);
                 end
                 if ~exist(this.prj_home, 'dir')
-                    this.log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, dir_fallback));
+                    log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, dir_fallback));
                     this.prj_home = dir_fallback;
                 end
 
@@ -1922,12 +1924,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 file_path = this.cur_ini;
             end
             this.setIniPath(file_path);
+            log = Core.getLogger();
             if (exist(file_path, 'file') == 2)
                 this.importIniFile@Settings_Interface(file_path);
                 this.postImportInit();
-                this.log.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
+                log.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
             else
-                this.log.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
+                log.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
             end
         end
 
@@ -1940,7 +1943,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 load(file_path, 'state');
                 this.legacyImport(state);
             catch ex
-                this.log.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
+                log = Core.getLogger();
+                log.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
             end
             this.updateExternals();
             this.postImportInit();
@@ -2269,7 +2273,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 for r = 1 : n_rec
 
                     if go_verbose
-                        this.log.addMessage(sprintf('Checking files for receiver %d', r));
+                        log = Core.getLogger();            
+                        log.addMessage(sprintf('Checking files for receiver %d', r));
                     end
                     file_name = file_name_all{r};
                     file_count = 0;
@@ -2279,9 +2284,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                         file_count = file_count + uint16(logical(file_ok));
                         if go_verbose
                             if file_ok
-                                this.log.addStatusOk(sprintf('%s is present', full_path));
+                                log.addStatusOk(sprintf('%s is present', full_path));
                             else
-                                this.log.addError(sprintf('%s does not exist', full_path));
+                                log.addError(sprintf('%s does not exist', full_path));
                             end
                         end
                     end
@@ -2308,23 +2313,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif isempty(file_name{1})
                 eph_ok = false;
             else
-                this.log.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
-                this.log.newLine();
+                log = Core.getLogger();
+                log.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
+                log.newLine();
                 i = 0;
                 while (i < numel(file_name) && eph_ok)
                     i = i + 1;
                     eph_ok = exist(file_name{i}, 'file') == 2;
                     if eph_ok
-                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                            log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.log.newLine();
+                log.newLine();
             end
         end
 
@@ -2344,23 +2350,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif isempty(file_name{1})
                 clk_ok = true;
             else
-                this.log.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
-                this.log.newLine();
+                log = Core.getLogger();
+                log.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
+                log.newLine();
                 i = 0;
                 while (i < numel(file_name) && clk_ok)
                     i = i + 1;
                     clk_ok = exist(file_name{i}, 'file') == 2;
                     if clk_ok
-                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                            log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.log.newLine();
+                log.newLine();
             end
         end
 
@@ -2380,23 +2387,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif isempty(file_name{1})
                 erp_ok = true;
             else
-                this.log.addMarkedMessage(sprintf('Checking Earth rotation parameters files from %s', state.getHomeDir()));
-                this.log.newLine();
+                log = Core.getLogger();
+                log.addMarkedMessage(sprintf('Checking Earth rotation parameters files from %s', state.getHomeDir()));
+                log.newLine();
                 i = 0;
                 while (i < numel(file_name) && erp_ok)
                     i = i + 1;
                     erp_ok = exist(file_name{i}, 'file') == 2;
                     if erp_ok
-                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                            log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.log.newLine();
+                log.newLine();
             end
         end
     end
@@ -2628,6 +2636,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   this.check();
 
             this.checkIO();
+            log = Core.getLogger();
             
             % ADV RECEIVER DEFAULT PARAMETERS
             this.checkNumericField('std_code',[0 1e50]);
@@ -2670,7 +2679,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             [buf_lft, buf_rgt] = this.getBuffer();
             if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
                 this.setSmoothTropoOut(false)
-                this.log.addWarning('Smoothing of troposphere is not possible when RINEX based sessions are requested');
+                log.addWarning('Smoothing of troposphere is not possible when RINEX based sessions are requested');
             end
                 
             this.checkNumericField('iono_management');
@@ -2699,7 +2708,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_free_net_tropo');
             if this.flag_tropo_gradient && ~this.flag_tropo
                 this.flag_tropo_gradient = false;
-                this.log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
+                log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
             end
                         
             % ADV ATMOSPHERE
@@ -2851,16 +2860,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 end
             end
             
+            log = Core.getLogger();
             if n_missing == 0
                 if flag_verbose
-                    this.log.addStatusOk([field_text ' is present']);
+                    log.addStatusOk([field_text ' is present']);
                 end
             else
                 if flag_verbose
                     if flag_error
-                        this.log.addError(sprintf('%s is missing (%d)',field_text, -n_missing));
+                        log.addError(sprintf('%s is missing (%d)',field_text, -n_missing));
                     else
-                        this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                        log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
                     end
                 end
             end
@@ -3294,7 +3304,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 if (nargin == 2)
                     if (id > length(out))
                         out = out{end};
-                        this.log.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
+                        Core.getLogger.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
                     else
                         out = out{id};
                     end
@@ -3392,7 +3402,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: out_prefix = this.getOutPath()
 
             if isempty(this.out_full_path)
-                this.log.addWarning('Output prefix has not yet been computed! It should have been done before.');
+                Core.getLogger.addWarning('Output prefix has not yet been computed! It should have been done before.');
                 this.updateOutPath();
             end
             out = this.out_full_path;
@@ -4056,13 +4066,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             [path_str, name, ~] = fileparts(fnp.checkPath(file_path, this.getHomeDir()));
             this.cur_ini = [path_str filesep name '.ini'];
             path_parts = strsplit(path_str,filesep);
+            log = Core.getLogger();
             if numel(path_parts) > 3
                 this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep), this.getHomeDir());
                 this.prj_name = path_parts{end-1};
-                this.log.addMessage('Trying to guess project name / home / ini');
-                this.log.addMessage(sprintf(' name: %s', this.prj_name));
-                this.log.addMessage(sprintf(' home: %s', this.prj_home));
-                this.log.addMessage(sprintf(' ini:  %s', this.cur_ini));
+                log.addMessage('Trying to guess project name / home / ini');
+                log.addMessage(sprintf(' name: %s', this.prj_name));
+                log.addMessage(sprintf(' home: %s', this.prj_home));
+                log.addMessage(sprintf(' ini:  %s', this.cur_ini));
             end
         end
     end

@@ -62,7 +62,6 @@ classdef Command_Settings < Settings_Interface
     methods
         function this = Command_Settings()
             % Creator of Command_Settings
-            this.initLogger();
         end
     end
 
@@ -96,7 +95,7 @@ classdef Command_Settings < Settings_Interface
                 while l < numel(cmd_keys)
                     l = l + 1;
                     if (numel(cmd_keys{l}) < 3) || ~strcmpi(cmd_keys{l}(1:3), 'cmd')
-                        this.log.addWarning(sprintf('%s command unrecognized\nit should start with "cmd" (e.g. cmd_001)', cmd_keys{l}));
+                        Core.getLogger.addWarning(sprintf('%s command unrecognized\nit should start with "cmd" (e.g. cmd_001)', cmd_keys{l}));
                         cmd_keys(l) = [];
                         l = l - 1;
                     else
@@ -225,7 +224,7 @@ classdef Command_Settings < Settings_Interface
             %   this.check();
             %
                 this.cmd_list = this.CMD_LIST;
-                this.log.addWarning(sprintf('Command list seems to be empty\n'));
+                Core.getLogger.addWarning(sprintf('Command list seems to be empty\n'));
             else
                 this.cmd_list = Core.getCommandInterpreter.fastCheck(this.cmd_list);
             end

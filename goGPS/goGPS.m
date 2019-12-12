@@ -79,6 +79,7 @@ function goGPS(ini_settings, use_gui, flag_online)
     end
         
     log = Logger.getInstance();
+    log.disableFileOut();
     if use_gui
         log.enableGUIOut();
         log.disableScreenOut();
@@ -93,12 +94,6 @@ function goGPS(ini_settings, use_gui, flag_online)
     log.setColorMode(true);    
     Core_UI.showTextHeader();
     log.setColorMode(cm);
-    
-    if abs(use_gui) == 1
-        log.disableScreenOut();
-    else
-        log.enableScreenOut();
-    end
     
     if nargin >= 1 && ~isempty(ini_settings)
         core = Core.getInstance(true, false, ini_settings);    
@@ -125,8 +120,9 @@ function goGPS(ini_settings, use_gui, flag_online)
         if ~ui.isGo()
             return
         end
+        ok_go = true;
     end
-        
+    
     % Enable file logging
     if core.state.isLogOnFile()
         log.newLine();
@@ -143,10 +139,11 @@ function goGPS(ini_settings, use_gui, flag_online)
         core.logCurrentSettings();
     end
     
-    %% GO goGPS - here the computations start
-    err_code = core.checkValidity();
-    
-    ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
+    if use_gui <= 0 % if this check is not performed by GUI
+        % GO goGPS - here the computations start
+        err_code = core.checkValidity();        
+        ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
+    end            
     
     if ~ok_go
         log.addError('Invalid configuration found! Check the log messages above.');

@@ -42,7 +42,11 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Edit_Settings < handle        
+classdef GUI_Edit_Settings < GUI_Unique_Win   
+    properties (Constant)
+        WIN_NAME = 'goGPS_Edit_Win';
+    end
+    
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
@@ -130,7 +134,7 @@ classdef GUI_Edit_Settings < handle
             % bad code writing style but fast
             for f = 1 : numel(fh_list)
                 try
-                    if strcmp(fh_list(f).UserData, 'goGPSwin')
+                    if isfield(fh_list(f).UserData, 'name') && strcmp(fh_list(f).UserData.name, GUI_Edit_Settings.WIN_NAME)
                         fig_handle = fh_list(f);
                         break
                     end
@@ -149,35 +153,7 @@ classdef GUI_Edit_Settings < handle
         function init(this)
             this.state = Core.getState();
         end
-                
-        function fig_handle = findThisWin(this)
-            
-            if ~isempty(this.w_main) && isvalid(this.w_main)
-                % if the win is open and stored in this singleton object
-                fig_handle = this.w_main;
-            else
-                % clean way of doing this:
-                % fig_handle = findobj(get(groot, 'Children'), 'UserData', 'goGPSwin');
-                
-                % fast way of doing this:
-                fh_list = get(groot, 'Children');
-                fig_handle = [];
-                
-                % bad code writing style but fast
-                for f = 1 : numel(fh_list)
-                    try
-                        if strcmp(fh_list(f).UserData, 'goGPSwin')
-                            % If there are lone Edit figures close them
-                            fig_handle = fh_list(f);
-                            delete(fig_handle);
-                        end
-                    catch
-                    end
-                end
-                fig_handle = [];
-            end
-        end
-        
+                        
         function openGUI(this, flag_wait)
             % WIN CONFIGURATION
             % L| N|    W
@@ -193,7 +169,7 @@ classdef GUI_Edit_Settings < handle
             log = Core.getLogger;
 
             % Get the old goGPS windows
-            old_win = this.findThisWin();
+            old_win = this.getUniqueWinHandle();
             if ~isempty(old_win)
                 log.addMarkedMessage('Resetting the old Edit Settings Window');
                 win = old_win;
@@ -218,10 +194,10 @@ classdef GUI_Edit_Settings < handle
                     'MenuBar', 'none', ...
                     'ToolBar', 'none', ...
                     'NumberTitle', 'off', ...
-                    'UserData', 'goGPSwin', ...
                     'Renderer', 'opengl', ...
                     'Position', [0 0 1040, 640]);
-
+                win.UserData.name = GUI_Edit_Settings.WIN_NAME;
+                
                 this.w_main = win;            
 
                 % empty check boxes
@@ -1138,7 +1114,26 @@ classdef GUI_Edit_Settings < handle
         function saveCrd(this, tbl, src, event)
             % Save CRD
             rf = this.crd2RefFrame();
-            rf.export(this.state.getCrdFile);
+            if isempty(this.state.getCrdFile)
+                Core.getLogger.addWarning(sprintf('Saving at the default location'));
+                
+                path_name = fullfile(this.state.getHomeDir, 'station', 'CRD');
+                file_name = 'stations.crd';
+                % build the path name of the save location
+                crd_path = fullfile(path_name, file_name);
+                try
+                    rf = this.crd2RefFrame();
+                    this.state.setCrdFile(crd_path);
+                    obj = findobj('UserData', 'crd_name'); obj.String = file_name;
+                    obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
+                    rf.export(crd_path);
+                    Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
+                catch ex
+                    Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
+                end
+            else
+                rf.export(this.state.getCrdFile);
+            end
         end
         
         function saveAsCrd(this, tbl, src, event)
@@ -2519,12 +2514,18 @@ classdef GUI_Edit_Settings < handle
         end
         
         function go(this, caller, event)
-            this.crd2RefFrame;
-            Core.getLogger.addMarkedMessage('Starting computation!');
-            
-            this.state.save(Main_Settings.LAST_SETTINGS);
-            this.ok_go = true;
-            close(this.w_main);
+            core = Core.getCurrentCore();
+            err_code = core.checkValidity();
+            if err_code.go
+                uiwait(warndlg('Adjust the settings before running goGPS', 'Config check failed'));
+            else
+                this.crd2RefFrame;
+                Core.getLogger.addMarkedMessage('Starting computation!');
+                
+                this.state.save(Main_Settings.LAST_SETTINGS);
+                this.ok_go = true;
+                close(this.w_main);
+            end
         end
         
         function updateUI(this)
