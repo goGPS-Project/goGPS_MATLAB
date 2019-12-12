@@ -846,12 +846,13 @@ classdef Receiver_Output < Receiver_Commons
                 n_plot = 6;
                 
                 win.Units = 'pixels';
-                scroller = uix.ScrollingPanel('Parent', win);
-                container = uix.Grid('Parent', scroller, ...
+                maximizeFig(win);
+
+                %scroller = uix.ScrollingPanel('Parent', win);
+                main_vb = uix.VBox('Parent', win, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 
-                %h = title(, 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                uicontrol('Parent', container, ...
+                uicontrol('Parent', main_vb, ...
                     'Style', 'Text', ...
                     'String', sprintf('Processing quality info for rec %s\n', upper(this.parent.getMarkerName4Ch)), ...
                     'ForegroundColor', Core_UI.BLACK, ...
@@ -859,13 +860,24 @@ classdef Receiver_Output < Receiver_Commons
                     'FontSize', Core_UI.getFontSize(10), ...
                     'FontWeight', 'Bold', ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+
+                container = uix.Grid('Parent', main_vb, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 
+                %h = title(, 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                                
                 for i = 1 : n_plot
-                    ax(i) = axes('Parent', container);
+                    tmp_box(i) = uix.VBox('Parent', container, ...
+                        'Padding', 5, ...
+                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 end
-                maximizeFig(win);
-                container.Heights = [30, 300 * ones(1, n_plot)];
-                scroller.Heights = sum(container.Heights);
+                main_vb.Heights = [30 -1];
+                container.Heights = [-1 -1 -1];
+                container.Widths = [-1 -1];
+                for i = 1 : n_plot
+                    ax(i) = axes('Parent', tmp_box(i));
+                end
+                %scroller.Heights = sum(container.Heights);
                 
                 color_order = handle(gca).ColorOrder;
                 t = this.getPositionTime().getMatlabTime();
@@ -877,24 +889,24 @@ classdef Receiver_Output < Receiver_Commons
                 plot(ax(2), t, this.quality_info.n_obs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:)); hold on;
                 h = ylabel(ax(2), sprintf('# obs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(2), 'Total number of observations used', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
-                plot(ax(3), t, this.quality_info.n_sat_max, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:)); hold on;
-                h = ylabel(ax(3), 'max # sat'); h.FontWeight = 'bold';
-                h = title(ax(3), 'Maximum number of satellites seen in one epoch', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
+                                
                 if isfield(this.quality_info, 'n_out')
-                    plot(ax(4), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
-                    h = ylabel(ax(4), '# outliers'); h.FontWeight = 'bold';
-                    h = title(ax(4), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
+                    plot(ax(3), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
+                    h = ylabel(ax(3), '# outliers'); h.FontWeight = 'bold';
+                    h = title(ax(3), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
                 end
                 
-                plot(ax(5), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
-                h = ylabel(ax(5), 's0 [cm]'); h.FontWeight = 'bold';
-                h = title(ax(5), 'Final sigma0 as estimated from the Least Square solution', 'interpreter', 'none'); h.FontWeight = 'bold';
+                plot(ax(4), t, this.quality_info.n_sat_max, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:)); hold on;
+                h = ylabel(ax(4), 'max # sat'); h.FontWeight = 'bold';
+                h = title(ax(4), 'Maximum number of satellites seen in one epoch', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                plot(ax(6), t, this.quality_info.s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(6,:)); hold on;
-                h = ylabel(ax(6), 's0 pp [cm]'); h.FontWeight = 'bold';
-                h = title(ax(6), 'Sigma0 as estimated from the Least Square solution (during code pre-processing)', 'interpreter', 'none'); h.FontWeight = 'bold';
+                plot(ax(5), t, this.quality_info.s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(6,:)); hold on;
+                h = ylabel(ax(5), 's0 pp [cm]'); h.FontWeight = 'bold';
+                h = title(ax(5), 'Sigma0 as estimated from the Least Square solution (on pre-processing)', 'interpreter', 'none'); h.FontWeight = 'bold';
+                
+                plot(ax(6), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
+                h = ylabel(ax(6), 's0 [cm]'); h.FontWeight = 'bold';
+                h = title(ax(6), 'Final sigma0 as estimated from the Least Square solution', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
                 for i = 1 : n_plot
                     if (t(end) > t(1))
@@ -906,9 +918,12 @@ classdef Receiver_Output < Receiver_Commons
                 end
                 
                 linkaxes(ax, 'x');
+                
+                fh = win; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh.Visible = 'on';
             else
                 rec(1).log.addMessage('Plotting a single point is not supported');
-            end
+            end            
         end
         
         function fh_list = showResPerSat(this, sys_c_list, res)
