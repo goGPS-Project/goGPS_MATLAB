@@ -241,7 +241,8 @@ classdef File_Wizard < handle
                     if status
                         this.log.addStatusOk('All files have been found remotely', 10);
                     else
-                        this.log.addMessage('Some files not found remotely');
+                        this.log.addError('Some files not found remotely, starting to download what it''s available');
+                        status = true;
                     end
                 
                     if status || this.nrt
@@ -385,6 +386,7 @@ classdef File_Wizard < handle
                             file_tree{4} = f_status_lst;
                         elseif strcmp(mode, 'remote_check')
                             
+                            old_server = struct('name', '', 's_ip', '', 'port', '');
                             for i = 1 : f_struct.loc_number
                                 f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
                                 step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
@@ -399,15 +401,22 @@ classdef File_Wizard < handle
                                 for j = 1 : length(file_name_lst)
                                     if ~f_status_lst(j)
                                         file_name = file_name_lst{j};
-                                        [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
+                                        [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % search for ?{server_name} in paths
                                         if isempty(server)
                                             this.log.addWarning(sprintf('No server is configured to download "%s"\nCheck remote_resources.ini', file_name));
                                             status = false;
                                         else
                                             server = server{1};
                                             file_name = strrep(file_name,['?{' server '}'],'');
-                                            [s_ip, port] = this.rm.getServerIp(server);
-
+                                            
+                                            if strcmp(server, old_server.name)
+                                                s_ip = old_server.s_ip;
+                                                port = old_server.port;
+                                            else
+                                                [s_ip, port] = this.rm.getServerIp(server);
+                                                old_server = struct('name', server, 's_ip', s_ip, 'port', port);
+                                            end
+                                            
                                             if instr(port,'21')
                                                 idx = this.getServerIdx(s_ip, port);
                                                 [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
@@ -438,6 +447,7 @@ classdef File_Wizard < handle
                                                 end
                                             end
                                         end
+                                        
                                     end
                                 end
                                 file_tree{5} = f_ext_lst;                                
