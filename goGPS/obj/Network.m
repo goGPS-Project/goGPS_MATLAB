@@ -557,15 +557,16 @@ classdef Network < handle
                     %ls.PAR_SAT_PPB;
                     ls.PAR_SAT_EBFR;
                     ls.PAR_SAT_EB;
-                     ls.PAR_AMB;
-                   
+                    ls.PAR_AMB;
+                    
                     ls.PAR_REC_CLK_PR;
-                   ls.PAR_SAT_CLK_PR;
-                     ls.PAR_REC_CLK_PH;
-                     ls.PAR_SAT_CLK_PH;             
-                     ];
+                    ls.PAR_SAT_CLK_PR;
+                    ls.PAR_REC_CLK_PH;
+                    ls.PAR_SAT_CLK_PH;
+                    ];
                  if reduce_iono
-                     ls.PAR_IONO;
+                     param_selection = [param_selection;
+                     ls.PAR_IONO;];
                  end
                 if this.state.flag_tropo
                     param_selection = [param_selection;
