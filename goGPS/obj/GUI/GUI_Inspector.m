@@ -53,7 +53,7 @@ classdef GUI_Inspector < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        win         % Handle to this window
+        w_main      % Handle to this window
         rec_tbl     % Handle to the table with all the receivers
         j_cmd       % Handle to the j_cmd java component
         
@@ -84,7 +84,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             % Get the persistent instance of the class
             persistent unique_instance_GUI_Inspector__
             
-            if isempty(unique_instance_GUI_Inspector__) || ~ishandle(unique_instance_GUI_Inspector__.win)
+            if isempty(unique_instance_GUI_Inspector__) || ~ishandle(unique_instance_GUI_Inspector__.w_main)
                 this = GUI_Inspector();
                 unique_instance_GUI_Inspector__ = this;
             else
@@ -119,7 +119,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'Position', [0 0 1040, 640], ...
                 'Resize', 'on');
             
-            this.win = win;
+            this.w_main = win;
             
             if isunix && not(ismac())
                  % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
@@ -268,12 +268,12 @@ classdef GUI_Inspector < GUI_Unique_Win
             % Manage dimension ----------------------------------------------------------------------------------------
             
                         
-            this.win.Visible = 'on';    
+            this.w_main.Visible = 'on';    
         end
         
         function close(this)
-            if ~isempty(this.win) && ishandle(this.win)
-                close(this.win);
+            if ~isempty(this.w_main) && ishandle(this.w_main)
+                close(this.w_main);
             end
         end
     end
