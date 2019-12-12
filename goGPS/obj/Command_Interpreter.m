@@ -2159,7 +2159,7 @@ classdef Command_Interpreter < handle
                                 fh_list = [fh_list; trg.showSNR_z(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OSTAT.par ')*$'], 'once'))
-                                fh_list = [fh_list; trg.showOSTATs()]; %#ok<AGROW>
+                                fh_list = [fh_list; trg.showObsStats()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;                                
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PSTAT.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showProcessingQualityInfo()]; %#ok<AGROW>
