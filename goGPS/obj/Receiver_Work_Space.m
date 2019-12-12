@@ -4178,7 +4178,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             time = this.time;
             l = time.length;
             
-            if isempty(this.meteo_data)
+            if (flag == 3) && isempty(this.meteo_data)
                 flag = 1;
             end
             switch flag

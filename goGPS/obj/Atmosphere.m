@@ -1126,7 +1126,7 @@ classdef Atmosphere < handle
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
-        function [pres,temp,undu] = gpt(this, gps_time, dlat, dlon, dhgt, undu)
+        function [pres, temp, undu] = gpt(this, gps_time, dlat, dlon, dhgt, undu)
             % This subroutine determines Global Pressure and Temperature
             % based on Spherical Harmonics up to degree and order 9
             %
