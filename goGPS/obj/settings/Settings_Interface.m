@@ -47,11 +47,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Settings_Interface < Exportable
-    properties (SetAccess = protected, GetAccess = protected)
-        log; % Handler to the log object
-    end
-
+classdef Settings_Interface < Exportable    
     properties (Abstract)
     end
 
@@ -67,12 +63,6 @@ classdef Settings_Interface < Exportable
     end
 
     methods (Access = 'public')
-        function initLogger(this)
-            % Init the log object
-            % SYNTAX: this.initLogger();
-            this.log = Logger.getInstance();
-        end
-
         function ini = save(this, file_path)
             % Save to a file (in INI fomat) the content of the Settings object
             % SYNTAX: <ini> = this.save(file_path);
@@ -197,7 +187,7 @@ classdef Settings_Interface < Exportable
             if (~isempty(field_val)) && (~isnan(field_val))
                 checked_val = logical(field_val);
             else
-                this.log.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
+                Core.getLogger.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
             end
         end
 
@@ -254,16 +244,17 @@ classdef Settings_Interface < Exportable
                         checked_val = field_val;
                     end
                 end
-
+                
                 if isempty(field_val) || ~any(strcmp(checked_val, field_val))
+                    log = Core.getLogger();
                     if check_existence > 1 || ~empty_is_valid
                         if iscell(checked_val)
-                            this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, Ini_Manager.strCell2Str(checked_val)));
+                            log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, Ini_Manager.strCell2Str(checked_val)));
                         else
-                            this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, checked_val));
+                            log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default: "%s"', iif(isempty(field_val), '<empty>', field_val), field_name, checked_val));
                         end
                     else
-                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', iif(isempty(field_val), '<empty>', field_val), field_name));
+                        log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', iif(isempty(field_val), '<empty>', field_val), field_name));
                     end
                 end
             end
@@ -275,6 +266,7 @@ classdef Settings_Interface < Exportable
             % SYNTAX
             %   checked_val = this.checkNumericField(string_variable_name, value, default_value, <limits>, <valid_values>);
             checked_val = default_val;
+            log = Core.getLogger();
             if isnumeric(field_val) && (~isempty(field_val)) && (any(~isnan(field_val)))
                 checked_val = field_val;
                 % if I have limits to check => check for out of bound
@@ -282,16 +274,16 @@ classdef Settings_Interface < Exportable
                     if (nargin >= 5) && (numel(limits) == 2) && ...
                             ((checked_val(i) > limits(2)) || (checked_val(i) < limits(1)))
                         checked_val(i) = max(limits(1), min(limits(2), checked_val(i)));
-                        this.log.addWarning(sprintf('The value %g of the settings field %s is not within the valid limits (%g .. %g) => updating it to %g', field_val(i), field_name, limits(1),limits(2), checked_val(i)));
+                        log.addWarning(sprintf('The value %g of the settings field %s is not within the valid limits (%g .. %g) => updating it to %g', field_val(i), field_name, limits(1),limits(2), checked_val(i)));
                     end
                     % if I have a set of values => check for set intersection
                     if (nargin >= 6) && (~isempty(valid_val)) && (~ismember(checked_val(i), valid_val))
                         checked_val(i) = default_val;
-                        this.log.addWarning(sprintf('The value %g for the settings field %s is not valid => using default %g. It should be one of: %s', field_val(i), field_name, checked_val(i), sprintf('%g ', valid_val)));
+                        log.addWarning(sprintf('The value %g for the settings field %s is not valid => using default %g. It should be one of: %s', field_val(i), field_name, checked_val(i), sprintf('%g ', valid_val)));
                     end
                 end
             else
-                this.log.addWarning(sprintf('The settings field %s is not valid => using default [%s ]', field_name, sprintf(' %g', checked_val)));
+                log.addWarning(sprintf('The settings field %s is not valid => using default [%s ]', field_name, sprintf(' %g', checked_val)));
             end
         end
     end
@@ -305,9 +297,10 @@ classdef Settings_Interface < Exportable
             % test the class (Interface Routines)
             % SINTAX: this.testInterfaceRoutines();
 
-            %try
-                vl = this.log.getVerbosityLev();
-                this.log.setVerbosityLev(1e3);
+            log = Core.getLogger;
+            try
+                vl = log.getVerbosityLev();
+                log.setVerbosityLev(1e3);
                 test = this;
                 raw_data = test.export();
 
@@ -321,10 +314,11 @@ classdef Settings_Interface < Exportable
                 fprintf('\n');
                 disp(test.toString());
                 %delete('test__.ini');
-            %catch ex
-            %    this.log.addError(['Test failed: ' ex.message]);
-            %end
-            this.log.setVerbosityLev(vl);
+            catch ex
+                log.addError(['Test failed: ' ex.message]);
+                Core_Utils.printEx(ex);
+            end
+            log.setVerbosityLev(vl);
         end
     end
 end

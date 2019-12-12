@@ -106,18 +106,16 @@ classdef Core < handle
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Core()
-            % Core object creator
-                        
-            % init logger
-            this.log = Logger.getInstance();            
+            % Core object creator                        
+            this.initSimpleHandlers();
         end
     end
     
     methods (Access = private)
         function delete(this)
             if ~isempty(this.log_gui)
-                if ishandle(this.log_gui.win)
-                    close(this.log_gui.win);
+                if ishandle(this.log_gui.w_main)
+                    close(this.log_gui.w_main);
                 end
             end
         end
@@ -341,10 +339,10 @@ classdef Core < handle
             end
             core = Core.getInstance(false, true);
             msg_gui = core.log_gui;
-            if isempty(msg_gui) || ~ishandle(msg_gui.win)
+            if isempty(msg_gui) || ~ishandle(msg_gui.w_main)
                 msg_gui = GUI_Msg.getInstance();
                 core.log_gui = msg_gui;
-            elseif flag_reset && ishandle(msg_gui.win)
+            elseif flag_reset && ishandle(msg_gui.w_main)
                 msg_gui.clear();
             end
         end
@@ -668,7 +666,7 @@ classdef Core < handle
             if nargin < 2
                 force_clean = false;
             end        
-            this.log.setOutMode([], false);
+            this.log.setOutMode([], false, []);
             this.initLocalPath();
             
             if ispc, fclose('all'); end
@@ -734,7 +732,7 @@ classdef Core < handle
             %   this.initSimpleHandlers()
             
             this.log = Logger.getInstance;
-            this.log.setOutMode([], false);
+            this.log.setOutMode([], false, []);
             if ispc, fclose('all'); end
             this.w_bar = Go_Wait_Bar.getInstance(100, 'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.cmd = Command_Interpreter(this);
@@ -808,7 +806,7 @@ classdef Core < handle
 
             this.initConfiguration(); % Set up / download observations and navigational files
             this.log.addMessage('Conjuring all the auxiliary files...');
-            rin_list = this.getRinFileList();
+            rin_list = this.getRinFileList(); %#ok<NASGU>
             
             fw = File_Wizard;
             %c_mode = this.log.getColorMode();
@@ -819,7 +817,7 @@ classdef Core < handle
                 [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
                 time_lim_large.append(buff_lim.getEpoch(2));
             else
-              [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+              [~, time_lim_large] = this.getRecTimeSpan();
             end
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             %this.log.setColorMode(c_mode);
@@ -1141,6 +1139,29 @@ classdef Core < handle
                 level = 1;
             end
             
+            % Struct containing all the possible error codes coming from missing resources:
+            err_code = struct('go', 0, ...
+                'home', 0, ...
+                'obs', 0, ...
+                'obs_f', 0, ...
+                'crd', 0, ...
+                'met', 0, ...
+                'met_f', 0, ...
+                'ocean', 0, ...
+                'atx', 0, ...
+                'atx_f', 0, ...
+                'hoi', 0, ...
+                'eph', 0, ...
+                'clk', 0, ...
+                'erp', 0, ...
+                'crx', 0, ...
+                'dcb', 0, ...
+                'ems', 0, ...
+                'geoid', 0, ...
+                'iono', 0, ...
+                'igrf', 0, ...
+                'vmf', 0);
+            
             this.log.addMessage('Checking input files and folders...');
             this.log.newLine();
             
@@ -1154,68 +1175,8 @@ classdef Core < handle
                 err_code.home = 0;
                 err_code.obs = 0;
             end
-            
-            if (level == 1) || (level > 10)
-                [n_ok, n_ko] = this.checkRinFileList();
-                if sum(n_ok) > 0
-                    if sum(n_ko) > 0
-                        if flag_verbose
-                            this.log.addWarning('Some observation files are missing');
-                        end
-                        err_code.obs_f = sum(n_ko);
-                    else
-                        if flag_verbose
-                            this.log.addStatusOk('Observation rinex are present');
-                        end
-                        err_code.obs_f = 0;
-                    end
-                else
-                    if flag_verbose
-                        this.log.addError('Observation files are missing!!!');
-                    end
-                    err_code.obs_f = -sum(n_ko);
-                end
-            end
-            
+                        
             err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
-            
-            if (level < 5) || (level > 10)
-                if this.state.isMet()
-                    err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
-                    
-                    if (level == 1) || (level > 10)
-                        %[n_ok, n_ko] = this.checkMetFileList();
-                        [n_ok, n_ko] = this.checkFileList(this.state.met_dir, this.state.met_name, [], 0);
-                        if sum(n_ok) > 0
-                            if sum(n_ko) > 0
-                                if flag_verbose
-                                    this.log.addWarning('Some met files are missing');
-                                end
-                                err_code.obs_f = sum(n_ko);
-                            else
-                                if flag_verbose
-                                    this.log.addStatusOk('Met rinex are present');
-                                end
-                                err_code.obs_f = 0;
-                            end
-                        else
-                            if flag_verbose
-                                this.log.addError('Met files are missing!!!');
-                            end
-                            err_code.obs_f = -sum(n_ko);
-                        end
-                    else
-                        err_code.obs_f = 0;
-                    end
-                else
-                    if flag_verbose
-                        this.log.addStatusDisabled('Meteorological data not requested');
-                    end
-                    err_code.met = 0;
-                end
-            else
-                err_code.obs_f = 0;
-            end
             
             if state.isOceanLoading
                 err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
@@ -1285,12 +1246,93 @@ classdef Core < handle
                 err_code.vmf = 0; % Who cares?                
             end
             
+            % Checking folder that are not created in conjure phase
+            err_code.go = err_code.home + ...
+                err_code.obs + ...
+                (err_code.obs_f < 0) + ...
+                err_code.met + (err_code.met_f < 0) + ...
+                err_code.atx + err_code.atx_f +  ...
+                err_code.hoi * state.isHOI;
+            
+            if ~(err_code.go)
+                if (level < 5) || (level > 10)
+                    if this.state.isMet()
+                        err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
+                        
+                        if (level == 1) || (level > 10)
+                            %[n_ok, n_ko] = this.checkMetFileList();
+                            [n_ok, n_ko] = this.checkFileList(this.state.met_dir, this.state.met_name, [], 0);
+                            if sum(n_ok) > 0
+                                if sum(n_ko) > 0
+                                    if flag_verbose
+                                        this.log.addWarning('Some met files are missing');
+                                    end
+                                    err_code.met_f = sum(n_ko);
+                                else
+                                    if flag_verbose
+                                        this.log.addStatusOk('Met rinex are present');
+                                    end
+                                    err_code.met_f = 0;
+                                end
+                            else
+                                if flag_verbose
+                                    this.log.addError('Met files are missing!!!');
+                                end
+                                err_code.met_f = min(-1, -sum(n_ko));
+                            end
+                        else
+                            err_code.met_f = 0;
+                        end
+                    else
+                        if flag_verbose
+                            this.log.addStatusDisabled('Meteorological data not requested');
+                        end
+                        err_code.met = 0;
+                    end
+                else
+                    err_code.met_f = 0;
+                end
+            end
+            
+            % Checking folder that are not created in conjure phase
+            err_code.go = err_code.home + ...
+                err_code.obs + ...
+                (err_code.obs_f < 0) + ...
+                err_code.met + (err_code.met_f < 0) + ...
+                err_code.atx + err_code.atx_f +  ...
+                err_code.hoi * state.isHOI;
+            
+            if ~(err_code.go)
+                if (level == 1) || (level > 10)
+                    [n_ok, n_ko] = this.checkRinFileList();
+                    if sum(n_ok) > 0
+                        if sum(n_ko) > 0
+                            if flag_verbose
+                                this.log.addWarning('Some observation files are missing');
+                            end
+                            err_code.obs_f = sum(n_ko);
+                        else
+                            if flag_verbose
+                                this.log.addStatusOk('Observation rinex are present');
+                            end
+                            err_code.obs_f = 0;
+                        end
+                    else
+                        if flag_verbose
+                            this.log.addError('Observation files are missing!!!');
+                        end
+                        err_code.obs_f = min(-1, -sum(n_ko));
+                    end
+                end
+            end
+            
             this.log.newLine();
             
             % Checking folder that are not created in conjure phase
             err_code.go = err_code.home + ...
                 err_code.obs + ...
                 (err_code.obs_f < 0) + ...
+                err_code.met + (err_code.met_f < 0) + ...
                 err_code.atx + err_code.atx_f +  ...
                 err_code.hoi * state.isHOI;
         end
