@@ -4829,11 +4829,11 @@ classdef GNSS_Station < handle
 
                     if n_entry < 50
                         if ~sub_plot_nsat
-                            [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                            [~, icons] = legend(outm, 'Location', 'NorthEast', 'interpreter', 'none');
                         else
                             loc = 'SouthWest';
                             if n_entry > 11
-                                loc = 'NorthWestOutside';
+                                loc = 'NorthWest';
                             end
                             [~, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
                         end

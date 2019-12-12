@@ -134,13 +134,16 @@ classdef Command_Interpreter < handle
         PAR_S_CKW       % Clock Error of the last session
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_SNRI      % SNR Signal to Noise Ratio with Zerniche interpolation
-        PAR_S_OBSSTAT   % Observation statistics
+        PAR_S_OSTAT   % Observation statistics
+        PAR_S_PSTAT     % Processing statistics
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
         PAR_S_RES       % Residuals cartesian
         PAR_S_RES_PSAT  % Residuals satellite per satellite
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
+        PAR_S_NSAT      % N. of satellites seen per epoch
+        PAR_S_NSATSS    % N. of satellites seen constelation by constellation
         PAR_S_ZTD       % ZTD
         PAR_S_ZHD       % ZHD
         PAR_S_ZWD       % ZWD
@@ -426,12 +429,19 @@ classdef Command_Interpreter < handle
             this.PAR_S_SNRI.limits = [];
             this.PAR_S_SNRI.accepted_values = [];
 
-            this.PAR_S_OBSSTAT.name = 'OBS_STAT Observation statistics';
-            this.PAR_S_OBSSTAT.descr = 'OBS_STAT           Observation stat (last session)';
-            this.PAR_S_OBSSTAT.par = '(obs_stat)|(OBS_STAT)';
-            this.PAR_S_OBSSTAT.class = '';
-            this.PAR_S_OBSSTAT.limits = [];
-            this.PAR_S_OBSSTAT.accepted_values = [];
+            this.PAR_S_OSTAT.name = 'Observation statistics';
+            this.PAR_S_OSTAT.descr = 'OSTAT              Observation stats (last session)';
+            this.PAR_S_OSTAT.par = '(ostat)|(OSTAT)|(o_stat)|(O_STAT)|(obs_stat)|(OBS_STAT)';
+            this.PAR_S_OSTAT.class = '';
+            this.PAR_S_OSTAT.limits = [];
+            this.PAR_S_OSTAT.accepted_values = [];
+
+            this.PAR_S_PSTAT.name = 'Processing statistics';
+            this.PAR_S_PSTAT.descr = 'PSTAT              Processing stats (multi-session)';
+            this.PAR_S_PSTAT.par = '(pstat)|(PSTAT)|(p_stat)|(P_STAT)|(pro_stat)|(PRO_STAT)';
+            this.PAR_S_PSTAT.class = '';
+            this.PAR_S_PSTAT.limits = [];
+            this.PAR_S_PSTAT.accepted_values = [];
             
             this.PAR_S_OCS.name = 'Outliers and cycle slips';
             this.PAR_S_OCS.descr = 'OCS                Outliers and cycle slips';
@@ -474,6 +484,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_SKYP.class = '';
             this.PAR_S_RES_SKYP.limits = [];
             this.PAR_S_RES_SKYP.accepted_values = [];
+
+            this.PAR_S_NSAT.name = 'Number of satellites used per epoch';            
+            this.PAR_S_NSAT.descr = 'NSAT               Number of satellite used (multi-receiver)';
+            this.PAR_S_NSAT.par = '(nsat)|(NSAT)';
+            this.PAR_S_NSAT.class = '';
+            this.PAR_S_NSAT.limits = [];
+            this.PAR_S_NSAT.accepted_values = [];
+
+            this.PAR_S_NSATSS.name = 'Number of satellites used per epoch System by Syste';            
+            this.PAR_S_NSATSS.descr = 'NSATSS             Number of satellite used (sys by sys)';
+            this.PAR_S_NSATSS.par = '(nsatss)|(NSATSS)';
+            this.PAR_S_NSATSS.class = '';
+            this.PAR_S_NSATSS.limits = [];
+            this.PAR_S_NSATSS.accepted_values = [];
 
             this.PAR_S_ZTD.name = 'ZTD';
             this.PAR_S_ZTD.descr = 'ZTD                Zenith Total Delay';
@@ -709,7 +733,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OBSSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -2063,6 +2087,12 @@ classdef Command_Interpreter < handle
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PTH.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showPTH()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_NSAT.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showNSat()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_NSATSS.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showNSatSS()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showZtd()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
@@ -2128,8 +2158,11 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNRI.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showSNR_z(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OBSSTAT.par ')*$'], 'once'))
-                                fh_list = [fh_list; trg.showObsStats()]; %#ok<AGROW>
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OSTAT.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.showOSTATs()]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;                                
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PSTAT.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.showProcessingQualityInfo()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;                                
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
