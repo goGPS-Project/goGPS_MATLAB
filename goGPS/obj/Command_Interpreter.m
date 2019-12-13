@@ -124,7 +124,9 @@ classdef Command_Interpreter < handle
         PAR_S_ALL       % show all plots
         PAR_S_DA        % Data availability
         PAR_S_ENU       % ENU positions
+        PAR_S_PUP       % EN U positions (Planar Up)
         PAR_S_ENUBSL    % Baseline ENU positions
+        PAR_S_PUPBSL    % Baseline EN U positions (Planar Up)
         PAR_S_XYZ       % XYZ positions
         PAR_S_MAP       % positions on map GoogleMaps background
         PAR_S_MAPG      % positions on map GoogleMaps background
@@ -134,7 +136,7 @@ classdef Command_Interpreter < handle
         PAR_S_CKW       % Clock Error of the last session
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_SNRI      % SNR Signal to Noise Ratio with Zerniche interpolation
-        PAR_S_OSTAT   % Observation statistics
+        PAR_S_OSTAT      % Observation statistics
         PAR_S_PSTAT     % Processing statistics
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
@@ -144,6 +146,7 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_NSAT      % N. of satellites seen per epoch
         PAR_S_NSATSS    % N. of satellites seen constelation by constellation
+        PAR_S_NSATSSS   % N. of satellites seen constelation by constellation (smooth)
         PAR_S_ZTD       % ZTD
         PAR_S_ZHD       % ZHD
         PAR_S_ZWD       % ZWD
@@ -359,12 +362,26 @@ classdef Command_Interpreter < handle
             this.PAR_S_ENU.limits = [];
             this.PAR_S_ENU.accepted_values = [];
 
+            this.PAR_S_PUP.name = 'Planar Up positions';
+            this.PAR_S_PUP.descr = 'PUP                Planar Up positions';
+            this.PAR_S_PUP.par = '(PUP)|(pup)';
+            this.PAR_S_PUP.class = '';
+            this.PAR_S_PUP.limits = [];
+            this.PAR_S_PUP.accepted_values = [];
+
             this.PAR_S_ENUBSL.name = 'ENU baseline';
             this.PAR_S_ENUBSL.descr = 'ENUBSL             East Nord Up baseline';
             this.PAR_S_ENUBSL.par = '(ENUBSL)|(enu_base)';
             this.PAR_S_ENUBSL.class = '';
             this.PAR_S_ENUBSL.limits = [];
             this.PAR_S_ENUBSL.accepted_values = [];
+
+            this.PAR_S_PUPBSL.name = 'Planar Up baseline';
+            this.PAR_S_PUPBSL.descr = 'PUPBSL             Planar Up baseline';
+            this.PAR_S_PUPBSL.par = '(PUPBSL)|(pup_base)';
+            this.PAR_S_PUPBSL.class = '';
+            this.PAR_S_PUPBSL.limits = [];
+            this.PAR_S_PUPBSL.accepted_values = [];
 
             this.PAR_S_XYZ.name = 'XYZ positions';
             this.PAR_S_XYZ.descr = 'XYZ                XYZ Earth Fixed Earth centered positions';
@@ -492,12 +509,19 @@ classdef Command_Interpreter < handle
             this.PAR_S_NSAT.limits = [];
             this.PAR_S_NSAT.accepted_values = [];
 
-            this.PAR_S_NSATSS.name = 'Number of satellites used per epoch System by Syste';            
+            this.PAR_S_NSATSS.name = 'Number of satellites used per epoch System by System';            
             this.PAR_S_NSATSS.descr = 'NSATSS             Number of satellite used (sys by sys)';
             this.PAR_S_NSATSS.par = '(nsatss)|(NSATSS)';
             this.PAR_S_NSATSS.class = '';
             this.PAR_S_NSATSS.limits = [];
             this.PAR_S_NSATSS.accepted_values = [];
+            
+            this.PAR_S_NSATSSS.name = 'Number of satellites used per epoch System by System (smooth)';            
+            this.PAR_S_NSATSSS.descr = 'NSATSSS            Smoothed number of satellite used (sys by sys)';
+            this.PAR_S_NSATSSS.par = '(nsatsss)|(NSATSSS)';
+            this.PAR_S_NSATSSS.class = '';
+            this.PAR_S_NSATSSS.limits = [];
+            this.PAR_S_NSATSSS.accepted_values = [];
 
             this.PAR_S_ZTD.name = 'ZTD';
             this.PAR_S_ZTD.descr = 'ZTD                Zenith Total Delay';
@@ -569,8 +593,8 @@ classdef Command_Interpreter < handle
             this.PAR_E_CORE_MAT.limits = [];
             this.PAR_E_CORE_MAT.accepted_values = {};
             
-            this.PAR_E_PLAIN_MAT.name = 'Output inplain MATLAB format';
-            this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT          Save the core as .mat file';
+            this.PAR_E_PLAIN_MAT.name = 'Output in plain MATLAB format';
+            this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT          Save the receiver as plain .mat files (no objects)';
             this.PAR_E_PLAIN_MAT.par = '(plain_mat)|(PLAIN_MAT)';
             this.PAR_E_PLAIN_MAT.class = '';
             this.PAR_E_PLAIN_MAT.limits = [];
@@ -733,12 +757,12 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_PSAT this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
-            this.CMD_EXPORT.name = {'EXPORT', 'export', 'export'};
+            this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_COO_CSV this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -2090,8 +2114,11 @@ classdef Command_Interpreter < handle
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_NSAT.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showNSat()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_NSATSSS.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showNSatSS(true)]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_NSATSS.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showNSatSS()]; %#ok<AGROW>
+                            fh_list = [fh_list; trg.showNSatSS(false)]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showZtd()]; %#ok<AGROW>
@@ -2117,8 +2144,12 @@ classdef Command_Interpreter < handle
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENUBSL.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showBaselineENU()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUPBSL.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showBaselinePlanarUp()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         end                        
                     catch ex
+                        Core_Utils.printEx(ex);
                         this.log.addError(sprintf('%s',ex.message));
                     end
                 end
@@ -2142,6 +2173,9 @@ classdef Command_Interpreter < handle
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUP.par ')*$'], 'once'))
+                                fh_list = [fh_list; trg.showPositionPlanarUp()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
                                 fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
@@ -2186,7 +2220,7 @@ classdef Command_Interpreter < handle
                                 fh_list = [fh_list; trg.showZtdSlantRes_p()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             end
-                        catch ex
+                        catch ex                            
                             Core.getLogger.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
                             Core_Utils.printEx(ex);
                         end
@@ -2255,12 +2289,13 @@ classdef Command_Interpreter < handle
                     do_not_complain = true;
                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_PLAIN_MAT.par ')*$'], 'once'))
                     rec(id_trg).exportPlainMat();
+                    found_trg = false;
                     do_not_complain = true;
                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                     if sss_lev == 0 % run on all the results (out)
-                        rec(id_trg).exportCRD('out');
+                        rec.exportCRD('out');
                     else % run in single session mode (work)
-                        rec(id_trg).exportCRD('work');
+                        rec.exportCRD('work');
                     end
                     flag_crd = true;
                 end
@@ -2339,6 +2374,7 @@ classdef Command_Interpreter < handle
                             end
                             
                         catch ex
+                            Core_Utils.printEx(ex);
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
                         end
                     end
