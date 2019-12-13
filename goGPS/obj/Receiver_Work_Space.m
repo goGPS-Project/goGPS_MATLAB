@@ -6478,8 +6478,13 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function remDtSat(this)
             if this.dts_delay_status == 1
-                this.applyDtSatFlag(-1);
-                this.dts_delay_status = 0; %applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, dt sat cannot be correctly computed');
+                else
+                    this.applyDtSatFlag(-1);
+                    this.dts_delay_status = 0; %applied
+                end
             end
         end
         
@@ -7358,7 +7363,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applySolidEarthTide(this)
             if this.et_delay_status == 0 && this.state.isSolidEarth
                 this.log.addMarkedMessage('Applying Solid Earth Tide corrections');
-                this.solidEarthTide(1);
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Solid Earth Tides cannot be correctly computed');
+                else
+                    this.solidEarthTide(1);
+                end
                 this.et_delay_status = 1; %applied
             end
         end
@@ -7366,7 +7376,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         function remSolidEarthTide(this)
             if this.et_delay_status == 1
                 this.log.addMarkedMessage('Removing Solid Earth Tide corrections');
-                this.solidEarthTide(-1);
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Solid Earth Tides cannot be correctly computed');
+                else
+                    this.solidEarthTide(-1);
+                end
                 this.et_delay_status = 0; %not applied
             end
         end
@@ -7515,16 +7530,27 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyOceanLoading(this)
             if this.ol_delay_status == 0 && this.state.isOceanLoading
                 this.log.addMarkedMessage('Applying Ocean Loading corrections');
-                this.oceanLoading(1);
-                this.ol_delay_status = 1; %applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Ocean Loading cannot be correctly computed');
+                else
+                    this.oceanLoading(1);
+                    this.ol_delay_status = 1; %applied
+                end
             end
         end
         
         function remOceanLoading(this)
             if this.ol_delay_status == 1
                 this.log.addMarkedMessage('Removing Ocean Loading corrections');
-                this.oceanLoading(-1);
-                this.ol_delay_status = 0; %not applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Ocean Loading cannot be correctly computed');
+                else
+                    this.oceanLoading(1);
+                    this.oceanLoading(-1);
+                    this.ol_delay_status = 0; %not applied
+                end
             end
         end                
         
@@ -7912,7 +7938,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyPhaseWindUpCorr(this)
             if this.pw_delay_status == 0 && this.state.isPhaseWind
                 this.log.addMarkedMessage('Applying Phase Wind Up corrections');
-                this.phaseWindUpCorr(1);
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Phase Wind Up cannot be correctly computed');
+                else
+                    this.phaseWindUpCorr(1);
+                end
                 this.pw_delay_status = 1; %applied
             end
         end
@@ -7920,8 +7951,13 @@ classdef Receiver_Work_Space < Receiver_Commons
         function remPhaseWindUpCorr(this)
             if this.pw_delay_status == 1
                 this.log.addMarkedMessage('Removing Phase Wind Up corrections');
-                this.phaseWindUpCorr(-1);
-                this.pw_delay_status = 0; %not applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Phase Wind Up cannot be correctly computed');
+                else
+                    this.phaseWindUpCorr(-1);
+                    this.pw_delay_status = 0; %not applied
+                end
             end
         end
         
@@ -8005,16 +8041,26 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyShDelay(this)
             if this.sh_delay_status == 0 && this.state.isShapiro
                 this.log.addMarkedMessage('Applying Shapiro delay corrections');
-                this.shDelay(1);
-                this.sh_delay_status = 1; %applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Shapiro delay cannot be correctly computed');
+                else
+                    this.shDelay(1);
+                    this.sh_delay_status = 1; %applied
+                end
             end
         end
         
         function remShDelay(this)
             if this.sh_delay_status == 1
                 this.log.addMarkedMessage('Removing Shapiro delay corrections');
-                this.shDelay(-1);
-                this.sh_delay_status = 0; %not applied
+                sky = Core.getCoreSky;
+                if sky.isEmpty
+                    Core.getLogger.addError('Core_Sky is not loaded, Shapiro delay cannot be correctly computed');
+                else
+                    this.shDelay(-1);
+                    this.sh_delay_status = 0; %not applied
+                end
             end
         end
         
@@ -8064,63 +8110,67 @@ classdef Receiver_Work_Space < Receiver_Commons
             % antenna and satellite antenna
             cs = Core.getCoreSky;
             
-            if ~isempty(this.ant)
-                this.obs = this.obs';  % Transpose for speed-up
-                % this.updateAllAvailIndex(); % not needed?
-                % getting sat - receiver vector for each epoch
-                XR_sat = - this.getXSLoc();
-                
-                % Receiver PCV correction
-                
-                if ~isempty(this.ant) && this.state.isRecPCV()
-                    f_code_cache = []; % save f_code checked to print only one time the warning message
-                    pco_cache = {}; % PCO cache
-                    f_id_cache = [];
-                    c = 0; % cache counter
-                    for s = unique(this.go_id)'
-                        sat_idx = this.sat.avail_index(:, s);
-                        el = this.sat.el(sat_idx, s);
-                        az = this.sat.az(sat_idx, s);
-                        % Extract ENU component of the PCV
-                        neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
-                        obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
-                        obs_idx = obs_idx & this.go_id == s;
-                        if sum(obs_idx) > 0 && (~this.ant.isEmpty)
-                            freqs = unique(str2num(this.obs_code(obs_idx, 2)));
-                            for f = freqs'
-                                obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                                sys = this.system(obs_idx_f);
-                                f_code = [sys(1) sprintf('%02d',f)];
-                                
-                                if isempty(f_code_cache) || ~sum(strLineMatch(f_code_cache, f_code))
-                                    % if not in cache
-                                    % cache is also used to avoid multiple warnings for the same frequency
-                                    [pco, f_id] = this.getPCO(f_code);
-                                    c = c + 1;
-                                    pco_cache{c} = pco; %#ok<AGROW>
-                                    f_id_cache = [f_id_cache; f_id]; %#ok<AGROW>
-                                    f_code_cache = [f_code_cache; f_code]; %#ok<AGROW>
-                                    if isempty(pco)
-                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
+            if cs.isEmpty
+                Core.getLogger.addError('Core_Sky is not loaded, PCV cannot be used');
+            else                
+                if ~isempty(this.ant)
+                    this.obs = this.obs';  % Transpose for speed-up
+                    % this.updateAllAvailIndex(); % not needed?
+                    % getting sat - receiver vector for each epoch
+                    XR_sat = - this.getXSLoc();
+                    
+                    % Receiver PCV correction
+                    
+                    if ~isempty(this.ant) && this.state.isRecPCV()
+                        f_code_cache = []; % save f_code checked to print only one time the warning message
+                        pco_cache = {}; % PCO cache
+                        f_id_cache = [];
+                        c = 0; % cache counter
+                        for s = unique(this.go_id)'
+                            sat_idx = this.sat.avail_index(:, s);
+                            el = this.sat.el(sat_idx, s);
+                            az = this.sat.az(sat_idx, s);
+                            % Extract ENU component of the PCV
+                            neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                            obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                            obs_idx = obs_idx & this.go_id == s;
+                            if sum(obs_idx) > 0 && (~this.ant.isEmpty)
+                                freqs = unique(str2num(this.obs_code(obs_idx, 2)));
+                                for f = freqs'
+                                    obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                    sys = this.system(obs_idx_f);
+                                    f_code = [sys(1) sprintf('%02d',f)];
+                                    
+                                    if isempty(f_code_cache) || ~sum(strLineMatch(f_code_cache, f_code))
+                                        % if not in cache
+                                        % cache is also used to avoid multiple warnings for the same frequency
+                                        [pco, f_id] = this.getPCO(f_code);
+                                        c = c + 1;
+                                        pco_cache{c} = pco; %#ok<AGROW>
+                                        f_id_cache = [f_id_cache; f_id]; %#ok<AGROW>
+                                        f_code_cache = [f_code_cache; f_code]; %#ok<AGROW>
+                                        if isempty(pco)
+                                            this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
+                                        end
+                                    else
+                                        %  get from cache
+                                        id_cache = strLineMatch(f_code_cache, f_code);
+                                        pco = pco_cache{id_cache};
+                                        f_id = f_id_cache(id_cache);
                                     end
-                                else
-                                    %  get from cache
-                                    id_cache = strLineMatch(f_code_cache, f_code);
-                                    pco = pco_cache{id_cache};
-                                    f_id = f_id_cache(id_cache);
-                                end
-                                
-                                if ~isempty(pco)
-                                    % get los PCO component
-                                    pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
-                                    pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
-                                    for o = find(obs_idx_f)'
-                                        pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
-                                        o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections
-                                        if  this.obs_code(o, 1) == 'L'
-                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
-                                        else
-                                            this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
+                                    
+                                    if ~isempty(pco)
+                                        % get los PCO component
+                                        pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
+                                        pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
+                                        for o = find(obs_idx_f)'
+                                            pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
+                                            o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections
+                                            if  this.obs_code(o, 1) == 'L'
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
+                                            else
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
+                                            end
                                         end
                                     end
                                 end
@@ -10687,6 +10737,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.w_bar.go(e);
             end
             fclose(fid);
+            log = Core.getLogger();
             log.newLine()
             log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
         end
@@ -11194,19 +11245,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
                 nans = zero2nan(double(~rec.getMissingEpochs()));
-                plot(t, rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
+                Core_Utils.plotSep(t, rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
                 hold on;
-                plot(t, rec.getDtPr .* nans(this.getIdSync), ':', 'LineWidth', 2);
-                plot(t, rec.getDtPh .* nans(this.getIdSync), ':', 'LineWidth', 2);
-                plot(t, (rec.getDtPrePro - rec.getDtPr) .* nans(this.getIdSync), '-', 'LineWidth', 2);
-                plot(t, rec.getDtPrePro .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                Core_Utils.plotSep(t, rec.getDtPr .* nans(this.getIdSync), ':', 'LineWidth', 2);
+                Core_Utils.plotSep(t, rec.getDtPh .* nans(this.getIdSync), ':', 'LineWidth', 2);
+                Core_Utils.plotSep(t, (rec.getDtPrePro - rec.getDtPr) .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                Core_Utils.plotSep(t, rec.getDtPrePro .* nans(this.getIdSync), '-', 'LineWidth', 2);
                 if any(rec.getDt) || any(rec.getDtPh)
                     if any(rec.getDt)
-                        plot(t, (rec.getDt + rec.getDtPh) .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, (rec.getDt + rec.getDtPh) .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     else
-                        plot(t, rec.getDtPh .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, rec.getDtPh .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     end
-                    plot(t, rec.getTotalDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                    Core_Utils.plotSep(t, rec.getTotalDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from last step', 'total dt', 'Location', 'NorthEastOutside');
                 else
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from last step', 'Location', 'NorthEastOutside');

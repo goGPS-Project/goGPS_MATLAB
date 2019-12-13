@@ -1032,11 +1032,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
-        function fh_list = showPositionENU(this, one_plot)
-            % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionENU();
+        function fh_list = showPositionENU(this, flag_one_plot)
+            % Plot East North Up coordinates of the receiver
+            %
+            % SYNTAX 
+            %   this.plotPositionENU(flag_one_plot);
             if nargin == 1
-                one_plot = false;
+                flag_one_plot = false;
             end
             
             fh_list = [];
@@ -1044,8 +1046,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(xyz, 1) > 1
-                        
+                    if size(xyz, 1) > 1                        
                         rec(1).log.addMessage('Plotting positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
@@ -1062,7 +1063,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
-                        if ~one_plot, subplot(3,1,1); end
+                        if ~flag_one_plot, subplot(3,1,1); end
                         plot(t, (1e2 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         ax(3) = gca();
                         if (t(end) > t(1))
@@ -1071,7 +1072,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         setTimeTicks(4); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('Position stability of the receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                        if ~one_plot, subplot(3,1,2); end
+                        if ~flag_one_plot, subplot(3,1,2); end
                         plot(t, (1e2 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca();
                         if (t(end) > t(1))
@@ -1080,7 +1081,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         setTimeTicks(4); h = ylabel('North [cm]'); h.FontWeight = 'bold';
                         h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,2)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if ~one_plot, subplot(3,1,3); end
+                        if ~flag_one_plot, subplot(3,1,3); end
                         plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca();
                         if (t(end) > t(1))
@@ -1089,7 +1090,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
                         h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if one_plot
+                        if flag_one_plot
                             h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
                         else
                             linkaxes(ax, 'x');
@@ -1104,7 +1105,100 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
         end
-        
+
+        function fh_list = showPositionPlanarUp(this)
+            % Plot East North Up coordinates of the receiver
+            %
+            % SYNTAX 
+            %   this.plotPositionENU(flag_one_plot);            
+            fh_list = [];
+            for r = 1 : numel(this)
+                rec = this(r);
+                if ~isempty(rec)
+                    xyz = rec.getPosXYZ();
+                    if size(xyz, 1) > 1                        
+                        rec(1).log.addMessage('Plotting positions');
+                        
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
+                        
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('EN_U_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+                        color_order = handle(gca).ColorOrder;
+                        
+                        xyz = rec.getPosXYZ();
+                        xyz0 = rec.getMedianPosXYZ();
+                        
+                        t = rec.getPositionTime().getMatlabTime();
+                        
+                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                        
+                        main_vb = uix.VBox('Parent', f, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        
+                        tmp_box1 = uix.VBox('Parent', main_vb, ...
+                            'Padding', 5, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        tmp_box2 = uix.VBox('Parent', main_vb, ...
+                            'Padding', 5, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        main_vb.Heights = [-2 -1];
+                        f.Visible = 'on';
+                        drawnow
+                        f.Visible = 'off';
+                        ax = axes('Parent', tmp_box1);
+
+                        % Plot parallel
+                        max_e = ceil(max(abs(1e2 * minMax(enu(:,1) - enu0(1))))/5) * 5;
+                        max_n = ceil(max(abs(1e2 * minMax(enu(:,2) - enu0(2))))/5) * 5;
+                        max_r = ceil(sqrt(max_e^2 + max_n^2) / 5) * 5;
+                       
+                        % Plot circles of precision
+                        az_l = 0 : pi/200: 2*pi;
+                        % dashed
+                        id_dashed = serialize(bsxfun(@plus, repmat((0:20:395)',1,5), (1:5)));
+                        az_l(id_dashed) = nan;
+                        decl_s = ((10 : 10 : max_r));
+                        for d = decl_s
+                            x = cos(az_l).*d;
+                            y = sin(az_l).*d;
+                            plot(x,y,'color',[0.6 0.6 0.6], 'LineWidth', 2); hold on;
+                            x = cos(az_l).*(d-5);
+                            y = sin(az_l).*(d-5);
+                            plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
+                        end
+                        
+                        plot((enu(:,1) - enu0(1)) * 1e2, (enu(:,2) - enu0(2)) * 1e2, 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        axis equal;
+                        h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                        h = xlabel('North [cm]'); h.FontWeight = 'bold';
+                        ylim(max_r * [-1 1]);
+                        xlim(max_r * [-1 1]);
+                        grid on;
+                        h = title(sprintf('Position Stability %s\t\tstd E %.2f cm - N %.2f cm\\fontsize{5} \n', rec.parent.getMarkerName4Ch, std((enu(:,1) - enu0(1)) * 1e2, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e2, 'omitnan')), 'FontName', 'Open Sans'); 
+                        h.FontWeight = 'bold';
+                        
+                        ax = axes('Parent', tmp_box2);
+                                                
+                        plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
+                        h = title(sprintf('Up std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                        grid on;
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on'; drawnow;
+                    else
+                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
+                    end
+                end
+            end
+        end
+
         function fh_list = showPositionXYZ(this, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
@@ -1214,8 +1308,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
         end
-        
-        
+                
         function fh_list = showMap(sta_list, new_fig)
             if nargin < 2
                 new_fig = true;
@@ -1922,15 +2015,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             fh_list = this.showTropoPar('nsat', new_fig);
         end
         
-        function fh_list = showNSatSS(this)
+        function fh_list = showNSatSS(this, flag_smooth)
             % Show number of satellites in view per constellation
+            if nargin == 1
+                flag_smooth = true;
+            end
             fh_list = [];
             cc = this.getCC;
             if ~this.isEmpty()
                 [n_sat, n_sat_ss] = this.getNSat();
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
                 
-                fh_list = [fh_list; f]; %#ok<AGROW>
+                fh_list = [fh_list; f];
                 fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                        
@@ -1957,17 +2053,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 %                 end
                 
                 % If I'm plotting more than one day smooth the number of satellites
-                if (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
+                if flag_smooth % && (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
                     for sys_c = cc.sys_c
-                        plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
+                        Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
                     end
                     if numel(cc.sys_c) > 1
-                        plot(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
+                        Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
                     end
                 else % If I'm plotting less than 24 hours of satellites number
-                    plot(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
+                    Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
                     if numel(cc.sys_c) > 1
-                        plot(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                        Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
                     end
                 end
                 setTimeTicks(4); h = ylabel('East [cm]'); h.FontWeight = 'bold';

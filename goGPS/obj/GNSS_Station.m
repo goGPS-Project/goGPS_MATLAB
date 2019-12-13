@@ -513,8 +513,10 @@ classdef GNSS_Station < handle
             
             out_dir = Core.getState.getOutDir();
             out_file_name = fullfile(out_dir, sprintf('coordinates_%s.crd',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
-            Core.getLogger.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));
+            log = Core.getLogger;
+            log.addMarkedMessage(sprintf('Exporting coordinates to %s',out_file_name));
             rf.export(out_file_name);
+            log.addStatusOk('Export completed successfully');
         end
         
         function exportMat(sta_list)
@@ -573,7 +575,7 @@ classdef GNSS_Station < handle
             for r = 1 : numel(sta_list)                
                 if ~sta_list(r).isEmptyOut_mr
                     rec(r).short_name_4ch = sta_list(r).getMarkerName4Ch();
-                    log.addMessage(log.indent(sprintf(' - processing %s', rec(r).short_name_4ch)));
+                    log.addMessage(log.indent(sprintf(' - appending %s', rec(r).short_name_4ch)));
                     rec(r).description_short = sta_list(r).getMarkerName();
                     rec(r).a_priori_xyz = sta_list(r).getMedianPosXYZ();
                     if ~isempty(sta_list(r).work) && (~sta_list(r).work.isEmpty)
@@ -600,6 +602,7 @@ classdef GNSS_Station < handle
             end
             log.addMessage(log.indent('Writing the file...'));
             save(out_file_name, 'rec', '-v7');
+            log.addStatusOk('Export completed successfully');
         end
         
         function exportHydroNET(sta_list)
@@ -696,7 +699,9 @@ classdef GNSS_Station < handle
                     end
                 end
                 fclose(fid);
-                sta_list(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                log = Core.getLogger;
+                log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                log.addStatusOk('Export completed successfully');
             catch ex
                 if all(sta_list.isEmptyOut_mr)
                     sta_list(1).log.addWarning(sprintf('no solution have been found, station skipped'));
@@ -2924,8 +2929,10 @@ classdef GNSS_Station < handle
         end
 
         function fh_list = showPositionENU(sta_list, one_plot)
-            % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionENU();
+            % Plot East North Up coordinates of the receiver
+            %
+            % SYNTAX 
+            %   this.plotPositionENU(flag_one_plot);
             if nargin == 1
                 one_plot = false;
             end
@@ -2939,6 +2946,20 @@ classdef GNSS_Station < handle
             end
         end
 
+        function fh_list = showPositionPlanarUp(sta_list)
+            % Plot Planar and Up coordinates of the receiver
+            %
+            % SYNTAX 
+            %   this.showPositionPlanarUp();
+            fh_list = [];
+            for r = 1 : length(sta_list)
+                rec = sta_list(r).out;
+                if ~rec.isEmpty()
+                    fh_list = [fh_list; rec.showPositionPlanarUp()]; %#ok<AGROW>
+                end
+            end
+        end
+        
         function fh_list = showPositionXYZ(sta_list, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
@@ -4667,11 +4688,17 @@ classdef GNSS_Station < handle
         end
 
         function fh_list = showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
+            % Show a unique plot for all the stations given a certain data parameter
+            %
+            % SYNTAX
+            %   fh_list = sta_list.showTropoPar(par_name, flag_new_fig, sub_plot_nsat, flag_od)
+            
             % one function to rule them all
 
             fh_list = [];
             if nargin < 5 || isempty(flag_od) || flag_od
                 [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
+                
             else
                 [tropo, t] = sta_list.getTropoPar(par_name);
                 id_ko = [];
@@ -4771,29 +4798,28 @@ classdef GNSS_Station < handle
                         else
                             id_ko_tmp = false(size(data_tmp));
                         end
+                        mode = '.-';
                         if new_fig
                             if strcmp(par_name, 'nsat')
-                                plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             else
                                 if any(id_ko_tmp)
-                                    mode = '.';
+                                    Core_Utils.plotSep(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                    Core_Utils.plotSep(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                                 else
-                                    mode = '.-';
+                                    Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(data_tmp').*1e2, mode, 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                                 end
-                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
-                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             end
                         else
                             if strcmp(par_name, 'nsat')
                                 plot(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2); hold on;
                             else
                                 if any(id_ko_tmp)
-                                    mode = '.';
+                                    Core_Utils.plotSep(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
+                                    Core_Utils.plotSep(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2); hold on;
                                 else
-                                    mode = '.-';
+                                    Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(data_tmp').*1e2, mode, 'LineWidth', 2); hold on;
                                 end
-                                plot(t{r}.getEpoch(find(id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(id_ko_tmp)').*1e2, mode, 'LineWidth', 2, 'Color', [0.9 0.9 0.9]); hold on;
-                                plot(t{r}.getEpoch(find(~id_ko_tmp)).getMatlabTime(), zero2nan(data_tmp(~id_ko_tmp)').*1e2, mode, 'LineWidth', 2); hold on;
                             end
                         end
                         childs = ax1.Children;
@@ -4820,7 +4846,7 @@ classdef GNSS_Station < handle
                     else
                         dlim(1) = max(0, dlim(1) - 0.03 *dspan);
                     end
-                    dlim(2) = dlim(2) + 0.03 *dspan;
+                    dlim(2) = dlim(2) + 0.03 * dspan;
                     xlim(tlim);
                     ylim(dlim);
 
@@ -4872,9 +4898,9 @@ classdef GNSS_Station < handle
                         for r = 1 : numel(sta_list)
                             rec = sta_list(r);
                             if new_fig
-                                plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                                Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                             else
-                                plot(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
+                                Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
                             end
                             outm{r} = rec(1).getMarkerName();
                         end
@@ -4924,7 +4950,7 @@ classdef GNSS_Station < handle
             Core_UI.addBeautifyMenu(gcf);
         end
 
-        function fh_list = showNSatSS(sta_list)
+        function fh_list = showNSatSS(sta_list, flag_smooth)
             % Show total number of satellites in view (epoch by epoch) for each satellite
             %
             % SYNTAX:
@@ -4932,10 +4958,18 @@ classdef GNSS_Station < handle
 
             fh_list = [];
             for r = 1 : numel(sta_list)
-                if ~(isempty(sta_list(r).out) || sta_list(r).out.isEmpty)
-                    fh_list = [fh_list; sta_list(r).out.showNSatSS()];
+                if nargin == 2
+                    if ~(isempty(sta_list(r).out) || sta_list(r).out.isEmpty)
+                        fh_list = [fh_list; sta_list(r).out.showNSatSS(flag_smooth)];
+                    else
+                        fh_list = [fh_list; sta_list(r).work.showNSatSS(flag_smooth)];
+                    end
                 else
-                    fh_list = [fh_list; sta_list(r).work.showNSatSS()];
+                    if ~(isempty(sta_list(r).out) || sta_list(r).out.isEmpty)
+                        fh_list = [fh_list; sta_list(r).out.showNSatSS()];
+                    else
+                        fh_list = [fh_list; sta_list(r).work.showNSatSS()];
+                    end
                 end
             end
         end
@@ -5536,7 +5570,7 @@ classdef GNSS_Station < handle
                             plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
                         end
                         
-                        plot(baseline(:, 2), baseline(:, 1), 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        plot(baseline(:, 1), baseline(:, 2), 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         %scatter(baseline(:, 2), baseline(:, 1), 20, t, 'filled'); hold on; colormap(Core_UI.getColor(1:numel(t), numel(t)));
 
                         axis equal;

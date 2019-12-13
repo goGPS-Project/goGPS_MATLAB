@@ -88,8 +88,8 @@ classdef Receiver_Output < Receiver_Commons
             this.reset@Receiver_Commons();
             
             this.sat = struct(  ...
-                'outliers',   [], ...    % logical index of outliers
-                'cycle_slip',[], ...    % logical index of cycle slips
+                'outliers',         [], ...    % logical index of outliers
+                'cycle_slip',       [], ...    % logical index of cycle slips
                 'quality',          [], ...    % quality
                 'az',               [], ...    % double  [n_epoch x n_sat] azimuth
                 'el',               [], ...    % double  [n_epoch x n_sat] elevation
@@ -785,23 +785,23 @@ classdef Receiver_Output < Receiver_Commons
                     data = rec.getDesync;
                     if ~isempty(data)
                         l_list = [l_list {'De-Sync time (from RINEX)'}];
-                        plot(t, data * Core_Utils.V_LIGHT, '-k', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, data * Core_Utils.V_LIGHT, '-k', 'LineWidth', 2);
                     end
                     hold on;
                     data = rec.getDtIP;
                     if ~isempty(data)
                         l_list = [l_list {'{\Delta}t from pre-processing'}];
-                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     data = rec.getDt();
                     if ~isempty(data)
                         l_list = [l_list {'{\Delta}t from the last step'}];
-                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     data = rec.getTotalDt();
                     if ~isempty(data)
                         l_list = [l_list {'{\Delta}t final '}];
-                        plot(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
+                        Core_Utils.plotSep(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     if isempty(l_list)
                         Core.getLogger.addError('No clock found in Receiver Output object\n');
