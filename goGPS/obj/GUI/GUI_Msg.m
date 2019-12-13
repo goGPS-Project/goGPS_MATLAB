@@ -75,6 +75,7 @@ classdef GUI_Msg < GUI_Unique_Win
     methods (Static, Access = public)
         function this = getInstance()
             % Get the persistent instance of the class
+            
             persistent unique_instance_gui_msg__
             
             if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.w_main)
@@ -85,6 +86,8 @@ classdef GUI_Msg < GUI_Unique_Win
                 this.init();
                 this.openGUI();
             end
+            
+            drawnow
         end
     end
     
