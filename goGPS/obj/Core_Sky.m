@@ -364,7 +364,13 @@ classdef Core_Sky < handle
         function orb_time = getClockTime(this)
             % DESCRIPTION:
             % return the time of clock corrections in GPS_Time (unix time)
-            orb_time = this.time_ref_clock.getCopy();
+            try
+                orb_time = this.time_ref_clock.getCopy();
+            catch
+                Core.getLogger.addError('Core_Sky does not contains satellite clocks!');
+                orb_time = [];
+                return
+            end
             orb_time.toUnixTime();
             
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
@@ -1625,6 +1631,10 @@ classdef Core_Sky < handle
                 % supposing SP3_time regularly sampled
                 times = this.getClockTime();
                 
+                if isempty(times)
+                    dts_tmp = 0;
+                else
+                    
                 % find day change
                 %date = times.get6ColDate;
                 %day_change = find(diff(date(:,3)));
@@ -1661,6 +1671,7 @@ classdef Core_Sky < handle
                 %                 %plot([0 1],SP3_c,'o',u,dt_S_SP3,'.')
                 %                 %pause
                 %             end
+                end
                 if numel(sat_in) == 1
                     dts = dts_tmp(:);
                 else
@@ -1827,7 +1838,7 @@ classdef Core_Sky < handle
             %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
             
             if isempty(this.time_ref_coord)
-                Core.getLogger.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave/nTrying to load needed data')
+                Core.getLogger.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave\nTrying to load needed data')
                 this.initSession(t.first(), t.last())
             end
             n_sat = size(this.coord, 2);
