@@ -954,17 +954,16 @@ classdef Receiver_Output < Receiver_Commons
                     fh_list = [fh_list; f]; %#ok<AGROW>
                     fig_name = sprintf('Res_Per_Sat_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
-                    
-                    ss_id = find(cc.sys_c == sys_c);
-                    
+                                        
                     ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                     
                     fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
-                    color = gat(256, [], false);
                     ax2 = subplot(1, 24, 19:24);
                     ax1 = subplot(1, 24, 1:16);
+                    
                     ss_id = find(cc.system == sys_c);
                     data_found = false;
+                    
                     for s = ss_id
                         id_ok = find(~isnan(zero2nan(res(:, s))));
                         if any(id_ok)
@@ -977,6 +976,7 @@ classdef Receiver_Output < Receiver_Commons
                             hold(ax2, 'on');
                         end
                     end
+                    
                     if ~data_found
                         close(f)
                         log = Core.getLogger;
