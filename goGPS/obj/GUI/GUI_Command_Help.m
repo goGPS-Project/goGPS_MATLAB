@@ -41,7 +41,10 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_Command_Help < handle
+classdef GUI_Command_Help < GUI_Unique_Win   
+    properties (Constant)
+        WIN_NAME = 'goGPS_CmdHelp_Win';
+    end
     
     properties (Constant, Access = 'protected')
         BG_COLOR = Core_UI.DARK_GREY_BG;
@@ -89,6 +92,12 @@ classdef GUI_Command_Help < handle
         function openGUI(this)
             % Main Window ----------------------------------------------------------------------------------------------
             
+            % If there is still an old logging wondow still open, close it
+            old_win = this.getUniqueWinHandle();
+            if ~isempty(old_win)
+                delete(old_win); 
+            end
+            
             win = figure( 'Name', 'Commands Help', ...
                 'Visible', 'on', ...
                 'MenuBar', 'none', ...
@@ -96,7 +105,8 @@ classdef GUI_Command_Help < handle
                 'NumberTitle', 'off', ...
                 'Position', [0 0 815 640], ...
                 'Resize', 'on');
-            
+            win.UserData.name = this.WIN_NAME;
+
             this.win = win;
             
             if isunix && not(ismac())

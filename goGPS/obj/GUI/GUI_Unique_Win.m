@@ -65,30 +65,30 @@ classdef GUI_Unique_Win < handle
     methods                                
         function fig_handle = getUniqueWinHandle(this)
             
+            fig_handle = [];
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 % if the win is open and stored in this singleton object
                 fig_handle = this.w_main;
-            else
-                % clean way of doing this:
-                % fig_handle = findobj(get(groot, 'Children'), 'UserData', 'goGPSwin');
-                
-                % fast way of doing this:
-                fh_list = get(groot, 'Children');
-                fig_handle = [];
-                
-                % bad code writing style but fast
-                for f = 1 : numel(fh_list)
-                    try
-                        if isfield(fh_list(f).UserData, 'name') && strcmp(fh_list(f).UserData.name, GUI_Edit_Settings.WIN_NAME)
-                            % If there are lone Edit figures close them
-                            fig_handle = fh_list(f);
-                            delete(fig_handle);
-                        end
-                    catch
-                    end
-                end
-                fig_handle = [];
             end
+            % clean way of doing this:
+            % fig_handle = findobj(get(groot, 'Children'), 'UserData', this.WIN_NAME);
+            
+            % fast way of doing this:
+            fh_list = get(groot, 'Children');
+            fh_list = setdiff(fh_list, fig_handle);
+            
+            % bad code writing style but fast
+            for f = 1 : numel(fh_list)
+                try
+                    if isfield(fh_list(f).UserData, 'name') && strcmp(fh_list(f).UserData.name, this.WIN_NAME)
+                        % If there are lone Edit figures close them
+                        delete(fh_list(f));
+                    end
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+            end
+            fig_handle = [];
         end        
     end       
 end

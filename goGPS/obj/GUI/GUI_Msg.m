@@ -83,6 +83,7 @@ classdef GUI_Msg < GUI_Unique_Win
                 unique_instance_gui_msg__ = this;
             else
                 this = unique_instance_gui_msg__;
+                % this.getUniqueWinHandle();
                 this.init();
                 this.openGUI();
             end
@@ -113,6 +114,7 @@ classdef GUI_Msg < GUI_Unique_Win
                 'NumberTitle', 'off', ...
                 'Position', [0 0 1040, 640], ...
                 'Resize', 'on');
+            win.UserData.name = this.WIN_NAME;
             
             this.w_main = win;
             

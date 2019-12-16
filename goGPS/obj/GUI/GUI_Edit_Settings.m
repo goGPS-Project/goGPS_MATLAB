@@ -196,7 +196,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'NumberTitle', 'off', ...
                     'Renderer', 'opengl', ...
                     'Position', [0 0 1040, 640]);
-                win.UserData.name = GUI_Edit_Settings.WIN_NAME;
+                win.UserData.name = this.WIN_NAME;
                 
                 this.w_main = win;            
 

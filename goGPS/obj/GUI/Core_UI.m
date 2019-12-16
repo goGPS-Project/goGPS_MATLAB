@@ -926,7 +926,7 @@ classdef Core_UI < Logos
                                  
             box_handle.Widths = widths;
         end
-        
+                
         function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxObsML(parent, description, property_name_dir, property_name_file, callback, widths)
             if nargin < 6
                 widths  = {[-1 -1 25], [-1 -1 25]};
