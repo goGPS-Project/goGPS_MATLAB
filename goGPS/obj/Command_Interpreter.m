@@ -484,21 +484,21 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES.accepted_values = [];
 
             this.PAR_S_RES_COS.name = 'Output | Work-Space combined residuals (stats)';
-            this.PAR_S_RES_COS.descr = 'RES_(O|W)_COS       Output | Work-Space combined residuals';
+            this.PAR_S_RES_COS.descr = 'RES_(O|W)_COS      Output | Work-Space combined residuals';
             this.PAR_S_RES_COS.par = '(res_o_cos)|(RES_O_COS)|(res_w_co)|(RES_W_COS)';
             this.PAR_S_RES_COS.class = '';
             this.PAR_S_RES_COS.limits = [];
             this.PAR_S_RES_COS.accepted_values = [];
             
             this.PAR_S_RES_PRS.name = 'Output | Work-Space uncombined pseudo-range residuals (stats)';
-            this.PAR_S_RES_PRS.descr = 'RES_(O|W)_PRS       Output | Work-Space combined pseudo-range residuals';
+            this.PAR_S_RES_PRS.descr = 'RES_(O|W)_PRS      Output | Work-Space combined pseudo-range residuals';
             this.PAR_S_RES_PRS.par = '(res_o_prs)|(RES_O_PRS)|(res_w_prs)|(RES_W_PRS)';
             this.PAR_S_RES_PRS.class = '';
             this.PAR_S_RES_PRS.limits = [];
             this.PAR_S_RES_PRS.accepted_values = [];
 
             this.PAR_S_RES_PHS.name = 'Output | Work-Space uncombined phase residuals (stats)';
-            this.PAR_S_RES_PHS.descr = 'RES_(O|W)_PHS       Output | Work-Space combined phase residuals';
+            this.PAR_S_RES_PHS.descr = 'RES_(O|W)_PHS      Output | Work-Space combined phase residuals';
             this.PAR_S_RES_PHS.par = '(res_o_phs)|(RES_O_PHS)|(res_w_phs)|(RES_W_PHS)';
             this.PAR_S_RES_PHS.class = '';
             this.PAR_S_RES_PHS.limits = [];
@@ -2158,12 +2158,34 @@ classdef Command_Interpreter < handle
                             fh_list = [fh_list; trg.showZtdSlant()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENUBSL.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showBaselineENU()]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;
+                            if ~isempty(id_trg)
+                                [id_ref, found] = this.getMatchingRec(rec, tok, 'R');
+                                id_ref = intersect(id_ref, id_trg);
+                                if isempty(id_ref) || ~(found)
+                                    id_ref = id_trg(1);
+                                end
+                                id_ref = intersect(id_ref, id_trg);
+                                for i = 1 : numel(id_ref)
+                                    id_bsl = [id_ref(i) .* ones(numel(id_trg) - 1, 1) serialize(id_trg(id_trg ~= id_ref(i)))];
+                                    fh_list = [fh_list; rec.showBaselineENU(id_bsl)]; %#ok<AGROW>
+                                end
+                                show_ok  = show_ok + 1;
+                            end
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUPBSL.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showBaselinePlanarUp()]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;
-                        end                        
+                            if ~isempty(id_trg)
+                                [id_ref, found] = this.getMatchingRec(rec, tok, 'R');
+                                id_ref = intersect(id_ref, id_trg);
+                                if isempty(id_ref) || ~(found)
+                                    id_ref = id_trg(1);
+                                end
+                                id_ref = intersect(id_ref, id_trg);
+                                for i = 1 : numel(id_ref)
+                                    id_bsl = [id_ref(i) .* ones(numel(id_trg) - 1, 1) serialize(id_trg(id_trg ~= id_ref(i)))];
+                                    fh_list = [fh_list; rec.showBaselinePlanarUp(id_bsl)]; %#ok<AGROW>
+                                end
+                                show_ok  = show_ok + 1;
+                            end
+                        end
                     catch ex
                         Core_Utils.printEx(ex);
                         this.log.addError(sprintf('%s',ex.message));
@@ -2225,34 +2247,34 @@ classdef Command_Interpreter < handle
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_COS.par ')*$'], 'once'))
                                 if lower(tok{t}(5)) == 'w'
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).work.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
                                     end
                                 else
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).out.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
                                     end
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PRS.par ')*$'], 'once'))
                                 if lower(tok{t}(5)) == 'w'
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).work.showResPerSat(sys_list, 'pr')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'pr')]; %#ok<AGROW>
                                     end
                                 else
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).out.showResPerSat(sys_list, 'pr')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResPerSat(sys_list, 'pr')]; %#ok<AGROW>
                                     end
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PHS.par ')*$'], 'once'))
                                 if lower(tok{t}(5)) == 'w'
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).work.showResPerSat(sys_list, 'ph')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'ph')]; %#ok<AGROW>
                                     end
                                 else
-                                    for t = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(t).out.showResPerSat(sys_list, 'ph')]; %#ok<AGROW>
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResPerSat(sys_list, 'ph')]; %#ok<AGROW>
                                     end
                                 end
                                 show_ok  = show_ok + 1;

@@ -5441,6 +5441,8 @@ classdef GNSS_Station < handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
+                        yl = minMax(baseline(:,1));
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('East [mm]'); h.FontWeight = 'bold';
@@ -5448,28 +5450,38 @@ classdef GNSS_Station < handle
                             h = ylabel('East [m]'); h.FontWeight = 'bold';
                         end
                         grid minor;
-                        h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if one_plot
+                            h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        else
+                            h = title(sprintf('Baseline %s - %s \n std %.2f [mm]', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline(:,1), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold';
+                        end
 
                         if ~one_plot, subplot(3,1,2); end
-                        plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));                        
+                        if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,2), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(2) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
+                        yl = minMax(baseline(:,2));
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('North [m]'); h.FontWeight = 'bold';
                         end
-
+                        
                         grid minor;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,3), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(1) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
+                        yl = minMax(baseline(:,3));
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
@@ -5484,8 +5496,9 @@ classdef GNSS_Station < handle
                             else
                                 h = ylabel('ENU [m]'); h.FontWeight = 'bold';
                             end
+                            yl = minMax(baseline(:));
+                            ylim([min(-20, yl(1)) max(20, yl(2))]);                            
                             legend({'East', 'North', 'Up'}, 'Location', 'NorthEastOutside', 'interpreter', 'none');
-
                         else
                             linkaxes(ax, 'x');
                         end
@@ -5548,7 +5561,7 @@ classdef GNSS_Station < handle
                         end
                         t = time.getMatlabTime();
 
-                        f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
                         fig_name = sprintf('BSL_EN_U_%s-%s_%s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, rec(1).getTime.first.toString('yyyymmdd_HHMM'));
@@ -5556,7 +5569,21 @@ classdef GNSS_Station < handle
                        
                         color_order = handle(gca).ColorOrder;
 
-                        subplot(3,1,1:2)
+                        main_vb = uix.VBox('Parent', f, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        
+                        tmp_box1 = uix.VBox('Parent', main_vb, ...
+                            'Padding', 5, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        tmp_box2 = uix.VBox('Parent', main_vb, ...
+                            'Padding', 5, ...
+                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                        main_vb.Heights = [-2 -1];
+                        Core_UI.beautifyFig(f);
+                        f.Visible = 'on';
+                        drawnow
+                        f.Visible = 'off';
+                        ax = axes('Parent', tmp_box1);
                         
                         % plot circles
                         
@@ -5594,14 +5621,18 @@ classdef GNSS_Station < handle
                             h = ylabel('North [m]'); h.FontWeight = 'bold';
                         end
                         grid on;
-                        h = title(sprintf('Baseline %s - %s \t\tstd E %.2f - N %.2f - U%.2f -', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline, 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-
-                        subplot(3,1,3);
+                        h = title(sprintf('Baseline %s - %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch, std(baseline(:, 1:2), 'omitnan')), 'interpreter', 'tex'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h.FontWeight = 'bold';
+                        
+                        ax = axes('Parent', tmp_box2);                        
                         plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        h = title(sprintf('Up std %.2f [mm]', std(baseline(:, 3), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold';
                         ax(1) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
-                        end
+                        end                        
+                        yl = minMax(baseline(:,3));
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4);
                         if plot_relative_variation
                             h = ylabel('Up [mm]'); h.FontWeight = 'bold';
@@ -5610,6 +5641,9 @@ classdef GNSS_Station < handle
                         end
 
                         grid minor;
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addBeautifyMenu(f);
+                        f.Visible = 'on';
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end

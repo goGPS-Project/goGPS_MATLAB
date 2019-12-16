@@ -1064,37 +1064,46 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
                         if ~flag_one_plot, subplot(3,1,1); end
-                        plot(t, (1e2 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        e = 1e3 * (enu(:,1) - enu0(1));
+                        plot(t, e, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         ax(3) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4); h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                        yl = minMax(e);
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
+                        setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [mm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~flag_one_plot, subplot(3,1,2); end
-                        plot(t, (1e2 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        n = 1e3 * (enu(:,2) - enu0(2));
+                        plot(t, n, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4); h = ylabel('North [cm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,2)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                        yl = minMax(n);
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
+                        setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                        h = title(sprintf('std %.2f [mm]',sqrt(var(enu(:,2)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if ~flag_one_plot, subplot(3,1,3); end
-                        plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        up = 1e3 * (enu(:,3) - enu0(3));
+                        plot(t, up, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                        yl = minMax(up);
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
+                        setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        h = title(sprintf('std %.2f [mm]',sqrt(var(enu(:,3)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if flag_one_plot
                             h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
                         else
                             linkaxes(ax, 'x');
-                        end
+                        end                        
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
@@ -1144,14 +1153,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             'Padding', 5, ...
                             'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                         main_vb.Heights = [-2 -1];
+                        Core_UI.beautifyFig(f);
                         f.Visible = 'on';
                         drawnow
                         f.Visible = 'off';
                         ax = axes('Parent', tmp_box1);
 
                         % Plot parallel
-                        max_e = ceil(max(abs(1e2 * minMax(enu(:,1) - enu0(1))))/5) * 5;
-                        max_n = ceil(max(abs(1e2 * minMax(enu(:,2) - enu0(2))))/5) * 5;
+                        max_e = ceil(max(abs(1e3 * minMax(enu(:,1) - enu0(1))))/5) * 5;
+                        max_n = ceil(max(abs(1e3 * minMax(enu(:,2) - enu0(2))))/5) * 5;
                         max_r = ceil(sqrt(max_e^2 + max_n^2) / 5) * 5;
                        
                         % Plot circles of precision
@@ -1169,25 +1179,28 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
                         end
                         
-                        plot((enu(:,1) - enu0(1)) * 1e2, (enu(:,2) - enu0(2)) * 1e2, 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        plot((enu(:,1) - enu0(1)) * 1e3, (enu(:,2) - enu0(2)) * 1e3, 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         axis equal;
-                        h = ylabel('East [cm]'); h.FontWeight = 'bold';
-                        h = xlabel('North [cm]'); h.FontWeight = 'bold';
+                        h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        h = xlabel('North [mm]'); h.FontWeight = 'bold';
                         ylim(max_r * [-1 1]);
                         xlim(max_r * [-1 1]);
                         grid on;
-                        h = title(sprintf('Position Stability %s\t\tstd E %.2f cm - N %.2f cm\\fontsize{5} \n', rec.parent.getMarkerName4Ch, std((enu(:,1) - enu0(1)) * 1e2, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e2, 'omitnan')), 'FontName', 'Open Sans'); 
+                        h = title(sprintf('Position Stability %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', rec.parent.getMarkerName4Ch, std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
                         h.FontWeight = 'bold';
                         
                         ax = axes('Parent', tmp_box2);
-                                                
-                        plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                                   
+                        up = 1e3 * (enu(:,3) - enu0(3));
+                        plot(t, up, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
+                        yl = minMax(up);
+                        ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('Up std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
+                        h = title(sprintf('Up std %.2f [mm]',sqrt(var(enu(:,3)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
