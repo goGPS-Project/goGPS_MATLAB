@@ -4337,16 +4337,17 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showResSky_c(sta_list, sys_list)
+        function fh_list = showResSky_c(sta_list, sys_list, type)
             % Show Residuals for each receiver workspace
             % (cartesian plot)
             %
             % SYNTAX
             %   this.showResSky_c(sys_list)
             
-            if nargin < 2
+            if nargin < 2 || isempty()
                 sys_list = Core.getConstellationCollector.getAvailableSys();
             end
+            
             fh_list = [];
             for s = 1 : numel(sta_list)
                 fh_list = [fh_list; sta_list(s).work.showResSky_c(sys_list)]; %#ok<AGROW>
@@ -4459,25 +4460,34 @@ classdef GNSS_Station < handle
             
         end
 
-        function fh_list = showResPerSat(sta_list, sys_list)
-            % Plot Satellite Residuals
-            % As scatter per satellite
-            % (work data only)
+        function fh_list = showResPerSat(sta_list, sys_c_list, type)
+                        % Plot the residuals of phase per Satellite
+            %
+            % INPUT
+            %   type    can be:
+            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
+            %            'pr'   -> Uncombined pseudo-ranges residuals
+            %            'ph'   -> Uncombined carrier-phase residuals
+            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
             %
             % SYNTAX
-            %   sta_list.showResPerSat()
+            %   this.showResPerSat(sys_c_list, res, type)
+
+            if nargin < 2 || isempty(sys_c_list)
+                sys_c_list = Core.getConstellationCollector.getAvailableSys();
+            end
+            if nargin < 3 || isempty(type)
+                type = 'co';
+            end
             
             fh_list = [];
-            if nargin < 2
-                sys_list = Core.getConstellationCollector.getAvailableSys();
-            end
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(r);
                 if ~isempty(rec)
                     if ~rec.out.isEmpty
-                        fh_list = [fh_list; rec.out.showResPerSat(sys_list)]; %#ok<AGROW>
+                        fh_list = [fh_list; rec.out.showResPerSat(sys_c_list, type)]; %#ok<AGROW>
                     else
-                        fh_list = [fh_list; rec.work.showResPerSat(sys_list)]; %#ok<AGROW>
+                        fh_list = [fh_list; rec.work.showResPerSat(sys_c_list, type)]; %#ok<AGROW>
                     end
                 end
             end

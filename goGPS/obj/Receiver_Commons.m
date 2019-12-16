@@ -1542,6 +1542,146 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
         end
         
+        function fh_list = showResPerSat(this, sys_c_list, type, res)
+            % Plot the residuals of phase per Satellite
+            %
+            % INPUT
+            %   type    can be:
+            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
+            %            'pr'   -> Uncombined pseudo-ranges residuals
+            %            'ph'   -> Uncombined carrier-phase residuals
+            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+            %
+            % SYNTAX
+            %   this.showResPerSat(sys_c_list, type, res)
+            
+            fh_list = [];
+            cc = Core.getState.getConstellationCollector;
+            if nargin < 2 || isempty(sys_c_list)
+                sys_c_list = cc.getAvailableSys;
+            end
+            if nargin < 3 || isempty(type)
+                type = 'co';
+            end
+            
+            if nargin < 4 || isempty(res)                
+                if type(2) == 'o'
+                    res = this.sat.res;
+                elseif type(2) == 'r'
+                    res = this.sat.res_pr_by_pr;
+                else
+                    res = this.sat.res_ph_by_ph;
+                end
+            end
+            if type(2) == 'o'
+                name = 'Combined residuals sat. by sat.';
+                scale = 1e3; % mm
+                id_obs = 1 : size(res, 2);
+            elseif type(2) == 'r'
+                name = 'Uncombined pseudo-ranges residuals';
+                id_obs = this.obs_code(:,1) == 'C';
+                scale = 1e2; % cm
+            else
+                name = 'Uncombined carrier-phase residuals';
+                id_obs = this.obs_code(:,1) == 'L';
+                scale = 1e3; % mm
+            end
+            id_obs = find(id_obs);
+            if isempty(res)
+                log = Core.getLogger;
+                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
+            else
+                if type(2) == 'o'
+                    ss_ok = intersect(cc.sys_c, sys_c_list);
+                else
+                    ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);                    
+                end
+                for sys_c = ss_ok
+                    if type(2) == 'o'
+                        trk_ok = 'COM'; % combined tracking -> only this is existing
+                    else
+                        id_obs_sys = id_obs(this.system(id_obs) == sys_c);
+                        trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
+                    end
+                    for t = 1 : size(trk_ok, 1)
+                        if type(2) == 'o'
+                            cur_res_id = cc.system == sys_c;
+                            prn = cc.prn(cur_res_id);
+                        else
+                            cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
+                            [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));                            
+                        end
+                        
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('Res_Per_Sat_%s_%s_%s_%s_%s', type, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+                        
+                        ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
+                        
+                        fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
+                        ax2 = subplot(1, 24, 19:24);
+                        ax1 = subplot(1, 24, 1:16);
+                        
+                        data_found = false;
+
+                        res_tmp = res(:, cur_res_id);
+                        for s = 1 : sum(cur_res_id)
+                            id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
+                            if any(id_ok)
+                                data_found = true;
+                                [~, id_sort] = sort(abs(res_tmp(id_ok, s)));
+                                scatter(ax1, id_ok(id_sort),  prn(s) * ones(size(id_ok)), 80, scale * (res_tmp(id_ok(id_sort), s)), 'filled');
+                                hold(ax1, 'on');
+                                err = std(zero2nan(res_tmp(:,s)), 'omitnan') * scale;
+                                errorbar(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan') .* scale, prn(s), err, '.', 'horizontal', 'MarkerSize', 30, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);
+                                hold(ax2, 'on');
+                            end
+                        end
+                        
+                        if ~data_found
+                            close(f)
+                            log = Core.getLogger;
+                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
+                        else
+                            cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
+                            colormap(Cmap.get('RdBu', 2^11));
+                            if min(abs(cax)) > 5
+                                setColorMap('RdBu', caxis(), 0.90, [-5 5])
+                            end
+                            colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
+                            prn_ss = unique(cc.prn(cc.system == sys_c));
+                            xlim(ax1, [1 size(this.sat.res,1)]);
+                            ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                            h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
+                            ax1.YTick = prn_ss;
+                            grid(ax1, 'on');
+                            h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
+                            if type(2) == 'o'
+                                h = title(ax1, sprintf('%s %s %s [%s]', cc.getSysName(sys_c), this.parent.marker_name, name, iif(scale == 1e2, 'cm', 'mm')), 'interpreter', 'none'); h.FontWeight = 'bold';
+                            else
+                                h = title(ax1, sprintf('%s %s %s %s [%s]', cc.getSysName(sys_c), this.parent.marker_name, trk_ok(t,:), name, iif(scale == 1e2, 'cm', 'mm')), 'interpreter', 'none'); h.FontWeight = 'bold';
+                            end
+                            
+                            ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
+                            xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(res(:,:)), 'omitnan'))) * scale, ...
+                                max(std(zero2nan(res(:,:)), 'omitnan')) * scale) + 1));
+                            ax2.YTick = prn_ss; ax2.Color = [1 1 1];
+                            grid(ax2, 'on');
+                            xlabel(ax2, sprintf('mean %s', iif(scale == 1e2, 'cm', 'mm')));
+                            h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';
+                            linkaxes([ax1, ax2], 'y');
+                            
+                            Core_UI.beautifyFig(f, 'dark');
+                            Core_UI.addBeautifyMenu(f);
+                            f.Visible = 'on'; drawnow;
+                        end
+                    end
+                end
+            end
+        end
+        
         function fh_list = showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             sztd = this.getSlantZTD(this.parent.slant_filter_win);
             
