@@ -2252,7 +2252,7 @@ classdef Core_Sky < handle
             end
             %%% write to file
             rate_ratio = round(rate_ratio);
-            fid=fopen(f_name,'w');
+            fid = fopen(f_name,'Wb');
             this.writeHeader(fid, prec);
             
             for i=1:length(this.coord)

@@ -743,7 +743,6 @@ classdef Receiver_Output < Receiver_Commons
             log = Core.getLogger();
             log.addMarkedMessage(sprintf('Computed results for receiver "%s" have been imported into out object', this.parent.getMarkerName4Ch()));
         end        
-
     end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================

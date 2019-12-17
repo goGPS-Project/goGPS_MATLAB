@@ -71,7 +71,7 @@ classdef SINEX_Writer < handle
         function this = SINEX_Writer(fname)
             this.state = Core.getState();
             this.fname = fname;
-            this.fid = fopen(fname,'w');
+            this.fid = fopen(fname,'Wb');
         end
         function close(this)
             fclose(this.fid);

@@ -932,7 +932,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.csv']);
                                                 
-                        fid = fopen(fname,'w');
+                        fid = fopen(fname,'Wb');
                         n_data = time.length;
                         fprintf(fid,'Date               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
                         data = [time.toString('dd/mm/yyyy HH:MM:SS') char(44.*ones(n_data,1)) ...
@@ -974,7 +974,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 yy = yy(3:4);
                 sess_str = '0'; % think how to get the right one from sss_id_list
                 fname = sprintf([this.state.getOutDir() '/' this.parent.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
-                fid = fopen(fname,'w');
+                fid = fopen(fname,'Wb');
             end
             this.updateCoordinates();
             meas_time = this.time.getSubSet(this.id_sync);

@@ -433,7 +433,7 @@ classdef Core_Reference_Frame < handle
             if ~(exist(path, 'file') == 7)
                 mkdir(path);
             end
-            fid = fopen(file_path, 'w');
+            fid = fopen(file_path, 'Wb');
             if fid > 0
                 fwrite(fid, this.toCrdString, 'char');
                 fclose(fid);

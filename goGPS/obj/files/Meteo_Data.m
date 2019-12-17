@@ -559,7 +559,7 @@ classdef Meteo_Data < handle
                     
                     this.log.addMessage(sprintf('Exporting met data to %s', cur_file_name));
                     try
-                        fid = fopen(cur_file_name, 'w');
+                        fid = fopen(cur_file_name, 'Wb');
                         str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
                             'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
                         if ~isempty(this.marker_name)
@@ -1211,7 +1211,7 @@ classdef Meteo_Data < handle
             if ~iscell(file_list)
                 file_list = {file_list};
             end
-            fid = fopen(file_out, 'w');
+            fid = fopen(file_out, 'Wb');
             if (fid < 0)
                 Logger.getInstance.addError(sprintf('Not possible to open "%s" for writing', file_out));
             else

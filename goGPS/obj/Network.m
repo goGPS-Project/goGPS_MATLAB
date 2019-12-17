@@ -1656,7 +1656,7 @@ classdef Network < handle
             end
             [~,doy] = st_time.getDOY();
             fpath  = sprintf('%s/%s%02d%03d.%05d-%05d.CRD',this.state.getOutDir, file_prefix, st_time.getYY, doy, sod_s,sod_f);
-            fid = fopen(fpath,'w');
+            fid = fopen(fpath,'Wb');
             now_time = GPS_Time.now();
             fprintf(fid, ['                                                                 ' upper(now_time.toString('dd-mmm-yy HH:MM')) ' \n']);
             

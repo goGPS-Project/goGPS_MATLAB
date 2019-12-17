@@ -1237,7 +1237,7 @@ classdef Core_Utils < handle
                 if (exist(['.' filesep 'reserved' filesep], 'dir') == 0)
                     mkdir(['.' filesep 'reserved']);
                 end
-                fid = fopen(file_name, 'w');
+                fid = fopen(file_name, 'Wb');
                 if fid < 0
                     log.addWarning(['Writing on "' file_name '" is not possible' char(10) 'aria2 could not work']);
                 else
@@ -1290,7 +1290,7 @@ classdef Core_Utils < handle
                                     end
                                 end
                                 % open file list for the next set
-                                fid = fopen(file_name, 'w');
+                                fid = fopen(file_name, 'Wb');
                                 str = '';
                             end
                         end

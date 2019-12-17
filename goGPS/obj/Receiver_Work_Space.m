@@ -10686,7 +10686,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             txt  = sprintf('%s                                                            END OF HEADER       \n', txt);
             
-            fid = fopen(file_name, 'w');
+            fid = fopen(file_name, 'Wb');
             fprintf(fid, '%s', txt);
             txt = [];
             
