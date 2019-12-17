@@ -2165,11 +2165,15 @@ classdef Command_Interpreter < handle
                                     id_ref = id_trg(1);
                                 end
                                 id_ref = intersect(id_ref, id_trg);
+                                any_ok = false;
                                 for i = 1 : numel(id_ref)
                                     id_bsl = [id_ref(i) .* ones(numel(id_trg) - 1, 1) serialize(id_trg(id_trg ~= id_ref(i)))];
-                                    fh_list = [fh_list; rec.showBaselineENU(id_bsl)]; %#ok<AGROW>
+                                    if ~isempty(id_bsl)
+                                        fh_list = [fh_list; rec.showBaselineENU(id_bsl)]; %#ok<AGROW>
+                                        any_ok = true;
+                                    end
                                 end
-                                show_ok  = show_ok + 1;
+                                show_ok  = show_ok + any_ok;
                             end
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUPBSL.par ')*$'], 'once'))
                             if ~isempty(id_trg)
@@ -2179,11 +2183,15 @@ classdef Command_Interpreter < handle
                                     id_ref = id_trg(1);
                                 end
                                 id_ref = intersect(id_ref, id_trg);
+                                any_ok = false;
                                 for i = 1 : numel(id_ref)
                                     id_bsl = [id_ref(i) .* ones(numel(id_trg) - 1, 1) serialize(id_trg(id_trg ~= id_ref(i)))];
-                                    fh_list = [fh_list; rec.showBaselinePlanarUp(id_bsl)]; %#ok<AGROW>
+                                    if ~isempty(id_bsl)
+                                        fh_list = [fh_list; rec.showBaselinePlanarUp(id_bsl)]; %#ok<AGROW>
+                                        any_ok = true;
+                                    end
                                 end
-                                show_ok  = show_ok + 1;
+                                show_ok  = show_ok + any_ok;
                             end
                         end
                     catch ex

@@ -1186,7 +1186,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ylim(max_r * [-1 1]);
                         xlim(max_r * [-1 1]);
                         grid on;
-                        h = title(sprintf('Position Stability %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', rec.parent.getMarkerName4Ch, std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
+                        h = title(sprintf('Position Stability %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
                         h.FontWeight = 'bold';
                         
                         ax = axes('Parent', tmp_box2);
@@ -1200,7 +1200,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         yl = minMax(up);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('Up std %.2f [mm]',sqrt(var(enu(:,3)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
+                        h = title(sprintf('Up std %.2f [mm]', std(enu(:,3)*1e3)), 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
@@ -1663,7 +1663,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             if min(abs(cax)) > 5
                                 setColorMap('RdBu', caxis(), 0.90, [-5 5])
                             end
-                            colorbar(ax1); ax1.Color = [0.9 0.9 0.9];
+                            cb = colorbar(ax1); cb.UserData = title(cb, iif(scale == 1e2, '[cm]', '[mm]')); ax1.Color = [0.9 0.9 0.9];
                             prn_ss = unique(cc.prn(cc.system == sys_c));
                             xlim(ax1, [1 size(this.sat.res,1)]);
                             ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
@@ -1672,9 +1672,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             grid(ax1, 'on');
                             h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
                             if type(2) == 'o'
-                                h = title(ax1, sprintf('%s %s %s [%s]', cc.getSysName(sys_c), this.parent.marker_name, name, iif(scale == 1e2, 'cm', 'mm')), 'interpreter', 'none'); h.FontWeight = 'bold';
+                                h = title(ax1, sprintf('%s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
                             else
-                                h = title(ax1, sprintf('%s %s %s %s [%s]', cc.getSysName(sys_c), this.parent.marker_name, trk_ok(t,:), name, iif(scale == 1e2, 'cm', 'mm')), 'interpreter', 'none'); h.FontWeight = 'bold';
+                                h = title(ax1, sprintf('%s %s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), trk_ok(t,:), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
                             end
                             
                             ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
@@ -1683,7 +1683,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             ax2.YTick = prn_ss; ax2.Color = [1 1 1];
                             grid(ax2, 'on');
                             xlabel(ax2, sprintf('mean %s', iif(scale == 1e2, 'cm', 'mm')));
-                            h = title(ax2, 'mean', 'interpreter', 'none'); h.FontWeight = 'bold';
+                            h = title(ax2, sprintf('mean\\fontsize{5} \n'), 'interpreter', 'tex'); h.FontWeight = 'bold';
                             linkaxes([ax1, ax2], 'y');
                             
                             Core_UI.beautifyFig(f, 'dark');

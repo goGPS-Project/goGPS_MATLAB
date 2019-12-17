@@ -1164,12 +1164,14 @@ classdef GUI_Inspector < GUI_Unique_Win
             this.j_spinner.start;
             this.j_spinner.setBusyText('Running...');
             this.top_bh.Widths(end) = 120;
+            drawnow
         end
         
         function stopWaiting(this)
             this.j_spinner.stop;
             this.j_spinner.setBusyText('All done!');
             this.top_bh.Widths(end) = 0;
+            drawnow
         end
         
         
