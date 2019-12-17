@@ -169,7 +169,10 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_HN % Tropo export Parameter hn format
 
         PAR_E_COO_CRD   % Coordinates in bernese crd format
-        PAR_E_COO_CSV   % Coordinates in bernese crd format
+        PAR_E_XYZ_TXT   % Coordinates XYZ in plain text format
+        PAR_E_ENU_TXT   % Coordinates ENU in plain text format
+        PAR_E_GEO_TXT   % Coordinates GEODETIC in plain text format
+        PAR_E_COO_CSV   % Coordinates in bernese CSV format
 
         PAR_S_SAVE      % flage for saving                
                 
@@ -658,13 +661,34 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_CSV.limits = [];
             this.PAR_E_TROPO_CSV.accepted_values = {};
                                     
-            this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
-            this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates Bernese .CRD file';
+            this.PAR_E_COO_CRD.name = 'Median Coordinates CRD format';
+            this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
             this.PAR_E_COO_CRD.accepted_values = {};
             
+            this.PAR_E_XYZ_TXT.name = 'Coordinates XYZ in plain text format';
+            this.PAR_E_XYZ_TXT.descr = 'XYZ_TXT            Coordinates XYZ in plain text format';
+            this.PAR_E_XYZ_TXT.par = '(xyz_txt)|(XYZ_TXT)';
+            this.PAR_E_XYZ_TXT.class = '';
+            this.PAR_E_XYZ_TXT.limits = [];
+            this.PAR_E_XYZ_TXT.accepted_values = {};
+            
+            this.PAR_E_ENU_TXT.name = 'Coordinates local ENU in plain text format';
+            this.PAR_E_ENU_TXT.descr = 'ENU_TXT            Coordinates local ENU in plain text format';
+            this.PAR_E_ENU_TXT.par = '(enu_txt)|(ENU_TXT)';
+            this.PAR_E_ENU_TXT.class = '';
+            this.PAR_E_ENU_TXT.limits = [];
+            this.PAR_E_ENU_TXT.accepted_values = {};
+
+            this.PAR_E_GEO_TXT.name = 'Coordinates Geodetic in plain text format';
+            this.PAR_E_GEO_TXT.descr = 'GEO_TXT            Coordinates Geodetic in plain text format';
+            this.PAR_E_GEO_TXT.par = '(geo_txt)|(GEO_TXT)';
+            this.PAR_E_GEO_TXT.class = '';
+            this.PAR_E_GEO_TXT.limits = [];
+            this.PAR_E_GEO_TXT.accepted_values = {};
+
             this.PAR_E_COO_CSV.name = 'Coordinates CSV format';
             this.PAR_E_COO_CSV.descr = 'COO_CSV            Coordinates .csv file';
             this.PAR_E_COO_CSV.par = '(coo_csv)|(COO_CSV)';
@@ -778,7 +802,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_XYZ_TXT this.PAR_E_ENU_TXT  this.PAR_E_GEO_TXT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -2358,7 +2382,7 @@ classdef Command_Interpreter < handle
             
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             do_not_complain = false;
-            flag_crd  = false;
+            flag_crd  = 0;
             for t = 1 : numel(tok)
                 if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_CORE_MAT.par ')*$'], 'once'))
                     Core.getCurrentCore.exportMat();
@@ -2373,7 +2397,22 @@ classdef Command_Interpreter < handle
                     else % run in single session mode (work)
                         rec.exportCRD('work');
                     end
-                    flag_crd = true;
+                    flag_crd = flag_crd + 1;
+                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_XYZ_TXT.par ')*$'], 'once'))
+                    if ~isempty(id_trg)
+                        rec(id_trg).exportPlainCoord('xyz');
+                    end
+                    flag_crd = flag_crd + 1;
+                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_ENU_TXT.par ')*$'], 'once'))
+                    if ~isempty(id_trg)
+                        rec(id_trg).exportPlainCoord('enu');
+                    end
+                    flag_crd = flag_crd + 1;
+                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_GEO_TXT.par ')*$'], 'once'))
+                    if ~isempty(id_trg)
+                        rec(id_trg).exportPlainCoord('geodetic');
+                    end
+                    flag_crd = flag_crd + 1;
                 end
             end
             if ~found_trg
@@ -2382,7 +2421,7 @@ classdef Command_Interpreter < handle
                 end
             else
                 for r = id_trg % different for each target
-                    if ~flag_crd || numel(tok) > 3
+                    if ~flag_crd || (numel(tok) - flag_crd) > 2
                         this.log.newLine();
                         this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
                         this.log.smallSeparator();
@@ -2395,7 +2434,7 @@ classdef Command_Interpreter < handle
                                 rec(r).work.exportRinex3();
                                 not_exported = false;
                             else
-                                if sss_lev == 0 % run on all the results (out)
+                                if sss_lev == 0 % run on all the results (out)                                    
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
                                         pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
                                         export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
