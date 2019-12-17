@@ -782,8 +782,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_tll.Heights = [93, 5, -1];
             opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
             
-            opt_tlh.Widths = [-1 5 195];
-            opt_h.Widths = [-1 5 190];
+            opt_tlh.Widths = [-1 5 185];
+            opt_h.Widths = [-1 5 210];
             
             % --------------------------------------------------------
             
@@ -960,7 +960,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',           'flag_out_quality', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Number of Sat. per Epoch','flag_out_nspe', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Combined Residuals',       'flag_out_res_co', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Code Res.',    'flag_out_res_pr', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Phase Res.',   'flag_out_res_ph', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
             opt_v.Heights = ones(1, numel(opt_v.Heights)) * Core_UI.LINE_HEIGHT;
             opt_container.Heights = -1;

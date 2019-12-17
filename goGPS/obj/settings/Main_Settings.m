@@ -295,7 +295,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUT_QUALITY = true;    % Quality (SNR)        
         FLAG_OUT_NSPE = true;       % Quality (n sat per epoch)
         FLAG_OUT_AZEL = true;       % Azimuth / Elevation        
-        FLAG_OUT_RES = true;        % residuals
+        FLAG_OUT_RES_CO = true;     % residuals
+        FLAG_OUT_RES_PR = true;     % residuals
+        FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
     end
 
@@ -714,7 +716,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_out_quality = true;    % quality (SNR)        
         flag_out_nspe = true;       % quality (number of satellite per epoch)        
         flag_out_azel = true;       % azimuth / elevation        
-        flag_out_res = true;        % residuals
+        flag_out_res_co = true;     % combined residuals
+        flag_out_res_pr = true;     % code residuals
+        flag_out_res_ph = true;     % phase residuals
         flag_out_mf = true;         % mapping functions (wet / hydrostatic)
     end
 
@@ -985,7 +989,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_out_quality = state.getData('flag_out_quality');      % quality (SNR)
                 this.flag_out_nspe = state.getData('flag_out_nspe');            % number of satellites per epoch
                 this.flag_out_azel = state.getData('flag_out_azel');            % azimuth / elevation
-                this.flag_out_res = state.getData('flag_out_res');              % residuals
+                this.flag_out_res_co = state.getData('flag_out_res_co');        % code residuals
+                if isempty(this.flag_out_res_co) % compatibility mode
+                    this.flag_out_res_co = state.getData('flag_out_res');       % code residuals
+                end
+                this.flag_out_res_pr = state.getData('flag_out_res_pr');        % phase residuals
+                this.flag_out_res_ph = state.getData('flag_out_res_ph');        % code residuals
                 this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
             else
                 % PARALLELISM
@@ -1156,7 +1165,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_out_quality = state.flag_out_quality;      % quality (SNR)
                 this.flag_out_nspe = state.flag_out_nspe;            % number of satellites per epoch
                 this.flag_out_azel = state.flag_out_azel;            % azimuth / elevation
-                this.flag_out_res = state.flag_out_res;              % residuals
+                this.flag_out_res_co = state.flag_out_res_co;        % combined residuals
+                this.flag_out_res_pr = state.flag_out_res_pr;        % code residuals
+                this.flag_out_res_ph = state.flag_out_res_ph;        % phase residuals
                 this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)                
             end
 
@@ -1290,8 +1301,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable for single frequency receiverrs:       %d\n\n', this.flag_ppp_force_single_freq)];
             str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];            
-            str = [str sprintf(' NET Using rewight/snooping: %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
-            str = [str sprintf(' NET Enable ambiguity fixing: %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
+            str = [str sprintf(' NET Using rewight/snooping:                       %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
+            str = [str sprintf(' NET Enable ambiguity fixing:                      %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable satellite clock re-alignment:              %d\n', this.flag_clock_align)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
@@ -1322,19 +1333,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.std_tropo_abs)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
             str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.std_tropo_gradient_abs)];
-            str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
+            str = [str sprintf(' STD of tropospheric gradient:                     %g\n', this.std_tropo_gradient)];
             str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
-            str = [str sprintf(' Spline rate of tropospheric delay:                %g\n\n', this.spline_rate_tropo)];
-            str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n\n', this.spline_rate_tropo_gradient)];
-            str = [str sprintf(' Spline order of tropospheric delay:               %g\n\n', this.spline_tropo_order)];
+            str = [str sprintf(' Spline rate of tropospheric delay:                %g\n', this.spline_rate_tropo)];
+            str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n', this.spline_rate_tropo_gradient)];
+            str = [str sprintf(' Spline order of tropospheric delay:               %g\n', this.spline_tropo_order)];
             str = [str sprintf(' Spline order of tropospheric delay gradients:     %g\n\n', this.spline_tropo_gradient_order)];
-            str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n\n', this.tropo_spatial_reg_sigma)];
-            str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n\n', this.tropo_spatial_reg_d_distance)];
-            str = [str sprintf(' Spatial regualrization ztd gardients [m^2]:                 %g\n\n', this.tropo_gradient_spatial_reg_sigma)];
-            str = [str sprintf(' Spatial regualrization ztd gardietns halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
+            str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n', this.tropo_spatial_reg_sigma)];
+            str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n', this.tropo_spatial_reg_d_distance)];
+            str = [str sprintf(' Spatial regualrization ztd gardients [m^2]:       %g\n', this.tropo_gradient_spatial_reg_sigma)];
+            str = [str sprintf(' Spatial reg. ztd gardients halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
             str = this.toString@Command_Settings(str);
             
-            str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
+            str = [str '\n---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
             str = [str sprintf(' Keep Dt                                           %d\n', this.flag_out_dt)];
             str = [str sprintf(' Keep PWV                                          %d\n', this.flag_out_pwv)];
             str = [str sprintf(' Keep ZWD                                          %d\n', this.flag_out_zwd)];
@@ -1348,7 +1359,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Keep satellite quality (snr)                      %d\n', this.flag_out_quality)];
             str = [str sprintf(' Keep satellite number of satellite per epoch      %d\n', this.flag_out_nspe)];
             str = [str sprintf(' Keep satellite azimuth and elevation              %d\n', this.flag_out_azel)];
-            str = [str sprintf(' Keep satellite residuals                          %d\n', this.flag_out_res)];
+            str = [str sprintf(' Keep satellite combined residuals                 %d\n', this.flag_out_res_co)];
+            str = [str sprintf(' Keep satellite code residuals                     %d\n', this.flag_out_res_pr)];
+            str = [str sprintf(' Keep satellite phase residuals                    %d\n', this.flag_out_res_ph)];
             str = [str sprintf(' Keep mapping functions (wet / hydrostatic)        %d\n', this.flag_out_mf)];
         end
 
@@ -1391,10 +1404,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
             str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
-            %str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd'), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
-            %str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd'), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword', str_cell);
             str_cell = Ini_Manager.toIniStringComment('(e.g. "01233456789ABCabc")', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_list', this.sss_id_list, str_cell);
@@ -1861,8 +1872,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_out_nspe', this.flag_out_nspe, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite azimuth and elevation', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_azel', this.flag_out_azel, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep satellite satellite residuals', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_res', this.flag_out_res, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep combined residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_co', this.flag_out_res_co, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep uncombined code residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_pr', this.flag_out_res_pr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep uncombined phase residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_ph', this.flag_out_res_ph, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite mapping functions (wet / hydrostatic)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_out_mf, str_cell);
 
@@ -2506,7 +2521,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_quality = 1;
             this.flag_out_nspe = 1;            
             this.flag_out_azel = 1;
-            this.flag_out_res = 1;
+            this.flag_out_res_co = 1;
+            this.flag_out_res_pr = 1;
+            this.flag_out_res_ph = 1;
             this.flag_out_mf = 1;
             
             this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'PPP T$', 'ENDFOR', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ZTD'};
@@ -2598,10 +2615,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_out_quality = 1;
             this.flag_out_nspe = 1;
             this.flag_out_azel = 1;
-            this.flag_out_res = 1;
+            this.flag_out_res_co = 1;
+            this.flag_out_res_pr = 1;
+            this.flag_out_res_ph = 1;
             this.flag_out_mf = 1;
             
-            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};
+            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -U', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};
         end
         
         function setToShortNET(this)
@@ -2738,7 +2757,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_out_quality');
             this.checkLogicalField('flag_out_nspe');
             this.checkLogicalField('flag_out_azel');
-            this.checkLogicalField('flag_out_res');
+            this.checkLogicalField('flag_out_res_co');
+            this.checkLogicalField('flag_out_res_pr');
+            this.checkLogicalField('flag_out_res_ph');
             this.checkLogicalField('flag_out_mf');
 
             this.cc.check();
@@ -4479,6 +4500,33 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             s_rate = this.s_rate;
         end
 
+        function flag = isResCoOut(this)
+            % flag: is exporting of combined residuals requested?
+            %
+            % SYNTAX
+            %   flag = isResCoOut(this)
+            
+            flag = this.flag_out_res_co;
+        end
+        
+        function flag = isResPrOut(this)
+            % flag: is exporting of uncombined code residuals requested?
+            %
+            % SYNTAX
+            %   flag = isResPrOut(this)
+            
+            flag = this.flag_out_res_pr;
+        end
+        
+        function flag = isResPhOut(this)
+            % flag: is exporting of uncombined phase residuals requested?
+            %
+            % SYNTAX
+            %   flag = isResPhOut(this)
+            
+            flag = this.flag_out_res_ph;
+        end
+        
         function flag = isSatOut(this)
             % flag: is exporting of sat specific parameters requested?
             %

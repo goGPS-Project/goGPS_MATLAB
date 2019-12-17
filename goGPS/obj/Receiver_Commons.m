@@ -580,7 +580,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 n_sat_ss.G = [];
                 if isempty(this.n_sat_ep)
                     % retrieve the n_sat from residuals
-                    if this.state.isSatOut && ~isempty(this.sat.res)
+                    if this.state.isResCoOut && ~isempty(this.sat.res)
                         n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
                         for sys_c = cc.sys_c
                             n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
