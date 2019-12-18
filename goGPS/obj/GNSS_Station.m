@@ -6102,6 +6102,7 @@ classdef GNSS_Station < handle
             % SEE ALSO
             %   Radiosonde
             
+            log = Core.getLogger();
             fh_list = [];
             if nargin < 3
                 flag_show = false;
@@ -6112,9 +6113,9 @@ classdef GNSS_Station < handle
             end
             
             if isempty(rds_list)
-                Core.getLogger.addError('No radiosonde found, Validation Failed');
+                log.addError('No radiosonde found, Validation Failed');
             else
-                Core.getLogger.addMarkedMessage('Retrieving data, please wait...');
+                log.addMarkedMessage('Retrieving data, please wait...');
                 % Get time limits
                 p_time = sta_list.getSyncTimeExpanded(sta_list);
                 start_time = GPS_Time(floor(p_time.first.getMatlabTime * 2)/2);
@@ -6128,11 +6129,11 @@ classdef GNSS_Station < handle
                 gnss_list = sta_list(id_rec);
                 
                 % Interpolate ZTD
-                Core.getLogger.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
+                log.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
                 if numel(sta_list) > 1
                     [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation(), 300);
                 else
-                    Core.getLogger.addWarning('Interpolation is not possible with just one station!!!');
+                    log.addWarning('Interpolation is not possible with just one station!!!');
                     ztd_height_correction = 0;
                     [ztd, time] = sta_list(id_rec(1)).getZtd_mr();
                     ztd = ztd * 1e2;
@@ -6147,8 +6148,12 @@ classdef GNSS_Station < handle
                 %             ztd_ns(:,rds.getLat <= 41) = ztd_s(:,rds.getLat <= 41);
                 
                 % Compute values
-                fprintf('---------------------------------------------------------------------\n');
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 [m_diff, s_diff] = deal(nan(numel(rds), 1));
+                log.addMonoMessage(sprintf(' ZTD Radiosonde Validation\n---------------------------------------------------------------------------------------\n'));
+                log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
+                log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 for s = 1 : numel(rds)
                     %                 if rds(s).getLat > 41
                     %                     ztd = ztd_n;
@@ -6172,9 +6177,9 @@ classdef GNSS_Station < handle
                     
                     m_diff(s) = mean(ztd_diff, 1, 'omitnan');
                     s_diff(s) = std(ztd_diff, 1, 'omitnan');
-                    fprintf('%2d) G  %6.2f cm    %6.2f cm     Radiosonde "%s"\n', s, m_diff(s), s_diff(s), rds(s).getName());
+                    log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
                 end
-                fprintf('---------------------------------------------------------------------\n');
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 
                 if flag_show
                     % Plot comparisons
@@ -6224,7 +6229,7 @@ classdef GNSS_Station < handle
                 % Retrieve DTM model
                 
                 if flag_show
-                    Core.getLogger.addMarkedMessage('Preparing map, please wait...');
+                    log.addMarkedMessage('Preparing map, please wait...');
                     
                     % Radiometers points
                     data_mean = m_diff;
@@ -6241,6 +6246,25 @@ classdef GNSS_Station < handle
                         gnss_list(r).Color = Core_UI.LBLUE;
                     end
                     
+                    n_col = round(max(abs(minMax(data_mean))*10));
+                    caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
+                    drawnow
+                    try
+                        % It seems that the only way to have a colorbar correctly moving with the figure is to use the internal colorbar object
+                        cb = colorbar;
+                        %cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
+                        %cb.Units = 'pixels';                        
+                        %cb_m.Units = 'pixels';                        
+                        %cb_m.Position(1) = cb.Position(1) + 10;
+                        %ax_pos = ax.Position;
+                        %delete(cb); % deleting the colorbar changes the size of the axes
+                        %ax.Position = ax_pos;
+                        %cb_m.Units = 'normalized';
+                        xlabel(cb, 'cm','color','k');
+                    catch
+                        drawnow
+                    end
+                                        
                     [x, y] = m_ll2xy(data_lon, data_lat);
                     
                     plot(x(:), y(:),'.k', 'MarkerSize', 5);
@@ -6265,8 +6289,7 @@ classdef GNSS_Station < handle
                             'Margin', 2, 'LineWidth', 2, ...
                             'HorizontalAlignment','left');
                     end
-                    
-                    n_col = round(max(abs(minMax(data_mean))*10));
+                                        
                     %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
                     col_data = Cmap.getColor(round(abs(data_mean) * 10) + 1, n_col + 1, 'linspaced');
                     plot(x, y, 's', ...
@@ -6280,27 +6303,11 @@ classdef GNSS_Station < handle
                             'MarkerFaceColor', col_data(r,:), ...
                             'UserData', 'RAOB_point');
                     end
-                    caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
-                    drawnow
-                    try
-                        ax = gca;
-                        cb = colorbar;
-                        cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
-                        cb.Units = 'pixels';                        
-                        cb_m.Units = 'pixels';                        
-                        cb_m.Position(1) = cb.Position(1) + 10;
-                        ax_pos = ax.Position;
-                        delete(cb); % deleting the colorbar changes the size of the axes
-                        ax.Position = ax_pos;
-                        cb_m.Units = 'normalized';
-                    catch
-                        drawnow
-                    end
-                    xlabel(ax,'cm','color','k');
-                    title(sprintf('Map of mean and std of radiosonde validation\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontSize', 16);
+                    
+                    title(sprintf('Map of mean and std of radiosonde validation\\fontsize{5} \n'));
                     Core_UI.beautifyFig(fh);
                     Core_UI.addBeautifyMenu(fh);
-                    Core.getLogger.addStatusOk('The map is ready ^_^');
+                    log.addStatusOk('The map is ready ^_^');
                 end
             end
         end

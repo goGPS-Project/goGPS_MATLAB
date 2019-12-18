@@ -81,6 +81,7 @@ classdef Command_Interpreter < handle
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
         CMD_OUTDET      % Outlier and cycle-slip detection
         CMD_SHOW        % Display plots and images
+        CMD_VALIDATE    % Validate estimated parameter with external data
         CMD_EXPORT      % Export results
         CMD_PUSHOUT     % push results in output
         CMD_REMSAT      % remove satellites from receivers
@@ -158,6 +159,9 @@ classdef Command_Interpreter < handle
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+        
+        PAR_V_RAOB      % Validation with RAOB
+        PAR_V_IGS       % Validation with IGS
               
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
@@ -177,7 +181,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -605,6 +609,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
+            this.PAR_V_RAOB.name = 'Radiosonde validation';
+            this.PAR_V_RAOB.descr = 'RAOB               Use RAOB for ZTD validation';
+            this.PAR_V_RAOB.par = '(raob)|(RAOB)';
+            this.PAR_V_RAOB.class = '';
+            this.PAR_V_RAOB.limits = [];
+            this.PAR_V_RAOB.accepted_values = [];
+
+            this.PAR_V_IGS.name = 'IGS validation';
+            this.PAR_V_IGS.descr = 'IGS                Use IGS results for validation';
+            this.PAR_V_IGS.par = '(igs)|(IGS)';
+            this.PAR_V_IGS.class = '';
+            this.PAR_V_IGS.limits = [];
+            this.PAR_V_IGS.accepted_values = [];
+
             this.PAR_E_CORE_MAT.name = 'CORE MATLAB format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT           Save the core as .mat file';
             this.PAR_E_CORE_MAT.par = '(core_mat)|(CORE_MAT)';
@@ -794,10 +812,15 @@ classdef Command_Interpreter < handle
             this.CMD_OUTDET.rec = 'T';
             this.CMD_OUTDET.par = [];
 
-            this.CMD_SHOW.name = {'SHOW'};
+            this.CMD_SHOW.name = {'SHOW', 'show'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+
+            this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
+            this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
+            this.CMD_VALIDATE.rec = 'T';
+            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_RAOB];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1228,6 +1251,8 @@ classdef Command_Interpreter < handle
                                         this.runKeep(core.rec.getWork(), tok(2:end));
                                     case this.CMD_SHOW.name                 % SHOW
                                         this.runShow(core.rec, tok, level(l));
+                                    case this.CMD_VALIDATE.name             % VALIDATE
+                                        this.runValidation(core.rec, tok, level(l));
                                     case this.CMD_EXPORT.name               % EXPORT
                                         this.runExport(core.rec, tok, level(l));
                                     case this.CMD_PUSHOUT.name              % PUSHOUT
@@ -2363,6 +2388,84 @@ classdef Command_Interpreter < handle
             end
 
             if show_ok == 0
+                Core.getLogger.addError('No valid command show found');
+            end
+        end
+        
+        function runValidation(this, rec, tok, sss_lev)
+            % Compute Validation
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runValidation(rec, tok, level)
+                        
+            fh_list = [];
+            if nargin < 3 || isempty(sss_lev)
+                sss_lev = 0;
+            end
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            [sys_list, sys_found] = this.getConstellation(tok);
+            vld_ok = 0;
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                trg = rec(id_trg);
+
+                
+                for t = 1 : numel(tok) % global for all target
+                    try
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_V_RAOB.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showRadiosondeValidation()]; %#ok<AGROW>
+                            vld_ok  = vld_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showIGSValidation()]; %#ok<AGROW>
+                            vld_ok  = vld_ok + 1;                        
+                        end
+                    catch ex
+                        Core_Utils.printEx(ex);
+                        this.log.addError(sprintf('%s',ex.message));
+                    end
+                end                
+            end
+            
+            if ~isempty(fh_list)
+                [export_file_name, export_found, flag_close] = this.getExportFig(tok);
+                if export_found
+                    for fh  = fh_list(:)'
+                        file_name = fullfile(Core.getState.getOutDir, 'Images', [fh.UserData.fig_name export_file_name]);
+                        [file_dir, file_name, file_ext] = fileparts(file_name);
+                        if ~isempty(file_dir)
+                            if ~exist(file_dir, 'file')
+                                mkdir(file_dir);
+                            end
+                        end
+                        if isempty(file_ext)
+                            file_ext = '.png';
+                        end
+                        if isempty(file_name)
+                            Core.getLogger.addWarning('No filename found for the figure export');
+                        end
+                        if isempty(file_name)
+                            file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')]; %#ok<AGROW>
+                        end
+                        file_name = fullfile(file_dir, [file_name file_ext]);
+                        
+                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                        if flag_close
+                            delete(fh);
+                        else
+                            if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
+                                Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                            end
+                        end
+                    end
+                end
+            end
+
+            if vld_ok == 0
                 Core.getLogger.addError('No valid command show found');
             end
         end
