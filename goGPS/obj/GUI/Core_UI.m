@@ -334,12 +334,22 @@ classdef Core_UI < Logos
                     ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
-                        txt.Color = [0.9 0.9 0.9];
-                        if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
-                            txt.BackgroundColor = 1 - txt.BackgroundColor;
+                        % If the text have the same color of the background change it accordingly
+                        if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
+                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
+                                txt.Color = 1 - txt.Color;
+                                txt.BackgroundColor = 1 - txt.BackgroundColor;
+                            end
+                        else
+                            if ~ischar(txt.Color) && all(txt.Color < 0.5)
+                                txt.Color = 1 - txt.Color;
+                            end
+                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
+                                txt.BackgroundColor = 1 - txt.BackgroundColor;
+                            end
                         end
                         txt.FontName = FONT;
-                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(9), Core_UI.getFontSize(12));
+                        %txt.FontSize = iif(txt.FontSize == 9, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
                     end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
@@ -411,19 +421,29 @@ classdef Core_UI < Logos
                     ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
-                        txt.Color = 1-[0.9 0.9 0.9];
-                        if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
-                            txt.BackgroundColor = 1 - txt.BackgroundColor;
+                        % If the text have the same color of the background change it accordingly
+                        if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
+                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
+                                txt.Color = 1 - txt.Color;
+                                txt.BackgroundColor = 1 - txt.BackgroundColor;
+                            end
+                        else
+                            if ~ischar(txt.Color) && all(txt.Color > 0.5)
+                                txt.Color = 1 - txt.Color;
+                            end
+                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
+                                txt.BackgroundColor = 1 - txt.BackgroundColor;
+                            end
                         end
                         txt.FontName = FONT;
-                        txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(9), Core_UI.getFontSize(12));
+                        %txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
                     end
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
                     txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
@@ -435,7 +455,7 @@ classdef Core_UI < Logos
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
                     txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(14));
+                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'

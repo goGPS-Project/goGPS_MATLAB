@@ -2338,17 +2338,17 @@ classdef Radiosonde < handle
             raob_list.s98753 = struct('lat',    7.11, 'lon',  125.65, 'name', 'RPMD Davao Airport');
         end
         
-        function sta_list = getCloseStations(lat, lon, n_stations)
+        function [sta_list, lat_sta, lon_sta] = getCloseStations(lat, lon, n_stations)
             % Get the sta id of the radiosondes in a certain area,
             % or close to a point
             %
             % SYNTAX
-            %   sta_list = getCloseStations(lat_lim, lon_lim);
-            %   sta_list = getCloseStations(lat, lon, n_stations)
+            %   [sta_list, lat_sta, lon_sta] = getCloseStations(lat_lim, lon_lim);
+            %   [sta_list, lat_sta, lon_sta] = getCloseStations(lat, lon, n_stations)
             %
             % EXAMPLE
-            %   sta_list = Radiosonde.getCloseStations([43 46], [5 10]);
-            %   sta_list = Radiosonde.getCloseStations(44, 7, n_stations)
+            %   [sta_list, lat_sta, lon_sta] = Radiosonde.getCloseStations([43 46], [5 10]);
+            %   [sta_list, lat_sta, lon_sta] = Radiosonde.getCloseStations(44, 7, n_stations)
             
             raob_list = Radiosonde.getRaobList;
             sta_list = fieldnames(raob_list);
@@ -2366,21 +2366,27 @@ classdef Radiosonde < handle
                 
                 id_ok = (lat_sta >= lat(1)) & (lat_sta <= lat(2)) & ...
                     (lon_sta >= lon(1)) & (lon_sta <= lon(2));
+                lat_sta = lat_sta(id_ok);
+                lon_sta = lon_sta(id_ok);
                 sta_list = sta_list(id_ok);
             else
                 % distance from a coordinate
                 d = sphericalDistance(lat_sta, lon_sta, lat, lon);
                 [d, ids] = sort(d);
+                lat_sta = lat_sta(ids);
+                lon_sta = lon_sta(ids);
                 sta_list = sta_list(ids);
             end
             
             if nargin == 3 && ~isempty(n_stations)
+                lat_sta = lat_sta(1 : n_stations);
+                lon_sta = lon_sta(1 : n_stations);
                 sta_list = sta_list(1 : n_stations);
             end
             
             for s = 1 : numel(sta_list)
                 sta_list{s} = sta_list{s}(2 : end);
-            end
+            end            
         end
         
         % RESERVED
