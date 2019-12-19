@@ -3,7 +3,7 @@
 *     __ _ ___ / __| _ | __|                *
 *    / _` / _ \ (_ |  _|__ \                *
 *    \__, \___/\___|_| |___/                *
-*    |___/                    v 1.0 beta 2  *
+*    |___/                    v 1.0 beta 5  *
 *                                           *
 \*******************************************/
 
@@ -25,6 +25,11 @@
      
    - Network Solution (NET) with two or more static receivers
      using an undifferenced unified least squares approach
+     
+   Both are supported by two engines, the first works with observation 
+   combinations, the second use uncombined data. While the first engine
+   is a bit faster and still suggested for PPP, for network solutions
+   the uncombined engine is preferrable.
      
    All the corrections for precise positioning are implemented.
    Additional resources required for the GNSS processing can be
