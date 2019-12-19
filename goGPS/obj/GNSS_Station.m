@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 4 ION
+%    |___/                    v 1.0 beta 5 Merry Christmas
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -3241,8 +3241,8 @@ classdef GNSS_Station < handle
                 lat_lim = minMax(lat_tmp); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
             end
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.01, diff(lon_lim) / 6));
-            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.01, diff(lat_lim) / 6));
+            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.02, diff(lon_lim) / 6));
+            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.02, diff(lat_lim) / 6));
 
             m_proj('equidistant','lon',clon,'lat',clat);   % Projection
             %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
@@ -3356,7 +3356,7 @@ classdef GNSS_Station < handle
             Core.getLogger.addStatusOk('The map is ready ^_^');
         end
 
-        function fh_list = showMapGoogle(sta_list, new_fig)
+        function fh_list = showMapGoogle(sta_list, new_fig, add_lat, add_lon)
             % Show Google Map of the stations
             %
             % CITATION:
@@ -3390,21 +3390,12 @@ classdef GNSS_Station < handle
             fig_name = sprintf('RecMapDtm');
             f.UserData = struct('fig_name', fig_name);
 
-            if (nargin < 3) || isempty(resolution)
-                resolution = 'low';
-            end
-            % check accepted values (low / high)
-            switch resolution
-                case 'high'
-                otherwise
-                    resolution = 'low';
-            end
             Core.getLogger.addMarkedMessage('Preparing map, please wait...');
             
             f.Color = [1 1 1];
             [lat, lon] = sta_list.getMedianPosGeodetic();
             
-            if nargin == 5
+            if nargin == 4
                 lat_tmp = [lat(:); add_lat(:)];
                 lon_tmp = [lon(:); add_lon(:)];
             else
@@ -3412,7 +3403,7 @@ classdef GNSS_Station < handle
                 lon_tmp = lon;
             end
             % set map limits
-            if numel(sta_list) == 1
+            if numel(lon_tmp) == 1
                 lon_lim = minMax(lon_tmp) + [-0.05 0.05];
                 lat_lim = minMax(lat_tmp) + [-0.05 0.05];
             else
@@ -5825,9 +5816,10 @@ classdef GNSS_Station < handle
         end
                         
         function fh_list = showMapDtmWithCloseRaob(sta_list)
-            fh_list = sta_list.showMapDtm();
-            fh.UserData.fig_name = 'RecRaobMapDtm';
             [id_rds, lat, lon] = sta_list.getCloseRaobIdList();
+            fh_list = sta_list.showMapDtm([], [], lat, lon);
+            fh.UserData.fig_name = 'RecRaobMapDtm';
+            
             [x, y] = m_ll2xy(lon, lat);
             
             % Label BG (in background w.r.t. the point)
@@ -5866,8 +5858,9 @@ classdef GNSS_Station < handle
         end
         
         function fh_list = showMapGoogleWithCloseRaob(sta_list)
-            fh_list = sta_list.showMapGoogle();
             [id_rds, lat, lon] = sta_list.getCloseRaobIdList();
+            fh_list = sta_list.showMapGoogle([], lat, lon);
+            fh.UserData.fig_name = 'RecRaobMapDtm';            
             [x, y] = m_ll2xy(lon, lat);
             
             % Label BG (in background w.r.t. the point)
@@ -5903,8 +5896,7 @@ classdef GNSS_Station < handle
             end
             
             Core_UI.beautifyFig(fh_list, 'dark');
-        end
-        
+        end        
         
         function [fh_list, m_diff, s_diff, rds] = showRaobZtdValidation(sta_list, rds_list)
             % Compute and show comparison with radiosondes from weather.uwyo.edu
@@ -6587,6 +6579,27 @@ classdef GNSS_Station < handle
                 [x, y] = m_ll2xy(data_lon, data_lat);
                                 
                 plot(x(:), y(:),'.k', 'MarkerSize', 5);
+
+                n_col = round(max(abs(minMax(data_mean))*10)) + 1;
+                caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
+                drawnow
+                try
+                    % It seems that the only way to have a colorbar correctly moving with the figure is to use the internal colorbar object
+                    cb = colorbar;
+                    %cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
+                    %cb.Units = 'pixels';
+                    %cb_m.Units = 'pixels';
+                    %cb_m.Position(1) = cb.Position(1) + 10;
+                    %ax_pos = ax.Position;
+                    %delete(cb); % deleting the colorbar changes the size of the axes
+                    %ax.Position = ax_pos;
+                    %cb_m.Units = 'normalized';
+                    xlabel(cb, 'cm','color','k');
+                    drawnow
+                catch
+                    drawnow
+                end
+                
                 % Label BG (in background w.r.t. the point)
                 for r = 1 : numel(gnss_list)
                     name = sprintf('%.1f, %.1f', data_mean(r), data_std(r));
@@ -6604,26 +6617,7 @@ classdef GNSS_Station < handle
                         'Margin', 2, 'LineWidth', 2, ...
                         'HorizontalAlignment','left');
                 end
-                
-                n_col = round(max(abs(minMax(data_mean))*10)) + 1;
-                caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
-                drawnow
-                try
-                    % It seems that the only way to have a colorbar correctly moving with the figure is to use the internal colorbar object
-                    cb = colorbar;
-                    %cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
-                    %cb.Units = 'pixels';
-                    %cb_m.Units = 'pixels';
-                    %cb_m.Position(1) = cb.Position(1) + 10;
-                    %ax_pos = ax.Position;
-                    %delete(cb); % deleting the colorbar changes the size of the axes
-                    %ax.Position = ax_pos;
-                    %cb_m.Units = 'normalized';
-                    xlabel(cb, 'cm','color','k');
-                catch
-                    drawnow
-                end
-                
+                                
                 %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
                 col_data = Cmap.getColor(floor(abs(data_mean) * 10) + 1, n_col, 'linspaced');
                 plot(x(:), y(:), '.', 'MarkerSize', 100, 'Color', [0 0 0]);

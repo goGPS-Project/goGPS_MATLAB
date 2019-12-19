@@ -14,7 +14,7 @@ function versionChanger(new_version_str, base_dir)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 4 ION
+%    |___/                    v 1.0 beta 5 Merry Christmas
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

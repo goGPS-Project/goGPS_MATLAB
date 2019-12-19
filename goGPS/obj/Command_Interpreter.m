@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 4 ION
+%    |___/                    v 1.0 beta 5 Merry Christmas
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -132,6 +132,8 @@ classdef Command_Interpreter < handle
         PAR_S_MAP       % positions on map GoogleMaps background
         PAR_S_MAPG      % positions on map GoogleMaps background
         PAR_S_MAPDTM    % positions on map on DTM
+        PAR_S_MAPRG      % positions on map GoogleMaps background
+        PAR_S_MAPRDTM    % positions on map on DTM
         PAR_S_MAPL      % positions on map legacy (no borders)
         PAR_S_CK        % Clock Error
         PAR_S_CKW       % Clock Error of the last session
@@ -421,6 +423,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_MAPDTM.class = '';
             this.PAR_S_MAPDTM.limits = [];
             this.PAR_S_MAPDTM.accepted_values = [];
+
+            this.PAR_S_MAPRG.name = 'Map of Receiver locations + close Radiosondes';
+            this.PAR_S_MAPRG.descr = 'G_MAP_R            Map of station coordinates (Google Maps Background) + RAOB';
+            this.PAR_S_MAPRG.par = '(G_MAP_R)|(g_map_r)';
+            this.PAR_S_MAPRG.class = '';
+            this.PAR_S_MAPRG.limits = [];
+            this.PAR_S_MAPRG.accepted_values = [];
+
+            this.PAR_S_MAPRDTM.name = 'Map of Receiver locations + close Radiosondes';
+            this.PAR_S_MAPRDTM.descr = 'DTM_MAP_R          Map of station coordinates (DTM background) + RAOB';
+            this.PAR_S_MAPRDTM.par = '(DTM_MAP_R)|(dtm_map_r)';
+            this.PAR_S_MAPRDTM.class = '';
+            this.PAR_S_MAPRDTM.limits = [];
+            this.PAR_S_MAPRDTM.accepted_values = [];
 
             this.PAR_S_MAPL.name = 'Map of Receiver locations';
             this.PAR_S_MAPL.descr = 'L_MAP              Legacy map of station coordinates (Google Maps background)';            
@@ -831,7 +847,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW', 'show'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
@@ -2188,6 +2204,12 @@ classdef Command_Interpreter < handle
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPDTM.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showMapDtm()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPRG.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showMapGoogleWithCloseRaob()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPRDTM.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showMapDtmWithCloseRaob()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PTH.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showPTH()]; %#ok<AGROW>

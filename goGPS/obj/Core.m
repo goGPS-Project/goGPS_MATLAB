@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 4 ION
+%    |___/                    v 1.0 beta 5 Merry Christmas
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0 beta 4 ION';
+        GO_GPS_VERSION = '1.0 beta 5 Merry Christmas';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 

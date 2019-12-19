@@ -46,7 +46,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_vinc(XR0, XM, time_r
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 4 ION
+%    |___/                    v 1.0 beta 5 Merry Christmas
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
