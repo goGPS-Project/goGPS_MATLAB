@@ -49,9 +49,11 @@ function dockAllFigures(fig_handle)
     if (nargin == 1)
         set(fig_handle,'WindowStyle','docked');
     else
-        figHandles = findall(0,'Type','figure');
-        for fig_handle = 1:length(figHandles)
-            set(figHandles(fig_handle),'WindowStyle','docked')
+        all_fh = findall(0,'Type','figure');
+        for fig_handle = 1:length(all_fh)
+            if numel(all_fh(fig_handle).DockControls) ~= 3
+                set(all_fh(fig_handle), 'WindowStyle', 'docked')
+            end
         end
     end
 end
