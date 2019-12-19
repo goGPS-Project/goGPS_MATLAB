@@ -162,6 +162,8 @@ classdef Command_Interpreter < handle
         
         PAR_V_RAOB      % Validate ZTD with RAOB
         PAR_V_IGS_ZTD   % Validate ZTD with IGS
+        PAR_V_IGS_POS   % Validate Position with IGS
+        PAR_V_IGS       % Validate Position and Tropospheric Parameters with IGS
               
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
@@ -609,19 +611,33 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
+            this.PAR_V_IGS.name = 'IGS position and troposphere validation';
+            this.PAR_V_IGS.descr = 'IGS                 Use IGS results for validation';
+            this.PAR_V_IGS.par = '(igs)|(IGS)';
+            this.PAR_V_IGS.class = '';
+            this.PAR_V_IGS.limits = [];
+            this.PAR_V_IGS.accepted_values = [];
+
+            this.PAR_V_IGS_POS.name = 'IGS position validation';
+            this.PAR_V_IGS_POS.descr = 'IGS_POS            Use IGS results for position validation';
+            this.PAR_V_IGS_POS.par = '(igs_pos)|(IGS_POS)';
+            this.PAR_V_IGS_POS.class = '';
+            this.PAR_V_IGS_POS.limits = [];
+            this.PAR_V_IGS_POS.accepted_values = [];
+
+            this.PAR_V_IGS_ZTD.name = 'IGS troposphere validation';
+            this.PAR_V_IGS_ZTD.descr = 'IGS_ZTD            Use IGS results for ZTD validation';
+            this.PAR_V_IGS_ZTD.par = '(igs_ztd)|(IGS_ZTD)';
+            this.PAR_V_IGS_ZTD.class = '';
+            this.PAR_V_IGS_ZTD.limits = [];
+            this.PAR_V_IGS_ZTD.accepted_values = [];
+
             this.PAR_V_RAOB.name = 'Radiosonde validation';
             this.PAR_V_RAOB.descr = 'RAOB               Use RAOB for ZTD validation';
             this.PAR_V_RAOB.par = '(raob)|(RAOB)';
             this.PAR_V_RAOB.class = '';
             this.PAR_V_RAOB.limits = [];
             this.PAR_V_RAOB.accepted_values = [];
-
-            this.PAR_V_IGS_ZTD.name = 'IGS position validation';
-            this.PAR_V_IGS_ZTD.descr = 'IGS_ZTD            Use IGS results for ZTD validation';
-            this.PAR_V_IGS_ZTD.par = '(igs_ztd)|(IGS_ZTD)';
-            this.PAR_V_IGS_ZTD.class = '';
-            this.PAR_V_IGS_ZTD.limits = [];
-            this.PAR_V_IGS_ZTD.accepted_values = [];
 
             this.PAR_E_CORE_MAT.name = 'CORE MATLAB format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT           Save the core as .mat file';
@@ -820,7 +836,7 @@ classdef Command_Interpreter < handle
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
             this.CMD_VALIDATE.rec = 'T';
-            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_RAOB this.PAR_V_IGS_ZTD];
+            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_IGS this.PAR_V_IGS_ZTD this.PAR_V_RAOB ];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -2422,7 +2438,13 @@ classdef Command_Interpreter < handle
                             vld_ok  = vld_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS_ZTD.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showIgsZtdValidation()]; %#ok<AGROW>
-                            vld_ok  = vld_ok + 1;                        
+                            vld_ok  = vld_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showIgsValidation()]; %#ok<AGROW>
+                            vld_ok  = vld_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS_POS.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showIgsPosValidation()]; %#ok<AGROW>
+                            vld_ok  = vld_ok + 1;
                         end
                     catch ex
                         Core_Utils.printEx(ex);

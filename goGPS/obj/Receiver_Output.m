@@ -297,54 +297,55 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function xyz = getIGSXYZ(this, mode)
-            % get the official IGS solution fro eiether daily of weekly igs
+        function xyz = getIgsXYZ(this, mode)
+            % Get the official IGS solution for either daily of weekly IGS
             % combinations
             %
             % SYNTAX:
-            %    xyz = getIGSSolutions(this, mode)
+            %    xyz = getIgsXYZ(this, mode)
             if nargin < 2
                 mode = 'daily';
             end
             xyz = nan(size(this.xyz));
             if strcmpi(mode,'daily')
+                data_dir = fullfile(Core.getInstallDir, '..' , 'data');
                 fnp = File_Name_Processor();
                 for e = 1: this.time_pos.length
                     c_time = this.time_pos.getEpoch(e);
-                    filename = fnp.dateKeyRep(sprintf('%s/../../station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc',Core.getState.getGeoidDir),c_time);
+                    filename = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc', data_dir), c_time);
                     if exist(filename, 'file') ~= 2
                         remote_file_name = fnp.dateKeyRep('gnss/products/${WWWW}/igs${YY}P${WWWWD}.ssc.Z',c_time);
                         ftp_dw = FTP_Downloader('cddis.nasa.gov',21);
-                         [pathstr, name, ext] = fileparts(filename);
+                        [pathstr, name, ext] = fileparts(filename);
                         ftp_dw.downloadUncompress(remote_file_name, pathstr);
                     end
-                     if exist(filename, 'file') == 2
+                    if exist(filename, 'file') == 2
                         [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        if ~isempty(cmdout) 
-                        nl_id = find(cmdout==char(10));
-                        x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        nl_id = find(cmdout==char(10));
-                        y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        nl_id = find(cmdout==char(10));
-                        z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        xyz(e,:) =[x y z];
+                        if ~isempty(cmdout)
+                            nl_id = find(cmdout==char(10));
+                            x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                            [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                            nl_id = find(cmdout==char(10));
+                            y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                            [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                            nl_id = find(cmdout==char(10));
+                            z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                            xyz(e,:) =[x y z];
                         end
-                     else
-                         [pathstr, name, ext] = fileparts(remote_file_name);
-                         
-                         this.log.addWarning(sprintf(' File %s not found',[name, ext]));
+                    else
+                        [pathstr, name, ext] = fileparts(remote_file_name);
+                        
+                        this.log.addWarning(sprintf(' File %s not found',[name, ext]));
                     end
                 end
             end
         end
         
-        function [ztd, gn ,ge] = getIGSTropo(this,mode)
+        function [ztd, gn ,ge] = getIgsTropo(this,mode)
             % get the official IGS solution fro tropospheric paramters
             %
             % SYNTAX:
-            %    xyz = getIGSSolutions(this, mode)
+            %    xyz = getIgsTropo(this, mode)
             if nargin < 2
                 mode = 'interp_value';
             end
@@ -353,7 +354,7 @@ classdef Receiver_Output < Receiver_Commons
             ge = nan(size(this.tge));
             tsc = Tropo_Sinex_Compare();
             sta_name = this.parent.getMarkerName4Ch;
-            [missing_days] = tsc.addIGSOfficialStation( sta_name, this.time)
+            [missing_days] = tsc.addIGSOfficialStation( sta_name, this.time);
             lid_excl = false(this.time.length,1);
             for d = missing_days
                 d1 = GPS_Time.fromMJD(d);
