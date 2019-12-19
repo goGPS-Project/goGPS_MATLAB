@@ -1171,12 +1171,12 @@ classdef Core_Utils < handle
             % INPUT
             %   file_name_list      list of file_names to download (remote path)   [cell]
             %   f_ext_lst           extension of compression ('' is valid)         [cell]
-            %   f_status_lst        bool array of files to download                [bool]
+            %   f_status_lst        bool array of files existing                   [bool]
             %   date_list           GPS_Time of days of interest                   [GPS_Time]
             %   out_dir             path to out folder                             [char]
             %
             % SYNTAX
-            %   f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst)
+            %   f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, <date_list>, <out_dir>)
             %
             
             log = Core.getLogger();
@@ -1194,6 +1194,12 @@ classdef Core_Utils < handle
                 end
             end
             
+            if ~exist(aria2c_path, 'file')
+                Core.getLogger.addError('aria2c is not working, is it installed?');
+                f_status_lst = [];
+                return
+            end
+
             % Get file list path for all the files present in the list
             idf = find(~f_status_lst);
             fnl = file_name_lst(idf);

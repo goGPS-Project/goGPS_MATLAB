@@ -160,8 +160,8 @@ classdef Command_Interpreter < handle
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
         
-        PAR_V_RAOB      % Validation with RAOB
-        PAR_V_IGS       % Validation with IGS
+        PAR_V_RAOB      % Validate ZTD with RAOB
+        PAR_V_IGS_ZTD   % Validate ZTD with IGS
               
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
@@ -616,12 +616,12 @@ classdef Command_Interpreter < handle
             this.PAR_V_RAOB.limits = [];
             this.PAR_V_RAOB.accepted_values = [];
 
-            this.PAR_V_IGS.name = 'IGS validation';
-            this.PAR_V_IGS.descr = 'IGS                Use IGS results for validation';
-            this.PAR_V_IGS.par = '(igs)|(IGS)';
-            this.PAR_V_IGS.class = '';
-            this.PAR_V_IGS.limits = [];
-            this.PAR_V_IGS.accepted_values = [];
+            this.PAR_V_IGS_ZTD.name = 'IGS position validation';
+            this.PAR_V_IGS_ZTD.descr = 'IGS_ZTD            Use IGS results for ZTD validation';
+            this.PAR_V_IGS_ZTD.par = '(igs_ztd)|(IGS_ZTD)';
+            this.PAR_V_IGS_ZTD.class = '';
+            this.PAR_V_IGS_ZTD.limits = [];
+            this.PAR_V_IGS_ZTD.accepted_values = [];
 
             this.PAR_E_CORE_MAT.name = 'CORE MATLAB format';
             this.PAR_E_CORE_MAT.descr = 'CORE_MAT           Save the core as .mat file';
@@ -820,7 +820,7 @@ classdef Command_Interpreter < handle
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
             this.CMD_VALIDATE.rec = 'T';
-            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_RAOB];
+            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_RAOB this.PAR_V_IGS_ZTD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
@@ -1160,8 +1160,8 @@ classdef Command_Interpreter < handle
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
                                         for c = 1 : numel(cmd_list_loop)
-                                            % substitute § with the current session
-                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'§', num2str(s));
+                                            % substitute � with the current session
+                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'�', num2str(s));
                                         end
                                         this.exec(core, cmd_list_loop, level(id_list(1)));
                                         
@@ -2418,10 +2418,10 @@ classdef Command_Interpreter < handle
                 for t = 1 : numel(tok) % global for all target
                     try
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_V_RAOB.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showRadiosondeValidation()]; %#ok<AGROW>
+                            fh_list = [fh_list; trg.showRaobZtdValidation()]; %#ok<AGROW>
                             vld_ok  = vld_ok + 1;
-                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showIGSValidation()]; %#ok<AGROW>
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS_ZTD.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showIgsZtdValidation()]; %#ok<AGROW>
                             vld_ok  = vld_ok + 1;                        
                         end
                     catch ex
