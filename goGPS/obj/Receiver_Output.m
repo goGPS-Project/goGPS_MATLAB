@@ -580,7 +580,7 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
                                 this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
                             end
-                            if this.state.flag_out_res
+                            if this.state.isResCoOut
                                 this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
                             end
                         else
@@ -671,7 +671,7 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = Core_Utils.injectSmtData(zero2nan(this.tgn), zero2nan(gn), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                                 this.tge     = Core_Utils.injectSmtData(zero2nan(this.tge), zero2nan(ge), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
-                            if this.state.flag_out_res
+                            if this.state.isResCoOut
                                 res = nan(this.time.length, size(this.sat.res, 2));
                                 res_in = rec_work.getResidual();
                                 for i = 1 : size(this.sat.res, 2)
