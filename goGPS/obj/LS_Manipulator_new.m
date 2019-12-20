@@ -317,7 +317,7 @@ classdef LS_Manipulator_new < handle
                     this.cycle_slips{r}{s} = cell(length(this.unique_obs_codes),1);
                 end
             end
-            iono_const = GPS_SS.L_VEC(1)^2;
+            iono_const = 40.3*10^16;%GPS_SS.L_VEC(1)^2;
             % fill the A matrix per satellite
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -456,9 +456,9 @@ classdef LS_Manipulator_new < handle
                     % ----------- Ionosphere delay --------------------
                     if par_iono
                         if phase_s(s)
-                            A(lines_stream, par_iono_lid) = - obs_set.wl(s)^2/iono_const;
+                            A(lines_stream, par_iono_lid) = - iono_const*(obs_set.wl(s)/Core_Utils.V_LIGHT).^2; %obs_set.wl(s)^2/iono_const;
                         else
-                            A(lines_stream, par_iono_lid) =   obs_set.wl(s)^2/iono_const;
+                            A(lines_stream, par_iono_lid) =  iono_const*(obs_set.wl(s)/Core_Utils.V_LIGHT).^2; obs_set.wl(s)^2/iono_const;
                         end
                     end
                     obs_count = obs_count + n_obs_stream;
@@ -1176,6 +1176,10 @@ classdef LS_Manipulator_new < handle
             n_sat = length(this.unique_sat_goid);
             this.idx_rd = []; %empty previous par choosen to solve the rank deficency
             idx_rm = [];
+                        u_ep = unique(this.time_par);
+                        
+                        if false
+
             if sum(this.param_class == this.PAR_REC_EB) > 0
                 for r = 1 : n_rec
                     idx_par = find(this.class_par == this.PAR_REC_EB & this.rec_par == r & ~this.out_par); % one pseudorange bias per reciever
@@ -1384,7 +1388,7 @@ classdef LS_Manipulator_new < handle
                                  bnd_par(bb) = this.unique_obs_codes_band(bnd_par(bb));
                             end
                         end
-                        if sum(this.param_class == this.PAR_SAT_CLK) > 0
+                        if sum(this.param_class == this.PAR_SAT_CLK) > 0 | sum(this.param_class == this.PAR_SAT_CLK_PR) > 0 | sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
                             if sum(bnd_par == bnd(1)) > 0
                                 idx_rm = [idx_rm; uint32(idx_par(bnd_par == bnd(1)))];
                                 bnd_ref = bnd(1);
