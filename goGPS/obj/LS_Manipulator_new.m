@@ -1453,7 +1453,6 @@ classdef LS_Manipulator_new < handle
             end
             
             % remove one clock per epoch
-            u_ep = unique(this.time_par);
             if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
                 idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
                 time_par_tmp = this.time_par(idx_rec_par,1);
