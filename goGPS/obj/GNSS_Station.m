@@ -2925,7 +2925,7 @@ classdef GNSS_Station < handle
                         lim(end,:) = [];
                     end
                     
-                    name_list = txt(lim(3:end,1) + (0:18));
+                    name_list = txt(repmat(lim(3:end,1),1,19) + repmat((0:18),size(lim,1)-2,1));
                     flag = txt(lim(3:end,1) + 61);
                     
                     % strip unique coordinates from marker names
@@ -2933,7 +2933,8 @@ classdef GNSS_Station < handle
                     name_list(id_sta, :) = reshape(regexprep(serialize(name_list(id_sta, :)')', '\_\d{4}\_\d{4}', '          '), 19, sum(id_sta))';
                     
                     % coordinates
-                    xyz = reshape(sscanf(serialize(txt(lim(3 : end,1) + (19:60))')', '%f'), 3, size(lim, 1) -2)';
+                    id_tmp = repmat(lim(3 : end,1),1,42) + repmat((19:60),size(lim,1)-2,1);
+                    xyz = reshape(sscanf(serialize(txt(id_tmp)')', '%f'), 3, size(lim, 1) -2)';
                     
                     % remove recievers with 0 coordinate
                     id_sta = flag == '0';
