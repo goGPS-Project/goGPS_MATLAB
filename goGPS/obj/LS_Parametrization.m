@@ -89,36 +89,36 @@ classdef LS_Parametrization < handle
         sat_y = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         sat_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
-        rec_eb = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
-        rec_ppb = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
-        rec_eb_lin = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
+        rec_eb =     [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
+        rec_ppb =    [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
+        rec_eb_lin = [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
 
         
-        sat_eb = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
-        sat_ppb = [LS_Parametrization.STEP_CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
+        sat_eb =   [LS_Parametrization.CONST      LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
+        sat_ppb =  [LS_Parametrization.STEP_CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
         sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
-        rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
-        rec_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        sat_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-        rec_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        sat_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        rec_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        sat_clk_pr = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        rec_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        sat_clk_ph = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
-        tropo = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        tropo_n = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        tropo_e = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo   = [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        tropo_n = [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        tropo_e = [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         tropo_s = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-        tropo_v = [LS_Parametrization.CONST LS_Parametrization.ALL_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
-        tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.ALL_FREQ];
+        tropo_v = [LS_Parametrization.CONST      LS_Parametrization.ALL_REC  LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
+        tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
 
               
-        iono =  [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        iono =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
              
-        ant_mp = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_FREQ];
+        ant_mp =  [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.SING_FREQ];
         
         % options to keep track of spline rate, rule based distinction,
         % cycle slips
