@@ -2491,13 +2491,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 2;              % Use VMF for a-priori
             this.mapping_function = 2;      % Use VMF grids
-            this.meteo_data = 3;            % Use meteo data if they are present (goGPS switches to GPT for fallback)
+            this.meteo_data = 2;            % Use GPT
             
             % Regularization
             this.std_tropo = 0.015;
-            this.std_tropo_gradient = 0.001;
+            this.std_tropo_gradient = 0.0002;
             this.std_tropo_abs = 0.5;
-            this.std_tropo_gradient_abs = 0.02;
+            this.std_tropo_gradient_abs = 0.0015;
             this.std_clock = 1e+30;
             this.spline_rate_tropo = 900;
             this.spline_rate_tropo_gradient = 1800;
@@ -2591,7 +2591,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 1;              % Use Saastamoinen for a-priori
             this.mapping_function = 1;      % Use GMF grids
-            this.meteo_data = 1;            % Use meteo data if they are present (goGPS switches to GPT for fallback)
+            this.meteo_data = 2;            % Use GPT
             
             % Regularization
             this.std_tropo = 0.015;
