@@ -2704,8 +2704,8 @@ classdef GNSS_Station < handle
             lat_lim = max(-89.999, min(89.999, lat_lim));
             
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-0.02 0.02];
-            clat = nwse([3 1]) + [-0.02 0.02];
+            clon = nwse([2 4]) + [-0.001 0.001];
+            clat = nwse([3 1]) + [-0.001 0.001];
             clon = max(-180, min(180, clon));
             clat = max(-90, min(90, clat));
             
@@ -3242,8 +3242,8 @@ classdef GNSS_Station < handle
                 lat_lim = minMax(lat_tmp); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
             end
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.02, diff(lon_lim) / 6));
-            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.02, diff(lat_lim) / 6));
+            clon = nwse([2 4]) + [-0.001 0.001];
+            clat = nwse([3 1]) + [-0.001 0.001];
 
             m_proj('equidistant','lon',clon,'lat',clat);   % Projection
             %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
@@ -3412,8 +3412,8 @@ classdef GNSS_Station < handle
                 lat_lim = minMax(lat_tmp); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
             end
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-            clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.02, diff(lon_lim) / 6));
-            clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.02, diff(lat_lim) / 6));
+            clon = nwse([2 4]) + [-0.001 0.001];
+            clat = nwse([3 1]) + [-0.001 0.001];
 
             axes
             xlim(clon);
@@ -3839,8 +3839,8 @@ classdef GNSS_Station < handle
                 lon_lim = nwse([2 4]);
                 lat_lim = nwse([3 1]);                
             end
-            clon = nwse([2 4]) + [-0.02 0.02];
-            clat = nwse([3 1]) + [-0.02 0.02];
+            clon = nwse([2 4]) + [-0.001 0.001];
+            clat = nwse([3 1]) + [-0.001 0.001];
 
             if flag_dtm == 2
                 subplot(1,2,1);
@@ -4187,8 +4187,8 @@ classdef GNSS_Station < handle
                 lon_lim = nwse([2 4]);
                 lat_lim = nwse([3 1]);                
             end
-            clon = nwse([2 4]) + [-0.02 0.02];
-            clat = nwse([3 1]) + [-0.02 0.02];
+            clon = nwse([2 4]) + [-0.001 0.001];
+            clat = nwse([3 1]) + [-0.001 0.001];
 
             if flag_dtm == 2
                 subplot(1,2,1);
@@ -6495,8 +6495,8 @@ classdef GNSS_Station < handle
                     lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
                 end
                 nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-                clon = nwse([2 4]) + [-1 1] .* max(0.001, min(0.01, diff(lon_lim) / 6));
-                clat = nwse([3 1]) + [-1 1] .* max(0.001, min(0.01, diff(lat_lim) / 6));
+                clon = nwse([2 4]) + [-0.001 0.001];
+                clat = nwse([3 1]) + [-0.001 0.001];
                 
                 fh = figure('Visible', 'off');
                 fh.Color = [1 1 1];
@@ -6524,6 +6524,7 @@ classdef GNSS_Station < handle
                     drawnow;
                     
                     [shaded_dtm] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1], 'gra', 30);
+                    
                     %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
                     %h_dtm.CData = shaded_dtm;
                     m_image(lon_dtm, lat_dtm, shaded_dtm);
