@@ -2179,7 +2179,7 @@ classdef GNSS_Station < handle
                     tropo_out(:,i) = single(tmp);
                 else
                     if sum(id_ok(:, id_subset(epoch(e)))) == 1
-                        tropo_out(:,i) = single(tropo_res(epoch(e), id_ok(:, id_subset(epoch(e)))));
+                        tropo_out(:,i) = single(tropo_res(id_subset(epoch(e)), id_ok(:, id_subset(epoch(e)))));
                     else
                         tropo_out(:,i) = single(nan);
                         % If I have no station return nan
@@ -6417,14 +6417,14 @@ classdef GNSS_Station < handle
             log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
             for s = 1 : tsc.getNumberSinex()
                 % radiosondes
-                [ztd_rds, time_rds] = tsc.getZtdSinex(s);
-                ztd_rds = ztd_rds*100;
-                id_min = zeros(time_rds.length, 1);
-                ztd_diff = nan(time_rds.length, 1);
-                for e = 1 : time_rds.length
-                    [t_min, id_min(e)] = min(abs(time - time_rds.getEpoch(e)));
+                [ztd_igs, time_igs] = tsc.getZtdSinex(s);
+                ztd_igs = ztd_igs*100;
+                id_min = zeros(time_igs.length, 1);
+                ztd_diff = nan(time_igs.length, 1);
+                for e = 1 : time_igs.length
+                    [t_min, id_min(e)] = min(abs(time - time_igs.getEpoch(e)));
                     if t_min < 900
-                        ztd_diff(e) = ztd_rds(e) - (ztd(id_min(e),s) + ztd_height_correction(s));
+                        ztd_diff(e) = ztd_igs(e) - (ztd(id_min(e),s) + ztd_height_correction(s));
                     end
                 end
                 
@@ -6454,8 +6454,8 @@ classdef GNSS_Station < handle
                     Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2, 'MarkerSize', 5);
 
                     % IGS values
-                    [ztd_rds, time_rds] = tsc.getZtdSinex(s);
-                    Core_Utils.plotSep(time_rds.getMatlabTime, ztd_rds*100, '.-k', 'MarkerSize', 5, 'LineWidth', 2);
+                    [ztd_igs, time_igs] = tsc.getZtdSinex(s);
+                    Core_Utils.plotSep(time_igs.getMatlabTime, ztd_igs*100, '.-k', 'MarkerSize', 5, 'LineWidth', 2);
                     outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                         sprintf('IGS ZTD @ %s', tsc.getName(s))};
                     [~, icons] = legend(outm, 'location', 'northwest');
