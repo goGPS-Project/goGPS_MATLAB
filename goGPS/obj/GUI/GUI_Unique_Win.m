@@ -88,7 +88,6 @@ classdef GUI_Unique_Win < handle
                     Core_Utils.printEx(ex);
                 end
             end
-            fig_handle = [];
         end        
     end       
 end
