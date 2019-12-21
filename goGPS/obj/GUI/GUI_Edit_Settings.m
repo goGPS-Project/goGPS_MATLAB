@@ -169,6 +169,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             log = Core.getLogger;
 
             % Get the old goGPS windows
+            if flag_wait
+               % If goGPS is started rec have been reinitialized, close the inspector then
+                fh_list = get(groot, 'Children');
+                
+                % bad code writing style but fast
+                for f = 1 : numel(fh_list)
+                    try
+                        if isfield(fh_list(f).UserData, 'name') && strcmp(fh_list(f).UserData.name, GUI_Inspector.WIN_NAME)
+                            % If there are lone Edit figures close them
+                            close(fh_list(f));
+                        end
+                    catch ex
+                        Core_Utils.printEx(ex);
+                    end
+                end
+            end
             old_win = this.getUniqueWinHandle();
             if ~isempty(old_win)
                 log.addMarkedMessage('Resetting the old Edit Settings Window');
@@ -1306,6 +1322,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function showCrdMap(this, caller, event)
             fh = figure('Visible', 'off', 'Name', 'Map of the receivers with coordinates', 'NumberTitle', 'off');
+            fig_name = sprintf('RecMapLgc');
+            fh.UserData = struct('fig_name', fig_name);
             maximizeFig(fh);            
             data = this.coo_tbl.Data;
             
@@ -1327,8 +1345,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;            
             % Label BG (in background w.r.t. the point)
             for r = 1 : size(data, 1)
-                 text(lon(r)./pi*180, lat(r)./pi*180, char(32 * ones(1, 4 + 2 * length(name{r}), 'uint8')), ...
-                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                 text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r} ' '], ...
+                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [1 1 1], ...
                         'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                         'Margin', 2, 'LineWidth', 2, ...
                         'HorizontalAlignment','left');                                      
@@ -1361,7 +1379,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             ylim(lat_lim);
             
             for r = 1 : size(data, 1)
-                text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r}], ...
+                text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r} ' '], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
@@ -1371,8 +1389,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-            fh.Visible = 'on';
             Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+            fh.Visible = 'on'; drawnow;
         end
         
         function addCrdRow(this, caller, event)
@@ -2506,14 +2524,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             if isvalid(this.w_main)
                 this.w_main.Visible = 'off';
                 uiresume(this.w_main);
-            end
-            
-            % Close also log
-            if ~this.ok_go
-                % or not? ...for now let's keep it commented
-                %msg_gui = Core.getMsgGUI();
-                %msg_gui.close();
-            end
+            end            
         end
         
         function go(this, caller, event)
