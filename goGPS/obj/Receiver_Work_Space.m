@@ -216,6 +216,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.id_sync = [];
             
             this.n_sat = [];
+            this.n_sat_ep = [];
             
             this.pp_status = false;
             this.group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
@@ -243,6 +244,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.XS_tx             = [];
             this.sat.crx               = [];
             this.sat.res               = [];
+            this.sat.res_pr_by_pr      = [];
+            this.sat.res_ph_by_ph      = [];
             this.sat.res_obs_code      = [];
             this.sat.slant_td          = [];
             this.sat.cycle_slip        = [];
@@ -329,8 +332,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.obs_code   = [];         % obs code for each line of the data matrix obs
                 this.aligned    = [];         % alignement of the pseudorange measurements
                 this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
-                this.n_spe = [];              % number of sat per epoch
-                this.xyz          = [];  % approximate position of the receiver (XYZ geocentric)
+                this.n_spe      = [];         % number of sat per epoch
+                this.xyz        = [];         % approximate position of the receiver (XYZ geocentric)
                 
                 this.iono_status = false;
                 this.group_delay_status = false;
@@ -405,6 +408,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.XS_tx             = [];
             this.sat.crx               = [];
             this.sat.res               = [];
+            this.sat.res_ph_by_ph      = [];
+            this.sat.res_pr_by_pr      = [];
             this.sat.slant_td          = [];
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];

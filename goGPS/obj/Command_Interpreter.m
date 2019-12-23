@@ -302,9 +302,9 @@ classdef Command_Interpreter < handle
             this.PAR_CLOSE.accepted_values = [];
 
             %  Method parameter
-            
-            this.PAR_M_UNCOMBINED.name = 'Use the Uncombined new experimental engine';
-            this.PAR_M_UNCOMBINED.descr = '-u                 (flag) use the new (experimental) uncombined engine';
+                       
+            this.PAR_M_UNCOMBINED.name = 'Use the uncombined engine';
+            this.PAR_M_UNCOMBINED.descr = '-u                 (flag) use the uncombined engine';
             this.PAR_M_UNCOMBINED.par = '(-u)|(-U)|(--uncombined)|(--UNCOMBINED)';
             this.PAR_M_UNCOMBINED.class = '';
             this.PAR_M_UNCOMBINED.limits = [];
@@ -1737,7 +1737,7 @@ classdef Command_Interpreter < handle
                             else
                                 try
                                     if flag_uncombined
-                                        this.log.addWarning('Experimental uncombined engine enabled');
+                                        this.log.addWarning('Uncombined engine enabled');
                                         if sys_found
                                             rec(r).work.staticPPPNew(sys_list);
                                         else
@@ -1823,7 +1823,7 @@ classdef Command_Interpreter < handle
                 end
                  try
                     if flag_uncombined
-                        this.log.addWarning('Experimental uncombined engine enabled');
+                        this.log.addWarning('Uncombined engine enabled');
                         net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
                     else
                         net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);

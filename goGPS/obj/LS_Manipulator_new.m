@@ -543,7 +543,7 @@ classdef LS_Manipulator_new < handle
             
             this.outlier_obs = false(size(this.obs));
             this.param_class_o = this.param_class;
-            ch_set_old = []; % avoid repating expesnive task
+            ch_set_old = []; % avoid repating expensive task
             i_p = 1;
             i_p_o = 1;
             while i_p <= length(this.param_class)

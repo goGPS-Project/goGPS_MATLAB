@@ -1470,7 +1470,7 @@ classdef GNSS_Station < handle
             %   ztd_correction = sta_list.getZtdReduction(degree, xyh, flag_spatial)
             
             if numel(sta_list) < 3
-                ztd_correction = 0;
+                ztd_correction = zeros(numel(sta_list), 1);
                 log = Core.getLogger();
                 log.addWarning('I cannot estimate an height correction with less than 3 stations');
                 
@@ -2087,8 +2087,12 @@ classdef GNSS_Station < handle
             %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)
             
             % Defining interpolation
-            method = 'natural';
-            fun = @(dist) 0.2 * exp(-(dist)*1e1) + 0*exp(-(dist*5e1).^2);
+            if numel(sta_list) > 2
+                method = 'natural';
+            else
+                method = 'linear';
+            end
+            fun = @(dist) 0.2 * exp(-(dist)*1e1)%; + 0*exp(-(dist*5e1).^2);
             %fun = @(dist) 1./(dist+1e-5);
             
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
@@ -2176,7 +2180,12 @@ classdef GNSS_Station < handle
                         warning on
                         tmp = finterp(dlon_out, dlat_out);
                     end
-                    tropo_out(:,i) = single(tmp);
+                    try
+                        tropo_out(:,i) = single(tmp);
+                    catch % faster then if checking if tmp is empty
+                        tmp = funInterp2(dlon_out, dlat_out, x_list(id_ok(:, id_subset(epoch(e)))), y_list(id_ok(:, id_subset(epoch(e)))), tropo_res(id_subset(epoch(e)), id_ok(:, id_subset(epoch(e))))', fun);
+                        tropo_out(:,i) = tmp;
+                    end
                 else
                     if sum(id_ok(:, id_subset(epoch(e)))) == 1
                         tropo_out(:,i) = single(tropo_res(id_subset(epoch(e)), id_ok(:, id_subset(epoch(e)))));
@@ -3530,15 +3539,15 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure('Visible', 'off');
+                fh = figure('Visible', 'off');
             else
-                f = gcf;
+                fh = gcf;
                 hold on;
             end
             
-            fh_list = f;
-            fig_name = sprintf('RecMapDtm');
-            f.UserData = struct('fig_name', fig_name);
+            fh_list = fh;
+            fig_name = sprintf('RecMapLgc');
+            fh.UserData = struct('fig_name', fig_name);
 
             [lat, lon] = sta_list.getMedianPosGeodetic();
 
@@ -3595,10 +3604,8 @@ classdef GNSS_Station < handle
             title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-            ax = gca; ax.FontSize = 16;
-            f.Children(end).LineWidth = 2;
-            Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f);
-            f.Visible = 'on'; drawnow;
+            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh);
+            fh.Visible = 'on'; drawnow;
             Core.getLogger.addStatusOk('The map is ready ^_^');
         end
 
