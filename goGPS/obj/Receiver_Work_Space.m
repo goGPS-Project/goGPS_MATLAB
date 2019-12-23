@@ -1883,7 +1883,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 %weight = weight*0 + 1;
                                 weight(id_ko) = 0;
                                 % for now keep only the data when the best tracking is available
-                                weight(id_ko(:,1),2:end) = 0; % <= to be checked in the future
+                                if any(~id_ko(:,1)) % unless only one of the trackings is actually seeing a satellite
+                                    weight(id_ko(:,1),2:end) = 0; % <= to be checked in the future
+                                end
                                 
                                 weight = bsxfun(@rdivide, weight, sum(weight,2) + eps);
                                 % plot(squeeze(res(:,s,:)), 'o');
