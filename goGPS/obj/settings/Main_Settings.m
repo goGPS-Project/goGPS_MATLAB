@@ -2494,10 +2494,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
-            this.std_tropo = 0.015;
+            this.std_tropo = 0.0015;
             this.std_tropo_gradient = 0.0002;
             this.std_tropo_abs = 0.5;
-            this.std_tropo_gradient_abs = 0.0015;
+            this.std_tropo_gradient_abs = 0.02;
             this.std_clock = 1e+30;
             this.spline_rate_tropo = 900;
             this.spline_rate_tropo_gradient = 1800;
