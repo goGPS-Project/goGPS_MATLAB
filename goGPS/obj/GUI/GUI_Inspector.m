@@ -204,7 +204,27 @@ classdef GUI_Inspector < GUI_Unique_Win
             Core_UI.insertEmpty(spinner_box, Core_UI.DARKER_GREY_BG)
             spinner_box.Heights = [-1 20];                        
             
-            top_bh.Widths = [106 -1 0];
+            % Useful Buttons ------------------------------------------------------------------------------------------
+            
+            list_but = uix.VButtonBox( 'Parent', top_bh, ...
+                'ButtonSize', [100 28] , ...
+                'VerticalAlignment', 'top', ...
+                'HorizontalAlignment', 'right', ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            
+            load_core_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Load Core', ...
+                'Callback', @this.onLoadCore); %#ok<NASGU>
+            
+            dock_fig_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Dock Figures', ...
+                'Callback', @this.onDockAll); %#ok<NASGU>
+            
+            goGPS_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Reopen goGPS', ...
+                'Callback', @this.onRunGoGPS); %#ok<NASGU>
+
+            top_bh.Widths = [106 -1 0 120];
             this.top_bh = top_bh;
             
             title = uix.HBox('Parent', right_tvb, ...
@@ -248,19 +268,8 @@ classdef GUI_Inspector < GUI_Unique_Win
             [grp, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(bottom, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
             grp.BackgroundColor = Core_UI.DARK_GREY_BG;
             grp.Children(3).BackgroundColor = Core_UI.DARK_GREY_BG;
-            grp.Children(3).ForegroundColor = [1 1 1];
-
-            list_but = uix.HButtonBox( 'Parent', bottom, ...
-                'ButtonSize', [100 28] , ...
-                'VerticalAlignment', 'top', ...
-                'HorizontalAlignment', 'right', ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            grp.Children(3).ForegroundColor = [1 1 1];            
             
-            load_core_but = uicontrol( 'Parent', list_but, ...
-                'String', 'Load Core', ...
-                'Callback', @this.onLoadCore); %#ok<NASGU>
-            
-            bottom.Widths = [-1 105];
             main_vb.Heights = [84 5 -1 5 35];
             
             % Middle Tab Panel ----------------------------------------------------------------------------------------
@@ -1197,14 +1206,14 @@ classdef GUI_Inspector < GUI_Unique_Win
         function startWaiting(this)
             this.j_spinner.start;
             this.j_spinner.setBusyText('Running...');
-            this.top_bh.Widths(end) = 120;
+            this.top_bh.Widths(3) = 120;
             drawnow
         end
         
         function stopWaiting(this)
             this.j_spinner.stop;
             this.j_spinner.setBusyText('All done!');
-            this.top_bh.Widths(end) = 0;
+            this.top_bh.Widths(3) = 0;
             drawnow
         end
         
@@ -1380,6 +1389,16 @@ classdef GUI_Inspector < GUI_Unique_Win
             end
             
             this.stopWaiting();
+        end
+        
+        function onDockAll(this, caller, event)
+            % Run goGPS
+            dockAllFigures
+        end
+        
+        function onRunGoGPS(this, caller, event)
+            % Run goGPS
+            goGPS(Core.getState);
         end
         
         function onUnselectAll(this, caller, event)
