@@ -756,8 +756,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             else
                 if (exist(ini_settings_file, 'file') == 2)
                     this.importIniFile(ini_settings_file);
-                else
-                    log.addMarkedMessage('Using default settings');
+                elseif (exist(this.getIniPath, 'file') == 2)
+                    this.importIniFile(this.getIniPath);
+                else log.addMarkedMessage('Using default settings');
                     log.newLine();
                     this.postImportInit();
                 end
