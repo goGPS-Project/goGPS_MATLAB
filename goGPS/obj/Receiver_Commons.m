@@ -1486,7 +1486,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     fig_name = sprintf('ENU_s0_%s_%s', work.parent.getMarkerName4Ch, work.time.first.toString('yyyymmdd_HHMM'));
                     win.UserData = struct('fig_name', fig_name);
                     
-                    this
                     v_main = uix.VBoxFlex('Parent', win, ...
                         'Spacing', 5);
                     
