@@ -2092,7 +2092,7 @@ classdef GNSS_Station < handle
             else
                 method = 'linear';
             end
-            fun = @(dist) 0.2 * exp(-(dist)*1e1)%; + 0*exp(-(dist*5e1).^2);
+            fun = @(dist) 0.2 * exp(-(dist)*1e1);% + 0*exp(-(dist*5e1).^2);
             %fun = @(dist) 1./(dist+1e-5);
             
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
@@ -6363,6 +6363,7 @@ classdef GNSS_Station < handle
             if nargin == 1
                 igs_list = [];
             end
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
             [m_diff, s_diff, fh_list] = sta_list.getIgsZtdValidation(igs_list, true);
         end
         
@@ -6386,6 +6387,7 @@ classdef GNSS_Station < handle
             %  [m_diff, s_diff] = sta_list.getIgsZtdValidation('usno');
             %
             
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
             log = Core.getLogger();
             fh_list = [];
             if nargin < 3

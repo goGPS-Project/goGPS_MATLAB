@@ -68,7 +68,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         % PROJECT
         PRJ_NAME = 'Default PPP project';  % Name of the project
-        PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_PPP' filesep]; % Location of the project <relative path from goGPS folder>
+        PRJ_HOME = [File_Name_Processor.getFullDirPath([fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_PPP']) filesep]; % Location of the project <relative path from goGPS folder>
         CUR_INI = [Main_Settings.PRJ_HOME 'Config' filesep 'settings.ini']; % Location of the current ini file
 
         % SESSION

@@ -1150,7 +1150,17 @@ classdef LS_Manipulator < Exportable
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
                     sat_err(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs) = res_n;
                     ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10);
+                    
                     idx_ko = Core_Utils.snoopGatt(ssat_err, thr, thr_propagate);
+                    
+                    % Check derivate for big fluctuation 2 * local std + 5 mm
+                    % sensor = Core_Utils.diffAndPred(movmedian(sat_err * s0, 5));
+                    % for f = 1 : size(sensor,2)
+                    %    % Ideally this should add CS
+                    %    tmp_ko = flagExpand(abs(sensor(:,f)) > 2 * movstd(sensor(:,f),13) + 0.005, 1);
+                    %    idx_ko(tmp_ko, f) = true;
+                    % end
+
                     idx_rw = idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
                     
                     if nargin > 4 && flag_clean_margin
