@@ -273,7 +273,7 @@ classdef File_Rinex < Exportable
                                                 if line(1) ~= ' '
                                                     cur_trck_sys = line(1);
                                                 end
-                                                trcks = strsplit(line(8:59),' ');
+                                                trcks = strsplit(line(8:60),' ');
                                                 for t = trcks
                                                     if ~isempty(t{1})
                                                         t = t{1};
@@ -281,7 +281,25 @@ classdef File_Rinex < Exportable
                                                         trck_availability(idx) = true;
                                                     end
                                                 end
-                                                    
+                                            elseif line(66) == 'Y' % "# / TYPES OF OBSERV"
+                                                % temporary solution for RINEX 2 
+                                                % to be improved
+                                                trcks = strsplit(line(8:60),' ');
+                                                for cur_trck_sys = Core.getConstellationCollector.getActiveSysChar
+                                                    for t = trcks
+                                                        if ~isempty(t{1})
+                                                            t = t{1};
+                                                            if numel(t) == 2 % correct missing character for RINEX 2
+                                                                % It should be done multi constellation
+                                                                % GPS C1 -> C1C
+                                                                % GPS C2 -> C2C
+                                                                t = [t 'C'];
+                                                            end
+                                                            idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
+                                                            trck_availability(idx) = true;
+                                                        end
+                                                    end
+                                                end
                                             else
                                                 %tmp = regexp(line, '.*(?=APPROX POSITION XYZ)', 'match', 'once');
                                                 % character to recognize approximate position for met file: 'E' => sensor pos
