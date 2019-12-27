@@ -2015,9 +2015,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         if new_fig
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                            Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
                         else
-                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.', 'LineWidth', 4); hold on;
+                            Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(tropo{r}') .* unit_convert, '.-', 'LineWidth', 2); hold on;
                         end
                         outm{r} = rec(1).parent.getMarkerName();
                     end
