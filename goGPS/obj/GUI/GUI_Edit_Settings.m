@@ -857,13 +857,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             vpopt.Heights = 25 + [3, 3, 2] .* Core_UI.LINE_HEIGHT;
         end
         
-        function crd_panel = insertCrdFile(this, container)
-            crd_panel = Core_UI.insertPanelLight(container, 'Stations a-priori coordinates');
-            opt_grid = uix.Grid('Parent', crd_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+1}] = Core_UI.insertDirFileBox(opt_grid, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange);
-        end
-        
         function ss_panel = insertSatSelector(this, container)
             % Constellation selection
             ss_panel = Core_UI.insertPanelLight(container, 'Constellation Selection');
@@ -1036,7 +1029,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             vbox = uix.VBox('Parent', box,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(vbox, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [25 120 -3 5 -1 25]);
             
             uicontrol('Parent', vbox, ...
                 'Style', 'Text', ...
