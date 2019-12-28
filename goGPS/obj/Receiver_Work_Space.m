@@ -527,7 +527,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % append a rinex files
             %
             % SYNTAX:
-            %  this.appendRinex(rinex_file_name,time_start, time_stop)
+            %  this.appendRinex(rinex_file_name, time_start, time_stop)
             
             rec = Receiver_Work_Space(this.parent);
             rec.ant = this.ant; % set the same antenna
