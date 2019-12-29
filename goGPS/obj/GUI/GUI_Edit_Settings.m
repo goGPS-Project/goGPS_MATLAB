@@ -709,7 +709,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             end
 
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [200 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolte threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolute threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
             ttip = 'Different trackings have different scaling factor, rescale them w.r.t. the code error level of the first frequency/tracking';
             if verLessThan('matlab','9.5')
