@@ -1003,7 +1003,7 @@ classdef Core_Sky < handle
                             if empty_clk
                                 this.clock_rate = clk_rate;
                                 this.time_ref_clock = file_first_ep;
-                                [ref_week, ref_sow] =this.time_ref_clock.getGpsWeek();
+                                [ref_week, ref_sow] = this.time_ref_clock.getGpsWeek();
                                 
                                 this.clock = zeros(86400 / this.clock_rate, this.cc.getNumSat());
                             else
@@ -1026,13 +1026,19 @@ classdef Core_Sky < handle
                             % the clock is not empty and re-alignment have been requested
                             buf_size = 200;
                             % check left
-                            id_left = max(1, c_ep_idx(1) - 1 - buf_size) : max(1, c_ep_idx(1) - 1);
+                            id_left = max(1, c_ep_idx(1) - buf_size) : max(1, c_ep_idx(1) - 1);
                             id_left(this.clock(id_left, i) == 0) = [];
                             if numel(id_left) > 3
                                 % realign on left
                                 % compute id of the new clock set to be used for re-alignment
                                 id_right = c_ep_idx(1) : c_ep_idx(find(c_ep_idx < (c_ep_idx(1) + buf_size), 1, 'last'));
                                 id_right(this.clock(id_right, i) == 0) = [];
+                
+                                % DEBUG: inspect re-alignment
+                                %figure(1000); clf; ax = axes;
+                                %plot(ax, this.time_ref_clock.getMatlabTime + ((id_left(1) : id_right(end)) - 1) / 2880, Core_Utils.V_LIGHT * diff(this.clock(id_left(1):id_right(end)+1,i))); hold on;
+                                %setTimeTicks
+                                
                                 if numel(id_right) > 3
                                     prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
                                     prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
@@ -1049,6 +1055,13 @@ classdef Core_Sky < handle
                                     %    plot([id_left id_right], this.clock([id_left id_right],i), '^k')
                                     end
                                 end
+                                
+                                % DEBUG: inspect re-alignment
+                                %plot(ax, this.time_ref_clock.getMatlabTime + ((id_left(1) : id_right(end)) - 1) / 2880, Core_Utils.V_LIGHT * diff(this.clock(id_left(1):id_right(end)+1,i))); hold on;
+                                %xlim(this.time_ref_clock.getMatlabTime + ([id_left(1) , id_right(end)] - 1) / 2880);
+                                %ylabel('clock drift [m]');
+                                %legend('clock error drift', 'clock error drift - re-aligned')
+                                %fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');                                
                             end
                             % check right
                             id_left = max(1, c_ep_idx(end) - buf_size + 1) : max(1, c_ep_idx(end));

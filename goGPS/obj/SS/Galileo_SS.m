@@ -83,7 +83,7 @@ classdef Galileo_SS < Satellite_System
         CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'I' 'I' 'I' 'C'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '15786';             % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['15'; '18'; '17'; '16'; '56'; '76'; '86'; '57'; '58'; '78'];  % to be evaluated which combination is really better
-end
+    end
 
     properties (Constant, Access = 'private')
         % GPS (WGS84) Ellipsoid semi-major axis [m]

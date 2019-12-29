@@ -223,7 +223,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
         FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
          
-        FLAG_CLOCK_ALIGN = true;                        % Flag to enable satellite clock alignment (solve jumps among files)
+        FLAG_CLOCK_ALIGN = false;                       % Flag to enable satellite clock alignment (solve jumps among files)
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
         FLAG_PHASE_WIND = true;                         % Flag to enable pahse wrap up correction

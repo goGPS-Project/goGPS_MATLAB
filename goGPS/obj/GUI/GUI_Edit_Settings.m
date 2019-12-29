@@ -1025,7 +1025,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
             
             %%% Rec
-            box = Core_UI.insertPanelLight(tab, 'Station Coordinates');
+            box = Core_UI.insertPanelLight(tab, 'Station Specific Parameters');
             vbox = uix.VBox('Parent', box,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
