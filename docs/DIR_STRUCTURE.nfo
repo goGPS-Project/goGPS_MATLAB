@@ -11,14 +11,13 @@ goGPS_MATLAB
     ├─ DOCS                            // Collection of some files useful for the development of goGPS
     │
     ├─ goGPS                           // Main folder containing the goGPS code
+    │   ├─ last_settings.ini           // Store the latest setting in use
     │   ├  ...
     │   └  ...
     │
     ├─ ICONS                           // Icon set for the log window
     │
     └─ DATA
-        │
-        ├─ last_settings.ini           // Store the latest setting in use
         │
         ├─ Antenna
         │   └─ ATX                     // ANTEX file
