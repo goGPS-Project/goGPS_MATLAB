@@ -156,7 +156,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             catch
                 log = Core.getLogger;
                 log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                open('GUI Layout Toolbox 2.3.1.mltbx');
+                open('GUI Layout Toolbox 2.3.4.mltbx');
                 log.newLine();
                 log.addWarning('After installation re-run goGPS');
                 close(win);

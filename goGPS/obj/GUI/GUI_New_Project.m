@@ -136,12 +136,14 @@ classdef GUI_New_Project < handle
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARK_GREY_BG);
             catch
-                this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                open('GUI Layout Toolbox 2.3.1.mltbx');
-                this.log.newLine();
-                this.log.addWarning('After installation re-run goGPS');
+                log = Core.getLogger;
+                log.setOutMode(1,[],0); % to plot a Warning I need to disable GUI and enable
+                log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                open('GUI Layout Toolbox 2.3.4.mltbx');
+                log.newLine();
+                log.addWarning('After installation re-run goGPS');
                 close(win);
-                status_ok = false
+                status_ok = false;
                 return;
             end
             top_bh = uix.HBox( 'Parent', main_bv);

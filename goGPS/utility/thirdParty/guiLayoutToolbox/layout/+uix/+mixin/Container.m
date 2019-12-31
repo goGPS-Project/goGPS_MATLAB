@@ -5,7 +5,7 @@ classdef Container < handle
     %  various properties and template methods.
     
     %  Copyright 2009-2016 The MathWorks, Inc.
-    %  $Revision: 1358 $ $Date: 2016-09-14 11:34:17 +0100 (Wed, 14 Sep 2016) $
+    %  $Revision: 1778 $ $Date: 2019-01-23 23:08:35 +0000 (Wed, 23 Jan 2019) $
     
     properties( Dependent, Access = public )
         Contents % contents in layout order
@@ -158,6 +158,9 @@ classdef Container < handle
         function onChildAdded( obj, ~, eventData )
             %onChildAdded  Event handler
             
+            % Do nothing if add is internal tree surgery
+            if isTreeSurgery( eventData.Child ), return, end
+            
             % Call template method
             obj.addChild( eventData.Child )
             
@@ -168,6 +171,9 @@ classdef Container < handle
             
             % Do nothing if container is being deleted
             if strcmp( obj.BeingDeleted, 'on' ), return, end
+            
+            % Do nothing if remove is internal tree surgery
+            if isTreeSurgery( eventData.Child ), return, end
             
             % Call template method
             obj.removeChild( eventData.Child )
@@ -274,7 +280,7 @@ classdef Container < handle
             %  false otherwise.  To be drawable, a container must be
             %  rooted.
             
-            tf = ~isempty( obj.FigureObserver.Figure ) && obj.FigureObserver.Figure.Visible(2) == 'n';
+            tf = ~isempty( obj.FigureObserver.Figure );
             
         end % isDrawable
         
@@ -295,3 +301,20 @@ classdef Container < handle
     end % template methods
     
 end % classdef
+
+function tf = isTreeSurgery( child )
+%isTreeSurgery  Test for internal tree surgery
+%
+%  Certain internal operations perform tree surgery, removing a child
+%  temporarily and adding it back under an additional node.
+
+if ~isa( child, 'matlab.graphics.axis.Axes' ) % only certain types
+    tf = false;
+elseif verLessThan( 'MATLAB', '9.5' ) % only certain versions
+    tf = false;
+else % check stack
+    s = dbstack();
+    tf = any( strcmp( 'ScribeStackManager.createLayer', {s.name} ) );
+end
+
+end % isTreeSurgery

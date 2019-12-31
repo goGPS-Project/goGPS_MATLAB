@@ -141,8 +141,9 @@ classdef GUI_Msg < GUI_Unique_Win
                     'BackgroundColor', Core_UI.DARKER_GREY_BG);                
             catch
                 log = Core.getLogger;
+                log.setOutMode(1,[],0); % to plot a Warning I need to disable GUI and enable
                 log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                open('GUI Layout Toolbox 2.3.1.mltbx');
+                open('GUI Layout Toolbox 2.3.4.mltbx');
                 log.newLine();
                 log.addWarning('After installation re-run goGPS');
                 close(win);
