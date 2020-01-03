@@ -739,13 +739,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             % --------------------------------------------------------
             
-            opt_left = uix.Grid('Parent', tab, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                                      
-            % left top left right
-            ppp_panel = this.insertPreProOptions(opt_left); %#ok<NASGU>
-            opt_left.Widths = 190;
-            opt_left.Heights = 77;
+            this.insertPreProOptions(tab);
             
             % --------------------------------------------------------
             
@@ -775,20 +769,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             opt_tll = uix.VBox('Parent', opt_tlh, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            Core_UI.insertEmpty(opt_tlh);
-            
-            opt_tlr = uix.VBox('Parent', opt_tlh, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                         
+                        
+             
             % left top left
             coo_panel = this.insertCooOptions(opt_tll);
             Core_UI.insertEmpty(opt_tll);            
             pp_panel = this.insertTabProcessingOptions(opt_tll);
-            
-            % left top left right
-            ppp_panel = this.insertCorrections(opt_tlr); %#ok<NASGU>
-            
+                        
             % left bottom
             Core_UI.insertEmpty(opt_l);
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
@@ -802,7 +789,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_tll.Heights = [93, 5, -1];
             opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
             
-            opt_tlh.Widths = [-1 5 185];
             opt_h.Widths = [-1 5 210];
             
             % --------------------------------------------------------
@@ -983,22 +969,30 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %opt_container.Heights = [264 -1];
         end
 
-        function ppp_panel = insertPreProOptions(this, container)
+        function input_mnp_panel = insertPreProOptions(this, container)
             %%% processing options
-            ppp_panel = Core_UI.insertPanelLight(container, 'Input manipulation');
-            opt_vbox = uix.VBox('Parent', ppp_panel,...
+            popt_vbox = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
+            
+            input_mnp_panel = Core_UI.insertPanelLight(popt_vbox, 'Input manipulation');
+            mnp_vbox = uix.VBox('Parent', input_mnp_panel,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            Core_UI.insertEmpty(popt_vbox);
+            ppp_panel = this.insertCorrections(popt_vbox); %#ok<NASGU>
+            popt_vbox.Heights = [72 5 (27 + Core_UI.LINE_HEIGHT * 9)];
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(mnp_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(mnp_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
             ttip = 'Align satellite clocks among each file';
             if verLessThan('matlab','9.5')
                 this.check_boxes{end}.TooltipString = ttip;
             else
                 this.check_boxes{end}.Tooltip = ttip;
             end
-            Core_UI.insertEmpty(opt_vbox);
+            Core_UI.insertEmpty(mnp_vbox);
             
-            opt_vbox.Heights = [[1, 1] .* Core_UI.LINE_HEIGHT -1];
+            mnp_vbox.Heights = [[1, 1] .* Core_UI.LINE_HEIGHT -1];
         end
         
         function ppp_panel = insertCorrections(this, container)

@@ -329,8 +329,8 @@ classdef Network < handle
                                     
                                     % Add satellites with very bad res mean
                                     if n_clean < 3 && this.state.getReweightNET() == 3
-                                        % bad satellites are satellites with median > 5 mm or median > std(other rec median)
-                                        % this check is also performend depending on the std of the residuals
+                                        % bad satellites are satellites with median > 2 mm and median > 2*std(other rec median)
+                                        % this check is also performed depending on the std of the residuals
                                         % on bad receivers should be less stringent
                                         mean_sat_res = median(zero2nan(res_rec), 'omitnan');
                                         bad_sat = abs(mean_sat_res) > max(2e-3, 2*std(mean_sat_res, 'omitnan')) & ...
