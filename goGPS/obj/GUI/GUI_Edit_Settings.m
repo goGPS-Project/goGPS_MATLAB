@@ -1419,7 +1419,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Management (combined engine only)', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
             
             Core_UI.insertEmpty(tab);

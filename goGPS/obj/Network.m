@@ -69,7 +69,7 @@ classdef Network < handle
         rec_eb           % electronic bias of the receiver
         sat_eb           % electronic bias of the satellites
         
-        apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
+        apriori_info      % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
         is_tropo_decorrel % are station apart enough to estimate differents tropo?
         is_coo_decorrel   % are station decorrelated enough
     end

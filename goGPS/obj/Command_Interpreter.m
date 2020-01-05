@@ -101,7 +101,6 @@ classdef Command_Interpreter < handle
         PAR_CUTOFF      % Parameter select cutoff
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
-        PAR_SYNC        % Parameter sync
         PAR_BAND        % Parameter of the band to be used in the adjustment
 
         PAR_EXPORT      % Export figure
@@ -185,7 +184,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -265,14 +264,7 @@ classdef Command_Interpreter < handle
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
-            
-            this.PAR_SYNC.name = 'sync results';
-            this.PAR_SYNC.descr = '--sync             Use syncronized time only';
-            this.PAR_SYNC.par = '(\-\-sync)';
-            this.PAR_SYNC.class = '';
-            this.PAR_SYNC.limits = [];
-            this.PAR_SYNC.accepted_values = [];
-            
+                        
             this.PAR_SLAVE.name = '(MANDATORY) Number of slaves';
             this.PAR_SLAVE.descr = '-n=<num_slaves>    minimum number of parallel slaves to request';
             this.PAR_SLAVE.par = '(N)|(-n\=)';
@@ -281,15 +273,15 @@ classdef Command_Interpreter < handle
             this.PAR_SLAVE.accepted_values = [];
                                     
             this.PAR_BAND.name = 'band';
-            this.PAR_BAND.descr = 'L<band>            band to be used for single frequency adjustment';
+            this.PAR_BAND.descr = 'L<band>            Band to be used for single frequency adjustment';
             this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate= 
             this.PAR_BAND.class = 'double';
             this.PAR_BAND.limits = [1 5];
             this.PAR_BAND.accepted_values = [];
 
             this.PAR_EXPORT.name = 'export';
-            this.PAR_EXPORT.descr = '-e=<"name">        Export with name_prefix';
-            this.PAR_EXPORT.par = '(\-e)|(\-e\=)|(\-\-export\=)'; % (regexp) parameter prefix: -e --export
+            this.PAR_EXPORT.descr = '-e=<"name">        Export with name_postfix';
+            this.PAR_EXPORT.par = '(\-e)|(\-e\=)|(\-\-export\=)'; % (regexp) parameter postfix: -e --export
             this.PAR_EXPORT.class = 'char';
             this.PAR_EXPORT.limits = [];
             this.PAR_EXPORT.accepted_values = [];
@@ -311,7 +303,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_UNCOMBINED.accepted_values = [];
 
             this.PAR_M_FREE_NET.name = 'Free network';
-            this.PAR_M_FREE_NET.descr = '--free              Let the network free';
+            this.PAR_M_FREE_NET.descr = '--free             Let the network free';
             this.PAR_M_FREE_NET.par = '(-f)(--free)|(--FREE)';
             this.PAR_M_FREE_NET.class = '';
             this.PAR_M_FREE_NET.limits = [];
@@ -349,7 +341,7 @@ classdef Command_Interpreter < handle
             this.PAR_R_FROM_WORK.par = '(FROM_WORK)|(from_work)';
             
             this.PAR_R_FIX_APR.name = 'Approximate position';
-            this.PAR_R_FIX_APR.descr = 'AS_APR           (flag) use position as a new a-priori position (not as fixed)';
+            this.PAR_R_FIX_APR.descr = 'AS_APR             (flag) use position as a new a-priori position (not as fixed)';
             this.PAR_R_FIX_APR.par = '(AS_APR)|(AS_APPROXIMATE)|(as_approximate)';
             
             % Show plots
@@ -691,21 +683,21 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
             this.PAR_E_TROPO_MAT.name = 'TROPO MATLAB format';
-            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT            Tropo parameters MATLAB as .mat file';
+            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT            Tropo parameters as .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             this.PAR_E_TROPO_MAT.class = '';
             this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_TROPO_HN.name = 'TROPO HydroNet format';
-            this.PAR_E_TROPO_HN.descr = 'TRP_HN             Tropo parameters as a hydroNet (CSV like) file';
+            this.PAR_E_TROPO_HN.descr = 'TRP_HN             Tropo parameters as a HydroNet (CSV like) file';
             this.PAR_E_TROPO_HN.par = '(trp_hn)|(TRP_HN)';
             this.PAR_E_TROPO_HN.class = '';
             this.PAR_E_TROPO_HN.limits = [];
             this.PAR_E_TROPO_HN.accepted_values = {};
             
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
-            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV            Tropo parameters MATLAB as .csv file';
+            this.PAR_E_TROPO_CSV.descr = 'TRP_CSV            Tropo parameters as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
             this.PAR_E_TROPO_CSV.class = '';
             this.PAR_E_TROPO_CSV.limits = [];
@@ -782,32 +774,32 @@ classdef Command_Interpreter < handle
             this.CMD_BASICPP.name = {'BASICPP', 'PP', 'basic_pp', 'pp'};
             this.CMD_BASICPP.descr = 'Basic Point positioning with no correction';
             this.CMD_BASICPP.rec = 'T';
-            this.CMD_BASICPP.par = [this.PAR_RATE this.PAR_SS];
+            this.CMD_BASICPP.par = [this.PAR_SS];
 
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
-            this.CMD_PREPRO.par = [this.PAR_RATE this.PAR_SS];
-            
+            this.CMD_PREPRO.par = [this.PAR_SS];
+                        
+            this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
+            this.CMD_CODEPP.descr = 'Code positioning';
+            this.CMD_CODEPP.rec = 'T';
+            this.CMD_CODEPP.par = [this.PAR_SS];
+
             this.CMD_FIX_POS.name = {'FIXPOS', 'fixpos'};
             this.CMD_FIX_POS.descr = 'Fix position';
             this.CMD_FIX_POS.rec = 'T';
             this.CMD_FIX_POS.par = [this.PAR_R_FROM_WORK this.PAR_R_FROM_OUT this.PAR_R_FIX_APR];
-            
-            this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
-            this.CMD_CODEPP.descr = 'Code positioning';
-            this.CMD_CODEPP.rec = 'T';
-            this.CMD_CODEPP.par = [this.PAR_RATE this.PAR_SS];
-            
+
             this.CMD_PPP.name = {'PPP', 'precise_point_positioning'};
             this.CMD_PPP.descr = 'Precise Point Positioning using carrier phase observations';
             this.CMD_PPP.rec = 'T';
-            this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_M_UNCOMBINED];
+            this.CMD_PPP.par = [this.PAR_SS this.PAR_M_UNCOMBINED];
             
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD this.PAR_M_IONO this.PAR_M_CLK this.PAR_BAND this.PAR_M_FREE_NET this.PAR_M_UNCOMBINED];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_M_IONO this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED];
             
             this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
             this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
@@ -944,10 +936,10 @@ classdef Command_Interpreter < handle
             
             str = sprintf('%s\n----------------------------------------------------------------------------------------------\n', str);
             str = sprintf(['%s   NOTE: "T" refers to Target receiver' ...
-                '\n         "R" refers to reference receiver' ...
-                '\n         "P" refers to "passed" receiver\n' ...
+                '\n         "R" refers to Reference receiver' ...
+                '\n         "P" refers to "Passed" receiver\n' ...
                 '\n          - Receivers can be identified with their id number (as defined in "obs_name")' ...
-                '\n          - It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
+                '\n          - It is possible to select multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
                 '\n          - "END" can be used to select some Receivers / Sessions (e.g T1,3:END)' ...
                 '\n          - Whitin a FOR T loop "$" identify the current receiver in the execution\n' ...
                 ], str);
