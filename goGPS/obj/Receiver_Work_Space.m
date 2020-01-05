@@ -5725,9 +5725,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c, sat_cache)
-            % get Preferred Iono free combination for the two selcted measurements
-            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
+            % get Preferred Iono free combination for the two selected measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system, sat_cache)
             cc = Core.getState.getConstellationCollector;
             iono_pref = cc.getSys(sys_c).IONO_FREE_PREF;
             is_present = false(size(iono_pref,1),1);
@@ -5738,8 +5738,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             iono_pref = iono_pref(is_present,:);
-            [ismf_l1]  = this.getSmoothIonoFree([obs_type iono_pref(1,1)], sys_c, sat_cache);
-            [ismf_l2]  = this.getSmoothIonoFree([obs_type iono_pref(1,2)], sys_c, sat_cache);
+            [ismf_l1]  = this.getSmoothIonoFree([obs_type iono_pref(1,1)], sys_c);
+            [ismf_l2]  = this.getSmoothIonoFree([obs_type iono_pref(1,2)], sys_c);
             
             %             id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
             %             if any(id_ph)
