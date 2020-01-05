@@ -844,7 +844,7 @@ classdef Command_Interpreter < handle
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
             this.CMD_VALIDATE.rec = 'T';
-            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_V_IGS this.PAR_V_IGS_ZTD this.PAR_V_RAOB ];
+            this.CMD_VALIDATE.par = [this.PAR_EXPORT  this.PAR_CLOSE this.PAR_V_IGS this.PAR_V_IGS_ZTD this.PAR_V_RAOB ];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
