@@ -1255,6 +1255,8 @@ classdef Command_Interpreter < handle
                         else
                              try
                                 switch upper(tok{1})
+                                    case this.CMD_RENAME.name               % RENAME
+                                        this.runRename(core.rec, tok(2:end));
                                     case this.CMD_PINIT.name                % PINIT
                                         this.runParInit(tok(2:end));
                                     case this.CMD_PKILL.name                % PKILL
@@ -1288,8 +1290,6 @@ classdef Command_Interpreter < handle
                                 end
                                 if not(core.getCoreSky.isEmpty())
                                     switch upper(tok{1})
-                                        case this.CMD_RENAME.name               % RENAME
-                                            this.runRename(core.rec, tok(2:end));
                                         case this.CMD_AZEL.name                 % AZEL
                                             this.runUpdateAzEl(core.rec, tok(2:end));
                                         case this.CMD_BASICPP.name              % BASICPP
