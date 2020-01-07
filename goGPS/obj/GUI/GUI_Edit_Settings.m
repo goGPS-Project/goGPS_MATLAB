@@ -2531,10 +2531,17 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function go(this, caller, event)
+            
+            if isvalid(this.w_main)
+                this.w_main.Visible = 'off';
+            end
             core = Core.getCurrentCore();
             err_code = core.checkValidity();
             if err_code.go
                 uiwait(warndlg('Adjust the settings before running goGPS', 'Config check failed'));
+                if isvalid(this.w_main)
+                    this.w_main.Visible = 'on';
+                end
             else
                 this.crd2RefFrame;
                 Core.getLogger.addMarkedMessage('Starting computation!');
