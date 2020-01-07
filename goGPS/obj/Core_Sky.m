@@ -1617,15 +1617,14 @@ classdef Core_Sky < handle
 
         function [dts] = clockInterpolate(this, time, sat_in)
             % SYNTAX:
-            %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
+            %   [dts] = clockInterpolate(time, sat);
             %
             % INPUT:
             %   time  = interpolation timespan GPS_Time
-            %   SP3   = structure containing precise ephemeris data
             %   sat   = satellite PRN
             %
             % OUTPUT:
-            %   dt_S_SP3  = interpolated clock correction
+            %   dts  = interpolated clock correction
             %
             % DESCRIPTION:
             %   SP3 (precise ephemeris) clock correction linear interpolation.

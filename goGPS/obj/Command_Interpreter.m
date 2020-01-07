@@ -244,7 +244,7 @@ classdef Command_Interpreter < handle
             this.PAR_RATE.accepted_values = [];
             
             this.PAR_CUTOFF.name = 'cut-off';
-            this.PAR_CUTOFF.descr = '-e=<elevation>     Elevation in degree (e.g. -e=7)';
+            this.PAR_CUTOFF.descr = '-e=<elevation>     Cut-off elevation in degree (e.g. -e=7)';
             this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: @ | -e= | --cutoff= 
             this.PAR_CUTOFF.class = 'double';
             this.PAR_CUTOFF.limits = [0 90];
@@ -954,7 +954,7 @@ classdef Command_Interpreter < handle
                 end
                 
                 if ~isempty(cmd.par)
-                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Parameters:');
+                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Modifiers:');
                     for p = 1 : numel(cmd.par)
                         str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
                     end

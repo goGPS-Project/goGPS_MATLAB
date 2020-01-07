@@ -667,7 +667,6 @@ classdef File_Wizard < handle
             else % use DCB from CODE
                 gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
                 gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
-                %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
                 
                 % Pointer to the global settings:
                 state = Core.getCurrentSettings();
@@ -869,7 +868,6 @@ classdef File_Wizard < handle
             date_stop = date_stop.getCopy();
             gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
             %gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
-            %[file_crx] = download_crx(gps_weeks, gps_times);
             
             % Pointer to the global settings:
             state = Core.getCurrentSettings();
