@@ -1638,8 +1638,16 @@ classdef Core < handle
             %   [time_lim_small, time_lim_large] = this.getRecTimeSpan()
                                     
             fr = this.getRinFileList();
+            
+            % ignore non valid receivers
+            rec_ok = false(numel(fr), 1);
+            for r = 1 : numel(fr)
+                rec_ok(r) = any(fr(r).is_valid_list);
+            end
+            fr = fr(rec_ok);
+            
             is_empty = ~fr.isValid;
-            if nargin == 1 % Start and stop limits of all the sessions                
+            if nargin == 1 % Start and stop limits of all the sessions
                 time_lim_small = fr(1).first_epoch.first;
                 tmp_small = fr(1).last_epoch.last;
                 time_lim_large = time_lim_small.getCopy;
@@ -1661,7 +1669,7 @@ classdef Core < handle
                         end
                     end
                 end
-            else % Start and stop of a certain session
+            else % Start and stop of a certain session                           
                 time_lim_small = fr(1).getFirstEpoch(session);
                 tmp_small = fr(1).getLastEpoch(session);
                 time_lim_large = time_lim_small.getCopy;
