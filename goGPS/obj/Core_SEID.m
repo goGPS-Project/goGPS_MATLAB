@@ -115,7 +115,7 @@ classdef Core_SEID < handle
                 end
                 log = Logger.getInstance();
                
-                % get synced tuime
+                % get synced time
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
                 
                 if strcmp(method, 'ls')
@@ -170,7 +170,7 @@ classdef Core_SEID < handle
                     %[ph_ref_gf(r).obs, ph_ref_gf(r).sigma] = Receiver_Work_Space.smoothCodeWithPhase(zero2nan(pr_ref_gf(r).obs), pr_ref_gf(r).sigma, pr_ref_gf(r).go_id, ...
                     %                                                                      zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).sigma, ph_ref_gf(r).go_id, ph_ref_gf(r).cycle_slip);
                     
-                    % Smoothing woth splines
+                    % Smoothing with splines
                     %ph_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(ph_ref_gf(r).obs), ph_ref_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
                     %pr_ref_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(pr_ref_gf(r).obs), [], 'spline', (300 / ref(r).getRate), (300 / ref(r).getRate));
                     %pr_ref_gf(r).obs = ph_ref_gf(r).obs;
@@ -411,7 +411,6 @@ classdef Core_SEID < handle
                                 log.addMessage(log.indent(sprintf('Removing %sL%s observations already present in the target receiver %d / %d',sys,bnd, t, numel(trg))));
                                 trg(t).remObs(id_ph);
                             end
-                            
                         end
                         
                         for sys = systems

@@ -73,7 +73,6 @@ classdef Command_Interpreter < handle
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
         CMD_NET         % Network undifferenced solution
-        CMD_PSRALIGN    % Pseudorange alignement
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_SID         % SID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
@@ -184,7 +183,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP', 'PSRALIGN'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -800,12 +799,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
             this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_M_IONO this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED];
-            
-            this.CMD_PSRALIGN.name = {'PSRALIGN', 'pseudorange_align'};
-            this.CMD_PSRALIGN.descr = 'Align pseudorange of a network to the best observables';
-            this.CMD_PSRALIGN.rec = 'T';
-            this.CMD_PSRALIGN.par = [];
-            
+                        
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SEID (Satellite specific Epoch differenced Ionospheric Delay model)'];
             this.CMD_SEID.rec = 'RT';
@@ -1302,8 +1296,6 @@ classdef Command_Interpreter < handle
                                             this.runPPP(core.rec, tok(2:end));
                                         case this.CMD_NET.name                  % NET
                                             this.runNet(core.rec, tok(2:end));
-                                        case this.CMD_PSRALIGN.name             % Pseudorange align
-                                            this.runPseudorangeAlign(core.rec, tok(2:end));
                                         case this.CMD_SEID.name                 % SEID
                                             this.runSEID(core.rec, tok(2:end));
                                         case this.CMD_SID.name                  % SID
@@ -1924,27 +1916,7 @@ classdef Command_Interpreter < handle
                     end
                 end
             end
-        end
-        
-        function runPseudorangeAlign(this, rec, tok)
-            % Execute pseudorange alignement
-            %
-            % INPUT
-            %   rec     list of rec objects
-            %   tok     list of tokens(parameters) from command line (cell array)
-            %
-            % SYNTAX
-            %   this.runPseudorangeAlign(rec, tok)
-            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-            if ~found
-                this.log.addWarning('No target found -> nothing to do');
-            else
-                %this.log.addMarkedMessage(sprintf('Alignign pseudranges on receivers %d', id_trg));
-                net = Network(rec(id_trg));
-                net.alignCodeObservables();
-            end
-            %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
-        end
+        end        
         
         function runCodePP(this, rec, tok)
             % Execute Code Point Positioning
