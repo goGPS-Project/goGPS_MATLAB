@@ -477,7 +477,7 @@ classdef Core_SEID < handle
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
                 
                 sys_c = 'G';
-                for r = 1 : numel(ref)                    
+                for r = 1 : numel(ref)
                     % combine code and phase
                     ph_ref_gf(r) = ref(r).getPrefGeometryFree('L',sys_c);
                     pr_ref_gf = ref(r).getPrefGeometryFree('C',sys_c);
@@ -608,7 +608,6 @@ classdef Core_SEID < handle
                     end
                     iono_trg = Receiver_Commons.smoothSatData([], [], zero2nan(iono_trg), false(size(iono_trg)), [], spline_smooth_time / p_time(t).getRate, 6); % <== supposing no more cycle slips
                     iono_trg(id_sync{t}(:, t + numel(ref)), :) = iono_trg(id_sync{t}(:, t + numel(ref)), :) + med_iono_diff;
-
                     
                     % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
                     inan = isnan(iono_trg);
@@ -616,7 +615,7 @@ classdef Core_SEID < handle
                     iono_trg(inan) = nan;
 
                     %% SEID approach => Synth L2
-                    seid_approach = true;
+                    seid_approach = false;
                     if seid_approach
                         wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
                         wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
