@@ -620,7 +620,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.accepted_values = [];
 
             this.PAR_V_IGS.name = 'IGS position and troposphere validation';
-            this.PAR_V_IGS.descr = 'IGS                 Use IGS results for validation';
+            this.PAR_V_IGS.descr = 'IGS                Use IGS results for validation';
             this.PAR_V_IGS.par = '(igs)|(IGS)';
             this.PAR_V_IGS.class = '';
             this.PAR_V_IGS.limits = [];
@@ -817,7 +817,7 @@ classdef Command_Interpreter < handle
             this.CMD_SID.par = [];
 
             this.CMD_REMIONO.name = {'REMIONO', 'remove_iono'};
-            this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver' new_line 'using n (dual frequencies) reference stations' new_line 'Sligthly different approach w.r.t. SEID'];
+            this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver' new_line 'using n (dual frequencies) reference stations' new_line 'Sligthly different approach w.r.t. SEID' new_line '(Experimental approach - under testing)'];
             this.CMD_REMIONO.rec = 'RT';
             this.CMD_REMIONO.par = [];
             
@@ -1184,8 +1184,8 @@ classdef Command_Interpreter < handle
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
                                         for c = 1 : numel(cmd_list_loop)
-                                            % substitute ÿ with the current session
-                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
+                                            % substitute ï¿½ with the current session
+                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ï¿½', num2str(s));
                                         end
                                         this.exec(core, cmd_list_loop, level(id_list(1)));
                                         
