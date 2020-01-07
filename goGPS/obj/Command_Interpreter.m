@@ -944,7 +944,7 @@ classdef Command_Interpreter < handle
                 cmd = this.(sprintf('CMD_%s', this.CMD_LIST{c}));
                 str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10 - numel(cmd.name{1})) * ' ', cmd.descr);
                 if ~isempty(cmd.rec)
-                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory receivers:');
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Admissible receivers:');
                     if numel(cmd.rec) > 1
                         rec_par = sprintf('%c%s', cmd.rec(1), sprintf(', %c', cmd.rec(2:end)));
                     else
@@ -965,7 +965,7 @@ classdef Command_Interpreter < handle
                 cmd = this.(sprintf('KEY_%s', this.KEY_LIST{c}));
                 str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10-numel(cmd.name{1})) * ' ', cmd.descr);
                 if ~isempty(cmd.rec)
-                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory receivers:');
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Admissible receivers:');
                     if numel(cmd.rec) > 1
                         rec_par = sprintf('%c%s', cmd.rec(1), sprintf(', %c', cmd.rec(2:end)));
                     else
@@ -975,7 +975,7 @@ classdef Command_Interpreter < handle
                 end
                 
                 if ~isempty(cmd.key)
-                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory session:');
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Admissible session parameters:');
                     if numel(cmd.key) > 1
                         rec_par = sprintf('%c%s', cmd.key(1), sprintf(', %c', cmd.key(2:end)));
                     else
@@ -1673,9 +1673,9 @@ classdef Command_Interpreter < handle
                         this.log.addError(sprintf('Receiver %d: %s seems to be empty, basic positioning is not possible.', r, rec(r).getMarkerName()));
                     else
                         if sys_found
-                            rec(r).computeBasicPosition(sys_list);
+                            rec(r).work.computeBasicPosition(sys_list);
                         else
-                            rec(r).computeBasicPosition();
+                            rec(r).work.computeBasicPosition();
                         end
                     end
                 end
