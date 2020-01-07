@@ -23,7 +23,7 @@ function [obs_struct] = RINEX_get_obs_old(file_RINEX, nSat, sat, sat_types, obs_
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 5 Merry Christmas
+%    |___/                    v 1.0b5 Happy 2020
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

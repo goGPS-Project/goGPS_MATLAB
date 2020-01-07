@@ -36,7 +36,7 @@ function goGPS_BLK_DD_code_phase_static(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, p
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 5 Merry Christmas
+%    |___/                    v 1.0b5 Happy 2020
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

@@ -23,7 +23,7 @@ function [ph_MW, pr_NL, ph_WL] = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, l
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 5 Merry Christmas
+%    |___/                    v 1.0b5 Happy 2020
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

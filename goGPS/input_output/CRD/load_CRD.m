@@ -26,7 +26,7 @@ function [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marke
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 5 Merry Christmas
+%    |___/                    v 1.0b5 Happy 2020
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
