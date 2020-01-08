@@ -758,7 +758,7 @@ classdef Network < handle
         function initOutNew(this,ls)
             n_time = ls.unique_time.length;
             n_rec = length(this.rec_list);
-            n_set_coo = length(unique(ls.time_par(ls.class_par == ls.PAR_REC_X,1)));
+            n_set_coo = size(unique(ls.time_par(ls.class_par == ls.PAR_REC_X & ls.rec_par == 1,1)),1);
             if this.state.isSepCooAtBoundaries
                 n_set_coo = 1;
             end
@@ -914,7 +914,7 @@ classdef Network < handle
                         coo = [ 0 0 0];
                     end
                     
-                    this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                    this.coo(i,1:size(coo,2)) = nan2zero(this.coo(i,1:size(coo,2))) + coo;
                     if ~isempty(coo_vcv)
                         this.coo_vcv(i,:) = coo_vcv;
                     end
@@ -1350,7 +1350,8 @@ classdef Network < handle
                     id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
                     idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
                     if any(idx_res)
-                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                        
+                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));     
                         this.rec_list(i).work.sat.res_ph_by_ph(idx_time,j) = ls.res(idx_res);
                     end
                 end
@@ -1362,7 +1363,7 @@ classdef Network < handle
                     id_code = Core_Utils.findAinB({[this.rec_list(i).work.system(ip) this.rec_list(i).work.obs_code(ip,:)]}, ls.unique_obs_codes);
                     idx_res = idx_rec(ls.obs_codes_id_obs(idx_rec) == id_code & ls.satellite_obs(idx_rec) == this.rec_list(i).work.go_id(ip));
                     if any(idx_res)
-                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(this.rec_list(i).work.time.first.getMatlabTime));
+                        [~,idx_time] = ismember(ls.ref_time_obs(idx_res),this.rec_list(i).work.time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
                         this.rec_list(i).work.sat.res_pr_by_pr(idx_time,j) = ls.res(idx_res);
                     end
                 end
@@ -1391,8 +1392,10 @@ classdef Network < handle
                         col_idx = strLineMatch(this.rec_list(i).work.obs_code(id_ph,:),o_code(2:end)) & this.rec_list(i).work.go_id(id_ph) == sat;
                         row_idx = rec_time_ref >= time_amb(1) & rec_time_ref < time_amb(2);
                         a_id = amb_mat(row_idx,col_idx);
+                        if ~isempty(a_id)
                         a_id = a_id(1);
                         ph(amb_mat == a_id) = ph(amb_mat == a_id) - ls.x(amb)*wl(col_idx);
+                        end
                     end
                     this.rec_list(i).work.setPhases(ph,wl,id_ph );
                 end
