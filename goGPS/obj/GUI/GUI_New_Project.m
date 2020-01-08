@@ -186,7 +186,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                 'BackgroundColor', Core_UI.DARK_GREY_BG);
             Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
             new_field.Widths = 25;
-            [~, this.prj_type] = Core_UI.insertPopUpDark(new_field, 'Project type', {'Precise Point Positioning (PPP)', 'NET (short baselines) no iono - no tropo', 'NET  (medium baselines) no iono', 'NET (long baselines) iono free'}, 'prj_type', @this.none, [143 300]);
+            [~, this.prj_type] = Core_UI.insertPopUpDark(new_field, 'Project type', {'PPP - Precise Point Positioning', 'NET (short baselines) no iono - no tropo', 'NET (medium baselines) no iono', 'NET (long baselines) iono - free network'}, 'prj_type', @this.none, [143 300]);
             
             % Folder
             [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [25 150 -1 25]);
