@@ -215,11 +215,11 @@ classdef GUI_Inspector < GUI_Unique_Win
             load_core_but = uicontrol( 'Parent', list_but, ...
                 'String', 'Load Core', ...
                 'Callback', @this.onLoadCore); %#ok<NASGU>
-            
-            dock_fig_but = uicontrol( 'Parent', list_but, ...
-                'String', 'Dock Figures', ...
-                'Callback', @this.onDockAll); %#ok<NASGU>
-            
+                        
+            goGPS_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Show Settings', ...
+                'Callback', @this.onEditSettings); %#ok<NASGU>
+
             goGPS_but = uicontrol( 'Parent', list_but, ...
                 'String', 'Reopen goGPS', ...
                 'Callback', @this.onRunGoGPS); %#ok<NASGU>
@@ -1135,9 +1135,19 @@ classdef GUI_Inspector < GUI_Unique_Win
                         
             cmd_bg = Core_UI.LIGHT_GREY_BG;
             
-            cmd_box = uix.VBox('Parent', container, ...
+            cmd_tab = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
                 'BackgroundColor', cmd_bg);
+
+            top_bh = uix.HBox('Parent', cmd_tab, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            cmd_box = uix.VBox('Parent', top_bh, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            
             
             this.flag_auto_exec = uicontrol('Parent', cmd_box,...
                 'Style', 'checkbox',...
@@ -1163,6 +1173,20 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'FontSize', Core_UI.getFontSize(9), ...
                 'BackgroundColor', cmd_bg);
 
+            list_but = uix.VButtonBox( 'Parent', top_bh, ...
+                'ButtonSize', [100 28] , ...
+                'VerticalAlignment', 'top', ...
+                'HorizontalAlignment', 'right', ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            top_bh.Widths = [-1 100];
+            dock_fig_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Dock Figures', ...
+                'Callback', @this.onDockAll); %#ok<NASGU>
+            dock_fig_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Close Figures', ...
+                'Callback', @this.onCloseAll); %#ok<NASGU>
+
             j_cmd = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_cmd.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_cmd.setContentType(codeType);
@@ -1171,12 +1195,12 @@ classdef GUI_Inspector < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
             % Inject edit box with the Java Scroll Pane into the main_window
-            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_box);
+            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_tab);
                     
             % HELP
-            Core_UI.insertEmpty(cmd_box, cmd_bg);
+            Core_UI.insertEmpty(cmd_tab, cmd_bg);
             
-            list_but = uix.HButtonBox( 'Parent', cmd_box, ...
+            list_but = uix.HButtonBox( 'Parent', cmd_tab, ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'right', ...
                 'ButtonSize', [120 28] , ...
@@ -1195,7 +1219,8 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'String', 'EXEC', ...
                 'Callback', @this.exec);
             
-            cmd_box.Heights = [Core_UI.LINE_HEIGHT, Core_UI.LINE_HEIGHT, 5, Core_UI.LINE_HEIGHT, -1, 2, 30];
+            cmd_box.Heights = [Core_UI.LINE_HEIGHT, Core_UI.LINE_HEIGHT, 5, Core_UI.LINE_HEIGHT];
+            cmd_tab.Heights = [3*Core_UI.LINE_HEIGHT + 5, -1, 2, 30];
         
             % --------------------------------------------------------
         end
@@ -1382,6 +1407,16 @@ classdef GUI_Inspector < GUI_Unique_Win
                         core.setCurrentCore(core);
                         this.init();
                         Core.getLogger.addStatusOk(sprintf('Core successifully loaded', core_file));
+                    
+                        rec = core.rec;
+                        assignin('base', 'core', core);
+                        assignin('base', 'rec', rec);
+                        
+                        log = Core.getLogger();
+                        log.addMarkedMessage('Now you should be able to see 2 new variables:');
+                        log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
+                        log.addMessage(log.indent(' - rec       the array of Receivers'));
+                        log.newLine();
                     end
                 else
                     Core.getLogger.addError('Unrecognized input file format!');
@@ -1392,14 +1427,24 @@ classdef GUI_Inspector < GUI_Unique_Win
         end
         
         function onDockAll(this, caller, event)
-            % Run goGPS
+            % Dock all the figures but goGPS main windows
             dockAllFigures
+        end
+        
+        function onCloseAll(this, caller, event)
+            % Close all the figures but goGPS main windows
+            closeAllFigures
         end
         
         function onRunGoGPS(this, caller, event)
             % Run goGPS
             goGPS(Core.getState);
         end
+        
+        function onEditSettings(this, caller, event)
+            % Run Edit Settings
+            goEditSettings
+        end        
         
         function onUnselectAll(this, caller, event)
             % Select all the receivers
