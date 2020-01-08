@@ -1647,7 +1647,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 scatter(ax1, id_ok(id_sort),  prn(s) * ones(size(id_ok)), 80, scale * (res_tmp(id_ok(id_sort), s)), 'filled');
                                 hold(ax1, 'on');
                                 err = std(zero2nan(res_tmp(:,s)), 'omitnan') * scale;
-                                errorbar(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan') .* scale, prn(s), err, '.', 'horizontal', 'MarkerSize', 30, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);
+                                if  verLessThan('matlab', '9.5') 
+                                else
+                                    errorbar(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan') .* scale, prn(s), err, '.', 'horizontal', 'MarkerSize', 30, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);%,
+                                end
                                 hold(ax2, 'on');
                             end
                         end

@@ -1460,7 +1460,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             end
             
             % Manage Baseline Ref rec    
-            if ~isempty(new_cmd) && contains(new_cmd, '(REF_REC)')
+            if ~isempty(new_cmd) && instr(new_cmd, '(REF_REC)')
                 % Get the list of rec
                 rec = Core.getCurrentCore.rec;
                 [id_ref, id_found] = Core.getCommandInterpreter.getMatchingRec(rec, {[ 'R' strrep(strrep(this.bsl_ref_ids.String,'R', ''), ' ', '')]}, 'R');

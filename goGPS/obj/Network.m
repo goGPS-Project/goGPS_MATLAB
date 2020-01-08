@@ -899,7 +899,7 @@ classdef Network < handle
                         
                         coo = [cox coy coz];
                     else
-                        if i ~= this.id_ref
+                        if i ~= this.id_ref && false
                             coo_vcv = ls.coo_vcv(rec_vcv == i,rec_vcv == i);
                             if ~isempty(coo_vcv)
                                 coo_vcv = [coo_vcv(1,1) (coo_vcv(1,2) + coo_vcv(2,1))/2  (coo_vcv(1,3) + coo_vcv(3,1))/2 coo_vcv(2,2) (coo_vcv(2,3) + coo_vcv(3,2))/2 coo_vcv(3,3)];
