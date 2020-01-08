@@ -379,11 +379,12 @@ classdef Logger < handle
             end
             if this.fid <= 0
                 this.fid = 0;
+                if this.isFileOut()
+                    this.addError(sprintf('ERROR: Unable to open logging at %s', this.out_file_path));
+                end
                 this.disableFileOut();
                 if this.isFileOut()
-                    this.disableFileOut();
-                else
-                    this.addError(sprintf('ERROR: Unable to open logging at %s', this.out_file_path));
+                    this.disableFileOut(); % Retry ???
                 end
             end
             fid = this.fid;
@@ -706,7 +707,9 @@ classdef Logger < handle
                 end
             end
             if this.isFileOut % File
-                fprintf(this.getOutFId, [text '\n']);
+                if (this.getOutFId ~= 0)
+                    fprintf(this.getOutFId, [text '\n']);
+                end
             end
         end
         
@@ -734,7 +737,9 @@ classdef Logger < handle
                 end
             end
             if this.isFileOut % File
-                fprintf(this.getOutFId, [text '\n']);
+                if (this.getOutFId ~= 0)
+                    fprintf(this.getOutFId, [text '\n']);
+                end
             end
         end
 
@@ -757,7 +762,9 @@ classdef Logger < handle
                 end
             end
             if this.isFileOut % File
-                fprintf(this.getOutFId, ['WARNING: ' text '\n']);
+                if (this.getOutFId ~= 0)
+                    fprintf(this.getOutFId, ['WARNING: ' text '\n']);
+                end
             end                        
         end
 
@@ -780,7 +787,9 @@ classdef Logger < handle
                 end
             end
             if this.isFileOut % File
-                fprintf(this.getOutFId, ['ERROR: ' text '\n']);
+                if (this.getOutFId ~= 0)
+                    fprintf(this.getOutFId, ['ERROR: ' text '\n']);
+                end
             end
         end
 
