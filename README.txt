@@ -69,7 +69,7 @@
 3. Notes
    =====
    The results of the processing can be saved in various formats, 
-   however at the end of processing two main variabbles will appear 
+   however at the end of processing two main variables will appear 
    into the workspace: rec and core.
    
    Core is the main goGPS class is instantiated into the object core 
