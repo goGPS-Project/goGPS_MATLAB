@@ -1,15 +1,16 @@
-function dockAllFigures(fig_handle)
-% Change the WindowStyle of all the figures to docked
+function closeAllFigures(fig_handle)
+% Close all the dockable figures 
+% goGPS main windows are not dockable and will remain open ^_^
 %
 % SINTAX:
-%   dockAllFigures(<fig_handle>);
-%   dockAllFigures()
+%   closeAllFigures(<fig_handles>);
+%   closeAllFigures()
 %
 % EXAMPLE:
-%   dockAllFigures(gcf);
+%   dockAllFigures();
 %
 % INPUT:
-%   fig_handle = handler to the figure to dock           <optional argument>
+%   fig_handles = listo of handlers to the figure to close        <optional argument>
 %
 % DEFAULT VALUES:
 %   fig_handle all the figures
@@ -49,9 +50,9 @@ function dockAllFigures(fig_handle)
         set(fig_handle,'WindowStyle','docked');
     else
         all_fh = findall(0,'Type','figure');
-        for fig_handle = 1:length(all_fh)
-            if numel(all_fh(fig_handle).DockControls) ~= 3
-                set(all_fh(fig_handle), 'WindowStyle', 'docked')
+        for fid = 1:length(all_fh)
+            if numel(all_fh(fid).DockControls) ~= 3
+                delete(all_fh(fid));
             end
         end
     end
