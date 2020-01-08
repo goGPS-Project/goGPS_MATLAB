@@ -1378,7 +1378,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
             fh.Visible = 'on'; drawnow;
         end
         

@@ -4740,7 +4740,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 fh = figure; plot(t, (v_xyz));
                 title('Speed (XYZ [m / s])');
                 setTimeTicks();
-                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh_list = [fh_list fh];
                 
                 % Coordinates
@@ -4755,7 +4755,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 title('Coordinates stability (detrended) [cm]');
                 legend('East', 'North', 'Up');
                 setTimeTicks();                
-                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh_list = [fh_list fh];
                 
                 fh = figure; 
@@ -4764,7 +4764,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 axis equal
                 ylabel('North [cm]');
                 xlabel('East [cm]');
-                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh_list = [fh_list fh];                
                 
                 % Clock plot
@@ -4773,7 +4773,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     plot(t, dt, '-'); hold on;
                     setTimeTicks();
                     title('Residual receiver clock error rate [m/s]');
-                    Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                    Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                     fh_list = [fh_list fh];
                 end
                 
@@ -4782,7 +4782,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 plot(t, deg_free, 'LineWidth', 2);
                 setTimeTicks();                
                 title('Degree of freedom of the system');
-                Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh_list = [fh_list fh]; %#ok<NASGU>                
             end
             t = this.time.getEpoch(1:this.time.length - 1);
@@ -11278,6 +11278,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 setTimeTicks(3, 'auto'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 Core_UI.beautifyFig(f);
+                Core_UI.addExportMenu(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on'; drawnow;
             end
@@ -11327,6 +11328,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 
                 Core_UI.beautifyFig(f);
+                Core_UI.addExportMenu(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on'; drawnow;
             end
@@ -11376,6 +11378,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 h = xlabel('epoch'); h.FontWeight = 'bold';
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 Core_UI.beautifyFig(f);
+                Core_UI.addExportMenu(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on'; drawnow;
             end
@@ -11439,6 +11442,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 h = title(sprintf('%s %s cycle-slip(k) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                 Core_UI.beautifyFig(f);
+                Core_UI.addExportMenu(f);
                 Core_UI.addBeautifyMenu(f);
                 f.Visible = 'on'; drawnow;
             end
@@ -11502,6 +11506,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         title(cc.getSysName(ss));
                         idx_f = idx_f + 1;
                         Core_UI.beautifyFig(f);
+                        Core_UI.addExportMenu(f);
                         Core_UI.addBeautifyMenu(f);
                         f.Visible = 'on'; drawnow;
                     end
@@ -11557,6 +11562,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             caxis([-1 1]);
             
             Core_UI.beautifyFig(f);
+            Core_UI.addExportMenu(f);
             Core_UI.addBeautifyMenu(f);
             f.Visible = 'on'; drawnow;
         end
@@ -11847,6 +11853,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             h.FontWeight = 'bold';
                             %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                             Core_UI.beautifyFig(fh);
+                            Core_UI.addExportMenu(fh);
                             Core_UI.addBeautifyMenu(fh);
                             fh.Visible = 'on'; drawnow;
                         end
@@ -11906,6 +11913,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             h.FontWeight = 'bold';
                             %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                             Core_UI.beautifyFig(f);
+                            Core_UI.addExportMenu(f);
                             Core_UI.addBeautifyMenu(f);
                             f.Visible = 'on'; drawnow;
                         end

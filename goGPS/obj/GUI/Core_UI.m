@@ -200,6 +200,127 @@ classdef Core_UI < Logos
     
     %% METHODS FIGURE MODIFIER
     methods (Static, Access = public)
+
+        function addExportMenu(fig_handle)
+            % Add a menu Export to figure            
+            %
+            % SYNTAX
+            %   Core_Utils.addExportMenu(fig_handle)
+            
+            if nargin == 0 || isempty(fig_handle)
+                fig_handle = gcf;
+            end
+            
+            try
+                file_name = fullfile(Core.getState.getOutDir, 'Images', fig_handle.UserData.fig_name);
+                [~, file_name, file_ext] = fileparts(file_name);                
+            catch
+                file_name = '';
+            end
+            m = findall(fig_handle.Children, 'Type', 'uimenu', 'Label', 'Export');
+            if ~isempty(m)
+                m = m(1);
+            else
+                m = uimenu(fig_handle, 'Label', 'Export');
+            end
+            
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ... (light)');
+            if ~isempty(mitem)
+                % Item already present
+                %    mitem = mitem(1);
+            else
+                mitem = uimenu(m,'Label', 'as ... (light)');
+                mitem.Callback = @exportAsAsk;
+            end
+            
+            if ~isempty(file_name)
+                mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.png (light)']);
+                if ~isempty(mitem)
+                    % Item already present
+                    %    mitem = mitem(1);
+                else
+                    mitem = uimenu(m,'Label', ['as ' file_name '.png (light)']);
+                    mitem.Callback = @exportPNG;
+                end
+                
+                mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.pdf (light)']);
+                if ~isempty(mitem)
+                    % Item already present
+                    %    mitem = mitem(1);
+                else
+                    mitem = uimenu(m,'Label', ['as ' file_name '.pdf (light)']);
+                    mitem.Callback = @exportPDF;
+                end
+                
+                mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.fig (light)']);
+                if ~isempty(mitem)
+                    % Item already present
+                    %    mitem = mitem(1);
+                else
+                    mitem = uimenu(m,'Label', ['as ' file_name '.fig (light)']);
+                    mitem.Callback = @exportFIG;
+                end
+            end
+            
+            function exportAs(fh, type)
+                if nargin == 1
+                    [file_name, path_name] = uiputfile({'*.png','PNG (*.png)'; ...
+                        '*.pdf','PDF (*.pdf)'; ...
+                        '*.gif','GIF (*.gif)'; ...
+                        '*.fig','MATLAB figure (*.fig)'; ...
+                        '*.*',  'All Files (*.*)'}, ...
+                        'Save the figure as', fullfile(Core.getState.getOutDir, 'Images', 'file_name.png'));
+                else                
+                    file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
+                end
+                [file_dir, file_name, file_ext] = fileparts(file_name);
+                dir_ok = true;
+                if ~isempty(file_dir)
+                    if ~exist(file_dir, 'file')
+                        try
+                            mkdir(file_dir);
+                        catch ex
+                            dir_ok = false;
+                            Core.getLogger.addError(sprintf('%s - folder: "%s"', ex.message, file_dir));
+                        end
+                    end
+                end
+                if dir_ok
+                    if isempty(file_ext)
+                        file_ext = type;
+                    end
+                    if isempty(file_name)
+                        Core.getLogger.addWarning('No filename found for the figure export');
+                    end
+                    if isempty(file_name)
+                        file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
+                    end
+                    file_name = fullfile(file_dir, [file_name file_ext]);
+                    
+                    Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                    if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
+                        Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                    end
+                end
+            end
+            
+            function exportAsAsk(src, event)
+                exportAs(src.Parent.Parent);
+            end
+            
+            function exportFIG(src, event)
+                exportAs(src.Parent.Parent, '.fig');
+            end
+            
+            function exportPNG(src, event)
+                exportAs(src.Parent.Parent, '.png');                
+            end
+            
+            function exportPDF(src, event)
+                exportAs(src.Parent.Parent, '.pdf');                
+            end
+        end
+        
         function addBeautifyMenu(fig_handle)
             % Add a menu Aspect to figure
             % with 2 sub menu for changing figure aspect 

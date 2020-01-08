@@ -637,7 +637,7 @@ classdef Core_Utils < handle
                 colormap(jet);
                 colorbar;
             end
-            fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');            
+            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');            
         end
         
         function fh = showZerniche3(l, m, z_par, el_min)
@@ -707,7 +707,7 @@ classdef Core_Utils < handle
             subplot(1,2,1);
             caxis(cax);
             fh.Visible = true;
-            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
         
         function fh = polarZerMapQuad(l_max, m_max, az, el, data)
@@ -757,7 +757,7 @@ classdef Core_Utils < handle
             grid minor;
             
             fh.Visible = true;
-            Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
 
         %--------------------------------------------------------------------------

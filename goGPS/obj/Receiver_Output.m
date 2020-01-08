@@ -812,6 +812,7 @@ classdef Receiver_Output < Receiver_Commons
                         xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('receiver clock error [m]'); h.FontWeight = 'bold';
                         h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         Core_UI.beautifyFig(f);
+                        Core_UI.addExportMenu(f);
                         Core_UI.addBeautifyMenu(f);
                         f.Visible = 'on'; drawnow;
                     end
@@ -919,7 +920,7 @@ classdef Receiver_Output < Receiver_Commons
                 
                 linkaxes(ax, 'x');
                 
-                fh = win; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                fh = win; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh.Visible = 'on';
             else
                 rec(1).log.addMessage('Plotting a single point is not supported');
@@ -965,6 +966,7 @@ classdef Receiver_Output < Receiver_Commons
                     h = xlabel('epoch'); h.FontWeight = 'bold';
                     h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                     Core_UI.beautifyFig(f, 'dark');
+                    Core_UI.addExportMenu(f);
                     Core_UI.addBeautifyMenu(f);
                     f.Visible = 'on'; drawnow;
                 end
@@ -1027,6 +1029,7 @@ classdef Receiver_Output < Receiver_Commons
                     else
                         h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
                         Core_UI.beautifyFig(f);
+                        Core_UI.addExportMenu(f);
                         Core_UI.addBeautifyMenu(f);
                         f.Visible = 'on'; drawnow;
                     end
