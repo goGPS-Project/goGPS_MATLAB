@@ -56,12 +56,7 @@ classdef GUI_Msg < GUI_Unique_Win
         w_main         % Handle to this window
         jedt        % j edit handle (java logger element)
     end    
-    
-    %% PROPERTIES STATUS
-    % ==================================================================================================================================================
-    properties (GetAccess = private, SetAccess = private)
-    end
-    
+        
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods  (Static, Access = private)
@@ -197,8 +192,8 @@ classdef GUI_Msg < GUI_Unique_Win
             
             % Disclaimer Panel -----------------------------------------------------------------------------------------------
             Core_UI.insertEmpty(right_tvb, logo_GUI_Msg.BG_COLOR)
-             txt = this.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, [], 'left');
-             txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;            
+            txt = Core_UI.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, GUI_Msg.BG_COLOR, [], 'left');
+            txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;
             right_tvb.Heights = [25 3 -1];
             
             % Logging Panel --------------------------------------------------------------------------------------------------
@@ -241,22 +236,6 @@ classdef GUI_Msg < GUI_Unique_Win
                 'FontWeight', 'bold', ...
                 'BackgroundColor', GUI_Msg.BG_COLOR);
         end
-
-        function txt = insertText(parent, title, font_size, color, alignment)
-            if nargin < 4 || isempty(color)
-                color = Core_UI.WHITE;
-            end
-            if nargin < 5 || isempty(alignment)
-                alignment = 'center';
-            end
-            txt = uicontrol('Parent', parent, ...
-                'Style', 'Text', ...
-                'String', title, ...
-                'ForegroundColor', color, ...
-                'HorizontalAlignment', alignment, ...
-                'FontSize', Core_UI.getFontSize(font_size), ...
-                'BackgroundColor', GUI_Msg.BG_COLOR);
-        end                
     end
     %% METHODS setters
     % ==================================================================================================================================================

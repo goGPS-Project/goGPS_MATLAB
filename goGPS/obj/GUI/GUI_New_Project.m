@@ -41,7 +41,10 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef GUI_New_Project < handle
+classdef GUI_New_Project < GUI_Unique_Win
+    properties (Constant)
+        WIN_NAME = 'goGPS_New_Prj_Win';
+    end
     
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
@@ -53,10 +56,12 @@ classdef GUI_New_Project < handle
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window 
+        w_main      % Handle of the main window
         win         % Handle to this window
         
         dir_base    % handle to dir EditBox
+        dir_rin     % source of observation RINEX files
+        rin_op      % Type of operation on the Observation Folder
         prj_name    % handle to prj EditBox
         prj_type    % handle to prj type List
         
@@ -65,12 +70,6 @@ classdef GUI_New_Project < handle
         edit_texts  % List of editable text
         edit_texts_array % list of editable text array
         ceckboxes
-    end    
-    
-    %% PROPERTIES STATUS
-    % ==================================================================================================================================================
-    properties (GetAccess = private, SetAccess = private)
-        ok_go = false;
     end
     
     %% METHOD CREATOR
@@ -82,7 +81,7 @@ classdef GUI_New_Project < handle
             this.openGUI();
             this.w_main = w_main;
         end
-    end    
+    end
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -91,20 +90,25 @@ classdef GUI_New_Project < handle
             this.state = Core.getState();
         end
         
-        function status_ok = openGUI(this)
-            % WIN CONFIGURATION
-            % L| N|    W
-            %
-            %
-            % ----------
-            % b      b b
-            %
-            if ~isempty(this.w_main) && isvalid(this.w_main)
-                close(this.w_main);
+        function openGUI(this)
+            % Main Window ----------------------------------------------------------------------------------------------
+            
+            % If there is still an old logging wondow still open, close it
+            old_win = this.getUniqueWinHandle();
+            if ~isempty(old_win)
+                delete(old_win);
             end
             
-            status_ok = true;
-            this.ok_go = false;
+            win = figure( 'Name', 'Create an new project', ...
+                'Visible', 'off', ...
+                'DockControls', 'off', ...
+                'MenuBar', 'none', ...
+                'ToolBar', 'none', ...
+                'NumberTitle', 'off', ...
+                'Position', [0 0 750 250]);
+            
+            win.UserData.name = this.WIN_NAME;
+            this.win = win;
             
             % empty check boxes
             this.check_boxes = {};
@@ -114,15 +118,6 @@ classdef GUI_New_Project < handle
             
             % Main Window ----------------------------------------------------------------------------------------------
             
-            win = figure( 'Name', 'Create an empty project', ...
-                'Visible', 'off', ...
-                'MenuBar', 'none', ...
-                'ToolBar', 'none', ...
-                'NumberTitle', 'off', ...
-                'Position', [0 0 750 200]);
-            
-            this.win = win;
-            
             if isunix && not(ismac())
                 win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
                 win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
@@ -130,7 +125,7 @@ classdef GUI_New_Project < handle
                 win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-                        
+            
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
@@ -143,7 +138,6 @@ classdef GUI_New_Project < handle
                 log.newLine();
                 log.addWarning('After installation re-run goGPS');
                 close(win);
-                status_ok = false;
                 return;
             end
             top_bh = uix.HBox( 'Parent', main_bv);
@@ -169,7 +163,7 @@ classdef GUI_New_Project < handle
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
             axis off;
-                        
+            
             Core_UI.insertEmpty(left_bv, Core_UI.DARK_GREY_BG);
             
             % Main Panel -----------------------------------------------------------------------------------------------
@@ -179,23 +173,56 @@ classdef GUI_New_Project < handle
                 'BackgroundColor', Core_UI.DARK_GREY_BG);
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
             
+            new_field = uix.HBox('Parent', panel_g_border, ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
+            new_field.Widths = 25;
+            txt = Core_UI.insertText(new_field, {'Create a new project folder containing an initial configuration file'}, 9, [], [], 'left');
+            txt.FontWeight = 'bold';
+            
             fnp = File_Name_Processor();
             % ProjectType
-            [~, this.prj_type] = Core_UI.insertPopUpDark(panel_g_border, 'Project type', {'PPP', 'NET (short baselines) no iono - no tropo', 'NET  (medium baselines) no iono', 'NET (long baselines) iono free'}, 'prj_type', @this.none, [110 300]);
+            new_field = uix.HBox('Parent', panel_g_border, ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
+            new_field.Widths = 25;
+            [~, this.prj_type] = Core_UI.insertPopUpDark(new_field, 'Project type', {'Precise Point Positioning (PPP)', 'NET (short baselines) no iono - no tropo', 'NET  (medium baselines) no iono', 'NET (long baselines) iono free'}, 'prj_type', @this.none, [143 300]);
             
             % Folder
-            [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [120 -1 25]);                      
-            dir_base.String = [fnp.getFullDirPath((fullfile(this.state.getHomeDir, '..'))) filesep];
+            [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [25 150 -1 25]);
+            dir_base.String = fnp.getFullDirPath((fullfile(this.state.getHomeDir, '..')));
             this.dir_base = dir_base;
             
             % Project Name
-            [~, prj_name] = Core_UI.insertEditBoxDark(panel_g_border, 'Project name', 'prj_name', '', @this.none, [120 -1]);
+            new_field = uix.HBox('Parent', panel_g_border, ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
+            new_field.Widths = 25;
+            [~, prj_name] = Core_UI.insertEditBoxDark(new_field, 'Project name', 'prj_name', '', @this.none, [150 285]);
             prj_name.HorizontalAlignment = 'left';
             prj_name.FontWeight = 'bold';
             prj_name.String = 'New_Project';
             this.prj_name = prj_name;
             
-            panel_g_border.Heights = [30 30 30];
+            Core_UI.insertEmpty(panel_g_border, Core_UI.DARK_GREY_BG);
+            
+            % Source of RINEX
+            [~, dir_rin] = Core_UI.insertDirBoxDark(panel_g_border, 'Observations folder', 'prj_home', @this.none, [25 150 -1 25]);
+            dir_path = fnp.getFullDirPath((fullfile(Core.getInstallDir, '../data/project/default_PPP/RINEX')));
+            if exist(dir_path, 'dir') == 7
+                dir_rin.String = dir_path;
+            else
+                dir_rin.String = fnp.getFullDirPath((fullfile(this.state.getHomeDir, '..')));
+            end
+            this.dir_rin = dir_rin;
+            
+            % ProjectType
+            new_field = uix.HBox('Parent', panel_g_border, ...
+                'BackgroundColor', Core_UI.DARK_GREY_BG);
+            Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
+            new_field.Widths = 25;
+            [~, this.rin_op] = Core_UI.insertPopUpDark(new_field, '', {'Copy the observations folder into the new project', 'Move the observations folder into the new project', 'Keep observations in the current folder', 'Do not add any receiver now'}, 'rin_op', @this.none, [143 300]);
+            panel_g_border.Heights = [35 30 30 30 15 30 30];
             
             % Botton Panel ---------------------------------------------------------------------------------------------
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
@@ -209,19 +236,18 @@ classdef GUI_New_Project < handle
                 'BackgroundColor', 0.14 * [1 1 1]);
             
             bottom_bhr = uix.HButtonBox( 'Parent', bottom_bh, ...
+                'ButtonSize', [120 28] , ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'right', ...
                 'BackgroundColor', 0.14 * [1 1 1]);
             
             exit_but = uicontrol( 'Parent', bottom_bhl, ...
                 'String', 'Cancel', ...
-                'Callback', @this.close); %#ok<NASGU> 
+                'Callback', @this.close); %#ok<NASGU>
             
             ok_but = uicontrol( 'Parent', bottom_bhr, ...
-                'String', 'ok', ...
-                'FontAngle', 'italic', ...
-                'Callback', @this.okCreate, ...
-                'FontWeight', 'bold'); %#ok<NASGU>
+                'String', 'Create New Project', ...
+                'Callback', @this.okCreate); %#ok<NASGU>
             
             % Manage dimension -------------------------------------------------------------------------------------------
             
@@ -249,7 +275,7 @@ classdef GUI_New_Project < handle
     
     %% METHODS EVENTS
     % ==================================================================================================================================================
-    methods (Access = public) 
+    methods (Access = public)
         function none(this, caller, event)
         end
         
@@ -259,8 +285,42 @@ classdef GUI_New_Project < handle
         
         function okCreate(this, caller, event)
             try
+                log = Core.getLogger;
+                log.addMarkedMessage(sprintf('Creating a new project: "%s"\ninto: "%s"', this.prj_name.String, this.dir_base.String));
                 Core_Utils.createEmptyProject(this.dir_base.String, this.prj_name.String, this.prj_type.Value);
                 this.init();
+                state = Core.getCurrentSettings;
+                obs_path = this.dir_rin.String;
+                if this.rin_op.Value < 4 && ~exist(obs_path, 'dir') == 7
+                    log.addError('Observations folder does not exist!!!');
+                else
+                    switch this.rin_op.Value
+                        case 1 % copy
+                            log.addMessage(log.indent(sprintf('Start copying "%s" to "%s"', [obs_path filesep '*'], state.getObsDir)));
+                            [flag_ok, msg, msg_id] = copyfile([obs_path filesep '*'], state.getObsDir, 'f');
+                            if flag_ok
+                                log.addStatusOk('Data copied successfully!');
+                            else
+                                log.addError(msg);
+                            end
+                        case 2 % move
+                            log.addMessage(log.indent(sprintf('Start moving "%s" to "%s"', [obs_path filesep '*'], state.getObsDir)));
+                            [flag_ok, msg, msg_id] = movefile([obs_path filesep '*'], state.getObsDir, 'f');
+                            if flag_ok
+                                log.addStatusOk('Data moved successfully!');
+                            else
+                                log.addError(msg);
+                            end
+                        case 3 % keep the files there
+                            state.setOutDir(obs_path);
+                        otherwise % do nothing
+                    end
+                    
+                    if this.rin_op.Value < 4                        
+                        state.setObsName(Core_Utils.getStationList(obs_path, 'oO', true));
+                    end
+                end
+                        
                 close(this.win);
             catch ex
                 error(ex.message);
@@ -269,10 +329,10 @@ classdef GUI_New_Project < handle
             % Update main goGPS settings interface
             try
                 this.w_main.init();
-                this.w_main.updateUI(); 
+                this.w_main.updateUI();
             catch
                 % Windows have been closed?
-            end            
+            end
         end
     end
 end

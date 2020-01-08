@@ -1510,7 +1510,7 @@ classdef Core_Utils < handle
                     %file_list = [file_list; dir_list{d}(1:4)];
                 end
             end
-            station_list = unique(file_list)
+            station_list = unique(file_list);
         end
         
         function data = injectData(data1, data2, idx1, idx2, data_size)

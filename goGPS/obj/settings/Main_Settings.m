@@ -3002,9 +3002,23 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   base_rinex_dir = getRinexBaseDir(this)
+            %
+            % SEE ALSO
+            %   getObsDir
             base_rinex_dir = this.obs_dir;
         end
 
+        function base_rinex_dir = getObsDir(this)
+            % Get the base directory containing RINEX files
+            %
+            % SYNTAX
+            %   base_rinex_dir = getObsDir(this)
+            %
+            % SEE ALSO
+            %   getRinexBaseDir
+            base_rinex_dir = this.obs_dir;
+        end
+        
         function num_session = getSessionCount(this)
             % Get the number of sessions
             %
@@ -4053,11 +4067,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.prj_home = prj_home;
         end
         
+        function setObsName(this, name_list)
+            % Set observation file names
+            %
+            % SYNTAX
+            %  this.setObsName(obs_dir)
+            this.obs_name = name_list;
+        end
+        
         function setObsDir(this, obs_dir)
             % Set observation dir
             %
             % SYNTAX
-            %   dir = this.setObsDir(obs_dir)
+            %   this.setObsDir(obs_dir)
             this.obs_dir = obs_dir;
         end
         
@@ -4065,9 +4087,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Set output dir
             %
             % SYNTAX
-            %   dir = this.setOutDir(out_dir)
+            %  this.setOutDir(out_dir)
             this.out_dir = out_dir;
-        end
+        end       
         
         function setIniPath(this, file_path)
             % Set the file name of the current settings

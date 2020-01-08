@@ -612,7 +612,7 @@ classdef Core_Sky < handle
         function [XS,VS,dt_s, t_dist_exced, bad_sat] =  satellitePositions(this, time, sat, eph)
             
             % SYNTAX:
-            %   [XS, VS] = satellite_positions(time_rx, sat, eph);
+            %   [XS, VS] = satellitePositions(time_rx, sat, eph);
             %
             % INPUT:
             %   time_rx     = reception time
