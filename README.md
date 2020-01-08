@@ -1,0 +1,80 @@
+# goGPS 1.0 Open Edition
+![goGPS](https://github.com/goGPS-Project/goGPS_graphics/blob/master/logo/PNGs/goGPS_logo_128.png?raw=true)
+
+_Welcome to the goGPS wiki pages, here we will try to write useful information for users and developers._
+
+**goGPS** is a software created for processing GNSS raw data. It was originally written specifically to work with GPS single-frequency low-cost receivers but now it can fully exploit **multi-constellation**, **multi-frequency**, **multi-tracking** observations. goGPS implements multiple algorithms to analyze the data, and at the moment these include two main Least Squares (LS) engines: one working on combination of observables (e.g. iono-free observations) and one able to use all the frequencies and trackings logged without performing any combinations (ionospheric delay are parameters of the normal equations).
+The **combined and uncombined engines** can both compute Precise Point Positioning (PPP) solutions and Network adjustments (NET).
+
+**Note:** At the moment the software is focused on the processing of permanent stations (geodetic or low-cost) but it does not yet include the possibility to analyze moving receivers.
+
+## Index of contents:
+
+1. [Introduction](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Introduction)
+   - [A bit of history](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Introduction#a-bit-of-history)
+   - [About](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Introduction#about)
+2. [Installation](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Installation)
+   - [Requirements](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Installation#requirements)
+   - [Install procedure](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Installation#installation)
+   - [goGPS directories](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Installation#directories-of-gogps)
+   - [Execution](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Installation#execution) 
+3. [Settings](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings)
+   - [Index of contents](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#index-of-contents)
+   - [Menu](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#menu)
+   - [Sidebar](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#sidebar)
+   - [Tabs](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tabs)
+      * [Advanced](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-advanced)
+      * [Resources](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-resources)
+      * [Commands](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-commands)
+      * [Data Sources](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-data-sources)
+      * [Receiver Info](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-receiver-info)
+      * [Pre-Processing](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-pre-processing)
+      * [Processing](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-processing)
+      * [Atmosphere](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-atmosphere)
+   - [Bottom Bar](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-bottom-bar)
+4. [Command language](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language)
+   * [Index of contents](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#index-of-contents)
+   * [Receiver data organization](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#receiver-data-organization)
+   * [Minimal script](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#minimal-script)
+      * [PUSHOUT](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#pushout)
+   * [How to select sessions](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#how-to-select-sessions)
+   * [How to select receivers](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#how-to-select-receivers)
+   * [Main commands](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#main-commands)
+      * [LOAD](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#load)
+      * [PREPRO](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#prepro)
+      * [PPP](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#ppp)
+      * [NET](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#net)
+   * [Looping on receivers](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#looping-on-receivers)
+   * [Parallel execution](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#parallel-execution)
+      * [PINIT](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#pinit)
+      * [PKILL](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#pkill)
+      * [PAR](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#par)
+   * [Plots and export](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#plots-and-export)
+      * [SHOW](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#show)
+      * [EXPORT](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#export)
+   * [Validation](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#validation)
+      * [VALIDATE](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#validate)
+   * [Ionospheric interpolation](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#ionospheric-interpolation)
+      * [SEID](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#seid)
+      * [SID](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#sid)
+      * [REMIONO](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#remiono)
+   * [Other Commands](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#other-commands)
+      * [RENAME](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#rename)
+      * [EMPTY](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#empty)
+      * [EMPTYWORK](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#emptywork)
+      * [EMPTYOUT](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#emptyout)
+      * [AZEL](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#azel)
+      * [BASICPP](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#basicpp)
+      * [CODEPP](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#codepp)
+      * [OUTDET](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#outdet)
+      * [FIXPOS](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#fixpos)
+      * [KEEP](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#keep)
+      * [SYNC](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#sync)
+      * [REMSAT](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#remsat)
+      * [REMOBS](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#remobs)
+      * [REMTMP](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#remtmp)
+1. **[How to create a new project](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/How-to-create-a-new-project)**
+
+### Coding goGPS
+For a bit old presentation on the goGPS coding have a look at this presentation:
+[Coding goGPS](https://github.com/goGPS-Project/goGPS_MATLAB/blob/goGPS_1.0_beta/docs/coding%20goGPS.pdf)
