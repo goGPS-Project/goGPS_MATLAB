@@ -8194,6 +8194,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [x, y, z] = cs.getSatFixFrame(this.time);
                     sat_ok = unique(this.go_id)';
                     % transform into satellite reference system
+                    if ~exist('XR_sat','var')
+                        XR_sat = - this.getXSLoc();
+                        this.obs = this.obs';
+                    end
                     XR_sat(:, sat_ok, :) = cat(3,sum(XR_sat(:, sat_ok, :) .* x(:, sat_ok, :),3), sum(XR_sat(:, sat_ok, :) .* y(:, sat_ok, :), 3), sum(XR_sat(:, sat_ok, :) .* z(:, sat_ok, :), 3));
                     
                     % getting az and el
