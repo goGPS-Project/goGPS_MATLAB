@@ -30,6 +30,7 @@ The **combined and uncombined engines** can both compute Precise Point Positioni
       * [Receiver Info](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-receiver-info)
       * [Pre-Processing](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-pre-processing)
       * [Processing](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-processing)
+      * [Tab Regularization](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-regularization)
       * [Atmosphere](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-atmosphere)
    - [Bottom Bar](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Settings#tab-bottom-bar)
 4. [Command language](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language)
