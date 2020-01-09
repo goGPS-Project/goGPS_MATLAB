@@ -1636,7 +1636,7 @@ classdef LS_Manipulator_new < handle
                     cp = cp_cycle( ~idx_reduce_cycle_iono);
                     idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                     idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                    if sum(idx_2) > 0 
+                    if sum(idx_2) > 0 & iono
                         iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                     else
                         n_sat_clk = sum(i_sat_clk_tmp);
@@ -1686,7 +1686,7 @@ classdef LS_Manipulator_new < handle
                             jj = jj +1;
                         end
                         if length(indices) > 1
-                            iRecClk = Core_Utils.inverseByRecPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),indices);
+                            iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
                         else
                             iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
                         end
