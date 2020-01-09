@@ -206,7 +206,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Main Window ----------------------------------------------------------------------------------------------
 
                 win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                    'Visible', 'off', ...
+                    'Visible', 'on', ...
                     'DockControls', 'off', ...
                     'MenuBar', 'none', ...
                     'ToolBar', 'none', ...
@@ -265,7 +265,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
 
                 tab_panel = uix.TabPanel('Parent', panel_g_border, ...
-                    'TabWidth', 90, ...
+                    'TabWidth', 80, ...
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                     'SelectionChangedFcn', @this.onTabChange);
@@ -295,15 +295,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Main Panel > tab7 processing options
                 this.insertTabProcessing(tab_panel);
 
-                % Main Panel > tab8 atmosphere options
+                % Main Panel > tab8 regularization
+                this.insertTabRegularization(tab_panel);
+
+                % Main Panel > tab9 atmosphere options
                 this.insertTabAtmosphere(tab_panel);
 
                 % Tabs settings --------------------------------------------------------------------------------------------
 
                 if enable_rri
-                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Regularization', 'Atmosphere'};
                 else
-                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Regularization', 'Atmosphere'};
                 end
 
                 % Botton Panel ---------------------------------------------------------------------------------------------
@@ -777,7 +780,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             pp_panel = this.insertTabProcessingOptions(opt_tll);
                         
             % left bottom
-            Core_UI.insertEmpty(opt_l);
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
 
             Core_UI.insertEmpty(opt_h);
@@ -785,7 +787,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % right                                                           
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            opt_l.Heights = [352 -1 Core_UI.LINE_HEIGHT];
+            opt_l.Heights = [-1 Core_UI.LINE_HEIGHT];
             opt_tll.Heights = [93, 5, -1];
             opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
             
@@ -821,27 +823,46 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function proc_opt = insertTabProcessingOptions(this, container)
             vpopt = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            proc_opt = Core_UI.insertPanelLight(vpopt, 'Options Generic');
+            proc_opt = Core_UI.insertPanelLight(vpopt, 'Generic Options');
             opt_list = uix.VBox('Parent', proc_opt,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max code observation err', 'max_code_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
+            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(3,1);
             
-            proc_opt_ppp = Core_UI.insertPanelLight(vpopt, 'Options PPP');
+            proc_opt = Core_UI.insertPanelLight(vpopt, 'Troposphere Options');
+            opt_list = uix.VBox('Parent', proc_opt,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            tropo_opt_est_grid = uix.HBox('Parent', opt_list,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
+            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
+            
+            proc_opt = Core_UI.insertPanelLight(vpopt, 'Ionosphere Options');
+            opt_list = uix.VBox('Parent', proc_opt,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Ionosphere Management (combined engine only)', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
+            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(1,1);
+
+
+            proc_opt_ppp = Core_UI.insertPanelLight(vpopt, 'PPP Options');
             opt_list_ppp = uix.VBox('Parent', proc_opt_ppp,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_ppp, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'Enable PPP for receivers containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange);
             
-            proc_opt_net = Core_UI.insertPanelLight(vpopt, 'Options NET');
+            proc_opt_net = Core_UI.insertPanelLight(vpopt, 'NET Options');
             opt_list_net = uix.VBox('Parent', proc_opt_net,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            
-            vpopt.Heights = 25 + [3, 3, 2] .* Core_UI.LINE_HEIGHT;
+            opt_list_net.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
+
+            vpopt.Heights = 25 + [3, 2, 1, 3, 2] .* Core_UI.LINE_HEIGHT;
         end
         
         function ss_panel = insertSatSelector(this, container)
@@ -1409,46 +1430,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.coo_tbl.RowName = {};
         end
         
-        function insertTabAtmosphere(this, container)
+        function insertTabRegularization(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            %%% IONO
-            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
-            iono_opt_grid = uix.VBox('Parent', iono_options,...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Management (combined engine only)', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
-            
-            Core_UI.insertEmpty(tab);
-            
-            %%% TROPO
-            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
-            tropo_opt_grid = uix.VBox('Parent', tropo_options,...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tropo_opt_est_grid = uix.HBox('Parent', tropo_opt_grid,...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_grid, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
-
-            
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
-            tropo_opt_grid.Heights = [20 * ones(5,1); -1];
-            tropo_opt_est_grid.Widths = [150; -1];
-
-            Core_UI.insertEmpty(tab);
-            
-            %%% TROPO ADV
-            tropo_opt_adv = Core_UI.insertPanelLight(tab, 'Advanced regularization options');
+            %%% TROPO ADVANCED REGULARIZATION
+            tropo_opt_adv = Core_UI.insertPanelLight(tab, 'Regularization options');
             tropo_opt_v_adv = uix.VBox('Parent', tropo_opt_adv,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1462,6 +1450,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             tropo_opt_v_adv.Heights = [25 -1];
             
             tropo_opt_vl_adv = uix.VBox('Parent', tropo_opt_hbox_adv,...
+                'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             Core_UI.insertEmpty(tropo_opt_hbox_adv);
@@ -1497,7 +1486,41 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Spline rate', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vr_adv, 'Order of the spline',this.state.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange, [-1 160]);
                         
-            tab.Heights = [80 5 250 5 -1];
+            tropo_opt_vl_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
+            tropo_opt_vr_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
+            tab.Heights = 195;
+            tab.Widths = 700;
+            
+            this.uip.tab_reg = tab;
+        end
+        
+        function insertTabAtmosphere(this, container)
+            tab = uix.Grid('Parent', container, ...
+                'Padding', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            %%% IONO
+            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
+            iono_opt_grid = uix.VBox('Parent', iono_options,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', this.state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
+            
+            Core_UI.insertEmpty(tab);
+            
+            %%% TROPO
+            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
+            tropo_opt_grid = uix.VBox('Parent', tropo_options,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
+            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(3,1); -1];
+            tropo_opt_est_grid.Widths = [150; -1];
+
+            tab.Heights = [52 5 -1];
             tab.Widths = 700;
             
             this.uip.tab_atmo = tab;
