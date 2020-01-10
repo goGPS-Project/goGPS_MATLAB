@@ -233,7 +233,8 @@ classdef Core_UI < Logos
                 mitem.Callback = @exportAsAsk;
             end
             
-            if ~isempty(file_name)
+            % If exist a filename and the out dir is a valid path
+            if ~isempty(file_name) && (exist(Core.getState.getOutDir, 'dir') == 7)
                 mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.png (light)']);
                 if ~isempty(mitem)
                     % Item already present

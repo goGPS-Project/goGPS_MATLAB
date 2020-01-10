@@ -1335,7 +1335,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                 cmd_list = textscan(strrep(char(this.j_cmd.getText),'%','#'),'%s','Delimiter', '\n');
                 cmd = Core.getCommandInterpreter();
                 if ~isempty(cmd_list)
-                    [cleaned_cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push, flag_parallel] = cmd.fastCheck(cmd_list{1});
+                    [cleaned_cmd_list, err_list, ~, ~, ~, key_lev, ~, ~] = cmd.fastCheck(cmd_list{1});
                     key_lev = key_lev - (diff([0 key_lev]) > 0);
                     
                     cid = 0; % index running on valid commands
