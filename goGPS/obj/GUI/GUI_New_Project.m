@@ -312,7 +312,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                                 log.addError(msg);
                             end
                         case 3 % keep the files there
-                            state.setOutDir(obs_path);
+                            state.setObsDir(obs_path);
                         otherwise % do nothing
                     end
                     
