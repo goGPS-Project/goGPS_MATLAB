@@ -4872,6 +4872,94 @@ classdef GNSS_Station < handle
             f.Visible = 'on'; drawnow;            
         end
 
+        function fh_list = showTropoGradientsMR(sta_list)
+            % Show arrow plot for gradients
+            %
+            % SYNATAX
+            %   sta_list.showTropoGradientsMR()
+
+            %% DEBUG sta_list = rec(~rec.isEmpty_mr);
+            sta_list = sta_list(~sta_list.isEmpty_mr);
+            
+            % Order Station by longitude
+            %enu = sta_list.getMedianPosENU;
+            %[~, id_sort] = sort(enu(:,1));
+            %sta_list = sta_list(id_sort);
+            
+            % Scale factor gradients
+            g_scale = 1e3; % m -> mm
+            
+            [tropo_ge, t] = sta_list.getTropoPar('ge');
+            [tropo_gn, t] = sta_list.getTropoPar('gn');
+            
+            if ~iscell(t)
+                tropo_ge = {tropo_ge};
+                tropo_gn = {tropo_gn};
+                t = {t};                
+            end
+            
+            max_n_arrows = 100;
+            
+            % Get all the times
+            time = GNSS_Station.getSyncTimeExpanded(sta_list, 30);
+            time = time.getNominalTime;
+            [t_ref, t0] = time.getRefTime;
+            t_rate = median(diff(t_ref));
+            arrow_rate = round(((t_ref(end) - t_ref(1)) / t_rate) / (max_n_arrows - 1));
+            t_arrow = (0 : arrow_rate * t_rate : arrow_rate * t_rate * (max_n_arrows - 1))';
+            
+            f = figure('Visible', 'off');
+            f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
+            fh_list = f;
+            fig_name = 'All_Tropo_Gradients';
+            f.UserData = struct('fig_name', fig_name);
+
+            ax = axes;
+            
+            xlim(([t_arrow(1) t_arrow(end)] + (arrow_rate * t_rate) .* [-1 1]) / 86400 + double(t0));
+            ylim([0 numel(sta_list) + 1]);
+            Core_UI.beautifyFig(f);
+            drawnow
+
+            plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
+
+            % Compute the 0.8 percentile modulus            
+            mod_perc = g_scale * perc(hypot(cell2mat(tropo_gn'), cell2mat(tropo_ge')), 0.9);
+            for r = 1 : numel(sta_list)
+                time = t{r}.getNominalTime.getRefTime(double(t0));
+                t_arr_rec = [];
+                gn = [];
+                ge = [];
+                for e = 1 : numel(t_arrow)
+                    [~, id_min] = min(abs(time - t_arrow(e)));
+                    if ~isempty(id_min)
+                        t_arr_rec = [t_arr_rec time(id_min)];
+                        gn = [gn; tropo_gn{r}(id_min) .* g_scale] ;
+                        ge = [ge; tropo_ge{r}(id_min) .* g_scale];
+                    end
+                end
+                max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
+                triPlot(t_arr_rec / 86400 + double(t0), ...
+                        r * ones(numel(gn), 1), ...
+                        acosd(gn.^2 ./ (gn .* hypot(gn, ge))), ...
+                        double(hypot(gn, ge)), ...
+                        max_size, ...
+                        max_size/mod_perc);
+            end
+            setTimeTicks();
+            yticks(1 : numel(sta_list));
+            yticklabels([sta_list.getMarkerName4Ch()]);
+            cb = colorbar;
+            title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
+            Core_UI.beautifyFig(f);
+            
+            Core_UI.addExportMenu(f);
+            Core_UI.addBeautifyMenu(f);  
+            f.Visible = 'on'; drawnow;
+            
+            colormap(flipud(Cmap.get('RdBu')));
+        end
+        
         function fh_list = showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
             % Show a unique plot for all the stations given a certain data parameter
             %
@@ -4882,8 +4970,7 @@ classdef GNSS_Station < handle
 
             fh_list = [];
             if nargin < 5 || isempty(flag_od) || flag_od
-                [tropo, t, id_ko] = sta_list.getTropoPar(par_name);
-                
+                [tropo, t, id_ko] = sta_list.getTropoPar(par_name);                
             else
                 [tropo, t] = sta_list.getTropoPar(par_name);
                 id_ko = [];

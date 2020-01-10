@@ -273,33 +273,35 @@ classdef Core_UI < Logos
                 else                
                     file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
                 end
-                [file_dir, file_name, file_ext] = fileparts(file_name);
-                dir_ok = true;
-                if ~isempty(file_dir)
-                    if ~exist(file_dir, 'file')
-                        try
-                            mkdir(file_dir);
-                        catch ex
-                            dir_ok = false;
-                            Core.getLogger.addError(sprintf('%s - folder: "%s"', ex.message, file_dir));
+                if ~isempty(file_name)
+                    [file_dir, file_name, file_ext] = fileparts(file_name);
+                    dir_ok = true;
+                    if ~isempty(file_dir)
+                        if ~exist(file_dir, 'file')
+                            try
+                                mkdir(file_dir);
+                            catch ex
+                                dir_ok = false;
+                                Core.getLogger.addError(sprintf('%s - folder: "%s"', ex.message, file_dir));
+                            end
                         end
                     end
-                end
-                if dir_ok
-                    if isempty(file_ext)
-                        file_ext = type;
-                    end
-                    if isempty(file_name)
-                        Core.getLogger.addWarning('No filename found for the figure export');
-                    end
-                    if isempty(file_name)
-                        file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
-                    end
-                    file_name = fullfile(file_dir, [file_name file_ext]);
-                    
-                    Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
-                    if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
-                        Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                    if dir_ok
+                        if isempty(file_ext)
+                            file_ext = type;
+                        end
+                        if isempty(file_name)
+                            Core.getLogger.addWarning('No filename found for the figure export');
+                        end
+                        if isempty(file_name)
+                            file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
+                        end
+                        file_name = fullfile(file_dir, [file_name file_ext]);
+                        
+                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                        if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
+                            Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                        end
                     end
                 end
             end

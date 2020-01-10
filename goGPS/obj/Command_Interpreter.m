@@ -159,6 +159,7 @@ classdef Command_Interpreter < handle
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+        PAR_S_TGRAD     % Gradients table
         
         PAR_V_RAOB      % Validate ZTD with RAOB
         PAR_V_IGS_ZTD   % Validate ZTD with IGS
@@ -618,6 +619,13 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
+            this.PAR_S_TGRAD.name = 'Gradients table';
+            this.PAR_S_TGRAD.descr = 'TGRAD              Tropospheric gradients table';
+            this.PAR_S_TGRAD.par = '(tgrad)|(TGRAD)';
+            this.PAR_S_TGRAD.class = '';
+            this.PAR_S_TGRAD.limits = [];
+            this.PAR_S_TGRAD.accepted_values = [];
+            
             this.PAR_V_IGS.name = 'IGS position and troposphere validation';
             this.PAR_V_IGS.descr = 'IGS                Use IGS results for validation';
             this.PAR_V_IGS.par = '(igs)|(IGS)';
@@ -833,7 +841,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW', 'show'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD  this.PAR_S_TGRAD];
 
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
@@ -2244,6 +2252,9 @@ classdef Command_Interpreter < handle
                                 end
                                 show_ok  = show_ok + any_ok;
                             end
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_TGRAD.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showTropoGradientsMR()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
                         end
                     catch ex
                         Core_Utils.printEx(ex);
@@ -2251,11 +2262,9 @@ classdef Command_Interpreter < handle
                     end
                 end
                 
-                for r = id_trg % different for each target
-                    
+                for r = id_trg % different for each target                    
                     for t = 1 : numel(tok)
                         try
-                            if Core_Utils.isHold; hold off; end
                             if sss_lev == 0
                                 trg = rec(r);
                             else
@@ -2263,48 +2272,63 @@ classdef Command_Interpreter < handle
                             end
                             
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALL.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 trg.showAll();
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showDataAvailability(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUP.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showPositionPlanarUp()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CKW.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.work.showDt()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showDt()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showSNR_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNRI.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showSNR_z(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OSTAT.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showObsStats()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;                                
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PSTAT.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showProcessingQualityInfo()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;                                
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showOutliersAndCycleSlip(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showOutliersAndCycleSlip_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showRes()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_COS.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
                                         fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
@@ -2316,6 +2340,7 @@ classdef Command_Interpreter < handle
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PRS.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
                                         fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'pr')]; %#ok<AGROW>
@@ -2327,6 +2352,7 @@ classdef Command_Interpreter < handle
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PHS.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
                                         fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'ph')]; %#ok<AGROW>
@@ -2338,12 +2364,15 @@ classdef Command_Interpreter < handle
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showResSky_c(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showResSky_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showZtdSlantRes_p()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             end
