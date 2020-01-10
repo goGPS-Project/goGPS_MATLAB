@@ -497,7 +497,8 @@ classdef Network < handle
                 [~, idx_ref] = intersect(this.net_id, id_ref);
                 lid_ref(idx_ref) = true;
             end
-            is_empty_recs = this.rec_list.isEmpty_mr;
+            works = [this.rec_list.work];
+            is_empty_recs = works.isEmpty_mr;
             n_valid_rec = sum(~is_empty_recs);
             n_valid_ref = sum(~is_empty_recs(lid_ref));
             if n_valid_ref < numel(id_ref)
@@ -532,7 +533,6 @@ classdef Network < handle
                 end
                 l_fixed = 0; % nothing is fixed
                 is_empty_recs = this.rec_list.isEmpty_mr;
-                
                 e = find(is_empty_recs);
                 if ~isempty(e)
                     this.rec_list(e) = [];

@@ -388,7 +388,7 @@ classdef LS_Manipulator_new < handle
                     end
                     % ----------- electronic bias ------------------
                     if par_rec_eb
-                        A(lines_stream, par_rec_eb_lid) = 1;
+                        A(lines_stream, par_rec_eb_lid) = 1/100;
                     end
                     if par_rec_ebfr
                         A(lines_stream, par_rec_ebfr_lid) = 1;
@@ -400,7 +400,7 @@ classdef LS_Manipulator_new < handle
                         A(lines_stream, par_rec_eb_lin_lid) = 1/obs_set.wl(s);
                     end
                     if par_sat_eb
-                        A(lines_stream, par_sat_eb_lid) = 1;
+                        A(lines_stream, par_sat_eb_lid) = 1/100;
                     end
                     if par_sat_ebfr
                         A(lines_stream, par_sat_ebfr_lid) = 1;
@@ -433,16 +433,16 @@ classdef LS_Manipulator_new < handle
                     end
                     % ----------- ZTD ------------------
                     if par_tropo
-                        A(lines_stream, par_tropo_lid) = mfw_stream;
+                        A(lines_stream, par_tropo_lid) = mfw_stream; % /10
                     end
                     % ----------- ZTD gradients ------------------
                     if par_tropo_n || par_tropo_e
                         cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                         if par_tropo_e
-                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term /10; % east gradient
+                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient  /1000
                         end
                         if par_tropo_n
-                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term /10; % noth gradient
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient  /1000
                         end
                     end
                     if par_tropo_v
