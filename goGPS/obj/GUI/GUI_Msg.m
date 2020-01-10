@@ -114,21 +114,22 @@ classdef GUI_Msg < GUI_Unique_Win
             
             this.w_main = win;
             
-            if isunix && not(ismac())
-                % top right
-                % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
-                % win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
-                % centered
-                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
-                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
-            else
-                % top right
-                % win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
-                % win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
-                % centered
-                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
-            end
+            % Do not center anymore
+            % if isunix && not(ismac())
+            %     % top right
+            %     % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
+            %     % win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
+            %     % centered
+            %     win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+            %     win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+            % else
+            %     % top right
+            %     % win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
+            %     % win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
+            %     % centered
+            %     win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+            %     win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+            % end
             
             try
                 main_vb = uix.VBox('Parent', win, ...
