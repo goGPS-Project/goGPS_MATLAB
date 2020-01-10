@@ -73,6 +73,7 @@ classdef Core < handle
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
+        gui_mode    % GUI_mode  % 0 means text, otherwise means GUI
         log         % Logger handler
         log_gui     % Message window
         w_bar       % Wait_Bar handler
@@ -450,6 +451,22 @@ classdef Core < handle
             %   core.setGReD(is_gred)
             core = Core.getInstance(false, true);
             core.is_gred = is_gred;
+        end        
+        
+        function setModeGUI(this, mode)
+            % Set false if no GUI is used
+            %
+            % SYNTAX
+            %   core.setModeGUI(mode)            
+            this.gui_mode = mode;
+        end
+        
+        function mode = getModeGUI()
+            % Get GUI status
+            %
+            % SYNTAX
+            %   mode = core.getModeGUI()
+            mode = this.gui_mode;
         end
         
         function rec_list = getRecList()
@@ -688,6 +705,7 @@ classdef Core < handle
             this.rf = Core_Reference_Frame();
             this.cmd = Command_Interpreter(this);
             if force_clean
+                this.gui_mode = this.GUI_MODE;
                 this.preloaded_session = 0;
                 this.state.setCurSession(0);
                 this.rec = [];

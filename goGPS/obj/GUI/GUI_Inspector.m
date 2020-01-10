@@ -398,7 +398,11 @@ classdef GUI_Inspector < GUI_Unique_Win
             clear_but = uicontrol( 'Parent', list_but, ...
                 'String', 'Clear All', ...
                 'Callback', @this.onUnselectAll); %#ok<NASGU>           
-                        
+            update_rec_but = uicontrol( 'Parent', list_but, ...
+                'String', 'Update', ...
+                'TooltipString', 'Update receiver list', ...
+                'Callback', @this.onUpdateRecList);
+            
             tv_text.Heights = [20 25];                        
             
             rec_g = uix.Grid('Parent', lv_box, ...
@@ -1287,12 +1291,18 @@ classdef GUI_Inspector < GUI_Unique_Win
             this.rec_tbl.Data = cell(numel(core.rec), 4);
             tmp = cell(numel(core.rec), 4);
             for r = 1 : numel(core.rec)
-                name = core.rec(r).getMarkerName4Ch;                                
-                
-                tmp{r,1} = true;
-                tmp{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
-                tmp{r,3} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
-                tmp{r,4} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #444444; ">%s', '<html><tr><td width=9999 align=center ', core.rec(r).getActiveSys());
+                name = core.rec(r).getMarkerName4Ch;
+                if core.rec(r).isEmpty()
+                    col = '#AAAAAA'; % Grey
+                    col_ss = col;
+                else
+                    col = '#6666FF'; % Light Blue
+                    col_ss = '#444444'; % Dark Blue
+                end
+                tmp{r,1} = ~core.rec(r).isEmpty();
+                tmp{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: %s; ">%d', '<html><tr><td width=9999 align=center ', col, r);
+                tmp{r,3} = sprintf('%s style="font-weight: bold; font-size: 9px; color: %s; ">%s', '<html><tr><td width=9999 align=center ', col, upper(name(1:4)));
+                tmp{r,4} = sprintf('%s style="font-weight: bold; font-size: 9px; color: %s; ">%s', '<html><tr><td width=9999 align=center ', col_ss, core.rec(r).getActiveSys());
             end
             this.rec_tbl.Data = tmp;
         end
@@ -1306,7 +1316,10 @@ classdef GUI_Inspector < GUI_Unique_Win
                 end
             end
             
-            this.updateFlagList
+            this.updateFlagList();
+            if exist(Core.getState.getOutDir, 'dir') ~= 7
+                msgbox('The output folder is not valid', 'Warning','warn');
+            end            
         end
         
         function updateFlagList(this)
@@ -1382,7 +1395,8 @@ classdef GUI_Inspector < GUI_Unique_Win
     methods (Access = public)                 
         function onSelectAll(this, caller, event)
             % Select all the receivers
-            for r = 1 : size(this.rec_tbl.Data, 1)
+            id_ok = find(~Core.getCurrentCore.rec.isEmpty_mr)';
+            for r = id_ok
                 this.rec_tbl.Data{r,1} = true;
             end
         end
@@ -1428,7 +1442,6 @@ classdef GUI_Inspector < GUI_Unique_Win
                     Core.getLogger.addError('Unrecognized input file format!');
                 end
             end
-            
             this.stopWaiting();
         end
         
@@ -1457,6 +1470,11 @@ classdef GUI_Inspector < GUI_Unique_Win
             for r = 1 : size(this.rec_tbl.Data, 1)
                 this.rec_tbl.Data{r,1} = false;
             end
+        end
+        
+        function onUpdateRecList(this, caller, event)            
+            % Update receiver list
+            this.updateRecList();
         end
         
         function onTabChange(this, caller, event)

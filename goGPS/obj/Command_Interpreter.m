@@ -148,8 +148,8 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_NSAT      % N. of satellites seen per epoch
-        PAR_S_NSATSS    % N. of satellites seen constelation by constellation
-        PAR_S_NSATSSS   % N. of satellites seen constelation by constellation (smooth)
+        PAR_S_NSATSS    % N. of satellites seen constellation by constellation
+        PAR_S_NSATSSS   % N. of satellites seen constellation by constellation (smooth)
         PAR_S_ZTD       % ZTD
         PAR_S_ZHD       % ZHD
         PAR_S_ZWD       % ZWD

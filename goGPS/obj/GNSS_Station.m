@@ -5220,9 +5220,6 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             fh_list = sta_list.showTropoPar('nsat', new_fig, false);
-            Core_UI.beautifyFig(gcf);
-            Core_UI.addExportMenu(gcf);             
-            Core_UI.addBeautifyMenu(gcf);             
         end
 
         function fh_list = showNSatSS(sta_list, flag_smooth)
@@ -5232,6 +5229,7 @@ classdef GNSS_Station < handle
             %   fh_list = sta_list.showNSatSS()
 
             fh_list = [];
+            sta_list = sta_list(~(sta_list.isEmpty_mr));            
             for r = 1 : numel(sta_list)
                 if nargin == 2
                     if ~(isempty(sta_list(r).out) || sta_list(r).out.isEmpty)
