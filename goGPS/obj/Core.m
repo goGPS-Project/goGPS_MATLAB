@@ -453,12 +453,13 @@ classdef Core < handle
             core.is_gred = is_gred;
         end        
         
-        function setModeGUI(this, mode)
+        function setModeGUI(mode)
             % Set false if no GUI is used
             %
             % SYNTAX
-            %   core.setModeGUI(mode)            
-            this.gui_mode = mode;
+            %   core.setModeGUI(mode)
+            core = Core.getInstance(false, true);
+            core.gui_mode = mode;
         end
         
         function mode = getModeGUI()
@@ -466,7 +467,8 @@ classdef Core < handle
             %
             % SYNTAX
             %   mode = core.getModeGUI()
-            mode = this.gui_mode;
+            core = Core.getInstance(false, true);
+            mode = core.gui_mode;
         end
         
         function rec_list = getRecList()
