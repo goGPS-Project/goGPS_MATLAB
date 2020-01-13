@@ -70,7 +70,15 @@ function triPlot(x, y, ang, modulus, max_size, marker_scale)
         marker_scale = max_size / max(modulus);
     end
     
-    min_size = max_size * 0.5;
+    % Type conversion
+    x = double(x);
+    y = double(y);
+    ang = double(ang);
+    modulus = double(modulus);
+    max_size = double(max_size);
+    marker_scale = double(marker_scale);    
+    
+    min_size = max_size * 0.6;
         
     % Normalize point scale
     scale_factor = double(max(min_size, min(max_size, (modulus .* marker_scale))));
@@ -88,12 +96,14 @@ function triPlot(x, y, ang, modulus, max_size, marker_scale)
     x_tri = x_tri ./ 2;
     y_tri = y_tri ./ 2;
     
+    hold on;
     % Fix aspect ratio of the axes    
     for i = 1 : numel(x)
         col = modulus(i);
         pos_x = x_tri .* scale_factor(i) + x(i);
         pos_y = y_tri .* scale_factor(i) + y(i);
         ht = patch(pos_x, pos_y, col); hold on;
+        ht.Vertices(:,3) = 1000;
         rotate(ht, [0, 0, 1], double(ang(i)), [x(i), y(i) 1]);
         
         % Rescale vertexes if the ratio of the axis is not ok

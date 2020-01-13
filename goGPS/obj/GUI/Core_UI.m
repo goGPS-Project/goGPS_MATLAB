@@ -436,7 +436,7 @@ classdef Core_UI < Logos
                 for cb = cb_list(:)'
                     cb.Color = [0.9 0.9 0.9];
                     cb.FontName = FONT;
-                    cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                    cb.FontSize = Core_UI.getFontSize(13);
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = [0.9 0.9 0.9];
@@ -523,7 +523,7 @@ classdef Core_UI < Logos
                 for cb = cb_list(:)'
                     cb.Color = 1-[0.9 0.9 0.9];
                     cb.FontName = FONT;
-                    cb.FontSize = iif(cb.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                    cb.FontSize = Core_UI.getFontSize(13);
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = 1-[0.9 0.9 0.9];

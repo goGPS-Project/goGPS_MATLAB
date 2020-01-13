@@ -1717,7 +1717,7 @@ classdef GNSS_Station < handle
                 end
             end
         end
-
+        
         function [tropo, time, id_ko_cell] = getTropoPar(sta_list, par_name)
             % Get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
             % Generic function multi parameter getter
@@ -1787,8 +1787,7 @@ classdef GNSS_Station < handle
                 for r = 1 : numel(sta_list)
                     [~, id] = intersect(full_time, round(time{r}.getRefTime(t_ref), 5));
                     id_ko_cell{r} = id_ko(id, r);
-                end
-                
+                end                
             end
         end
 
@@ -4872,6 +4871,69 @@ classdef GNSS_Station < handle
             f.Visible = 'on'; drawnow;            
         end
 
+        function [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = getTropoGradients(sta_list, max_n_val)
+            % Get regularly sampled tropospheric gradients from out
+            %
+            % INPUT
+            %   max_n_val      number of gradients to extract
+            %
+            % OUTPUT
+            %   az             azimuth of the tropospheric gradient from North clockwise (deg)
+            %   modulus        modulus of the tropospheric gradient [m]
+            %   gne            North East gradients
+            %   time_grad      GPS_Time of the exported gradients
+            %   time_grad_ref  Nominal epoch of the searched gradient          
+            %
+            % SYNATAX
+            %   [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = GNSS_Station.getTropoGradients(sta_list, <max_n_val>);
+
+            
+            if nargin < 2
+                max_n_val = 100;
+            end
+            
+            % Get all the times
+            time = GNSS_Station.getSyncTimeExpanded(sta_list, 30);
+            time = time.getNominalTime;
+            [t_ref, t0] = time.getRefTime;
+            t_rate = median(diff(t_ref));
+            arrow_rate = round(((t_ref(end) - t_ref(1)) / t_rate) / (max_n_val - 1));
+            time_grad_ref = (0 : arrow_rate * t_rate : arrow_rate * t_rate * (max_n_val - 1))';
+
+            % Supposing already synced gradients
+            [tropo_ge, ~] = sta_list.getTropoPar('ge');
+            [tropo_gn, t] = sta_list.getTropoPar('gn');
+            
+            if ~iscell(t)
+                t = {t};
+                tropo_gn = {tropo_gn};
+                tropo_ge = {tropo_ge};
+            end
+            tropo_az = {};
+            tropo_modulus = {};
+            time_grad = {};
+            gne = {};
+            for r = 1 : numel(sta_list)
+                time = t{r}.getNominalTime.getRefTime(double(t0));
+                
+                time_grad{r} = [];
+                gne{r} = nan(numel(time_grad_ref), 2);
+                for e = 1 : numel(time_grad_ref)
+                    [~, id_min] = min(abs(time - time_grad_ref(e)));
+                    if ~isempty(id_min)
+                        time_grad{r} = [time_grad{r} time(id_min)];
+                        gne{r}(e, 1) = tropo_gn{r}(id_min);
+                        gne{r}(e, 2) = tropo_ge{r}(id_min);
+                    end
+                end
+                
+                time_grad{r} = time_grad{r}/86400 + double(t0);
+                tropo_modulus{r} = double(hypot(gne{r}(:,1), gne{r}(:,2)));                
+                tropo_az{r} = acosd(gne{r}(:,1).^2 ./ (gne{r}(:,1) .* tropo_modulus{r}));
+            end
+            time_grad_ref = time_grad_ref/86400 + double(t0);
+        end
+
         function fh_list = showTropoGradientsMR(sta_list)
             % Show arrow plot for gradients
             %
@@ -4886,27 +4948,12 @@ classdef GNSS_Station < handle
             %[~, id_sort] = sort(enu(:,1));
             %sta_list = sta_list(id_sort);
             
-            % Scale factor gradients
-            g_scale = 1e3; % m -> mm
-            
-            [tropo_ge, t] = sta_list.getTropoPar('ge');
-            [tropo_gn, t] = sta_list.getTropoPar('gn');
-            
-            if ~iscell(t)
-                tropo_ge = {tropo_ge};
-                tropo_gn = {tropo_gn};
-                t = {t};                
-            end
-            
             max_n_arrows = 100;
             
-            % Get all the times
-            time = GNSS_Station.getSyncTimeExpanded(sta_list, 30);
-            time = time.getNominalTime;
-            [t_ref, t0] = time.getRefTime;
-            t_rate = median(diff(t_ref));
-            arrow_rate = round(((t_ref(end) - t_ref(1)) / t_rate) / (max_n_arrows - 1));
-            t_arrow = (0 : arrow_rate * t_rate : arrow_rate * t_rate * (max_n_arrows - 1))';
+            [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = sta_list.getTropoGradients(max_n_arrows);
+            
+            % Scale factor gradients
+            g_scale = 1e3; % m -> mm                       
             
             f = figure('Visible', 'off');
             f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
@@ -4916,7 +4963,7 @@ classdef GNSS_Station < handle
 
             ax = axes;
             
-            xlim(([t_arrow(1) t_arrow(end)] + (arrow_rate * t_rate) .* [-1 1]) / 86400 + double(t0));
+            xlim([time_grad_ref(1) time_grad_ref(end)] + median(diff(time_grad_ref), 'omitnan') .* [-1 1]);
             ylim([0 numel(sta_list) + 1]);
             Core_UI.beautifyFig(f);
             drawnow
@@ -4924,31 +4971,19 @@ classdef GNSS_Station < handle
             plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
 
             % Compute the 0.8 percentile modulus            
-            mod_perc = g_scale * perc(hypot(cell2mat(tropo_gn'), cell2mat(tropo_ge')), 0.9);
-            for r = 1 : numel(sta_list)
-                time = t{r}.getNominalTime.getRefTime(double(t0));
-                t_arr_rec = [];
-                gn = [];
-                ge = [];
-                for e = 1 : numel(t_arrow)
-                    [~, id_min] = min(abs(time - t_arrow(e)));
-                    if ~isempty(id_min)
-                        t_arr_rec = [t_arr_rec time(id_min)];
-                        gn = [gn; tropo_gn{r}(id_min) .* g_scale] ;
-                        ge = [ge; tropo_ge{r}(id_min) .* g_scale];
-                    end
-                end
-                max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
-                triPlot(t_arr_rec / 86400 + double(t0), ...
-                        r * ones(numel(gn), 1), ...
-                        acosd(gn.^2 ./ (gn .* hypot(gn, ge))), ...
-                        double(hypot(gn, ge)), ...
+            mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
+            max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
+            for r = 1 : numel(sta_list)                
+                triPlot(time_grad{r}, ...
+                        r * ones(numel(tropo_az{r}), 1), ...
+                        tropo_az{r}, ...
+                        tropo_modulus{r} * g_scale, ...
                         max_size, ...
                         max_size/mod_perc);
             end
             setTimeTicks();
             yticks(1 : numel(sta_list));
-            yticklabels([sta_list.getMarkerName4Ch()]);
+            yticklabels(sta_list.getMarkerName4Ch());
             cb = colorbar;
             title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
             Core_UI.beautifyFig(f);
@@ -5343,6 +5378,55 @@ classdef GNSS_Station < handle
             fh_list = sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od);
         end
 
+        function fh_list = showZtdAndGradients(sta_list, new_fig, sub_plot_nsat, flag_od)
+            % Display ZTD values
+            % For each receiver use a single plot and overimpose the gradients
+            %
+            %
+            % INPUT:
+            %   new_fig         flag to specify to open a new figure (default = true)
+            %   sub_plot_nsat   flag to specify to subplot #sat      (default = true)
+            %   flag_od         flag to disable outlier detection
+            %
+            % SYNTAX:
+            %   sta_list.showZtdAndGradients(<new_fig = true>, <sub_plot_nsat = true>, <flag_od = false>)
+
+            if nargin <= 1 || isempty(new_fig)
+                new_fig = true;
+            end
+            if nargin <= 2 || isempty(sub_plot_nsat)
+                sub_plot_nsat = true;
+            end
+            if nargin <= 3 || isempty(flag_od)
+                flag_od = false;
+            end
+            
+            sta_list = sta_list(~sta_list.isEmpty_mr);
+
+            g_scale = 1e2;
+            max_n_arrows = 120;
+            fh_list = [];
+            for r = 1 : numel(sta_list)                
+                fh_list = [fh_list sta_list(r).showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od)];
+                
+                [ztd, time] = sta_list(r).getTropoPar('ZTD');
+                ax = fh_list(end).Children(end);
+                subplot(ax);
+                
+                [tropo_az, tropo_modulus, gne, time_grad, ~] = sta_list(r).getTropoGradients(max_n_arrows);
+                ztd = interp1(time.getMatlabTime, ztd, time_grad{1});
+                
+                plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
+                mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
+                max_size = (3 * diff(xlim) / max_n_arrows) / plot_scale_factor;
+                triPlot(time_grad{1}, ...
+                    ztd * g_scale, ...
+                    tropo_az{1}, ...
+                    tropo_modulus{1} * g_scale, ...
+                    max_size);                
+            end
+        end
+        
         function fh_list = showGn(sta_list, new_fig, sub_plot_nsat, flag_od)
             % Display ZTD Gradiet North values
             %
