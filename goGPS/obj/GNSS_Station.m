@@ -5130,7 +5130,7 @@ classdef GNSS_Station < handle
                                 end
                             end
                         end
-                        childs = ax1.Children;
+                        childs = findall(ax1.Children, 'type', 'line');
                         for c = 1 : length(childs)
                             tlim(1) = min([tlim(1), childs(c).XData]);
                             tlim(2) = max([tlim(2), childs(c).XData]);
@@ -5405,10 +5405,9 @@ classdef GNSS_Station < handle
 
             g_scale = 1e2;
             max_n_arrows = 120;
-            fh_list = [];
-            for r = 1 : numel(sta_list)                
-                fh_list = [fh_list sta_list(r).showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od)];
-                
+            fh_list = sta_list.showTropoPar('ZTD', new_fig, sub_plot_nsat, flag_od);
+            fh_list.UserData.fig_name = [fh_list.UserData.fig_name 'AndGrad'];
+            for r = 1 : numel(sta_list)                                
                 [ztd, time] = sta_list(r).getTropoPar('ZTD');
                 ax = fh_list(end).Children(end);
                 subplot(ax);
