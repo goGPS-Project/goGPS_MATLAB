@@ -2018,6 +2018,7 @@ classdef Core_Utils < handle
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
+            state.setOceanDir('station/ocean');
             
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             if nargin == 3
