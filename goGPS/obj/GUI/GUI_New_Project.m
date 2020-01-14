@@ -221,7 +221,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                 'BackgroundColor', Core_UI.DARK_GREY_BG);
             Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
             new_field.Widths = 25;
-            [~, this.rin_op] = Core_UI.insertPopUpDark(new_field, '', {'Copy the observations folder into the new project', 'Move the observations folder into the new project', 'Keep observations in the current folder', 'Do not add any receiver now'}, 'rin_op', @this.none, [143 300]);
+            [~, this.rin_op] = Core_UI.insertPopUpDark(new_field, '', {'Copy the observations folder into the new project', 'Move the observations folder into the new project', 'Keep observations in the current folder', 'Do not add any receiver now'}, 'rin_op', @this.onUpdateObsType, [143 300]);
             panel_g_border.Heights = [35 30 30 30 15 30 30];
             
             % Botton Panel ---------------------------------------------------------------------------------------------
@@ -281,6 +281,14 @@ classdef GUI_New_Project < GUI_Unique_Win
         
         function close(this, caller, event)
             close(this.win);
+        end
+        
+        function onUpdateObsType(this, caller, event)
+            if this.rin_op.Value == 4
+                this.dir_rin.Enable = 'off'; % if no RINEX must be added the input directory must be disabled
+            else
+                this.dir_rin.Enable = 'on';
+            end
         end
         
         function okCreate(this, caller, event)
