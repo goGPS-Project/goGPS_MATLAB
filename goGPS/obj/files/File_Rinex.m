@@ -277,7 +277,11 @@ classdef File_Rinex < Exportable
                                                 for t = trcks
                                                     if ~isempty(t{1})
                                                         t = t{1};
-                                                        idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
+                                                        if numel(t) == 2 % RINEX 2 codes with no trackings
+                                                            idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2);
+                                                        else
+                                                            idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
+                                                        end
                                                         trck_availability(idx) = true;
                                                     end
                                                 end
