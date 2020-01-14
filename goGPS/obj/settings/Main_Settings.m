@@ -3380,6 +3380,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             out_dir = File_Name_Processor.checkPath(this.out_dir, this.getHomeDir());
         end
 
+        function ocean_dir = getOutOcean(this)
+            % Get the path of the ocean folder
+            %
+            % SYNTAX
+            %   ocean_dir = this.getOutDir()
+            ocean_dir = File_Name_Processor.checkPath(this.ocean_dir, this.getHomeDir());
+        end
+        
         function out_prefix = getOutPrefix(this)
             % Get the path of the out_prefix
             %
@@ -4089,7 +4097,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %  this.setOutDir(out_dir)
             this.out_dir = out_dir;
-        end       
+        end
+        
+        function setOceanDir(this, ocean_dir)
+            % Set ocean loading dir
+            %
+            % SYNTAX
+            %  this.setOceanDir(out_dir)
+            this.ocean_dir = ocean_dir;
+        end
         
         function setIniPath(this, file_path)
             % Set the file name of the current settings
