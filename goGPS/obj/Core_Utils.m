@@ -466,6 +466,52 @@ classdef Core_Utils < handle
             
             z = Core_Utils.getZernike(l, m, az, el);
         end
+        
+         function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
+            % Generate all the Zernike parameters combinations
+            %
+            % SINTAX
+            %   [z, l, m] = getAllZernike(l_max, az, el)
+            %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
+            if nargin == 3
+                el = az;
+                az = m_max;
+                m_max = l_max;
+            end
+            
+            n_par = l_max * (l_max + 3) / 2 + 1;
+            
+            l = zeros(n_par, 1);
+            m = zeros(n_par, 1);
+            i = 0;
+            for degree = 0 : l_max
+                i = i(end) + (1 : degree + 1);
+                l(i) = degree;
+                m(i) = -degree : 2 : degree;
+            end
+            
+            l(abs(m) > m_max) = [];
+            m(abs(m) > m_max) = [];
+            
+            z = Core_Utils.getZernikeNorm(l, m, az, el);
+         end
+        
+         function z = getZernikeNorm(l, m, az, el)
+            % Get Zernike values for the polynomials
+            %
+            % SINTAX
+            %   z = getZernike(l, m, az, el)
+            
+            %
+            r = 1 - (2 * el(:) / pi);            
+            %r = cos(el(:));
+            theta = az(:);
+            
+            %[x,y,z] = sph2cart(az, el, 1);
+            %[theta1, r1] = cart2pol(x,y);
+            
+            z = zernfun(l, m, r, theta,'norm');
+        end
             
         function z = getZernike(l, m, az, el)
             % Get Zernike values for the polynomials

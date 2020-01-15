@@ -1036,6 +1036,97 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.stec = stec;
         end
         
+        function computeSTECtemp(this,min_arc_len)
+            % geom free based gps only
+            code_gf = this.getGeometryFree('C1','C2','G');
+            phase_gf = this.getGeometryFree('L1','L2','G');
+            if nargin > 1
+                phase_gf.remShortArc(min_arc_len);
+            end
+            n_sat = 32;
+            obs_ph = nan(this.time.length,n_sat);
+            obs_pr = nan(this.time.length,n_sat);
+            el_ph = nan(this.time.length,n_sat);
+            cs_ph = false(this.time.length,n_sat);
+            obs_ph(phase_gf.getTimeIdx(this.time.first,this.time.getRate),phase_gf.go_id) = zero2nan(phase_gf.obs);
+            cs_ph(phase_gf.getTimeIdx(this.time.first,this.time.getRate),phase_gf.go_id) = phase_gf.cycle_slip;
+            obs_pr(code_gf.getTimeIdx(this.time.first,this.time.getRate),code_gf.go_id) = zero2nan(code_gf.obs);
+            el(phase_gf.getTimeIdx(this.time.first,this.time.getRate),phase_gf.go_id) = zero2nan(phase_gf.el);
+            
+            obs_pr(isnan(obs_ph)) = nan;
+            obs_ph(isnan(obs_pr)) = nan;
+            obs = nan(sum(sum(~isnan(obs_pr)))*2,1);
+            isphase = nan(sum(sum(~isnan(obs_pr)))*2,1);
+            time_obs = nan(sum(sum(~isnan(obs_pr)))*2,1);
+            sat_obs = nan(sum(sum(~isnan(obs_pr)))*2,1);
+            time_par = nan(sum(sum(~isnan(obs_pr))),1);
+            sat_par = nan(sum(sum(~isnan(obs_pr))),1);
+            A_idx = zeros(sum(sum(~isnan(obs_pr)))*2,2);
+            A = zeros(sum(sum(~isnan(obs_pr)))*2,2);
+            w = nan(sum(sum(~isnan(obs_pr)))*2,1);
+            np_iono = 0;
+            np_amb = 0;
+            np_obs = 0;
+            epoch = 1 : size(obs_pr,1);
+            fun = @(el) sind(el).^2;
+            for s = 1 : size(obs_ph,2)
+                cs = [find(cs_ph(:,s)); size(obs_pr,1)+1];
+                for c = 1 : length(cs)-1
+                    idx_o = ~isnan(obs_ph(:,s)) & epoch' >= cs(c) & epoch' < cs(c+1);
+                    n_obs = sum(idx_o);
+                    if n_obs > 0
+                        np_amb = np_amb +1;
+                        obs(np_obs+(1:n_obs)) = obs_ph(idx_o,s);
+                        isphase(np_obs+(1:n_obs)) = true;
+                        
+                        A_idx(np_obs+(1:n_obs),1) = np_iono+(1:n_obs);
+                        time_par(np_iono+(1:n_obs),1) = find(idx_o);
+                        sat_par(np_iono+(1:n_obs),1) = s;
+                        A_idx(np_obs+(1:n_obs),2) = np_amb;
+                        A(np_obs+(1:n_obs),1) = 1;
+                        A(np_obs+(1:n_obs),2) = 1;
+                        w(np_obs+(1:n_obs)) = 1e2*fun(el(idx_o,s));
+                        time_obs(np_obs+(1:n_obs)) = find(idx_o);
+                        sat_obs(np_obs+(1:n_obs)) = s;
+                        np_obs = np_obs +n_obs;
+                        obs(np_obs+(1:n_obs)) = obs_pr(idx_o,s);
+                        isphase(np_obs+(1:n_obs)) = false;
+                        A_idx(np_obs+(1:n_obs),1) = np_iono+(1:n_obs);
+                        A(np_obs+(1:n_obs),1) = 1;
+                        w(np_obs+(1:n_obs)) = fun(el(idx_o,s));
+                        time_obs(np_obs+(1:n_obs)) = find(idx_o);
+                        sat_obs(np_obs+(1:n_obs)) = s;
+                        np_iono = np_iono +n_obs;
+                        np_obs = np_obs +n_obs;
+                        
+                    end
+                end
+            end
+            A_idx(:,2) =  A_idx(:,2) + max(A_idx(:,1));
+            
+            Aw = A.*repmat(sqrt(w),1,2);
+            obsw = obs.*sqrt(w);
+            row_idx = repmat((1:size(A,1))',1,2);
+            idx = A_idx ~=0;
+            A_fullw = sparse(row_idx(idx),A_idx(idx),Aw(idx),size(A,1),max(A_idx(:,2)));
+            A_full = sparse(row_idx(idx),A_idx(idx),A(idx),size(A,1),max(A_idx(:,2)));
+            
+            x = A_fullw\obsw;
+            res = obs - A_full*x;
+            o_idx = abs(res) > 4.5*mean(abs(res(~isphase)));
+            A_fullw(o_idx,:) = [];
+            obsw(o_idx) = [];
+            x = A_fullw\obsw;
+            
+            iono = x(1:numel(sat_par));
+            stec = nan(size(obs_ph));
+            for s = 1 : size(stec,2);
+                idx_par = sat_par == s;
+                stec(time_par(idx_par),s) = iono(idx_par);
+            end
+            this.sat.stec = stec;            
+        end
+        
         function remObsByFlag(this, flag, sys_c)
             % remove obesravtion by flag
             %

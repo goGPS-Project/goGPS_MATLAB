@@ -326,4 +326,40 @@ classdef Satellite_System < Settings_Interface
             end
         end
     end
+    methods (Static)
+        function [mask_north, mask_sud] = generatePolarMask(i,r,lat,lon)
+            % genarate polar mask all angle in radians
+            %
+            % SYNTAX:
+            %    [mask1, mask2] = genratePolarMask(i,lat,lon)
+            Z = r*sin(i);
+            B = r*cos(i);
+            alpha = (0:0.01:2*pi)';
+            % mask north pole
+            xyz_circle = [B*sin(alpha) B*cos(alpha) Z*ones(size(alpha))];
+            [ox,oy,oz] = geod2cart(lat, lon, 0, GPS_SS.ELL_A, GPS_SS.ELL_F);
+            xyz_circle(:,1) = xyz_circle(:,1) - ox;
+            xyz_circle(:,2) = xyz_circle(:,2) - oy;
+            xyz_circle(:,3) = xyz_circle(:,3) - oz;
+            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle)
+            circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
+            hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
+            el = atan2(circle_loc(:,3),hor_len);
+            az = atan2(circle_loc(:,2),circle_loc(:,1));
+            mask_north = [az,el];
+            % mask north pole
+            xyz_circle = [B*sin(alpha) B*cos(alpha) -Z*ones(size(alpha))];
+            [ox,oy,oz] = geod2cart(lat, lon, 0, GPS_SS.ELL_A, GPS_SS.ELL_F);
+            xyz_circle(:,1) = xyz_circle(:,1) - ox;
+            xyz_circle(:,2) = xyz_circle(:,2) - oy;
+            xyz_circle(:,3) = xyz_circle(:,3) - oz;
+            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle)
+            circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
+            hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
+            el = atan2(circle_loc(:,3),hor_len);
+            az = atan2(circle_loc(:,2),circle_loc(:,1));
+            mask_sud = [az,el];
+            
+        end
+    end
 end
