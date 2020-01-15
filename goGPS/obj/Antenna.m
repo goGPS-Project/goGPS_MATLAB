@@ -505,7 +505,7 @@ classdef Antenna < handle
         function showPCV(this)
             for f = 1 : this.n_freq
                 %%
-                fh = figure(f);
+                fh = figure();
                 fh.Name = sprintf('%03d: %s - %s', fh.Number, strtrim(this.type), strtrim(this.f_code(f, :))); fh.NumberTitle = 'off';
                 if isempty(this.pcv)
                     pcv = repmat(this.pcv_noaz{f}', 1, 180);
