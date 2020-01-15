@@ -57,7 +57,9 @@ classdef Receiver_Output < Receiver_Commons
             'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation
-            'res',              [], ...    % residual per staellite
+            'res',              [], ...    % residual per satellite
+            'res_pr_by_pr',     [], ...    % code residual per uncombined tracking
+            'res_ph_by_ph',     [], ...    % phase residual per uncombined tracking
             'mfw',              [], ...    % mapping funvtion wet
             'mfh',              []  ...    % mapping funvtion hysdrostatic
             )
@@ -67,8 +69,6 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
-        
-        
         pressure      % pressure           double   [n_epoch x 1]
         temperature   % temperature           double   [n_epoch x 1]
         humidity      % humidity           double   [n_epoch x 1]
@@ -93,7 +93,9 @@ classdef Receiver_Output < Receiver_Commons
                 'quality',          [], ...    % quality
                 'az',               [], ...    % double  [n_epoch x n_sat] azimuth
                 'el',               [], ...    % double  [n_epoch x n_sat] elevation
-                'res',              [], ...    % residual per staellite
+                'res',              [], ...    % residual per satellite
+                'res_pr_by_pr',     [], ...    % code residual per uncombined tracking
+                'res_ph_by_ph',     [], ...    % phase residual per uncombined tracking
                 'mfw',              [], ...    % mapping funvtion wet
                 'mfh',              []  ...    % mapping funvtion hysdrostatic
                 );

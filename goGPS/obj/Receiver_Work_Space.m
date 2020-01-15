@@ -144,8 +144,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             'outliers_ph_by_ph',   [], ...    % logical index of outliers
             'outliers_pr_by_pr',   [], ...    % logical index of outliers
             'cycle_slip_ph_by_ph', [], ...    % logical index of cycle slips
-            'res_pr_by_pr',        [], ...    % residuals
-            'res_ph_by_ph',        [], ...    % residuals
+            'res_pr_by_pr',        [], ...    % pseudo-ranges uncombined residuals
+            'res_ph_by_ph',        [], ...    % carrier-phases uncombined residuals
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
             'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
             'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
@@ -4552,10 +4552,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             if (nargin == 2) && ~isempty(sys_c)
                 id_pr = id_pr & (this.system == sys_c)';
             end
-            wl = this.wl(id_pr);
             [~,idx_pr_pr] = intersect(find(id_pr),idx_pr_all);
-            res_pr = this.sat.res_pr_by_pr(:, idx_pr_pr);
-            
+            res_pr = this.sat.res_pr_by_pr(:, idx_pr_pr);            
         end
         
         function [dop, wl, id_dop] = getDoppler(this, sys_c)
@@ -8161,7 +8159,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                             this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
                                         end
                                     else
-                                        %  get from cache
+                                        % get from cache
                                         id_cache = strLineMatch(f_code_cache, f_code);
                                         pco = pco_cache{id_cache};
                                         f_id = f_id_cache(id_cache);
@@ -11164,65 +11162,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for r = 1 : numel(rec)
                 rec(r).keepEpochs(id_sync(~isnan(id_sync(:, r)), r));
             end
-            
-        end
-        
-        function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
-            %res_code1_fix  = [];                      % double differences code residuals (fixed solution)
-            %res_code2_fix  = [];                      % double differences code residuals (fixed solution)
-            %res_phase1_fix = [];                      % phase differences phase residuals (fixed solution)
-            %res_phase2_fix = [];                      % phase differences phase residuals (fixed solution)
-            %res_code1_float  = [];                    % double differences code residuals (float solution)
-            %res_code2_float  = [];                    % double differences code residuals (float solution)
-            res_phase1_float = [];                     % phase differences phase residuals (float solution)
-            %res_phase2_float = [];                    % phase differences phase residuals (float solution)
-            %outliers_code1 = [];                      % code double difference outlier? (fixed solution)
-            %outliers_code2 = [];                      % code double difference outlier? (fixed solution)
-            %outliers_phase1 = [];                     % phase double difference outlier? (fixed solution)
-            %outliers_phase2 = [];                     % phase double difference outlier? (fixed solution)
-            % observations reading
-            log = Core.getLogger();
-            log.addMessage(['Reading: ' File_Name_Processor.getFileName(res_bin_file_name)]);
-            d = dir(res_bin_file_name);
-            fid_sat = fopen(res_bin_file_name,'r+');       % file opening
-            num_sat = fread(fid_sat, 1, 'int8');                            % read number of satellites
-            num_bytes = d.bytes-1;                                          % file size (number of bytes)
-            num_words = num_bytes / 8;                                      % file size (number of words)
-            num_packs = num_words / (2*num_sat*6);                          % file size (number of packets)
-            buf_sat = fread(fid_sat,num_words,'double');                    % file reading
-            fclose(fid_sat);                                                % file closing
-            %res_code1_fix    = [res_code1_fix    zeros(num_sat,num_packs)]; % observations concatenation
-            %res_code2_fix    = [res_code2_fix    zeros(num_sat,num_packs)];
-            %res_phase1_fix   = [res_phase1_fix   zeros(num_sat,num_packs)];
-            %res_phase2_fix   = [res_phase2_fix   zeros(num_sat,num_packs)];
-            %res_code1_float  = [res_code1_float  zeros(num_sat,num_packs)];
-            %res_code2_float  = [res_code2_float  zeros(num_sat,num_packs)];
-            res_phase1_float = [res_phase1_float zeros(num_sat,num_packs)];
-            %res_phase2_float = [res_phase2_float zeros(num_sat,num_packs)];
-            %outliers_code1   = [outliers_code1   zeros(num_sat,num_packs)];
-            %outliers_code2   = [outliers_code2   zeros(num_sat,num_packs)];
-            %outliers_phase1  = [outliers_phase1  zeros(num_sat,num_packs)];
-            %outliers_phase2  = [outliers_phase2  zeros(num_sat,num_packs)];
-            i = 0;                                                           % epoch counter
-            for j = 0 : (2*num_sat*6) : num_words-1
-                i = i+1;                                                     % epoch counter increase
-                %res_code1_fix(:,i)    = buf_sat(j + [1:num_sat]);            % observations logging
-                %res_code2_fix(:,i)    = buf_sat(j + [1*num_sat+1:2*num_sat]);
-                %res_phase1_fix(:,i)   = buf_sat(j + [2*num_sat+1:3*num_sat]);
-                %res_phase2_fix(:,i)   = buf_sat(j + [3*num_sat+1:4*num_sat]);
-                %res_code1_float(:,i)  = buf_sat(j + [4*num_sat+1:5*num_sat]);
-                %res_code2_float(:,i)  = buf_sat(j + [5*num_sat+1:6*num_sat]);
-                res_phase1_float(:,i) = buf_sat(j + (6*num_sat+1:7*num_sat));
-                %res_phase2_float(:,i) = buf_sat(j + [7*num_sat+1:8*num_sat]);
-                %outliers_code1(:,i)   = buf_sat(j + [8*num_sat+1:9*num_sat]);
-                %outliers_code2(:,i)   = buf_sat(j + [9*num_sat+1:10*num_sat]);
-                %outliers_phase1(:,i)  = buf_sat(j + [10*num_sat+1:11*num_sat]);
-                %outliers_phase2(:,i)  = buf_sat(j + [11*num_sat+1:12*num_sat]);
-            end
-            res_ph1 = res_phase1_float';
-            mean_res = mean(mean(zero2nan(res_ph1'), 'omitnan'), 'omitnan');
-            var_res = max(var(zero2nan(res_ph1'), 'omitnan'));
-        end
+        end        
     end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
