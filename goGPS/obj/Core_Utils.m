@@ -474,8 +474,8 @@ classdef Core_Utils < handle
             %   z = getZernike(l, m, az, el)
             
             %
-            %r = 1 - (2 * el(:) / pi);            
-            r = cos(el(:));
+            r = 1 - (2 * el(:) / pi);            
+            %r = cos(el(:));
             theta = az(:);
             
             %[x,y,z] = sph2cart(az, el, 1);
@@ -521,9 +521,21 @@ classdef Core_Utils < handle
             if nargin == 6 && ~isempty(max_reg) && max_reg
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
             else
-                reg_fun = 0;
+                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
             z_par = (A'*A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
+            
+            %N = (A'*A);
+            %[U, s, V] = svd(N);
+            %s = diag(s);
+            %id_ko = s < 1e-5;
+            % 
+            %V(:,id_ko) = [];
+            %U(:,id_ko) = [];
+            %s(id_ko) = [];
+            %s = 1./s(:);
+            %X = (V.*s.')*U';
+            %z_par = X * (A' * data(id_ok));            
         end
         
         function [z_par, l, m, A] = zAnalisys(l, m, az, el, data, max_reg)
@@ -537,7 +549,7 @@ classdef Core_Utils < handle
             if nargin == 6 && ~isempty(flag_reg) && flag_reg
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
             else
-                reg_fun = 0;
+                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
             z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
         end
@@ -584,9 +596,7 @@ classdef Core_Utils < handle
             y = x;
             [X,Y] = meshgrid(x,y);
             [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection 
-            % but not the right one for Zerniche
-            r_zern = sin(r_prj / scale * pi / 2);
-            %r_zern = r_prj;
+            r_zern = r_prj;
             if nargin == 4
                 r_max = 1 - (2 * el_min / pi);
                 idx = r_prj <= r_max;
@@ -654,9 +664,7 @@ classdef Core_Utils < handle
                 [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
             end
             % r_prj is the correct radius for my polar projection 
-            % but not the right one for Zerniche
-            r_zern = sin(r_prj * pi / 2);
-            %r_zern = r_prj;
+            r_zern = r_prj;
     
             z = nan(size(theta));
             z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
@@ -676,6 +684,46 @@ classdef Core_Utils < handle
             l3 = light('position',[0 2 100], 'color', [0.6 0.6 0.6]);
             view(35, 45);
             Core_UI.beautifyFig(fh, 'dark');            
+        end
+        
+        function fh = showZerniche3StylePCV(l, m, z_par, el_min)
+            % Show 3D plot of Zernike polynomials 
+            %
+            % SINTAX
+            %   fh = showZerniche3(l, m, z_par)
+            
+            % [x, y] = pol2cart(theta, r_synt);
+            if nargin == 4
+                r_max = 1 - (2 * el_min / pi);
+                [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, r_max, 101));
+            else
+                [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, 1, 101));
+            end
+            % r_prj is the correct radius for my polar projection 
+            r_zern = r_prj;
+    
+            z = nan(size(theta));
+            z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
+            
+            fh = figure();
+            title('Zerniche expansion')
+            
+            z = min(5, max(z, -5));
+            polarplot3d(z, 'PlotType', 'surf', 'RadialRange',[0 90] / 180 * pi, ...
+                    'AxisLocation', 0, 'InterpMethod', 'cubic', ...
+                    'PlotType', 'surfn', 'tickspacing', 15, ...
+                    'GridColor', [0.7 0.7 0.7]);
+                        
+            colormap(flipud(Cmap.get('PuOr', 256)));
+            
+            axprop = {'DataAspectRatio',[1 1 8],'View', [-12 38], ...
+                'Xlim', 1.5 * [-90 90] / 180 * pi, 'Ylim', 1.5 * [-90 90] / 180 * pi, ...
+                % 'XTick', [], 'YTick', [], 'Color', 'none', 'XColor', 'none', 'YColor', 'none'
+                };
+            ax = gca;
+            set(ax, axprop{:});
+            
+            %Core_UI.beautifyFig(fh, 'dark');
         end
         
         function fh = polarZerMap(l_max, m_max, az, el, data)

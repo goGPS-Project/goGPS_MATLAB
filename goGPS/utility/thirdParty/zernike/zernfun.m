@@ -149,24 +149,24 @@ rpowers = unique(rpowers);
 % Pre-compute the values of r raised to the required powers,
 % and compile them in a matrix:
 % -----------------------------
-% if rpowers(1)==0
-%     rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
-%     rpowern = cat(2,rpowern{:});
-%     rpowern = [ones(length_r,1) rpowern];
-% else
-%     rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
-%     rpowern = cat(2,rpowern{:});
-% end
+if rpowers(1)==0
+    rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
+    rpowern = cat(2,rpowern{:});
+    rpowern = [ones(length_r,1) rpowern];
+else
+    rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
+    rpowern = cat(2,rpowern{:});
+end
 
 % new lines
-rpowern = ones(size(r, 1), rpowers(end) + 1);
-if rpowers(end) > 1
-    rpowern(:, 2) = r;
-    for p = 3 : rpowers(end) + 1
-        rpowern(:, p) = rpowern(:, p - 1) .* r;
-    end
-end
-rpowern1 = rpowern(:, rpowers + 1);
+% rpowern = ones(size(r, 1), rpowers(end) + 1);
+% if rpowers(end) > 1
+%     rpowern(:, 2) = r;
+%     for p = 3 : rpowers(end) + 1
+%         rpowern(:, p) = rpowern(:, p - 1) .* r;
+%     end
+% end
+% rpowern = rpowern(:, rpowers + 1);
 % end of new lines
 
 % Compute the values of the polynomials:
