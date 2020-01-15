@@ -2466,7 +2466,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_amb_pass = 0; % (too much experimental)
             
             % Corrections
-            this.flag_clock_align = 1;
+            this.flag_clock_align = Main_Settings.FLAG_CLOCK_ALIGN;;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 1;
             this.flag_phase_wind = 1;
@@ -2566,7 +2566,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_amb_pass = 0; % (too much experimental)
             
             % Corrections
-            this.flag_clock_align = 1;
+            this.flag_clock_align = Main_Settings.FLAG_CLOCK_ALIGN;;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 0;
             this.flag_phase_wind = 0;
