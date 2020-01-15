@@ -1971,7 +1971,12 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %   this.elevationWeigth( fun)
-            this.variance_obs = this.variance_obs .* fun(this.elevation_obs);
+            this.reweight_obs  = fun(this.elevation_obs);
+            idx_zero = this.reweight_obs < 1e-3;
+            if isempty( this.outlier_obs)
+                this.outlier_obs = false(size(this.obs));
+            end
+            this.outlier_obs(idx_zero) = true;
         end
         
         function sinElevationWeigth(this)
@@ -1979,9 +1984,23 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %   this.sinElevationWeigth()
-            fun = @(el) (3./sin(el)).^2;
+            fun = @(el) (sind(el)).^2;
             this.elevationWeigth( fun)
         end
+        
+        function hemisphereWeighting(this,fun)
+            % weight observation based on azimuth and elevation fucntion
+            %
+            % SYNTAX:
+            %    this.hemisphereWeighting(fun)
+            this.reweight_obs  = fun(this.azimuth_obs,this.elevation_obs);
+            idx_zero = this.reweight_obs < 1e-3;
+            if isempty( this.outlier_obs)
+                this.outlier_obs = false(size(this.obs));
+            end
+            this.outlier_obs(idx_zero) = true;
+        end
+        
         
         function simpleSnoop(this, ph_thr, pr_thr)
             % simple threshold on residual
@@ -2078,7 +2097,9 @@ classdef LS_Manipulator_new < handle
             end
             
         end
+       
         
+     
         
         function [res_ph, sat, obs_id, res_id] = getPhRes(this, rec_num)
             % Get phase residuals
@@ -2380,7 +2401,6 @@ classdef LS_Manipulator_new < handle
             end
             this.bondParamsGenerateIdx(parametrization);
             this.absValRegularization(this.PAR_IONO, 1e4);
-            
         end
         
         function [time_st, time_end] = getTimePar(this, idx)

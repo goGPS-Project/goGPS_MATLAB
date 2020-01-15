@@ -8508,7 +8508,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if any(time_desync)
                     if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
                         id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
-                        tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
+                        tmp = Core_Utils.diffAndPred(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
                         dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
                     end
                     
@@ -8535,7 +8535,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                             drifting_pr = zeros(size(drifting_pr));
                         else
                             %lim = interp1(jmp, d_points_pr, [1 numel(drifting_pr)]', 'linear', 'extrap');
-                            drifting_pr = interp1([1; jmp; numel(drifting_pr)], [d_points_pr(1); d_points_pr; d_points_pr(end)], (1 : numel(drifting_pr))', 'pchip');
+                            d_start = d_points_pr(1);
+                            d_points_pr(jmp==1) =  [];
+                            jmp(jmp==1) =  [];
+                            d_end = d_points_pr(end);
+                            d_points_pr(jmp==numel(drifting_pr)) =  [];
+                            jmp(jmp==numel(drifting_pr)) =  [];
+                            drifting_pr = interp1([1; jmp; numel(drifting_pr)], [d_start; d_points_pr; d_end], (1 : numel(drifting_pr))', 'pchip');
                             %drifting_pr = interp1(jmp, d_points_pr, (1 : numel(drifting_pr))', 'pchip');
                         end
                         
