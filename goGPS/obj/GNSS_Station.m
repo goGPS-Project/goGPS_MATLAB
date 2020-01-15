@@ -3639,20 +3639,20 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             if new_fig
-                f = figure;
+                f_handle = figure;
             else
-                f = gcf;
+                f_handle = gcf;
                 hold on;
             end
-            fh_list = f;
+            fh_list = f_handle;
             fig_name = sprintf('RecAniMap_%s', upper(par_name));
-            f.UserData = struct('fig_name', fig_name);
+            f_handle.UserData = struct('fig_name', fig_name);
 
             if nargin < 5
                 flag_export = false;
             end
 
-            maximizeFig(f);
+            maximizeFig(f_handle);
 
             switch lower(par_name)
                 case 'ztd'
@@ -3699,7 +3699,7 @@ classdef GNSS_Station < handle
             xlim(lon_lim);
             ylim(lat_lim);
 
-            ax = f.Children(end);
+            ax = f_handle.Children(end);
             ax.FontSize = 20;
             ax.FontWeight = 'bold';
             if new_fig
@@ -3710,13 +3710,13 @@ classdef GNSS_Station < handle
                 ylabel('Latitude [deg]');
             end
             th = title(sprintf([par_str ' variations [cm] map @%s'], s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
-            Core_UI.insertLogo(f, 'SouthEast');
+            Core_UI.insertLogo(f_handle, 'SouthEast');
 
             if flag_export
-                im = {};
-                frame = getframe(f);
-                im{1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
-                f.Visible = 'off';
+                frameset = {};
+                frame = getframe(f_handle);
+                frameset{1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                f_handle.Visible = 'off';
                 Core.getLogger.addMarkedMessage('Exporting video');
                 fprintf('%5d/%5d', 0, 99999);
             end
@@ -3734,8 +3734,8 @@ classdef GNSS_Station < handle
                     end
                     if flag_export
                         fprintf('%s%5d/%5d',char(8 * ones(1,11)), i,numel(epoch_list));
-                        frame = getframe(f);
-                        im{i + 1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
+                        frame = getframe(f_handle);
+                        frameset{i + 1} = frame(1:2:end,1:2:end,:); % subsample (1:2)
                     end
                 end
             end
@@ -3752,12 +3752,12 @@ classdef GNSS_Station < handle
                 video_out.FrameRate = 30;
                 video_out.Quality = 91;
                 open(video_out);
-                for i = 1 : numel(im)
-                    writeVideo(video_out, im{i});
+                for i = 1 : numel(frameset)
+                    writeVideo(video_out, frameset{i});
                 end
                 close(video_out);
                 Core.getLogger.addStatusOk(sprintf('"%s" done ^_^', fullfile(Core.getState.getOutDir, video_out.Filename)));
-                close(f)
+                close(f_handle)
             end
         end
        
