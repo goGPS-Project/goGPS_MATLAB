@@ -94,6 +94,8 @@ classdef BeiDou_SS < Satellite_System
                                     'F', BeiDou_SS.ELL_F, ...               % Ellipsoid flattening
                                     'E', BeiDou_SS.ELL_E, ...               % Eccentricity
                                     'E2', BeiDou_SS.ELL_E2));               % Eccentricity^2
+        ORBITAL_INC = 55;    % Orbital inclination        
+        ORBITAL_RADIUS  = 21528000 + 6378137; % Orbital radius
     end
 
     methods

@@ -90,6 +90,8 @@ classdef SBAS_SS < Satellite_System
                                     'F', SBAS_SS.ELL_F, ...              % Ellipsoid flattening
                                     'E', SBAS_SS.ELL_E, ...              % Eccentricity
                                     'e2', SBAS_SS.ELL_E2));              % Eccentricity^2
+        ORBITAL_INC = 55;    % Orbital inclination        
+        ORBITAL_RADIUS  = 20180000 + 6378137; % Orbital radius
     end
 
     methods

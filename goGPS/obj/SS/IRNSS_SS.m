@@ -95,6 +95,8 @@ end
                            'F', IRNSS_SS.ELL_F, ...             % Ellipsoid flattening
                            'E', IRNSS_SS.ELL_E, ...             % Eccentricity
                            'E2', IRNSS_SS.ELL_E2));             % Eccentricity^2
+        ORBITAL_INC = 31;    % Orbital inclination        
+        ORBITAL_RADIUS  = 35786000 + 6378137; % Orbital radius
     end
 
     methods

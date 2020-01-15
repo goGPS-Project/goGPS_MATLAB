@@ -97,6 +97,8 @@ classdef QZSS_SS < Satellite_System
                                     'F', QZSS_SS.ELL_F, ...             % Ellipsoid flattening
                                     'E', QZSS_SS.ELL_E, ...             % Eccentricity
                                     'E2', QZSS_SS.ELL_E2));             % Eccentricity^2
+        ORBITAL_INC = 48;    % Orbital inclination        
+        ORBITAL_RADIUS  = 42164000 + 6378137; % Orbital radius
     end
 
     methods

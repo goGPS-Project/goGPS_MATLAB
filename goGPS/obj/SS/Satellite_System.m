@@ -59,10 +59,13 @@ classdef Satellite_System < Settings_Interface
         %   .ELL.F      flattening
         %   .ELL.e      eccentricity
         %   .ELL.e2     eccentricity^2
+
+        ORBITAL_INC    % Orbital inclination
+        ORBITAL_RADIUS % Orbital radius
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB;  % last letter of the observation code e.g. IRNSS: C5A - C5B - C5C - C5X
-        CODE_RIN3_2BAND;  % id for the freq as stored in F_VEC e.g. IRNSS: L5 -> C5A, S -> C9A
+        CODE_RIN3_ATTRIB; % last letter of the observation code e.g. IRNSS: C5A - C5B - C5C - C5X
+        CODE_RIN3_2BAND;  % id for the freq as stored in F_VEC e.g. IRNSS: L5 -> C5A, S -> C9A        
     end
 
     properties (GetAccess = 'public', SetAccess = 'protected')
@@ -97,6 +100,26 @@ classdef Satellite_System < Settings_Interface
             gcd_f = gcd(this.F_VEC(f_id(1)),this.F_VEC(f_id(2)));
             iono_free.T = this.F_VEC(f_id(1))/gcd_f;
             iono_free.N = this.F_VEC(f_id(2))/gcd_f;
+        end
+        
+        function [mask_north, mask_south] = getPolarMask(this, rec_lat, rec_lon, offset)
+            % Get the mask of the two palar caps due to the orbital inclination of the satellites
+            %
+            % INPUT
+            %   rec_lat   receiver latitude  [rad]
+            %   rec_lon   receiver_longitude [rad]
+            %   <offset>  add this to the orbit inclination [deg]
+            %
+            % OUTPUT
+            %   mask_north     [n x 2] az, el of the sky limits (north)
+            %   mask_south     [n x 2] az, el of the sky limits (south)
+            %
+            % SYNTAX
+            %    [mask_north, mask_south] = getPolarMask(this, rec_lat, rec_lon, <offset = 0>)
+            if nargin < 4 || isempty(offset)
+                offset = 0;
+            end
+            [mask_north, mask_south] = Satellite_System.generatePolarMask((this.ORBITAL_INC + offset) / 180 * pi, this.ORBITAL_RADIUS, rec_lat, rec_lon);            
         end
     end
 
@@ -241,7 +264,7 @@ classdef Satellite_System < Settings_Interface
             % SYNTAX
             %   this.disable();
             this.flag_enable = false;
-        end
+        end        
     end
 
     methods (Abstract)
@@ -326,8 +349,9 @@ classdef Satellite_System < Settings_Interface
             end
         end
     end
+    
     methods (Static)
-        function [mask_north, mask_sud] = generatePolarMask(i,r,lat,lon)
+        function [mask_north, mask_south] = generatePolarMask(i, r, lat, lon)
             % genarate polar mask all angle in radians
             %
             % SYNTAX:
@@ -341,25 +365,24 @@ classdef Satellite_System < Settings_Interface
             xyz_circle(:,1) = xyz_circle(:,1) - ox;
             xyz_circle(:,2) = xyz_circle(:,2) - oy;
             xyz_circle(:,3) = xyz_circle(:,3) - oz;
-            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle)
+            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle);
             circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
             hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
             el = atan2(circle_loc(:,3),hor_len);
-            az = atan2(circle_loc(:,2),circle_loc(:,1));
+            az = atan2(circle_loc(:,2),circle_loc(:,1)) - pi/2;
             mask_north = [az,el];
-            % mask north pole
+            % mask south pole
             xyz_circle = [B*sin(alpha) B*cos(alpha) -Z*ones(size(alpha))];
             [ox,oy,oz] = geod2cart(lat, lon, 0, GPS_SS.ELL_A, GPS_SS.ELL_F);
             xyz_circle(:,1) = xyz_circle(:,1) - ox;
             xyz_circle(:,2) = xyz_circle(:,2) - oy;
             xyz_circle(:,3) = xyz_circle(:,3) - oz;
-            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle)
+            [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle);
             circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
             hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
             el = atan2(circle_loc(:,3),hor_len);
-            az = atan2(circle_loc(:,2),circle_loc(:,1));
-            mask_sud = [az,el];
-            
+            az = atan2(circle_loc(:,2),circle_loc(:,1)) - pi/2;
+            mask_south = [az,el];            
         end
     end
 end

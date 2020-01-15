@@ -124,6 +124,9 @@ classdef GLONASS_SS < Satellite_System
 
         % GLONASS second zonal harmonic of the geopotential
         J2 = 1.0826257e-3;
+
+        ORBITAL_INC = 64.8;    % Orbital inclination        
+        ORBITAL_RADIUS  = 19140000 + 6378137; % Orbital radius
     end
 
     methods
