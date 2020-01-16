@@ -54,8 +54,11 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
     else
         h = scatter(x,y,point_size,color);
     end
-    hold_state = ishold();
-    if nargin < 6 || plot_bg    
+    is_hold = ishold();
+    if nargin < 6
+        plot_bg = ~is_hold;
+    end
+    if plot_bg
         hold on
         %plot parallel
         az_l = [0:pi/200:2*pi];
@@ -78,15 +81,14 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
             if abs(a-2*pi) > 0.0001
                 text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
             end
-            plot(x,y,'color',[0.6 0.6 0.6]);
-            
+            plot(x,y,'color',[0.6 0.6 0.6]);            
         end
         axis equal
         % xlim([-2 2])
         % ylim([-2 2])
         axis off
         set(gcf,'color','w');
-        if ~hold_state
+        if ~is_hold
             hold off
         end
         xlim([-1.15 1.15]); ylim([-1.15 1.15]);

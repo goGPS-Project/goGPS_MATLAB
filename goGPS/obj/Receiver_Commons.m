@@ -1552,6 +1552,297 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
             
+        end        
+        
+        function zmp = getZernikeMultiPath(this, type, l_max, flag_mask_reg)
+            % Get Zernike multi pth coefficients
+            %
+            % INPUT
+            %   type    can be:
+            %            'pr'   -> Uncombined pseudo-ranges residuals
+            %            'ph'   -> Uncombined carrier-phase residuals
+            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+            %
+            % SYNTAX
+            %   this.showResMap(sys_c_list, type, res)
+            
+            if nargin < 3 || isempty(l_max)
+                l_max = 37;
+            end
+            
+            if nargin < 4 || isempty(flag_mask_reg)
+                flag_mask_reg = true;
+            end
+            
+            deg2rad = pi/180;
+            
+            cc = Core.getState.getConstellationCollector;
+            sys_c_list = cc.getAvailableSys;
+            if nargin < 2 || isempty(type)
+                type = 'ph';
+            end
+            
+            if type(2) == 'r'
+                res = this.sat.res_pr_by_pr;
+            else
+                res = this.sat.res_ph_by_ph;
+            end
+            
+            if type(2) == 'r'
+                name = 'Uncombined pseudo-ranges residuals';
+                id_obs = this.obs_code(:,1) == 'C';
+            else
+                name = 'Uncombined carrier-phase residuals';
+                id_obs = this.obs_code(:,1) == 'L';
+            end
+            
+            id_obs = find(id_obs);
+            
+            log = Core.getLogger;
+            log.addMarkedMessage(sprintf('Computing Multipath mitigation coefficients for "%s"', this.parent.getMarkerName));
+            zmp = struct();
+            if isempty(res)
+                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
+            else
+                ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);
+                % for each satellite system
+                for sys_c = ss_ok
+                    id_obs_sys = id_obs(this.system(id_obs) == sys_c);
+                    trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
+                    % for each tracking
+                    for t = 1 %: size(trk_ok, 1)
+                        cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
+                        [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));
+                                                                                                
+                        data_found = false;
+
+                        cur_res = res(:, cur_res_id);                                                
+                        %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
+                        
+                        % Zerniche filter
+                        m_max = l_max;
+                        
+                        az_all = [];
+                        el_all = [];
+                        res_all = [];
+                        for s = 1 : sum(cur_res_id)
+                            id_ok = find(~isnan(zero2nan(cur_res(:, s))));
+                            if any(id_ok)
+                                data_found = true;
+                                res_all = [res_all; cur_res(id_ok, s)];
+                                
+                                go_id = cc.getIndex(sys_c, prn(s));
+                                az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
+                                el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
+                            end
+                        end
+                        if data_found
+                            %%
+                            if flag_mask_reg
+                                [lon, lat] = this.getGeodCoord();
+                                for i = 2 : 5 : (90 - cc.getSys(sys_c).ORBITAL_INC)
+                                    [mask_north, mask_sud] = cc.getSys(sys_c).getPolarMask(lat/180*pi, lon/180*pi, i);
+                                    az_all = [az_all; mask_north(:,1)];
+                                    el_all = [el_all; mask_north(:,2)];
+                                    res_all = [res_all; zeros(size(mask_north(:,1)))];
+                                end
+                                for i = 0 : 1 : (Core.getState.getCutOff - 2)
+                                    az_all = [az_all; (-pi : 0.001 : pi)'];
+                                    el_all = [el_all; i/180*pi + (-pi : 0.001 : pi)'*0];
+                                    res_all = [res_all; (-pi : 0.001 : pi)'*0];
+                                end
+                            end
+                            log.addMessage(log.indent(sprintf(' - Zernike expansion of %s%s residuals', sys_c, trk_ok(t,:))));
+                            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, el_all, res_all, 1e-5);
+                            if ~isfield(zmp, sys_c)
+                                zmp.(sys_c) = struct;
+                            end
+                            if ~isfield(zmp.(sys_c), trk_ok(t,:))
+                                zmp.(sys_c).(trk_ok(t,:)) = struct;
+                            end
+                            zmp.(sys_c).(trk_ok(t,:)).z_par = z_par;
+                            zmp.(sys_c).(trk_ok(t,:)).l = l;
+                            zmp.(sys_c).(trk_ok(t,:)).m = l;
+                            %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, Core.getState.getCutOff / 180 * pi, perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
+                            Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, [], perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
+                            view(-90, 90)
+                            fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                        end
+                        if ~data_found
+                            log = Core.getLogger;
+                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
+                        end
+                    end
+                end
+            end
+        end
+
+        function fh_list = showResScatter(this, sys_c_list, type, res)
+            % Plot the residuals of phase per Satellite
+            %
+            % INPUT
+            %   type    can be:
+            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
+            %            'pr'   -> Uncombined pseudo-ranges residuals
+            %            'ph'   -> Uncombined carrier-phase residuals
+            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+            %
+            % SYNTAX
+            %   this.showResMap(sys_c_list, type, res)
+            
+            fh_list = [];
+            cc = Core.getState.getConstellationCollector;
+            if nargin < 2 || isempty(sys_c_list)
+                sys_c_list = cc.getAvailableSys;
+            end
+            if nargin < 3 || isempty(type)
+                type = 'co';
+            end
+            
+            if nargin < 4 || isempty(res)                
+                if type(2) == 'o'
+                    res = this.sat.res;
+                elseif type(2) == 'r'
+                    res = this.sat.res_pr_by_pr;
+                else
+                    res = this.sat.res_ph_by_ph;
+                end
+            end
+            if type(2) == 'o'
+                name = 'Combined residuals sat. by sat.';
+                scale = 1e3; % mm
+                id_obs = 1 : size(res, 2);
+            elseif type(2) == 'r'
+                name = 'Uncombined pseudo-ranges residuals';
+                id_obs = this.obs_code(:,1) == 'C';
+                scale = 1e2; % cm
+            else
+                name = 'Uncombined carrier-phase residuals';
+                id_obs = this.obs_code(:,1) == 'L';
+                scale = 1e3; % mm
+            end
+            id_obs = find(id_obs);
+            if isempty(res)
+                log = Core.getLogger;
+                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
+            else
+                if type(2) == 'o'
+                    ss_ok = intersect(cc.sys_c, sys_c_list);
+                else
+                    ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);                    
+                end
+                for sys_c = ss_ok
+                    if type(2) == 'o'
+                        trk_ok = 'COM'; % combined tracking -> only this is existing
+                    else
+                        id_obs_sys = id_obs(this.system(id_obs) == sys_c);
+                        trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
+                    end
+                    for t = 1 : size(trk_ok, 1)
+                        if type(2) == 'o'
+                            cur_res_id = cc.system == sys_c;
+                            prn = cc.prn(cur_res_id);
+                        else
+                            cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
+                            [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));                            
+                        end
+                        
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s ResMap %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('Res_Map_%s_%s_%s_%s_%s', type, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+                                                                        
+                        data_found = false;
+
+                        res_tmp = res(:, cur_res_id);
+                        ax1 = axes;
+                        deg2rad = pi/180;
+                        % For each satellite
+                        
+                        %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
+                        zfilter = false;
+                        time = this.getTime();
+                        [year, doy] = time.getDOY();                        
+                        if zfilter
+                            % Zerniche filter
+                            l_max = 37;
+                            m_max = l_max;
+                            az_all = [];
+                            el_all = [];
+                            res_all = [];
+                            id_subset = []; offset = 0;
+                            for s = 1 : sum(cur_res_id)
+                                id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
+                                [~, tmp] = intersect(id_ok, find(mod(doy,2) == 0 | mod(doy,2) == 1));
+                                id_subset = [id_subset; tmp + offset];
+                                offset = offset + numel(id_ok);
+                                if any(id_ok)
+                                    data_found = true;
+                                    res_all = [res_all; res_tmp(id_ok, s)];
+                                    
+                                    go_id = cc.getIndex(sys_c, prn(s));
+                                    az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
+                                    el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
+                                end
+                            end
+                            if data_found
+                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el_all(id_subset), res_all(id_subset) * scale, 1e-8);
+                                %figure; scatter(m, -l, 150, z_par, 'filled');                                
+                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el_all, z_par);                                
+                                %[res_allf, z_par, l, m,  A] = Core_Utils.zFilter(l_max, m_max, az_all, el_all, res_all * scale);
+                                [std(res_all*scale) std(res_all*scale - res_allf)]
+                                res_all = res_all*scale - res_allf;
+                                [~, id_sort] = sort(abs(res_all));
+                                polarScatter(az_all(id_sort), pi/2 - el_all(id_sort), 80, res_all(id_sort), 'filled');                                
+                                %hold off; Core_Utils.showZerniche3StylePCV(l, m, z_par); drawnow; colormap((Cmap.get('PuOr', 2^11)));
+                                %subplot(ax1);                                
+                            end
+                        else                            
+                            for s = 1 : sum(cur_res_id)
+                                id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
+                                if any(id_ok)
+                                    data_found = true;
+                                    go_id = cc.getIndex(sys_c, prn(s));
+                                    [~, id_sort] = sort(abs(res_tmp(id_ok, s)));
+                                    polarScatter(this.sat.az(id_ok(id_sort), go_id).*deg2rad, (90 - this.sat.el(id_ok(id_sort), go_id)).*deg2rad, 80, scale * (res_tmp(id_ok(id_sort), s)), 'filled');
+                                    %polarScatter(this.sat.az(id_ok, go_id).*deg2rad, (90 - this.sat.el(id_ok, go_id)).*deg2rad, 80, scale * (res_tmp(id_ok, s)), 'filled');
+                                    hold on;
+                                end
+                            end
+                            caxis(perc(abs(serialize(scale * (res_tmp(id_ok, :)))), 0.997) .* [-1.1 1.1]);
+                        end
+                        
+                        if ~data_found
+                            close(f)
+                            log = Core.getLogger;
+                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
+                        else
+                            colorbar;
+                            cax = caxis(ax1);
+                            caxis(ax1, [-1 1] * max(abs(cax)));
+                            %colormap(Cmap.get('RdBu', 2^11));
+                            colormap((Cmap.get('PuOr', 2^11)));
+                            %if min(abs(cax)) > 5
+                            %    setColorMap('RdBu', caxis(), 0.90, [-5 5])
+                            %end
+                            cb = colorbar(ax1); cb.UserData = title(cb, iif(scale == 1e2, '[cm]', '[mm]')); ax1.Color = [0.9 0.9 0.9];
+                            h = ylabel(ax1, 'Elevation [deg]'); h.FontWeight = 'bold';
+                            grid(ax1, 'on');
+                            h = xlabel(ax1, 'Azimuth [deg]'); h.FontWeight = 'bold';
+                            if type(2) == 'o'
+                                h = title(ax1, sprintf('%s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
+                            else
+                                h = title(ax1, sprintf('%s %s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), trk_ok(t,:), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
+                            end
+                            
+                            Core_UI.beautifyFig(f, 'dark');
+                            Core_UI.addBeautifyMenu(f);
+                            f.Visible = 'on'; drawnow;
+                        end
+                    end
+                end
+            end
         end
         
         function fh_list = showResPerSat(this, sys_c_list, type, res)

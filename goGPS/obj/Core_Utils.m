@@ -732,14 +732,21 @@ classdef Core_Utils < handle
             Core_UI.beautifyFig(fh, 'dark');            
         end
         
-        function fh = showZerniche3StylePCV(l, m, z_par, el_min)
+        function fh = showZerniche3StylePCV(l, m, z_par, el_min, limits)
             % Show 3D plot of Zernike polynomials 
             %
+            % INPUT
+            %   l       zernike degree [n x 1]
+            %   m       zernike degree [n x 1]
+            %   z_par   zernike degree [n x 1]
+            %   el_min  cut-off angle  [rad]
+            %   limits  min max (saturation) of the z map
+            %
             % SINTAX
-            %   fh = showZerniche3(l, m, z_par)
+            %   fh = showZerniche3(l, m, z_par, <el_min>, <limits>)
             
             % [x, y] = pol2cart(theta, r_synt);
-            if nargin == 4
+            if nargin >= 4 && ~isempty(el_min)
                 r_max = 1 - (2 * el_min / pi);
                 [theta, r_prj] = meshgrid(linspace(0, 2*pi, 361), linspace(0, r_max, 101));
             else
@@ -754,7 +761,9 @@ classdef Core_Utils < handle
             fh = figure();
             title('Zerniche expansion')
             
-            z = min(5, max(z, -5));
+            if nargin == 5 && ~isempty(limits)
+                z = min(limits(2), max(z, limits(1)));
+            end
             polarplot3d(z, 'PlotType', 'surf', 'RadialRange',[0 90] / 180 * pi, ...
                     'AxisLocation', 0, 'InterpMethod', 'cubic', ...
                     'PlotType', 'surfn', 'tickspacing', 15, ...
@@ -768,6 +777,12 @@ classdef Core_Utils < handle
                 };
             ax = gca;
             set(ax, axprop{:});
+            
+            if nargin >= 5 && ~isempty(limits)
+                caxis(limits);
+                zlim(limits);
+            end
+
             
             %Core_UI.beautifyFig(fh, 'dark');
         end
