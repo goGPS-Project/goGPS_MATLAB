@@ -4503,23 +4503,31 @@ classdef Receiver_Work_Space < Receiver_Commons
             residual_std_iono = this.residual_std_iono;
         end
         
-        function [ph, wl, id_ph] = getPhases(this, sys_c, freq_c)
+        function [ph, wl, id_ph] = getPhases(this, sys_c, freq_c, trk_c)
             % get the phases observations in meter (not cycles)
-            % SYNTAX [ph, wl, id_ph] = this.getPhases(<sys_c>, <freq_c>)
-            % SEE ALSO: setPhases getPseudoRanges setPseudoRanges
+            %
+            % SYNTAX 
+            %   [ph, wl, id_ph] = this.getPhases(<sys_c>, <freq_c>, <trk_c>)
+            %
+            % SEE ALSO
+            %   setPhases getPseudoRanges setPseudoRanges
             
             if nargin > 2
-                id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
+                if nargin > 3
+                    id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c & this.obs_code(:, 3) == trk_c;
+                else
+                    id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
+                end
             else
                 id_ph = this.obs_code(:, 1) == 'L';
             end
             
-            if (nargin == 2) && ~isempty(sys_c)
+            if (nargin >= 2) && ~isempty(sys_c)
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
             if not(isempty(this.sat.outliers_ph_by_ph))
-                if (nargin == 2) && ~isempty(sys_c)
+                if (nargin >= 2) && ~isempty(sys_c)
                     ph(this.sat.outliers_ph_by_ph(:,(this.system(id_ph) == sys_c)')') = nan;
                 else
                     ph(this.sat.outliers_ph_by_ph') = nan;
@@ -4614,12 +4622,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [pr, id_pr] = getPseudoRanges(this, sys_c, freq_c)
-            % get the pseudo ranges observations in meter (not cycles)
-            % SYNTAX [pr, id_pr] = this.getPseudoRanges(<sys_c>, <freq_c>)
-            % SEE ALSO: getPhases setPhases setPseudoRanges
+        function [pr, id_pr] = getPseudoRanges(this, sys_c, freq_c, trk_c)
+            % Get the pseudo ranges observations in meter (not cycles)
+            %
+            % SYNTAX 
+            %   [pr, id_pr] = this.getPseudoRanges(<sys_c>, <freq_c>, <trk_c>)
+            %
+            % SEE ALSO
+            %   getPhases setPhases setPseudoRanges
             if nargin > 2
-                id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c;
+                if nargin > 3
+                    id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c & this.obs_code(:, 3) == trk_c;
+                else
+                    id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c;
+                end
             else
                 id_pr = this.obs_code(:, 1) == 'C';
             end
@@ -5366,17 +5382,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs, idx, snr, cs] = getObs(this, flag, sys_c, prn)
+        function [obs, obs_id, snr, cs] = getObs(this, flag, sys_c, prn)
             % get observation and index corresponfing to the flag
-            % SYNTAX this.findObservableByFlag(flag, <system>)
+            % 
+            % SYNTAX
+            %   [obs, obs_id, snr, cs] = this.findObservableByFlag(flag, <system>, <prn>)
             if nargin > 3
-                idx = this.findObservableByFlag(flag, sys_c, prn);
+                obs_id = this.findObservableByFlag(flag, sys_c, prn);
             elseif nargin > 2
-                idx = this.findObservableByFlag(flag, sys_c);
+                obs_id = this.findObservableByFlag(flag, sys_c);
             else
-                idx = this.findObservableByFlag(flag);
+                obs_id = this.findObservableByFlag(flag);
             end
-            obs = zero2nan(this.obs(idx,:));
+            obs = zero2nan(this.obs(obs_id,:));
             if nargout > 2
                 if nargin > 3
                     idx_snr = this.findObservableByFlag(['S' flag(2:end)], sys_c, prn);
@@ -5385,19 +5403,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 else
                     idx_snr = this.findObservableByFlag(['S' flag(2:end)]);
                 end
-                go_id_obs = this.go_id(idx);
+                go_id_obs = this.go_id(obs_id);
                 go_id_snr = this.go_id(idx_snr);
                 snr_uns = this.obs(idx_snr,:);
                 [~,io,is] = intersect(go_id_obs,go_id_snr);
                 snr = nan(size(obs));
-                snr(io,:) = snr_uns(is,:);
-                
+                snr(io,:) = snr_uns(is,:);                
             end
             if nargout > 3
                 if flag(1) == 'L'
                     [~,~,idx_ph] = this.getPhases();
                     idx_ph = find(idx_ph);
-                    [~,idx_o,idx_cs] = intersect(idx,idx_ph);
+                    [~,idx_o,idx_cs] = intersect(obs_id,idx_ph);
                     cs = this.sat.cycle_slip_ph_by_ph(:,idx_cs)';
                 else
                     cs = [];
@@ -6068,7 +6085,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function synt_ph = getSyntPhases(this, arg2)
+        function synt_ph = getSyntPhases(this, arg2, freq_c)
             % get current value of syntetic phase, in case not present update it
             %
             % SYNTAX
@@ -6080,8 +6097,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             synt_ph = this.synt_ph;
             synt_ph(this.sat.outliers_ph_by_ph) = nan;
-            if nargin == 2
-                id_ph = this.obs_code(:, 1) == 'L';
+            if nargin >= 2
+                if nargin >= 3
+                    id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
+                else
+                    id_ph = this.obs_code(:, 1) == 'L';
+                end
                 if ischar(arg2)
                     synt_ph = synt_ph(:, this.system(id_ph) == arg2');
                 else
@@ -6256,8 +6277,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function setPhases(this, ph, wl, id_ph)
             % set the phases observations in meter (not cycles)
-            % SYNTAX setPhases(this, ph, wl, id_ph)
-            % SEE ALSO: getPhases getPseudoRanges setPseudoRanges
+            %
+            % SYNTAX 
+            %   setPhases(this, ph, wl, id_ph)
+            %
+            % SEE ALSO
+            %   getPhases getPseudoRanges setPseudoRanges
             
             ph = bsxfun(@rdivide, zero2nan(ph'), wl);
             this.obs(id_ph, :) = nan2zero(ph);
@@ -6338,9 +6363,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function setPseudoRanges(this, pr, id_pr)
             % set the pseudo ranges observations in meter (not cycles)
+            %
             % SYNTAX:
-            %      [pr, id_pr] = this.setPseudoRanges(<sys_c>)
-            % SEE ALSO: getPhases setPhases getPseudoRanges
+            %   this.setPseudoRanges(pr, id_pr)
+            %
+            % SEE ALSO
+            %   getPhases setPhases getPseudoRanges
             this.obs(id_pr, :) = nan2zero(pr');
         end
         
@@ -8105,7 +8133,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         %--------------------------------------------------------
         % Shapiro Delay
-        % -------------------------------------------------------
+        %--------------------------------------------------------
         
         function shDelay(this,sgn)
             %  add or subtract shapiro delay from observations
@@ -8200,7 +8228,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         %--------------------------------------------------------
         % PCV
-        % -------------------------------------------------------
+        %--------------------------------------------------------
         
         function applyremPCV(this, sgn)
             % correct measurement for PCV both of receiver
@@ -8366,6 +8394,76 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         %--------------------------------------------------------
+        % MULTIPATH
+        %--------------------------------------------------------
+        
+        function applyZernikeMultiPath(this, zmp)
+            % Plot the residuals of phase per Satellite
+            %
+            % INPUT
+            %   type    can be:
+            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
+            %            'pr'   -> Uncombined pseudo-ranges residuals
+            %            'ph'   -> Uncombined carrier-phase residuals
+            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+            %
+            % SYNTAX
+            %   this.showResMap(sys_c_list, type, res)
+            
+            cc = Core.getState.getConstellationCollector;
+            
+            % Get the satellite systems available in the zerniche multipath struct
+            sys_c_list = cell2mat(fields(zmp)');
+            
+            log = Core.getLogger;
+            
+            if isempty(this.obs)
+                log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
+            else
+                log.addMarkedMessage(sprintf('Applying multipath mitigation on "%s"', this.parent.getMarkerName));
+                for sys_c = sys_c_list
+                    trk_list = fields(zmp.(sys_c));
+                    
+                    for t = 1 : numel(trk_list)
+                        log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                        if trk_list{t}(1) == 'L'
+                            %[obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2), trk_list{t}(3));
+                            [obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2));
+                        elseif  trk_list{t}(1) == 'C'
+                            %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
+                            [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
+                        end
+                        % DEBUG obs_tmp = obs;                        
+                        go_id = this.go_id(id_obs);
+
+                        % DEBUG obs = obs_tmp;                        
+                        % DEBUG figure;
+                        l = zmp.(sys_c).(trk_list{t}).l;
+                        m = zmp.(sys_c).(trk_list{t}).m;
+                        z_par = zmp.(sys_c).(trk_list{t}).z_par;
+                        for s = 1 : numel(go_id)
+                            el = this.sat.el(:,go_id(s)) / 180 * pi;
+                            id_ko = el < 0 | isnan(obs(:,s));
+                            el(id_ko) = [];
+                            az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
+                            
+                            mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par);
+                            % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr, 'filled'); hold on;
+                            obs(~id_ko, s) = obs(~id_ko, s) - mp_corr;
+                        end
+                        % DEBUG colormap((Cmap.get('PuOr', 2^11))); colorbar;
+                        
+                        if trk_list{t}(1) == 'L'
+                            this.setPhases(obs, wl, id_obs);
+                        elseif  trk_list{t}(1) == 'C'
+                            this.setPseudoRanges(obs, id_obs);
+                        end
+                    end
+                end
+            end
+        end
+        
+        %--------------------------------------------------------
         % All
         %--------------------------------------------------------
         
@@ -8417,7 +8515,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         
         
-        function [zmap_err, pr_ko] = getZernicheCodeWeights(this, l_max, m_max, std_thr_offset, flag_debug)
+        function [zmap_err, pr_ko] = getZernikeCodeWeights(this, l_max, m_max, std_thr_offset, flag_debug)
             % This function try to estimate the map of noise level of the code observations,
             % it works best on multi-tracking receivers.
             % The procedure is the following
@@ -8439,10 +8537,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   pr_ok       struct with fields -> one field per constellation (G, R, E, J, C, I)
             %
             % EXAMPLE
-            %   [zmap_err, pr_ko] = this.getZernicheCodeWeights();
+            %   [zmap_err, pr_ko] = this.getZernikeCodeWeights();
             %
             % SYNTAX
-            %   [zmap_err, pr_ko] = getZernicheCodeWeights(this, <l_max = 11>, <m_max = 11>, <std_thr_offset = 0.5>, <flag_debug = false>)
+            %   [zmap_err, pr_ko] = getZernikeCodeWeights(this, <l_max = 11>, <m_max = 11>, <std_thr_offset = 0.5>, <flag_debug = false>)
                         
             if nargin < 2 || isempty(l_max)
                 l_max = 11;

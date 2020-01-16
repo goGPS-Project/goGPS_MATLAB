@@ -441,6 +441,12 @@ classdef Core_Utils < handle
         function [z, l, m] = getAllZernike(l_max, m_max, az, el)
             % Generate all the Zernike parameters combinations
             %
+            % INPUT 
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %
             % SINTAX
             %   [z, l, m] = getAllZernike(l_max, az, el)
             %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
@@ -489,6 +495,12 @@ classdef Core_Utils < handle
          function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
             % Generate all the Zernike parameters combinations
             %
+            % INPUT 
+            %   l       list of degrees
+            %   m       list of orders
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %
             % SINTAX
             %   [z, l, m] = getAllZernike(l_max, az, el)
             %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
@@ -513,16 +525,22 @@ classdef Core_Utils < handle
             m(abs(m) > m_max) = [];
             
             z = Core_Utils.getZernikeNorm(l, m, az, el);
-         end
+        end
         
-         function z = getZernikeNorm(l, m, az, el)
+        function z = getZernikeNorm(l, m, az, el)
             % Get Zernike values for the polynomials
+            %
+            % INPUT 
+            %   l       list of degrees
+            %   m       list of orders
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
             %
             % SINTAX
             %   z = getZernike(l, m, az, el)
             
             %
-            r = 1 - (2 * el(:) / pi);            
+            r = 1 - (2 * el(:) / pi);
             %r = cos(el(:));
             theta = az(:);
             
@@ -531,9 +549,15 @@ classdef Core_Utils < handle
             
             z = zernfun(l, m, r, theta,'norm');
         end
-            
+        
         function z = getZernike(l, m, az, el)
             % Get Zernike values for the polynomials
+            %
+            % INPUT 
+            %   l       list of degrees
+            %   m       list of orders
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
             %
             % SINTAX
             %   z = getZernike(l, m, az, el)
@@ -606,6 +630,13 @@ classdef Core_Utils < handle
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %   z_par   Zernike coefficients
+            %
             % SINTAX
             %   [z_interp] = zSinthesysAll(l_max, m_max, az, el, z_par)
             z_interp = nan(size(az));
@@ -619,6 +650,13 @@ classdef Core_Utils < handle
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
+            % INPUT 
+            %   l       list of degrees
+            %   m       list of orders
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %   z_par   Zernike coefficients
+            %
             % SINTAX
             %   [z_interp] = zSinthesys(l, m, az, el, data)
             z_interp = nan(size(az));
@@ -630,6 +668,14 @@ classdef Core_Utils < handle
         
         function [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
+            %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %   data    list of data to be analized
+            %   max_reg maximum regularization
             %
             % SINTAX
             %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
@@ -677,6 +723,14 @@ classdef Core_Utils < handle
         function [z_par, l, m, A] = zAnalisys(l, m, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
             %
+            % INPUT 
+            %   l       list of degrees
+            %   m       list of orders
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %   data    list of data to be analized
+            %   max_reg maximum regularization
+            %
             % SINTAX
             %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
@@ -692,6 +746,14 @@ classdef Core_Utils < handle
                 
         function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, el, data, max_reg)
             % Get Zernike polynomials parameters 
+            %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   el      list of elevation angles [rad]
+            %   data    list of data to be analized
+            %   max_reg maximum regularization
             %
             % SINTAX
             %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
@@ -713,11 +775,11 @@ classdef Core_Utils < handle
             flag_is_hold = ~isempty(findobj('Type', 'figure')) && ishold;
         end
         
-        function fh = showZerniche(l, m, z_par, el_min)
+        function fh = showZernike(l, m, z_par, el_min)
             % Show 3D plot of Zernike polynomials 
             %
             % SINTAX
-            %   fh = showZerniche(l, m, z_par)
+            %   fh = showZernike(l, m, z_par)
             
             if ~Core_Utils.isHold()
                 fh = figure();
@@ -786,11 +848,11 @@ classdef Core_Utils < handle
             fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');            
         end
         
-        function fh = showZerniche3(l, m, z_par, el_min)
+        function fh = showZernike3(l, m, z_par, el_min)
             % Show 3D plot of Zernike polynomials 
             %
             % SINTAX
-            %   fh = showZerniche3(l, m, z_par)
+            %   fh = showZernike3(l, m, z_par)
             
             % [x, y] = pol2cart(theta, r_synt);
             if nargin == 4
@@ -808,7 +870,7 @@ classdef Core_Utils < handle
             
             
             fh = figure();
-            title('Zerniche expansion')
+            title('Zernike expansion')
             %polarplot3d(z, 'PlotType','surfn');
             polarplot3d(z,'PlotType','surfn','PolarGrid',{4 24}, 'PolarDirection', 'cw', 'TickSpacing',5,...
                    'RadLabels',4, 'RadLabelLocation',{180 'max'}, 'RadLabelColor','black', 'AxisLocation', 'mean');
@@ -824,7 +886,7 @@ classdef Core_Utils < handle
             Core_UI.beautifyFig(fh, 'dark');            
         end
         
-        function fh = showZerniche3StylePCV(l, m, z_par, el_min, limits)
+        function fh = showZernike3StylePCV(l, m, z_par, el_min, limits)
             % Show 3D plot of Zernike polynomials 
             %
             % INPUT
@@ -835,7 +897,7 @@ classdef Core_Utils < handle
             %   limits  min max (saturation) of the z map
             %
             % SINTAX
-            %   fh = showZerniche3(l, m, z_par, <el_min>, <limits>)
+            %   fh = showZernike3(l, m, z_par, <el_min>, <limits>)
             
             % [x, y] = pol2cart(theta, r_synt);
             if nargin >= 4 && ~isempty(el_min)
@@ -851,7 +913,7 @@ classdef Core_Utils < handle
             z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
             
             fh = figure();
-            title('Zerniche expansion')
+            title('Zernike expansion')
             
             if nargin == 5 && ~isempty(limits)
                 z = min(limits(2), max(z, limits(1)));
@@ -885,7 +947,7 @@ classdef Core_Utils < handle
             % SYNTAX
             %   fh = polarZerMap(l_max, m_max, az, el, data)
             [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data, 1);
-            fh = Core_Utils.showZerniche(l, m, z_par);
+            fh = Core_Utils.showZernike(l, m, z_par);
         end
         
         function fh = polarZerMapDual(l_max, m_max, az, el, data)

@@ -56,6 +56,7 @@ classdef GNSS_Station < handle
         ant_type       % antenna type
         ant_delta_h    % antenna height from the ground [m]
         ant_delta_en   % antenna east/north offset from the ground [m]
+        zmp            % zerniche multipath coefficients
 
         static         % static or dynamic receiver 1: static 0: dynamic
 
@@ -472,6 +473,61 @@ classdef GNSS_Station < handle
                             dockAllFigures;
                         end
                     end
+                end
+            end
+        end
+    end
+    
+    %% METHODS ADVANCED
+    % ==================================================================================================================================================
+    methods
+        function updateZernikeMultiPath(sta_list)
+            sta_list = sta_list(~sta_list.isEmptyWork_mr);
+            log = Core.getLogger();
+            for rec = sta_list(:)'
+                log.addMarkedMessage(sprintf('Updating Zerniche multipath corrections for "%s"', rec.getMarkerName4Ch));
+                zmp = rec.work.computeZernikeMultiPath('ph');
+                flag_update = false;
+                if isempty(rec.zmp)
+                    % Zerniche multipath is not in the receiver
+                    rec.zmp = zmp;
+                    flag_update = true;
+                else
+                    % Zerniche multipath is not aalready in the receiver
+                    zmp_bk = rec.zmp;
+                    try
+                        % Get the satellite systems available in the zerniche multipath struct
+                        sys_c_list = cell2mat(fields(zmp)');
+                        for sys_c = sys_c_list
+                            trk_list = fields(zmp.(sys_c))';
+                            if ~isfield(rec.zmp, sys_c)
+                                % This constellation is not present into the old Zernike MultiPath set of coefficients
+                                rec.zmp.(sys_c) = zmp.(sys_c);
+                            else
+                                for trk = trk_list
+                                    if ~isfield(rec.zmp.(sys_c), trk{1})
+                                        % This traking frequency is not present into the old Zernike MultiPath set of coefficients
+                                        rec.zmp.(sysy_c).(trk{1}) = zmp.(sysy_c).(trk{1});
+                                    else
+                                        rec.zmp.(sys_c).(trk{1}).z_par = rec.zmp.(sys_c).(trk{1}).z_par + zmp.(sys_c).(trk{1}).z_par;
+                                    end
+                                end
+                            end
+                        end
+                        flag_update = true;
+                    catch ex
+                        Core_Utils.printEx(ex);
+                        log.addError(sprintf('The new Zerniche multipath coefficients for "%s" are not compatible with the previous one', rec.getMarkerName4Ch));
+                        % if any arror arises this set is not compatible with the previous one
+                        % e.g. it could have different maximum degree, or different frequencies
+                        rec.zmp = zmp_bk;
+                    end
+                end
+                if flag_update
+                    % If I add the zerniche polynomials to the receiver
+                    % I also correct the observations with the new set
+                    rec.work.applyZernikeMultiPath(zmp);
+                    log.addStatusOk(sprintf('Update completed for "%s"', rec.getMarkerName4Ch));
                 end
             end
         end
@@ -4559,7 +4615,7 @@ classdef GNSS_Station < handle
         
         function fh_list = showSNR_z(sta_list, sys_list, l_max)
             % Show SNR for each receiver workspace
-            % (polar plot Zerniche interpolated)
+            % (polar plot Zernike interpolated)
             %
             % SYNTAX
             %   this.showSNR_p(sys_list)

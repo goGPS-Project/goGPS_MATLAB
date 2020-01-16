@@ -1550,21 +1550,20 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     linkaxes([ ax_all,ax_sat(id_ok)]);
                     drawnow
                 end
-            end
-            
+            end            
         end        
-                
-        function zmp = getZernikeMultiPath(this, type, l_max, flag_mask_reg)
+                        
+        function zmp = computeZernikeMultiPath(this, type, l_max, flag_mask_reg)
             % Get Zernike multi pth coefficients
             %
             % INPUT
             %   type    can be:
             %            'pr'   -> Uncombined pseudo-ranges residuals
             %            'ph'   -> Uncombined carrier-phase residuals
-            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+            %   l_max   maximum degree for of the Zernike polynomials
             %
             % SYNTAX
-            %   this.showResMap(sys_c_list, type, res)
+            %   this.computeZernikeMultiPath(type, l_max, flag_mask_reg)
             
             if nargin < 3 || isempty(l_max)
                 l_max = 37;
@@ -1609,18 +1608,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 % for each satellite system
                 for sys_c = ss_ok
                     id_obs_sys = id_obs(this.system(id_obs) == sys_c);
-                    trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
+                    trk_ok = Core_Utils.unique2ch(this.obs_code(id_obs_sys,1:2));
                     % for each tracking
                     for t = 1 : size(trk_ok, 1)
-                        cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
+                        cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2));
                         [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));
                                                                                                 
                         data_found = false;
 
-                        cur_res = res(:, cur_res_id);                                                
+                        cur_res = res(:, cur_res_id);
                         %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
                         
-                        % Zerniche filter
+                        % Zernike filter
                         m_max = l_max;
                         
                         az_all = [];
@@ -1642,22 +1641,25 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             reortho = false;
                             [lon, lat] = this.getGeodCoord();
                             if ~reortho
-                            if flag_mask_reg
-                                
-                                for i = 2 : 5 : (90 - cc.getSys(sys_c).ORBITAL_INC)
-                                    [mask_north, mask_sud] = cc.getSys(sys_c).getPolarMask(lat/180*pi, lon/180*pi, i);
-                                    az_all = [az_all; mask_north(:,1)];
-                                    el_all = [el_all; mask_north(:,2)];
-                                    res_all = [res_all; zeros(size(mask_north(:,1)))];
+                                if flag_mask_reg
+                                    % Regularize solution adding zero observations outside the mask of observations:
+                                    for i = 2 : 5 : (90 - cc.getSys(sys_c).ORBITAL_INC)
+                                        [mask_north, mask_south] = cc.getSys(sys_c).getPolarMask(lat/180*pi, lon/180*pi, i);
+                                        az_all = [az_all; mask_north(:,1)];
+                                        el_all = [el_all; mask_north(:,2)];
+                                        res_all = [res_all; zeros(size(mask_north(:,1)))];
+                                        az_all = [az_all; mask_south(:,1)];
+                                        el_all = [el_all; mask_south(:,2)];
+                                        res_all = [res_all; zeros(size(mask_south(:,1)))];
+                                    end
+                                    for i = 0 : 1 : (Core.getState.getCutOff - 2)
+                                        az_all = [az_all; (-pi : 0.001 : pi)'];
+                                        el_all = [el_all; i/180*pi + (-pi : 0.001 : pi)'*0];
+                                        res_all = [res_all; (-pi : 0.001 : pi)'*0];
+                                    end
                                 end
-                                for i = 0 : 1 : (Core.getState.getCutOff - 2)
-                                    az_all = [az_all; (-pi : 0.001 : pi)'];
-                                    el_all = [el_all; i/180*pi + (-pi : 0.001 : pi)'*0];
-                                    res_all = [res_all; (-pi : 0.001 : pi)'*0];
-                                end
-                            end
-                            log.addMessage(log.indent(sprintf(' - Zernike expansion of %s%s residuals', sys_c, trk_ok(t,:))));
-                            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, el_all, res_all, 1e-5);
+                                log.addMessage(log.indent(sprintf(' - Zernike expansion of %s%s residuals', sys_c, trk_ok(t,:))));
+                                [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, el_all, res_all, 1e-5);
                             else
                                 S = Core_Utils.reorthZernikeMask(lat/180*pi, lon/180*pi,state.getCutOff/180*pi);
                                 [z_par, l, m] = Core_Utils.zroAnalisysAll(l_max, m_max, az_all, el_all, res_all, S);
@@ -1671,9 +1673,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             zmp.(sys_c).(trk_ok(t,:)).z_par = z_par;
                             zmp.(sys_c).(trk_ok(t,:)).l = l;
                             zmp.(sys_c).(trk_ok(t,:)).m = m;
-                            %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, Core.getState.getCutOff / 180 * pi, perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
-                            %Core_Utils.showZerniche(l, m, z_par * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
-                            %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, [], perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11))); view(-90, 90); fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                            % DEBUG Core_Utils.showZernike(l, m, z_par * 1e3); colorbar; colormap((Cmap.get('PuOr', 2^11))); fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
+                            % DEBUG title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:))));
                         end
                         if ~data_found
                             log = Core.getLogger;
@@ -1772,7 +1773,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time = this.getTime();
                         [year, doy] = time.getDOY();                        
                         if zfilter
-                            % Zerniche filter
+                            % Zernike filter
                             l_max = 37;
                             m_max = l_max;
                             az_all = [];
@@ -1802,7 +1803,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 res_all = res_all*scale - res_allf;
                                 [~, id_sort] = sort(abs(res_all));
                                 polarScatter(az_all(id_sort), pi/2 - el_all(id_sort), 80, res_all(id_sort), 'filled');                                
-                                %hold off; Core_Utils.showZerniche3StylePCV(l, m, z_par); drawnow; colormap((Cmap.get('PuOr', 2^11)));
+                                %hold off; Core_Utils.showZernike3StylePCV(l, m, z_par); drawnow; colormap((Cmap.get('PuOr', 2^11)));
                                 %subplot(ax1);                                
                             end
                         else                            
