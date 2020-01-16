@@ -1553,7 +1553,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
             
         end        
-        
+                
         function zmp = getZernikeMultiPath(this, type, l_max, flag_mask_reg)
             % Get Zernike multi pth coefficients
             %
@@ -1599,7 +1599,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             id_obs = find(id_obs);
             
             log = Core.getLogger;
-            log.addMarkedMessage(sprintf('Computing Multipath mitigation coefficients for "%s"', this.parent.getMarkerName));
+            log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', this.parent.getMarkerName));
             zmp = struct();
             if isempty(res)
                 log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
@@ -1610,7 +1610,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     id_obs_sys = id_obs(this.system(id_obs) == sys_c);
                     trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
                     % for each tracking
-                    for t = 1 %: size(trk_ok, 1)
+                    for t = 1 : size(trk_ok, 1)
                         cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
                         [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));
                                                                                                 
@@ -1637,7 +1637,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                         end
                         if data_found
-                            %%
                             if flag_mask_reg
                                 [lon, lat] = this.getGeodCoord();
                                 for i = 2 : 5 : (90 - cc.getSys(sys_c).ORBITAL_INC)
@@ -1662,11 +1661,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                             zmp.(sys_c).(trk_ok(t,:)).z_par = z_par;
                             zmp.(sys_c).(trk_ok(t,:)).l = l;
-                            zmp.(sys_c).(trk_ok(t,:)).m = l;
+                            zmp.(sys_c).(trk_ok(t,:)).m = m;
                             %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, Core.getState.getCutOff / 180 * pi, perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
-                            Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, [], perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
-                            view(-90, 90)
-                            fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+                            %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, [], perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11))); view(-90, 90); fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                         end
                         if ~data_found
                             log = Core.getLogger;
@@ -1688,7 +1685,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
             %
             % SYNTAX
-            %   this.showResMap(sys_c_list, type, res)
+            %   this.showResScatter(sys_c_list, type, res)
             
             fh_list = [];
             cc = Core.getState.getConstellationCollector;
@@ -1696,7 +1693,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 sys_c_list = cc.getAvailableSys;
             end
             if nargin < 3 || isempty(type)
-                type = 'co';
+                type = 'ph';
             end
             
             if nargin < 4 || isempty(res)                
