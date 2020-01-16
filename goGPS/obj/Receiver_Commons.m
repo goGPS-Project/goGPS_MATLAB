@@ -1577,6 +1577,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             deg2rad = pi/180;
             
             cc = Core.getState.getConstellationCollector;
+            state = Core.getCurrentSettings;
             sys_c_list = cc.getAvailableSys;
             if nargin < 2 || isempty(type)
                 type = 'ph';
@@ -1637,8 +1638,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                         end
                         if data_found
+                            %%
+                            reortho = false;
+                            [lon, lat] = this.getGeodCoord();
+                            if ~reortho
                             if flag_mask_reg
-                                [lon, lat] = this.getGeodCoord();
+                                
                                 for i = 2 : 5 : (90 - cc.getSys(sys_c).ORBITAL_INC)
                                     [mask_north, mask_sud] = cc.getSys(sys_c).getPolarMask(lat/180*pi, lon/180*pi, i);
                                     az_all = [az_all; mask_north(:,1)];
@@ -1653,6 +1658,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                             log.addMessage(log.indent(sprintf(' - Zernike expansion of %s%s residuals', sys_c, trk_ok(t,:))));
                             [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, el_all, res_all, 1e-5);
+                            else
+                                S = Core_Utils.reorthZernikeMask(lat/180*pi, lon/180*pi,state.getCutOff/180*pi);
+                                [z_par, l, m] = Core_Utils.zroAnalisysAll(l_max, m_max, az_all, el_all, res_all, S);
+                            end
                             if ~isfield(zmp, sys_c)
                                 zmp.(sys_c) = struct;
                             end
@@ -1663,6 +1672,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             zmp.(sys_c).(trk_ok(t,:)).l = l;
                             zmp.(sys_c).(trk_ok(t,:)).m = m;
                             %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, Core.getState.getCutOff / 180 * pi, perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));
+                            %Core_Utils.showZerniche(l, m, z_par * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11)));fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                             %Core_Utils.showZerniche3StylePCV(l, m, z_par * 1e3, [], perc(abs(res_all),0.97) .* [-1 1] * 1e3); drawnow; colormap((Cmap.get('PuOr', 2^11))); view(-90, 90); fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                         end
                         if ~data_found

@@ -467,6 +467,25 @@ classdef Core_Utils < handle
             z = Core_Utils.getZernike(l, m, az, el);
         end
         
+        function [n] = getAllNormCoeffZernike(l_max, m_max)
+            % Generate all the Zernike normalization coefficient 
+            %
+            % SINTAX
+            %   [n] = getAllNormCoeffZernike(l_max, m_max)
+            n_par = l_max * (l_max + 3) / 2 + 1;
+            l = zeros(n_par, 1);
+            m = zeros(n_par, 1);
+            i = 0;
+            for degree = 0 : l_max
+                i = i(end) + (1 : degree + 1);
+                l(i) = degree;
+                m(i) = -degree : 2 : degree;
+            end
+            l(abs(m) > m_max) = [];
+            m(abs(m) > m_max) = [];
+            n = sqrt((1+(m~=0)).*(l+1)/pi);
+        end
+        
          function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
             % Generate all the Zernike parameters combinations
             %
@@ -530,6 +549,59 @@ classdef Core_Utils < handle
             z = zernfun(l, m, r, theta);
         end
         
+        
+        function [S] = reorthZernikeMask(lat,lon,el_thrsh,n_sample)
+            % get an orthogonal basis of zernike function that maximize the
+            % power in the area of interest
+            %
+            % SYNTAX:
+            % [S] = Core_Utils.reorthZernikeMask(lat,lon,el_thrsh)
+            if nargin < 4
+            n_sample = 500000;
+            end
+            xy = (rand(n_sample*2,2)-0.5)*2;
+            len= sqrt(xy(:,1).^2 + xy(:,2).^2);
+            xy(len > 1,:) = [];
+            len(len > 1) = [];
+            r = len;
+            theta = atan2(xy(:,2),xy(:,1));
+            el = pi/2 - r*pi/2;
+            cc = Constellation_Collector();
+            xy(el < (el_thrsh-(2/180*pi)),:) = []; %remove under treshold
+            [mask_north, mask_sud] = cc.getGPS.getPolarMask(lat,lon,5);
+            
+            xy_mask_north = [sin(mask_north(:,1)).*(1 - mask_north(:,2)/(pi/2)) cos(mask_north(:,1)).*(1 - mask_north(:,2)/(pi/2)) ];
+            xy_mask_north = [xy_mask_north; xy_mask_north(1,:)];
+            idx_inside = true(size(xy,1),1);
+            for i = 1 : (size(xy_mask_north,1)-1)
+                idx_inside = idx_inside & ((xy_mask_north(i+1,1) - xy_mask_north(i,1)) * (xy(:,2) - xy_mask_north(i,2)) - (xy_mask_north(i+1,2) - xy_mask_north(i,2)) * (xy(:,1) - xy_mask_north(i,1))) > 0;
+            end
+            xy(idx_inside,:) = [];
+            
+            len= sqrt(xy(:,1).^2 + xy(:,2).^2);
+            r = len;
+            theta = atan2(xy(:,2),xy(:,1));
+            el = pi/2 - r*pi/2;
+            
+            [z1] = Core_Utils.getAllZernike(37, 37, theta, el);
+            %z1 = [zernfun(1,1,r,theta,'norm')      zernfun(1,-1,r,theta,'norm') zernfun(5,5,r,theta,'norm')];%           2/sqrt(pi)
+            %z1 = [r .* sin(theta)      r .* cos(theta)];
+            %       1   -1    r * sin(theta)                 2/sqrt(pi)
+            
+            N = z1'*z1;
+            [U,D,V] = svd(N);
+            d = diag(D);
+            % get the flexum
+            exclude_fisrt = round(length(d)/5);
+            [power_smooth] = splinerMat(exclude_fisrt:length(d),d(exclude_fisrt:end),20);
+            [~,flex] = max(Core_Utils.diffAndPred(power_smooth,3));
+            
+            stop = exclude_fisrt + flex;
+            
+            
+            S = U(:,1:stop);
+        end
+        
         function [z_interp, l, m] = zSinthesysAll(l_max, m_max, az, el, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
@@ -569,7 +641,7 @@ classdef Core_Utils < handle
             else
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
-            z_par = (A'*A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
+            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ A' * data(id_ok);
             
             %N = (A'*A);
             %[U, s, V] = svd(N);
@@ -582,6 +654,24 @@ classdef Core_Utils < handle
             %s = 1./s(:);
             %X = (V.*s.')*U';
             %z_par = X * (A' * data(id_ok));            
+        end
+        
+         
+        function [z_par, l, m, A] = zroAnalisysAll(l_max, m_max, az, el, data, S)
+            % Get Zernike polynomials parameters form reothonormalize
+            % function
+            %
+            % SINTAX
+            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, S)
+            
+            id_ok = ~isnan(data(:));
+            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), el(id_ok));
+            N = A'*A;
+            B = A'*data;
+            N = S'*N*S;
+            B = S'*B;
+            z_par = N\B;
+            z_par = S*z_par;
         end
         
         function [z_par, l, m, A] = zAnalisys(l, m, az, el, data, max_reg)
@@ -714,6 +804,8 @@ classdef Core_Utils < handle
     
             z = nan(size(theta));
             z(:) = zernfun(l, m, r_zern(:), theta(:)) * z_par;
+            %z = r_zern.*cos(theta);
+            
             
             fh = figure();
             title('Zerniche expansion')
