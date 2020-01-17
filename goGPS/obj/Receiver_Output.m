@@ -700,7 +700,7 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = [this.tgn; gn(~idx_smt2)];
                                 this.tge     = [this.tge; ge(~idx_smt2)];
                             end
-                            if this.state.flag_out_res
+                            if this.state.flag_out_res_co
                                 res_in = rec_work.getResidual();
                                 this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
                             end
