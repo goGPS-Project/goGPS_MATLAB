@@ -208,7 +208,7 @@ classdef Baseline < handle
                 if (t(end) > t(1))
                     xlim([t(1) t(end)]);
                 end
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                setTimeTicks(4,'dd/mm/yyyy HH:MM');
                 if plot_relative_variation
                     h = ylabel('East [mm]'); h.FontWeight = 'bold';
                 else
@@ -223,7 +223,7 @@ classdef Baseline < handle
                 if (t(end) > t(1))
                     xlim([t(1) t(end)]);
                 end
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                setTimeTicks(4,'dd/mm/yyyy HH:MM');
                 if plot_relative_variation
                     h = ylabel('North [mm]'); h.FontWeight = 'bold';
                 else
@@ -237,7 +237,7 @@ classdef Baseline < handle
                 if (t(end) > t(1))
                     xlim([t(1) t(end)]);
                 end
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                setTimeTicks(4,'dd/mm/yyyy HH:MM');
                 if plot_relative_variation
                     h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                 else

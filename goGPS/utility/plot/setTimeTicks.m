@@ -4,7 +4,7 @@ function setTimeTicks(num,format,ax)
 %   setTimeTicks(ax, num,format);
 %
 % EXAMPLE:
-%   setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+%   setTimeTicks(4,'dd/mm/yyyy HH:MM');
 %
 % INPUT:
 %   num      = number of tick to be shown

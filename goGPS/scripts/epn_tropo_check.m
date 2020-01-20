@@ -42,12 +42,12 @@ for r = 1 : max(size(rec))
         plot(t1,res.TGNTOT/1000)
         title(['TGN ' sta_code]);
         hold on; plot(t2,tgn,'.')
-         setTimeTicks(6,'dd/mm/yyyy HH:MMPM')
+         setTimeTicks(6,'dd/mm/yyyy HH:MM')
         figure
         plot(t1,res.TGETOT/1000)
         title(['TGE ' sta_code]);
         hold on; plot(t2,tge,'.')
-         setTimeTicks(6,'dd/mm/yyyy HH:MMPM')
+         setTimeTicks(6,'dd/mm/yyyy HH:MM')
 %         figure
 %         plot(ztd_diff(sta_id == r));
 %         title(['ZTD diff' sta_code]);
