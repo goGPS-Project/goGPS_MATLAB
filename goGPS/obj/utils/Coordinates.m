@@ -445,11 +445,15 @@ classdef Coordinates < Exportable & handle
                         
                         if ~one_plot, subplot(3,1,1); end
                         plot(t, (1e2 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        title(sprintf('ENU Coordinate\nstd = %.2f mm, %.2f mm, %.2fmm\\fontsize{5} \n', ...
+                            std( 1e3 * (enu(:,1) - enu0(1)) ,'omitnan'), ...
+                            std( 1e3 * (enu(:,2) - enu0(2)) ,'omitnan'), ...
+                            std( 1e3 * (enu(:,3) - enu0(3)) ,'omitnan')))
                         ax(3) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,2); end
@@ -458,7 +462,7 @@ classdef Coordinates < Exportable & handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('North [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
@@ -467,7 +471,7 @@ classdef Coordinates < Exportable & handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('Up [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
@@ -529,19 +533,19 @@ classdef Coordinates < Exportable & handle
                         if ~one_plot, subplot(3,1,1); end
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                         ax(3) = gca(); xlim([t(1) t(end)]);
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca(); xlim([t(1) t(end)]);
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('Y [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca(); xlim([t(1) t(end)]);
-                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MM'); end
                         h = ylabel('Z [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
