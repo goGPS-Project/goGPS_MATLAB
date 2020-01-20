@@ -153,6 +153,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ANTENNA
         ATX_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
         ATX_NAME = 'I14.ATX';    % Name antex file
+        MP_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'MP' filesep];  % Location of the Multipath mitigation files
 
         % OUT PATH
         OUT_DIR = Main_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
@@ -232,6 +233,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
+        FLAG_REC_MP = false;                            % Flag to enable receiver multi-path corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
         FLAG_SEPARATE_APC = false;                      % Flag to enable different phase center for each system
@@ -514,6 +516,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         atx_dir = Main_Settings.ATX_DIR;    % Location of the antex file
         atx_name = Main_Settings.ATX_NAME;  % Location of the antex file
+        
+        mp_dir = Main_Settings.MP_DIR;      % Location of the Zernike multi-path filess
 
         %------------------------------------------------------------------
         % REFERENCE
@@ -522,7 +526,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Path to file containing the reference path
         erp_dir = Main_Settings.ERP_DIR;     % Path to ERP files folder
         erp_name = Main_Settings.ERP_NAME;   % File name of ERP
-        erp_full_name;                     % Full name of ERPs generated during runtime from the provided parameters
+        erp_full_name;                       % Full name of ERPs generated during runtime from the provided parameters
 
         iono_dir = Main_Settings.IONO_DIR;   % Path to IONO files folder
         iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
@@ -645,6 +649,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_atm_load    = Main_Settings.FLAG_ATM_LOAD;
         flag_hoi         = Main_Settings.FLAG_HOI;
         flag_rec_pcv     = Main_Settings.FLAG_REC_PCV;
+        flag_rec_mp      = Main_Settings.FLAG_REC_MP;
         flag_apr_iono    = Main_Settings.FLAG_APR_IONO;
         
         flag_coo_rate     = Main_Settings.FLAG_COO_RATE;
@@ -871,6 +876,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ANTENNAS
                 this.atx_dir    = fnp.getFullDirPath(state.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(state.getData('atx_name'), this.getHomeDir());
+                this.mp_dir     = fnp.getFullDirPath(state.getData('mp_dir'), this.prj_home, pwd);
 
                 % OUTPUT
                 this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir')), this.prj_home));
@@ -943,6 +949,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.getData('flag_atm_load');
                 this.flag_hoi = state.getData('flag_hoi');
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
+                this.flag_rec_mp = state.getData('flag_rec_mp');
                 this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
                 this.flag_separate_apc = state.getData('flag_separate_apc');
@@ -1065,6 +1072,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ANTENNA
                 this.atx_dir     = state.atx_dir;
                 this.atx_name    = state.atx_name;
+                this.mp_dir      = state.mp_dir;
 
                 % OUTPUT
                 this.out_dir = state.out_dir;
@@ -1116,6 +1124,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.flag_atm_load;
                 this.flag_hoi = state.flag_hoi;
                 this.flag_rec_pcv = state.flag_rec_pcv;
+                this.flag_rec_mp = state.flag_rec_mp;
                 this.flag_apr_iono = state.flag_apr_iono;
                 
                 this.flag_coo_rate = state.flag_coo_rate;
@@ -1262,7 +1271,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', fnp.getRelDirPath(this.atx_dir))];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
-            
+            str = [str sprintf(' Directory of zernike multi-path (MP) files        %s \n\n', fnp.getRelDirPath(this.mp_dir))];
+
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
             str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
@@ -1314,6 +1324,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
+            str = [str sprintf(' Enable Receiver MULTI-PATH corrections:           %d\n', this.flag_rec_mp)];
             str = [str sprintf(' Enable apriori iono correction     :              %d\n', this.flag_apr_iono)];
             str = [str sprintf(' Separate antenna phase center for each GNSS:      %d\n', this.flag_separate_apc)];
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
@@ -1584,6 +1595,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Zernike multi-path coefficients (MP) files', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_dir', fnp.getRelDirPath(this.mp_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
         function str_cell = exportIO_output(this, str_cell)
@@ -1768,6 +1782,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_hoi', this.flag_hoi, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable receiver pcv corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable receiver Zernike based multi-path corrections', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_mp', this.flag_rec_mp, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable a-priori ', str_cell);
             str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -2112,13 +2128,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if strcmp(file_path, filesep)
                 file_path = '';
             end
-        end
+        end        
 
         function file_path = checkOceanPath(this, file_path)
-            % Check if the atx file exists, if not try to look for it into the default dirs
+            % Check if the blq file exists, if not try to look for it into the default dirs
             %
             % SYNTAX
-            %   file_path = this.checkAtxPath(<file_path>)
+            %   file_path = this.checkOceanPath(<file_path>)
             fnp = File_Name_Processor();
             file_path = fnp.checkPath(file_path, this.getHomeDir());
 
@@ -2215,6 +2231,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             this.checkPathField('atx_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('atx_name', EMPTY_IS_NOT_VALID);
+            
+            this.checkPathField('mp_dir', EMPTY_IS_NOT_VALID);            
 
             this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
@@ -2475,6 +2493,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_atm_load = 1;
             this.flag_hoi = 1;
             this.flag_rec_pcv = 1;
+            this.flag_rec_mp = 1;
             this.flag_apr_iono = 1;
             
             % Coordinates
@@ -2575,6 +2594,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_atm_load = 0;
             this.flag_hoi = 0;
             this.flag_rec_pcv = 1;
+            this.flag_rec_mp = 1;
             this.flag_apr_iono = 1;
             
             % Coordinates
@@ -2712,6 +2732,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_atm_load');
             this.checkLogicalField('flag_hoi');
             this.checkLogicalField('flag_rec_pcv');
+            this.checkLogicalField('flag_rec_mp');
             this.checkLogicalField('flag_apr_iono');
              
             this.checkLogicalField('flag_coo_rate');
@@ -3285,7 +3306,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 out = File_Name_Processor.checkPath(strcat(crd_dir, filesep, this.crd_name), this.getHomeDir());
             end
         end
-
+        
         function out = getAtxFile(this)
             % Get the path of the antex file
             %
@@ -3295,6 +3316,27 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 out = '';
             else
                 out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
+            end
+        end
+        
+        function out = getMPDir(this)
+            % Get the path of the mp file dir
+            %
+            % SYNTAX
+            %   file_path = this.getMPFile()
+            fnp = File_Name_Processor;
+            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.prj_home));
+        end
+        
+        function out = getMPFile(this)
+            % Get the path of the mp file
+            %
+            % SYNTAX
+            %   file_path = this.getMPFile()
+            file_list = dir(fullfile(this.mp_dir, '*.mp'));
+            out = {};
+            for f = 1 : numel(file_list)
+                out{f} = fullfile(this.mp_dir, file_list(f).name);
             end
         end
 
@@ -4507,6 +4549,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
         end   
+        
+        function is_rec_mp = isRecMP(this)
+            % Check whether the receiver multi-path correction is enabled
+            %
+            % SYNTAX
+            %   is_rec_mp= isRecMP(this)
+            is_rec_mp = this.flag_rec_mp;
+        end
         
         function is_apr_iono = isAprIono(this)
             % Check whether the apriori ionofree correction are enabled

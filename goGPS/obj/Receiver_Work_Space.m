@@ -97,6 +97,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         ocean_load_disp = [];        % ocean loading displacemnet for the station , -1 if not found
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         ant                          % Antenna PCO/PCV object
+        ant_mp                       % Currently applied multipath mitigation
         
         pp_status = false;      % flag is pre-proccesed / not pre-processed
         iono_status           = 0; % flag to indicate if measurements ahave been corrected by an external ionpheric model
@@ -104,6 +105,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         dts_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
         sh_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
         pcv_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
+        mp_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for multipath variations          (0: not corrected , 1: corrected)
         ol_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
         pt_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
         pw_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
@@ -123,8 +125,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         residual_std_iono = 5; % std of the ionpsheric residual error
         
         tracking_bias 
-        
     end
+    
     % ==================================================================================================================================================
     %% PROPERTIES POSITION
     % ==================================================================================================================================================
@@ -223,6 +225,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
             this.sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
             this.pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
+            this.mp_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for multi-path variations         (0: not corrected , 1: corrected)
             this.ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
             this.pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
             this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
@@ -340,6 +343,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dts_delay_status = false;
                 this.sh_delay_status = false;
                 this.pcv_delay_status = false;
+                this.mp_delay_status = false;
+                this.ant_mp = [];
                 this.ol_delay_status = false;
                 this.pt_delay_status = false;
                 this.pw_delay_status = false;
@@ -1593,7 +1598,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
 
             flag_debug = false;
-            
+            log = Core.getLogger;
             snr_grid_step = 1;
             snr_grid = (1 : snr_grid_step : 70);
             ls_degree = 1; % interpolation degree to rescale SNR
@@ -1651,7 +1656,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             pr(id_ko) = nan;
                             snr(id_ko) = nan;
                             if any(id_ko)
-                                this.log.addMessage(this.log.indent(sprintf(' - %4d observations of %c C%c%c under absolute SNR threshold', sum(id_ko(:)), sys_c, f, a)));
+                                log.addMessage(log.indent(sprintf(' - %4d observations of %c C%c%c under absolute SNR threshold', sum(id_ko(:)), sys_c, f, a)));
                             end
                                                             
                             % if I have any SNR for each satellite and data is longer than 15 min
@@ -1728,7 +1733,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 id_ko = id_ok(scaleSnr(snr(id_ok)) < scaled_snr_thr);
 
                                 if numel(id_ko) > 0
-                                    this.log.addMessage(this.log.indent(sprintf(' - %4d observations of %c C%c%c under scaled SNR threshold', numel(id_ko), sys_c, f, a)));
+                                    log.addMessage(log.indent(sprintf(' - %4d observations of %c C%c%c under scaled SNR threshold', numel(id_ko), sys_c, f, a)));
                                 end
                                 pr(id_ko) = nan;
                                 snr(id_ko) = nan;
@@ -1750,7 +1755,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin == 1
                 cut_off = this.state.getCutOff;
             end
-            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', cut_off)));
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Removing observations under cut-off (%d degrees)', cut_off)));
             mask = this.sat.el > cut_off;
             this.obs = this.obs .* mask(:, this.go_id)';
             % Remove filtered satellites observations
@@ -1762,7 +1767,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.remShortArc()
             if min_arc > 1
-                this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
+                log = Core.getLogger;
+                log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
                 
                 [pr, id_pr] = this.getPseudoRanges();
                 idx = ~isnan(pr);
@@ -1771,7 +1777,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 pr(el_idx) = NaN;
                 this.setPseudoRanges(pr, id_pr);
-                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been removed', sum(el_idx(:)))));
+                log.addMessage(log.indent(sprintf(' - %d code observations have been removed', sum(el_idx(:)))));
                 
                 [ph, wl, id_ph] = this.getPhases();
                 idx = ~isnan(ph);
@@ -1780,7 +1786,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 ph(el_idx) = NaN;
                 this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been removed', sum(el_idx(:)))));
+                log.addMessage(log.indent(sprintf(' - %d phase observations have been removed', sum(el_idx(:)))));
             end
         end
         
@@ -2030,9 +2036,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 flag_rem_dt = true;
             end
             
+            log = Core.getLogger;
             cc = Core.getState.getConstellationCollector;
             
-            this.log.addMarkedMessage('Cleaning observations');
+            log.addMarkedMessage('Cleaning observations');
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.7 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
@@ -2049,7 +2056,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % inititalize cycle slips with the beginning of the arcs
             this.sat.cycle_slip_ph_by_ph = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
             
-            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivative'));
+            log.addMessage(log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
             phs = this.getSyntPhases;
             %%
@@ -2157,7 +2164,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
                 % use as a sensor the time second derivative
                 if std_sensor > ol_thr
-                    this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
+                    log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
                     der = 2; % use second
                     % try with second time derivative
                     sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
@@ -2212,7 +2219,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Cycle slip detection
             %----------------------------
             
-            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivative'));
+            log.addMessage(log.indent('Detect cycle slips from residual phase time derivative'));
             
             ph2 = bsxfun(@minus, ph2, cumsum(nan2zero(median(sensor_ph0, 2, 'omitnan'))));
             % join the nan
@@ -2440,7 +2447,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.setPhases(ph,wl,lid_ph); % set back phases                
             end
-            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
+            log.addMessage(log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
         end
                 
         function repairCycleSlipRough(this)
@@ -2472,7 +2479,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
-            this.log.addMarkedMessage(sprintf('%d out of %d cycle slips repaired',r,r+nr));
+            Core.getLogger.addMarkedMessage(sprintf('%d out of %d cycle slips repaired',r,r+nr));
             this.setPhases(phases, wl, lid);
         end
         
@@ -2590,7 +2597,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             
-            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
             
             this.sat.cycle_slip_ph_by_ph = poss_slip_idx;
             
@@ -8379,7 +8386,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function applyPCV(this)
             if (this.pcv_delay_status == 0)
-                this.log.addMarkedMessage('Applying PCV corrections');
+                Core.getLogger.addMarkedMessage('Applying PCV corrections');
                 this.applyremPCV(1);
                 this.pcv_delay_status = 1; % applied
             end
@@ -8387,9 +8394,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function remPCV(this)
             if this.pcv_delay_status == 1
-                this.log.addMarkedMessage('Removing PCV corrections');
+                Core.getLogger.addMarkedMessage('Removing PCV corrections');
                 this.applyremPCV(-1);
-                this.pcv_delay_status = 0; % applied
+                this.pcv_delay_status = 0; % not applied
             end
         end
         
@@ -8397,32 +8404,154 @@ classdef Receiver_Work_Space < Receiver_Commons
         % MULTIPATH
         %--------------------------------------------------------
         
-        function applyZernikeMultiPath(this, zmp)
-            % Plot the residuals of phase per Satellite
-            %
-            % INPUT
-            %   type    can be:
-            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
-            %            'pr'   -> Uncombined pseudo-ranges residuals
-            %            'ph'   -> Uncombined carrier-phase residuals
-            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
+        function [ant_mp, flag_ok] = getDiffMP(this)
+            % Get the multipath to be applied
             %
             % SYNTAX
-            %   this.showResMap(sys_c_list, type, res)
+            %   [ant_mp, flag_ok] = this.getDiffMP()
             
-            cc = Core.getState.getConstellationCollector;
+            flag_ok = true;    % keep track if the set of coefficients are ok            
+            % Get the actual MP from GNSS_Station
+            ant_mp = this.parent.getAntennaMultiPath;
+            if ~isempty(this.ant_mp) 
+                ant_mp_bk = ant_mp;
+                try
+                    % Get the satellite systems available in the zerniche multipath struct
+                    sys_c_list = cell2mat(fields(ant_mp)');
+                    for sys_c = sys_c_list
+                        if isfield(this.ant_mp, sys_c)
+                            % This constellation is already present into the applied Zernike MultiPath set of coefficients
+                            trk_list = fields(ant_mp.(sys_c))';
+                            for trk = trk_list
+                                if isfield(this.ant_mp.(sys_c), trk{1})
+                                    % This tracking frequency is already present into the old Zernike MultiPath set of coefficients                                    
+                                    ant_mp.(sys_c).(trk{1}).z_par = ant_mp.(sys_c).(trk{1}).z_par - this.ant_mp.(sys_c).(trk{1}).z_par;
+                                    ant_mp.(sys_c).(trk{1}).g_map = ant_mp.(sys_c).(trk{1}).g_map - this.ant_mp.(sys_c).(trk{1}).g_map;
+                                    ant_mp.(sys_c).(trk{1}).z_map = ant_mp.(sys_c).(trk{1}).z_map - this.ant_mp.(sys_c).(trk{1}).z_map;
+                                end
+                            end
+                        end
+                    end
+                catch ex % Managing exception                    
+                    % If the set of coefficients are incompatible they need to be removed and applied separately
+                    %Core_Utils.printEx(ex);
+                    log.addError(sprintf('The new Zerniche multipath coefficients for "%s" are not compatible with the previous one', this.parent.getMarkerName4Ch));
+                    % if any arror arises this set is not compatible with the previous one
+                    % e.g. it could have different maximum degree, or different frequencies
+                    flag_ok = false;                    
+                    ant_mp = ant_mp_bk;
+                end
+            end
+            
+            if isEmptyMP(ant_mp)
+                ant_mp = [];
+            end
+            
+            function is_empty = isEmptyMP(ant_mp)
+                is_empty = true;
+                if ~isempty(ant_mp)
+                    % for each constellation
+                    sys_c_list = cell2mat(fields(ant_mp)');
+                    for sys_c = sys_c_list
+                        % for each tracking
+                        trk_list = fields(ant_mp.(sys_c))';
+                        for trk = trk_list
+                            is_empty = is_empty && ~any(ant_mp.(sys_c).(trk{1}).z_map(:));
+                        end
+                    end                         
+                end
+            end
+        end
+        
+        function applyremMP(this, sgn)
+            % Apply/Remove the MP Mitigation
+            %
+            % INPUT
+            %   sgn = -1/1  remove/apply
+            %
+            % SYNTAX
+            %   this.applyremMP(sgn)
+            if sgn > 0
+                % Apply MP
+                [ant_mp, flag_ok] = this.getDiffMP();
+                if flag_ok
+                    if ~isempty(ant_mp)
+                        this.applyMultiPath(ant_mp);
+                        this.ant_mp = this.parent.ant_mp;
+                    else
+                        Core.getLogger.addWarning(sprintf('MP mitigation already applied to "%s"', this.parent.getMarkerName4Ch));
+                    end
+                else
+                    % Remove old MP
+                    this.applyMultiPath(this.ant_mp, -1);
+                    % Apply new MP
+                    this.applyMultiPath(ant_mp, +1);
+                    this.ant_mp = this.parent.getAntennaMultiPath;
+                end
+            else
+                % Remove old MP
+                this.applyMultiPath(this.ant_mp, -1);
+                this.ant_mp = [];
+            end
+        end
+                
+        function applyMP(this)
+            state = Core.getState;
+            if state.isRecMP()
+                if isempty(this.parent.getAntennaMultiPath)
+                    Core.getLogger.addMarkedMessage(sprintf('No MP mitigation found for station "%s"', this.parent.getMarkerName4Ch));
+                else
+                    Core.getLogger.addMarkedMessage('Applying MP corrections');
+                    this.applyremMP(1);
+                    this.mp_delay_status = state.flag_rec_mp; % applied type
+                end
+            end
+        end
+        
+        function remMP(this)
+            if Core.getState.isRecMP()
+                Core.getLogger.addMarkedMessage('Removing MP corrections');
+                this.applyremMP(-1);
+                this.mp_delay_status = 0; % not applied
+            end
+        end
+        
+        function applyMultiPath(this, ant_mp, sgn)
+            % Apply/Remove the MP corrections of goGPS
+            %
+            % INPUT
+            %   ant_mp    struct containing the multipath mitigation model
+            %   sgn       -1/1  remove/apply
+            %
+            % SYNTAX
+            %   this.applyMultiPath(ant_mp, sgn)
+            %
+            
+            state = Core.getState;
+            if (nargin < 3) || isempty(sgn) || sgn > 0
+                sgn = 1;
+                mp_type = state.flag_rec_mp * 1;
+            else
+                sgn = -1;
+                mp_type = this.mp_delay_status * 1;
+            end
+            cc = state.getConstellationCollector;
             
             % Get the satellite systems available in the zerniche multipath struct
-            sys_c_list = cell2mat(fields(zmp)');
+            sys_c_list = cell2mat(fields(ant_mp)');
             
             log = Core.getLogger;
             
             if isempty(this.obs)
                 log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
             else
-                log.addMarkedMessage(sprintf('Applying multipath mitigation on "%s"', this.parent.getMarkerName));
+                if sgn > 0
+                    log.addMarkedMessage(sprintf('Applying multipath mitigation on "%s"', this.parent.getMarkerName));
+                else
+                    log.addMarkedMessage(sprintf('Removing multipath mitigation on "%s"', this.parent.getMarkerName));
+                end
                 for sys_c = sys_c_list
-                    trk_list = fields(zmp.(sys_c));
+                    trk_list = fields(ant_mp.(sys_c));
                     
                     for t = 1 : numel(trk_list)
                         log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
@@ -8438,20 +8567,34 @@ classdef Receiver_Work_Space < Receiver_Commons
 
                         % DEBUG obs = obs_tmp;                        
                         % DEBUG figure;
-                        l = zmp.(sys_c).(trk_list{t}).l;
-                        m = zmp.(sys_c).(trk_list{t}).m;
-                        z_par = zmp.(sys_c).(trk_list{t}).z_par;
+                        l = ant_mp.(sys_c).(trk_list{t}).l;
+                        m = ant_mp.(sys_c).(trk_list{t}).m;
+                        z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
                         for s = 1 : numel(go_id)
                             el = this.sat.el(:,go_id(s)) / 180 * pi;
                             id_ko = el < 0 | isnan(obs(:,s));
                             el(id_ko) = [];
                             az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
                             
-                            mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par);
-                            % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr, 'filled'); hold on;
+                            switch (mp_type)
+                                case 1
+                                    [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                    mp_map = ant_mp.(sys_c).(trk_list{t}).z_map;
+                                    zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                    mp_corr = zmap2scatter(az, el);
+                                case 2
+                                    [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                    mp_map = ant_mp.(sys_c).(trk_list{t}).g_map;
+                                    zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                    mp_corr = zmap2scatter(az, el);
+                                case 3
+                                    mp_corr = Core_Utils.zSinthesys(l, m, az, el, sgn * z_par(:,1));
+                            end
+                            % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
                             obs(~id_ko, s) = obs(~id_ko, s) - mp_corr;
                         end
-                        % DEBUG colormap((Cmap.get('PuOr', 2^11))); colorbar;
+                        % DEBUG 
+                        caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
                         
                         if trk_list{t}(1) == 'L'
                             this.setPhases(obs, wl, id_obs);
@@ -8460,6 +8603,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
+                log.addStatusOk('Multipath mitigation completed');
             end
         end
         
@@ -8475,6 +8619,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.remDtSat();
                 this.remGroupDelay();
                 this.remPCV();
+                this.remMP();
                 this.remPoleTide();
                 this.remPhaseWindUpCorr();
                 this.remSolidEarthTide();
@@ -8488,6 +8633,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dts_delay_status = false;
                 this.sh_delay_status = false;
                 this.pcv_delay_status = false;
+                this.mp_delay_status = false;
+                this.ant_mp = [];
                 this.ol_delay_status = false;
                 this.pt_delay_status = false;
                 this.pw_delay_status = false;
@@ -8649,7 +8796,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX
             %   this.correctTimeDesync()
-            this.log.addMarkedMessage('Correct for time desync');
+            
+            log = Core.getLogger;
+            log.addMarkedMessage('Correct for time desync');
             if nargin < 2 || isempty(disable_dt_correction)
                 disable_dt_correction = true; % Skip to speed-up processing
             end
@@ -8780,14 +8929,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 if any(dt_ph_dj)
-                    this.log.addMessage(this.log.indent('Correcting carrier phases jumps'));
+                    log.addMessage(log.indent('Correcting carrier phases jumps'));
                 else
-                    this.log.addMessage(this.log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation'));
+                    log.addMessage(log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation'));
                 end
                 if any(dt_pr_dj)
-                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges jumps'));
+                    log.addMessage(log.indent('Correcting pseudo-ranges jumps'));
                 else
-                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation'));
+                    log.addMessage(log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation'));
                 end
             end
             
@@ -8800,7 +8949,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
-                % this.log.addMarkedMessage('Removing main outliers');
+                % log.addMarkedMessage('Removing main outliers');
                 % [ph, flag_ph] = Core_PP.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
                 % [pr, flag_pr] = Core_PP.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
@@ -8827,20 +8976,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sys_c = unique(this.system);
             end
             
+            log = Core.getLogger;
             if this.isEmpty()
-                this.log.addError('Init positioning failed: the receiver object is empty');
+                log.addError('Init positioning failed: the receiver object is empty');
             else
-                this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
+                log.addMarkedMessage('Computing position and clock errors using a code only solution')
                 this.sat.err_tropo = zeros(this.time.length, cc.getMaxNumSat());
                 this.sat.tot = zeros(this.time.length, cc.getMaxNumSat());
                 this.sat.err_iono  = zeros(this.time.length, cc.getMaxNumSat());
                 this.sat.az  = zeros(this.time.length, cc.getMaxNumSat());
                 this.sat.el  = zeros(this.time.length, cc.getMaxNumSat());
                 this.sat.solid_earth_corr  = zeros(this.time.length, cc.getMaxNumSat());
-                this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)'))
+                log.addMessage(log.indent('Applying satellites Differential Code Biases (DCB)'))
                 % if not applied apply group delay
                 this.applyGroupDelay();
-                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction'))
+                log.addMessage(log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction'))
                 this.applyDtSat();
                 % if
                 %this.parent.static = 0;
@@ -8867,8 +9017,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 2 || isempty(sys_list)
                 sys_list = this.getActiveSys();
             end
+            log = Core.getLogger;
             if this.isEmpty()
-                this.log.addError('Static positioning failed: the receiver object is empty');
+                log.addError('Static positioning failed: the receiver object is empty');
             else
                 if isempty(this.id_sync)
                     this.id_sync = 1 : this.time.length;
@@ -8907,7 +9058,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.updateErrIono(all_go_id);
                     end
                     this.updateErrTropo(all_go_id);
-                    this.log.addMessage(this.log.indent('Improving estimation'))
+                    log.addMessage(log.indent('Improving estimation'))
 
                     corr = 2000;
                     rf_changed = false;
@@ -8931,7 +9082,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                            id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters
                            too_many_flags = sum(id_ko | isnan(median_res)) / numel(id_ko) > 0.8;
                            if any(id_ko(:))
-                               this.log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
+                               log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
                            end
                            %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
                            id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
@@ -8948,12 +9099,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                            pr(id_ko) = nan;
                            if any(pr(:)) && ~too_many_flags % I've flagged less than 80% of data
                                this.setPseudoRanges(pr, id_pr);
-                               this.log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
+                               log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
 
                            elseif n_out > 0 
                                % No data are present                               
                                % The good position was not so good
-                               this.log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
+                               log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
                                
                                rf_changed = true;
                                rf = Core.getReferenceFrame;
@@ -8968,7 +9119,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     if ~this.hasGoodApriori
                         this.updateAllTOT();
-                        this.log.addMessage(this.log.indent('Final estimation'))
+                        log.addMessage(log.indent('Final estimation'))
                         i = 1;
                         while max(abs(corr)) > 0.2 && i < 3
                             rw_loops = 0; % number of re-weight loops
@@ -8999,15 +9150,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % restore flag in reference frame object
                         rf.setFlag(this.parent.getMarkerName4Ch, 3);
                     end
-                    this.log.addMessage(this.log.indent(sprintf('Final estimation sigma0 %.3f m', s0) ))
+                    log.addMessage(log.indent(sprintf('Final estimation sigma0 %.3f m', s0) ))
                 else
-                    this.log.addMessage(this.log.indent(sprintf('A good a-rpiori is set, skipping pre estimation of the coordinates') ))
+                    log.addMessage(log.indent(sprintf('A good a-rpiori is set, skipping pre estimation of the coordinates') ))
                 end
             end
         end
         
         function s0 = coarsePositioning(this, obs_set)
             % get a very coarse postioning for the receiver
+            log = Core.getLogger;
             cc = Core.getConstellationCollector;
             sys_list = unique(cc.system(obs_set.go_id));
             all_go_id = unique(obs_set.go_id);
@@ -9038,7 +9190,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.initAvailIndex(ep_coarse);
             this.updateAllTOT();
             
-            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data'))
+            log.addMessage(log.indent('Getting coarse position on subsample of data'))
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
@@ -9047,7 +9199,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 if sum(abs(dpos)) > 1e8
                     % Solution is diverging => exit
-                    this.log.addError('Data are too bad, positioning is not possible!');
+                    log.addError('Data are too bad, positioning is not possible!');
                     s0 = 0;
                     dpos = 0;
                 end
@@ -9066,6 +9218,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 2 || isempty(sys_list)
                 sys_list = unique(this.system);
             end
+            log = Core.getLogger;
             % requires approximate position and approx clock estimate
             [pr, lid_pr] = this.getPseudoRanges(sys_list);
             %[ph, wl, id_ph] = this.getPhases;
@@ -9087,7 +9240,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             pr(id_ko) = nan;
             sensor(id_ko) = nan;
             if any(id_ko(:))
-                this.log.addWarning(sprintf('Removing %d single anomalous values in data or ephemeris', sum(id_ko(:))));
+                log.addWarning(sprintf('Removing %d single anomalous values in data or ephemeris', sum(id_ko(:))));
             end
             n_col = size(sensor_bad_sat,2);
             sat_mean = nan(1,n_col);
@@ -9107,7 +9260,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_pr = find(lid_pr);
                 go_id = unique(this.go_id(id_pr(bad_sat)));
                 sat_string = serialize([this.getAntennaId(go_id') repmat(' ',numel(go_id),1)]')';
-                this.log.addWarning(sprintf('Removing sat %s: anomalous values in data or ephemeris', sat_string(1 : end-1)));
+                log.addWarning(sprintf('Removing sat %s: anomalous values in data or ephemeris', sat_string(1 : end-1)));
             end
             bad_track(:,bad_sat) = true;
             bad_track = flagExpand(bad_track, 2);
@@ -9324,9 +9477,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             %   Get positioning using code observables
             
-            
+            log = Core.getLogger;
             if this.isEmpty()
-                this.log.addError('Static positioning failed: the receiver object is empty');
+                log.addError('Static positioning failed: the receiver object is empty');
             else
                 if isempty(this.id_sync)
                     this.id_sync = 1 : this.time.length;
@@ -9359,13 +9512,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.log.addMessage(this.log.indent('Improving estimation'))
+                log.addMessage(log.indent('Improving estimation'))
                 this.codeDynamicPositioning(this.id_sync, 15);
                 
                 this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation'))
+                log.addMessage(log.indent('Final estimation'))
                 [res, s0, ls] = this.codeDynamicPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
+                log.addMessage(log.indent(sprintf('Estimation sigma02 %.3f m', s0) ))
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
@@ -9568,8 +9721,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.computeBasicPosition();
             
+            log = Core.getLogger;
             if this.isEmpty()
-                this.log.addError('Pre-Processing failed: the receiver object is empty');
+                log.addError('Pre-Processing failed: the receiver object is empty');
             else
                 if nargin < 2
                     cc = Core.getState.getConstellationCollector;
@@ -9598,8 +9752,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 flag_apply_corrections = true;
             end
             
+            log = Core.getLogger;
             if this.isEmpty()
-                this.log.addError('Pre-Processing failed: the receiver object is empty');
+                log.addError('Pre-Processing failed: the receiver object is empty');
             else
                 this.pp_status = false;
                 if nargin < 2 || isempty(sys_list)
@@ -9628,7 +9783,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.remEmptyObs();
                 
                 if this.getNumPrEpochs == 0
-                    this.log.addError('Pre-Processing failed: the receiver object is empty');
+                    log.addError('Pre-Processing failed: the receiver object is empty');
                 else
                     enable_sat_pco = true;
                     if enable_sat_pco
@@ -9637,9 +9792,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
                     if (s02 == 0)
-                        this.log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
+                        log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
                     elseif (min(s02) > this.S02_IP_THR)
-                        this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                        log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
                     else
                         % update azimuth elevation
                         this.updateAzimuthElevation();
@@ -9685,28 +9840,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             % ph0 = this.getPhases();
                             this.applyPCV();
                             % ph1 = this.getPhases();
-                            % this.remPCV();
-                            % ph2 = this.getPhases();
-                            % this.applyPCV_test();
-                            % ph3 = this.getPhases();
-                            % this.remPCV_old();
-                            % ph4 = this.getPhases();
-                            %corr.pcv = ph1 - ph0;
+                            this.applyMP();
                             this.applyPoleTide();
-                            %ph2 = this.getPhases();
-                            %corr.pt = ph2 - ph1;
                             this.applyPhaseWindUpCorr();
-                            %ph3 = this.getPhases();
-                            %corr.pwu = ph3 - ph2;
                             this.applySolidEarthTide();
-                            %ph4 = this.getPhases();
-                            %corr.set = ph4 - ph3;
                             this.applyShDelay();
-                            %ph5 = this.getPhases();
-                            %corr.shd = ph5 - ph4;
                             this.applyOceanLoading();
-                            %ph6 = this.getPhases();
-                            %corr.ocl = ph6 - ph5;
                             this.applyAtmLoad();
                             this.applyHOI();
                             

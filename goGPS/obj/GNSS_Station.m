@@ -56,7 +56,7 @@ classdef GNSS_Station < handle
         ant_type       % antenna type
         ant_delta_h    % antenna height from the ground [m]
         ant_delta_en   % antenna east/north offset from the ground [m]
-        zmp            % zerniche multipath coefficients
+        ant_mp         % antenna multipath mitigation model
 
         static         % static or dynamic receiver 1: static 0: dynamic
 
@@ -480,53 +480,62 @@ classdef GNSS_Station < handle
     
     %% METHODS ADVANCED
     % ==================================================================================================================================================
-    methods
-        function updateZernikeMultiPath(sta_list)
+    methods        
+        function updateMultiPath(sta_list)
             sta_list = sta_list(~sta_list.isEmptyWork_mr);
             log = Core.getLogger();
             for rec = sta_list(:)'
-                log.addMarkedMessage(sprintf('Updating Zerniche multipath corrections for "%s"', rec.getMarkerName4Ch));
-                zmp = rec.work.computeZernikeMultiPath('ph');
+                log.addMarkedMessage(sprintf('Updating multipath corrections for "%s"', rec.getMarkerName4Ch));
+                % If resduals ph by ph are available on out use them
+                if isempty(rec(1).out.sat.res_ph_by_ph)
+                    ant_mp = rec.work.computeMultiPath('ph');
+                else
+                    ant_mp = rec.out.computeMultiPath('ph');
+                end
+                
+                % rec.ant_mp = rec.ant_mp + ant_mp;
                 flag_update = false;
-                if isempty(rec.zmp)
-                    % Zerniche multipath is not in the receiver
-                    rec.zmp = zmp;
+                if isempty(rec.ant_mp)
+                    % Zerniche multipath is not yet in the receiver
+                    rec.ant_mp = ant_mp;
                     flag_update = true;
                 else
-                    % Zerniche multipath is not aalready in the receiver
-                    zmp_bk = rec.zmp;
+                    % Zerniche multipath is already in the receiver
+                    ant_mp_bk = rec.ant_mp;
                     try
                         % Get the satellite systems available in the zerniche multipath struct
-                        sys_c_list = cell2mat(fields(zmp)');
+                        sys_c_list = cell2mat(fields(ant_mp)');
                         for sys_c = sys_c_list
-                            trk_list = fields(zmp.(sys_c))';
-                            if ~isfield(rec.zmp, sys_c)
+                            trk_list = fields(ant_mp.(sys_c))';
+                            if ~isfield(rec.ant_mp, sys_c)
                                 % This constellation is not present into the old Zernike MultiPath set of coefficients
-                                rec.zmp.(sys_c) = zmp.(sys_c);
+                                rec.ant_mp.(sys_c) = ant_mp.(sys_c);
                             else
                                 for trk = trk_list
-                                    if ~isfield(rec.zmp.(sys_c), trk{1})
-                                        % This traking frequency is not present into the old Zernike MultiPath set of coefficients
-                                        rec.zmp.(sysy_c).(trk{1}) = zmp.(sysy_c).(trk{1});
+                                    if ~isfield(rec.ant_mp.(sys_c), trk{1})
+                                        % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
+                                        rec.ant_mp.(sysy_c).(trk{1}) = ant_mp.(sysy_c).(trk{1});
                                     else
-                                        rec.zmp.(sys_c).(trk{1}).z_par = rec.zmp.(sys_c).(trk{1}).z_par + zmp.(sys_c).(trk{1}).z_par;
+                                        rec.ant_mp.(sys_c).(trk{1}).z_par = rec.ant_mp.(sys_c).(trk{1}).z_par + ant_mp.(sys_c).(trk{1}).z_par;
                                     end
                                 end
                             end
                         end
                         flag_update = true;
                     catch ex
-                        Core_Utils.printEx(ex);
-                        log.addError(sprintf('The new Zerniche multipath coefficients for "%s" are not compatible with the previous one', rec.getMarkerName4Ch));
+                        %Core_Utils.printEx(ex);
+                        log.addError(sprintf('The new multipath model for "%s" is not compatible with the previous one', rec.getMarkerName4Ch));
                         % if any arror arises this set is not compatible with the previous one
                         % e.g. it could have different maximum degree, or different frequencies
-                        rec.zmp = zmp_bk;
+                        rec.ant_mp = ant_mp_bk;
                     end
                 end
                 if flag_update
                     % If I add the zerniche polynomials to the receiver
                     % I also correct the observations with the new set
-                    rec.work.applyZernikeMultiPath(zmp);
+                    if isempty(rec(1).out.sat.res_ph_by_ph) % if I work on out do not apply MP
+                        rec.work.applyMP();
+                    end
                     log.addStatusOk(sprintf('Update completed for "%s"', rec.getMarkerName4Ch));
                 end
             end
@@ -732,9 +741,9 @@ classdef GNSS_Station < handle
             %    sta_list.exportPlainMat(<out_file_name>)
             
             log = Core.getLogger;
-            core = Core.getCurrentCore;
+            state = Core.getState;
             if nargin < 2 || isempty(out_file_name)
-                out_dir = core.state.getOutDir();
+                out_dir = state.getOutDir();
                 if numel(sta_list) ~= 1
                     % contains multiple stations
                     out_file_name = fullfile(out_dir, sprintf('plain_output_full_%s.mat',GPS_Time.now.toString('yyyymmdd_HHMMSS')));
@@ -744,7 +753,7 @@ classdef GNSS_Station < handle
                 end
             else
                 if sum(out_file_name == filesep()) == 0
-                    out_dir = core.state.getOutDir();
+                    out_dir = state.getOutDir();
                     out_file_name = fullfile(out_dir, out_file_name);
                 end
             end
@@ -781,6 +790,45 @@ classdef GNSS_Station < handle
             log.addMessage(log.indent('Writing the file...'));
             save(out_file_name, 'rec', '-v7');
             log.addStatusOk('Export completed successfully');
+        end
+        
+        function exportMultiPath(sta_list)
+            % Export the current multi-path mitigation model stored in GNSS_Station
+            % Each file is stored in a folder with name = marker 4ch
+            %
+            % SYNTAX:
+            %    sta_list.exportMultiPath(<out_file_name>)
+            
+            log = Core.getLogger;
+            state = Core.getState;
+            flag_export = 0;
+            out_dir = state.getMPDir();
+            for r = 1 : numel(sta_list)
+                try
+                    rec = sta_list(r);
+                    if ~isempty(rec.ant_mp)
+                        if exist(fullfile(out_dir, rec.getMarkerName4Ch), 'dir') ~= 7
+                            mkdir(fullfile(out_dir, rec.getMarkerName4Ch));
+                        end
+                        out_file_name = fullfile(out_dir, rec.getMarkerName4Ch, sprintf('%s_mp_%s_%s.mat', ...
+                            rec.getMarkerName4Ch, ...
+                            rec.getTime.first.toString('yyyymmddHHMM'), ...
+                            rec.getTime.first.toString('yyyymmddHHMM')));
+                        
+                        log.addMarkedMessage(sprintf('Exporting multipath model to "%s"',out_file_name));
+                        ant_mp = rec.ant_mp; %#ok<NASGU>
+                        save(out_file_name, 'ant_mp');
+                        flag_export = flag_export + 1;
+                    end
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+            end
+            if flag_export == 0 && numel(sta_list) > 0
+                log.addError('Multipath mitigation model export failed, no models found!');
+            else
+                log.addStatusOk(sprintf('%d of %d multipath mitigation models exported successfully', flag_export, numel(sta_list)));
+            end
         end
         
         function exportHydroNET(sta_list)
@@ -919,6 +967,49 @@ classdef GNSS_Station < handle
             end
         end
 
+        function ant_mp = getAntennaMultiPath(this)
+            % Get the structure containing multipath information for the receiver
+            %
+            % SYNTAX 
+            %   ant_mp = this.getAntennaMultiPath()
+            
+            % If no multipath map is loaded try to load the map
+            log = Core.getLogger;
+            if isempty(this.ant_mp)
+                state = Core.getState;
+                out_dir = fullfile(state.getMPDir(), this.getMarkerName4Ch);
+                out_file_name = fullfile(out_dir, sprintf('%s_mp_*.mat', this.getMarkerName4Ch));
+                file_info = dir(out_file_name);
+                date = [];
+                idf = [];
+                for f = 1 : numel(file_info)
+                    try
+                        date_lim = regexp(file_info(f).name, '(?<=_)[0-9]*(?=_|.mat)', 'match');
+                        date_lim = [datenum(date_lim{1}, 'yyyymmddHHMM'); datenum(date_lim{2}, 'yyyymmddHHMM')];
+                        date = [date; date_lim];
+                        idf = [idf; f; f];
+                    catch ex
+                        log.addWarning(sprintf('File not valid found in MP dir "%s"', file_info(f).name));
+                    end
+                end 
+                % Find the closer multipath map file
+                if ~isempty(date)
+                    try
+                        [date, id_sort] = sort(date);
+                        [~, id_min] = min(abs(date - this.getTime.getCentralTime.getMatlabTime));
+                        closer_fid = idf(id_sort(id_min));
+                        file_name = fullfile(out_dir, file_info(closer_fid).name);
+                        log.addMarkedMessage(sprintf('%s - Importing Multipath mitigation model from "%s"',  this.getMarkerName4Ch, file_name));
+                        load(file_name, 'ant_mp');
+                        this.ant_mp = ant_mp;
+                    catch ex
+                        log.addWarning(sprintf('Loading Multipath mitigation model for %s failed', this.getMarkerName4Ch));
+                    end
+                end
+            end
+            ant_mp = this.ant_mp;
+        end
+        
         function sys_c = getActiveSys(this)
             % Get the active system stored into the object
             %
@@ -1331,10 +1422,11 @@ classdef GNSS_Station < handle
         end
 
         function [dist_3d, xyz_dist] = getDistFrom(sta_list, rec_ref)
-            % GeetDistance from reference station rec_ref
+            % Get distance [m] from the reference station rec_ref
             %
             % SYNTAX:
-            %   dist = getDistFrom(this, rec_ref)
+            %   [dist_3d, xyz_dist] = getDistFrom(this, rec_ref)
+            
             xyz = zero2nan(sta_list.getMedianPosXYZ);
             xyz_dist = bsxfun(@minus, xyz, rec_ref.getMedianPosXYZ);
             dist_3d = sqrt(sum(xyz_dist.^2, 2));
@@ -4630,6 +4722,66 @@ classdef GNSS_Station < handle
                 else
                     fh_list = [fh_list; sta_list(s).work.showSNR_z(sys_list)]; %#ok<AGROW>
                 end
+            end
+        end
+        
+        function fh_list = showMultiPathModel(sta_list, type)
+            % Show MultiPath Maps for each receiver workspace
+            % (polar plot Zernike interpolated)
+            %
+            % SYNTAX
+            %   this.showSNR_p(sys_list)
+            if nargin == 1
+                type = 1;
+            end
+            log = Core.getLogger;
+            state = Core.getState;
+            flag_show = 0;
+            fh_list = [];
+            for r = 1 : numel(sta_list)
+                rec = sta_list(r);
+                ant_mp = rec.getAntennaMultiPath();
+                if ~isempty(ant_mp)
+                    % Get the satellite systems available in the zerniche multipath struct
+                    sys_c_list = cell2mat(fields(ant_mp)');
+                    for sys_c = sys_c_list
+                        if isfield(ant_mp, sys_c)
+                            % This constellation is already present into the applied Zernike MultiPath set of coefficients
+                            trk_list = fields(ant_mp.(sys_c))';
+                            for trk = trk_list
+                                if isfield(ant_mp.(sys_c), trk{1})
+                                    az_grid = ant_mp.(sys_c).(trk{1}).az_grid;
+                                    el_grid = ant_mp.(sys_c).(trk{1}).el_grid;
+                                    if type == 2 % Map from simple gridding
+                                        map = ant_mp.(sys_c).(trk{1}).g_map;
+                                    else % Zenike model
+                                        map = ant_mp.(sys_c).(trk{1}).z_map;
+                                    end
+                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk{1}, iif(type==2, 'RAW ', '')); fh.NumberTitle = 'off';
+                                    polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(map)); 
+                                    fh_list = [fh_list; fh];
+                                    caxis(max(abs(minMax(caxis))) * [-1 1]); 
+                                    colormap((Cmap.get('PuOr', 2^11))); 
+                                    colorbar;
+                                    drawnow
+                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', iif(type==2, '(raw) ', ''), rec.getMarkerName4Ch, sys_c, trk{1}))); drawnow
+                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', iif(type==2, 'raw_', ''), rec.getMarkerName4Ch, sys_c, trk{1}, rec.getTime.last.toString('yyyymmdd_HHMM'));
+                                    fh.UserData = struct('fig_name', fig_name);
+                                    Core_UI.beautifyFig(fh, 'light');
+                                    Core_UI.addExportMenu(fh);
+                                    Core_UI.addBeautifyMenu(fh);
+                                    fh.Visible = 'on'; drawnow;
+                                end
+                            end
+                        end
+                    end   
+                    flag_show = flag_show + 1;
+                end
+            end
+            if flag_show == 0 && numel(sta_list) > 0
+                log.addError('Multipath mitigation model maps, no models found!');
+            else
+                log.addStatusOk(sprintf('%d of %d multipath mitigation models exported successfully', flag_show, numel(sta_list)));
             end
         end
         

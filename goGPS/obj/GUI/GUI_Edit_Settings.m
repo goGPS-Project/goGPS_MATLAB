@@ -602,7 +602,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             sss_list_box_g = uix.HBox('Parent', sss_box_v, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [200 -1 0 0]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [220 -1 0 0]);
             %this.edit_texts{end}.HorizontalAlignment = 'left';
             this.edit_texts{end}.FontName = 'Courier New';
             this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
@@ -653,21 +653,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'String', 'Recursive get marker names', ...
                 'Callback', @Core_UI.onGetRecursiveMarkers);
             box_g_but.Widths = [175 160];
-            
-            
-            Core_UI.insertEmpty(box_g);
-            %[~, this.edit_texts{end + 1}, this.edit_texts{end + 2}] = Core_UI.insertDirFileBox(box_g, 'Custom Antex (ATX) filename', 'custom_atx_dir', 'custom_atx_name', @this.onEditChange, [170 -3 5 -1 25]);
-            %Core_UI.insertEmpty(box_g);
-            
-            box_gh = uix.HBox('Parent', box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(box_gh, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [25 155 -3 5 -1 25]);
-            plot_rec = uicontrol( 'Parent', box_gh, ...
-                'String', 'Get missing BLQ', ...
-                'Callback', @this.openGetChalmerString);
-            box_gh.Widths = [-1 120];
-            box_g.Heights = [-1 Core_UI.LINE_HEIGHT 5 Core_UI.LINE_HEIGHT];
+                        
+            box_g.Heights = [-1 Core_UI.LINE_HEIGHT];
         end
                 
         function insertTabPrePro(this, container)
@@ -1018,10 +1005,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function ppp_panel = insertCorrections(this, container)
             %%% processing options
-            ppp_panel = Core_UI.insertPanelLight(container, 'PPP "corrections"');
+            ppp_panel = Core_UI.insertPanelLight(container, 'Range "corrections"');
             opt_vbox = uix.VBox('Parent', ppp_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);              
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver Multi-Path',     'flag_rec_mp', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange);
@@ -1032,7 +1020,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             Core_UI.insertEmpty(opt_vbox);
              
-            opt_vbox.Heights = [ones(1, 9) * Core_UI.LINE_HEIGHT -1];
+            opt_vbox.Heights = [ones(1, 10) * Core_UI.LINE_HEIGHT -1];
         end
         
         function insertTabRecSpecificParameters(this, container)
@@ -1058,8 +1046,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             table_hbox = uix.HBox('Parent', vbox,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-
-            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             % Create UITable
             this.coo_tbl = uitable('Parent', table_hbox, ...
@@ -1114,7 +1100,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Callback', @this.inspectRinexTrck); %#ok<NASGU>
 
             add_row_but = uicontrol( 'Parent', but_box, ...
-                'String', 'ShowMap', ...
+                'String', 'Show map', ...
                 'TooltipString', 'Show stations on a map', ...
                 'Callback', @this.showCrdMap); %#ok<NASGU>
        
@@ -1129,6 +1115,21 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 'auto', 'auto', 'auto'};            
             this.updateCooTable();
             this.coo_tbl.addlistener('Data','PostSet', @(src,event)this.dataCrdChange(this.coo_tbl,src,event));
+            
+            
+            Core_UI.insertEmpty(vbox);            
+            box_gh = uix.HBox('Parent', vbox, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(box_gh, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [25 160 -3 5 -1 25]);
+            plot_rec = uicontrol( 'Parent', box_gh, ...
+                'String', 'Get missing BLQ', ...
+                'Callback', @this.openGetChalmerString);
+            box_gh.Widths = [-1 120];
+            
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(vbox, 'Multipath mitigation dir', 'mp_dir', @this.onEditChange, [25 160 -1 25]);
+            this.edit_texts{end}.TooltipString = 'Folder containing multi-path mitigation files';
+            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1 5 Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT];
         end
         
         function rf = crd2RefFrame(this)
@@ -1282,52 +1283,51 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     f = f - 1;
                 end
             end
-            idx_el = sum(data) == 0;
-            data(:,idx_el) = [];
-            datac = char(double(data));
-            datac(data) = 'o';
-            datac(~data) = '.';
-            f = figure( 'Name', 'Rinex Tracking Inspector', ...
-                'Visible', 'on', ...
-                'MenuBar', 'none', ...
-                'ToolBar', 'none', ...
-                'NumberTitle', 'off', ...
-                'Position', [0 0 1500 800], ...
-                'Resize', 'on');
-            trtab = uitable('Position',[10 10 1480 780]);
-            gd = Core_Sky.group_delays_flags;
-            gd(idx_el,:) = [];
-            datas = [names{1} num2cell(datac(1,:))];
-            for i = 2 : length(names)
-                datas = [datas; [names{i} num2cell(datac(i,:))]];
-            end
-            col_names = [{'Marker Name'};cellstr(gd)];
-            
-            for i = 1 : size(datas,1)
-                for j = 1 : size(datas,2)
-                    if j > 1
-                        sys_c = col_names{j}(1);
-                        band =  col_names{j}(3);
-                        clr = GUI_Edit_Settings.getColorTrck(sys_c,band,rem(i,2));
-                    else
-                        if rem(i,2) == 1
-                            clr = '#fffffff';
-                        else
-                            clr = '#ededed';
-                        end
-                    end
-                    
-                    datas(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas{i,j},'</center>']};
+            if ~isempty(data)
+                idx_el = sum(data) == 0;
+                data(:,idx_el) = [];
+                datac = char(double(data));
+                datac(data) = 'o';
+                datac(~data) = '.';
+                f = figure( 'Name', 'Rinex Tracking Inspector', ...
+                    'Visible', 'on', ...
+                    'MenuBar', 'none', ...
+                    'ToolBar', 'none', ...
+                    'NumberTitle', 'off', ...
+                    'Position', [0 0 1500 800], ...
+                    'Resize', 'on');
+                trtab = uitable('Position',[10 10 1480 780]);
+                gd = Core_Sky.group_delays_flags;
+                gd(idx_el,:) = [];
+                datas = [names{1} num2cell(datac(1,:))];
+                for i = 2 : length(names)
+                    datas = [datas; [names{i} num2cell(datac(i,:))]];
                 end
+                col_names = [{'Marker Name'};cellstr(gd)];
+                
+                for i = 1 : size(datas,1)
+                    for j = 1 : size(datas,2)
+                        if j > 1
+                            sys_c = col_names{j}(1);
+                            band =  col_names{j}(3);
+                            clr = GUI_Edit_Settings.getColorTrck(sys_c,band,rem(i,2));
+                        else
+                            if rem(i,2) == 1
+                                clr = '#fffffff';
+                            else
+                                clr = '#ededed';
+                            end
+                        end
+                        
+                        datas(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas{i,j},'</center>']};
+                    end
+                end
+                
+                trtab.ColumnName = col_names;
+                trtab.ColumnFormat =['char' repmat({'char'},1,size(gd,1))];
+                trtab.ColumnWidth = repmat({45},1,size(gd,1)+1);
+                trtab.Data = datas;
             end
-            
-            trtab.ColumnName = col_names;
-            trtab.ColumnFormat =['char' repmat({'char'},1,size(gd,1))];
-            trtab.ColumnWidth = repmat({45},1,size(gd,1)+1);
-            trtab.Data = datas;
-            
-
-
         end
         
         function showCrdMap(this, caller, event)

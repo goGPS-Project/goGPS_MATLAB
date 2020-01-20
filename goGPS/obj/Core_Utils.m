@@ -438,6 +438,68 @@ classdef Core_Utils < handle
         end
                
         
+        function [data_map, n_map, az_grid, el_grid] = polarGridder(az, el, data, step_deg, step_deg_out)
+            % Grid points on a regularly gridded semi sphere
+            %
+            % SYNTAX
+            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg)
+            
+            % az -180 : 180
+            % el 0 : 90
+            az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+            el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
+            n_az = numel(az_grid);
+            n_el = numel(el_grid);
+            
+            % Find map indexes
+            col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
+            row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+            
+            % init maps
+            n_map = zeros(n_el, n_az);
+            data_map = zeros(n_el, n_az);
+            
+            % fill maps
+            for i = 1 : numel(data)
+                n_map(row(i), col(i)) = n_map(row(i), col(i)) + 1;
+                data_map(row(i), col(i)) = data_map(row(i), col(i)) + data(i);
+            end
+            data_map(n_map > 0) = data_map(n_map > 0) ./ (n_map(n_map > 0));
+            
+            if (nargin == 5) && ~isempty(step_deg_out)
+                % get polar coordinates
+                decl_n = ((pi/2 - el_grid)/(pi/2));
+                x = sin(az_grid) .* decl_n;
+                y = cos(az_grid) .* decl_n;
+                
+                funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map(n_map > 0), 'linear' );
+                x = -1 : 0.005 : 1;
+                y = x;
+                [x_mg, y_mg] = meshgrid(x, y);
+                polar_data = nan(numel(x), numel(y));
+                id_ok = hypot(x_mg, y_mg) < 1;
+                polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
+                
+                % Prepare polar gridder
+                funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');                                                                
+
+                % Define output grid
+                az_grid = ((-180 + (step_deg_out(1) / 2)) : step_deg_out(1) : (180 - step_deg_out(1) / 2)) .* (pi/180);
+                el_grid = flipud(((step_deg_out(end) / 2) : step_deg_out(end) : 90 - (step_deg_out(end) / 2))' .* (pi/180));
+                n_az = numel(az_grid);
+                n_el = numel(el_grid);
+            
+                % Get polar coordinates
+                decl_n = ((pi/2 - el_grid)/(pi/2));
+                x = sin(az_grid) .* decl_n;
+                y = cos(az_grid) .* decl_n;
+                
+                [az_mg, el_mg] = meshgrid(az_grid, el_grid);
+                data_map = zeros(n_el, n_az);
+                data_map(:) = funGridder(x(:),y(:));
+            end
+        end
+        
         function [z, l, m] = getAllZernike(l_max, m_max, az, el)
             % Generate all the Zernike parameters combinations
             %
@@ -474,7 +536,7 @@ classdef Core_Utils < handle
         end
         
         function [n] = getAllNormCoeffZernike(l_max, m_max)
-            % Generate all the Zernike normalization coefficient 
+            % Generate all the Zernike normalization coefficient
             %
             % SINTAX
             %   [n] = getAllNormCoeffZernike(l_max, m_max)
@@ -492,10 +554,10 @@ classdef Core_Utils < handle
             n = sqrt((1+(m~=0)).*(l+1)/pi);
         end
         
-         function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
+        function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
             % Generate all the Zernike parameters combinations
             %
-            % INPUT 
+            % INPUT
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
@@ -563,8 +625,9 @@ classdef Core_Utils < handle
             %   z = getZernike(l, m, az, el)
             
             %
-            r = 1 - (2 * el(:) / pi);            
+            %r = 1 - (2 * el(:) / pi);
             %r = cos(el(:));
+            r = 1 - sin(el(:));
             theta = az(:);
             
             %[x,y,z] = sph2cart(az, el, 1);
@@ -572,8 +635,7 @@ classdef Core_Utils < handle
             
             z = zernfun(l, m, r, theta);
         end
-        
-        
+                
         function [S] = reorthZernikeMask(lat,lon,el_thrsh,n_sample)
             % get an orthogonal basis of zernike function that maximize the
             % power in the area of interest
@@ -658,7 +720,7 @@ classdef Core_Utils < handle
             %   z_par   Zernike coefficients
             %
             % SINTAX
-            %   [z_interp] = zSinthesys(l, m, az, el, data)
+            %   [z_interp] = zSinthesys(l, m, az, el, z_par)
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
@@ -687,7 +749,7 @@ classdef Core_Utils < handle
             else
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
-            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ A' * data(id_ok);
+            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ (A' * data(id_ok));
             
             %N = (A'*A);
             %[U, s, V] = svd(N);
@@ -741,7 +803,7 @@ classdef Core_Utils < handle
             else
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
-            z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ A' * data(id_ok);
+            z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ (A' * data(id_ok));
         end
                 
         function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, el, data, max_reg)
@@ -775,17 +837,19 @@ classdef Core_Utils < handle
             flag_is_hold = ~isempty(findobj('Type', 'figure')) && ishold;
         end
         
-        function fh = showZernike(l, m, z_par, el_min)
+        function fh = showZernike(l, m, z_par, el_min, funMapElevation)
             % Show 3D plot of Zernike polynomials 
             %
             % SINTAX
             %   fh = showZernike(l, m, z_par)
             
-            if ~Core_Utils.isHold()
+            %if ~Core_Utils.isHold()
+                is_hold = false;
                 fh = figure();
-            else
-                fh = gcf;
-            end
+            %else
+            %    is_hold = true;
+            %    fh = gcf;
+            %end
             %%% INTERNAL PARAMETER
             scale = 1;
             %%%
@@ -793,15 +857,18 @@ classdef Core_Utils < handle
             x = -1 : 0.005 : 1;
             y = x;
             [X,Y] = meshgrid(x,y);
-            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection 
+            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
+            if nargin == 5
+                r_prj = funMapElevation(r_prj * (pi/2)) / (pi/2);
+            end
             r_zern = r_prj;
-            if nargin == 4
+            if nargin >= 4 && ~isempty(el_min)
                 r_max = 1 - (2 * el_min / pi);
                 idx = r_prj <= r_max;
             else
                 idx = r_prj <= 1;
             end
-            z = nan(size(X));
+            z = nan(size(X));      
             z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
             
             %h = scatter(X(~isnan(z)),Y(~isnan(z)),160,z(~isnan(z)),'filled');
@@ -809,8 +876,8 @@ classdef Core_Utils < handle
             h.AlphaData = ~isnan(z);
             ax = gca;
             ax.YDir = 'normal';
-            hold_state = ishold();
-            if nargin < 6 || plot_bg
+            plot_bg = ~is_hold;
+            if plot_bg
                 hold on
                 %plot parallel
                 az_l = [0:pi/200:2*pi];
@@ -819,8 +886,8 @@ classdef Core_Utils < handle
                 for d = decl_s
                     x = cos(az_l).*d;
                     y = sin(az_l).*d;
-                    text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');
                     plot(x,y,'color',[0.6 0.6 0.6]);                    
+                    text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');
                 end
                 %plot meridian
                 az_step = 30/180 *pi;
@@ -829,23 +896,22 @@ classdef Core_Utils < handle
                 for a = az_s
                     x = cos(a).*decl_l;
                     y = sin(a).*decl_l;
+                    plot(x,y,'color',[0.6 0.6 0.6]);
                     if abs(a-2*pi) > 0.0001
                         text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
                     end
-                    plot(x,y,'color',[0.6 0.6 0.6]);
-                    
                 end
                 axis equal
                 axis off
                 set(gcf,'color','w');
-                if ~hold_state
+                if ~is_hold
                     hold off
                 end
                 xlim([-1.15 1.15]); ylim([-1.15 1.15]);
                 colormap(jet);
                 colorbar;
             end
-            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');            
+            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
         end
         
         function fh = showZernike3(l, m, z_par, el_min)
@@ -1021,6 +1087,126 @@ classdef Core_Utils < handle
             
             fh.Visible = true;
             Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
+        end
+                
+        function sphTest()
+            %%  along track analysis            
+            l_min = 0;
+            l_max = 30;
+            id = 1:20:length(data);
+            [az el] = meshgrid(lambdaGrid, phiGrid);
+            [ N_subSet, TN_subSet ] = analisiPointC_defineSYS (data(:), 1+0*data(:), el(:)./180*pi, az(:)./180*pi, el(:)*0+1, l_min, l_max, l_min, l_max, 1, 1, 0);
+            tic;
+            idM = 1:(l_max+1)^4;
+            idM = reshape(idM,(l_max+1)^2,(l_max+1)^2);
+            idM = tril(idM); idM = idM(idM>0);
+            N = zeros((l_max+1)^2,(l_max+1)^2);
+            N(idM) = N_subSet;
+            N = tril(N) + tril(N)' + diag(diag(N));
+            
+            cLS = zeros(l_max+1);
+            sLS = zeros(l_max+1);
+            x = N\TN_subSet;
+            i = 0;
+            for az = 1 : l_max +1
+                for m = 1 : az
+                    i = i + 1;
+                    cLS(az,m) = x(i);
+                    if m > 1
+                        i = i + 1;
+                        sLS(az,m) = x(i);
+                    end
+                end
+            end
+            
+            [ topo_map2 ] = sintesiGrid (phiGrid./180*pi, lambdaGrid./180*pi, cLS, sLS, 0, l_max, 0, l_max, 1, 1, 0, 0);
+        end
+        
+        function plm = fplm(l, m, theta)
+            % Computing Legendre polynomial
+            %
+            % INPUT
+            %   l       degree
+            %   m       order
+            %   theta   theta angle [rad]
+            %
+            % SYNTAX
+            %   plm = Core_Utils.fplm(l, m, decl)
+            % 
+            lMin = l(1);
+            lMax = l(end);
+            mMin = m(1);
+            mMax = m(end);
+            
+            if (size(l,1)==1)
+                l=l';
+            end
+            if (size(m,1)==1)
+                m=m';
+            end
+            if (size(theta,1)==1)
+                theta=theta';
+            end
+            
+            %%
+            r1 = zeros(mMax,1);
+            
+            % computing root 1 (bl)
+            r1(1) = sqrt(3);
+            i = (2:mMax);
+            l = (1:lMax);
+            
+            r1(2:end) = sqrt((2*i+1)./(2*i));
+            %%
+            % Init P (result matrix)
+            
+            plm = zeros(mMax,length(m),length(theta));
+            
+            % Computing Pmm
+            
+            % Skip the calculous of the first l(1)-1 lines
+            % Go from 0 to lMin-1
+            Ptmp0 = ones(length(theta),1);
+            for mfix = 1:mMin-1
+                Ptmp1 = r1(mfix) * sin(theta).*Ptmp0;
+                Ptmp0 = Ptmp1;
+            end
+            
+            % for each m
+            r2 = zeros(length(l)-1,1);
+            r3 = zeros(length(l)-1,1);
+            
+            for mfix = mMin:mMax
+                % Computing Pmm --------------------------------------------------
+                Ptmp1 = r1(mfix) * sin(theta).*Ptmp0;
+                Ptmp0 = Ptmp1;
+                
+                % Save in the results matrix the Pmm element
+                plm(mfix, mfix-mMin+1, :) = Ptmp1(:);
+                
+                % Computing Plm --------------------------------------------------
+                
+                % get the row
+                r = mfix+1;
+                
+                
+                % computing root 2 (clm)
+                r2 = sqrt(((2*l(r:end)+1).*(2*l(r:end)-1))./((l(r:end) + mfix).*(l(r:end) - mfix)));
+                
+                % computing root 3 (dlm)
+                r3 = sqrt(((2*l(r:end)+1).*(l(r:end)+mfix-1).*(l(r:end)-mfix-1))./((2*l(r:end)-3).*(l(r:end)+mfix).*(l(r:end)-mfix)));
+                
+                Pl1 = Ptmp1;
+                Pl2 = zeros(size(Ptmp1));
+                for lfix = r:lMax
+                    tmp = r2(lfix-r+1) * cos(theta).*Pl1 - r3(lfix-r+1).*Pl2;
+                    plm(lfix,mfix-mMin+1, :) = tmp(:);
+                    Pl2 = Pl1;
+                    Pl1 = tmp(:);
+                end
+            end
+            
+            plm = plm(lMin:lMax,:,:);
         end
 
         %--------------------------------------------------------------------------

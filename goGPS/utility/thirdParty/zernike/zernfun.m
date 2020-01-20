@@ -149,49 +149,73 @@ rpowers = unique(rpowers);
 % Pre-compute the values of r raised to the required powers,
 % and compile them in a matrix:
 % -----------------------------
-if rpowers(1)==0
-    rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
-    rpowern = cat(2,rpowern{:});
-    rpowern = [ones(length_r,1) rpowern];
-else
-    rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
-    rpowern = cat(2,rpowern{:});
+if (rpowers(end)) ~= (numel(rpowers) - 1)
+    if rpowers(1)==0
+        rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
+        rpowern = cat(2,rpowern{:});
+        rpowern = [ones(length_r,1) rpowern];
+    else
+        rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
+        rpowern = cat(2,rpowern{:});
+    end
+else %faster approach
+    % new lines
+    rpowern = ones(size(r, 1), rpowers(end) + 1);
+    if rpowers(end) > 1
+        rpowern(:, 2) = r;
+        for p = 3 : rpowers(end) + 1
+            rpowern(:, p) = rpowern(:, p - 1) .* r;
+        end
+    end
+    % end of new lines
 end
 
-% new lines
-% rpowern = ones(size(r, 1), rpowers(end) + 1);
-% if rpowers(end) > 1
-%     rpowern(:, 2) = r;
-%     for p = 3 : rpowers(end) + 1
-%         rpowern(:, p) = rpowern(:, p - 1) .* r;
-%     end
-% end
-% rpowern = rpowern(:, rpowers + 1);
-% end of new lines
 
 % Compute the values of the polynomials:
 % --------------------------------------
-z = zeros(length_r,length(n));
-for j = 1:length(n)
-    s = 0:(n(j)-m_abs(j))/2;
-    pows = n(j):-2:m_abs(j);
-    p_sum = zeros(size(rpowers))';                            % <= new line
-    for k = length(s):-1:1
-        p = (1-2*mod(s(k),2))* ...
-            prod(2:(n(j)-s(k)))/              ...
-            prod(2:s(k))/                     ...
-            prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
-            prod(2:((n(j)+m_abs(j))/2-s(k)));
-        idx = (pows(k)==rpowers);
-        p_sum(idx) = p_sum(idx) + p;                            % <= new line
-        % z(:,j) = z(:,j) + p*rpowern(:,idx);                 <= original implementation
+if length_r > 1e5                 % <= original implementation
+    z = zeros(length_r,length(n));
+    for j = 1:length(n)
+        s = 0:(n(j)-m_abs(j))/2;
+        pows = n(j):-2:m_abs(j);
+        for k = length(s):-1:1
+            p = (1-2*mod(s(k),2))* ...
+                prod(2:(n(j)-s(k)))/              ...
+                prod(2:s(k))/                     ...
+                prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
+                prod(2:((n(j)+m_abs(j))/2-s(k)));
+            idx = (pows(k)==rpowers);
+            z(:,j) = z(:,j) + p * rpowern(:,idx);
+        end
+        
+        if isnorm
+            z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
+        end
     end
-    z(:,j) = sum(rpowern * p_sum, 2);                % <= new line
-    
-    if isnorm
-        z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
+else
+    % for small number of points this is faster
+    z = zeros(length_r,length(n));
+    for j = 1:length(n)
+        s = 0:(n(j)-m_abs(j))/2;
+        pows = n(j):-2:m_abs(j);
+        p_sum = zeros(size(rpowers))';
+        for k = length(s):-1:1
+            p = (1-2*mod(s(k),2))* ...
+                prod(2:(n(j)-s(k)))/              ...
+                prod(2:s(k))/                     ...
+                prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
+                prod(2:((n(j)+m_abs(j))/2-s(k)));
+            idx = (pows(k)==rpowers);
+            p_sum(idx) = p_sum(idx) + p;
+        end
+        z(:,j) = sum(rpowern * p_sum, 2);
+        
+        if isnorm
+            z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
+        end
     end
 end
+
 % END: Compute the Zernike Polynomials
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
