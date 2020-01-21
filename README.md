@@ -59,7 +59,7 @@ The **combined and uncombined engines** can both compute Precise Point Positioni
       * [SEID](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#seid)
       * [SID](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#sid)
       * [REMIONO](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#remiono)
-   * [Multi-path management](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#multi-path-management)
+   * [Multipath management](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#multipath-management)
       * [MPTEST](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#mptest)
    * [Other Commands](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#other-commands)
       * [RENAME](https://github.com/goGPS-Project/goGPS_MATLAB/wiki/Command-language#rename)
