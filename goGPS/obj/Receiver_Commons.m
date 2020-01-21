@@ -1032,13 +1032,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
-        function fh_list = showPositionENU(this, flag_one_plot)
+        function fh_list = showPositionENU(this, flag_one_plot, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot);
-            if nargin == 1
+            %   this.plotPositionENU(flag_one_plot, flag_add_coo);
+            if nargin == 1 || isempty(flag_one_plot)
                 flag_one_plot = false;
+            end
+            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
             end
             
             fh_list = [];
@@ -1046,7 +1049,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(xyz, 1) > 1                        
+                    if size(xyz, 1) > 1 || flag_add_coo > 0
                         rec(1).log.addMessage('Plotting positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
@@ -1055,10 +1058,20 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
-                        xyz = rec.getPosXYZ();
+                        if flag_add_coo == 0
+                            xyz = rec.getPosXYZ();
+                            
+                            t = rec.getPositionTime().getMatlabTime();
+                        else
+                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
+                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
+                            if numel(t) < size(xyz,1)
+                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
+                                % This is a problem: times and data should have the same dimension
+                                xyz = xyz(1:numel(t),:);
+                            end
+                        end
                         xyz0 = rec.getMedianPosXYZ();
-                        
-                        t = rec.getPositionTime().getMatlabTime();
                         
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
@@ -1109,23 +1122,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         Core_UI.addBeautifyMenu(f);
                         f.Visible = 'on'; drawnow;
                     else
-                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
+                        rec(1).log.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
                     end
                 end
             end
         end
 
-        function fh_list = showPositionPlanarUp(this)
+        function fh_list = showPositionPlanarUp(this, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
             %   this.plotPositionENU(flag_one_plot);            
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
+            end
             fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(xyz, 1) > 1                        
+                    if size(xyz, 1) > 1 || flag_add_coo > 0                        
                         rec(1).log.addMessage('Plotting positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
@@ -1135,10 +1151,20 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
-                        xyz = rec.getPosXYZ();
+                        if flag_add_coo == 0
+                            xyz = rec.getPosXYZ();
+                            
+                            t = rec.getPositionTime().getMatlabTime();
+                        else
+                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
+                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
+                            if numel(t) < size(xyz,1)
+                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
+                                % This is a problem: times and data should have the same dimension
+                                xyz = xyz(1:numel(t),:);
+                            end
+                        end                        
                         xyz0 = rec.getMedianPosXYZ();
-                        
-                        t = rec.getPositionTime().getMatlabTime();
                         
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
@@ -1212,11 +1238,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
 
-        function fh_list = showPositionXYZ(this, one_plot)
+        function fh_list = showPositionXYZ(this, flag_one_plot, flag_add_coo)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if nargin == 1
-                one_plot = false;
+                flag_one_plot = false;
+            end
+            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
             end
             
             fh_list = [];
@@ -1224,7 +1253,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(xyz, 1) > 1
+                    if size(xyz, 1) > 1 || flag_add_coo > 0
                         rec(1).log.addMessage('Plotting XYZ positions');
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
@@ -1233,30 +1262,40 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
-                        xyz = rec(:).getPosXYZ();
-                        xyz0 = rec(:).getMedianPosXYZ();
-                        
-                        t = rec.getPositionTime().getMatlabTime;
+                        if flag_add_coo == 0
+                            xyz = rec.getPosXYZ();
+                            
+                            t = rec.getPositionTime().getMatlabTime();
+                        else
+                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
+                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
+                            if numel(t) < size(xyz,1)
+                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
+                                % This is a problem: times and data should have the same dimension
+                                xyz = xyz(1:numel(t),:);
+                            end
+                        end
+                        xyz0 = rec.getMedianPosXYZ();
                         
                         x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
                         y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
                         z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
                         
-                        if ~one_plot, subplot(3,1,1); end
+                        if ~flag_one_plot, subplot(3,1,1); end
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                         ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('Position stability of the receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                        if ~one_plot, subplot(3,1,2); end
+                        if ~flag_one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('std %.2f [cm]',sqrt(var(y))),'interpreter', 'none'); h.FontWeight = 'bold';
-                        if ~one_plot, subplot(3,1,3); end
+                        if ~flag_one_plot, subplot(3,1,3); end
                         plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
                         grid on;
-                        if one_plot
+                        if flag_one_plot
                             h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
                         end
                         linkaxes(ax, 'x');                        

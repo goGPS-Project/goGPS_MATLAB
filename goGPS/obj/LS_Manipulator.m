@@ -180,11 +180,11 @@ classdef LS_Manipulator < Exportable
             id_sync = this.setUpSA(rec, sys_list, id_sync, 'L', cut_off, '', dynamic, pos_idx,tropo_idx_vec);
         end
         
-        function id_sync = setUpCodeSatic(this, rec, sys_list, id_sync, cut_off)
+        function id_sync = setUpCodeStatic(this, rec, sys_list, id_sync, cut_off)
             % Init the object for the code static positioning
             %
             % SYNTAX
-            %   id_sync = setUpCodeSatic(this, rec, sys_c, id_sync, <cut_off>)
+            %   id_sync = setUpCodeStatic(this, rec, sys_c, id_sync, <cut_off>)
             if nargin < 5
                 cut_off = [];
             end
@@ -779,6 +779,8 @@ classdef LS_Manipulator < Exportable
                 if isempty(pos_idx_vec)
                     n_coo = n_coo_par;
                 else
+                    pos_idx_vec = pos_idx_vec(id_sync_out);
+                    pos_idx_vec = cumsum([1; diff(pos_idx_vec) > 0]); % make pos_idx_vec progressive
                     n_pos = length(unique(pos_idx_vec));
                     n_coo =  n_pos*3;
                 end

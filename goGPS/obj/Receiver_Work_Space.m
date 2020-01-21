@@ -10560,18 +10560,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     % -------------------- estimate additional coordinate set
                     if this.state.flag_coo_rate
+                        this.add_coo = []; % Empty previously estimated coordinates
                         for i = 1 : 3
                             if this.state.coo_rates(i) ~= 0
-                                pos_idx = [ones(sum(this.time < this.out_start_time),1)];
+                                pos_idx = [ones(sum(this.time.getNominalTime < this.out_start_time),1)];
                                 time_1 = this.out_start_time.getCopy;
                                 time_2 = this.out_start_time.getCopy;
                                 time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2));
                                 for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/this.state.coo_rates(i)) - 1)
-                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time < time_2),1)];
+                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime >= time_1 & this.time.getNominalTime < time_2),1)];
                                     time_1.addSeconds(this.state.coo_rates(i));
                                     time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2) );
                                 end
-                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
+                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime >= this.out_stop_time),1);];
                                 
                                 ls = LS_Manipulator(cc);
                                 id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx);
@@ -10591,12 +10592,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 [x, res, s0]  = ls.solve();
                                 
                                 coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                                
                                 time_coo = this.out_start_time.getCopy;
                                 time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
+                                time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
                                 sub_coo = struct();
                                 sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
                                 sub_coo.time = time_coo.getCopy();
                                 sub_coo.rate = this.state.coo_rates(i);
+                                sub_coo.time.addSeconds(sub_coo.rate / 2);
                                 if isempty(this.add_coo)
                                     this.add_coo = sub_coo;
                                 else
