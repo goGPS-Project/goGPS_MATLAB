@@ -367,6 +367,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       'simple 4 loops', ...
                       '4 loops + remove bad satellites'}
 
+        % Multipath management
+        FLAG_REC_MP_SMODE = {'0: No multipath management', ...
+          '1: Multipath Zernike interpolated maps', ...
+          '2: Multipath stacking maps'}
+        FLAG_REC_MP_LABEL = {'none', ...
+                    'Multipath Zernike interpolated maps',...
+                    'Multipath stacking maps'}
+        FLAG_REC_MP_UI2INI = [0 1 2];     
+                  
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
             '2: Vienna Mapping Function gridded'
@@ -377,7 +386,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             '2: Vienna Mapping Function gridded', ...
             '3: Niell Mapping Function'}
         MF_LABEL = {'GMF','VMF gridded','Niell'}
-        % id to string of meteo dtata
+        % id to string of meteo data
         MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
                        '3: MET file'}
@@ -1324,7 +1333,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
-            str = [str sprintf(' Enable Receiver MULTI-PATH corrections:           %d\n', this.flag_rec_mp)];
+            str = [str sprintf(' Enable Receiver MULTI-PATH corrections:           %d\n', this.FLAG_REC_MP_SMODE{this.flag_rec_mp + 1})];
             str = [str sprintf(' Enable apriori iono correction     :              %d\n', this.flag_apr_iono)];
             str = [str sprintf(' Separate antenna phase center for each GNSS:      %d\n', this.flag_separate_apc)];
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
@@ -1784,6 +1793,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable receiver Zernike based multi-path corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_mp', this.flag_rec_mp, str_cell);
+            for i = 1 : numel(this.FLAG_REC_MP_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.FLAG_REC_MP_SMODE{i}), str_cell);
+            end
             str_cell = Ini_Manager.toIniStringComment('Enable a-priori ', str_cell);
             str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -2732,7 +2744,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_atm_load');
             this.checkLogicalField('flag_hoi');
             this.checkLogicalField('flag_rec_pcv');
-            this.checkLogicalField('flag_rec_mp');
+            this.checkNumericField('flag_rec_mp',[0 numel(this.FLAG_REC_MP_SMODE) -1]);
             this.checkLogicalField('flag_apr_iono');
              
             this.checkLogicalField('flag_coo_rate');

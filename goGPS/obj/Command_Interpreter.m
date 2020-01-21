@@ -76,6 +76,7 @@ classdef Command_Interpreter < handle
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_SID         % SID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
+        CMD_MPEST       % Multipath estimator
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
         CMD_OUTDET      % Outlier and cycle-slip detection
@@ -135,6 +136,8 @@ classdef Command_Interpreter < handle
         PAR_S_MAPL      % positions on map legacy (no borders)
         PAR_S_CK        % Clock Error
         PAR_S_CKW       % Clock Error of the last session
+        PAR_S_MP1       % Multipath maps from Zernike analysis
+        PAR_S_MP2       % Multipath maps from Residuals stacking
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_SNRI      % SNR Signal to Noise Ratio with Zernike interpolation
         PAR_S_OSTAT     % Observation statistics
@@ -173,7 +176,7 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_SNX % Tropo export Parameter sinex format
         PAR_E_TROPO_MAT % Tropo export Parameter mat format
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
-        PAR_E_TROPO_HN % Tropo export Parameter hn format
+        PAR_E_TROPO_HN  % Tropo export Parameter hn format
 
         PAR_E_COO_CRD   % Coordinates in bernese crd format
         PAR_E_XYZ_TXT   % Coordinates XYZ in plain text format
@@ -184,7 +187,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
+        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'MPEST', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -450,6 +453,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_CKW.class = '';
             this.PAR_S_CKW.limits = [];
             this.PAR_S_CKW.accepted_values = [];
+
+            this.PAR_S_MP1.name = 'Multipath map';
+            this.PAR_S_MP1.descr = 'MP1                Zernike interpolated multipath maps stored in the target receiver (polar plot)';
+            this.PAR_S_MP1.par = '(mp1)|(MP1)';
+            this.PAR_S_MP1.class = '';
+            this.PAR_S_MP1.limits = [];
+            this.PAR_S_MP1.accepted_values = [];
+
+            this.PAR_S_MP2.name = 'Multipath map';
+            this.PAR_S_MP2.descr = 'MP2                Multipath stacking maps stored in the target receiver (polar plot)';
+            this.PAR_S_MP2.par = '(mp2)|(MP2)';
+            this.PAR_S_MP2.class = '';
+            this.PAR_S_MP2.limits = [];
+            this.PAR_S_MP2.accepted_values = [];
 
             this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
             this.PAR_S_SNR.descr = 'SNR                Signal to Noise Ratio (polar plot)';
@@ -823,6 +840,11 @@ classdef Command_Interpreter < handle
             this.CMD_REMIONO.rec = 'RT';
             this.CMD_REMIONO.par = [];
             
+            this.CMD_MPEST.name = {'MPEST', 'multipath_est'};
+            this.CMD_MPEST.descr = ['Create a multipath model for the receiver.' new_line 'It requires to previously process the target with the uncombined engine.' new_line 'Uncombined residuals must be in the receiver'];
+            this.CMD_MPEST.rec = 'T';
+            this.CMD_MPEST.par = [];
+
             this.CMD_KEEP.name = {'KEEP'};
             this.CMD_KEEP.descr = ['Keep in the object the data of a certain constallation' new_line 'at a certain rate'];
             this.CMD_KEEP.rec = 'T';
@@ -841,7 +863,12 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW', 'show'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK this.PAR_S_SNR this.PAR_S_SNRI this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD  this.PAR_S_TGRAD];
+            this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM ...
+                this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK ...
+                this.PAR_S_MP1 this.PAR_S_MP2 this.PAR_S_SNR this.PAR_S_SNRI ...
+                this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY ...
+                this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
+                this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD this.PAR_S_TGRAD];
 
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
@@ -1186,8 +1213,8 @@ classdef Command_Interpreter < handle
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
                                         for c = 1 : numel(cmd_list_loop)
-                                            % substitute ÿ with the current session
-                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
+                                            % substitute ï¿½ with the current session
+                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ï¿½', num2str(s));
                                         end
                                         this.exec(core, cmd_list_loop, level(id_list(1)));
                                         
@@ -1307,9 +1334,11 @@ classdef Command_Interpreter < handle
                                         case this.CMD_SEID.name                 % SEID
                                             this.runSEID(core.rec, tok(2:end));
                                         case this.CMD_SID.name                  % SID
-                                            this.runSID(core.rec, tok(2:end));
+                                            this.runSID(core.rec, tok(2:end));                                        
                                         case this.CMD_REMIONO.name              % REMIONO
                                             this.runRemIono(core.rec, tok(2:end));
+                                        case this.CMD_MPEST.name                % CMD_MPEST
+                                            this.runMPEst(core.rec, tok(2:end));
                                         case this.CMD_SYNC.name                 % SYNC
                                             this.runSync(core.rec, tok(2:end));
                                         case this.CMD_OUTDET.name               % OUTDET
@@ -2039,6 +2068,30 @@ classdef Command_Interpreter < handle
             end
         end
         
+        function runMPEst(this, rec, tok)
+            % Execute MultiPAth estimation
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runMPEst(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Multipath estimation for %d: %s', id_trg, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
+                    
+                    rec(r).updateMultiPath();
+                end
+            end
+        end
+        
         function runKeep(this, rec, tok)
             % Filter Receiver data
             %
@@ -2298,6 +2351,14 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showDt()]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MP1.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
+                                fh_list = [fh_list; trg.showMultiPathModel(1)]; %#ok<AGROW>
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MP2.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
+                                fh_list = [fh_list; trg.showMultiPathModel(2)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
