@@ -6335,7 +6335,7 @@ classdef Receiver < Exportable
             if nargin < 4
                 num_reweight = 0;
             end
-            ls.setUpCodeSatic( this, id_sync, cut_off);
+            ls.setUpCodeStatic( this, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
             

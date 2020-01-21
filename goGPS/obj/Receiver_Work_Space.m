@@ -9309,7 +9309,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 4 || isempty(cut_off)
                 cut_off = this.state.getCutOff();
             end
-            ls.setUpCodeSatic( this, sys_list, id_sync, cut_off);
+            ls.setUpCodeStatic( this, sys_list, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s0] = ls.solve();
 
