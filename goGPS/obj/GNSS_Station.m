@@ -3254,7 +3254,7 @@ classdef GNSS_Station < handle
             end
         end
 
-        function fh_list = showPositionENU(sta_list, one_plot)
+        function fh_list = showPositionENU(sta_list, one_plot, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
@@ -3263,25 +3263,34 @@ classdef GNSS_Station < handle
                 one_plot = false;
             end
 
+            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
+            end
+            
             fh_list = [];
             for r = 1 : length(sta_list)
                 rec = sta_list(r).out;
                 if ~rec.isEmpty()
-                    fh_list = [fh_list; rec.showPositionENU(one_plot)]; %#ok<AGROW>
+                    fh_list = [fh_list; rec.showPositionENU(one_plot, flag_add_coo)]; %#ok<AGROW>
                 end
             end
         end
 
-        function fh_list = showPositionPlanarUp(sta_list)
+        function fh_list = showPositionPlanarUp(sta_list, flag_add_coo)
             % Plot Planar and Up coordinates of the receiver
             %
             % SYNTAX 
             %   this.showPositionPlanarUp();
+            
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
+            end
+            
             fh_list = [];
             for r = 1 : length(sta_list)
                 rec = sta_list(r).out;
                 if ~rec.isEmpty()
-                    fh_list = [fh_list; rec.showPositionPlanarUp()]; %#ok<AGROW>
+                    fh_list = [fh_list; rec.showPositionPlanarUp(flag_add_coo)]; %#ok<AGROW>
                 end
             end
         end
@@ -3292,11 +3301,15 @@ classdef GNSS_Station < handle
             if nargin == 1
                 one_plot = false;
             end
+            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
+            end
+            
             fh_list = [];
             for r = 1 : length(sta_list)
                 rec = sta_list(r).out;
                 if ~isempty(rec)
-                    fh_list = [fh_list; rec.showPositionXYZ(one_plot)]; %#ok<AGROW>
+                    fh_list = [fh_list; rec.showPositionXYZ(one_plot, flag_add_coo)]; %#ok<AGROW>
                 end
             end
         end
@@ -5241,7 +5254,7 @@ classdef GNSS_Station < handle
                 id_ko = id_ko(rec_ok);
             end
             
-            flag_ok = false; for i = 1 : numel(tropo); flag_ok = flag_ok || any(tropo{i}); end;
+            flag_ok = false; for i = 1 : numel(tropo); flag_ok = flag_ok || any(tropo{i}); end
             
             if numel(sta_list) == 0 || ~flag_ok
                 log = Core.getLogger();
@@ -5310,6 +5323,7 @@ classdef GNSS_Station < handle
                     Core_UI.beautifyFig(f);
                     Core_UI.addExportMenu(f);
                     Core_UI.addBeautifyMenu(f);
+                    drawnow;
                     e = 0;
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
@@ -5368,8 +5382,13 @@ classdef GNSS_Station < handle
                         dlim(1) = max(0, dlim(1) - 0.03 *dspan);
                     end
                     dlim(2) = dlim(2) + 0.03 * dspan;
-                    xlim(tlim);
-                    ylim(dlim);
+                    try
+                        xlim(tlim);
+                        ylim(dlim);
+                    catch ex
+                        Core_Utils.printEx(ex);
+                        keyboard
+                    end
 
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
