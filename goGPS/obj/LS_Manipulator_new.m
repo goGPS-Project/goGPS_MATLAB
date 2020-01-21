@@ -79,7 +79,7 @@ classdef LS_Manipulator_new < handle
         PAR_SAT_CLK_PR = 28;
         
         
-        CLASS_NAME = {'REC_X', 'REC_Y', 'REC_Z', 'REC_EB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'TROPO_V', 'SAT_CLK', 'ANT_MP', 'IONO', 'TROPO_S', 'SAT_X', 'SAT_Y', 'SAT_Z', 'SAT_EB', 'REC_EB_LIN', 'REC_PPB', 'SAT_PPB', 'REC_EBFR', 'SAT_EBFR'};
+        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR'};
     end
     
     properties
@@ -391,7 +391,7 @@ classdef LS_Manipulator_new < handle
                         A(lines_stream, par_rec_eb_lid) = 1/100;
                     end
                     if par_rec_ebfr
-                        A(lines_stream, par_rec_ebfr_lid) = 1;
+                        A(lines_stream, par_rec_ebfr_lid) = 1/100;
                     end
                     if par_rec_ppb && phase_s(s)
                         A(lines_stream, par_rec_ppb_lid) = 1;
@@ -403,7 +403,7 @@ classdef LS_Manipulator_new < handle
                         A(lines_stream, par_sat_eb_lid) = 1/100;
                     end
                     if par_sat_ebfr
-                        A(lines_stream, par_sat_ebfr_lid) = 1;
+                        A(lines_stream, par_sat_ebfr_lid) = 1/100;
                     end
                     if par_sat_ppb && phase_s(s)
                         A(lines_stream, par_sat_ppb_lid) = 1;
@@ -1177,42 +1177,78 @@ classdef LS_Manipulator_new < handle
             this.idx_rd = []; %empty previous par choosen to solve the rank deficency
             idx_rm = [];
             u_ep = unique(this.time_par);
+            
+             % remove ones bias per satellite
+
+             
+             if sum(this.param_class == this.PAR_SAT_EBFR) > 0
+                 idx_sat_ebfr = find(this.class_par == this.PAR_SAT_EBFR);
+                 for s = this.unique_sat_goid
+                     idx_par = idx_sat_ebfr(this.sat_par(idx_sat_ebfr) == s);
+                     wl_par = this.wl_id_par(idx_par);
+                     u_wl_par = unique(wl_par);
+                     if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
+                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
+                     end
+                     if sum(this.param_class == this.PAR_IONO) > 0
+                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                     end
+                 end
+                 if sum(this.param_class == this.PAR_SAT_EB) > 0
+                     idx_sat_eb = find(this.class_par == this.PAR_SAT_EB);
+                     for s = this.unique_sat_goid
+                         idx_par = idx_sat_eb(this.sat_par(idx_sat_eb) == s & this.phase_par(idx_sat_eb) == 0);
+                         wl_par = this.wl_id_par(idx_par);
+                         oi_apr = this.obs_codes_id_par(idx_par);
+                         u_wl_par = unique(wl_par);
+                         for w = u_wl_par'
+                               idx_par_wl = idx_par(wl_apr == w);
+                               idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                         end
+                     end
+                 end
+             end
+             
+             
+             
+            
+            
           
-                        % remove one clock per epoch
-                        if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
-                            idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
-                            time_par_tmp = this.time_par(idx_rec_par,1);
-                            for e = u_ep'
-                                idx_par = idx_rec_par(time_par_tmp == e);
-                                if length(idx_par)>1
-                                    [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                                    idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
-                                end
-                            end
-                        end
-                        if sum(this.param_class == this.PAR_REC_CLK_PH) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
-                            idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PH  & ~this.out_par);
-                            time_par_tmp = this.time_par(idx_rec_par,1);
-                            for e = u_ep'
-                                idx_par = idx_rec_par(time_par_tmp == e);
-                                if length(idx_par)>1
-                                    [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                                    idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
-                                end
-                            end
-                        end
-                        if sum(this.param_class == this.PAR_REC_CLK_PR) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
-                            idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PR  & ~this.out_par);
-                            time_par_tmp = this.time_par(idx_rec_par,1);
-                            for e = u_ep'
-                                idx_par = idx_rec_par(time_par_tmp == e);
-                                if length(idx_par)>1
-                                    [~,idx_rm_rm] = min(this.rec_par(idx_par));
-                                    idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
-                                end
-                            end
-                        end
-                        
+            % remove one clock per epoch
+            if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
+                for e = u_ep'
+                    idx_par = idx_rec_par(time_par_tmp == e);
+                    if length(idx_par)>1
+                        [~,idx_rm_rm] = min(this.rec_par(idx_par));
+                        idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
+                    end
+                end
+            end
+            if sum(this.param_class == this.PAR_REC_CLK_PH) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PH  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
+                for e = u_ep'
+                    idx_par = idx_rec_par(time_par_tmp == e);
+                    if length(idx_par)>1
+                        [~,idx_rm_rm] = min(this.rec_par(idx_par));
+                        idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
+                    end
+                end
+            end
+            if sum(this.param_class == this.PAR_REC_CLK_PR) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PR  & ~this.out_par);
+                time_par_tmp = this.time_par(idx_rec_par,1);
+                for e = u_ep'
+                    idx_par = idx_rec_par(time_par_tmp == e);
+                    if length(idx_par)>1
+                        [~,idx_rm_rm] = min(this.rec_par(idx_par));
+                        idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
+                    end
+                end
+            end
+            
              
             
             if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0 
@@ -1720,6 +1756,7 @@ classdef LS_Manipulator_new < handle
             end
             
             % ------- fix the ambiguities
+            c_p = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
             ldl_strategy = false;
             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
@@ -1835,14 +1872,32 @@ classdef LS_Manipulator_new < handle
                             N_amb_amb = N(idx_amb, idx_amb) - N(idx_amb,~idx_amb )*BB(:,1:(end-1));
                             B_amb_amb = B(idx_amb) - N(idx_amb,~idx_amb )*BB(:,end);
                         else
-                            [U,D,V] = svds(N(~idx_amb, ~idx_amb),sum(~idx_amb));
+                            idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR 
+                            c_p2 = c_p(~idx_bias);
+                            [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                             d = diag(D);
-                            tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(diag(D),inf));
-                            keep_id = d > (tol);
-                            C_bb = U(:,keep_id) * inv(D(keep_id,keep_id)) * V(:,keep_id)';
-                            BB = full(N(idx_amb,~idx_amb ))*C_bb;
-                            N_amb_amb = N(idx_amb, idx_amb) - sparse(BB*full(N(~idx_amb, idx_amb)));
-                            B_amb_amb = B(idx_amb) -  BB*B(~idx_amb);
+                            tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
+                            [~,idx_min] = min(diff(log10(d(d<tol))));
+                            last_valid = find(d < tol,1,'first') + idx_min -1;
+                            keep_id = 1:sum(idx_bias) < last_valid;
+                            pinvB = U(:, keep_id) * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * V(:, keep_id)';
+                            BB = full(N(~idx_bias ,idx_bias))*pinvB;
+                            N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*full(N(idx_bias, ~idx_bias)));
+                            B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                            
+                            idx_amb = c_p2 == this.PAR_AMB;
+                            
+                            [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
+                                                        d = diag(D);
+                            tol = eps(norm(d,inf));
+                            miscl = abs(sum(U.*V)-1);
+                            last_valid = find(miscl > 1e-3 | d' < tol ,1,'first');
+
+                            keep_id = 1:sum(~idx_amb) < last_valid;
+                            C_bb = U(:, keep_id) * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * V(:, keep_id)';
+                            BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
+                            N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*full(N_ap_ap(~idx_amb, idx_amb)));
+                            B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
                         end
                         
                         
@@ -1850,16 +1905,23 @@ classdef LS_Manipulator_new < handle
                         [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial' );
                         ambs = zeros(sum(idx_amb),1);
                         ambs(idx_amb_est) = amb_fixed(:,1);
-
-                        B(~idx_amb) = B(~idx_amb) - N(~idx_amb,idx_amb)*ambs;
-                         if cod_avail
-                             BB = cod_fact\[N(~idx_amb, idx_amb) B(~idx_amb)];
-                         else
-                        not_ambs = C_bb*B(~idx_amb);
-                         end
+                        
+                        B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
                         x_reduced = zeros(size(N,1),1);
-                        x_reduced(~idx_amb) = not_ambs;
-                        x_reduced(idx_amb) = ambs;
+                        if cod_avail
+                            BB = cod_fact\[N(~idx_amb, idx_amb) B(~idx_amb)];
+                        else
+                            phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
+                            phys_par_amb(idx_amb) = ambs;
+                            x_reduced(~idx_bias) = phys_par_amb;
+                            B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
+                            x_reduced(idx_bias) = pinvB*B(idx_bias);
+                            
+                        end
+                     
+%                         idx_amb_tot = c_p ~= this.PAR_AMB;
+%                         x_reduced(c_p ~= this.PAR_AMB) = not_ambs;
+%                         x_reduced(~idx_amb_tot) = ambs;
 
                     end
             else
@@ -2400,7 +2462,7 @@ classdef LS_Manipulator_new < handle
                 
             end
             this.bondParamsGenerateIdx(parametrization);
-            this.absValRegularization(this.PAR_IONO, 1e4);
+            %this.absValRegularization(this.PAR_IONO, 1e4);
         end
         
         function [time_st, time_end] = getTimePar(this, idx)
@@ -2601,6 +2663,8 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %  [Caa,a_hat] = LS_manipulator_new.getEstimableAmb(N,B)
            
+            N = N -(N -N')/2;  %force sysmmetry
+            
             [L,D,P] = ldl(N);
              if nargin < 3
                 tol = max(size(N)) * sqrt(eps(norm(diag(D),inf)));

@@ -129,7 +129,7 @@ classdef LS_Parametrization < handle
         rec_ppb_opt;
         sat_eb_opt = struct('rule',1);
         sat_ppb_opt;
-        sat_ebfr_opt = struct('rule',1,'spline_rate',900);
+        sat_ebfr_opt = struct('rule',1,'spline_rate',3600);
 
 
         rec_eb_opt_lin = struct('rule',1);
