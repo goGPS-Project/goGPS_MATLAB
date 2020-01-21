@@ -436,10 +436,40 @@ classdef Core_Utils < handle
                 x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
             end
         end
-               
+            
+        function id_ok = polarCleaner(az, el, data, step_deg)
+            % Remove observations above 3 sigma 
+            %
+            % SYNTAX
+            %   id_ok = Core_Utils.polarCleaner(az, el, data, step_deg)
+            
+            % az -180 : 180
+            % el 0 : 90
+            az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+            el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
+            n_az = numel(az_grid);
+            n_el = numel(el_grid);
+            
+            % Find map indexes
+            col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
+            row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+            
+            uid = row + (col-1) * numel(el_grid);
+            id_ok = true(size(data));
+            for b = unique(uid)'
+                id_set = find(uid == b);
+                dset = data(id_set);
+                sigma = std(dset);
+                id_ok(id_set(abs(dset) > 3 * sigma)) = false;
+            end
+        end
         
         function [data_map, n_map, az_grid, el_grid] = polarGridder(az, el, data, step_deg, step_deg_out)
             % Grid points on a regularly gridded semi sphere
+            %
+            % INPUT 
+            %   az      azimuth
+            %   el      elevation
             %
             % SYNTAX
             %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg)

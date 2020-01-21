@@ -8417,7 +8417,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ant_mp_bk = ant_mp;
                 try
                     % Get the satellite systems available in the zerniche multipath struct
-                    sys_c_list = cell2mat(fields(ant_mp)');
+                    sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
                     for sys_c = sys_c_list
                         if isfield(this.ant_mp, sys_c)
                             % This constellation is already present into the applied Zernike MultiPath set of coefficients
@@ -8451,7 +8451,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 is_empty = true;
                 if ~isempty(ant_mp)
                     % for each constellation
-                    sys_c_list = cell2mat(fields(ant_mp)');
+                    sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
                     for sys_c = sys_c_list
                         % for each tracking
                         trk_list = fields(ant_mp.(sys_c))';
@@ -8538,8 +8538,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             cc = state.getConstellationCollector;
             
             % Get the satellite systems available in the zerniche multipath struct
-            sys_c_list = cell2mat(fields(ant_mp)');
-            
+            sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
+
             log = Core.getLogger;
             
             if isempty(this.obs)

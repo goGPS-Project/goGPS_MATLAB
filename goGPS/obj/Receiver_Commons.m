@@ -1881,12 +1881,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             log.addMessage(log.indent(sprintf('1. preparing data for %s %s', sys_c, trk_ok(t,:)), 9));
                             az_all = [];
                             el_all = [];
-                            res_all = [];
+                            res_all = cur_res(~isnan(zero2nan(cur_res(:))));
+                            res_smt = Receiver_Commons.smoothMat(cur_res, 'spline', 300/this.getTime.getRate);
+                            res_smt = res_smt(~isnan(zero2nan(cur_res(:))));                            
+                            % az and el must be retrieved satellite by satellite
                             for s = 1 : sum(cur_res_id)
                                 id_ok = find(~isnan(zero2nan(cur_res(:, s))));
                                 if any(id_ok)
                                     data_found = true;
-                                    res_all = [res_all; cur_res(id_ok, s)];
                                     
                                     go_id = cc.getIndex(sys_c, prn(s));
                                     az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
@@ -1894,13 +1896,23 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                             
+                            id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]) & Core_Utils.polarCleaner(az_all, el_all, res_smt, [360, 1]);
+                            log.addMessage(log.indent(sprintf('2. Outlier rejection (%.3f%%)', (sum(~id_ok) / numel(id_ok)) * 100), 9));
+                            if flag_debug
+                                figure; plot(el_all(id_ok)/pi*180, res_all(id_ok), '.'); hold on; plot(el_all(~id_ok)/pi*180, res_all(~id_ok), 'o');
+                                id_ok = id_ok + 1;
+                            end
+                            clear res_smt;
+                            
+                            % 3 sigma filter per latitude
+                            id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]); 
                             if flag_reg
-                                log.addMessage(log.indent('2. preparing regularization', 9));
+                                log.addMessage(log.indent('3. preparing regularization', 9));
                                 % Get regularization points based on empty sky areas
-                                [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 1);
+                                [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, [1.5 1]);
                                 [az_grid, el_grid] = meshgrid(az_grid, el_grid);
-                                az_reg = az_grid(n_data_map == 0);
-                                el_reg = el_grid(n_data_map == 0);
+                                az_reg = az_grid(n_data_map <= 0);
+                                el_reg = el_grid(n_data_map <= 0);
                                 
                                 [~, z_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 0.5);
                                 az_all = [az_all; az_reg];
@@ -1918,22 +1930,23 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                             end
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/2)', 2 + flag_reg*1, l_max), 9));
+                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/2)', 3 + flag_reg*1, l_max), 9));
                             %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
                             
                             % Use two
                             mapElevation1 = @(el) pi/2*(1-cos(el));
                             mapElevation2 = @(el) pi/2*(1-cos(pi/2*(1-cos(el))));
                             res_work = res_all;
+                            
                             [res_filt, z_par1, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation1(el_all), res_work, 1e-5);
                             res_work = res_work - res_filt;
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/2)', 3 + flag_reg*1, l_max), 9));
+                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/2)', 4 + flag_reg*1, l_max), 9));
                             %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
                             [z_par2, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, mapElevation2(el_all), res_work, 1e-5);
 
                             % Generate maps
-                            log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 4 + flag_reg*1), 9));
+                            log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 5 + flag_reg*1), 9));
                             [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid);
                             [z_map1] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation1(el_mgrid), z_par1);
                             [z_map2] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation2(el_mgrid), z_par2);
@@ -1977,6 +1990,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         end
                     end
                 end
+                ant_mp.time_lim = this.time.getEpoch([1 this.time.length]);                
             end
         end
 
@@ -2102,8 +2116,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 %subplot(ax1);                                
                             end
                         else                            
-                            id_ok = ~isnan(zero2nan(res_tmp));
-                            [gData, wGrid] = simpleGridder.go(this.sat.el(id_ok).*deg2rad, (this.sat.az(id_ok)+180).*deg2rad, scale * res_tmp(id_ok), 1);
                             for s = 1 : sum(cur_res_id)
                                 id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
                                 if any(id_ok)

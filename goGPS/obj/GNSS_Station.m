@@ -996,7 +996,12 @@ classdef GNSS_Station < handle
                 if ~isempty(date)
                     try
                         [date, id_sort] = sort(date);
-                        [~, id_min] = min(abs(date - this.getTime.getCentralTime.getMatlabTime));
+                        if isempty(this.work) || isempty(this.work.getTime)
+                            sss_center = core.state.sss_date_start.getMatlabTime + core.state.sss_duration/86400 * (core.getCurrentSession -0.5);
+                        else
+                            sss_center = this.work.getTime.getCentralTime.getMatlabTime;
+                        end
+                        [~, id_min] = min(abs(date - sss_center));
                         closer_fid = idf(id_sort(id_min));
                         file_name = fullfile(out_dir, file_info(closer_fid).name);
                         log.addMarkedMessage(sprintf('%s - Importing Multipath mitigation model from "%s"',  this.getMarkerName4Ch, file_name));
