@@ -699,6 +699,13 @@ classdef Command_Interpreter < handle
             this.PAR_E_REC_RIN.limits = [];
             this.PAR_E_REC_RIN.accepted_values = {};
 
+            this.PAR_E_MP.name = 'Multipath map';
+            this.PAR_E_MP.descr = 'MP                 Export the multipath maps stored in the GNSS_Station object.';
+            this.PAR_E_MP.par = '(mp)|(MP)';
+            this.PAR_E_MP.class = '';
+            this.PAR_E_MP.limits = [];
+            this.PAR_E_MP.accepted_values = {} ;
+
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
             this.PAR_E_TROPO_SNX.descr = 'TRP_SNX            Tropo parameters as SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
@@ -878,7 +885,7 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
-            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_COO_CRD this.PAR_E_XYZ_TXT this.PAR_E_ENU_TXT  this.PAR_E_GEO_TXT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
+            this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_MP this.PAR_E_COO_CRD this.PAR_E_XYZ_TXT this.PAR_E_ENU_TXT  this.PAR_E_GEO_TXT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -2653,6 +2660,9 @@ classdef Command_Interpreter < handle
                                             end
                                         end
                                         rec(r).out.exportTropoSINEX(export_par);
+                                        not_exported = false;                                        
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_MP.par ')*$'], 'once'))
+                                        rec(r).exportMultiPath();
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                         if rec(r).out.isEmpty
