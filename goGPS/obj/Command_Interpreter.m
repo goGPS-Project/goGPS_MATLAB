@@ -173,6 +173,7 @@ classdef Command_Interpreter < handle
         PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
         PAR_E_REC_MAT   % Receiver export parameter MATLAB format
         PAR_E_REC_RIN   % Receiver export parameter RINEX format
+        PAR_E_MP        % Multipath export parameter MATLAB format
         PAR_E_TROPO_SNX % Tropo export Parameter sinex format
         PAR_E_TROPO_MAT % Tropo export Parameter mat format
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
