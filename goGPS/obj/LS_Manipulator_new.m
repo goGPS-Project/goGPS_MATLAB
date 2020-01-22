@@ -548,7 +548,7 @@ classdef LS_Manipulator_new < handle
             i_p_o = 1;
             while i_p <= length(this.param_class)
                 has_not_expanded = true;
-                col_incr = 0;
+                col_incr = 1;
                 p = this.param_class(i_p);
                 [parametriz, opt] = ls_parametrization.getParametrization(p);
                 % ----------------- defining receiver sets ---------
@@ -947,7 +947,7 @@ classdef LS_Manipulator_new < handle
                                         end
                                     end
                                     cumulative_idx = cumulative_idx + n_prg_id;
-                                    col_incr = max(col_incr,length(cols_tmp));
+                                    col_incr = max(col_incr, length(cols_tmp));
                                 end
                             end
                         end
@@ -2319,7 +2319,6 @@ classdef LS_Manipulator_new < handle
             end
             this.unique_time = rec_work.time;
             this.bondParamsGenerateIdx(parametrization);
-            
         end
         
         function setUpPPP(this, rec_work, sys_list, id_sync, param_selction, parametrization)
