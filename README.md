@@ -1,5 +1,4 @@
-# goGPS 1.0 Open Edition
-![goGPS](https://github.com/goGPS-Project/goGPS_graphics/blob/master/logo/PNGs/goGPS_logo_128.png?raw=true)
+# ![goGPS](https://github.com/goGPS-Project/goGPS_graphics/blob/master/logo/PNGs/goGPS_logo_128.png?raw=true) goGPS 1.0 Open Edition
 
 _Welcome to the goGPS wiki pages, here we will try to write useful information for users and developers._
 
