@@ -516,7 +516,8 @@ classdef GNSS_Station < handle
                                         % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
                                         rec.ant_mp.(sysy_c).(trk{1}) = ant_mp.(sysy_c).(trk{1});
                                     else
-                                        rec.ant_mp.(sys_c).(trk{1}).z_par = rec.ant_mp.(sys_c).(trk{1}).z_par + ant_mp.(sys_c).(trk{1}).z_par;
+                                        rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).z_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).g_map;
                                     end
                                 end
                             end
@@ -4768,12 +4769,12 @@ classdef GNSS_Station < handle
                             trk_list = fields(ant_mp.(sys_c))';
                             for trk = trk_list
                                 if isfield(ant_mp.(sys_c), trk{1})
-                                    az_grid = ant_mp.(sys_c).(trk{1}).az_grid;
-                                    el_grid = ant_mp.(sys_c).(trk{1}).el_grid;
+                                    az_grid = double(ant_mp.(sys_c).(trk{1}).az_grid);
+                                    el_grid = double(ant_mp.(sys_c).(trk{1}).el_grid);
                                     if type == 2 % Map from simple gridding
-                                        map = ant_mp.(sys_c).(trk{1}).g_map;
+                                        map = double(ant_mp.(sys_c).(trk{1}).g_map);
                                     else % Zenike model
-                                        map = ant_mp.(sys_c).(trk{1}).z_map;
+                                        map = double(ant_mp.(sys_c).(trk{1}).z_map);
                                     end
                                     fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk{1}, iif(type==2, 'RAW ', '')); fh.NumberTitle = 'off';
                                     polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(map)); 

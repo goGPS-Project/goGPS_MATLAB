@@ -1591,208 +1591,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end            
         end        
-                        
-        function ant_mp = computeZernikeMultiPathTest(this, type, l_max, flag_mask_reg)
-            % Get Zernike multi pth coefficients
-            %
-            % INPUT
-            %   type    can be:
-            %            'pr'   -> Uncombined pseudo-ranges residuals
-            %            'ph'   -> Uncombined carrier-phase residuals
-            %   l_max   maximum degree for of the Zernike polynomials
-            %
-            % SYNTAX
-            %   this.computeZernikeMultiPath(type, l_max, flag_mask_reg)
-            
-            flag_debug = false;
-            if nargin < 3 || isempty(l_max)
-                l_max = 47;
-            end
-            
-            if nargin < 4 || isempty(flag_mask_reg)
-                flag_mask_reg = true;
-            end
-            
-            deg2rad = pi/180;
-            
-            cc = Core.getState.getConstellationCollector;
-            state = Core.getCurrentSettings;
-            sys_c_list = cc.getAvailableSys;
-            if nargin < 2 || isempty(type)
-                type = 'ph';
-            end
-            
-            if type(2) == 'r'
-                res = this.sat.res_pr_by_pr;
-            else
-                res = this.sat.res_ph_by_ph;
-            end
-            
-            if type(2) == 'r'
-                name = 'Uncombined pseudo-ranges residuals';
-                id_obs = this.obs_code(:,1) == 'C';
-            else
-                name = 'Uncombined carrier-phase residuals';
-                id_obs = this.obs_code(:,1) == 'L';
-            end
-            
-            id_obs = find(id_obs);
-            
-            log = Core.getLogger;
-            log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', this.parent.getMarkerName));
-            ant_mp = struct();
-            if isempty(res)
-                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
-            else
-                ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);
-                % for each satellite system
-                for sys_c = ss_ok
-                    id_obs_sys = id_obs(this.system(id_obs) == sys_c);
-                    trk_ok = Core_Utils.unique2ch(this.obs_code(id_obs_sys,1:2));
-                    % for each tracking
-                    for t = 1 : size(trk_ok, 1)
-                        cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2));
-                        [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));
-                                                                                                
-                        data_found = false;
-
-                        cur_res = res(:, cur_res_id);
-                        %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
-                        
-                        % Zernike filter
-                        m_max = l_max;
-                        
-                        az_all = [];
-                        el_all = [];
-                        res_all = [];
-                        for s = 1 : sum(cur_res_id)
-                            id_ok = find(~isnan(zero2nan(cur_res(:, s))));
-                            if any(id_ok)
-                                data_found = true;
-                                res_all = [res_all; cur_res(id_ok, s)];
                                 
-                                go_id = cc.getIndex(sys_c, prn(s));
-                                az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
-                                el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
-                            end
-                        end
-                        if data_found
-                            %%
-                            reortho = false;
-                            if ~reortho
-                                mapElevation = @(el) el;
-                                if flag_mask_reg
-                                    % Regularize solution adding zero observations outside the mask of observations:
-                                    [lon, lat] = this.getGeodCoord();
-                                    for i = 3 : 2 : (90 - cc.getSys(sys_c).ORBITAL_INC)
-                                        [mask_north, mask_south] = cc.getSys(sys_c).getPolarMask(lat/180*pi, lon/180*pi, i);
-                                        az_all = [az_all; mask_north(:,1)];
-                                        el_all = [el_all; mask_north(:,2)];
-                                        res_all = [res_all; zeros(size(mask_north(:,1)))];
-                                        az_all = [az_all; mask_south(:,1)];
-                                        el_all = [el_all; mask_south(:,2)];
-                                        res_all = [res_all; zeros(size(mask_south(:,1)))];
-                                    end
-                                    for i = 0 : 0.5 : (Core.getState.getCutOff - 3)
-                                        az_all = [az_all; (-pi : 0.01 : pi)'];
-                                        el_all = [el_all; i/180*pi + (-pi : 0.01 : pi)'*0];
-                                        res_all = [res_all; (-pi : 0.01 : pi)'*0];
-                                    end
-                                end
-                                log.addMessage(log.indent(sprintf(' - Zernike expansion of %s%s residuals', sys_c, trk_ok(t,:))));
-                                
-                                [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, mapElevation(el_all), res_all, 1e-5);
-                                
-                                if flag_debug                                    
-                                    %%
-                                    
-                                    s=1;
-                                    res_tmp = cur_res(:, s);
-                                    id_ok = find(~isnan(zero2nan(cur_res(:, s))));
-                                    go_id = cc.getIndex(sys_c, prn(s));
-                                    az = this.sat.az(id_ok, go_id) .* deg2rad;
-                                    el = this.sat.el(id_ok, go_id) .* deg2rad;                                    
-                                    
-                                    tic;
-                                    z_interp1 = 0;
-                                    z_interp2 = 0;
-                                    z_interp3 = 0;
-                                    
-                                    figure; clf;
-                                    plotSep(mod((1:size(res_tmp,1))*30, 86150), Receiver_Commons.smoothMat(res_tmp * 1e3, 'spline', 10),'.-'); hold on; drawnow;
-                                    [z_interp1] = Core_Utils.zSinthesys(l, m, az, mapElevation1(el), z_par1);
-                                    res_tmp(id_ok) = z_interp1;
-                                    if n_map > 1
-                                        plotSep(mod((1:size(res_tmp,1))*30, 86150), Receiver_Commons.smoothMat(res_tmp * 1e3, 'spline', 10),'.-'); drawnow;
-                                        
-                                        [z_interp2] = Core_Utils.zSinthesys(l, m, az, mapElevation2(el), z_par2);
-                                        res_tmp(id_ok) = z_interp1 + z_interp2;
-                                    end
-                                    if n_map > 2
-                                        plotSep(mod((1:size(res_tmp,1))*30, 86150), Receiver_Commons.smoothMat(res_tmp * 1e3, 'spline', 10),'.-'); drawnow;
-                                        
-                                        [z_interp3] = Core_Utils.zSinthesys(l, m, az, mapElevation3(el), z_par2);
-                                        res_tmp(id_ok) = z_interp1 + z_interp2 + z_interp3;
-                                    end
-                                    plotSep(mod((1:size(res_tmp,1))*30, 86150), Receiver_Commons.smoothMat(res_tmp * 1e3, 'spline', 10),'.-'); drawnow;                                    
-                                    toc
-                                    
-                                    figure;
-                                    res_tmp(id_ok) = cur_res(id_ok, s) - (z_interp1 + z_interp2 + z_interp3);
-                                    plotSep(mod((1:size(res_tmp,1))*30, 86150), res_tmp * 1e3,'.-'); drawnow;
-                                    title(1e3 * std(res_tmp(id_ok)))
-                                    %%
-                                    figure; clf;
-                                    mapElevation = @(el) el;
-                                    l_max = 41;
-                                    %m_max = m_max;
-                                    
-                                    ss_rate = 1;
-                                    s = 3;
-                                    res_tmp = cur_res(:, s);
-                                    [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(1:ss_rate:end), mapElevation(el_all(1:ss_rate:end)), res_all(1:ss_rate:end), 1e-5);
-
-                                    plotSep(mod((1:size(res_tmp(1:ss_rate:end),1))*30*ss_rate, 86150), Receiver_Commons.smoothMat(res_tmp(1:ss_rate:end) * 1e3, 'spline', 10),'.-')
-                                    %plotSep(mod((1:size(res_tmp,1))*30, 86150), res_tmp * 1e3)
-                                    
-                                    id_ok = find(~isnan(zero2nan(cur_res(:, s))));
-                                    go_id = cc.getIndex(sys_c, prn(s));
-                                    az = this.sat.az(id_ok, go_id) .* deg2rad;
-                                    el = this.sat.el(id_ok, go_id) .* deg2rad;                                    
-                                    [z_interp] = Core_Utils.zSinthesys(l, m, az, mapElevation(el), z_par);
-                                    
-                                    res_tmp(id_ok) = z_interp;
-                                    hold on; plotSep(mod((1:size(res_tmp(1:ss_rate:end),1))*30*ss_rate, 86150), Receiver_Commons.smoothMat(res_tmp(1:ss_rate:end) * 1e3, 'spline', 10), 'LineWidth', 2);
-                                    Core_Utils.showZernike(l, m, z_par*1e3); drawnow; colormap((Cmap.get('PuOr', 2^11))); caxis([-10 10])
-                                end
-                            else
-                                [lon, lat] = this.getGeodCoord();
-                                S = Core_Utils.reorthZernikeMask(lat/180*pi, lon/180*pi,state.getCutOff/180*pi);
-                                [z_par, l, m] = Core_Utils.zroAnalisysAll(l_max, m_max, az_all, el_all, res_all, S);
-                            end
-                            if ~isfield(ant_mp, sys_c)
-                                ant_mp.(sys_c) = struct;
-                            end
-                            if ~isfield(ant_mp.(sys_c), trk_ok(t,:))
-                                ant_mp.(sys_c).(trk_ok(t,:)) = struct;
-                            end
-                            ant_mp.(sys_c).(trk_ok(t,:)).z_par = z_par;
-                            ant_mp.(sys_c).(trk_ok(t,:)).l = l;
-                            ant_mp.(sys_c).(trk_ok(t,:)).m = m;
-                            % DEBUG 
-                            Core_Utils.showZernike(l, m, z_par * 1e3); colorbar; colormap((Cmap.get('PuOr', 2^11))); fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
-                            % DEBUG 
-                            title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                        end
-                        if ~data_found
-                            log = Core.getLogger;
-                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
-                        end
-                    end
-                end
-            end
-        end
-        
         function ant_mp = computeMultiPath(this, type, l_max, flag_reg)
             % Get Zernike multi pth coefficients
             %
@@ -1896,20 +1695,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                             
+                            % Remove outliers
                             id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]) & Core_Utils.polarCleaner(az_all, el_all, res_smt, [360, 1]);
                             log.addMessage(log.indent(sprintf('2. Outlier rejection (%.3f%%)', (sum(~id_ok) / numel(id_ok)) * 100), 9));
                             if flag_debug
-                                figure; plot(el_all(id_ok)/pi*180, res_all(id_ok), '.'); hold on; plot(el_all(~id_ok)/pi*180, res_all(~id_ok), 'o');
-                                id_ok = id_ok + 1;
+                                figure; plot(el_all/pi*180, res_all*1e3, '.'); hold on; plot(el_all(~id_ok)/pi*180, res_all(~id_ok)*1e3, 'o');
+                                legend('residuals', 'outliers');
+                                title((sprintf('Residuals of  %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+                                grid on;
                             end
                             clear res_smt;
+                            az_all = az_all(id_ok);
+                            el_all = el_all(id_ok);
+                            res_all = res_all(id_ok);
+                            n_obs = numel(res_all);
                             
                             % 3 sigma filter per latitude
-                            id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]); 
                             if flag_reg
-                                log.addMessage(log.indent('3. preparing regularization', 9));
+                                log.addMessage(log.indent('3. Preparing regularization', 9));
                                 % Get regularization points based on empty sky areas
-                                [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, [1.5 1]);
+                                [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, [1 1]);
                                 [az_grid, el_grid] = meshgrid(az_grid, el_grid);
                                 az_reg = az_grid(n_data_map <= 0);
                                 el_reg = el_grid(n_data_map <= 0);
@@ -1943,7 +1748,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             
                             log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/2)', 4 + flag_reg*1, l_max), 9));
                             %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
-                            [z_par2, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az_all, mapElevation2(el_all), res_work, 1e-5);
+                            [res_filt, z_par2, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation2(el_all), res_work, 1e-5);
+                            res_work = res_work - res_filt;
 
                             % Generate maps
                             log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 5 + flag_reg*1), 9));
@@ -1951,17 +1757,31 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             [z_map1] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation1(el_mgrid), z_par1);
                             [z_map2] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation2(el_mgrid), z_par2);
                             z_map = z_map1 + z_map2;
-                            [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, Receiver_Commons.smoothMat(res_all, 'spline', 10), [4 1], grid_step);
+                            res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
+                            [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, [4 1], grid_step);
                             
                             if flag_debug
                                 %figure; imagesc(1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                                                            
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map1)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Zernike expansion (1) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Zernike expansion (2) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
                                 %zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([z_map(:,end) z_map z_map(:,1)])', 'linear');                                
                                 %[g_map, n_map, az_grid_tmp, el_grid_tmp] = Core_Utils.polarGridder(az_all, el_all, zmap2scatter(az_all, el_all), [5 1]);
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Gridder residuals of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+                                                            
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
+                                [tmp] = Core_Utils.polarGridder(az_all, el_all, res_all, [4 1], grid_step);
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(tmp)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
                             end
                             
                             if ~isfield(ant_mp, sys_c)
@@ -1973,16 +1793,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             % Keep multiple solutions in the struct
                             % decide a-posteriori what it's better
                             
-                            % Save simple gridded residuals
-                            ant_mp.(sys_c).(trk_ok(t,:)).az_grid = az_grid;
-                            ant_mp.(sys_c).(trk_ok(t,:)).el_grid = el_grid;
-                            ant_mp.(sys_c).(trk_ok(t,:)).g_map = g_map;
-                            % Save Zernike map
-                            ant_mp.(sys_c).(trk_ok(t,:)).z_map = z_map;
+                            % Save grids of multi-path
+                            ant_mp.(sys_c).(trk_ok(t,:)).az_grid = single(az_grid);
+                            ant_mp.(sys_c).(trk_ok(t,:)).el_grid = single(el_grid);
+                            ant_mp.(sys_c).(trk_ok(t,:)).z_map = single(z_map);             % Zernike math
+                            ant_mp.(sys_c).(trk_ok(t,:)).g_map = single(z_map + g_map);     % Second gridding step
                             % Save Zernike coefficients
-                            ant_mp.(sys_c).(trk_ok(t,:)).z_par = [z_par1 z_par2];
-                            ant_mp.(sys_c).(trk_ok(t,:)).l = l;
-                            ant_mp.(sys_c).(trk_ok(t,:)).m = m;
+                            %ant_mp.(sys_c).(trk_ok(t,:)).z_par = [z_par1 z_par2];
+                            %ant_mp.(sys_c).(trk_ok(t,:)).l = l;
+                            %ant_mp.(sys_c).(trk_ok(t,:)).m = m;
                         end
                         if ~data_found
                             log = Core.getLogger;

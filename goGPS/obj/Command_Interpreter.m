@@ -209,7 +209,6 @@ classdef Command_Interpreter < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Command_Interpreter(varargin)
             % Core object creator
-            this.log = Logger.getInstance();
             this.init(varargin{1});
         end
     end
@@ -917,7 +916,7 @@ classdef Command_Interpreter < handle
             this.CMD_REMOBS.par = [];
 
             this.CMD_REMTMP.name = {'REMTMP', 'remtmp'};
-            this.CMD_REMTMP.descr = ['Remove data used during computation but no more necessary to push the results out'];
+            this.CMD_REMTMP.descr = 'Remove data used during computation but no more necessary to push the results out';
             this.CMD_REMTMP.rec = 'T';
             this.CMD_REMTMP.key = '';
             this.CMD_REMTMP.par = [];
@@ -1121,6 +1120,7 @@ classdef Command_Interpreter < handle
             % SYNTAX:
             %   this.exec(rec, core, cmd_list)
             
+            log = Core.getLogger;
             ex_number = 0;
             ex_list = {};
             if nargin < 3
@@ -1136,7 +1136,6 @@ classdef Command_Interpreter < handle
             
             t0 = tic();
              try
-                cur_session = core.getCurrentSession;
                 [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
                 level = level + level_add;
                 % for each command
@@ -1146,10 +1145,10 @@ classdef Command_Interpreter < handle
                     
                     tok = regexp(cmd_list{l},'[^ ]*', 'match'); % get command tokens
                     
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
                     t1 = tic;
-                    this.log.simpleSeparator([], [0.4 0.4 0.4]);
+                    log.simpleSeparator([], [0.4 0.4 0.4]);
                     
                     % Init parallel controller when a parallel section is found
                     skip_line = false;
@@ -1166,7 +1165,7 @@ classdef Command_Interpreter < handle
                                 end
                                 this.core.activateParallelWorkers(flag_par_target, id_pass);
                             else
-                                this.log.addWarning('A parallel section have been requested\n but no targets or sessions are specified');
+                                log.addWarning('A parallel section have been requested\n but no targets or sessions are specified');
                             end
                             % For loop -------------------------------------------------------------------------------------------------------------
                         case this.KEY_FOR.name
@@ -1238,7 +1237,7 @@ classdef Command_Interpreter < handle
                                 l = id_list(end);
                                 skip_line = true;
                             else
-                                this.log.addWarning('A loop section have been requested\n but no targets or sessions are specified');
+                                log.addWarning('A loop section have been requested\n but no targets or sessions are specified');
                             end
                         otherwise
                             flag_par_target = false;
@@ -1252,7 +1251,7 @@ classdef Command_Interpreter < handle
                             gom = Parallel_Manager.getInstance;
                             n_workers = gom.getNumWorkers;
                             if n_workers == 0
-                                this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');
+                                log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');
                             end
                         end
                         % go parallel
@@ -1354,7 +1353,7 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                             catch ex
-                                this.log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+                                log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
                                 Core_Utils.printEx(ex);
                                 ex_number = ex_number + 1;
                                 ex_list{end + 1} = ex;
@@ -1363,21 +1362,21 @@ classdef Command_Interpreter < handle
                     end
                 end
             catch ex
-                this.log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
+                log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
                 Core_Utils.printEx(ex);
                 ex_number = ex_number + 1;
                 ex_list{end + 1} = ex;
             end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
-                this.log.smallSeparator()
-                this.log.addMessage(this.log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
-                this.log.smallSeparator()
-                this.log.newLine();
+                log.smallSeparator()
+                log.addMessage(log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
+                log.smallSeparator()
+                log.newLine();
             end
             if ex_number > 0
-                this.log.addError(sprintf('%d exceptions have been cought :-(', ex_number));
+                log.addError(sprintf('%d exceptions have been cought :-(', ex_number));
             end
-            this.log.simpleSeparator([], [0.4 0.4 0.4]);
+            log.simpleSeparator([], [0.4 0.4 0.4]);
         end
     end
     %
@@ -1413,9 +1412,11 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.load(rec)
             
+            log = Core.getLogger();
+            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 state = Core.getState();
@@ -1423,10 +1424,10 @@ classdef Command_Interpreter < handle
                     sys_list = state.cc.getActiveSysChar;
                 end
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                     if ~found
                         rate = []; % get the rate of the RINEX
@@ -1438,7 +1439,7 @@ classdef Command_Interpreter < handle
                     else
                         [session_limits, out_limits] = state.getSessionLimits(cur_session);
                         if out_limits.length < 2 || ~this.core.rin_list(r).hasObsInSession(out_limits.first, out_limits.last)
-                            this.log.addWarning(sprintf('No observations are available for receiver %s in the interval of the session %d\n - %s\n - %s', rec(r).getMarkerName4Ch, cur_session, out_limits.first.toString, out_limits.last.toString));
+                            log.addWarning(sprintf('No observations are available for receiver %s in the interval of the session %d\n - %s\n - %s', rec(r).getMarkerName4Ch, cur_session, out_limits.first.toString, out_limits.last.toString));
                         else
                             rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate, sys_list);
                             rec(r).work.loaded_session = cur_session;
@@ -1458,21 +1459,22 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.load(rec)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             elseif numel(tok) < 2
-                this.log.addWarning('No name defined for rename');
+                log.addWarning('No name defined for rename');
             else
                 for t = 2 : numel(tok) - 1
                     tok{t} = [tok{t} ' '];
                 end
                 name = [tok{2:end}];
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Renaming receiver %d: %s to %s', r, rec(r).getMarkerName(), tok{2}));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Renaming receiver %d: %s to %s', r, rec(r).getMarkerName(), tok{2}));
+                    log.smallSeparator();
+                    log.newLine();
                     rec(r).setMarkerName(name);
                 end
             end
@@ -1486,16 +1488,17 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runEmpty(rec, tok)
-            
+                        
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     rec(r).resetOut();
                     rec(r).work.resetWorkSpace();
                 end
@@ -1511,15 +1514,16 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runEmptyWork(rec)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Empty the receiver work-space %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Empty the receiver work-space %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     rec(r).resetWork();
                 end
             end
@@ -1534,15 +1538,16 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runEmptyOut(rec)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Empty the receiver output %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Empty the receiver output %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     rec(r).resetOut();
                 end
             end
@@ -1558,19 +1563,20 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runPrePro(rec, tok)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
-                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, pre-processing is not possible.', r, rec(r).getMarkerName()));
+                        log.addError(sprintf('Receiver %d: %s seems to be empty, pre-processing is not possible.', r, rec(r).getMarkerName()));
                     else
-                        this.log.newLine();
-                        this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
-                        this.log.smallSeparator();
-                        this.log.newLine();
+                        log.newLine();
+                        log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
+                        log.smallSeparator();
+                        log.newLine();
                         if sys_found
                             rec(r).work.preProcessing(sys_list);
                         else
@@ -1592,9 +1598,9 @@ classdef Command_Interpreter < handle
             %   this.runFixPos(rec, tok)
             
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
-            
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 
                 mode = 'work'; % Take the position from work
@@ -1616,7 +1622,7 @@ classdef Command_Interpreter < handle
                         try
                             rec(r).fixPos(mode);
                         catch ex
-                            this.log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
+                            log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
                             Core_Utils.printEx(ex);
                         end
                     end
@@ -1625,7 +1631,7 @@ classdef Command_Interpreter < handle
                         try
                             rec(r).unFixPos();
                         catch ex
-                            this.log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
+                            log.addError(sprintf('Command "FIX" failed on receiver %d - "%s"', ex.message, r, rec(r).getMarkerName()));
                             Core_Utils.printEx(ex);
                         end
                     end
@@ -1644,16 +1650,17 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runUpdateAzEl(rec, tok)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Computing azimuth and elevation for receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Computing azimuth and elevation for receiver %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     if rec(r).isEmpty
                         if sys_found
                             state = Core.getCurrentSettings();
@@ -1677,9 +1684,10 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runUpdateAzEl(rec, tok)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for i = 1 : length(id_trg)
                     rec(id_trg(i)).work.pushResult();
@@ -1697,16 +1705,17 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.basicPP(rec, tok)
             
+            log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     %if rec(r).isEmpty
                     %    if sys_found
                     %        state = Core.getCurrentSettings();
@@ -1715,7 +1724,7 @@ classdef Command_Interpreter < handle
                     %    rec(r).load();
                     %end
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
-                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, basic positioning is not possible.', r, rec(r).getMarkerName()));
+                        log.addError(sprintf('Receiver %d: %s seems to be empty, basic positioning is not possible.', r, rec(r).getMarkerName()));
                     else
                         if sys_found
                             rec(r).work.computeBasicPosition(sys_list);
@@ -1737,8 +1746,9 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runPPP(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 
@@ -1752,21 +1762,21 @@ classdef Command_Interpreter < handle
                 
                 for r = id_trg
                     if rec(r).work.loaded_session ~=  this.core.getCurSession()
-                        this.log.addError(sprintf('Receiver %d: %s seems to be empty, PPP is not possible.', r, rec(r).getMarkerName()));
+                        log.addError(sprintf('Receiver %d: %s seems to be empty, PPP is not possible.', r, rec(r).getMarkerName()));
                     elseif ~rec(r).work.isPreProcessed
-                        this.log.addError(sprintf('Receiver %d: %s has not been pre-processed, PPP is not possible.', r, rec(r).getMarkerName()));
+                        log.addError(sprintf('Receiver %d: %s has not been pre-processed, PPP is not possible.', r, rec(r).getMarkerName()));
                     else
                         if rec(r).work.isStatic
-                            this.log.newLine();
-                            this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
-                            this.log.smallSeparator();
-                            this.log.newLine();
+                            log.newLine();
+                            log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
+                            log.smallSeparator();
+                            log.newLine();
                             if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
-                                this.log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
+                                log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                             else
                                 try
                                     if flag_uncombined
-                                        this.log.addWarning('Uncombined engine enabled');
+                                        log.addWarning('Uncombined engine enabled');
                                         if sys_found
                                             rec(r).work.staticPPPNew(sys_list);
                                         else
@@ -1780,12 +1790,12 @@ classdef Command_Interpreter < handle
                                         end
                                     end
                                 catch ex
-                                    this.log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+                                    log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
                                     Core_Utils.printEx(ex);
                                 end
                             end
                         else
-                            this.log.addError('PPP for moving receiver not yet implemented :-(');
+                            log.addError('PPP for moving receiver not yet implemented :-(');
                         end
                     end
                 end
@@ -1806,8 +1816,9 @@ classdef Command_Interpreter < handle
             %             if true
             %                 rec(id_trg).netPrePro();
             %             end
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
@@ -1816,7 +1827,7 @@ classdef Command_Interpreter < handle
                 end
                 [id_ref] = intersect(id_trg, id_ref);
                 if isempty(id_ref)
-                    this.log.addWarning('No reference have been found, using the mean of the receiver for the computation');
+                    log.addWarning('No reference have been found, using the mean of the receiver for the computation');
                 end
                 net = this.core.getNetwork(id_trg, rec);
                 net.reset();
@@ -1852,13 +1863,13 @@ classdef Command_Interpreter < handle
                 end
                  try
                     if flag_uncombined
-                        this.log.addWarning('Uncombined engine enabled');
+                        log.addWarning('Uncombined engine enabled');
                         net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
                     else
                         net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
                     end
                 catch ex
-                    this.log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+                    log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
                     Core_Utils.printEx(ex);
                 end
                 for t = 1 : numel(tok)
@@ -1880,8 +1891,9 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runRemSat(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 s_idx = 2;
                 for r = id_trg
@@ -1906,7 +1918,8 @@ classdef Command_Interpreter < handle
             %   this.runRemObs(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log = Core.getLogger;
+                log.addWarning('No target found -> nothing to do');
             else
                 s_idx = 2;
                 for r = id_trg
@@ -1932,8 +1945,9 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runRemTmp(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
                     if ~isempty(rec(r)) && ~(rec(r).isEmptyWork_mr)
@@ -1973,17 +1987,18 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runCodePP(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     if sys_found
                         rec(r).work.initPositioning(sys_list);
                     else
@@ -2003,8 +2018,9 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runSEID(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found => nothing to do');
+                log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 
@@ -2017,7 +2033,7 @@ classdef Command_Interpreter < handle
                 end
                 
                 if ~found_ref
-                    this.log.addWarning('No reference SEID station found -> nothing to do');
+                    log.addWarning('No reference SEID station found -> nothing to do');
                 else
                     if flag_use_plane
                         tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'plane'); toc;
@@ -2041,13 +2057,14 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runSID(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found => nothing to do');
+                log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 
                 if ~found_ref
-                    this.log.addWarning('No reference SID station found -> nothing to do');
+                    log.addWarning('No reference SID station found -> nothing to do');
                 else
                     tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg), 'ls', false); toc;
                 end
@@ -2064,12 +2081,13 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runSEID(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found => nothing to do');
+                log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 if ~found_ref
-                    this.log.addWarning('No reference SEID station found -> nothing to do');
+                    log.addWarning('No reference SEID station found -> nothing to do');
                 else
                     tic; Core_SEID.remIono(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
                 end
@@ -2086,14 +2104,15 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runMPEst(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Multipath estimation for %d: %s', id_trg, rec(r).getMarkerName()));
-                    this.log.smallSeparator();
-                    this.log.newLine();
+                    log.newLine();
+                    log.addMarkedMessage(sprintf('Multipath estimation for %d: %s', id_trg, rec(r).getMarkerName()));
+                    log.smallSeparator();
+                    log.newLine();
                     
                     rec(r).updateMultiPath();
                 end
@@ -2110,13 +2129,14 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runKeep(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).parent.getMarkerName()));
+                        log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).parent.getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
@@ -2126,7 +2146,7 @@ classdef Command_Interpreter < handle
                 [snr_thr, found] = this.getNumericPar(tok, this.PAR_SNRTHR.par);
                 if found
                     for r = id_trg
-                        % this.log.addMarkedMessage(sprintf('Keeping obs with SNR (L1) above %d dbHZ for receiver %d: %s', snr_thr, r, rec(r).getMarkerName()));
+                        % log.addMarkedMessage(sprintf('Keeping obs with SNR (L1) above %d dbHZ for receiver %d: %s', snr_thr, r, rec(r).getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
@@ -2136,7 +2156,7 @@ classdef Command_Interpreter < handle
                 [cut_off, found] = this.getNumericPar(tok, this.PAR_CUTOFF.par);
                 if found
                     for r = id_trg
-                        % this.log.addMarkedMessage(sprintf('Keeping obs with elevation above %.1f for receiver %d: %s', cut_off, r, rec(r).getMarkerName()));
+                        % log.addMarkedMessage(sprintf('Keeping obs with elevation above %.1f for receiver %d: %s', cut_off, r, rec(r).getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
@@ -2146,7 +2166,7 @@ classdef Command_Interpreter < handle
                 [sys_list, found] = this.getConstellation(tok);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).parent.getMarkerName()));
+                        log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).parent.getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
@@ -2166,11 +2186,12 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runOutDet(rec)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
+                    log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
                     rec(r).work.updateDetectOutlierMarkCycleSlip();
                 end
             end
@@ -2186,8 +2207,9 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runKeep(rec, tok)
             [~, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            log = Core.getLogger;
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 [rate, found] = this.getRate(tok);
                 if found
@@ -2209,6 +2231,7 @@ classdef Command_Interpreter < handle
             %   this.runShow(rec, tok, level)
                         
             fh_list = [];
+            log = Core.getLogger;
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
             end
@@ -2216,7 +2239,7 @@ classdef Command_Interpreter < handle
             [sys_list, sys_found] = this.getConstellation(tok);
             show_ok = 0;
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 for t = 1 : numel(tok) % global for all target
                     try
@@ -2319,7 +2342,7 @@ classdef Command_Interpreter < handle
                         end
                     catch ex
                         Core_Utils.printEx(ex);
-                        this.log.addError(sprintf('%s',ex.message));
+                        log.addError(sprintf('%s',ex.message));
                     end
                 end
                 
@@ -2502,6 +2525,7 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runValidation(rec, tok, level)
                         
+            log = Core.getLogger;
             fh_list = [];
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
@@ -2510,7 +2534,7 @@ classdef Command_Interpreter < handle
             [sys_list, sys_found] = this.getConstellation(tok);
             vld_ok = 0;
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                log.addWarning('No target found -> nothing to do');
             else
                 trg = rec(id_trg);
 
@@ -2532,7 +2556,7 @@ classdef Command_Interpreter < handle
                         end
                     catch ex
                         Core_Utils.printEx(ex);
-                        this.log.addError(sprintf('%s',ex.message));
+                        log.addError(sprintf('%s',ex.message));
                     end
                 end                
             end
@@ -2589,6 +2613,7 @@ classdef Command_Interpreter < handle
                 sss_lev = 0;
             end
             
+            log = Core.getLogger;
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             do_not_complain = false;
             flag_crd  = 0;
@@ -2626,15 +2651,15 @@ classdef Command_Interpreter < handle
             end
             if ~found_trg
                 if ~do_not_complain
-                    this.log.addWarning('No target found -> nothing to do');
+                    log.addWarning('No target found -> nothing to do');
                 end
             else
                 for r = id_trg % different for each target
                     if ~flag_crd || (numel(tok) - flag_crd) > 2
-                        this.log.newLine();
-                        this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
-                        this.log.smallSeparator();
-                        this.log.newLine();
+                        log.newLine();
+                        log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
+                        log.smallSeparator();
+                        log.newLine();
                     end
                     not_exported = ~flag_crd;
                     for t = 1 : numel(tok)
@@ -2702,11 +2727,11 @@ classdef Command_Interpreter < handle
                             
                         catch ex
                             Core_Utils.printEx(ex);
-                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+                            log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
                         end
                     end
                     if not_exported
-                        this.log.addWarning('Unrecognized export parameter')
+                        log.addWarning('Unrecognized export parameter')
                     end
                 end
             end
@@ -2943,6 +2968,7 @@ classdef Command_Interpreter < handle
             if nargout > 3
                 state = Core.getCurrentSettings();
             end
+            log = Core.getLogger;
             % remove empty lines
             for c = length(cmd_list) : -1 : 1
                 if isempty(cmd_list{c})
@@ -3024,11 +3050,11 @@ classdef Command_Interpreter < handle
                 
                 if err_list(c) > 0
                     if ~isempty(cmd_list{c}) && (cmd_list{c}(1) ~= '#')
-                        this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
+                        log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                     end
                 end
                 if err_list(c) < 0 && err_list(c) > -100
-                    this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
+                    log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
                 execution_block(c) = eb_counter;
                 if ~isempty(cmd)

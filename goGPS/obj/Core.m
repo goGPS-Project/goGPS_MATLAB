@@ -125,7 +125,7 @@ classdef Core < handle
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance(force_clean, skip_init, ini_file_path)
+        function this = getInstance(force_clean, skip_init, ini)
             % Get the persistent instance of the class
             %
             % INPUT
@@ -168,8 +168,8 @@ classdef Core < handle
                     unique_instance_core__ = this;
 
                     if ~skip_init
-                        if nargin == 3 && ~isempty(ini_file_path) && exist(ini_file_path, 'file')
-                            this.init(force_clean, ini_file_path);
+                        if nargin == 3 && ~isempty(ini) && exist(ini, 'file')
+                            this.init(force_clean, ini);
                         else
                             this.init(force_clean);
                         end
@@ -179,9 +179,9 @@ classdef Core < handle
                 else
                     this = unique_instance_core__;
                     if ~skip_init
-                        if nargin == 3 && ~isempty(ini_file_path) && ...
-                            (isa(ini_file_path,'Main_Settings') || exist(ini_file_path, 'file'))
-                            this.init(force_clean, ini_file_path);
+                        if nargin == 3 && ~isempty(ini) && ...
+                            (isa(ini,'Main_Settings') || exist(ini, 'file'))
+                            this.init(force_clean, ini);
                         else
                             this.init(force_clean);
                         end
@@ -672,7 +672,7 @@ classdef Core < handle
     %% METHODS INIT
     % ==================================================================================================================================================
     methods        
-        function init(this, force_clean, ini_file_path)
+        function init(this, force_clean, ini)
             % Get instances for:
             %   - Settings
             %   - Wait_Bar
@@ -692,11 +692,11 @@ classdef Core < handle
             
             this.log.setColorMode(true);   
             
-            if nargin == 3 && ~isempty(ini_file_path)
-                if isa(ini_file_path,'Main_Settings')
-                    this.state  = Main_Settings(ini_file_path);
+            if nargin == 3 && ~isempty(ini)
+                if isa(ini,'Main_Settings')
+                    this.state  = Main_Settings(ini);
                 else
-                    this.state = Main_Settings(ini_file_path);
+                    this.state = Main_Settings(ini);
                 end
             else
                 this.state = Main_Settings();

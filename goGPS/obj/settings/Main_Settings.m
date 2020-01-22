@@ -233,7 +233,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
-        FLAG_REC_MP = false;                            % Flag to enable receiver multi-path corrections
+        FLAG_REC_MP = false;                            % Flag to enable receiver multipath corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
         FLAG_SEPARATE_APC = false;                      % Flag to enable different phase center for each system
@@ -370,10 +370,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Multipath management
         FLAG_REC_MP_SMODE = {'0: No multipath management', ...
           '1: Multipath Zernike interpolated maps', ...
-          '2: Multipath stacking maps'}
+          '2: (1) + stacking maps'}
         FLAG_REC_MP_LABEL = {'none', ...
                     'Multipath Zernike interpolated maps',...
-                    'Multipath stacking maps'}
+                    '(1) + stacking maps'}
         FLAG_REC_MP_UI2INI = [0 1 2];     
                   
         % id to string of tropospheric models
@@ -526,7 +526,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         atx_dir = Main_Settings.ATX_DIR;    % Location of the antex file
         atx_name = Main_Settings.ATX_NAME;  % Location of the antex file
         
-        mp_dir = Main_Settings.MP_DIR;      % Location of the Zernike multi-path filess
+        mp_dir = Main_Settings.MP_DIR;      % Location of the Zernike multipath filess
 
         %------------------------------------------------------------------
         % REFERENCE
@@ -1020,7 +1020,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % PROJECT
                 this.prj_name   = state.prj_name;
                 this.prj_home   = state.prj_home;
-                %this.cur_ini   = settings.cur_ini;
+                this.cur_ini    = state.cur_ini;
 
                 % SESSION
                 this.sss_date_start = state.sss_date_start;
@@ -1163,7 +1163,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.spline_tropo_order = state.spline_tropo_order;
                 this.spline_tropo_gradient_order = state.spline_tropo_gradient_order;
                 
-                 this.tropo_spatial_reg_sigma = state.tropo_spatial_reg_sigma;
+                this.tropo_spatial_reg_sigma = state.tropo_spatial_reg_sigma;
                 this.tropo_spatial_reg_d_distance = state.tropo_spatial_reg_d_distance;
                 this.tropo_gradient_spatial_reg_sigma = state.tropo_gradient_spatial_reg_sigma;
                 this.tropo_gradient_spatial_reg_d_distance = state.tropo_gradient_spatial_reg_d_distance;
@@ -1280,7 +1280,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', fnp.getRelDirPath(this.atx_dir))];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
-            str = [str sprintf(' Directory of zernike multi-path (MP) files        %s \n\n', fnp.getRelDirPath(this.mp_dir))];
+            str = [str sprintf(' Directory of zernike multipath (MP) files         %s \n\n', fnp.getRelDirPath(this.mp_dir))];
 
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
@@ -1297,7 +1297,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_phase)];
             str = [str sprintf(' Default STD of iono-free phase observations [m]:  %g\n', this.std_phase_if)];
             str = [str sprintf(' Default STD of a priori receiver clock:           %g\n', this.sigma0_clock)];
-            str = [str sprintf(' Default STD of receiver clock:                    %g\n', this.sigma0_r_clock)];
+            str = [str sprintf(' Default STD of receiver clock:                    %g\n\n', this.sigma0_r_clock)];
 
             str = [str '---- DATA SELECTION ------------------------------------------------------' 10 10];
             str = this.cc.toString(str);
@@ -1316,9 +1316,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
-            str = [str sprintf(' Enable phase tracking combination                 %d\n', this.flag_combine_trk)];
+            str = [str sprintf(' Enable phase tracking combination                 %d\n\n', this.flag_combine_trk)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
-            str = [str sprintf(' PPP Using rewight/snooping: %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
+            str = [str sprintf(' PPP Using rewight/snooping:                       %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable for single frequency receiverrs:       %d\n\n', this.flag_ppp_force_single_freq)];
             str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];            
             str = [str sprintf(' NET Using rewight/snooping:                       %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
@@ -1333,8 +1333,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
-            str = [str sprintf(' Enable Receiver MULTI-PATH corrections:           %d\n', this.FLAG_REC_MP_SMODE{this.flag_rec_mp + 1})];
-            str = [str sprintf(' Enable apriori iono correction     :              %d\n', this.flag_apr_iono)];
+            str = [str sprintf(' Enable Receiver multipath corrections:            %s\n', this.FLAG_REC_MP_SMODE{this.flag_rec_mp + 1})];
+            str = [str sprintf(' Enable apriori iono correction:                   %d\n\n', this.flag_apr_iono)];
             str = [str sprintf(' Separate antenna phase center for each GNSS:      %d\n', this.flag_separate_apc)];
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
             
@@ -1366,7 +1366,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Spatial reg. ztd gardients halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
             str = this.toString@Command_Settings(str);
             
-            str = [str '\n---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
+            str = [str 10 '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
             str = [str sprintf(' Keep Dt                                           %d\n', this.flag_out_dt)];
             str = [str sprintf(' Keep PWV                                          %d\n', this.flag_out_pwv)];
             str = [str sprintf(' Keep ZWD                                          %d\n', this.flag_out_zwd)];
@@ -1604,7 +1604,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Directory of Zernike multi-path coefficients (MP) files', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Zernike multipath coefficients (MP) files', str_cell);
             str_cell = Ini_Manager.toIniString('mp_dir', fnp.getRelDirPath(this.mp_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
@@ -1791,7 +1791,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_hoi', this.flag_hoi, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable receiver pcv corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Enable receiver Zernike based multi-path corrections', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Enable receiver Zernike based multipath corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_mp', this.flag_rec_mp, str_cell);
             for i = 1 : numel(this.FLAG_REC_MP_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.FLAG_REC_MP_SMODE{i}), str_cell);
@@ -4563,7 +4563,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end   
         
         function is_rec_mp = isRecMP(this)
-            % Check whether the receiver multi-path correction is enabled
+            % Check whether the receiver multipath correction is enabled
             %
             % SYNTAX
             %   is_rec_mp= isRecMP(this)
