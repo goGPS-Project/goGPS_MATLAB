@@ -1842,6 +1842,12 @@ classdef Core < handle
             %   install_dir = Core.getInstallDir()
             [install_dir, name, ext] = fileparts(which('goGPS'));
         end
+        
+        function playAlert()
+            % Warning at the end of a job! (Play a sound)
+            load handel;
+            sound(y(1:16000),Fs);
+        end
     end
 
 end
