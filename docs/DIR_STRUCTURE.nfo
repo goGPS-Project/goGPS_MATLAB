@@ -20,7 +20,8 @@ goGPS_MATLAB
     └─ DATA
         │
         ├─ Antenna
-        │   └─ ATX                     // ANTEX file
+        │   ├─ ATX                     // ANTEX file
+        │   └─ MP                      // Multipath maps
         │
         ├─ Satellite
         │   ├─ CLK                     // clk files
@@ -56,8 +57,9 @@ goGPS_MATLAB
                 ├─ < Ref_path >        // <opt> reference paths
                 │
                 ├─ < Antenna >         // <opt> use the global dir if not present
-                │   └─ < ATX >         // <opt> use the global dir if not present
-                │       └─ < custom >  // <opt> put custom .ATX here
+                │   ├─ < ATX >         // <opt> use the global dir if not present
+                │   │   └─ < custom >  // <opt> put custom .ATX here
+                │   └─ <MP>           // Multipath maps
                 │
                 ├─ < Stations >        // <opt> use the global dir if not present
                 │   ├─ < CRD >         // <opt> use the global dir if not present
