@@ -9080,27 +9080,34 @@ classdef Receiver_Work_Space < Receiver_Commons
                            median_res = median(pr_res, 2, 'omitnan');
                            id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters
                            too_many_flags = sum(id_ko | isnan(median_res)) / numel(id_ko) > 0.8;
-                           if any(id_ko(:))
-                               log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
+                           thr_multiplier = 1;
+                           if sum(id_ko(~isnan(median_res))) / sum(~isnan(median_res)) > 0.95
+                               log.addWarning(sprintf('Ephemeris seems bad :-(', sum(id_ko(:))));
+                               thr_multiplier = 2; % It's ok even if the data seems bad
+                               id_ko = false(size(pr));                               
+                           else
+                               if any(id_ko(:))
+                                   log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
+                               end
+                               %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
+                               id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
+                               n_out = sum(id_ko(:)) ;
+                               pr_res(id_ko) = nan;
                            end
-                           %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
-                           id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
-                           n_out = sum(id_ko(:)) ;
-                           pr_res(id_ko) = nan;
                            
                            % sensor = Core_Utils.diffAndPred(pr_res);
                            sensor = pr_res;
                            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10, 5); % flag above 6 meters
+                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10*thr_multiplier, 5*thr_multiplier); % flag above 6 meters
                            if any(id_ko(:))
                                n_out = sum(id_ko(:)) ;
                            end
                            pr(id_ko) = nan;
-                           if any(pr(:)) && ~too_many_flags % I've flagged less than 80% of data
+                           if (sum(id_ko(:)) / sum(~isnan(pr(:)))) < 0.5 % I've flagged less than 50% of data                              
                                this.setPseudoRanges(pr, id_pr);
                                log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
-
-                           elseif n_out > 0 
+                           end
+                           if too_many_flags && n_out > 0
                                % No data are present                               
                                % The good position was not so good
                                log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
