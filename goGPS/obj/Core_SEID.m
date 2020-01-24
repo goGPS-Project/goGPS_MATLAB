@@ -49,14 +49,12 @@ classdef Core_SEID < handle
     end
 
     properties % Public Access
-        log;
         state;
     end
 
     methods (Static)
         function this = Core_SEID()
             % Core object creator
-            this.log = Logger.getInstance();
             this.state = Core.getState();
         end      
     end
@@ -113,7 +111,7 @@ classdef Core_SEID < handle
                 if ~strcmp(method, 'ls')
                     [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
                 end
-                log = Logger.getInstance();
+                log = Core.getLogger();
                
                 % get synced time
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
@@ -470,7 +468,7 @@ classdef Core_SEID < handle
                 [rec, ref, obs_type] = Core_SEID.removeRecWithFewObs(ref,rec,obs_type);
                 
                 [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 
                 log.addMarkedMessage('Starting REMIONO processing')
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
@@ -715,7 +713,7 @@ classdef Core_SEID < handle
             %
             % SYNTAX:
             %   [rec,ref] = removeRecWithFewObs(ref,rec)
-            log = Logger.getInstance();
+            log = Core.getLogger();
             n_ep = zeros(numel(ref),1);
             for i = 1 : numel(ref)
                 n_ep(i) = rec(i).time.length * rec(i).time.getRate;
