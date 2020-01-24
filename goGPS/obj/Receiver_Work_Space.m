@@ -8847,7 +8847,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
                     end
                     
-                    ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
+                    ddt_pr = nan2zero(Core_Utils.diffAndPred(dt_pr_dj));
                     
                     if (max(abs(time_desync)) > 1e-4)
                         % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
