@@ -2157,10 +2157,10 @@ classdef LS_Manipulator_new < handle
             this.outlier_obs(idx_out_pr) = true;
             for r = 1 : size(this.rec_xyz,1)
                 [res_ph] = getPhRes(this, r);
-                idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, ph_thr/2);
+                idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, ph_thr/3);
                 this.setPhFlag(r,idx_ko);
                 [res_pr] = getPrRes(this, r);
-                idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, pr_thr/2);
+                idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, pr_thr/3);
                 this.setPrFlag(r,idx_ko);
             end
             
