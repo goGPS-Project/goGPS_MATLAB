@@ -14,7 +14,7 @@ function versionChanger(new_version_str, base_dir)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b5 Happy 2020
+%    |___/                    v 1.0b6
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

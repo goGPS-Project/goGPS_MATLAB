@@ -22,7 +22,7 @@ function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b5 Happy 2020
+%    |___/                    v 1.0b6
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

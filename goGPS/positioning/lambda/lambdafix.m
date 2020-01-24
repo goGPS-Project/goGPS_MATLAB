@@ -26,7 +26,7 @@ function [bcheck, acheck, Qzhat, Qbcheck, bfixed, afixed] = lambdafix(bhat, ahat
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b5 Happy 2020
+%    |___/                    v 1.0b6
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
