@@ -1409,9 +1409,9 @@ classdef LS_Manipulator_new < handle
             this.variance_pseudo = [this.variance_pseudo; var*ones(n_par,1)];
             this.receiver_pseudo = [this.receiver_pseudo; this.rec_par(u_p_id)];
             if isempty(this.time_pseudo)
-                this.time_pseudo = GPS_Time(this.time_min.getMatlabTime + this.time_par(u_p_id));
+                this.time_pseudo = GPS_Time(this.time_min.getMatlabTime + double(this.time_par(u_p_id))/86400);
             else
-                this.time_pseudo.addEpoch(GPS_Time(this.time_min.getMatlabTime + this.time_par(u_p_id)));
+                this.time_pseudo.addEpoch(this.time_min.getMatlabTime + double(this.time_par(u_p_id))/86400);
             end
             this.satellite_pseudo = [this.satellite_pseudo; this.sat_par(u_p_id)];
         end
@@ -1444,9 +1444,9 @@ classdef LS_Manipulator_new < handle
                             % taking the indices of first epoch
                             this.receiver_pseudo = [this.receiver_pseudo; this.rec_par(u_p_id(1:end-1))];
                             if isempty( this.time_pseudo)
-                                this.time_pseudo = GPS_Time(this.time_min.getMatlabTime + this.time_par(u_p_id(1:end-1)));
+                                this.time_pseudo = GPS_Time(this.time_min.getMatlabTime + double(this.time_par(u_p_id(1:end-1)))/86400);
                             else
-                                this.time_pseudo.addEpoch(this.time_min.getMatlabTime + this.time_par(u_p_id(1:end-1)));
+                                this.time_pseudo.addEpoch(this.time_min.getMatlabTime + double(this.time_par(u_p_id(1:end-1)))/86400);
                             end
                             this.satellite_pseudo = [this.satellite_pseudo; this.sat_par(u_p_id(1:end-1))];
                         end
@@ -1872,15 +1872,17 @@ classdef LS_Manipulator_new < handle
                             N_amb_amb = N(idx_amb, idx_amb) - N(idx_amb,~idx_amb )*BB(:,1:(end-1));
                             B_amb_amb = B(idx_amb) - N(idx_amb,~idx_amb )*BB(:,end);
                         else
-                            idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR 
+                            idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
                             c_p2 = c_p(~idx_bias);
                             [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                             d = diag(D);
                             tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
                             [~,idx_min] = min(diff(log10(d(d<tol))));
                             last_valid = find(d < tol,1,'first') + idx_min -1;
-                            keep_id = 1:sum(idx_bias) < last_valid;
-                            pinvB = U(:, keep_id) * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * V(:, keep_id)';
+                            keep_id = 1:sum(idx_bias) <= last_valid;
+                            real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
+                            
+                            pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
                             BB = full(N(~idx_bias ,idx_bias))*pinvB;
                             N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*full(N(idx_bias, ~idx_bias)));
                             B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
@@ -1888,25 +1890,29 @@ classdef LS_Manipulator_new < handle
                             idx_amb = c_p2 == this.PAR_AMB;
                             
                             [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
-                                                        d = diag(D);
-                            tol = eps(norm(d,inf));
+                            d = diag(D);
+                            tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(d,inf))*10;%
                             miscl = abs(sum(U.*V)-1);
-                            last_valid = find(miscl > 1e-3 | d' < tol ,1,'first');
-
-                            keep_id = 1:sum(~idx_amb) < last_valid;
-                            C_bb = U(:, keep_id) * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * V(:, keep_id)';
+                            last_valid = find(miscl > 1e-4 | d' < tol ,1,'first');
+                            if isempty(last_valid)
+                                last_valid = sum(~idx_amb);
+                            end
+                            keep_id = 1:sum(~idx_amb) <= last_valid;
+                            real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
+                            C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
                             BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
                             N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*full(N_ap_ap(~idx_amb, idx_amb)));
                             B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
                         end
                         
                         
-                        [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                          [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
                         [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial' );
                         ambs = zeros(sum(idx_amb),1);
                         ambs(idx_amb_est) = amb_fixed(:,1);
-                        
+%                         ambs = N_amb_amb \ B_amb_amb;
                         B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
+                       
                         x_reduced = zeros(size(N,1),1);
                         if cod_avail
                             BB = cod_fact\[N(~idx_amb, idx_amb) B(~idx_amb)];
@@ -2017,7 +2023,7 @@ classdef LS_Manipulator_new < handle
             end
             
             res(~this.outlier_obs) = this.obs(~this.outlier_obs) - A(1:sum(~this.outlier_obs),:)*x_est;
-             this.res = res;
+            this.res = res;
             this.x = x;
             
         end
@@ -2662,8 +2668,9 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %  [Caa,a_hat] = LS_manipulator_new.getEstimableAmb(N,B)
            
-            N = N -(N -N')/2;  %force sysmmetry
-            
+
+            %N = N -(N -N')/2;  %force sysmmetry
+
             [L,D,P] = ldl(N);
              if nargin < 3
                 tol = max(size(N)) * sqrt(eps(norm(diag(D),inf)));

@@ -675,6 +675,8 @@ classdef Core_Utils < handle
             if nargin < 4
             n_sample = 500000;
             end
+%             N = zeros(741,741);
+%             for j = 1 :10
             xy = (rand(n_sample*2,2)-0.5)*2;
             len= sqrt(xy(:,1).^2 + xy(:,2).^2);
             xy(len > 1,:) = [];
@@ -699,12 +701,15 @@ classdef Core_Utils < handle
             theta = atan2(xy(:,2),xy(:,1));
             el = pi/2 - r*pi/2;
             
-            [z1] = Core_Utils.getAllZernike(37, 37, theta, el);
+            [z1] = Core_Utils.getAllZernike(10, 10, theta, el);
             %z1 = [zernfun(1,1,r,theta,'norm')      zernfun(1,-1,r,theta,'norm') zernfun(5,5,r,theta,'norm')];%           2/sqrt(pi)
             %z1 = [r .* sin(theta)      r .* cos(theta)];
             %       1   -1    r * sin(theta)                 2/sqrt(pi)
             
-            N = z1'*z1;
+%             N = N + z1'*z1;
+%             j
+%             end
+N = z1'*z1;
             [U,D,V] = svd(N);
             d = diag(D);
             % get the flexum

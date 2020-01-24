@@ -314,7 +314,7 @@ classdef Command_Interpreter < handle
         
             this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
             this.PAR_M_IONO.descr = '--iono             Reduce for ionosphere delay';
-            this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)';
+            this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)|(-iono)|(-IONO)|(--i)|(--I)';
             this.PAR_M_IONO.class = '';
             this.PAR_M_IONO.limits = [];
             this.PAR_M_IONO.accepted_values = [];

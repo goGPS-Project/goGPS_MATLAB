@@ -629,11 +629,15 @@ classdef Network < handle
                 
                 if this.state.flag_tropo
                     ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
+                    ls.absValRegularization(ls.PAR_TROPO, (this.state.std_tropo_abs)^2 );
                     
                 end
                 if this.state.flag_tropo_gradient
                     ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient /10)^2 / 3600);
                     ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient /10)^2 / 3600);
+                    
+                     ls.absValRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient_abs /10)^2);
+                    ls.absValRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient_abs /10)^2);
                 end
                 
                 
