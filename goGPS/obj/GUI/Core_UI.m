@@ -1402,12 +1402,12 @@ classdef Core_UI < Logos
                     end
                     if exist(full_file, 'file')
                         if (exist(full_file, 'dir') == 7)
-                            info = dir(full_file);
-                            if numel(info) > 2
-                                Core_UI.setFlagGreen(flag_handle);
-                            else
-                                Core_UI.setFlagOrange(flag_handle);
-                            end
+                            %info = dir(full_file);
+                            %if numel(info) > 2
+                            Core_UI.setFlagGreen(flag_handle);
+                            %else
+                            %    Core_UI.setFlagOrange(flag_handle);
+                            %end
                         else
                             Core_UI.setFlagGreen(flag_handle);
                         end
@@ -1418,12 +1418,12 @@ classdef Core_UI < Logos
                             full_file_sss1 = fnp.dateKeyRep(full_file, state.sss_date_stop, '0');
                             if exist(full_file_sss0, 'file') && exist(full_file_sss1, 'file')
                                 if (exist(full_file_sss0, 'dir') == 7)
-                                    info = dir(full_file_sss0);
-                                    if isempty(cellfun('isempty', {info.date}))
-                                        Core_UI.setFlagOrange(flag_handle);
-                                    else
-                                        Core_UI.setFlagGreen(flag_handle);
-                                    end
+                                    %info = dir(full_file_sss0); % dir can be slow :-(
+                                    %if isempty(cellfun('isempty', {info.date}))
+                                    %    Core_UI.setFlagOrange(flag_handle); % removing this feauture, it can be too slow
+                                    %else
+                                    Core_UI.setFlagGreen(flag_handle);
+                                    %end
                                 else
                                     Core_UI.setFlagGreen(flag_handle);
                                 end
