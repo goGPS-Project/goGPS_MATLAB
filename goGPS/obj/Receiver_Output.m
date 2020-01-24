@@ -467,7 +467,7 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
-        function injectResult(this, rec_work)
+        function injectResult(this, rec_work, rate)
             % inject the results of receiver work into receiver output
             %
             % SYNTAX
@@ -483,15 +483,23 @@ classdef Receiver_Output < Receiver_Commons
                 if isempty(id_sync_old)
                     rec_work.id_sync = 1 : rec_work.time.length;
                     basic_export = true;
-                end
-                is_last_session = rec_work.time.last >= this.state.sss_date_stop;
+                end                
+                is_last_session = rec_work.getTime.last >= this.state.sss_date_stop;
                 % NOTE TROPO SMOOTHING.
                 % in case of tropo smoothing we keep only the right buffer
-                % beacuse they will be used in the next session for
+                % because they will be used in the next session for
                 % smoothing. The time of the left buffer is the one already
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
+                
+                if nargin == 3 && ~isempty(rate)
+                    id_sync_bk = rec_work.getIdSync;
+                    id_sync = rec_work.getIdSync;
+                    sync_time = round(rec_work.getTime.getRefTime(round(rec_work.time.getCentralTime.getMatlabTime * 2)/2) * (rec_work.getRate/2)) / (rec_work.getRate/2);
+                    id_ss = mod(sync_time, rate) == 0;
+                    rec_work.id_sync = id_sync(id_ss);
+                end
                 rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
@@ -643,7 +651,7 @@ classdef Receiver_Output < Receiver_Commons
                         if is_last_session
                             idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
                         end
-                        % we have to find the first epoch in the receiver
+                        % We have to find the first epoch in the receiver
                         % being pushed that is greater than the start of
                         % the session. This is done beacause might be that
                         % the first epoch are marked as outlier and thus
@@ -740,6 +748,10 @@ classdef Receiver_Output < Receiver_Commons
                     end
                 else
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
+                end
+                
+                if nargin == 3 && ~isempty(rate)
+                    rec_work.id_sync = id_sync_bk;
                 end
             end
             

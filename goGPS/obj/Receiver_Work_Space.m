@@ -11089,12 +11089,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
         end
         
-        function pushResult(this)
-            cc = Core.getState.getConstellationCollector;
+        function pushResult(this, rate)
             if isempty(this.parent.out)
                 this.parent.out = Receiver_Output(this.parent);
             end
-            this.parent.out.injectResult(this);
+            if nargin == 2
+                this.parent.out.injectResult(this, rate);
+            else
+                this.parent.out.injectResult(this);
+            end
         end
         
         function cropIdSync4out(this, crop_left, crop_right)

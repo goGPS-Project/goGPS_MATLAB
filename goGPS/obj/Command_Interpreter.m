@@ -890,7 +890,7 @@ classdef Command_Interpreter < handle
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
             this.CMD_PUSHOUT.rec = 'T';
-            this.CMD_PUSHOUT.par = [];
+            this.CMD_PUSHOUT.par = [this.PAR_RATE];
 
             this.CMD_PINIT.name = {'PINIT', 'pinit'};
             this.CMD_PINIT.descr = 'Parallel init => r n slaves';
@@ -1689,8 +1689,13 @@ classdef Command_Interpreter < handle
             if ~found
                 log.addWarning('No target found -> nothing to do');
             else
+                [rate, r_found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 for i = 1 : length(id_trg)
-                    rec(id_trg(i)).work.pushResult();
+                    if r_found
+                        rec(id_trg(i)).work.pushResult(rate);
+                    else
+                        rec(id_trg(i)).work.pushResult();
+                    end
                 end
             end
         end
