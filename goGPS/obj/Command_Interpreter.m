@@ -1194,7 +1194,7 @@ classdef Command_Interpreter < handle
                                 if flag_push(sum(diff(execution_block) < 0) + 1) && ~any(flag_parallel == 1)
                                     for r = 1 : length(core.rec)
                                         % if requested push results
-                                        core.rec(r).work.pushResult();
+                                        % DISABLE AUTOPUSH: maybe the user doesn't want to do it! core.rec(r).work.pushResult();
                                     end
                                 end
                                 skip_line = true;
@@ -1220,8 +1220,8 @@ classdef Command_Interpreter < handle
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
                                         for c = 1 : numel(cmd_list_loop)
-                                            % substitute ÿ with the current session
-                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
+                                            % substitute ï¿½ with the current session
+                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ï¿½', num2str(s));
                                         end
                                         this.exec(core, cmd_list_loop, level(id_list(1)));
                                         
