@@ -2447,6 +2447,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.setPhases(ph,wl,lid_ph); % set back phases                
             end
+            
+            % Add epochs with no valid code            
+            id_ko = ~any(this.sat.res, 2);
+            if any(id_ko)
+                n_out = sum(serialize(this.sat.outliers_ph_by_ph(id_ko, :)));
+                n_ko = sum(serialize(~isnan(ph(id_ko, :))));
+                log.addMessage(log.indent(sprintf('Adding other %d phase outliears due to missing valid pseudo-ranges', n_ko - n_out)));
+                this.sat.outliers_ph_by_ph(id_ko, :) = ~isnan(ph(id_ko, :));
+            end
+            
             log.addMessage(log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
         end
                 
@@ -9075,6 +9085,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                        % provided is really a good one
                        if Core.getState.isOutlierRejectionOn
                            %% This happens when bad orbits are provided (e.g. interpolated missing data)
+                           n_out = false;
                            [pr , id_pr] = this.getPseudoRanges;
                            pr_res = pr - this.getSyntPrObs;
                            median_res = median(pr_res, 2, 'omitnan');
@@ -9117,7 +9128,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                                rf.setFlag(this.parent.getMarkerName4Ch, 1);
                                [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                            end
-                           
                        end
                        rw_loops = 0; % number of re-weight loops                       
                     end
@@ -10638,7 +10648,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             n_a_prec = n_a_r;
             l2_amb_mat = l1_amb_mat - wl_amb_mat;
             % get the measuremnts
-            [ph, wl,lid_ph] = this.getPhases();
+            [ph, wl, lid_ph] = this.getPhases();
             id_ph = find(lid_ph);
             cs_slip = this.sat.cycle_slip_ph_by_ph;
             wdln =  this.getWideLane('L1','L2','G');
