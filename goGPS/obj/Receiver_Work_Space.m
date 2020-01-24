@@ -8895,7 +8895,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 else
                     % These are usually geodetic receivers
-                    if is_pr_jumping & ~is_ph_jumping
+                    if is_pr_jumping && ~is_ph_jumping
                         ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                         jmp_reset = find(abs(ddt_pr) > 1e-5); % points where the clock is reset
                         d_points_pr = dt_pr_dj(jmp_reset);
@@ -8919,7 +8919,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % now correct for dt_bias
                         dt_ph_dj = dt_ph_dj - drifting_ph - mean(dt_ph_dj - drifting_ph, 'omitnan');
                         if is_pr_jumping
-                            dt_pr_dj = dt_pr_dj - drifting_ph - mean(dt_ph_dj - drifting_ph, 'omitnan');
+                            dt_pr_dj = dt_pr_dj - drifting_ph - mean(dt_pr_dj - drifting_ph, 'omitnan');
                         end
 
                     end
