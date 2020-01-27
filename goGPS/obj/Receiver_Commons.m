@@ -1066,7 +1066,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
                             t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
                             if numel(t) < size(xyz,1)
-                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
+                                fprintf('%s) There is a problem with add_coo, coordinates are incompatible with their times\n', rec.parent.getMarkerName4Ch);
                                 % This is a problem: times and data should have the same dimension
                                 xyz = xyz(1:numel(t),:);
                             end

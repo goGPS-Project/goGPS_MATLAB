@@ -2502,7 +2502,28 @@ N = z1'*z1;
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
+            crd_file = state.getCrdFile;
+            if ~exist(crd_file, 'file')
+                try
+                    % try to create an empty ocean loading file
+                    fid = fopen(crd_file, 'w');
+                    fwrite(fid, '# Insert here the coordinates of the receivers');
+                    fclose(fid);
+                catch ex
+                end
+            end
+            
             state.setOceanDir('station/ocean');
+            ocean_file = fullfile(state.getHomeDir, state.getOceanFile);
+            if ~exist(ocean_file, 'file')
+                try
+                    % try to create an empty ocean loading file
+                    fid = fopen(ocean_file, 'w');
+                    fwrite(fid, '$$ Insert here the ocean loading displacements');
+                    fclose(fid);
+                catch ex
+                end
+            end
             
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             if nargin == 3

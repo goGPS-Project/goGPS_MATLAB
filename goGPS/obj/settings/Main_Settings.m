@@ -4135,6 +4135,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %  this.setObsName(obs_dir)
             this.obs_name = name_list;
+            this.obs_full_name = {};
         end
         
         function setObsDir(this, obs_dir)
