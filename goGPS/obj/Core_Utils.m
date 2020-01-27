@@ -2502,6 +2502,14 @@ N = z1'*z1;
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
+            state.setMPDir('antenna/MP');
+            if ~exist(state.getMPDir, 'dir')
+                try
+                    mkdir(state.getMPDir);
+                catch ex
+                end
+            end
+                
             crd_file = state.getCrdFile;
             if ~exist(crd_file, 'file')
                 try

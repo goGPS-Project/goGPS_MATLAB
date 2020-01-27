@@ -3329,7 +3329,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             else
                 out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
             end
-        end
+        end                
         
         function out = getMPDir(this)
             % Get the path of the mp file dir
@@ -3337,7 +3337,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.getMPFile()
             fnp = File_Name_Processor;
-            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.prj_home));
+            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.getHomeDir), this.getHomeDir);
         end
         
         function out = getMPFile(this)
@@ -4144,6 +4144,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.setObsDir(obs_dir)
             this.obs_dir = obs_dir;
+        end
+        
+        function setMPDir(this, mp_dir)
+            % Set the path of the mp file dir
+            %
+            % SYNTAX
+            %   this.setMPDirmp_dir()
+            this.mp_dir = mp_dir;
         end
         
         function setOutDir(this, out_dir)
