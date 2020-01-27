@@ -566,8 +566,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
             
+            n_sat = nan;
+            n_sat_ss = struct();
             cc = this.getCC;
-            if isfield(this.quality_info, 'n_spe') && ~isempty(this.quality_info.n_spe)
+            if isfield(this.quality_info, 'n_spe') && ~isempty(this.quality_info.n_spe)  && ~isempty(this.quality_info.n_sat)
                 n_sat = this.quality_info.n_spe.A(this.getIdSync);
                 for sys_c = cc.getActiveSysChar()
                     if ~isempty(this.quality_info.n_spe.(sys_c))
