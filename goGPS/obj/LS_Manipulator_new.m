@@ -2189,7 +2189,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_ph = nan(length(time_res),n_stream);
+            res_ph = nan(max(length(time_res), this.unique_time.length),n_stream);
             res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1, n_stream);
             obs_id = nan(1,n_stream);
@@ -2204,7 +2204,7 @@ classdef LS_Manipulator_new < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
                     res_ph(idx_time, i) = this.res(idx_res);
                     res_id(idx_time, i) = find(idx_res);
                 end
@@ -2225,7 +2225,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_pr = nan(length(time_res),n_stream);
+            res_ph = nan(max(length(time_res), this.unique_time.length), n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             sat_c = 9999;
@@ -2240,7 +2240,7 @@ classdef LS_Manipulator_new < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
                     res_pr(idx_time,i) = this.res(idx_res);
                 end
             end            
