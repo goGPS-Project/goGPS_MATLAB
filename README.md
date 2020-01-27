@@ -59,7 +59,7 @@ The **combined and uncombined engines** can both compute Precise Point Positioni
       * [SID](https://gogps-project.github.io/wiki/Command-language#sid)
       * [REMIONO](https://gogps-project.github.io/wiki/Command-language#remiono)
    * [Multipath management](https://gogps-project.github.io/wiki/Command-language#multipath-management)
-      * [MPTEST](https://gogps-project.github.io/wiki/Command-language#mptest)
+      * [MPEST](https://gogps-project.github.io/wiki/Command-language#mpest)
    * [Other Commands](https://gogps-project.github.io/wiki/Command-language#other-commands)
       * [RENAME](https://gogps-project.github.io/wiki/Command-language#rename)
       * [EMPTY](https://gogps-project.github.io/wiki/Command-language#empty)
