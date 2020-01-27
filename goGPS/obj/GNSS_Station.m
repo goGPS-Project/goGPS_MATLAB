@@ -5289,6 +5289,10 @@ classdef GNSS_Station < handle
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                        drawnow;
+                        Core_UI.beautifyFig(f);
+                        f.Visible = 'on';
+                        drawnow;                        
                     else
                         f = gcf;
                     end
@@ -5321,9 +5325,6 @@ classdef GNSS_Station < handle
                         f = gcf();
                     end
                     
-                    Core_UI.beautifyFig(f);
-                    Core_UI.addExportMenu(f);
-                    Core_UI.addBeautifyMenu(f);
                     drawnow;
                     e = 0;
                     for r = 1 : numel(sta_list)
@@ -6557,7 +6558,7 @@ classdef GNSS_Station < handle
                     end
                                         
                     %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
-                    col_data = Cmap.getColor(round(abs(data_mean) * 10) + 1, n_col + 1, 'linspaced');
+                    col_data = Cmap.getColor(max(1, round(abs(data_mean) * 10) + 1), n_col + 1, 'linspaced');
                     plot(x, y, 's', ...
                         'MarkerSize', 32, ...
                         'MarkerFaceColor', [0 0 0], ...
@@ -6598,6 +6599,7 @@ classdef GNSS_Station < handle
             ge_stat = nan(n_rec,2);
             sta_names = {};
             id_ok = true(n_rec, 1);
+            flag_plot = false;
             for r = 1:n_rec
                 if ~sta_list(r).out.isEmpty
                     xyz_diff = sta_list(r).out.xyz - sta_list(r).out.getIgsXYZ;
@@ -6605,6 +6607,7 @@ classdef GNSS_Station < handle
                     if ~any(xyz_diff(:))
                         id_ok(r) = false;
                     else
+                        flag_plot = true;
                         enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ, xyz_diff);
                         sensor= enu_diff - repmat(median(enu_diff,'omitnan'),size(enu_diff,1),1);
                         out_idx = sum((abs(sensor) > 0.05),2) >0;
@@ -6627,132 +6630,136 @@ classdef GNSS_Station < handle
                 end
                 sta_names{end+1} = lower(sta_list(r).getMarkerName4Ch);
             end
-            % sort by bet on the east axis
-            %[~,idx] = sort(abs(east_stat(:,1)));
-            [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
-            idx = idx(id_ok(idx));
-            east_stat = east_stat(idx,:);
-            north_stat = north_stat(idx,:);
-            up_stat = up_stat(idx,:);
-            ztd_stat = ztd_stat(idx,:);
-            gn_stat = gn_stat(idx,:);
-            ge_stat = ge_stat(idx,:);
-            sta_names = sta_names(idx);
-            
-            sta_list = sta_list(idx);
-            
-            n_rec = length(sta_list);
-            
-            fh = figure('Visible', 'off');
-            fh.Name = sprintf('%03d: IGS Validation', fh.Number); fh.NumberTitle = 'off';
-            
-            fh_list = [fh_list; fh];
-            if numel(sta_list) == 1
-                % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+            if ~flag_plot
+                Core.getLogger.addWarning('No IGS station found!');
             else
-                % If I have more than one receiver use as name the name of the project
-                fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
+                % sort by bet on the east axis
+                %[~,idx] = sort(abs(east_stat(:,1)));
+                [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
+                idx = idx(id_ok(idx));
+                east_stat = east_stat(idx,:);
+                north_stat = north_stat(idx,:);
+                up_stat = up_stat(idx,:);
+                ztd_stat = ztd_stat(idx,:);
+                gn_stat = gn_stat(idx,:);
+                ge_stat = ge_stat(idx,:);
+                sta_names = sta_names(idx);
+                
+                sta_list = sta_list(idx);
+                
+                n_rec = length(sta_list);
+                
+                fh = figure('Visible', 'off');
+                fh.Name = sprintf('%03d: IGS Validation', fh.Number); fh.NumberTitle = 'off';
+                
+                fh_list = [fh_list; fh];
+                if numel(sta_list) == 1
+                    % If I have only one receiver use as name the name of the receiver
+                    fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                else
+                    % If I have more than one receiver use as name the name of the project
+                    fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
+                end
+                fh.UserData = struct('fig_name', fig_name);
+                
+                subplot(3,2,1)
+                errorbar(1:n_rec,east_stat(:,1),east_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(1,6))
+                ylabel('[mm]')
+                title('Position East')
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-30 -10 0 10 30])
+                ylim([-30 30])
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                set(gca,'fontweight','bold','fontsize',16)
+                setAllLinesWidth(1.3)
+                
+                subplot(3,2,3)
+                errorbar(1:n_rec,north_stat(:,1),north_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(2,6))
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-30 -10 0 10 30])
+                ylim([-30 30])
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                ylabel('[mm]')
+                set(gca,'fontweight','bold','fontsize',16)
+                title('Position North')
+                
+                subplot(3,2,5)
+                errorbar(1:n_rec,up_stat(:,1),up_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(3,6))
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                ylim([-50 50]);
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'YTick', [-50 -20 0 20 50])
+                %set(gca, 'XTick', [1:28])
+                set(gca, 'XTickLabels', {})
+                ylabel('[mm]')
+                title('Position Up')
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                set(gca, 'XTick', [1:n_rec]);
+                set(gca, 'XTickLabels', upper(sta_names))
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                subplot(3,2,2)
+                errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(4,6))
+                ylabel('[mm]')
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                ylim([-25 25])
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-25 -10 0 10 25])
+                set(gca,'fontweight','bold','fontsize',16)
+                title('ZTD')
+                
+                subplot(3,2,4)
+                errorbar(1:n_rec,gn_stat(:,1),gn_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(5,6))
+                ylabel('[mm]')
+                set(gca, 'XTickLabels', {})
+                ylim([-4 4])
+                xlim([0.5, n_rec + 0.5]);
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-4 -1 0 1 4])
+                set(gca,'fontweight','bold','fontsize',16)
+                title('North gradient')
+                
+                subplot(3,2,6)
+                errorbar(1:n_rec,ge_stat(:,1),ge_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(6,6))
+                ylabel('[mm]')
+                ylim([-4 4])
+                xlim([0.5, n_rec + 0.5]);
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-4 -1 0 1 4])
+                set(gca, 'XTickLabels', {})
+                title('East gradient');
+                
+                set(gca, 'XTick', [1:n_rec]);
+                set(gca, 'XTickLabels', upper(sta_names))
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                Core_UI.addExportMenu(fh);
+                Core_UI.addBeautifyMenu(fh);
+                Core_UI.beautifyFig(fh, 'dark');
+                fh.Visible = 'on';
             end
-            fh.UserData = struct('fig_name', fig_name);
-            
-            subplot(3,2,1)
-            errorbar(1:n_rec,east_stat(:,1),east_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(1,6))
-            ylabel('[mm]')
-            title('Position East')
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-30 -10 0 10 30])
-            ylim([-30 30])
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            set(gca,'fontweight','bold','fontsize',16)
-            setAllLinesWidth(1.3)
-            
-            subplot(3,2,3)
-            errorbar(1:n_rec,north_stat(:,1),north_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(2,6))
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-30 -10 0 10 30])
-            ylim([-30 30])
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            ylabel('[mm]')
-            set(gca,'fontweight','bold','fontsize',16)
-            title('Position North')
-            
-            subplot(3,2,5)
-            errorbar(1:n_rec,up_stat(:,1),up_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(3,6))
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            ylim([-50 50]);
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'YTick', [-50 -20 0 20 50])
-            %set(gca, 'XTick', [1:28])
-            set(gca, 'XTickLabels', {})
-            ylabel('[mm]')
-            title('Position Up')
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-
-            set(gca, 'XTick', [1:n_rec]);
-            set(gca, 'XTickLabels', upper(sta_names))
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-            
-            subplot(3,2,2)
-            errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(4,6))
-            ylabel('[mm]')
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            ylim([-25 25])
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-25 -10 0 10 25])
-            set(gca,'fontweight','bold','fontsize',16)
-            title('ZTD')
-            
-            subplot(3,2,4)
-            errorbar(1:n_rec,gn_stat(:,1),gn_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(5,6))
-            ylabel('[mm]')
-            set(gca, 'XTickLabels', {})
-            ylim([-4 4])
-            xlim([0.5, n_rec + 0.5]);
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-4 -1 0 1 4])
-            set(gca,'fontweight','bold','fontsize',16)
-            title('North gradient')
-            
-            subplot(3,2,6)
-            errorbar(1:n_rec,ge_stat(:,1),ge_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(6,6))
-            ylabel('[mm]')
-            ylim([-4 4])
-            xlim([0.5, n_rec + 0.5]);
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-4 -1 0 1 4])
-            set(gca, 'XTickLabels', {})
-            title('East gradient');
-            
-            set(gca, 'XTick', [1:n_rec]);
-            set(gca, 'XTickLabels', upper(sta_names))
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-            
-            Core_UI.addExportMenu(fh);
-            Core_UI.addBeautifyMenu(fh);
-            Core_UI.beautifyFig(fh, 'dark');
-            fh.Visible = 'on';
         end
         
         function [fh_list, m_diff, s_diff] = showIgsZtdValidation(sta_list, igs_list)
