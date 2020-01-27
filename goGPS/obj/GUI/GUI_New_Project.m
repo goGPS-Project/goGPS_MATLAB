@@ -338,6 +338,9 @@ classdef GUI_New_Project < GUI_Unique_Win
             try
                 this.w_main.init();
                 this.w_main.updateUI();
+                rf = Core.getReferenceFrame;
+                rf.init(state.getCrdFile);
+                this.updateCooTable();
             catch
                 % Windows have been closed?
             end
