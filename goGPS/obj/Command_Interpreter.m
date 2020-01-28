@@ -270,7 +270,7 @@ classdef Command_Interpreter < handle
             this.PAR_SS.accepted_values = [];
             
             this.PAR_CTYPE.name = 'coordinates type';
-            this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (0 Session, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
+            this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (0 coordinates of the sessions, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
             this.PAR_CTYPE.par = '(\-c\=)|(\-\-ctype\=)|(\-C\=)|(\-\-CTYPE\=)'; % (regexp) parameter prefix:  -c= | --ctype= 
             this.PAR_CTYPE.class = 'int';
             this.PAR_CTYPE.limits = [0 3];
@@ -889,7 +889,7 @@ classdef Command_Interpreter < handle
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
             this.CMD_VALIDATE.rec = 'T';
-            this.CMD_VALIDATE.par = [this.PAR_EXPORT  this.PAR_CLOSE this.PAR_V_IGS this.PAR_V_IGS_ZTD this.PAR_V_RAOB ];
+            this.CMD_VALIDATE.par = [this.PAR_EXPORT this.PAR_CLOSE this.PAR_V_IGS this.PAR_V_IGS_ZTD this.PAR_V_RAOB ];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export'};
             this.CMD_EXPORT.descr = 'Export';

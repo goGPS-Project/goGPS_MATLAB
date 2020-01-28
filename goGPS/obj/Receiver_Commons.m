@@ -1056,8 +1056,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('ENU_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1074,6 +1072,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                         end
                         xyz0 = rec.getMedianPosXYZ();
+                        
+                        fig_name = sprintf('ENU_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
                         
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
@@ -1149,8 +1150,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('EN_U_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1168,6 +1167,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         end                        
                         xyz0 = rec.getMedianPosXYZ();
                         
+                        fig_name = sprintf('EN_U_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
@@ -1260,8 +1262,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('XYZ_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1277,6 +1277,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 xyz = xyz(1:numel(t),:);
                             end
                         end
+                        fig_name = sprintf('XYZ_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+                        
                         xyz0 = rec.getMedianPosXYZ();
                         
                         x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
