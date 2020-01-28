@@ -857,8 +857,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     try
                         this(r).updateCoordinates;
                         time = this(r).getTime();
-                        [year, doy] = time.first().getDOY();
-                        t_start = time.first().toString('HHMM');
+                        state = Core.getCurrentSettings;
+
+                        t_start = state.sss_date_start;
+                        t_end = state.sss_date_stop;
+                        [year, doy] = t_start.getDOY();
+                        t_start_str = t_start.toString('HHMM');
+                        t_start.toUtc();
                         time.toUtc();
                         
                         lat = this(r).lat; %#ok<NASGU>
@@ -873,10 +878,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if ~exist(out_dir, 'file')
                             mkdir(out_dir);
                         end
-                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.m']);
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.m']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.mat']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
@@ -916,11 +921,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 if max(this(r).quality_info.s0) < 0.10
                     try
                         this(r).updateCoordinates;
+                        state = Core.getCurrentSettings;
                         time = this(r).getTime();
-                        [year, doy] = time.first().getDOY();
-                        t_start = time.first().toString('HHMM');
+                        t_start = state.sss_date_start;
+                        t_end = state.sss_date_stop;
+                        [year, doy] = t_start.getDOY();
+                        t_start_str = t_start.toString('HHMM');
+                        t_start.toUtc();
                         time.toUtc();
-                        ztd = this(r).getZtd(); 
+                        ztd = this(r).getZtd();
                         zwd = this(r).getZwd();
                         [gn,ge ] =  this(r).getGradient();
                         
@@ -929,10 +938,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             mkdir(out_dir);
                         end
                         
-                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.csv']);
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.csv']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.csv']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)) '.csv']);
                                                 
                         fid = fopen(fname,'Wb');
                         n_data = time.length;

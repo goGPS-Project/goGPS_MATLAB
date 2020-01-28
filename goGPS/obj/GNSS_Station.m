@@ -844,14 +844,15 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.exportHydroNET
             try
-                min_time = GPS_Time();
-                max_time = GPS_Time();
-                for r = 1 : numel(sta_list)
-                    min_time.append(sta_list(r).out.time.minimum);
-                    max_time.append(sta_list(r).out.time.maximum);
-                end
-                min_time = min_time.minimum;
-                max_time = max_time.maximum;
+                state = Core.getCurrentSettings;
+                min_time = state.sss_date_start;
+                max_time = state.sss_date_stop;
+%                 for r = 1 : numel(sta_list)
+%                     min_time.append(sta_list(r).out.time.minimum);
+%                     max_time.append(sta_list(r).out.time.maximum);
+%                 end
+%                 min_time = min_time.minimum;
+%                 max_time = max_time.maximum;
                 min_time.toUtc();
                 max_time.toUtc();
                 [year,doy] = min_time.getDOY();
