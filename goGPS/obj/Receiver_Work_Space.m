@@ -9819,6 +9819,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.meteo_data = [];
                         this.importMeteoData(); % now with more precise coordinates
                         
+                        
+%                         this.updateAllTOT();
+%                         this.codeStaticPositioning();
+%                         this.updateAllTOT();
+%                         this.codeStaticPositioning();
+%                         this.updateAllTOT();
+%                         this.codeStaticPositioning();
+                        
+                        
+                        
                         % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                         this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                         % smooth clock estimation
@@ -9826,10 +9836,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                         end
                         
+                        
                         % Add a model correction for time desync -> observations are now referred to nominal time  #14
                         this.shiftToNominal();
                         
-                        this.updateAllTOT(true);
+                        this.updateAllTOT();
                         this.correctPhJump();
                         
                         if flag_apply_corrections
@@ -10241,7 +10252,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        this.smoothAndApplyDt(0, false, false, 2);
+                        %this.smoothAndApplyDt(0, false, false, 2);
                         %this.pushResult();
                     end
                 end
@@ -10346,15 +10357,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Prepare the LS object
-                ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
-                
+               % ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
+                ls.setUpIonoFreePPP(this, this.getIdSync);
                 % Set up time dependent regularizations for the tropospheric parameters
-                ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
-                ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
-                ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
+%                 ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
+%                 ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
+%                 ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 
                 % Solve the LS problem
-                ls.solve();
+                for i = 1 : 5
+                    ls.solve(Core.getState.net_amb_fix_approach >1);
+                    
+                    ls.reweightHuber;
+                end
+            
                 
                 % outlier detections
                 
