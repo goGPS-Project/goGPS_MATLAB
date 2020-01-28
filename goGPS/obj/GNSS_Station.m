@@ -5170,56 +5170,60 @@ classdef GNSS_Station < handle
             %% DEBUG sta_list = rec(~rec.isEmpty_mr);
             sta_list = sta_list(~sta_list.isEmpty_mr);
             
-            % Order Station by longitude
-            %enu = sta_list.getMedianPosENU;
-            %[~, id_sort] = sort(enu(:,1));
-            %sta_list = sta_list(id_sort);
-            
-            max_n_arrows = 100;
-            
-            [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = sta_list.getTropoGradients(max_n_arrows);
-            
-            % Scale factor gradients
-            g_scale = 1e3; % m -> mm                       
-            
-            f = figure('Visible', 'off');
-            f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
-            fh_list = f;
-            fig_name = 'All_Tropo_Gradients';
-            f.UserData = struct('fig_name', fig_name);
-
-            ax = axes;
-            
-            xlim([time_grad_ref(1) time_grad_ref(end)] + median(diff(time_grad_ref), 'omitnan') .* [-1 1]);
-            ylim([0 numel(sta_list) + 1]);
-            Core_UI.beautifyFig(f);
-            drawnow
-
-            plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
-
-            % Compute the 0.8 percentile modulus            
-            mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
-            max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
-            for r = 1 : numel(sta_list)                
-                triPlot(time_grad{r}, ...
+            if numel(sta_list) == 1
+                fh_list = sta_list.showZtdAndGradients();
+            else
+                % Order Station by longitude
+                enu = sta_list.getMedianPosENU;
+                [~, id_sort] = sort(enu(:,2));
+                sta_list = sta_list(id_sort);
+                
+                max_n_arrows = 100;
+                
+                [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = sta_list.getTropoGradients(max_n_arrows);
+                
+                % Scale factor gradients
+                g_scale = 1e3; % m -> mm
+                
+                f = figure('Visible', 'off');
+                f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
+                fh_list = f;
+                fig_name = 'All_Tropo_Gradients';
+                f.UserData = struct('fig_name', fig_name);
+                
+                ax = axes;
+                
+                xlim([time_grad_ref(1) time_grad_ref(end)] + median(diff(time_grad_ref), 'omitnan') .* [-1 1]);
+                ylim([0 numel(sta_list) + 1]);
+                Core_UI.beautifyFig(f);
+                drawnow
+                
+                plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
+                
+                % Compute the 0.8 percentile modulus
+                mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
+                max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
+                for r = 1 : numel(sta_list)
+                    triPlot(time_grad{r}, ...
                         r * ones(numel(tropo_az{r}), 1), ...
                         tropo_az{r}, ...
                         tropo_modulus{r} * g_scale, ...
                         max_size, ...
                         max_size/mod_perc);
+                end
+                setTimeTicks();
+                yticks(1 : numel(sta_list));
+                yticklabels(sta_list.getMarkerName4Ch());
+                cb = colorbar;
+                title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
+                Core_UI.beautifyFig(f);
+                
+                Core_UI.addExportMenu(f);
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on'; drawnow;
+                
+                colormap(flipud(Cmap.get('RdBu')));
             end
-            setTimeTicks();
-            yticks(1 : numel(sta_list));
-            yticklabels(sta_list.getMarkerName4Ch());
-            cb = colorbar;
-            title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
-            Core_UI.beautifyFig(f);
-            
-            Core_UI.addExportMenu(f);
-            Core_UI.addBeautifyMenu(f);  
-            f.Visible = 'on'; drawnow;
-            
-            colormap(flipud(Cmap.get('RdBu')));
         end
         
         function fh_list = showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
