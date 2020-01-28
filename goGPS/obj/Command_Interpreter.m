@@ -102,6 +102,7 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_BAND        % Parameter of the band to be used in the adjustment
+        PAR_CTYPE       % Parameter coordinate type
 
         PAR_EXPORT      % Export figure
         PAR_CLOSE       % Close figure after export
@@ -249,14 +250,14 @@ classdef Command_Interpreter < handle
             
             this.PAR_CUTOFF.name = 'cut-off';
             this.PAR_CUTOFF.descr = '-e=<elevation>     Cut-off elevation in degree (e.g. -e=7)';
-            this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: @ | -e= | --cutoff= 
+            this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: -e= | --cutoff= 
             this.PAR_CUTOFF.class = 'double';
             this.PAR_CUTOFF.limits = [0 90];
             this.PAR_CUTOFF.accepted_values = [];
 
             this.PAR_SNRTHR.name = 'SNR threshold';
             this.PAR_SNRTHR.descr = '-q=<snrthr>        SNR threshold in dbHZ on L1 (e.g. -q=7)';
-            this.PAR_SNRTHR.par = '(\-q\=)|(\-\-snrthr\=)'; % (regexp) parameter prefix: @ | -q= | --snrthr= 
+            this.PAR_SNRTHR.par = '(\-q\=)|(\-\-snrthr\=)'; % (regexp) parameter prefix: -q= | --snrthr= 
             this.PAR_SNRTHR.class = 'double';
             this.PAR_SNRTHR.limits = [0 70];
             this.PAR_SNRTHR.accepted_values = [];
@@ -267,6 +268,13 @@ classdef Command_Interpreter < handle
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
+            
+            this.PAR_CTYPE.name = 'coordinates type';
+            this.PAR_CTYPE.descr = '-c=<type>         Modifier: change coordinate type (0 Session, 1 first additional coordinates, 1 second additional coordinates, 1 third additional coordinates)';
+            this.PAR_CTYPE.par = '(\-c\=)|(\-\-ctype\=)|(\-C\=)|(\-\-CTYPE\=)'; % (regexp) parameter prefix:  -c= | --ctype= 
+            this.PAR_CTYPE.class = 'int';
+            this.PAR_CTYPE.limits = [0 3];
+            this.PAR_CTYPE.accepted_values = [];
                         
             this.PAR_SLAVE.name = '(MANDATORY) Number of slaves';
             this.PAR_SLAVE.descr = '-n=<num_slaves>    minimum number of parallel slaves to request';
@@ -871,7 +879,8 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM ...
-                this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK ...
+                this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_CTYPE...
+                this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK ...
                 this.PAR_S_MP1 this.PAR_S_MP2 this.PAR_S_SNR this.PAR_S_SNRI ...
                 this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY ...
                 this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
@@ -2370,15 +2379,30 @@ classdef Command_Interpreter < handle
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
+                                [coo_type, found] = this.getNumericPar(tok, this.PAR_CTYPE.par);
+                                if ~found
+                                    fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
+                                else
+                                    fh_list = [fh_list; trg.showPositionENU([], coo_type)]; %#ok<AGROW>
+                                end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUP.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showPositionPlanarUp()]; %#ok<AGROW>
+                                [coo_type, found] = this.getNumericPar(tok, this.PAR_CTYPE.par);
+                                if ~found
+                                    fh_list = [fh_list; trg.showPositionPlanarUp()]; %#ok<AGROW>
+                                else
+                                    fh_list = [fh_list; trg.showPositionPlanarUp(coo_type)]; %#ok<AGROW>
+                                end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
+                                [coo_type, found] = this.getNumericPar(tok, this.PAR_CTYPE.par);
+                                if ~found
+                                    fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
+                                else
+                                    fh_list = [fh_list; trg.showPositionXYZ([], coo_type)]; %#ok<AGROW>
+                                end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CKW.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end

@@ -3259,7 +3259,7 @@ classdef GNSS_Station < handle
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot);
+            %   this.plotPositionENU(flag_one_plot, flag_add_coo);
             if nargin == 1
                 one_plot = false;
             end
@@ -3281,7 +3281,7 @@ classdef GNSS_Station < handle
             % Plot Planar and Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.showPositionPlanarUp();
+            %   this.showPositionPlanarUp(flag_add_coo);
             
             if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
@@ -3296,9 +3296,9 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showPositionXYZ(sta_list, one_plot)
-            % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionXYZ();
+        function fh_list = showPositionXYZ(sta_list, one_plot, flag_add_coo)
+            % Plot X Y Z coordinates of the receiver
+            % SYNTAX this.plotPositionXYZ(flag_one_plot, flag_add_coo);
             if nargin == 1
                 one_plot = false;
             end

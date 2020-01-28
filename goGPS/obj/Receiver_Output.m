@@ -937,7 +937,7 @@ classdef Receiver_Output < Receiver_Commons
                 fh = win; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh.Visible = 'on';
             else
-                rec(1).log.addMessage('Plotting a single point is not supported');
+                Core.getLogger.addMessage(sprintf('It seems that only one session is present - these plots are not supported for %s', this.parent.getMarkerName4Ch));
             end            
         end
                 

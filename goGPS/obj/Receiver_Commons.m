@@ -1089,7 +1089,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [mm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [mm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~flag_one_plot, subplot(3,1,2); end
                         n = 1e3 * (enu(:,2) - enu0(2));
                         plot(t, n, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
@@ -1214,7 +1214,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ylim(max_r * [-1 1]);
                         xlim(max_r * [-1 1]);
                         grid on;
-                        h = title(sprintf('Position Stability %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
+                        h = title(sprintf('Position Stability %s @%gs\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
                         h.FontWeight = 'bold';
                         
                         ax = axes('Parent', tmp_box2);
@@ -1243,7 +1243,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function fh_list = showPositionXYZ(this, flag_one_plot, flag_add_coo)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
-            if nargin == 1
+            if nargin == 1 || isempty(flag_one_plot)
                 flag_one_plot = false;
             end
             if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
@@ -1287,7 +1287,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                         ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [cm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~flag_one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
