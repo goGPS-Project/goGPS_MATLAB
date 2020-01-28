@@ -270,7 +270,7 @@ classdef Command_Interpreter < handle
             this.PAR_SS.accepted_values = [];
             
             this.PAR_CTYPE.name = 'coordinates type';
-            this.PAR_CTYPE.descr = '-c=<type>         Modifier: change coordinate type (0 Session, 1 first additional coordinates, 1 second additional coordinates, 1 third additional coordinates)';
+            this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (0 Session, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
             this.PAR_CTYPE.par = '(\-c\=)|(\-\-ctype\=)|(\-C\=)|(\-\-CTYPE\=)'; % (regexp) parameter prefix:  -c= | --ctype= 
             this.PAR_CTYPE.class = 'int';
             this.PAR_CTYPE.limits = [0 3];
