@@ -473,15 +473,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             apr_zhd = this.getAprZhd();
             [az, el] = this.getAzEl();
             [tgn, tge] = this.getGradient();
-            res = this.getResidual();
-            if isempty(res(:)) || ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
+            if ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
                 slant_td = [];
             else
+                if isfield(this.sat, 'avail_index') && any(this.sat.avail_index(:))
+                    el(~this.sat.avail_index) = nan;
+                end
+                el(el < Core.getState.getCutOff) = nan;
                 cotel = zero2nan(cotd(el));
                 cosaz = zero2nan(cosd(az));
                 sinaz = zero2nan(sind(az));
-                slant_td = nan2zero(zero2nan(res) ...
-                    + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                slant_td = nan2zero(zero2nan(repmat(zwd,1,n_sat).*mfw) ...
                     + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
                     + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
                     + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
@@ -531,7 +533,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                     if (lim(l, 2) - lim(l, 1) + 1) > 3
                                         id_ok = lim(l, 1) : lim(l, 2);
                                         ztd = this.getZtd();
-                                        sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
+                                        sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));                                        
                                     end
                                 end
                             end

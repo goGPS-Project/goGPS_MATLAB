@@ -4212,8 +4212,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   mfw: wet mapping function
             %
             % SYNTAX
-            %   [mfh, mfw] = this.getSlantMF()
-            
+            %   [mfh, mfw] = this.getSlantMF()            
             
             n_sat = this.parent.getMaxSat;
             
@@ -4238,7 +4237,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 if this(s).state.mapping_function == 3
                                     [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
                                 elseif this(s).state.mapping_function == 2
-                                    [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
+                                    [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi, h_ellipse);
                                 elseif this(s).state.mapping_function == 1
                                     [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
                                 end
