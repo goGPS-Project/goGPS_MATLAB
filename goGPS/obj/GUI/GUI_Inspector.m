@@ -74,6 +74,7 @@ classdef GUI_Inspector < GUI_Unique_Win
         
         flag_auto_exec      % Handle to automatic exec flag
         flag_auto_export    % Handle to automatic exeport flag
+        flag_auto_close     % Handle to automatic close flag    
     end    
     
     %% PROPERTIES STATUS
@@ -1212,11 +1213,21 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'Value', true, ...
                 'String', 'Immediate execution');            
             
-            this.flag_auto_export = uicontrol('Parent', cmd_box,...
+            export_box = uix.HBox('Parent', cmd_box, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            this.flag_auto_export = uicontrol('Parent', export_box,...
                 'Style', 'checkbox',...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'FontSize', Core_UI.getFontSize(9), ...
-                'String', 'Add automatic plot export');
+                'String', 'Automatic plot export');
+            
+            this.flag_auto_close = uicontrol('Parent', export_box,...
+                'Style', 'checkbox',...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'String', 'Close after export');
             
             Core_UI.insertEmpty(cmd_box);
             
@@ -1606,6 +1617,9 @@ classdef GUI_Inspector < GUI_Unique_Win
                 if strcmp(new_cmd{l}(1:4), 'SHOW')
                     if this.flag_auto_export.Value
                         new_cmd{l} = [new_cmd{l} ' -e=".png"'];
+                    end
+                    if this.flag_auto_close.Value
+                        new_cmd{l} = [new_cmd{l} ' -c'];
                     end
                 end
             end
