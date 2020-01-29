@@ -10357,20 +10357,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Prepare the LS object
-               % ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
-                ls.setUpIonoFreePPP(this, this.getIdSync);
+                ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
+                %ls.setUpIonoFreePPP(this, this.getIdSync);
                 % Set up time dependent regularizations for the tropospheric parameters
-%                 ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
-%                 ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
-%                 ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
+                 ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
+                 ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
+                 ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 
                 % Solve the LS problem
-                for i = 1 : 5
-                    ls.solve(Core.getState.net_amb_fix_approach >1);
+                    ls.solve();
                     
-                    ls.reweightHuber;
-                end
-            
                 
                 % outlier detections
                 
