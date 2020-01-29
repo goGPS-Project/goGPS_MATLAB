@@ -1348,7 +1348,66 @@ N = z1'*z1;
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
-            export_fig(fh, out_path, '-transparent', '-r150');
+            box = findall(fh, 'type', 'uicontainer');
+            if isempty(box)
+                export_fig(fh, out_path, '-transparent', '-r150');
+            else
+                % Special tricks in case of figure containing boxes
+                
+                % Use saveas instead of export_fig
+                [~, ~, ext] = fileparts(out_path);
+                if strcmp(ext, '.png')
+                    bg_color = [1 255 1]; % Use green screen
+                else
+                    bg_color = [255 255 255];
+                end
+                % fallback
+                bg_box = {};
+                for b = 1: numel(box)
+                    try
+                        bg_box{b} = box(b).BackgroundColor;
+                        box(b).BackgroundColor = bg_color/255;
+                    catch ex
+                    end
+                end
+                saveas(fh, out_path);
+                for b = 1: numel(box)
+                    try                        
+                        box(b).BackgroundColor = bg_box{b};
+                    catch ex
+                    end
+                end
+                
+                % saveas does not have transparency management
+                if strcmp(ext, '.png')
+                    % Tricks are just for PNG file type
+
+                    % read the just saved image 
+                    [im_out] = imread(out_path);
+                    % convert it in hue saturation value
+                    im_hsv = rgb2hsv(im_out);
+                    bg_hsv = rgb2hsv(bg_color/255);
+                    alpha_mask = (im_hsv(:,:,1) ~= bg_hsv(1));
+                    color_mask = (~(im_out(:,:,1) == bg_color(1) & im_out(:,:,2) == bg_color(2) & im_out(:,:,3) == bg_color(3)));
+                    saturation = im_hsv(:,:,2);
+                    value = im_hsv(:,:,3);
+                    hue = im_hsv(:,:,1);
+                    saturation(alpha_mask ~= 1) = 0;
+                    hue(alpha_mask ~= 1) = 1;
+                    alpha_mask = double(alpha_mask);
+                    
+                    % get alpha value for the value component of the image
+                    alpha_mask(logical(color_mask - alpha_mask)) = double(1-value(logical(color_mask - alpha_mask)));
+                    
+                    im_hsv(:,:,1) = hue;
+                    im_hsv(:,:,2) = saturation;
+                    im_hsv(:,:,3) = value;
+                    im_out = hsv2rgb(im_hsv);
+                    
+                    imwrite(im_out, out_path, 'alpha', alpha_mask);
+                end               
+            end
+                
             fh.WindowStyle = ws_bk;
             fh.Color = col;
         end

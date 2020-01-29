@@ -1132,6 +1132,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        Core_UI.addExportMenu(f);
                         f.Visible = 'on'; drawnow;
                     else
                         rec(1).log.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
@@ -1243,6 +1244,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        Core_UI.addExportMenu(f);
                         f.Visible = 'on'; drawnow;
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
