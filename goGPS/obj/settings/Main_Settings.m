@@ -3771,8 +3771,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
+            if isempty(this.vmf_name)
+                fw = File_Wizard;
+                fw.conjureVmfFiles(date_start, date_stop);
+            end
             file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name), this.getHomeDir());
-
             date_start = date_start.getCopy;
             date_stop = date_stop.getCopy;
             fnp = File_Name_Processor();
