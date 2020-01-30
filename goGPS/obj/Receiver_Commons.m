@@ -1625,7 +1625,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             flag_debug = false;
             grid_step = 0.5;
             if nargin < 3 || isempty(l_max)
-                l_max = 43;
+                l_max = [43 43 43];
+            end
+            if numel(l_max) == 1
+                l_max = [l_max l_max l_max];
             end
             
             if nargin < 4 || isempty(flag_reg)
@@ -1753,28 +1756,48 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                             end
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/2)', 3 + flag_reg*1, l_max), 9));
+                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 3 + flag_reg*1, l_max(1)), 9));
                             %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
                             
                             % Use two
-                            mapElevation1 = @(el) pi/2*(1-cos(el));
-                            mapElevation2 = @(el) pi/2*(1-cos(pi/2*(1-cos(el))));
+                            el2radius1 = @(el) cos(el).^2;
+                            el2radius2 = @(el) sin(pi/2*cos(el).^2);
+                            el2radius3 = @(el) sin(pi/2*cos(el));
+                            %omf = @(el) 1 - sin(el);
+                            %el2radius3 = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
                             res_work = res_all;
                             
-                            [res_filt, z_par1, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation1(el_all), res_work, 1e-5);
+                            [res_filt, z_par1, l1, m1] = Core_Utils.zFilter(l_max(1), m_max(1), az_all, el2radius1(el_all), res_work, 1e-5);
                             res_work = res_work - res_filt;
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/2)', 4 + flag_reg*1, l_max), 9));
-                            %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
-                            [res_filt, z_par2, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation2(el_all), res_work, 1e-5);
-                            res_work = res_work - res_filt;
+                            if l_max(2) > 0
+                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 4 + flag_reg*1, l_max(2)), 9));
+                                %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
+                                [res_filt, z_par2, l2, m2] = Core_Utils.zFilter(l_max(2), m_max(2), az_all, el2radius2(el_all), res_work, 1e-5);
+                                res_work = res_work - res_filt;
+                            end    
+                            
+                            if l_max(3) > 0
+                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/3)', 4 + flag_reg*1, l_max(3)), 9));
+                                [res_filt, z_par3, l3, m3] = Core_Utils.zFilter(l_max(3), m_max(3), az_all, el2radius3(el_all), res_work, 1e-5);
+                                res_work = res_work - res_filt;
+                            end
 
                             % Generate maps
                             log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 5 + flag_reg*1), 9));
                             [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid);
-                            [z_map1] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation1(el_mgrid), z_par1);
-                            [z_map2] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation2(el_mgrid), z_par2);
-                            z_map = z_map1 + z_map2;
+                            [z_map1] = Core_Utils.zSinthesys(l1, m1, az_mgrid, el2radius1(el_mgrid), z_par1);
+                            if l_max(2) <= 0
+                                z_map2 = 0;
+                            else
+                                [z_map2] = Core_Utils.zSinthesys(l2, m2, az_mgrid, el2radius2(el_mgrid), z_par2);
+                            end
+                            if l_max(3) <= 0
+                                z_map3 = 0;
+                            else
+                                [z_map3] = Core_Utils.zSinthesys(l3, m3, az_mgrid, el2radius3(el_mgrid), z_par3);
+                            end
+                            z_map = z_map1 + z_map2 + z_map3;
                             res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
                             [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, [4 1], grid_step);
                             
@@ -1786,6 +1809,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Zernike expansion (2) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
 
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map3)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Zernike expansion (3) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
                                 %zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([z_map(:,end) z_map z_map(:,1)])', 'linear');                                
                                 %[g_map, n_map, az_grid_tmp, el_grid_tmp] = Core_Utils.polarGridder(az_all, el_all, zmap2scatter(az_all, el_all), [5 1]);
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
@@ -1793,7 +1819,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                                                            
+
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
 
@@ -1941,9 +1967,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                             if data_found
-                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el_all(id_subset), res_all(id_subset) * scale, 1e-8);
+                                el2radius = @(el) 1 - el ./ (pi/2);
+                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el2radius(el_all(id_subset)), res_all(id_subset) * scale, 1e-8);
                                 %figure; scatter(m, -l, 150, z_par, 'filled');                                
-                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el_all, z_par);                                
+                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el2radius(el_all), z_par);                                
                                 %[res_allf, z_par, l, m,  A] = Core_Utils.zFilter(l_max, m_max, az_all, el_all, res_all * scale);
                                 [std(res_all*scale) std(res_all*scale - res_allf)]
                                 res_all = res_all*scale - res_allf;

@@ -8756,23 +8756,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                     pr_ok = ~isnan(data); % Consider that stdmov have a border effect, ignore the first and last 5 epochs
                     pr_int = flagShrink(pr_ok, 5); % Consider that stdmov have a border effect, ignore the first and last 5 epochs                    
                     
-                    [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az(pr_int)/180*pi, el(pr_int)/180*pi, data(pr_int));
+                    [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az(pr_int)/180*pi, (90 - el(pr_int)) / 90, data(pr_int));
                     % all the data with a variance bigger than thr_offset w.r.t. std_map is considered outlier
-                    id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, z_par)) > 0;
+                    id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, (90 - el(pr_int)) / 90, z_par)) > 0;
                     
                     if any(id_ko(:))
                         pr_int = pr_int & ~id_ko;
                         %  reestimate zernike without outliers
-                        z_par = Core_Utils.zAnalisys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, data(pr_ok));
+                        z_par = Core_Utils.zAnalisys(l, m, az(pr_ok)/180*pi, (90 - el(pr_int)) / 90, data(pr_ok));
                         % all the data with a variance bigger than thr_offset w.r.t. std_map is considered outlier
                         if (nargout >= 2)
-                            id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, el(pr_ok)/180*pi, z_par)) > 0;
+                            id_ko(find(pr_ok) + (o-1) * n_obs * n_sat) = (data(pr_ok) - (std_thr_offset/3*2) - Core_Utils.zSinthesys(l, m, az(pr_ok)/180*pi, (90 - el(pr_int)) / 90, z_par)) > 0;
                         end
                     end
                     
                     if flag_debug && any(pr_ok(:))
                         pr_ok = pr_ok & ~id_ko(:, :, o);
-                        fh = figure; clf; hold on; fh = Core_Utils.polarZerMapQuad(l_max, m_max, az(pr_ok)/180*pi, el(pr_ok)/180*pi, data(pr_ok));  colormap([[1 1 1]; flipud(Cmap.get('plasma')); [0.6 0.6 0.6]]);
+                        fh = figure; clf; hold on; fh = Core_Utils.polarZerMapQuad(l_max, m_max, az(pr_ok)/180*pi, (90 - el(pr_int)) / 90, data(pr_ok));  colormap([[1 1 1]; flipud(Cmap.get('plasma')); [0.6 0.6 0.6]]);
                         lim = [0 1]; subplot(2,2,1); caxis(lim); subplot(2,2,2); caxis(lim); subplot(2,2,3); ylim(lim); subplot(2,2,4); ylim(lim);
                         fh.Name = sprintf('%d) POST %c C%s', fh.Number, sys_c, Core_Utils.num2Code2Char(obs_code_list(o)));
                         fh.NumberTitle = 'off';
