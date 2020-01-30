@@ -463,62 +463,55 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function slant_td = getSlantTD(this)
+        function slant_td = getSlantTD(this,go_id)
             % Get the slant total delay
             %
             % SYNTAX
             %   slant_td = this.getSlantTD();
             
-            [mfh, mfw] = this.getSlantMF();
-            n_sat = size(mfh,2);
-            zwd = this.getZwd();
-            apr_zhd = this.getAprZhd();
-            [az, el] = this.getAzEl();
-            [tgn, tge] = this.getGradient();
-            if  isempty(zwd) || isempty(apr_zhd)
-                slant_td = [];
+            if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
+                this.log.addMessage(this.log.indent('Updating tropospheric errors'))
+                
+                go_id = unique(this.go_id)';
             else
-                if isfield(this.sat, 'avail_index') && any(this.sat.avail_index(:))
-                    mfh(~this.sat.avail_index) = nan;
-                    mfw(~this.sat.avail_index) = nan;
-                end
-                mfw(el < Core.getState.getCutOff) = nan;
-                mfh(el < Core.getState.getCutOff) = nan;
-                slant_td = nan2zero(zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh));
+                 go_id = serialize(go_id)';
             end
-            if ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
-            else
-                if isfield(this.sat, 'avail_index') && any(this.sat.avail_index(:))
-                    el(~this.sat.avail_index) = nan;
+            
+            
+            slant_td = zeros(size(this.sat.el));
+            
+            zwd = nan2zero(this.getZwd);
+            apr_zhd = single(this.getAprZhd);
+            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
+            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
+            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
+            [gn ,ge] = this.getGradient();
+            [mfh, mfw, cotan_term] = this.getSlantMF();
+            if any(mfh(:)) && any(mfw(:))
+                if any(ge(:))
+                    for g = go_id
+                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                    end
+                else
+                    for g = go_id
+                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
+                    end
                 end
-                el(el < Core.getState.getCutOff) = nan;
-                if this.state.mapping_function_gradient == 1
-                    cotan_term = Atmosphere.chenHerringGrad(el/180*pi);
-                elseif this.state.mapping_function_gradient == 2
-                    cotan_term = Atmosphere.macmillanGrad(el/180*pi).*mfw;
-                end
-                cosaz = zero2nan(cosd(az));
-                sinaz = zero2nan(sind(az));
-                slant_td = slant_td ...
-                    + nan2zero(repmat(tgn,1,n_sat) .* cotan_term .* cosaz ...
-                    + repmat(tge,1,n_sat) .* cotan_term .* sinaz);
-            end
-            if Main_Settings.getNumZerTropoCoef > 0 & ~isempty(this.tzer)
-                degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
-                zer_val = nan(size(el,1),size(el,2),Main_Settings.getNumZerTropoCoef);
-                idx = el >  Core.getState.getCutOff & this.sat.avail_index;
-                 rho = (90 - el)/(90);
-                 if state.mapping_function_gradient == 1
-                     cotan_term = Atmosphere.chenHerringGrad(el);
-                 elseif state.mapping_function_gradient == 2
-                     cotan_term = Atmosphere.macmillanGrad(el).*mfw;
-                 end
-                for s = 1 : size(this.sat.el,2)
-                    zer_val(idx(:,s),s,:) = Core_Utils.getAllZernike(degree, az(idx(:,s),s)/180*pi, rho);
-                end
-                for i = 2 : Main_Settings.getNumZerTropoCoef
-                    slant_td = slant_td + zero2nan(repmat(this.tzer(:,i-1),1,n_sat).*cotan_term.*zer_val(:,:,i));
+                if ~isempty(this.tzer)
+                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
+                    el = this.sat.el(this.id_sync,:);
+                    
+                    rho = (90 - el)/(90);
+                    zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
+                    
+                    az = this.sat.az(this.id_sync,:);
+                    idx = el>0;
+                    for  g = go_id
+                        zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
+                    end
+                    for i = 4 : Main_Settings.getNumZerTropoCoef;
+                        slant_td(this.id_sync,:) = slant_td(this.id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
+                    end
                 end
             end
         end

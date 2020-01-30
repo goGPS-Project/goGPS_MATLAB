@@ -447,14 +447,14 @@ classdef LS_Manipulator_new < handle
                             A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient  /1000
                         end
                         if par_tropo_n
-                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient  /1000
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % north gradient  /1000
                         end
                     end
                     if par_tropo_v
                         A(lines_stream, par_tropo_v_lid) = mfw_stream*rec.h_ellips;
                     end
                     if par_tropo_z
-                        n_pol = sum(par_tropo_z_lid);
+                        n_pol = sum(par_tropo_z_lid)+3;
                         degree = ceil(-3/2 + sqrt(9/4 + 2*(n_pol -1)));
                         rho_stream = (pi/2 - el_stream)/(pi/2);
                         if state.mapping_function_gradient == 1
@@ -462,7 +462,8 @@ classdef LS_Manipulator_new < handle
                         elseif state.mapping_function_gradient == 2
                             cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
                         end
-                        A(lines_stream, par_tropo_z_lid) = repmat(cotan_term/rho_stream,1,n_pol).*Core_Utils.getAllZernike(degree, az_stream, rho_stream);
+                        zern = Core_Utils.getAllZernike(degree, az_stream, rho_stream);
+                        A(lines_stream, par_tropo_z_lid) = repmat(cotan_term,1,n_pol-3).*zern(:,4:end);
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
@@ -2357,10 +2358,7 @@ classdef LS_Manipulator_new < handle
                     
                     this.PAR_IONO
                     ];  %
-                if Main_Settings.getNumZerTropoCoef > 0
-                    param_selction = [param_selction;
-                        repmat(this.PAR_TROPO_Z,Main_Settings.getNumZerTropoCoef,1);];
-                end
+               
                 if state.flag_tropo
                     param_selction = [param_selction;
                     this.PAR_TROPO;];
@@ -2369,6 +2367,10 @@ classdef LS_Manipulator_new < handle
                     param_selction = [param_selction;
                     this.PAR_TROPO_N;
                     this.PAR_TROPO_E;];
+                end
+                 if Main_Settings.getNumZerTropoCoef > 0
+                    param_selction = [param_selction;
+                        repmat(this.PAR_TROPO_Z,Main_Settings.getNumZerTropoCoef-3,1);];
                 end
             end
             if nargin < 5

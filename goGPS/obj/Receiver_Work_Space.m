@@ -7276,7 +7276,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %%% compute lat lon
             [~, ~, h_full] = this.getMedianPosGeodetic();
             if abs(h_full) > 1e4
-                this.log.addWarning('Height out of reasonable value for terrestrial postioning skipping tropo update')
+                this.log.addWarning('Height out of reasonable value for terrestrial positioning skipping tropo update')
                 this.getSatCache(go_id, true);
                 return
             end
@@ -7284,42 +7284,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % upadte the ztd zwd
             this.updateAprTropo();
-            
-            zwd = nan2zero(this.getZwd);
-            apr_zhd = single(this.getAprZhd);
-            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
-            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
-            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
-            [gn ,ge] = this.getGradient();
-            [mfh, mfw, cotan_term] = this.getSlantMF();
-            if any(mfh(:)) && any(mfw(:))
-                if any(ge(:))
-                    for g = go_id
-                        this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
-                    end
-                    
-                else
-                    for g = go_id
-                        this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
-                    end
-                end
-                if ~isempty(this.tzer)
-                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
-                     rho = (pi/2 - el_stream)/(pi/2);
-                zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
-                el = this.sat.el(this.id_sync,:);
-                                     rho = (90 - el_stream)/(90);
-
-                az = this.sat.az(this.id_sync,:);
-                idx = el>0;
-                for  g = go_id
-                    zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(:,g));
-                end
-                for i = 2 : Main_Settings.getNumZerTropoCoef
-                    this.sat.err_tropo(this.id_sync,:) = this.sat.err_tropo(this.id_sync,:) + zero2nan(repmat(this.tzer(:,i-1),1,size(el,2)).*cotan_term.*zer_val(:,:,i)./rho);
-                end
-                end
-            end
+            this.sat.err_tropo(this.id_sync,:) = this.getSlantTD(go_id);
             this.getSatCache(go_id, true);
         end
         
@@ -10332,11 +10297,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                 % Use spline for estimating ZTD gradients
                 if  this.state.spline_tropo_gradient_order > 0
-                    if this.state.spline_tropo_order == 1
+                    if this.state.spline_tropo_gradient_order == 1
                         parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
-                    end
-                    if this.state.spline_tropo_order == 3
                         parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
+                        
+                    end
+                    if this.state.spline_tropo_gradient_order == 3
+                        parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
+                        parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
+                        
                     end
                     parametrization.tropo_n_opt.spline_rate = this.state.spline_rate_tropo_gradient;
                     parametrization.tropo_e_opt.spline_rate = this.state.spline_rate_tropo_gradient;
@@ -10354,7 +10323,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                  ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
                 end
                 % Solve the LS problem
-                    ls.solve();
+                ls.solve();
                     
                 
                 % outlier detections
@@ -10442,7 +10411,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if zernike_temp
                         idx_trpz = find(ls.class_par == ls.PAR_TROPO_Z);
                         tropoz =  ls.x(idx_trpz);
-                        n_pol = Main_Settings.getNumZerTropoCoef;
+                        n_pol = Main_Settings.getNumZerTropoCoef-3;
                         tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
                         spline_base = Core_Utils.spline(tropo_dt,3);
                         zer_tropo = zeros(size(spline_base,1),n_pol);
@@ -10456,7 +10425,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             valid_ep = tropo_idx ~=0;
                             zer_tropo(valid_ep,i) = sum(spline_base .* tropozt(repmat(tropo_idx(valid_ep), 1, 3 + 1) + repmat((0 : 3), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
-                        this.tzer = zer_tropo(:,2:end);
+                        this.tzer = zer_tropo;
                     end
                     
                     % Push tropo from LS object to rec
@@ -10480,7 +10449,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
                         if zernike_temp
-                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo + zer_tropo(:,1);
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo ; %+ zer_tropo(:,1)
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         else
                             this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
