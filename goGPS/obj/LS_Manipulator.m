@@ -890,6 +890,9 @@ classdef LS_Manipulator < Exportable
                 n_tropo_g = max(tropo_g_idx) + order_tropo_g;
                 tropo_g_dt = rem(id_sync_out-1 + delta_tropo_time_sart,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
+            
+                        state = Core.getCurrentSettings;
+
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
@@ -993,7 +996,11 @@ classdef LS_Manipulator < Exportable
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     %cotan_term = cot(el_stream) .* mfw_stream;
-                    cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
+                    if state.mapping_function_gradient == 1
+                        cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                    elseif state.mapping_function_gradient == 2
+                        cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                    end
                     
                     if isempty(tropo_rate) || tropo_rate(2) == 0
                         prog_p_col = prog_p_col + 1;

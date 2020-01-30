@@ -319,6 +319,7 @@ classdef LS_Manipulator_new < handle
             end
             iono_const = 40.3*10^16;%GPS_SS.L_VEC(1)^2;
             % fill the A matrix per satellite
+            state = Core.getCurrentSettings;
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 if any(id_ok_stream)
@@ -437,7 +438,11 @@ classdef LS_Manipulator_new < handle
                     end
                     % ----------- ZTD gradients ------------------
                     if par_tropo_n || par_tropo_e
-                        cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
+                        if state.mapping_function_gradient == 1
+                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                        elseif state.mapping_function_gradient == 2
+                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                        end
                         if par_tropo_e
                             A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient  /1000
                         end
@@ -451,7 +456,13 @@ classdef LS_Manipulator_new < handle
                     if par_tropo_z
                         n_pol = sum(par_tropo_z_lid);
                         degree = ceil(-3/2 + sqrt(9/4 + 2*(n_pol -1)));
-                        A(lines_stream, par_tropo_z_lid) = repmat(mfw_stream,1,n_pol).*Core_Utils.getAllZernike(degree, az_stream, el_stream);
+                        rho_stream = (pi/2 - el_stream)/(pi/2);
+                        if state.mapping_function_gradient == 1
+                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                        elseif state.mapping_function_gradient == 2
+                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                        end
+                        A(lines_stream, par_tropo_z_lid) = repmat(cotan_term/rho_stream,1,n_pol).*Core_Utils.getAllZernike(degree, az_stream, rho_stream);
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
@@ -2332,7 +2343,9 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
+            
             if nargin < 4 || isempty(param_selction)
+                state = Core.getCurrentSettings;
                 param_selction = [this.PAR_REC_X;
                     this.PAR_REC_Y;
                     this.PAR_REC_Z;
@@ -2341,12 +2354,22 @@ classdef LS_Manipulator_new < handle
                     this.PAR_AMB;
                     this.PAR_REC_CLK_PR;
                     this.PAR_REC_CLK_PH;
-                    this.PAR_TROPO;
-                    this.PAR_TROPO_N;
-                    this.PAR_TROPO_E;
-                    %                     repmat(this.PAR_TROPO_Z,10,1);
+                    
                     this.PAR_IONO
                     ];  %
+                if Main_Settings.getNumZerTropoCoef > 0
+                    param_selction = [param_selction;
+                        repmat(this.PAR_TROPO_Z,Main_Settings.getNumZerTropoCoef,1);];
+                end
+                if state.flag_tropo
+                    param_selction = [param_selction;
+                    this.PAR_TROPO;];
+                end
+                if state.flag_tropo_gradient
+                    param_selction = [param_selction;
+                    this.PAR_TROPO_N;
+                    this.PAR_TROPO_E;];
+                end
             end
             if nargin < 5
                 parametrization = LS_Parametrization();

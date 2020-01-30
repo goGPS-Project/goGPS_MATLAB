@@ -258,6 +258,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 1 : GMF
                                                         % 2 : VMF gridded
                                                         % 3 : Niell
+        MAPPING_FUNCTION_GRADIENT = 1                   % Mapping function to be used
+                                                        % 1 : chen and  herring
+                                                        % 2 : macmillan
                                                         % ADV ATMOSPHERE
         METEO_DATA = 2;                                 % Meteo data to be used
                                                         % 1: standard atmopshere
@@ -301,6 +304,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUT_RES_PR = true;     % residuals
         FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
+        getNumZerTropoCoef = 0;
     end
 
     properties (Constant, Access = 'public')
@@ -691,6 +695,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % A-priori Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
         zd_model = Main_Settings.ZD_MODEL;
         mapping_function = Main_Settings.MAPPING_FUNCTION;
+        mapping_function_gradient = Main_Settings.MAPPING_FUNCTION_GRADIENT;
+
         meteo_data = Main_Settings.METEO_DATA;
 
         %------------------------------------------------------------------
@@ -977,6 +983,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.iono_model = state.getData('iono_model');
                 this.zd_model = state.getData('zd_model');
                 this.mapping_function = state.getData('mapping_function');
+                this.mapping_function_gradient = state.getData('mapping_function_gradient');
+
                 this.meteo_data = state.getData('meteo_data');
 
                 % ADV ATMOSPHERE
@@ -1153,6 +1161,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.iono_model = state.iono_model;
                 this.zd_model = state.zd_model;
                 this.mapping_function = state.mapping_function;
+                this.mapping_function_gradient = state.mapping_function_gradient;
+
                 this.meteo_data = state.meteo_data;
 
                 % ADV ATMOSPHERE
@@ -1352,7 +1362,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model})];
             str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
             str = [str sprintf(' A-priori Zenith model                             %s\n', this.ZD_SMODE{this.zd_model})];
-            str = [str sprintf(' Tropospheric model                                %s\n', this.MF_SMODE{this.mapping_function})];
+            str = [str sprintf(' Tropospheric mapping functiom                     %s\n', this.MF_SMODE{this.mapping_function})];
+            str = [str sprintf(' Gradient mapping function                         %s\n', this.MFG_SMODE{this.mapping_function_gradient})];
+
             str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
@@ -1840,8 +1852,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Mapping function', str_cell);
             str_cell = Ini_Manager.toIniString('mapping_function', this.mapping_function, str_cell);
+           
+
             for i = 1 : numel(this.MF_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MF_SMODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniString('mapping_function_gradient', this.mapping_function_gradient, str_cell);
+            for i = 1 : numel(this.MFG_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MFG_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteo data', str_cell);
@@ -2528,6 +2546,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 2;              % Use VMF for a-priori
             this.mapping_function = 2;      % Use VMF grids
+            this.mapping_function_gradient = 2;      % Use chen and herring
+
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
@@ -2629,6 +2649,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 1;              % Use Saastamoinen for a-priori
             this.mapping_function = 1;      % Use GMF grids
+                        this.mapping_function_gradient = 1;      % Use chen and herrign
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
@@ -2760,6 +2781,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('iono_model',[1 numel(this.IONO_SMODE)]);
             this.checkNumericField('zd_model',[1 numel(this.ZD_SMODE)]);
             this.checkNumericField('mapping_function',[1 numel(this.MF_SMODE)]);
+            this.checkNumericField('mapping_function_gradient',[1 numel(this.MFG_SMODE)]);
+
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
             this.checkLogicalField('flag_tropo');
             this.checkLogicalField('flag_tropo_gradient');

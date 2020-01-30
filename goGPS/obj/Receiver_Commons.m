@@ -99,6 +99,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
         tge      % tropospheric gradient east          double   [n_epoch x n_sat]
+        
+        tzer     % zernike modeling of the tropo
     end
     
     % ==================================================================================================================================================
@@ -473,20 +475,51 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             apr_zhd = this.getAprZhd();
             [az, el] = this.getAzEl();
             [tgn, tge] = this.getGradient();
-            if ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
+            if  isempty(zwd) || isempty(apr_zhd)
                 slant_td = [];
+            else
+                if isfield(this.sat, 'avail_index') && any(this.sat.avail_index(:))
+                    mfh(~this.sat.avail_index) = nan;
+                    mfw(~this.sat.avail_index) = nan;
+                end
+                mfw(el < Core.getState.getCutOff) = nan;
+                mfh(el < Core.getState.getCutOff) = nan;
+                slant_td = nan2zero(zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh));
+            end
+            if ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
             else
                 if isfield(this.sat, 'avail_index') && any(this.sat.avail_index(:))
                     el(~this.sat.avail_index) = nan;
                 end
                 el(el < Core.getState.getCutOff) = nan;
-                cotel = zero2nan(cotd(el));
+                if this.state.mapping_function_gradient == 1
+                    cotan_term = Atmosphere.chenHerringGrad(el/180*pi);
+                elseif this.state.mapping_function_gradient == 2
+                    cotan_term = Atmosphere.macmillanGrad(el/180*pi).*mfw;
+                end
                 cosaz = zero2nan(cosd(az));
                 sinaz = zero2nan(sind(az));
-                slant_td = nan2zero(zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                    + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                    + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+                slant_td = slant_td ...
+                    + nan2zero(repmat(tgn,1,n_sat) .* cotan_term .* cosaz ...
+                    + repmat(tge,1,n_sat) .* cotan_term .* sinaz);
+            end
+            if Main_Settings.getNumZerTropoCoef > 0 & ~isempty(this.tzer)
+                degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
+                zer_val = nan(size(el,1),size(el,2),Main_Settings.getNumZerTropoCoef);
+                idx = el >  Core.getState.getCutOff & this.sat.avail_index;
+                 rho = (90 - el)/(90);
+                 if state.mapping_function_gradient == 1
+                     cotan_term = Atmosphere.chenHerringGrad(el);
+                 elseif state.mapping_function_gradient == 2
+                     cotan_term = Atmosphere.macmillanGrad(el).*mfw;
+                 end
+                for s = 1 : size(this.sat.el,2)
+                    zer_val(idx(:,s),s,:) = Core_Utils.getAllZernike(degree, az(idx(:,s),s)/180*pi, rho);
+                end
+                for i = 2 : Main_Settings.getNumZerTropoCoef
+                    slant_td = slant_td + zero2nan(repmat(this.tzer(:,i-1),1,n_sat).*cotan_term.*zer_val(:,:,i));
+                end
             end
         end
         

@@ -1737,6 +1737,8 @@ classdef Atmosphere < handle
             end
         end
         
+       
+        
         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
             %angles in radians!!
             %code based on:
@@ -2089,6 +2091,35 @@ classdef Atmosphere < handle
             %ZHD (Saastamoinen model)
             ZHD = 0.0022768 * P(:) .* (1 + 0.00266 * cosd(2*lat(:)) + 0.00000028 * h(:));
             %ZHD = 0.0022767 * P(:) ./ (1 - 0.00266 * cosd(2*lat(:)) - 0.00000028 * h(:));
+        end
+        
+        function [cotan_term] = macmillanGrad(el)
+            % formual from macmillan
+            %
+            % INPUT:
+            %  el  elevation [rad]
+            %
+            % SYNTAX:
+            %  [cotan_term] = Atmosphere.macmillanGrad(el)
+            %
+            % NOTE:
+            %    angle in radians !!!
+            cotan_term = cot(el);
+        end
+        
+        function [cotan_term] = chenHerringGrad(el)
+            % forumal from chen and herring
+            % coefficient from chao
+            %
+            % INPUT:
+            %  el  elevation [rad]
+            %
+            % SYNTAX:
+            %  [cotan_term] = Atmosphere.chenHerringGrad(el)
+            %
+            % NOTE:
+            %    angle in radians !!!
+            cotan_term = 1 ./ ( sin(el).*tan(el) + 0.0032);
         end
         
     end

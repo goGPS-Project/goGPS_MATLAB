@@ -4197,7 +4197,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);
         end
         
-        function [mfh, mfw] = getSlantMF(this, id_sync)
+        function [mfh, mfw, cotan_term] = getSlantMF(this, id_sync)
             % Get Mapping function for the satellite slant
             %
             % OUTPUT
@@ -4208,60 +4208,42 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   [mfh, mfw] = this.getSlantMF()            
             
             n_sat = this.parent.getMaxSat;
-            
+            if nargin == 1
+                id_sync = this.id_sync;
+            end
             if n_sat == 0
                 mfh = [];
                 mfw = [];
+                cotan_term = [];
             else
-                mfh = zeros(this.length, n_sat);
-                mfw = zeros(this.length, n_sat);
-                
                 if this.length > 0
-                    t = 1;
-                    
                     atmo = Core.getAtmosphere();
                     [lat, lon, h_ellipse, h_ortho] = this.getMedianPosGeodetic();
                     lat = median(lat);
                     lon = median(lon);
                     h_ortho = median(h_ortho);
-                    if nargin == 1
-                        for s = 1 : numel(this)
-                            if ~isempty(this(s))
-                                if this(s).state.mapping_function == 3
-                                    [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                                elseif this(s).state.mapping_function == 2
-                                    [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi, h_ellipse);
-                                elseif this(s).state.mapping_function == 1
-                                    [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
-                                end
-                                
-                                if isempty(this(s).id_sync)
-                                    mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp;
-                                    mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp;
-                                else
-                                    mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(this(s).id_sync, :);
-                                    mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(this(s).id_sync, :);
-                                end
-                                t = t + this(s).length;
-                            end
+                    if ~isempty(this)
+                        if this.state.mapping_function == 3
+                            [mfh, mfw] = atmo.niell(this.time, lat./180*pi, (this.sat.el)./180*pi,h_ellipse);
+                        elseif this.state.mapping_function == 2
+                            [mfh, mfw] = atmo.vmf_grd(this.time, lat./180*pi, lon./180*pi, (this.sat.el)./180*pi, h_ellipse);
+                        elseif this.state.mapping_function == 1
+                            [mfh, mfw] = atmo.gmf(this.time, lat./180*pi, lon./180*pi, h_ortho, (this.sat.el)./180*pi);
                         end
-                    else
-                        if numel(id_sync) > 0
-                            for s = 1 : numel(this)
-                                if ~isempty(this(s))
-                                    if this(s).state.mapping_function == 3
-                                        [mfh_tmp, mfw_tmp] = atmo.niell(this(s).time, lat./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                                    elseif this.state.mapping_function == 2
-                                        [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
-                                    elseif this.state.mapping_function == 1
-                                        [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
-                                    end
-                                    
-                                    
-                                    mfh(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(id_sync, :);
-                                    mfw(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(id_sync, :);
-                                    t = t + this(s).length;
-                                end
+                       
+                        if ~isempty(id_sync)
+                            mfh = mfh(id_sync, :);
+                            mfw = mfw(id_sync, :);
+                        end
+                        
+                        if nargout > 2
+                            if this.state.mapping_function_gradient == 1
+                                cotan_term = Atmosphere.chenHerringGrad((this.sat.el)./180*pi);
+                            elseif this.state.mapping_function_gradient == 2
+                                [cotan_term] = Atmosphere.macmillanGrad((this.sat.el)./180*pi);
+                            end
+                            if ~isempty(id_sync)
+                                cotan_term = cotan_term(id_sync, :);
                             end
                         end
                     end
@@ -7309,7 +7291,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
             sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
             [gn ,ge] = this.getGradient();
-            [mfh, mfw] = this.getSlantMF();
+            [mfh, mfw, cotan_term] = this.getSlantMF();
             if any(mfh(:)) && any(mfw(:))
                 if any(ge(:))
                     for g = go_id
@@ -7320,6 +7302,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for g = go_id
                         this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
                     end
+                end
+                if ~isempty(this.tzer)
+                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
+                     rho = (pi/2 - el_stream)/(pi/2);
+                zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
+                el = this.sat.el(this.id_sync,:);
+                                     rho = (90 - el_stream)/(90);
+
+                az = this.sat.az(this.id_sync,:);
+                idx = el>0;
+                for  g = go_id
+                    zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(:,g));
+                end
+                for i = 2 : Main_Settings.getNumZerTropoCoef
+                    this.sat.err_tropo(this.id_sync,:) = this.sat.err_tropo(this.id_sync,:) + zero2nan(repmat(this.tzer(:,i-1),1,size(el,2)).*cotan_term.*zer_val(:,:,i)./rho);
+                end
                 end
             end
             this.getSatCache(go_id, true);
@@ -10348,10 +10346,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
                 %ls.setUpIonoFreePPP(this, this.getIdSync);
                 % Set up time dependent regularizations for the tropospheric parameters
+                if this.state.flag_tropo
                  ls.timeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600);
+                end
+                if this.state.flag_tropo_gradient
                  ls.timeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600);
                  ls.timeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600);
-                
+                end
                 % Solve the LS problem
                     ls.solve();
                     
@@ -10437,6 +10438,26 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                     this.dt(ep_pr) = this.dt(ep_pr) + ls.x(idx_clk)/ Core_Utils.V_LIGHT;
                     
+                    zernike_temp = Main_Settings.getNumZerTropoCoef > 0;
+                    if zernike_temp
+                        idx_trpz = find(ls.class_par == ls.PAR_TROPO_Z);
+                        tropoz =  ls.x(idx_trpz);
+                        n_pol = Main_Settings.getNumZerTropoCoef;
+                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, this.state.spline_rate_tropo_gradient)/this.state.spline_rate_tropo_gradient;
+                        spline_base = Core_Utils.spline(tropo_dt,3);
+                        zer_tropo = zeros(size(spline_base,1),n_pol);
+                        n_coeff_o = length(idx_trpz) / n_pol;
+                        for i = 1 : n_pol
+                            idx_tmp = (i-1)*n_coeff_o + (1 : n_coeff_o);
+                            idx_trpzt = idx_trpz(idx_tmp);
+                            tropozt = tropoz(idx_tmp);
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpzt).minimum)/this.state.spline_rate_tropo_gradient);
+                            [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpzt).getNominalTime.getRefTime(ls.getTimePar(idx_trpzt).minimum.getMatlabTime));
+                            valid_ep = tropo_idx ~=0;
+                            zer_tropo(valid_ep,i) = sum(spline_base .* tropozt(repmat(tropo_idx(valid_ep), 1, 3 + 1) + repmat((0 : 3), numel(tropo_idx(valid_ep)), 1)), 2);
+                        end
+                        this.tzer = zer_tropo(:,2:end);
+                    end
                     
                     % Push tropo from LS object to rec
                     if this.state.flag_tropo
@@ -10458,9 +10479,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
-                        this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
-                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
-                        
+                        if zernike_temp
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo + zer_tropo(:,1);
+                            this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        else
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
+                            this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        end
                         % Computing PWV
                         this.pwv = nan(size(this.zwd), 'single');
                         if isempty(this.meteo_data)
