@@ -47,7 +47,7 @@ classdef Core_UI < Logos
         DEFAULT_MODE = 'dark';
         DEFAULT_EXPORT_MODE = 'light';
         
-        FONT_SIZE_CONVERSION_LNX = 1;
+        FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
         

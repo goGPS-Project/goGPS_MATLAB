@@ -1533,10 +1533,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Gradients mapping function', this.state.MFG_LABEL, 'mapping_function_gradients', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
-            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(3,1); -1];
+            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(4,1); -1];
             tropo_opt_est_grid.Widths = [150; -1];
 
             tab.Heights = [52 5 -1];

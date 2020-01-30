@@ -386,6 +386,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             '2: Vienna Mapping Function gridded', ...
             '3: Niell Mapping Function'}
         MF_LABEL = {'GMF','VMF gridded','Niell'}
+
+        % id to string of gradients mappig functions
+        MFG_SMODE = {'1: Chen and Herring', '2: MacMillan'}
+        MFG_LABEL = {'Chen and Herring','MacMillan'}
+        
         % id to string of meteo data
         MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
