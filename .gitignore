@@ -185,3 +185,11 @@ goGPS/ssh\.pass
 goGPS/goGuardCurPrj\.ini
 
 goGPS_v0.5.2 beta1_mod/
+
+goGPS/utility/thirdParty/m_map/etopo1_ice_g_i2.hdr
+
+goGPS/utility/thirdParty/m_map/etopo1_ice_g_i2.bin
+
+goGPS/utility/thirdParty/m_map/m_etopo2.m
+
+goGPS/mex/
