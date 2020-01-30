@@ -1980,7 +1980,6 @@ classdef Command_Interpreter < handle
                         rec(r).work.sat.outliers_pr_by_pr = [];
                         rec(r).work.sat.cycle_slip_ph_by_ph = [];
                         rec(r).work.sat.err_tropo = [];
-                        rec(r).work.sat.slant_td = [];
                         rec(r).work.sat.err_iono = [];
                         rec(r).work.sat.solid_earth_corr = [];
                         rec(r).work.sat.tot = [];

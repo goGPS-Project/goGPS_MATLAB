@@ -2259,8 +2259,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function fh_list = showAniZwdSlant(this, time_start, time_stop, show_map)
             fh_list = [];
-            if isempty(this.zwd) || ~any(this.sat.slant_td(:))
-                this.log.addWarning('ZWD and slants have not been computed');
+            if isempty(this.zwd)
+                this.log.addWarning('ZWD have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
                 
@@ -2353,9 +2353,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         function fh_list = showZtdSlant(this, time_start, time_stop)
-            %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
-            %    this(1).log.addWarning('ZTD and/or slants have not been computed');
-            %else
             fh_list = [];
             rec = this;
             if isempty(rec)
@@ -2363,7 +2360,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 cc = this.getCC;
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant %s', f.Number, this.parent.getMarkerName4Ch, cc.sys_c); f.NumberTitle = 'off';
-                fh_list = [fh_list; f]; %#ok<AGROW>
+                fh_list = [fh_list; f];
                 fig_name = sprintf('ZTD_Slant_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 

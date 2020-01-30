@@ -40,6 +40,7 @@ classdef Receiver_Work_Space < Receiver_Commons
     %% CONSTANTS
     properties (Constant)
         S02_IP_THR = 1e3;
+        RES_TYPE = {'0: no residuals', '1: prepro', '2: uncombined engine', '3: undifferenced and uncombined engine'};
     end
     
     % ==================================================================================================================================================
@@ -146,30 +147,30 @@ classdef Receiver_Work_Space < Receiver_Commons
             'outliers_ph_by_ph',   [], ...    % logical index of outliers
             'outliers_pr_by_pr',   [], ...    % logical index of outliers
             'cycle_slip_ph_by_ph', [], ...    % logical index of cycle slips
+            'err_tropo',           [], ...    % double  [n_epoch x n_sat] tropo error
+            'err_iono',            [], ...    % double  [n_epoch x n_sat] iono error
+            'res_type',            [], ...    % type of residual (0: prepro, 1: uncombined engine, 2: undifferenced and uncombined engine)
+            'res',                 [], ...    % residual per staellite
             'res_pr_by_pr',        [], ...    % pseudo-ranges uncombined residuals
             'res_ph_by_ph',        [], ...    % carrier-phases uncombined residuals
-            'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
-            'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
-            'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
-            'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
-            'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
-            'rel_clk_corr',     [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
-            'tot',              [], ...    % double  [n_epoch x n_sat] time of travel
-            'az',               [], ...    % double  [n_epoch x n_sat] azimuth
-            'el',               [], ...    % double  [n_epoch x n_sat] elevation
-            'cs',               [], ...    % Core_Sky
-            'XS_tx',            [], ...    % compute Satellite postion a t transmission time
-            'crx',              [], ...    % bad epochs based on crx file
-            'res',              [], ...    % residual per staellite
-            'amb_idx',          [], ...    % idex of the ambiguity for each epoch of the pahse measurement
-            'is_amb_fixed',     [], ...    % for each index of amb_idx tell is the ambiguity is fixed
-            'amb_val',          [], ...    % Value of the fixed ambiguity
-            'amb_mat',          [], ...    % Full ambiguity matrix
-            'amb',              [], ...
-            'stec',             [], ...     % slant tec
-            'last_repair',      [] ...     % last integer ambiguity repair per go_id size: [#n_observables x 1],
-            ...                            % for easyness of use it is larger than necessary it could be [#n_phases x 1]
-            ...                            % it could be changed in the future
+            'solid_earth_corr',    [], ...    % double  [n_epoch x n_sat] solid earth corrections
+            'tot',                 [], ...    % double  [n_epoch x n_sat] time of travel
+            'az',                  [], ...    % double  [n_epoch x n_sat] azimuth
+            'el',                  [], ...    % double  [n_epoch x n_sat] elevation
+            'dtS',                 [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
+            'rel_clk_corr',        [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
+            'cs',                  [], ...    % Core_Sky
+            'XS_tx',               [], ...    % compute Satellite postion a t transmission time
+            'crx',                 [], ...    % bad epochs based on crx file
+            'amb_idx',             [], ...    % idex of the ambiguity for each epoch of the pahse measurement
+            'is_amb_fixed',        [], ...    % for each index of amb_idx tell is the ambiguity is fixed
+            'amb_val',             [], ...    % Value of the fixed ambiguity
+            'amb_mat',             [], ...    % Full ambiguity matrix
+            'amb',                 [], ...
+            'stec',                [], ...    % slant tec
+            'last_repair',         [] ...     % last integer ambiguity repair per go_id size: [#n_observables x 1],
+            ...                               % for easyness of use it is larger than necessary it could be [#n_phases x 1]
+            ...                               % it could be changed in the future
             )
     end
     % ==================================================================================================================================================
@@ -225,12 +226,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
             this.sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
             this.pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
-            this.mp_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for multi-path variations         (0: not corrected , 1: corrected)
+            this.mp_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for multi-path variations          (0: not corrected , 1: corrected)
             this.ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
             this.pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
             this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
             this.et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
-            this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
+            this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect (0: not corrected , 1: corrected)
             
             this.sat.stec = [];
             this.sat.avail_index       = [];
@@ -246,11 +247,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.el                = [];
             this.sat.XS_tx             = [];
             this.sat.crx               = [];
+            this.sat.res_type          = 0;
             this.sat.res               = [];
             this.sat.res_pr_by_pr      = [];
             this.sat.res_ph_by_ph      = [];
-            this.sat.res_obs_code      = [];
-            this.sat.slant_td          = [];
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
@@ -415,7 +415,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.res               = [];
             this.sat.res_ph_by_ph      = [];
             this.sat.res_pr_by_pr      = [];
-            this.sat.slant_td          = [];
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
@@ -724,9 +723,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if ~isempty(this.sat.res)
                 this.sat.res(:, go_out) = 0;
-            end
-            if ~isempty(this.sat.slant_td)
-                this.sat.slant_td(:, go_out) = 0;
             end
             try
                 if ~isempty(this.sat.amb)
@@ -1360,9 +1356,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                     bad_res = bad_epochs;
                     bad_res(bad_res > n_ep_res) = [];
                     this.sat.res(bad_res, :) = [];
-                end
-                if ~isempty(this.sat.slant_td)
-                    this.sat.slant_td(bad_epochs, :) = [];
                 end
             end
         end
@@ -10064,11 +10057,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.ztd = zeros(this.time.length(),1, 'single');
                     end
                     
-                    n_sat = size(this.sat.el,2);
-                    if isempty(this.sat.slant_td)
-                        this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
-                    end
-                    
+                    n_sat = size(this.sat.el,2);                    
                     this.id_sync = id_sync;
                     
                     this.sat.res = zeros(this.time.length, n_sat, 'single');
@@ -10763,11 +10752,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.ztd = zeros(this.time.length(), 1, 'single');
                 end
                 
-                n_sat = size(this.sat.el,2);
-                if isempty(this.sat.slant_td)
-                    this.sat.slant_td = zeros(this.time.length(), n_sat, 'single');
-                end
-                
+                n_sat = size(this.sat.el,2);                
                 rate = time.getRate();
                 
                 %ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
@@ -10945,19 +10930,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~(isempty(this.tge))
                 this.tge(id_rem) = nan;
                 this.tge(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.tge(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
-            end
-            % slant cannot be interpolated easyle, it's better to interpolate slant_std and reconvert them to slant_td
-            % not yet implemented
-            %if ~(isempty(this.sat.slant_td))
-            %    for s = 1 : size(this.sat.slant_td, 2)
-            %        this.sat.slant_td(id_rem, s) = nan;
-            %        id_ok = ~id_rem & this.sat.el(:, s) > 0 & this.sat.slant_td(:, s) > 0;
-            %        id_interp = id_rem & this.sat.el(:, s) > 0;
-            %        if sum(id_ok) > 3
-            %            this.sat.slant_td(id_interp, s) = interp1(this.time.getEpoch(id_ok).getRefTime, zero2nan(this.sat.slant_td(id_ok, s)), this.time.getEpoch(id_interp).getRefTime, 'pchip');
-            %        end
-            %    end
-            %end
+            end                        
         end
     end
     
