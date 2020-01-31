@@ -592,6 +592,18 @@ classdef Core_UI < Logos
             end
             
             % ResizeFig
+            Core_UI.resizeFig(resizeFig);
+        end
+        
+        function resizeFig(fig_handle)
+            % Change size of a figure with standard values
+            % (only if it is small)
+            % 
+            % INPUT:
+            %   fig_handle  figure handler (e.g. gcf)
+            %
+            % SYNTAX:
+            %   Core_UI.resizeFig(fig_handle)
             unit = fig_handle.Units;
             fig_handle.Units = 'pixels';
             drawnow
@@ -617,7 +629,6 @@ classdef Core_UI < Logos
             end
             fig_handle.Units = unit;
         end
-        
     end
     %% METHODS INIT
     % ==================================================================================================================================================
