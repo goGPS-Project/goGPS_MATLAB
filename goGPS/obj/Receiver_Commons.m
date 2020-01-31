@@ -1851,7 +1851,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
                                 [tmp] = Core_Utils.polarGridder(az_all, el_all, res_all, [4 1], grid_step);
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(tmp)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+                                title((sprintf('Gridded map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
                             end
                             
                             if ~isfield(ant_mp, sys_c)

@@ -343,7 +343,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
-        function [ztd, gn ,ge] = getIgsTropo(this,mode)
+        function [ztd, gn ,ge] = getIgsTropo(this, mode)
             % get the official IGS solution fro tropospheric paramters
             %
             % SYNTAX:

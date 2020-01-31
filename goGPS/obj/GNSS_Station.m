@@ -5157,7 +5157,7 @@ classdef GNSS_Station < handle
                 
                 time_grad{r} = time_grad{r}/86400 + double(t0);
                 tropo_modulus{r} = double(hypot(gne{r}(:,1), gne{r}(:,2)));                
-                tropo_az{r} = acosd(gne{r}(:,1).^2 ./ (gne{r}(:,1) .* tropo_modulus{r}));
+                tropo_az{r} = 90 - atan2d(gne{r}(:,1), gne{r}(:,2));
             end
             time_grad_ref = time_grad_ref/86400 + double(t0);
         end
@@ -5264,7 +5264,7 @@ classdef GNSS_Station < handle
             
             if numel(sta_list) == 0 || ~flag_ok
                 log = Core.getLogger();
-                log.addError('No valid troposphere is present in the receiver list');
+                log.addError('The requested atmospheric parameter have not been computed or stored');
             else
                 if nargin < 3
                     new_fig = true;
@@ -5293,10 +5293,9 @@ classdef GNSS_Station < handle
 
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         drawnow;
+                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
                         Core_UI.beautifyFig(f);
-                        f.Visible = 'on';
                         drawnow;                        
                     else
                         f = gcf;
