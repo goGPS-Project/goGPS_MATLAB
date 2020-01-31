@@ -32,11 +32,10 @@ classdef Sinex_Reader < handle
     %--------------------------------------------------------------------------
     
     properties
-        time          %time as matlab time                     float   [n_epoch x 1]
-        ztd           %zenith total delay [mm]                 float   [n_epoch x 1]
-        zwd           %zenith wet delay [mm]                   float   [n_epoch x 1]
-        error         %formal error [mm]                       float   [n_epoch x 1]
-        
+        time          % time as matlab time                     float   [n_epoch x 1]
+        ztd           % zenith total delay [mm]                 float   [n_epoch x 1]
+        zwd           % zenith wet delay [mm]                   float   [n_epoch x 1]
+        error         % formal error [mm]                       float   [n_epoch x 1]        
     end
     
     properties (Access = private)
@@ -45,7 +44,7 @@ classdef Sinex_Reader < handle
     
     methods
         % Creator
-        function this = Sinex_Reader(file_name)
+        function this = Sinex_Reader(file_name, site)
             % Core object creator
             this.log = Core.getLogger();
             this.reset();
@@ -54,7 +53,7 @@ classdef Sinex_Reader < handle
                     for f = 1 : length(file_name)
                         this.log.addMessage(sprintf('Importing %s', file_name{f}));
                         if exist(file_name{f}, 'file')
-                            this.appendSinex_Reader(file_name{f});
+                            this.appendData(file_name{f}, site);
                         else
                             this.log.addMessage(sprintf('Error loading the last file, the file does not exists'));
                         end
@@ -62,7 +61,7 @@ classdef Sinex_Reader < handle
                 else
                     this.log.addMessage(sprintf('Importing %s', file_name));
                     if exist(file_name, 'file')
-                        this.appendSinex_Reader(file_name);
+                        this.appendData(file_name, site);
                     else
                         this.log.addMessage(sprintf('Error loading the file, it does not exists'));
                     end
@@ -84,14 +83,14 @@ classdef Sinex_Reader < handle
             this.error  = [];
         end
         
-        function importSinex_Reader(this, file)
+        function importData(this, file, site)
             % Import after reset a tropo file
-            % SYNTAX: this.importTropo(file)
+            % SYNTAX: this.importData(file)
             this.reset();
-            this.appendSinex_Reader(file)
+            this.appendSinex_Reader(file, site)
         end
         
-        function appendSinex_Reader (this, file)
+        function appendData(this, file, site)
             % import and append from a tropo file
             
             % Open tropo file as a string stream
