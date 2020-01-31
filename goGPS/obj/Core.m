@@ -893,6 +893,7 @@ classdef Core < handle
             core.log_gui = [];
             save(out_file_name, 'core', '-v7.3');            
             core.log_gui = log_gui;
+            core.log.addStatusOk('Exporting succeded!')
         end        
     end
     
