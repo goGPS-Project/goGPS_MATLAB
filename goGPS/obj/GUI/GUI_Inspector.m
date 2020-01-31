@@ -1392,8 +1392,8 @@ classdef GUI_Inspector < GUI_Unique_Win
                 cmd_list = textscan(strrep(char(this.j_cmd.getText),'%','#'),'%s','Delimiter', '\n');
                 cmd = Core.getCommandInterpreter();
                 if ~isempty(cmd_list)
-                    [cleaned_cmd_list, err_list, ~, ~, ~, key_lev, ~, ~] = cmd.fastCheck(cmd_list{1});
-                    key_lev = key_lev - (diff([0 key_lev]) > 0);
+                    [cleaned_cmd_list, err_list, loop_lev] = cmd.fastCheck(cmd_list{1});
+                    loop_lev = loop_lev - (diff([0 loop_lev]) > 0);
                     
                     cid = 0; % index running on valid commands
                     for c = 1 : numel(cmd_list{1})
@@ -1404,7 +1404,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                             cur_cmd = ['# ' cur_cmd ' - ERROR: CMD UNKNOWN']; %#ok<AGROW>
                             cmd_list{1}{c} = cur_cmd;
                         elseif ~err_list(c)
-                            cmd_list{1}{c} = sprintf('%s%s', char(32 * ones(1,3 * key_lev(cid))), strtrim(cleaned_cmd_list{cid}));
+                            cmd_list{1}{c} = sprintf('%s%s', char(32 * ones(1,3 * loop_lev(cid))), strtrim(cleaned_cmd_list{cid}));
                         end
                     end
                     str = strrep(strCell2Str(cmd_list{1}, 10),'#','%');

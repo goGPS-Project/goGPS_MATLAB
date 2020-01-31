@@ -1144,18 +1144,18 @@ classdef Command_Interpreter < handle
             end
             
             t0 = tic();
-             try
-                [cmd_list, err_list, execution_block, sss_list, trg_list, level, flag_push, flag_parallel] = this.fastCheck(cmd_list);
-                level = level + level_add;
+            try
+                [cmd_list, err_list, execution_block, sss_list, trg_list, ~, flag_push, flag_parallel] = this.fastCheck(cmd_list);
+                level = execution_block + level_add;
                 % for each command
-                l = 0;
-                while l < numel(cmd_list)
-                    l = l + 1;
+                cur_line_id = 0;
+                while cur_line_id < numel(cmd_list)
+                    cur_line_id = cur_line_id + 1;
                     
-                    tok = regexp(cmd_list{l},'[^ ]*', 'match'); % get command tokens
+                    tok = regexp(cmd_list{cur_line_id},'[^ ]*', 'match'); % get command tokens
                     
                     log.newLine();
-                    log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
+                    log.addMarkedMessage(sprintf('Executing: %s', cmd_list{cur_line_id}));
                     t1 = tic;
                     log.simpleSeparator([], [0.4 0.4 0.4]);
                     
@@ -1181,15 +1181,15 @@ classdef Command_Interpreter < handle
                             [id_trg, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
                             [id_sss, flag_par_session] = this.getMatchingSession(tok);
                             
-                            sid = l;
-                            l = l + find(execution_block(l:end) < execution_block(l), 1, 'first') - 1;
-                            if isempty(l)
-                                l = numel(execution_block);
+                            sid = cur_line_id;
+                            cur_line_id = cur_line_id + find(execution_block(cur_line_id:end) < execution_block(cur_line_id), 1, 'first') - 1;
+                            if isempty(cur_line_id)
+                                cur_line_id = numel(execution_block);
                             end
                             if flag_par_target
                                 % for loop on each target
                                 for t = id_trg
-                                    cmd_list_loop = cmd_list(sid : l-1);
+                                    cmd_list_loop = cmd_list(sid : cur_line_id-1);
                                     cmd_list_loop(1) = [];
                                     for c = 1 : numel(cmd_list_loop)
                                         % substitute $ with the current target
@@ -1209,7 +1209,7 @@ classdef Command_Interpreter < handle
                                 skip_line = true;
                             elseif flag_par_session
                                 % Get all the commands in this session for
-                                id = find(execution_block > execution_block(l),1,'first');
+                                id = find(execution_block > execution_block(cur_line_id),1,'first');
                                 lev0 = level(id);
                                 id_list = [];
                                 i = id + 1;
@@ -1243,7 +1243,7 @@ classdef Command_Interpreter < handle
                                         
                                     end
                                 end
-                                l = id_list(end);
+                                cur_line_id = id_list(end);
                                 skip_line = true;
                             else
                                 log.addWarning('A loop section have been requested\n but no targets or sessions are specified');
@@ -1265,8 +1265,8 @@ classdef Command_Interpreter < handle
                         end
                         % go parallel
                         % Get the section target => remove not available targets
-                        tmp = trg_list{l};
-                        trg_list{l} = tmp(tmp <= numel(core.rec));
+                        tmp = trg_list{cur_line_id};
+                        trg_list{cur_line_id} = tmp(tmp <= numel(core.rec));
                         
                         % find the last command of this block
                         %last_par_id = find(execution_block == execution_block(l), 1, 'last');
@@ -1278,27 +1278,27 @@ classdef Command_Interpreter < handle
                         %par_cmd_id = (l + 1) : last_par_id;
                         
                         % find the last command of this section
-                        last_par_id = find((level(l : end) - level(l)) < 0, 1, 'first');
+                        last_par_id = find((level(cur_line_id : end) - level(cur_line_id)) < 0, 1, 'first');
                         if isempty(last_par_id)
                             last_par_id = numel(level);
                         else
-                            last_par_id = last_par_id + l - 2;
+                            last_par_id = last_par_id + cur_line_id - 2;
                         end
-                        par_cmd_id = (l + 1) : last_par_id;
+                        par_cmd_id = (cur_line_id + 1) : last_par_id;
                         
                         if n_workers > 0
                             par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
                             
-                            if flag_parallel(l) == 1 % it means parallel session (2 is parallel targets)
+                            if flag_parallel(cur_line_id) == 1 % it means parallel session (2 is parallel targets)
                                 gom.orderProcessing(par_cmd_list, 1, id_sss);
                                 gom.importParallelSessions();
                                 % And now I have to read the (ordered) sessions
-                            elseif flag_parallel(l) == 2 % it means parallel targets
-                                gom.orderProcessing(par_cmd_list, 2, trg_list{l});
+                            elseif flag_parallel(cur_line_id) == 2 % it means parallel targets
+                                gom.orderProcessing(par_cmd_list, 2, trg_list{cur_line_id});
                             end
-                            l = par_cmd_id(end);
+                            cur_line_id = par_cmd_id(end);
                         else
-                             try
+                            try
                                 switch upper(tok{1})
                                     case this.CMD_RENAME.name               % RENAME
                                         this.runRename(core.rec, tok(2:end));
@@ -1321,11 +1321,11 @@ classdef Command_Interpreter < handle
                                     case this.CMD_KEEP.name                 % KEEP
                                         this.runKeep(core.rec.getWork(), tok(2:end));
                                     case this.CMD_SHOW.name                 % SHOW
-                                        this.runShow(core.rec, tok, level(l));
+                                        this.runShow(core.rec, tok, level(cur_line_id));
                                     case this.CMD_VALIDATE.name             % VALIDATE
-                                        this.runValidation(core.rec, tok, level(l));
+                                        this.runValidation(core.rec, tok, level(cur_line_id));
                                     case this.CMD_EXPORT.name               % EXPORT
-                                        this.runExport(core.rec, tok, level(l));
+                                        this.runExport(core.rec, tok, level(cur_line_id));
                                     case this.CMD_PUSHOUT.name              % PUSHOUT
                                         this.runPushOut(core.rec, tok);
                                     case this.CMD_LOAD.name                 % LOAD
@@ -1350,7 +1350,7 @@ classdef Command_Interpreter < handle
                                         case this.CMD_SEID.name                 % SEID
                                             this.runSEID(core.rec, tok(2:end));
                                         case this.CMD_SID.name                  % SID
-                                            this.runSID(core.rec, tok(2:end));                                        
+                                            this.runSID(core.rec, tok(2:end));
                                         case this.CMD_REMIONO.name              % REMIONO
                                             this.runRemIono(core.rec, tok(2:end));
                                         case this.CMD_MPEST.name                % CMD_MPEST
@@ -2981,7 +2981,7 @@ classdef Command_Interpreter < handle
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
-        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev, flag_push, flag_parallel] = fastCheck(this, cmd_list)
+        function [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = fastCheck(this, cmd_list)
             % Check a cmd list keeping the valid commands only
             %
             % INPUT
@@ -2992,7 +2992,7 @@ classdef Command_Interpreter < handle
             %   err         error list
             %
             % SYNTAX
-            %  [cmd, err_list, execution_block, sss_list, trg_list, key_lev] = fastCheck(this, cmd_list)
+            %  [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = fastCheck(this, cmd_list)
             if nargout > 3
                 state = Core.getCurrentSettings();
             end
@@ -3006,17 +3006,18 @@ classdef Command_Interpreter < handle
             err_list = zeros(size(cmd_list));   
             sss = 1;
             trg = [];
-            lev = 0;
+            sss_lev = 0; % session level
             par_id_counter = 0;
             execution_block = zeros(1, numel(cmd_list));
             flag_push = false(0,0); % Indicate commands that requires push
             auto_push = true; % This is always true unless PUSHOUT command is specifically used!
             sss_list = cell(numel(cmd_list), 1);
             trg_list = cell(numel(cmd_list), 1);
-            key_lev = zeros(1, numel(cmd_list));
+            session_lev = zeros(1, numel(cmd_list));
             is_par = 0; % is the current line in a parallel block?
             flag_parallel = zeros(numel(cmd_list), 1);
             str_loop = ''; % contains the list of open loops
+            loop_type = ''; % contains the list of loop types
             eb_counter = 0;
             for c = 1 : numel(cmd_list)
                 [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
@@ -3024,11 +3025,14 @@ classdef Command_Interpreter < handle
                     if err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)
                         % I need to loop
                         eb_counter = eb_counter + 1;
-                        lev = lev + 1;
                         tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
                         [tmp, sss_found] = this.getMatchingSession(tok);
                         if sss_found
                             sss = tmp;
+                            sss_lev = sss_lev + 1;
+                            loop_type = [loop_type 'S']; % session loop
+                        else
+                            loop_type = [loop_type 'T']; % receivers loop
                         end
                         [trg, trg_found] = this.getMatchingTarget(tok);
                         str_loop = [str_loop 'F'];
@@ -3037,11 +3041,14 @@ classdef Command_Interpreter < handle
                         % I need to loop
                         eb_counter = eb_counter + 1;
                         par_id_counter = par_id_counter + 1;
-                        lev = lev + 1;
                         tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
                         [tmp, sss_found] = this.getMatchingSession(tok);
                         if sss_found
                             sss = tmp;
+                            sss_lev = sss_lev + 1;
+                            loop_type = [loop_type 'S']; % session loop
+                        else
+                            loop_type = [loop_type 'T']; % receivers loop
                         end
                         [trg, trg_found] = this.getMatchingTarget(tok);
                         is_par = sss_found + 2 * trg_found;
@@ -3059,7 +3066,6 @@ classdef Command_Interpreter < handle
                                 % I need to loop
                                 is_par = 0;
                                 par_id_counter = par_id_counter + 1;
-                                lev = lev - 1;
                                 trg = [];
                                 sss = sss(end);
                             else
@@ -3067,9 +3073,13 @@ classdef Command_Interpreter < handle
                                 if ~(c > 1 && flag_parallel(c - 1))
                                     sss = sss(end);
                                 end
-                                lev = lev - 1;
+                            end
+                            if loop_type(end) == 'S'
+                                % A session have been closed
+                                sss_lev = sss_lev - 1;
                             end
                             str_loop(end) = []; % close the last loop
+                            loop_type(end) = []; % close the last loop
                         end
                     end
                 end
@@ -3097,7 +3107,7 @@ classdef Command_Interpreter < handle
                     flag_push(last_loop) = false;
                 end
                 flag_push(last_loop) = flag_push(last_loop) || flag_push_command;
-                key_lev(c) = lev;
+                session_lev(c) = sss_lev;
                 sss_list{c} = sss;
                 trg_list{c} = trg;
             end   
@@ -3106,7 +3116,7 @@ classdef Command_Interpreter < handle
             cmd_list = cmd_list(~err_list);
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);
-            key_lev = key_lev(~err_list);
+            session_lev = session_lev(~err_list);
             if nargout > 3 && ~any(flag_parallel == 1) && eb_counter == 0 % no FOR found
                 for s = 1 : numel(sss_list)
                     sss_list{s} = 1 : state.getSessionCount();
