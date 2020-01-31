@@ -592,7 +592,7 @@ classdef Core_UI < Logos
             end
             
             % ResizeFig
-            Core_UI.resizeFig(resizeFig);
+            Core_UI.resizeFig(fig_handle);
         end
         
         function resizeFig(fig_handle)
