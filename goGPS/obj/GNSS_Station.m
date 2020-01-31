@@ -2055,7 +2055,7 @@ classdef GNSS_Station < handle
 
             med_tropo = mean(tropo, 1, 'omitnan')';
 
-            degree = 4;
+            degree = 2;
             coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
             [lat, lon, up, h_o] = coo.getGeodetic;
                         
@@ -2102,7 +2102,7 @@ classdef GNSS_Station < handle
             % Refine mask keeping only points above sea level close to the station to process
             [xg, yg] = meshgrid(x_id, y_id); 
             % for Japan max was 25 -> elsewhere the bases are further away
-            d = max(100, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.35))); % 35% of min distance is used to enlarge the area of interpolation
+            d = min(100, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.15))); % 35% of min distance is used to enlarge the area of interpolation
             mask = (circConv2(mask, d) > 0) & (dtm >= -10);
             conv_mask = [0 0 1 1 1 0 0; ...
                          0 1 1 1 1 1 0; ...
@@ -3850,7 +3850,7 @@ classdef GNSS_Station < handle
             coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
 
-            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 100, res_tropo(epoch(1),:)', 'filled');
+            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 300, res_tropo(epoch(1),:)', 'filled');
             hold on;
             % plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
             caxis([min(res_tropo(:)) max(res_tropo(:))]);
@@ -4129,8 +4129,10 @@ classdef GNSS_Station < handle
                 case 'zhd'
                 case 'nsat'
             end
-            cmap = Cmap.get('c51',512);
-            colormap(flipud(cmap(2:end,:)));
+            %cmap = Cmap.get('c51',512);
+            %colormap(flipud(cmap(2:end,:)));
+            cmap = Cmap.get('RdBu'); 
+            colormap(cmap);
             %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
             % redraw boxes
@@ -4185,7 +4187,8 @@ classdef GNSS_Station < handle
                     case 'zhd'
                     case 'nsat'
                 end
-                cmap = Cmap.get('c51',512);
+                %cmap = Cmap.get('c51',512);
+                cmap = Cmap.get('RdBu');
                 colormap(flipud(cmap(2:end,:)));
                 %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
