@@ -42,7 +42,7 @@ function resetTimeTicks(h, num, format)
     end
     for i = 1 : numel(h)
         try
-            ax = axis(h(i));
+            ax = double(axis(h(i)));
             step = (ax(2)-ax(1))/(num);
             time_span = ax(2)-ax(1);
             tick_pos = (ax(1) + 0*(step/2)) : step : (ax(2) - 0*(step/2));
@@ -88,7 +88,7 @@ function resetTimeTicks(h, num, format)
 
                 for l = 1 : numel(tick_pos)
                     str_time_format = '';
-                    new_date = datevec(tick_pos(l));
+                    new_date = datevec(double(tick_pos(l)));
                     if last_date(1) ~= new_date(1)        % if the year is different
                         str_time_format = 'yyyy/mm/dd HH:MM:SS';
                     elseif last_date(2) ~= new_date(2)    % if the month is different 
