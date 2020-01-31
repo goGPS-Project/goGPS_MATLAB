@@ -1192,7 +1192,11 @@ classdef Core < handle
             state = this.state;
             if (level < 5) || (level > 10)
                 err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
-                err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);                
+                if any(state.obs_dir == '$')
+                    err_code.obs   = 0;
+                else
+                    err_code.obs = state.checkDir('obs_dir', 'Observation dir', flag_verbose);
+                end
             else
                 err_code.home = 0;
                 err_code.obs = 0;
