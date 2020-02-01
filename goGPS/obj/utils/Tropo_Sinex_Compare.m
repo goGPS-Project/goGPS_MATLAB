@@ -195,28 +195,28 @@ classdef Tropo_Sinex_Compare < handle
                     data = recs(s).out;
                     if isfield(this.results.(['r' num2str(result_n)]), sta)
                         
-                        [this.results.(['r' num2str(result_n)]).(sta).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).time.injectBatch(data.time);
-                        this.results.(['r' num2str(result_n)]).(sta).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).ztd, data.ztd , idx1, idx2);
-                        this.results.(['r' num2str(result_n)]).(sta).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tgn, data.tgn, idx1, idx2);
-                        this.results.(['r' num2str(result_n)]).(sta).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).tge, data.tge, idx1, idx2);
+                        [this.results.(['r' num2str(result_n)]).(['r' (sta)]).time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(['r' (sta)]).time.injectBatch(data.time);
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).ztd     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(['r' (sta)]).ztd, data.ztd , idx1, idx2);
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).tgn     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(['r' (sta)]).tgn, data.tgn, idx1, idx2);
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).tge     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(['r' (sta)]).tge, data.tge, idx1, idx2);
                         
-                        [this.results.(['r' num2str(result_n)]).(sta).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(sta).coord_time.injectBatch(data.time_pos);
-                        this.results.(['r' num2str(result_n)]).(sta).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(sta).xyz, data.xyz, idx1, idx2);
+                        [this.results.(['r' num2str(result_n)]).(['r' (sta)]).coord_time, idx1, idx2] = this.results.(['r' num2str(result_n)]).(['r' (sta)]).coord_time.injectBatch(data.time_pos);
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).xyz     = Core_Utils.injectData(this.results.(['r' num2str(result_n)]).(['r' (sta)]).xyz, data.xyz, idx1, idx2);
                     else
-                        this.results.(['r' num2str(result_n)]).(sta) = struct();
-                        this.results.(['r' num2str(result_n)]).(sta).xyz = data.xyz;
-                        this.results.(['r' num2str(result_n)]).(sta).coord_time = data.time_pos;
-                        this.results.(['r' num2str(result_n)]).(sta).time = data.time;
-                        this.results.(['r' num2str(result_n)]).(sta).ztd = data.ztd;
-                        this.results.(['r' num2str(result_n)]).(sta).tgn = data.tgn;
-                        this.results.(['r' num2str(result_n)]).(sta).tge = data.tge;
-                        this.results.(['r' num2str(result_n)]).(sta).delta_enu = [data.parent.ant_delta_en data.parent.ant_delta_h];
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]) = struct();
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).xyz = data.xyz;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).coord_time = data.time_pos;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).time = data.time;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).ztd = data.ztd;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).tgn = data.tgn;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).tge = data.tge;
+                        this.results.(['r' num2str(result_n)]).(['r' (sta)]).delta_enu = [data.parent.ant_delta_en data.parent.ant_delta_h];
                     end
                 end
             end
         end
         
-        function plotTropoDifference(this,mode)
+        function plotTropoDifference(this, mode)
             % print the difference between the results
             %
             % SYNTAX
@@ -232,6 +232,7 @@ classdef Tropo_Sinex_Compare < handle
                         data1 = this.results.r1.(sta1{s1});
                         data2 = this.results.r2.(sta2{s2});
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
+                        Core_UI.resizeFig(f);
                         % plot ZTD series
                         subplot(3,4,1:3)
                         diffint = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'interpolate');
@@ -244,7 +245,7 @@ classdef Tropo_Sinex_Compare < handle
                             stdd = nan_std(diffint);
                             ylim([-4*stdd 4*stdd])
                             xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                            setTimeTicks(5,'yyyy/mm/dd');
+                            setTimeTicks(5,'yyyy-mm-dd');
                             title('ZTD')
                             subplot(3,4,4)
                             hist(noNaN(diffagg),30)
@@ -264,7 +265,7 @@ classdef Tropo_Sinex_Compare < handle
                                 stdd = nan_std(diffint);
                                 ylim([-4*stdd 4*stdd])
                                 xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                                setTimeTicks(5,'yyyy/mm/dd');
+                                setTimeTicks(5,'yyyy-mm-dd');
                                 title('East gradient')
                                 subplot(3,4,8)
                                 hist(noNaN(diffagg),30)
@@ -283,7 +284,7 @@ classdef Tropo_Sinex_Compare < handle
                                 stdd = nan_std(diffint);
                                 ylim([-4*stdd 4*stdd])
                                 xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                                setTimeTicks(5,'yyyy/mm/dd');
+                                setTimeTicks(5,'yyyy-mm-dd');
                                 title('North gradient')
                                 subplot(3,4,12)
                                 hist(noNaN(diffagg),30)
@@ -308,7 +309,7 @@ classdef Tropo_Sinex_Compare < handle
                                 stdd = nan_std(diffint);
                                 ylim([0 7*stdd])
                                 xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                                setTimeTicks(5,'yyyy/mm/dd');
+                                setTimeTicks(5,'yyyy-mm-dd');
                                 title('Gradient magnitude')
                                 subplot(3,4,8)
                                 hist(noNaN(diffagg),30)
@@ -328,7 +329,7 @@ classdef Tropo_Sinex_Compare < handle
                                 stdd = nan_std(diffint);
                                 ylim([-180 180])
                                 xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                                setTimeTicks(5,'yyyy/mm/dd');
+                                setTimeTicks(5,'yyyy-mm-dd');
                                 title('Gradient Azimuth')
                                 magn = sqrt(data2.tge.^2 + data2.tgn.^2);
                                 diffagg = diffagg(magn > 3*1e-3);
@@ -343,17 +344,63 @@ classdef Tropo_Sinex_Compare < handle
                         end
                     end
                 end
-            end
-            
+                drawnow;
+            end            
         end
         
+        function [info] = getTropoDifferenceSummary(this)
+            % Get the difference between the results
+            %
+            % SYNTAX
+            %   [info] = this.getTropoDifferenceSummary()
+                 
+            sta1 = fieldnames(this.results.r1);
+            sta2 = fieldnames(this.results.r2);
+            [Csta,ia,ib] = intersect(lower(sta1),lower(sta2), 'stable');
+            
+            info = struct(...
+                'ztd_mean', zeros(length(Csta), 1), ...
+                'ztd_rms', zeros(length(Csta), 1), ...
+                'gn_mean', zeros(length(Csta), 1), ...
+                'gn_rms', zeros(length(Csta), 1), ...
+                'ge_mean', zeros(length(Csta), 1), ...
+                'ge_rms', zeros(length(Csta), 1));
+            
+            for s = 1 : length(Csta)
+                s1 = ia(s);
+                s2 = ib(s);
+                data1 = this.results.r1.(sta1{s1});
+                data2 = this.results.r2.(sta2{s2});
+                % get ZTD series
+                
+                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+                
+                info.ztd_mean(s) = bias;
+                info.ztd_rms(s) = rms;
+
+                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+                
+                info.gn_mean(s) = bias;
+                info.gn_rms(s) = rms;
+
+                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                rms = mean(abs(noNaN(diffagg)*1e3));
+                bias = mean(noNaN(diffagg)*1e3);
+
+                info.ge_mean(s) = bias;
+                info.ge_rms(s) = rms;
+            end
+        end
+
         function plotTropoDifferenceSummary(this)
             % print the difference between the results
             %
             % SYNTAX
-            %   this.plotComparison()
-            sta1 = fieldnames(this.results.r1);
-            sta2 = fieldnames(this.results.r2);
+            %   this.plotTropoDifferenceSummary()
             sta1 = fieldnames(this.results.r1);
             sta2 = fieldnames(this.results.r2);
             [Csta,ia,ib] = intersect(lower(sta1),lower(sta2), 'stable');
@@ -425,18 +472,19 @@ classdef Tropo_Sinex_Compare < handle
             %   this.plotComparison()
             sta1 = fieldnames(this.results.r1);
             sta2 = fieldnames(this.results.r2);
-            for s1 = 1 : length(sta1)
+            for s1 = 1% : length(sta1)
                 for s2 = 1 : length(sta2)
                     if strcmpi(sta1{s1},sta2{s2})
                         data1 = this.results.r1.(sta1{s1});
                         data2 = this.results.r2.(sta2{s2});
                         f = figure; f.Name = sprintf('%03d: %s ', f.Number, sta1{s1}); f.NumberTitle = 'off';
+                        Core_UI.resizeFig(f);
                         % plot ZTD series
                         subplot(3,1,1)
                         plot(data1.time.getMatlabTime,zero2nan(data1.ztd),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.ztd),'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.ztd),'.-r', 'MarkerSize', 10);
+                        setTimeTicks(5);
                         
                         
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
@@ -445,10 +493,10 @@ classdef Tropo_Sinex_Compare < handle
                         subplot(3,1,2)
                         plot(data1.time.getMatlabTime,zero2nan(data1.tge),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.tge),'r');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.tge),'.-r', 'MarkerSize', 10);
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5);
                         %                     subplot(3,4,11)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
@@ -457,16 +505,16 @@ classdef Tropo_Sinex_Compare < handle
                         subplot(3,1,3)
                         plot(data1.time.getMatlabTime,zero2nan(data1.tgn),'.','Color','b');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.tgn),'r');
+                        plot(data2.time.getMatlabTime,zero2nan(data2.tgn),'.-r', 'MarkerSize', 10);
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5);
                         %                     subplot(3,4,12)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
                         title('North gradient')
                     end
-                end
+                end                
             end
             
         end
@@ -494,7 +542,7 @@ classdef Tropo_Sinex_Compare < handle
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,1)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,1)),'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         
                         ylabel('mm')
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
@@ -506,7 +554,7 @@ classdef Tropo_Sinex_Compare < handle
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,2)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,2)),'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         ylabel('mm')
                         %                     subplot(3,4,11)
                         %                     hist(diffint);
@@ -519,7 +567,7 @@ classdef Tropo_Sinex_Compare < handle
                         plot(data1.coord_time.getMatlabTime,zero2nan(enu1(:,3)),'.','Color','b');
                         hold on;
                         plot(data2.coord_time.getMatlabTime,zero2nan(enu2(:,3)),'r');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         ylabel('mm')
                         %                     subplot(3,4,12)
                         %                     hist(diffint);
@@ -570,7 +618,7 @@ classdef Tropo_Sinex_Compare < handle
                         stdd = nan_std(diffagg);
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         if mode == 1
                             title('East')
                         else
@@ -590,8 +638,8 @@ classdef Tropo_Sinex_Compare < handle
                         stdd = nan_std(diffagg);
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         if mode == 1
                             title('North')
                         else
@@ -611,8 +659,8 @@ classdef Tropo_Sinex_Compare < handle
                         stdd = nan_std(diffagg);
                         %ylim([-4*stdd 4*stdd])
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        setTimeTicks(5,'yyyy/mm/dd');
-                        setTimeTicks(5,'yyyy/mm/dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
+                        setTimeTicks(5,'yyyy-mm-dd');
                         if mode == 1
                             title('Up')
                         else
@@ -849,10 +897,10 @@ classdef Tropo_Sinex_Compare < handle
                 idx_sta  = strLineMatch(sta_4char_trp,c_sta_4char);
                 if sum(idx_sta) > 0
                     for i = 1 : n_par
-                        results.(c_sta_4char).(pars{i}) = all_res.(pars{i})(idx_sta);
+                        results.(['r' c_sta_4char]).(pars{i}) = all_res.(pars{i})(idx_sta);
                     end
-                    results.(c_sta_4char).time = GPS_Time.fromDoySod(year(idx_sta),doy(idx_sta),sod(idx_sta));
-                    results.(c_sta_4char).xyz = xyz(s,:);
+                    results.(['r' c_sta_4char]).time = GPS_Time.fromDoySod(year(idx_sta),doy(idx_sta),sod(idx_sta));
+                    results.(['r' c_sta_4char]).xyz = xyz(s,:);
                 end
             end
         end
