@@ -9926,12 +9926,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 order_tropo = this.state.spline_tropo_order;
                 order_tropo_g = this.state.spline_tropo_gradient_order;
                 tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
-                id_sync = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
-                if isempty(id_sync)
+                id_obs = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
+                if isempty(id_obs)
                     log.addWarning('No processable epochs found, skipping PPP');
                 else
                     ls.Astack2Nstack();
-                    time = this.time.getSubSet(id_sync);
+                    time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
                     ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
                     if this.state.flag_tropo
@@ -10105,6 +10105,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                             zwd = this.getZwd();
                             zwd_tmp = zeros(size(this.zwd));
                             zwd_tmp(this.id_sync) = zwd;
+                            % obs_set_id2id_sync map the obs_set content (valid for all the epochs that are not without observations) to the results of the 
+                            % LS solve where some epochs might be not estimated due to outlier rejections or other problems
+                            obs_set_id2true_ep = false(max(valid_ep)); obs_set_id2true_ep(valid_ep) = 1; obs_set_id2true_ep = obs_set_id2true_ep(id_obs);
                             if order_tropo == 0
                                 this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                             else
@@ -10113,7 +10116,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo);
                                 tropo_idx_prog = zeros(max(ls.tropo_idx),1);
                                 tropo_idx_prog(unique(ls.tropo_idx)) = 1 : length(unique(ls.tropo_idx)); % tropo idx to progessive tropo idx
-                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx(valid_ep)), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx(valid_ep))), 1)), 2);
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx(obs_set_id2true_ep)), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx(obs_set_id2true_ep))), 1)), 2);
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd), 'single');
@@ -10144,7 +10147,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
                                 tropo_g_idx_prog = zeros(max(ls.tropo_g_idx),1);
                                 tropo_g_idx_prog(unique(ls.tropo_g_idx)) = 1 : length(unique(ls.tropo_g_idx)); % tropo idx to prgessive tropo idx
-                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(valid_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(valid_ep)),1)),2);
+                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(obs_set_id2true_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(obs_set_id2true_ep)),1)),2);
                             end
                             if isempty(this.tge) || all(isnan(this.tge))
                                 this.tge = nan(this.time.length,1);
@@ -10152,7 +10155,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             if order_tropo_g == 0
                                 this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                             else
-                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(valid_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(valid_ep)),1)),2);
+                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(obs_set_id2true_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(obs_set_id2true_ep)),1)),2);
                             end
                         end
                         this.updateErrTropo();
@@ -10172,7 +10175,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                     
                                     ls = LS_Manipulator(cc);
-                                    id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx);
+                                    id_obs = ls.setUpPPP(this, sys_list, id_sync_in, '',false, pos_idx);
                                     ls.Astack2Nstack();
                                     
                                     time = this.time.getSubSet(id_sync_in);
