@@ -1469,7 +1469,7 @@ classdef Core_Sky < handle
         end
         
         function importIono(this,f_name)
-            [~, this.iono, flag_return ] = this.loadRinexNav(f_name,this.cc,0,0);
+            [~, this.iono, flag_return ] = this.loadRinexNav(f_name,this.cc, 1, Core.getCurrentSettings.getIonoModel);
             if (flag_return)
                 return
             end
@@ -2804,8 +2804,12 @@ classdef Core_Sky < handle
                         for sys_c = iif(flag_mixed, cc.SYS_C(cc.active_list), 'G')
                             % Detect and remove satellites with "high" PRN,
                             % usually connected with satellites under testing
-                            id_testing = Eph_G(1,:) > cc.getSys(sys_c).N_SAT & Eph_G(31,:) == sys_c;
-                            Eph_G(:, id_testing) = [];
+                            if ~isempty(Eph_G)
+                                id_testing = Eph_G(1,:) > cc.getSys(sys_c).N_SAT & Eph_G(31,:) == sys_c;
+                                Eph_G(:, id_testing) = [];
+                            else
+                                % Core.getLogger.addWarning(sprintf('Ionospheric parameters not found in "%s"', filename));
+                            end
                         end
                         if(~only_iono), log.addStatusOk(); end
                     else
