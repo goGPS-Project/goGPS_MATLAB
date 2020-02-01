@@ -1561,6 +1561,8 @@ classdef LS_Manipulator_new < handle
             state = Core.getCurrentSettings();
             if state.getWeigthingStrategy == 2
                 this.sinElevationWeigth();
+            elseif state.getWeigthingStrategy == 3
+                this.sinSquareElevationWeigth();
             end
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
@@ -2065,11 +2067,20 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %   this.sinElevationWeigth()
             fun = @(el) (sind(el)).^2;
-            this.elevationWeigth( fun)
+            this.elevationWeigth(fun);
         end
         
-        function hemisphereWeighting(this,fun)
-            % weight observation based on azimuth and elevation fucntion
+        function sinSquareElevationWeigth(this)
+            % weight observation by elevation by 1/sin^2
+            %
+            % SYNTAX:
+            %   this.sinSquareElevationWeigth()
+            fun = @(el) (sind(el)).^4;
+            this.elevationWeigth(fun);
+        end
+        
+        function hemisphereWeighting(this, fun)
+            % weight observation based on azimuth and elevation function
             %
             % SYNTAX:
             %    this.hemisphereWeighting(fun)

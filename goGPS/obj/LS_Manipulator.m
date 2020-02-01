@@ -917,6 +917,8 @@ classdef LS_Manipulator < Exportable
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 elseif this.state.getWeigthingStrategy == 2
                     variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^2;
+                elseif this.state.getWeigthingStrategy == 3
+                    variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^4;
                 else
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 end

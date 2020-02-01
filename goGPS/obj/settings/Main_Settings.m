@@ -192,7 +192,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
-                                                        %  - weights = 3: weight based on satellite elevation (exp)
+                                                        %  - weights = 3: weight based on the square of satellite elevation (sin^2)
                                                 
         
         PPP_REWEIGHT_MODE = 1                           % PPP re-weight / snooping
@@ -311,8 +311,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % id to string of weight functions
         W_SMODE = {'uniform', ...
-                   'sat elevation (sin) dependent' ...
-                   'sat elevation (exp) dependent'}
+                   'sat elevation (sin) dependent', ...
+                   'square of sat elevation (sin^2) dependent'}
 
         % id to string of ionospheric models
         IONO_SMODE = {'1: no model', ...
@@ -643,7 +643,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         w_mode = Main_Settings.W_MODE;
         %  - weights = 1: same weight for all the observations
         %  - weights = 2: weight based on satellite elevation (sin)
-        %  - weights = 3: weight based on satellite elevation (exp)
+        %  - weights = 3: weight based on the square of satellite elevation (sin^2)
 
         % PPP re-weight / snooping
         ppp_reweight_mode = Main_Settings.PPP_REWEIGHT_MODE;
