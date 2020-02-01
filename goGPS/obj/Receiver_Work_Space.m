@@ -10111,8 +10111,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo);
                                 tropo_idx_prog = zeros(max(ls.tropo_idx),1);
-                                tropo_idx_prog(unique(ls.tropo_idx)) = 1 : length(unique(ls.tropo_idx)); % tropo idx to prgessive tropo idx
-                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx)), 1)), 2);
+                                tropo_idx_prog(unique(ls.tropo_idx)) = 1 : length(unique(ls.tropo_idx)); % tropo idx to progessive tropo idx
+                                this.zwd(valid_ep) = zwd_tmp(valid_ep) + sum(spline_base .* tropo(repmat(tropo_idx_prog(ls.tropo_idx(valid_ep)), 1, order_tropo + 1) + repmat((0 : order_tropo), numel(tropo_idx_prog(ls.tropo_idx(valid_ep))), 1)), 2);
                             end
                             this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                             this.pwv = nan(size(this.zwd), 'single');
@@ -10143,7 +10143,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
                                 tropo_g_idx_prog = zeros(max(ls.tropo_g_idx),1);
                                 tropo_g_idx_prog(unique(ls.tropo_g_idx)) = 1 : length(unique(ls.tropo_g_idx)); % tropo idx to prgessive tropo idx
-                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(valid_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(valid_ep)),1)),2);
                             end
                             if isempty(this.tge) || all(isnan(this.tge))
                                 this.tge = nan(this.time.length,1);
@@ -10151,7 +10151,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             if order_tropo_g == 0
                                 this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                             else
-                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx),1)),2);
+                                this.tge(valid_ep) = nan2zero(this.tge(valid_ep)) + sum(spline_base.*getropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(valid_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(valid_ep)),1)),2);
                             end
                         end
                         this.updateErrTropo();
