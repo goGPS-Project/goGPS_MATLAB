@@ -2133,7 +2133,25 @@ classdef Core_Utils < handle
                 data1(isnan(data1)) = data2(isnan(data1));
                 data2(isnan(data2)) = data1(isnan(data2));
             end
-            % Merge
+            
+            % Do not Merge nans
+            last_ok = find(~isnan(data1), 1, 'last');
+            if isempty(last_ok)
+                last_ok = 0;
+            end
+            w1((last_ok + 1) : end) = 0;
+            data1((last_ok + 1) : end) = 0;
+            w2((last_ok + 1) : end) = 1;
+            
+            % Do not Merge nans
+            first_ok = find(~isnan(data2), 1, 'first');
+            if isempty(last_ok)
+                first_ok = numel(data2) + 1;
+            end
+            w1(1 : (first_ok - 1)) = 1;
+            w2(1 : (first_ok - 1)) = 0;
+            data2(1 : (first_ok - 1)) = 0;
+            
             data = w1.*data1 + w2.*data2;
             %data(id_ko) = [];
             data = data(id_keep);

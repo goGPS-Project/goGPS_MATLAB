@@ -463,7 +463,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function slant_td = getSlantTD(this,go_id)
+        function slant_td = getSlantTD(this, go_id)
             % Get the slant total delay
             %
             % SYNTAX
