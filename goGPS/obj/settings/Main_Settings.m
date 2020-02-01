@@ -270,7 +270,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %SIGMA0_TROPO_GRADIENT = 1;                     % Std of a priori tropospheric gradient
 
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
+        STD_TROPO_GRADIENT = 0.0005;                    % Std of tropospheric gradient [m/h]
         STD_TROPO_ABS = 0.5;                            % abs value regularization Std of tropospheric delay [m]
         STD_TROPO_GRADIENT_ABS = 0.02;                  % abs value regularization Std  of tropospheric gradient [m/h]
         STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
