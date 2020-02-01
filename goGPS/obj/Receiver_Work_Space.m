@@ -7284,7 +7284,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % upadte the ztd zwd
             this.updateAprTropo();
-            this.sat.err_tropo(this.id_sync,:) = this.getSlantTD(go_id);
+            tmp = this.getSlantTD(go_id);
+            this.sat.err_tropo(this.id_sync,:) = tmp(this.id_sync,:);
             this.getSatCache(go_id, true);
         end
         
