@@ -465,14 +465,19 @@ classdef Tropo_Sinex_Compare < handle
         end
         
         
-        function plotTropoComparison(this)
+        function plotTropoComparison(this, station_ids)
             % print the difference between the results
             %
             % SYNTAX
             %   this.plotComparison()
             sta1 = fieldnames(this.results.r1);
             sta2 = fieldnames(this.results.r2);
-            for s1 = 1% : length(sta1)
+            if nargin == 1
+                station_ids = 1 : length(sta1);
+            else
+                station_ids = station_ids(:)';
+            end
+            for s1 = station_ids
                 for s2 = 1 : length(sta2)
                     if strcmpi(sta1{s1},sta2{s2})
                         data1 = this.results.r1.(sta1{s1});
@@ -481,38 +486,38 @@ classdef Tropo_Sinex_Compare < handle
                         Core_UI.resizeFig(f);
                         % plot ZTD series
                         subplot(3,1,1)
-                        plot(data1.time.getMatlabTime,zero2nan(data1.ztd),'.','Color','b');
+                        plot(data1.time.getMatlabTime,1e2.*zero2nan(data1.ztd),'.-');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.ztd),'.-r', 'MarkerSize', 10);
+                        plot(data2.time.getMatlabTime,1e2.*zero2nan(data2.ztd),'.-', 'MarkerSize', 10);
                         setTimeTicks(5);
                         
                         
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('ZTD')
+                        title('ZTD [cm]')
                         % plot ge series
                         subplot(3,1,2)
-                        plot(data1.time.getMatlabTime,zero2nan(data1.tge),'.','Color','b');
+                        plot(data1.time.getMatlabTime,1e3.*zero2nan(data1.tge),'.-');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.tge),'.-r', 'MarkerSize', 10);
+                        plot(data2.time.getMatlabTime,1e3.*zero2nan(data2.tge),'.-', 'MarkerSize', 10);
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tge,data1.time.getMatlabTime,data1.tge,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
                         setTimeTicks(5);
                         %                     subplot(3,4,11)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('East gradient')
+                        title('East gradient [mm]')
                         % plot gn series
                         subplot(3,1,3)
-                        plot(data1.time.getMatlabTime,zero2nan(data1.tgn),'.','Color','b');
+                        plot(data1.time.getMatlabTime,1e3.*zero2nan(data1.tgn),'.-');
                         hold on;
-                        plot(data2.time.getMatlabTime,zero2nan(data2.tgn),'.-r', 'MarkerSize', 10);
+                        plot(data2.time.getMatlabTime,1e3.*zero2nan(data2.tgn),'.-', 'MarkerSize', 10);
                         %                     diffagg = timeSeriesComparison(data2.time.getMatlabTime,data2.tgn,data1.time.getMatlabTime,data1.tgn,'aggregate');
                         %                     plot(data2.time.getMatlabTime,diffagg,'r');
                         setTimeTicks(5);
                         %                     subplot(3,4,12)
                         %                     hist(diffint);
                         xlim([data1.time.first.getMatlabTime data1.time.last.getMatlabTime])
-                        title('North gradient')
+                        title('North gradient [mm]')
                     end
                 end                
             end
