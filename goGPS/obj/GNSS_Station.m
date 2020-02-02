@@ -6425,7 +6425,7 @@ classdef GNSS_Station < handle
                 
                 % Compute values
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
-                [m_diff, s_diff] = deal(nan(numel(rds), 1));
+                [m_diff, s_diff, m_diff_sta, s_diff_sta] = deal(nan(numel(rds), 1));
                 log.addMonoMessage(sprintf(' ZTD Radiosonde Validation\n---------------------------------------------------------------------------------------\n'));
                 log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
                 log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
@@ -6477,6 +6477,17 @@ classdef GNSS_Station < handle
                         
                         % radiosondes
                         [ztd_rds, time_rds] = rds(s).getZtd();
+                        
+                        [ztd_diff_sta, id_mean] = deal(nan(time_rds.length, 1));
+                        for e = 1 : time_rds.length
+                            [t_min, id_min(e)] = min(abs(s_time - time_rds.getEpoch(e)));
+                            if t_min < 3600
+                                ztd_diff_sta(e) = ztd_rds(e) - 1e2.*s_ztd(id_min(e));
+                            end
+                        end
+                        m_diff_sta(s) = mean(ztd_diff_sta, 1, 'omitnan');
+                        s_diff_sta(s) = std(ztd_diff_sta, 1, 'omitnan');
+                        
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 40);
                         outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                             sprintf('ZTD RAOB @ %s', rds(s).getName())};
@@ -6486,7 +6497,8 @@ classdef GNSS_Station < handle
                         for i = 1 : numel(icons)
                             icons(i).MarkerSize = 18;
                         end
-                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontName', 'Open Sans');
+                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\n Interpolated (%.1f cm, %.1f cm)\n %s station (%.1f cm, %.1f cm)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s), m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s)), 'FontName', 'Open Sans');
+                        
                         setTimeTicks; grid minor;
                         drawnow;
                         ax = gca; ax.FontSize = 16;
