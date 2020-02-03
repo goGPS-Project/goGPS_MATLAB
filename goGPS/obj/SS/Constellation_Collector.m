@@ -848,8 +848,23 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
         
-        function index = getIndex(this,sys,prn)
+        function index = getIndex(this, sys, prn)
             % get progressive index for giving system and prns
+            %
+            % SYNTAX 
+            %   index = this.getIndex(sys, prn);
+            %   index = this.getIndex(sat_name);
+            %
+            % EXAMPLE
+            %   index = this.getIndex('G', 21);
+            %   index = this.getIndex('G21');
+            
+            if nargin == 2
+                sat_name = sys;
+                sys = sat_name(:,1);
+                prn = str2num(sat_name(:,2:end)'); %#ok<ST2NM>
+            end
+            
             index = zeros(size(prn));
             if length(sys) == 1
                 sys = repmat(sys,length(prn),1);
