@@ -373,23 +373,23 @@ classdef Tropo_Sinex_Compare < handle
                 data2 = this.results.r2.(sta2{s2});
                 % get ZTD series
                 
-                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
-                rms = mean(abs(noNaN(diffagg)*1e3));
-                bias = mean(noNaN(diffagg)*1e3);
+                [diff_agg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.ztd), data1.time.getMatlabTime, zero2nan(data1.ztd),'aggregate');
+                rms = mean(abs(noNaN(diff_agg)*1e3));
+                bias = mean(noNaN(diff_agg)*1e3);
                 
                 info.ztd_mean(s) = bias;
                 info.ztd_rms(s) = rms;
 
-                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
-                rms = mean(abs(noNaN(diffagg)*1e3));
-                bias = mean(noNaN(diffagg)*1e3);
+                [diff_agg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tge), data1.time.getMatlabTime, zero2nan(data1.tgn),'aggregate');
+                rms = mean(abs(noNaN(diff_agg)*1e3));
+                bias = mean(noNaN(diff_agg)*1e3);
                 
                 info.gn_mean(s) = bias;
                 info.gn_rms(s) = rms;
 
-                [diffagg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
-                rms = mean(abs(noNaN(diffagg)*1e3));
-                bias = mean(noNaN(diffagg)*1e3);
+                [diff_agg] = timeSeriesComparison(data2.time.getMatlabTime, zero2nan(data2.tgn), data1.time.getMatlabTime, zero2nan(data1.tge),'aggregate');
+                rms = mean(abs(noNaN(diff_agg)*1e3));
+                bias = mean(noNaN(diff_agg)*1e3);
 
                 info.ge_mean(s) = bias;
                 info.ge_rms(s) = rms;
