@@ -76,7 +76,7 @@ if comment
 
         
         occurencies = strfind(clean_txt, 'catch');
-        clean_txt = strrep(clean_txt, 'catch', '%AUTCOMM if false');
+        clean_txt = strrep(clean_txt, 'catch', 'if false %AUTCOMM');
         
         if not(isempty(clean_txt)) && ~isempty(occurencies)
             fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
@@ -104,8 +104,8 @@ else
         clean_txt = strrep(clean_txt,'%AUTCOMMT try', '\ttry');
 
         
-        occurencies = strfind(clean_txt,  '%AUTCOMM if false');
-        clean_txt = strrep(clean_txt, '%AUTCOMM if false', 'catch');
+        occurencies = strfind(clean_txt,  'if false %AUTCOMM');
+        clean_txt = strrep(clean_txt, 'if false %AUTCOMM', 'catch');
         
         
         if not(isempty(clean_txt)) && ~isempty(occurencies)
