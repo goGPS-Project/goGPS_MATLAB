@@ -1615,7 +1615,21 @@ classdef Core_Sky < handle
             pcv_delay = pco_delay - pcv_delay;
         end
 
-        function [dts] = clockInterpolate(this, time, sat_in)
+        function dts = getSatClock(this, gps_time_list, sat)
+            % Get the clock of the satellite "sat" e.g. G21
+            %
+            % SYNTAX
+            %   dts = this.getSatClock(gps_time_list <sat>)
+            
+            if nargin == 3
+                go_id_list = this.cc.getIndex(sat);
+                dts = this.clockInterpolate(gps_time_list, go_id_list);
+            else
+                dts = this.clockInterpolate(gps_time_list);
+            end
+        end
+        
+        function [dts] = clockInterpolate(this, gps_time_list, sat_go_id)
             % SYNTAX:
             %   [dts] = clockInterpolate(time, sat);
             %
@@ -1629,12 +1643,12 @@ classdef Core_Sky < handle
             % DESCRIPTION:
             %   SP3 (precise ephemeris) clock correction linear interpolation.
             if nargin < 3
-                sat_in = this.cc.index;
+                sat_go_id = this.cc.index;
             end
             
-            dts = nan(time.length, numel(sat_in));
-            for s = 1 : numel(sat_in)
-                sat = sat_in(s);
+            dts = nan(gps_time_list.length, numel(sat_go_id));
+            for s = 1 : numel(sat_go_id)
+                sat = sat_go_id(s);
                 interval = this.clock_rate;
                 
                 %find the SP3 epoch closest to the interpolation time
@@ -1651,12 +1665,12 @@ classdef Core_Sky < handle
                 %date = times.get6ColDate;
                 %day_change = find(diff(date(:,3)));
                 
-                p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)', times.length - 1));
+                p = max(1, min((round((gps_time_list - this.time_ref_clock) / interval) + 1)', times.length - 1));
                 
-                b =  (times.getEpoch(p) - time)';
+                b =  (times.getEpoch(p) - gps_time_list)';
                 
-                SP3_c = zeros(time.length,2);
-                u = zeros(time.length,1);
+                SP3_c = zeros(gps_time_list.length,2);
+                u = zeros(gps_time_list.length,1);
                 
                 % extract the SP3 clocks
                 b_pos_idx = b > 0;
@@ -1684,7 +1698,7 @@ classdef Core_Sky < handle
                 %                 %pause
                 %             end
                 end
-                if numel(sat_in) == 1
+                if numel(sat_go_id) == 1
                     dts = dts_tmp(:);
                 else
                     dts(:,s) = dts_tmp(:);
@@ -1839,8 +1853,22 @@ classdef Core_Sky < handle
             end
         end
         
-        function [X_sat, V_sat] = coordInterpolate(this, t, sat)
-            % Interpolate coordinates of staellites
+        function [X_sat, V_sat] = getSatCoord(this, gps_time_list, sat)
+            % Get the coordinate of the satellite "sat" e.g. G21
+            %
+            % SYNTAX
+            %   [X_sat, V_sat] = this.getSatCoord(gps_time_list, <sat>)
+            
+            if nargin == 3
+                go_id_list = this.cc.getIndex(sat);                
+                [X_sat, V_sat] = coordInterpolate(this, gps_time_list, go_id_list);
+            else
+                [X_sat, V_sat] = coordInterpolate(this, gps_time_list);
+            end
+        end        
+        
+        function [X_sat, V_sat] = coordInterpolate(this, gps_time_list, go_id)
+            % Interpolate coordinates of satellites
             %
             % INPUT:
             %    t = vector of times where to interpolate
@@ -1849,15 +1877,15 @@ classdef Core_Sky < handle
             % SYNTAX:
             %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
             
-            if isempty(this.time_ref_coord)
+           if isempty(this.time_ref_coord)
                 Core.getLogger.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave\nTrying to load needed data')
-                this.initSession(t.first(), t.last())
+                this.initSession(gps_time_list.first(), gps_time_list.last())
             end
             n_sat = size(this.coord, 2);
             if nargin <3
                 sat_idx = ones(n_sat, 1) > 0;
             else
-                sat_idx = sat;
+                sat_idx = go_id;
             end
             
             n_sat = length(sat_idx);
@@ -1867,7 +1895,7 @@ classdef Core_Sky < handle
             
             % Find the polynomial id at the interpolation time
             %t_diff = round(t.getRefTime(this.time_ref_coord.getMatlabTime),7); % round to 7 digits, t - ref_time cannot hold more precision
-            t_diff = t.getRefTime(this.time_ref_coord.getMatlabTime);
+            t_diff = gps_time_list.getRefTime(this.time_ref_coord.getMatlabTime);
             
             pid_floor = floor(t_diff / this.coord_rate) + 1 - n_border;
             pid_floor(pid_floor < 1) = 1;
@@ -1881,10 +1909,10 @@ classdef Core_Sky < handle
             
             poly = permute(poly(:,:,sat_idx, :),[1 3 2 4]);
             
-            W_poly = zeros(t.length, 1);
-            w = zeros(t.length, 1);
-            X_sat = zeros(t.length, n_sat, 3);
-            V_sat = zeros(t.length, n_sat, 3);
+            W_poly = zeros(gps_time_list.length, 1);
+            w = zeros(gps_time_list.length, 1);
+            X_sat = zeros(gps_time_list.length, n_sat, 3);
+            V_sat = zeros(gps_time_list.length, n_sat, 3);
             n_epoch_old = 0;
             for id = unique([pid_floor; pid_ceil])'
                 % find the epochs with the same poly
