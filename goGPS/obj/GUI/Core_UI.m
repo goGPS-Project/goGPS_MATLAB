@@ -271,6 +271,7 @@ classdef Core_UI < Logos
                         '*.fig','MATLAB figure (*.fig)'; ...
                         '*.*',  'All Files (*.*)'}, ...
                         'Save the figure as', fullfile(Core.getState.getOutDir, 'Images', 'file_name.png'));
+                    file_name = fullfile(path_name, file_name);
                 else                
                     file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
                 end
