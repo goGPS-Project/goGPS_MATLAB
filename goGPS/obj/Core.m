@@ -495,7 +495,7 @@ classdef Core < handle
             if nargout >= 2
                 session_list = core.session_list;
                 if nargout >= 3
-                    cur_pos = find(session_list ==cur_session);
+                    cur_pos = find(session_list == cur_session);
                 end
             end
         end
@@ -900,6 +900,17 @@ classdef Core < handle
     %% METHODS RUN
     % ==================================================================================================================================================
     methods
+        function loadSessionOrbits(this)
+            % Load into Core_Sky the orbits relative to the current session
+            %
+            % SYNTAX
+            %    this.loadSessionOrbits()
+            
+            [lim] = this.getCurSessionLimits();
+            fw = File_Wizard;
+            fw.conjureNavFiles(lim.first, lim.last);
+        end
+        
         function is_empty = prepareSession(this, session_number, flag_preload)
             % Check the time-limits for the files in the session
             % Init the Sky and Meteo object
@@ -1768,6 +1779,20 @@ classdef Core < handle
             % SYNTAX
             %   cur_session = this.getCurSession()             
             cur_session = this.state.getCurSession;
+        end
+        
+        function [ext_limits, sss_limits] = getCurSessionLimits(this)
+            % Get the id of the current session
+            %
+            % OUTPUT
+            %   ext_limits   limits including buffers
+            %   sss_limits   limits excluding buffers
+            %
+            % SYNTAX
+            %   [ext_limits, sss_limits] = this.getCurSessionLimits()
+            
+            cur_session = this.getCurSession();
+            [ext_limits, sss_limits] = this.state.getSessionLimits(cur_session);
         end
         
         function id = getStationId(this, marker_name)
