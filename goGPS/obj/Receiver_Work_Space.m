@@ -40,7 +40,7 @@ classdef Receiver_Work_Space < Receiver_Commons
     %% CONSTANTS
     properties (Constant)
         S02_IP_THR = 1e3;
-        RES_TYPE = {'0: no residuals', '1: prepro', '2: uncombined engine', '3: undifferenced and uncombined engine'};
+        RES_TYPE = {'0: no residuals', '1: code_only', '2: U1 engine iono-free', '3: U2 engine'};
     end
     
     % ==================================================================================================================================================
@@ -226,7 +226,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
             this.sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
             this.pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
-            this.mp_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for multi-path variations          (0: not corrected , 1: corrected)
+            this.mp_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for multi-path variations         (0: not corrected , 1: corrected)
             this.ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
             this.pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
             this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
@@ -4530,9 +4530,13 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [res_ph, wl, id_ph] = getResPhases(this, sys_c, freq_c)
-            % get the phases residual observations in meter (not cycles)
-            % SYNTAX [ph, wl, id_ph] = this.getResPhases(<sys_c>, <freq_c>)
-            % SEE ALSO: 
+            % Get the phases residual observations in meter (not cycles)
+            %
+            % SYNTAX 
+            %   [ph, wl, id_ph] = this.getResPhases(<sys_c>, <freq_c>)
+            %
+            % NOTE: if they are not present return empty
+                        
             idx_ph_all = find(this.obs_code(:, 1) == 'L');
             if nargin > 2
                 id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
@@ -4545,8 +4549,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             wl = this.wl(id_ph);
             [~,idx_ph_ph] = intersect(find(id_ph),idx_ph_all);
-            res_ph = this.sat.res_ph_by_ph(:, idx_ph_ph);
-            
+            res_ph = this.sat.res_ph_by_ph(:, idx_ph_ph);            
         end
         
         function [obs_set] = getObsSet(this, flag, sys_c, prn)
@@ -9359,6 +9362,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                 end
+                this.sat.res_type = 1; % code only
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
@@ -9432,6 +9436,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
+            this.sat.res_type = 1; % code only
         end
         
         function s0 = initDynamicPositioning(this)
@@ -10026,6 +10031,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     this.sat.res = zeros(this.time.length, n_sat, 'single');
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                    this.sat.res_type = 2; % U2 engine iono-free
+
                     this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
                     
                     %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
@@ -10388,24 +10395,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     coo = [cox coy coz];
                     this.xyz = this.xyz + coo;
-                    
-                    % Push residuals from LS object to rec
-                    
-                    idx_pr = this.obs_code(:,1) == 'C'; % code residuals
-                    n_pr = sum(this.obs_code(:,1) == 'C' );
-                    this.sat.res_pr_by_pr = zeros(this.time.length, n_pr, 'single');
-                    o_code = mat2cell([this.system(idx_pr)' this.obs_code(idx_pr,:)],ones(sum(idx_pr),1),4);
-                    idx_pr = find(idx_pr);
-                    [o_ids] = Core_Utils.findAinB(o_code, ls.unique_obs_codes);
-                    [~,ep_pr] = ismember(ls.time_obs.getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                    for s = 1 : n_pr
-                        idx_o = ls.obs_codes_id_obs == o_ids(s) & ls.satellite_obs == this.go_id(idx_pr(s));
-                        this.sat.res_pr_by_pr(ep_pr(idx_o),s) = ls.res(idx_o);
-                    end
-                  
-                    %this.sat.res_ph_by_ph(ep_pr + ls.sat_ob = zeros(this.time.length, n_ph, 'single');
-                    
-                    
+                                        
                     % Push clock from LS object to rec
                     idx_clk = ls.class_par == ls.PAR_REC_CLK | ls.class_par == ls.PAR_REC_CLK_PH;
                     [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
@@ -10502,8 +10492,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             valid_ep = tropo_idx ~=0;
                             spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
                             
-                            getropo =sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                            gntropo =sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
                             
                         end
                         this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
@@ -10571,6 +10561,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.sat.res_pr_by_pr(idx_time,i) = ls.res(idx_res);
                         end
                     end
+
+                    this.sat.res = []; % To avoid confusion when using U2 empty the sat by sat res
+                    this.sat.res_type = 3; % U2 engine iono-free                    
                     
                     % -------------------- estimate additional coordinate set
                     if this.state.flag_coo_rate
@@ -10771,11 +10764,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % [x, res, s02] = ls.solve();
                 this.id_sync = id_sync;
                 
-                this.sat.res = zeros(this.length, n_sat);
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                
-                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                
                 coo_x    = x(x(:,2) == 1,1);
                 coo_y    = x(x(:,2) == 2,1);
                 coo_z    = x(x(:,2) == 3,1);
@@ -10786,6 +10774,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.sat.res = zeros(this.length, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                this.sat.res_type = 2; % U1 engine iono-free
+
                 keyboard
             end
             
