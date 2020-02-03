@@ -91,7 +91,7 @@ if comment
 else
     tic
     for i = 1 : length(list)
-        file_name = list{i}
+        file_name = list{i};
                 if isempty(strfind(file_name,'thirdParty')) & isempty(strfind(file_name,'commentAllTryCatch'))
 
         fid = fopen(file_name, 'r');
