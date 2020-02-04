@@ -9372,17 +9372,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;               
-                this.generateNumSatPerEpoch(ls ,res)
+                this.generateNumSatPerEpoch(ls ,res,id_sync)
             
             end
         end
         
         
-        function generateNumSatPerEpoch(this,ls ,res)
+        function generateNumSatPerEpoch(this,ls ,res,id_sync)
                 % Get sat number per epoch
                 %
                 % SYNTAX:
                 % this.generateNumSatPerEpoch(ls ,res)
+                if nargin < 4
+                    id_sync = ls.true_epoch;
+                end
                 cc = Core.getConstellationCollector();
                 [~, id] = intersect(cc.index, ls.sat_go_id);
                 sys_c_list = cc.system(id);
@@ -9394,13 +9397,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     'J', [], ...
                     'C', [], ...
                     'I', []);
-                this.quality_info.n_spe.A(ls.true_epoch) = sum((res(:, ls.sat_go_id)) ~= 0, 2);
+                this.quality_info.n_spe.A(id_sync) = sum((res(:, ls.sat_go_id)) ~= 0, 2);
                 for sys_c = all_sys_c
                     id_sys = ls.sat_go_id(sys_c_list == sys_c);
                     this.quality_info.n_spe.(sys_c) = uint8(zeros(this.time.length,1));
 
                     if sum(id_sys) >0
-                        this.quality_info.n_spe.(sys_c)(ls.true_epoch)  = uint8(sum((res(:, id_sys)) ~= 0, 2));
+                        this.quality_info.n_spe.(sys_c)(id_sync)  = uint8(sum((res(:, id_sys)) ~= 0, 2));
                     end
                 end
         end
