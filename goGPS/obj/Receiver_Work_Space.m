@@ -3803,6 +3803,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function res = getResidual(this)
+            cc = Core.getConstellationCollector;
             if size(this.sat.res,1) < max(this.id_sync)
                 res = nan(numel(this.id_sync), cc.getMaxNumSat());
             else
@@ -10493,7 +10494,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, state.spline_rate_tropo_gradient)/state.spline_rate_tropo_gradient;
                             tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/state.spline_rate_tropo_gradient);
-                            [~,tropo_idx] = ismember(tropo_idx*state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime.getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
+                            [~,tropo_idx] = ismember(tropo_idx*state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
                             valid_ep = tropo_idx ~=0;
                             spline_base = Core_Utils.spline(tropo_dt,state.spline_tropo_gradient_order);
                             

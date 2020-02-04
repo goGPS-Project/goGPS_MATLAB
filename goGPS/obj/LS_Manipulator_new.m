@@ -1202,8 +1202,10 @@ classdef LS_Manipulator_new < handle
                      if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
                          idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
                      end
-                     if sum(this.param_class == this.PAR_IONO) > 0
-                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                     if length(u_wl_par) > 1
+                         if sum(this.param_class == this.PAR_IONO) > 0
+                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                         end
                      end
                  end
                  if sum(this.param_class == this.PAR_SAT_EB) > 0
