@@ -957,19 +957,19 @@ classdef Network < handle
                 
                 if this.state.flag_tropo_gradient
                     if this.state.spline_rate_tropo_gradient ~= 0 && this.state.spline_tropo_gradient_order > 0
-                        idx_trp_n = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
+                        idx_trp_n = ls.class_par == LS_Manipulator_new.PAR_TROPO_E & idx_rec;
                         tropo_n = ls.x(idx_trp_n);
-                        idx_trp_e = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
+                        idx_trp_e = ls.class_par == LS_Manipulator_new.PAR_TROPO_N & idx_rec;
                         
                         tropo_e = ls.x(idx_trp_e);
-                        tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum, this.state.spline_rate_tropo)/ this.state.spline_rate_tropo;
-                        tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum)/this.state.spline_rate_tropo);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo, ls.getTimePar(idx_trp_n).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_trp_n).minimum.getMatlabTime));
+                        tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum, this.state.spline_rate_tropo_gradient)/ this.state.spline_rate_tropo_gradient;
+                        tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum)/this.state.spline_rate_tropo_gradient);
+                        [~,tropo_idx] = ismember(tropo_idx*this.state.spline_rate_tropo_gradient, ls.getTimePar(idx_trp_n).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_trp_n).minimum.getMatlabTime));
                         valid_ep = tropo_idx ~=0;
-                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_order);
+                        spline_base = Core_Utils.spline(tropo_dt,this.state.spline_tropo_gradient_order);
                         
-                        tropo_n =sum(spline_base .* tropo_n(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                        tropo_e =sum(spline_base .* tropo_e(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_order + 1) + repmat((0 : this.state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                        tropo_n =sum(spline_base .* tropo_n(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                        tropo_e =sum(spline_base .* tropo_e(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         this.ztd_gn(:,i) = nan2zero(this.ztd_gn(:,i))  + tropo_n;
                         this.ztd_ge(:,i) = nan2zero(this.ztd_ge(:,i))  + tropo_e;
                     else
@@ -1404,7 +1404,7 @@ classdef Network < handle
                     this.rec_list(i).work.setPhases(ph,wl,id_ph );
                 end
             end
-            if sum(ls.param_class == LS_Manipulator_new.PAR_SAT_EB) > 0
+            if sum(ls.param_class == LS_Manipulator_new.PAR_SAT_EB) > 0 && false
                 cs = Core.getCoreSky();
                 n_sat = max(ls.sat_par);
                 for s = 1 : n_sat

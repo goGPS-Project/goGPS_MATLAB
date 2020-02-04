@@ -275,7 +275,15 @@ classdef Observation_Set < handle
             % SYNTAX
             %     idx = this.getTimeIdx(this,time_st, rate)
             %
+            if nargin == 3
             idx = round((this.time -time_st)/rate) +1;
+            else %assume time_st is the full time
+                rate = time_st.getRate();
+                time_rec = time_st.getNominalTime(rate).getRefTime(time_st.first.getMatlabTime);
+                time_obs = this.time.getNominalTime(rate).getRefTime(time_st.first.getMatlabTime);
+                [~,idx] = ismember(time_rec,time_obs);
+                
+            end
         end
         
         function has_phase = hasPhase(this)

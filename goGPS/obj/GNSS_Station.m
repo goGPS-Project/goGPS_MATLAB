@@ -6026,7 +6026,7 @@ classdef GNSS_Station < handle
                         color_order = handle(gca).ColorOrder;
 
                         if ~one_plot, subplot(3,1,1); end
-                        plot(t, baseline(:, 1), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        Core_Utils.plotSep(t, baseline(:, 1), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         ax(3) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
@@ -6047,7 +6047,7 @@ classdef GNSS_Station < handle
                         end
 
                         if ~one_plot, subplot(3,1,2); end
-                        plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));                        
+                        Core_Utils.plotSep(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));                        
                         if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,2), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(2) = gca();
                         if (t(end) > t(1))
@@ -6064,7 +6064,7 @@ classdef GNSS_Station < handle
                         
                         grid minor;
                         if ~one_plot, subplot(3,1,3); end
-                        plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        Core_Utils.plotSep(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,3), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(1) = gca();
                         if (t(end) > t(1))

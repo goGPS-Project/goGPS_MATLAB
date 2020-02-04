@@ -292,7 +292,7 @@ classdef LS_Manipulator_new < handle
             mfw_on =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V | param_selection == this.PAR_TROPO_Z) > 0;
             % get the mapping function for tropo
             if mfw_on
-                id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
+                id_sync_out = obs_set.getTimeIdx(rec.time);%obs_set.getTimeIdx(rec.time.first, rec.getRate);
                 [~, mfw] = rec.getSlantMF(id_sync_out);
                % mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
