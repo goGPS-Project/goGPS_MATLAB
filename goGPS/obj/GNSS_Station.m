@@ -480,7 +480,7 @@ classdef GNSS_Station < handle
     
     %% METHODS ADVANCED
     % ==================================================================================================================================================
-    methods        
+    methods
         function updateMultiPath(sta_list)
             sta_list = sta_list(~sta_list.isEmptyWork_mr);
             log = Core.getLogger();
@@ -541,6 +541,24 @@ classdef GNSS_Station < handle
                 end
             end
         end
+        
+        
+        function zhd_corr = getZenithDelayCorrection(this, time, coo, pressure)
+            coo_gnss = this.getPos.getMedianPos();
+            [pr_gnss, ~, ~, p_time, id_sync] = this.getPTH_mr();            
+                        
+            p_time = p_time.getEpoch(id_sync).getMatlabTime;
+            pr_gnss = pr_gnss(id_sync);           
+            
+            pressure_gnss = interp1q(p_time, pr_gnss, time.getMatlabTime);
+            
+            if nargin == 3
+                zhd_corr = Athmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo);
+            else
+                zhd_corr = Athmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo, pressure);
+            end
+        end
+
     end
     % ==================================================================================================================================================    
     %% METHODS EXPORT
