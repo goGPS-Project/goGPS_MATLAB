@@ -1972,51 +1972,53 @@ classdef LS_Manipulator_new < handle
             x_est(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) = x_reduced;
             for i = 0 : step : floor(max_ep / step) * step
                 % receiver clock
-                if rec_clk
-                    B_recclk = cross_terms{ii}{1}{3}{2};
-                    Nx_recclk = cross_terms{ii}{1}{3}{3};
-                    iRecClk = cross_terms{ii}{1}{3}{1};
-                    idx_reduce_cycle_rec_clk = cross_terms{ii}{2};
-                    idx_reduce_cycle_rec_clk(idx_reduce_cycle_rec_clk) = cross_terms{ii}{1}{3}{4};
-                    B_recclk = B_recclk - sum(Nx_recclk * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
-                    x_rec_clk = iRecClk * B_recclk;
-                    x_est(idx_reduce_cycle_rec_clk) = x_rec_clk;
-                end
-                
-                % satellite clcok
-                if sat_clk
-                    B_satclk = cross_terms{ii}{1}{2}{2};
-                    Nx_satclk = cross_terms{ii}{1}{2}{3};
-                    iSatClk = cross_terms{ii}{1}{2}{1};
-                    idx_reduce_cycle_sat_clk = cross_terms{ii}{2};
-                    idx_reduce_cycle_sat_clk(idx_reduce_cycle_sat_clk) = cross_terms{ii}{1}{2}{4};
-                    idx_est1 = ~idx_reduce ;
-                    idx_est2 = idx_reduce_cycle_rec_clk;
-                    n_est = sum(idx_est1) + sum(idx_est2);
-                    B_satclk = B_satclk -   sum(Nx_satclk * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
-                    x_sat_clk = iSatClk * B_satclk;
-                    x_est(idx_reduce_cycle_sat_clk) = x_sat_clk;
-                end
-                
-                % iono
-                if iono
-                    B_iono = cross_terms{ii}{1}{1}{2};
-                    Nx_iono = cross_terms{ii}{1}{1}{3};
-                    iIono = cross_terms{ii}{1}{1}{1};
-                    idx_reduce_cycle_iono = cross_terms{ii}{2};
-                    idx_reduce_cycle_iono(idx_reduce_cycle_iono) = cross_terms{ii}{1}{1}{4};
-                    idx_est1 = ~idx_reduce ;
-                    if sat_clk
-                        idx_est2 = idx_reduce_cycle_rec_clk | idx_reduce_cycle_sat_clk;
-                    else
-                         idx_est2 = idx_reduce_cycle_rec_clk;
+                if ii <= length(cross_terms)
+                    if rec_clk
+                        B_recclk = cross_terms{ii}{1}{3}{2};
+                        Nx_recclk = cross_terms{ii}{1}{3}{3};
+                        iRecClk = cross_terms{ii}{1}{3}{1};
+                        idx_reduce_cycle_rec_clk = cross_terms{ii}{2};
+                        idx_reduce_cycle_rec_clk(idx_reduce_cycle_rec_clk) = cross_terms{ii}{1}{3}{4};
+                        B_recclk = B_recclk - sum(Nx_recclk * spdiags(x_reduced,0,length(x_reduced),length(x_reduced)),2);
+                        x_rec_clk = iRecClk * B_recclk;
+                        x_est(idx_reduce_cycle_rec_clk) = x_rec_clk;
                     end
-                    n_est = sum(idx_est1) + sum(idx_est2);
-                    B_iono = B_iono -   sum(Nx_iono * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
-                    x_iono = iIono * B_iono;
-                    x_est(idx_reduce_cycle_iono) = x_iono;
+                    
+                    % satellite clcok
+                    if sat_clk
+                        B_satclk = cross_terms{ii}{1}{2}{2};
+                        Nx_satclk = cross_terms{ii}{1}{2}{3};
+                        iSatClk = cross_terms{ii}{1}{2}{1};
+                        idx_reduce_cycle_sat_clk = cross_terms{ii}{2};
+                        idx_reduce_cycle_sat_clk(idx_reduce_cycle_sat_clk) = cross_terms{ii}{1}{2}{4};
+                        idx_est1 = ~idx_reduce ;
+                        idx_est2 = idx_reduce_cycle_rec_clk;
+                        n_est = sum(idx_est1) + sum(idx_est2);
+                        B_satclk = B_satclk -   sum(Nx_satclk * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
+                        x_sat_clk = iSatClk * B_satclk;
+                        x_est(idx_reduce_cycle_sat_clk) = x_sat_clk;
+                    end
+                    
+                    % iono
+                    if iono
+                        B_iono = cross_terms{ii}{1}{1}{2};
+                        Nx_iono = cross_terms{ii}{1}{1}{3};
+                        iIono = cross_terms{ii}{1}{1}{1};
+                        idx_reduce_cycle_iono = cross_terms{ii}{2};
+                        idx_reduce_cycle_iono(idx_reduce_cycle_iono) = cross_terms{ii}{1}{1}{4};
+                        idx_est1 = ~idx_reduce ;
+                        if sat_clk
+                            idx_est2 = idx_reduce_cycle_rec_clk | idx_reduce_cycle_sat_clk;
+                        else
+                            idx_est2 = idx_reduce_cycle_rec_clk;
+                        end
+                        n_est = sum(idx_est1) + sum(idx_est2);
+                        B_iono = B_iono -   sum(Nx_iono * spdiags([x_est(idx_est1); x_est(idx_est2)],0,n_est,n_est),2);
+                        x_iono = iIono * B_iono;
+                        x_est(idx_reduce_cycle_iono) = x_iono;
+                    end
+                    ii = ii + 1;
                 end
-                ii = ii + 1;
             end
             
             
