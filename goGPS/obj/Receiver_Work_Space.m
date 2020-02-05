@@ -7227,29 +7227,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 XR = repmat(this.xyz(1,:),n_epoch,1);
             end
-            
-            az = zeros(n_epoch,1); el = zeros(n_epoch,1);
-            
-            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
-            XSR = XS - XR; %%% sats orbit with origin in receiver
-            
-            e_unit = [-sin(lam)            cos(lam)           zeros(size(lam))       ]; % East unit vector
-            n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
-            u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
-            
-            e = sum(e_unit .* XSR,2);
-            n = sum(n_unit .* XSR,2);
-            u = sum(u_unit .* XSR,2);
-            
-            hor_dist = sqrt( e.^2 + n.^2);
-            
-            zero_idx = hor_dist < 1.e-20;
-            
-            az(zero_idx) = 0;
-            el(zero_idx) = 90;
-            
-            az(~zero_idx) = atan2d(e(~zero_idx), n(~zero_idx));
-            el(~zero_idx) = atan2d(u(~zero_idx), hor_dist(~zero_idx));
+            [az,el] = Core_Sky.computeAzimuthElevationXS(XS,XR);
         end
         
         %--------------------------------------------------------

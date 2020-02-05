@@ -1853,6 +1853,9 @@ classdef Core_Sky < handle
             end
         end
         
+     
+        
+        
         function [X_sat, V_sat] = getSatCoord(this, gps_time_list, sat)
             % Get the coordinate of the satellite "sat" e.g. G21
             %
@@ -3227,6 +3230,53 @@ classdef Core_Sky < handle
                 satv(3,1) = vel(3);
             end
             
+        end
+        
+        function [az,el] = computeAzimuthElevationXS(XS,XR)
+              % SYNTAX
+            %   [az, el] = this.computeAzimuthElevationXS(XS)
+            %
+            % INPUT
+            % XS = positions of satellite [n_epoch x 1]
+            % XR = positions of reciever [n_epoch x 1] (optional, non static
+            % case)
+            % OUTPUT
+            % Az = Azimuths of satellite [n_epoch x 1]
+            % El = Elevations of satellite [n_epoch x 1]
+            % during time of travel
+            %
+            %   Compute Azimuth and elevation of the staellite
+            n_epoch = size(XS,1);
+
+            az = zeros(n_epoch,1); el = zeros(n_epoch,1);
+            
+            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
+            if size(XR,1) == size(XS,1)
+                XSR = XS - XR; %%% sats orbit with origin in receiver
+            else
+                XSR = XS;
+                XSR(:,1)  = XSR(:,1) - XR(1,1);
+                XSR(:,2)  = XSR(:,2) - XR(1,2);
+                XSR(:,3)  = XSR(:,3) - XR(1,3);
+            end
+            
+            e_unit = [-sin(lam)            cos(lam)           zeros(size(lam)) ]; % East unit vector
+            n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
+            u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
+            
+            e = sum(e_unit .* XSR,2);
+            n = sum(n_unit .* XSR,2);
+            u = sum(u_unit .* XSR,2);
+            
+            hor_dist = sqrt( e.^2 + n.^2);
+            
+            zero_idx = hor_dist < 1.e-20;
+            
+            az(zero_idx) = 0;
+            el(zero_idx) = 90;
+            
+            az(~zero_idx) = atan2d(e(~zero_idx), n(~zero_idx));
+            el(~zero_idx) = atan2d(u(~zero_idx), hor_dist(~zero_idx));
         end
     end
 end
