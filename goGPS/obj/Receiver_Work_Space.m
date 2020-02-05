@@ -9176,7 +9176,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate position and approx clock estimate
             [pr, lid_pr] = this.getPseudoRanges(sys_list);
             %[ph, wl, id_ph] = this.getPhases;
-            sensor = (pr - this.getSyntPrObs(sys_list) - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
+            if size(this.dt,1) == size(pr,1)
+                sensor = (pr - this.getSyntPrObs(sys_list) - repmat(this.dt,1,size(pr,2)) * Core_Utils.V_LIGHT);
+            else
+                 sensor = (pr - this.getSyntPrObs(sys_list));
+            end
             sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
             cc =  Core.getConstellationCollector();
             sensor_bad_sat = sensor;
