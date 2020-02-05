@@ -213,7 +213,7 @@ classdef Core < handle
             if nargin == 1
                 core.geoid = geoid;
             else
-                geoid_file = core.state.getGeoidFile();
+                geoid_file = core.getState.getGeoidFile();
                 if ~exist(core.state.getGeoidDir, 'file')
                     core.state.geoid_dir = File_Name_Processor.getFullDirPath('../../reference/geoid', core.state.getHomeDir);
                     geoid_file = core.state.getGeoidFile();

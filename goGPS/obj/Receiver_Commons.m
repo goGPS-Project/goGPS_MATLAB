@@ -880,11 +880,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   this.exportTropoMat
             
+            log = Core.getLogger();
             for r = 1 : numel(this)
                 if max(this(r).quality_info.s0) < 0.10
                     try
                         this(r).updateCoordinates;
-                        time = this(r).getTime();
+                        time = this(r).getTime.getNominalTime();
                         state = Core.getCurrentSettings;
 
                         t_start = state.sss_date_start;
@@ -900,6 +901,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         h_ortho = this(r).h_ortho; %#ok<NASGU>
                         ztd = this(r).getZtd(); %#ok<NASGU>
                         zwd = this(r).getZwd(); %#ok<NASGU>
+                        pwv = this(r).getPwv(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
                         out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
@@ -910,24 +912,25 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         old_file_list = dir(fname_old);
 
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)) '.mat']);
-                        save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'utc_time','-v6');
+                        save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'pwv', 'utc_time','-v6');
                         
-                        this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                        log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
                         for f = 1 : numel(old_file_list)
                             % If I did not overwrite the old file, delete it
                             if ~strcmp([out_dir filesep old_file_list(f).name], fname)
-                                this(1).log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
+                                log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
                                 delete([out_dir filesep old_file_list(f).name]);
                             end
                         end
                     catch ex
-                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: "%s"', ex.message));
+                        Core_Utils.printEx(ex);
+                        log.addError(sprintf('saving Tropo in matlab format failed: "%s"', ex.message));
                     end
                 else
                     if isempty(max(this(r).quality_info.s0))
-                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
+                        log.addWarning(sprintf('s02 no solution have been found, station skipped'));
                     else
-                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                        log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                     end
                 end
             end
@@ -945,12 +948,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   this.exportTropoCSV
             
+            log = Core.getLogger();
             for r = 1 : numel(this)
                 if max(this(r).quality_info.s0) < 0.10
                     try
                         this(r).updateCoordinates;
                         state = Core.getCurrentSettings;
-                        time = this(r).getTime();
+                        time = this(r).getTime.getNominalTime;
                         t_start = state.sss_date_start;
                         t_end = state.sss_date_stop;
                         [year, doy] = t_start.getDOY();
@@ -959,7 +963,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time.toUtc();
                         ztd = this(r).getZtd();
                         zwd = this(r).getZwd();
-                        [gn,ge ] =  this(r).getGradient();
+                        pwv = this(r).getPwv();
+                        [gn, ge ] =  this(r).getGradient();
                         
                         out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
                         if ~exist(out_dir, 'file')
@@ -971,32 +976,49 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
                         fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)) '.csv']);
                                                 
-                        fid = fopen(fname,'Wb');
                         n_data = time.length;
-                        fprintf(fid,'Date               ,ZTD [m]     ,ZWD [m]     ,GE [m]      ,GN [m]      \n');
-                        data = [time.toString('dd/mm/yyyy HH:MM:SS') char(44.*ones(n_data,1)) ...
-                            reshape(sprintf('%12.6f',ztd),12,n_data)' char(44.*ones(n_data,1)) ...
-                            reshape(sprintf('%12.6f',zwd),12,n_data)' char(44.*ones(n_data,1)) ...
-                            reshape(sprintf('%12.6f',ge),12,n_data)' char(44.*ones(n_data,1)) ...
-                            reshape(sprintf('%12.6f',gn),12,n_data)' char(10.*ones(n_data,1))];
-                        fprintf(fid,data');
-                        fclose(fid);                        
-                        this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
-                        for f = 1 : numel(old_file_list)
-                            % If I did not overwrite the old file, delete it
-                            if ~strcmp([out_dir filesep old_file_list(f).name], fname)
-                                this(1).log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
-                                delete([out_dir filesep old_file_list(f).name]);
+                        if n_data == 0
+                            Core.getLogger.addError(sprintf('saving Tropo in csv format failed: "No exportable data found"'));
+                        else
+                            fid = fopen(fname,'Wb');
+                            % Export any non empty parameter
+                            fprintf(fid,'Date               %s%s%s%s%s\n', iif(isempty(zwd), '', ',ZTD [m]     '), iif(isempty(ztd), '', ',ZWD [m]     '), iif(isempty(pwv), '', ',PWV [mm]    '), iif(isempty(ge), '', ',GE [m]      '), iif(isempty(gn), '', ',GN [m]      '));
+                            data = time.toString('dd/mm/yyyy HH:MM:SS');
+                            if ~isempty(ztd)
+                                data = [data reshape(sprintf(',%12.6f', ztd), 13, n_data)'];
+                            end
+                            if ~isempty(zwd)
+                                data = [data reshape(sprintf(',%12.6f', zwd), 13, n_data)'];
+                            end
+                            if ~isempty(pwv)
+                                data = [data reshape(sprintf(',%12.6f', pwv), 13, n_data)'];
+                            end
+                            if ~isempty(ge)
+                                data = [data reshape(sprintf(',%12.6f', ge), 13, n_data)'];
+                            end
+                            if ~isempty(gn)
+                                data = [data reshape(sprintf(',%12.6f', gn), 13, n_data)'];
+                            end
+                            data = [data char(10 .* ones(n_data,1))];
+                            fprintf(fid,data');
+                            fclose(fid);
+                            this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                            for f = 1 : numel(old_file_list)
+                                % If I did not overwrite the old file, delete it
+                                if ~strcmp([out_dir filesep old_file_list(f).name], fname)
+                                    log.addStatusOk(sprintf('Old tropo file deleted: "%s"', [out_dir filesep old_file_list(f).name]));
+                                    delete([out_dir filesep old_file_list(f).name]);
+                                end
                             end
                         end
                     catch ex
-                        this(1).log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
+                        log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
                     end
                 else
                     if isempty(max(this(r).quality_info.s0))
-                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped'));
+                        log.addWarning(sprintf('s02 no solution have been found, station skipped'));
                     else
-                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                        log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                     end
                 end
             end
