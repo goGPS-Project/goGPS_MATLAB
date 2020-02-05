@@ -292,7 +292,7 @@ classdef LS_Manipulator_new < handle
             mfw_on =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V | param_selection == this.PAR_TROPO_Z) > 0;
             % get the mapping function for tropo
             if mfw_on
-                id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
+                id_sync_out = obs_set.getTimeIdx(rec.time);%obs_set.getTimeIdx(rec.time.first, rec.getRate);
                 [~, mfw] = rec.getSlantMF(id_sync_out);
                % mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
@@ -319,6 +319,7 @@ classdef LS_Manipulator_new < handle
             end
             iono_const = 40.3*10^16;%GPS_SS.L_VEC(1)^2;
             % fill the A matrix per satellite
+            state = Core.getCurrentSettings;
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 if any(id_ok_stream)
@@ -437,21 +438,32 @@ classdef LS_Manipulator_new < handle
                     end
                     % ----------- ZTD gradients ------------------
                     if par_tropo_n || par_tropo_e
-                        cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
+                        if state.mapping_function_gradient == 1
+                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                        elseif state.mapping_function_gradient == 2
+                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                        end
                         if par_tropo_e
                             A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient  /1000
                         end
                         if par_tropo_n
-                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % noth gradient  /1000
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % north gradient  /1000
                         end
                     end
                     if par_tropo_v
                         A(lines_stream, par_tropo_v_lid) = mfw_stream*rec.h_ellips;
                     end
                     if par_tropo_z
-                        n_pol = sum(par_tropo_z_lid);
+                        n_pol = sum(par_tropo_z_lid)+3;
                         degree = ceil(-3/2 + sqrt(9/4 + 2*(n_pol -1)));
-                        A(lines_stream, par_tropo_z_lid) = repmat(mfw_stream,1,n_pol).*Core_Utils.getAllZernike(degree, az_stream, el_stream);
+                        rho_stream = (pi/2 - el_stream)/(pi/2);
+                        if state.mapping_function_gradient == 1
+                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                        elseif state.mapping_function_gradient == 2
+                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                        end
+                        zern = Core_Utils.getAllZernike(degree, az_stream, rho_stream);
+                        A(lines_stream, par_tropo_z_lid) = repmat(cotan_term,1,n_pol-3).*zern(:,4:end);
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono
@@ -1190,8 +1202,10 @@ classdef LS_Manipulator_new < handle
                      if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
                          idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
                      end
-                     if sum(this.param_class == this.PAR_IONO) > 0
-                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                     if length(u_wl_par) > 1
+                         if sum(this.param_class == this.PAR_IONO) > 0
+                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                         end
                      end
                  end
                  if sum(this.param_class == this.PAR_SAT_EB) > 0
@@ -1549,6 +1563,8 @@ classdef LS_Manipulator_new < handle
             state = Core.getCurrentSettings();
             if state.getWeigthingStrategy == 2
                 this.sinElevationWeigth();
+            elseif state.getWeigthingStrategy == 3
+                this.sinSquareElevationWeigth();
             end
             % ------ form the normal matrix
             n_obs = size(this.A,1) + size(this.A_pseudo,1);
@@ -1673,7 +1689,7 @@ classdef LS_Manipulator_new < handle
                     idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                     idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
                     if sum(idx_2) > 0 & iono
-                        iSatClk = Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                        iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                     else
                         n_sat_clk = sum(i_sat_clk_tmp);
                         iSatClk = spdiags(1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp)),0,n_sat_clk,n_sat_clk);
@@ -1731,7 +1747,7 @@ classdef LS_Manipulator_new < handle
                             idx_1 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR;
                             idx_2 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
                             if sum(idx_2) > 0
-                                iRecClk = Core_Utils.inverseByPartsDiag(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),idx_1, idx_2);
+                                iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr')
                             else
                                 iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
                             end
@@ -2053,11 +2069,20 @@ classdef LS_Manipulator_new < handle
             % SYNTAX:
             %   this.sinElevationWeigth()
             fun = @(el) (sind(el)).^2;
-            this.elevationWeigth( fun)
+            this.elevationWeigth(fun);
         end
         
-        function hemisphereWeighting(this,fun)
-            % weight observation based on azimuth and elevation fucntion
+        function sinSquareElevationWeigth(this)
+            % weight observation by elevation by 1/sin^2
+            %
+            % SYNTAX:
+            %   this.sinSquareElevationWeigth()
+            fun = @(el) (sind(el)).^4;
+            this.elevationWeigth(fun);
+        end
+        
+        function hemisphereWeighting(this, fun)
+            % weight observation based on azimuth and elevation function
             %
             % SYNTAX:
             %    this.hemisphereWeighting(fun)
@@ -2189,7 +2214,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_ph = nan(length(time_res),n_stream);
+            res_ph = nan(max(length(time_res), this.unique_time.length),n_stream);
             res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1, n_stream);
             obs_id = nan(1,n_stream);
@@ -2204,7 +2229,7 @@ classdef LS_Manipulator_new < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
                     res_ph(idx_time, i) = this.res(idx_res);
                     res_id(idx_time, i) = find(idx_res);
                 end
@@ -2225,7 +2250,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs(idx_rec));
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_pr = nan(length(time_res),n_stream);
+            res_ph = nan(max(length(time_res), this.unique_time.length), n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             sat_c = 9999;
@@ -2240,7 +2265,7 @@ classdef LS_Manipulator_new < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
                     res_pr(idx_time,i) = this.res(idx_res);
                 end
             end            
@@ -2332,7 +2357,9 @@ classdef LS_Manipulator_new < handle
             %
             % SYNTAX:
             %   this.setUpSA(rec_work,id_sync,obs_type)
+            
             if nargin < 4 || isempty(param_selction)
+                state = Core.getCurrentSettings;
                 param_selction = [this.PAR_REC_X;
                     this.PAR_REC_Y;
                     this.PAR_REC_Z;
@@ -2341,12 +2368,23 @@ classdef LS_Manipulator_new < handle
                     this.PAR_AMB;
                     this.PAR_REC_CLK_PR;
                     this.PAR_REC_CLK_PH;
-                    this.PAR_TROPO;
-                    this.PAR_TROPO_N;
-                    this.PAR_TROPO_E;
-                    %                     repmat(this.PAR_TROPO_Z,10,1);
+                    
                     this.PAR_IONO
                     ];  %
+               
+                if state.flag_tropo
+                    param_selction = [param_selction;
+                    this.PAR_TROPO;];
+                end
+                if state.flag_tropo_gradient
+                    param_selction = [param_selction;
+                    this.PAR_TROPO_N;
+                    this.PAR_TROPO_E;];
+                end
+                 if Main_Settings.getNumZerTropoCoef > 0
+                    param_selction = [param_selction;
+                        repmat(this.PAR_TROPO_Z,Main_Settings.getNumZerTropoCoef-3,1);];
+                end
             end
             if nargin < 5
                 parametrization = LS_Parametrization();

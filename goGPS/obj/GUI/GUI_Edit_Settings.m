@@ -46,14 +46,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
     properties (Constant)
         WIN_NAME = 'goGPS_Edit_Win';
     end
-    
-    %% PROPERTIES SINGLETON POINTERS
-    % ==================================================================================================================================================
-    properties % Utility Pointers to Singletons
-        log
-        state
-    end
-    
+        
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
@@ -151,7 +144,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
     % ==================================================================================================================================================
     methods                
         function init(this)
-            this.state = Core.getState();
         end
                         
         function openGUI(this, flag_wait)
@@ -164,6 +156,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %
                                     
             t0 = tic();
+            state = Core.getCurrentSettings;
             this.ok_go = false;
 
             log = Core.getLogger;
@@ -205,7 +198,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                                                    
                 % Main Window ----------------------------------------------------------------------------------------------
 
-                win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
+                win = figure( 'Name', sprintf('%s @ %s', state.getPrjName, state.getHomeDir), ...
                     'Visible', 'off', ...
                     'DockControls', 'off', ...
                     'MenuBar', 'none', ...
@@ -425,6 +418,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function j_cmd = insertTabCommands(this, container)
+            state = Core.getCurrentSettings;
             cmd_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.HBox('Parent', container, ...
                 'Padding', 5, ...
@@ -458,7 +452,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             j_cmd = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_cmd.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_cmd.setContentType(codeType);
-            str = strrep(strCell2Str(this.state.exportCmdList(), 10),'#','%');
+            str = strrep(strCell2Str(state.exportCmdList(), 10),'#','%');
             j_cmd.setText(str);
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
@@ -493,7 +487,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             codeType = j_eg.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_eg.setContentType(codeType);
             
-            j_eg.setText(strrep(strCell2Str(this.state.exportCmdListExamples(), 10),'#','%'));
+            j_eg.setText(strrep(strCell2Str(state.exportCmdListExamples(), 10),'#','%'));
             j_eg.setEditable(0)
             % Create the ScrollPanel containing the widget
             j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_eg);
@@ -508,6 +502,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function insertTabDataSources(this, container)
+            state = Core.getCurrentSettings;
             data_selection_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
@@ -548,8 +543,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'FontSize', Core_UI.getFontSize(8), ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', Core_UI.BLACK);
-            ts = this.state.getSessionsStart();
-            te = this.state.getSessionsStop();
+            ts = state.getSessionsStart();
+            te = state.getSessionsStop();
             if te.isempty() || ts.isempty()
                 ts = GPS_Time.now();
                 te = GPS_Time.now();
@@ -808,12 +803,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function proc_opt = insertTabProcessingOptions(this, container)
+            state = Core.getCurrentSettings;
             vpopt = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             proc_opt = Core_UI.insertPanelLight(vpopt, 'Generic Options');
             opt_list = uix.VBox('Parent', proc_opt,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Observation weighting', this.state.W_SMODE, 'w_mode', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Observation weighting', state.W_SMODE, 'w_mode', @this.onPopUpChange);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max code observation err', 'max_code_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
             opt_list.Heights = Core_UI.LINE_HEIGHT * ones(3,1);
@@ -831,22 +827,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             proc_opt = Core_UI.insertPanelLight(vpopt, 'Ionosphere Options');
             opt_list = uix.VBox('Parent', proc_opt,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Ionosphere Management (combined engine only)', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Ionosphere Management (combined engine only)', state.IE_LABEL, 'iono_management', @this.onPopUpChange);
             opt_list.Heights = Core_UI.LINE_HEIGHT * ones(1,1);
 
 
             proc_opt_ppp = Core_UI.insertPanelLight(vpopt, 'PPP Options');
             opt_list_ppp = uix.VBox('Parent', proc_opt_ppp,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_ppp, 'PPP Snooping / Reweight', this.state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_ppp, 'PPP Snooping / Reweight', state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_ppp, 'Enable PPP for receivers containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange);
             
             proc_opt_net = Core_UI.insertPanelLight(vpopt, 'NET Options');
             opt_list_net = uix.VBox('Parent', proc_opt_net,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET Snooping / Reweight', this.state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', this.state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET Snooping / Reweight', state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
             opt_list_net.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
 
             vpopt.Heights = 25 + [3, 2, 1, 3, 2] .* Core_UI.LINE_HEIGHT;
@@ -967,7 +963,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',           'flag_out_quality', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Number of Sat. per Epoch','flag_out_nspe', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Combined Residuals',       'flag_out_res_co', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Combined Residuals',      'flag_out_res_co', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Code Res.',    'flag_out_res_pr', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Phase Res.',   'flag_out_res_ph', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
@@ -1035,7 +1031,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.pop_ups{end+1} = uicontrol('Parent', box_handle,...
                 'Style', 'popup',...
                 'UserData', 'flag_rec_mp',...
-                'String', this.state.FLAG_REC_MP_LABEL,...
+                'String', Core.getCurrentSettings.FLAG_REC_MP_LABEL,...
                 'Callback', @this.onPopUpChange);
             box_handle.Heights = [Core_UI.LINE_HEIGHT -1];
             Core_UI.insertEmpty(opt_vbox);
@@ -1164,16 +1160,17 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function saveCrd(this, tbl, src, event)
             % Save CRD
             rf = this.crd2RefFrame();
-            if isempty(this.state.getCrdFile)
+            state = Core.getCurrentSettings;
+            if isempty(state.getCrdFile)
                 Core.getLogger.addWarning(sprintf('Saving at the default location'));
                 
-                path_name = fullfile(this.state.getHomeDir, 'station', 'CRD');
+                path_name = fullfile(state.getHomeDir, 'station', 'CRD');
                 file_name = 'stations.crd';
                 % build the path name of the save location
                 crd_path = fullfile(path_name, file_name);
                 try
                     rf = this.crd2RefFrame();
-                    this.state.setCrdFile(crd_path);
+                    state.setCrdFile(crd_path);
                     obj = findobj('UserData', 'crd_name'); obj.String = file_name;
                     obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
                     rf.export(crd_path);
@@ -1182,14 +1179,15 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
                 end
             else
-                rf.export(this.state.getCrdFile);
+                rf.export(state.getCrdFile);
             end
         end
         
         function saveAsCrd(this, tbl, src, event)
             % Save CRD as ...
             
-            crd_dir = this.state.getCrdDir();
+            state = Core.getCurrentSettings;
+            crd_dir = state.getCrdDir();
             
             [file_name, path_name] = uiputfile('*.crd','Save your crd', crd_dir);
             
@@ -1201,7 +1199,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             crd_path = fullfile(path_name,file_name);
             try
                 rf = this.crd2RefFrame();
-                this.state.setCrdFile(crd_path);
+                state.setCrdFile(crd_path);
                 obj = findobj('UserData', 'crd_name'); obj.String = file_name;
                 obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
                 rf.export(crd_path);
@@ -1214,13 +1212,14 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function saveAsDefaultCrd(this, tbl, src, event)
             % Save CRD in the default location
                         
-            path_name = fullfile(this.state.getHomeDir, 'station', 'CRD');
+            state = Core.getCurrentSettings;
+            path_name = fullfile(state.getHomeDir, 'station', 'CRD');
             file_name = 'stations.crd';
             % build the path name of the save location
             crd_path = fullfile(path_name, file_name);
             try
                 rf = this.crd2RefFrame();
-                this.state.setCrdFile(crd_path);
+                state.setCrdFile(crd_path);
                 obj = findobj('UserData', 'crd_name'); obj.String = file_name;
                 obj = findobj('UserData', 'crd_dir'); obj.String = path_name;
                 rf.export(crd_path);
@@ -1499,11 +1498,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Absolute regularization', 'std_tropo_abs', 'm', @this.onEditChange, [-1 80 5 70]);            
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'First der. regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);            
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Spline rate', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vl_adv, 'Order of the spline',this.state.SPLINE_TROPO_ORDER_LABEL ,'spline_tropo_order', @this.onPopUpChange, [-1 160]);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vl_adv, 'Order of the spline',Core.getCurrentSettings.SPLINE_TROPO_ORDER_LABEL ,'spline_tropo_order', @this.onPopUpChange, [-1 160]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Absolute regularization', 'std_tropo_gradient_abs', 'm', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'First der. regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Spline rate', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vr_adv, 'Order of the spline',this.state.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange, [-1 160]);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vr_adv, 'Order of the spline',Core.getCurrentSettings.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange, [-1 160]);
                         
             tropo_opt_vl_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
             tropo_opt_vr_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
@@ -1518,11 +1517,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
+            state = Core.getCurrentSettings;
+            
             %%% IONO
             iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', this.state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
             
             Core_UI.insertEmpty(tab);
             
@@ -1532,11 +1533,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Gradient mapping function', state.MFG_LABEL, 'mapping_function_gradient', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
-            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(3,1); -1];
+            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(4,1); -1];
             tropo_opt_est_grid.Widths = [150; -1];
 
             tab.Heights = [52 5 -1];
@@ -1548,6 +1550,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function insertTabRemoteResource(this, container)
             tab = uix.Grid('Parent', container);
             
+            state = Core.getCurrentSettings;
             tab_bv = uix.VBox( 'Parent', tab, ...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1564,7 +1567,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', ['File path: ' this.state.getRemoteSourceFile], ...
+                'String', ['File path: ' state.getRemoteSourceFile], ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontSize', Core_UI.getFontSize(7.5));
@@ -1574,10 +1577,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tab_bv, 'Allow automatic download of missing resources', 'flag_download', @this.onCheckBoxChange);
 
             try
-                r_man = Remote_Resource_Manager.getInstance(this.state.getRemoteSourceFile());
+                r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
                 [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange);                
             catch
-                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
             end
             
             box_opref = uix.HBox( 'Parent', tab_bv, ...
@@ -1665,10 +1668,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             this.j_rrini.setContentType(codeType);
             try
-                str = r_man.centerToString(this.state.getRemoteCenter);
+                str = r_man.centerToString(state.getRemoteCenter);
                 str = strrep(['% ' str], char(10), [char(10) '% ']);
             catch
-                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
             end
             
             this.j_rrini.setText(str);
@@ -1700,7 +1703,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
-                'String', this.state.getRemoteSourceFile, ...
+                'String', Core.getCurrentSettings.getRemoteSourceFile, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontName', 'arial', ...
@@ -1710,13 +1713,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_rrini.setContentType(codeType);
             try
-                file_name = this.state.getRemoteSourceFile;
+                file_name = Core.getCurrentSettings.getRemoteSourceFile;
                 fid = fopen(file_name);
                 str = fread(fid, '*char')';
                 str = strrep(str,'#','%');
                 fclose(fid);
             catch
-                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', Core.getCurrentSettings.getRemoteSourceFile);
             end
             
             j_rrini.setText(str);
@@ -1890,7 +1893,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             j_ini = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_ini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_ini.setContentType(codeType);
-            str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+            str = strrep(strCell2Str(Core.getCurrentSettings.export(), 10),'#','%');
             j_ini.setText(str);
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_ini);
@@ -2023,19 +2026,21 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end       
         
         function onCheckBoxCCChange(this, caller, event)
+            
+            state = Core.getCurrentSettings;
             if ~isempty(strfind(caller.UserData,'is_active'))
-                active_list = this.state.cc.getActive();
-                num = find(this.state.cc.SYS_C == caller.UserData(1));
+                active_list = state.cc.getActive();
+                num = find(state.cc.SYS_C == caller.UserData(1));
                 active_list(num) = caller.Value;
-                this.state.cc.setActive(active_list);
+                state.cc.setActive(active_list);
                 this.updateINI();
             else
                 if caller.Value  % set the constellation to active too
-                    active_list = this.state.cc.getActive();
+                    active_list = state.cc.getActive();
                     sys_c = Constellation_Collector.abbToSysC(caller.UserData(1:3));
-                    num = find(this.state.cc.SYS_C == sys_c);
+                    num = find(state.cc.SYS_C == sys_c);
                     active_list(num) = caller.Value;
-                    this.state.cc.setActive(active_list);
+                    state.cc.setActive(active_list);
                     for i = 1 : length(this.check_boxes)
                         if ~isempty(strfind(this.check_boxes{i}.UserData, [sys_c '_is_active']))
                             this.check_boxes{i}.Value = caller.Value;
@@ -2043,7 +2048,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     end
                 end
                 
-                sys_SS = this.state.cc.getSys(Constellation_Collector.abbToSysC(caller.UserData(1:3)));
+                sys_SS = state.cc.getSys(Constellation_Collector.abbToSysC(caller.UserData(1:3)));
                 idx = find(sys_SS.CODE_RIN3_2BAND ==  caller.String(3));
                 sys_SS.setFlagF(idx,caller.Value);
                 this.updateINI();
@@ -2058,7 +2063,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
     
         function onCheckBoxChange(this, caller, event)
-            this.state.setProperty(caller.UserData, caller.Value);
+            Core.getCurrentSettings.setProperty(caller.UserData, caller.Value);
             this.updateINI();
             this.updateCheckBoxFromState(); % refresh duplicated checkboxes
             if strcmp(caller.UserData, 'flag_clock_align')
@@ -2068,17 +2073,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function onPopUpChange(this, caller, event)
-            if isprop(this.state,[upper(caller.UserData) '_UI2INI'])
-                value = this.state.([upper(caller.UserData) '_UI2INI'])(caller.Value);
+            if isprop(Core.getCurrentSettings,[upper(caller.UserData) '_UI2INI'])
+                value = Core.getCurrentSettings.([upper(caller.UserData) '_UI2INI'])(caller.Value);
             else
                 value = caller.Value;
             end
-            this.state.setProperty(caller.UserData, value);
+            Core.getCurrentSettings.setProperty(caller.UserData, value);
             this.updateINI();
         end
         
         function onResourcesPopUpChange(this, caller, event)
             
+            state = Core.getCurrentSettings;
             if strcmp(caller.UserData, 'selected_center')
                 % Particular case selected_center is in GUI with full description of the center
                 % Use caller.Value and r_man.getCenterList();
@@ -2086,31 +2092,31 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 
                 % read current center
                 [center_list, center_ss] = r_man.getCenterList();
-                this.state.setProperty(caller.UserData, center_list{caller.Value});
+                state.setProperty(caller.UserData, center_list{caller.Value});
             else
-                this.state.setProperty(caller.UserData, caller.String(caller.Value));
+                state.setProperty(caller.UserData, caller.String(caller.Value));
             end
             
             % Set resources preferences
             r_man = Remote_Resource_Manager.getInstance();
             
             % Update Iono Preferences
-            available_iono = r_man.getIonoType(this.state.getRemoteCenter());
+            available_iono = r_man.getIonoType(state.getRemoteCenter());
             flag_preferred_iono = true(4,1);
             for i = 1 : 4
                 this.ripref{i}.Enable = iif(available_iono(i), 'on', 'off');
                 flag_preferred_iono(i) = available_iono(i) && logical(this.ripref{i}.Value);
             end
-            this.state.setPreferredIono(flag_preferred_iono)
+            state.setPreferredIono(flag_preferred_iono)
             
             % Update Orbit Preferences
-            available_orbit = r_man.getOrbitType(this.state.getRemoteCenter());
+            available_orbit = r_man.getOrbitType(state.getRemoteCenter());
             flag_preferred_orbit = true(4,1);
             for i = 1 : 4
                 this.ropref{i}.Enable = iif(available_orbit(i), 'on', 'off');
                 flag_preferred_orbit(i) = available_orbit(i) && logical(this.ropref{i}.Value);
             end
-            this.state.setPreferredOrbit(flag_preferred_orbit)
+            state.setPreferredOrbit(flag_preferred_orbit)
             
             this.updateINI();
             this.updateResourcePopUpsState();
@@ -2119,23 +2125,23 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function onResourcesPrefChange(this, caller, event)
             % Set resources preferences          
             r_man = Remote_Resource_Manager.getInstance();
-
+            state = Core.getCurrentSettings;
             if strcmp(caller.UserData(1:4), 'iono')
                 % Update Iono Preferences
-                available_iono = r_man.getIonoType(this.state.getRemoteCenter());
+                available_iono = r_man.getIonoType(state.getRemoteCenter());
                 flag_preferred_iono = true(4,1);
                 for i = 1 : 4
                     flag_preferred_iono(i) = available_iono(i) && logical(this.ripref{i}.Value);
                 end
-                this.state.setPreferredIono(flag_preferred_iono)
+                state.setPreferredIono(flag_preferred_iono)
             else
                 % Update Orbit Preferences
-                available_orbit = r_man.getOrbitType(this.state.getRemoteCenter());
+                available_orbit = r_man.getOrbitType(state.getRemoteCenter());
                 flag_preferred_orbit = true(4,1);
                 for i = 1 : 4
                     flag_preferred_orbit(i) = available_orbit(i) && logical(this.ropref{i}.Value);
                 end
-                this.state.setPreferredOrbit(flag_preferred_orbit)
+                state.setPreferredOrbit(flag_preferred_orbit)
             end
                                     
             this.updateINI();
@@ -2143,21 +2149,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function onEditChange(this, caller, event)
-            prop = this.state.getProperty(caller.UserData);
+            state = Core.getCurrentSettings;
+            prop = state.getProperty(caller.UserData);
             if ~isnumeric(prop)
-                this.state.setProperty(caller.UserData, caller.String);
+                state.setProperty(caller.UserData, caller.String);
             else
-                this.state.setProperty(caller.UserData, str2num(caller.String));
+                state.setProperty(caller.UserData, str2num(caller.String));
             end
             
-            this.state.check();
-            caller.String = this.state.getProperty(caller.UserData);            
+            state.check();
+            caller.String = state.getProperty(caller.UserData);            
             this.updateINI();
             this.checkFlag();
             
             if strcmp(caller.UserData, 'crd_name') || strcmp(caller.UserData, 'crd_dir')
                 rf = Core.getReferenceFrame;
-                rf.init(this.state.getCrdFile);
+                rf.init(state.getCrdFile);
                 this.updateCooTable();
             end
             if strcmp(caller.UserData, 'obs_name') || strcmp(caller.UserData, 'obs_dir')
@@ -2166,7 +2173,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function onEditArrayChange(this, caller, event)
-            prop = this.state.getProperty(caller.UserData);
+            state = Core.getCurrentSettings;
+            prop = state.getProperty(caller.UserData);
             n_child = length(caller.Parent.Children);
             array = [];
             for i = n_child : -1 : 1
@@ -2179,45 +2187,47 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     array = [array val];
                 end
             end
-            this.state.setProperty(caller.UserData, array);
-            this.state.check();
+            state.setProperty(caller.UserData, array);
+            state.check();
             this.updateEditArrayFromState(caller.Parent);
             this.updateINI();
         end
         
         function resetResDir(this, caller, event)
-            this.state.atx_dir = '';
-            this.state.atx_name = '';
-            this.state.geoid_dir = '';
-            this.state.geoid_name = this.state.GEOID_NAME;
-            this.state.crx_dir = '';
-            this.state.crx_name = this.state.CRX_NAME;
-            this.state.eph_dir = '';
-            this.state.clk_dir = '';
-            this.state.erp_dir = '';
-            this.state.iono_dir = '';
-            this.state.igrf_dir = '';
-            this.state.dcb_dir = '';
-            this.state.vmf_dir = '';
-            this.state.atm_load_dir = '';
+            state = Core.getCurrentSettings;
+            state.atx_dir = '';
+            state.atx_name = '';
+            state.geoid_dir = '';
+            state.geoid_name = state.GEOID_NAME;
+            state.crx_dir = '';
+            state.crx_name = state.CRX_NAME;
+            state.eph_dir = '';
+            state.clk_dir = '';
+            state.erp_dir = '';
+            state.iono_dir = '';
+            state.igrf_dir = '';
+            state.dcb_dir = '';
+            state.vmf_dir = '';
+            state.atm_load_dir = '';
             
-            this.state.check();
+            state.check();
             this.updateINI();
             this.updateUI();
         end
         
         function onTabChange(this, caller, event)
             if event.NewValue == 1
+                state = Core.getCurrentSettings;
                 if ~isempty(this.j_settings)
                     try
-                        str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+                        str = strrep(strCell2Str(state.export(), 10),'#','%');
                         this.j_settings.setText(str);
                     catch ex
                         Core.getLogger.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                     end
                 else
                     % Check is always needed
-                    this.state.check()
+                    state.check()
                     % Core.getLogger.addWarning('Warning invalid config can not updating j_settings');
                 end
             end
@@ -2225,7 +2235,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function refreshIni(this, caller, event)
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-            this.state.import(Ini_Manager(txt{1}));
+            Core.getCurrentSettings.import(Ini_Manager(txt{1}));
             this.updateUI();
         end
         
@@ -2236,9 +2246,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 cache_txt = txt;
                 if ~isempty(txt)
                     txt = textscan(strrep(txt,'%','#'),'%s','Delimiter', '\n');
-                    this.state.importPlainCommands(txt{1});
+                    Core.getCurrentSettings.importPlainCommands(txt{1});
                 else
-                    this.state.importPlainCommands('');
+                    Core.getCurrentSettings.importPlainCommands('');
                 end
                 this.updateUI();
             end
@@ -2246,15 +2256,16 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
-                this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);                
+                state = Core.getCurrentSettings;
+                this.w_main.Name = sprintf('%s @ %s', state.getPrjName, state.getHomeDir);                
                 try
-                    str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+                    str = strrep(strCell2Str(state.export(), 10),'#','%');
                     if ~strcmp(str, char(this.j_settings.getText()))
                         this.j_settings.setText(str);
                     end
                 catch ex
                     % Check is always needed
-                    this.state.check()
+                    state.check()
                     Core.getLogger.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                 end
             end
@@ -2267,7 +2278,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function updateCmdList(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 if this.j_cmd.isValid
-                    str = strrep(strCell2Str(this.state.exportCmdList(), 10),'#','%');
+                    str = strrep(strCell2Str(Core.getCurrentSettings.exportCmdList(), 10),'#','%');
                     if ~strcmp(str, char(this.j_cmd.getText()))
                         this.j_cmd.setText(str);
                     end
@@ -2286,23 +2297,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function updateCCFromState(this)
-            active = this.state.cc.getActive();
-            sys_c = this.state.cc.SYS_C;
+            state = Core.getCurrentSettings;
+            active = state.cc.getActive();
+            sys_c = state.cc.SYS_C;
             for i = 1 : length(active)
                 this.setCheckBox([sys_c(i) '_is_active'], active(i));
-                if active(i)
-                    ss = this.state.cc.getSys(sys_c(i));
-                    for j = 1: length( ss.flag_f)
-                        f = ss.flag_f(j);
-                        this.setCheckBox([Constellation_Collector.sysCToAbb(sys_c(i)) '_' Constellation_Collector.rin3ToBand(['L' ss.CODE_RIN3_2BAND(j) ], sys_c(i))], f);
-                    end
+                ss = state.cc.getSys(sys_c(i));
+                for j = 1: length( ss.flag_f)
+                    f = ss.flag_f(j);
+                    this.setCheckBox([Constellation_Collector.sysCToAbb(sys_c(i)) '_' Constellation_Collector.rin3ToBand(['L' ss.CODE_RIN3_2BAND(j) ], sys_c(i))], f);
                 end
             end
         end
         
         function updateCheckBoxFromState(this)
             for i = 1 : length(this.check_boxes)
-                value = this.state.getProperty(this.check_boxes{i}.UserData);
+                value = Core.getCurrentSettings.getProperty(this.check_boxes{i}.UserData);
                 if ~isempty(value)
                     this.check_boxes{i}.Value = double(value(1));
                 end
@@ -2311,7 +2321,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function updateEditFromState(this)
             for i = 1 : length(this.edit_texts)
-                value = this.state.getProperty(this.edit_texts{i}.UserData);
+                value = Core.getCurrentSettings.getProperty(this.edit_texts{i}.UserData);
                 if ~isempty(value)
                     this.edit_texts{i}.String = value;
                 end
@@ -2320,7 +2330,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function updateEditArrayFromState(this, array_box)
             name_prop = array_box.UserData;
-            array_value = this.state.getProperty(name_prop);
+            array_value = Core.getCurrentSettings.getProperty(name_prop);
             n_child = length(array_box.Children);
             n_val = length(array_value);
             j = 1;
@@ -2340,11 +2350,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function updatePopUpsState(this)
+            state = Core.getCurrentSettings;
             for i = 1 : length(this.pop_ups)
-                value = this.state.getProperty(this.pop_ups{i}.UserData);
+                value = state.getProperty(this.pop_ups{i}.UserData);
                 if ~isempty(value)
-                    if  isprop(this.state,[upper(this.pop_ups{i}.UserData) '_UI2INI'])
-                        this.pop_ups{i}.Value = find(this.state.([upper(this.pop_ups{i}.UserData) '_UI2INI']) == value);
+                    if  isprop(state,[upper(this.pop_ups{i}.UserData) '_UI2INI'])
+                        this.pop_ups{i}.Value = find(state.([upper(this.pop_ups{i}.UserData) '_UI2INI']) == value);
                     else
                         this.pop_ups{i}.Value = value;
                     end
@@ -2356,9 +2367,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Getting current remote resource manager
             r_man = Remote_Resource_Manager.getInstance();
             
+            state = Core.getCurrentSettings;
             % read current center
             [center_list, center_ss] = r_man.getCenterList();
-            cur_center = this.state.getProperty(this.rpop_up.UserData);
+            cur_center = state.getProperty(this.rpop_up.UserData);
             if isempty(cur_center)
                 cur_center = {'default'};
             end
@@ -2371,10 +2383,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             if ~isempty(value)
                 this.rpop_up.Value = value;                
                 try
-                    str = r_man.centerToString(this.state.getRemoteCenter());
+                    str = r_man.centerToString(state.getRemoteCenter());
                     str = strrep(['% ' str], char(10), [char(10) '% ']);
                 catch
-                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
                 end
                 this.j_rrini.setText(str);
             end
@@ -2387,7 +2399,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             for i = 1 : 4
                 this.ropref{i}.Enable = iif(available_orbit(i), 'on', 'off');
             end
-            flag_preferred_orbit = this.state.getPreferredOrbit();
+            flag_preferred_orbit = state.getPreferredOrbit();
             for i = 1 : 4
                 if available_orbit(i)
                     this.ropref{i}.Value = this.ropref{i}.Value | flag_preferred_orbit(i);
@@ -2399,7 +2411,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             for i = 1 : 4
                 this.ripref{i}.Enable = iif(available_iono(i), 'on', 'off');
             end
-            flag_preferred_iono = this.state.getPreferredIono();            
+            flag_preferred_iono = state.getPreferredIono();            
             for i = 1 : 4
                 if available_iono(i)
                     this.ripref{i}.Value = this.ripref{i}.Value | flag_preferred_iono(i);
@@ -2476,32 +2488,33 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function setToPPP(this, caller, event)
             % Reset settings to values suggested for PPP troposphere estimation
-            this.state.setToTropoPPP();
+            Core.getCurrentSettings.setToTropoPPP();
             this.updateUI();
         end
         
         function setToIonoFreeNET(this, caller, event)
             % Reset settings to values suggested for NET solution (long baselines iono-free)
-            this.state.setToLongNET();
+            Core.getCurrentSettings.setToLongNET();
             this.updateUI();
         end
         
         function setToMediumNET(this, caller, event)
             % Reset settings to values suggested for NET solution (medium < 20km baselines no iono)
-            this.state.setToMediumNET();
+            Core.getCurrentSettings.setToMediumNET();
             this.updateUI();
         end
         
         function setToShortNET(this, caller, event)
             % Reset settings to values suggested for NET solution (short baselines no iono, no tropo)
-            this.state.setToShortNET();
+            Core.getCurrentSettings.setToShortNET();
             this.updateUI();
         end
         
         function loadState(this, caller, event)
             % Load state settings
             
-            config_dir = this.state.getHomeDir();
+            state = Core.getCurrentSettings;
+            config_dir = state.getHomeDir();
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
@@ -2515,7 +2528,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % build the path name of the file to be loaded
                 settings_file = fullfile(path_name, file_name);
                 if strcmp(ext, '.ini')
-                    this.state.importIniFile(settings_file);
+                    state.importIniFile(settings_file);
                     Core.getReferenceFrame.init();
                     this.updateUI();
                     this.updateRecList();
@@ -2528,11 +2541,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function saveState(this, caller, event)
             % Save state settings
             try
+                state = Core.getCurrentSettings;
                 txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-                this.state.import(Ini_Manager(txt{1}));
-                this.state.save();
+                state.import(Ini_Manager(txt{1}));
+                state.save();
                 this.updateUI();
-                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', this.state.getFilePath));
+                Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', state.getFilePath));
             catch ex
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
@@ -2540,7 +2554,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function saveAsState(this, caller, event)
             % Save As state settings
-            config_dir = this.state.getHomeDir();
+            state = Core.getCurrentSettings;
+            config_dir = state.getHomeDir();
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
@@ -2553,8 +2568,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             settings_file = fullfile(path_name,file_name);
             try
                 txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-                this.state.import(Ini_Manager(txt{1}));
-                this.state.save(settings_file);
+                state.import(Ini_Manager(txt{1}));
+                state.save(settings_file);
                 this.updateUI();
                 Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
             catch ex
@@ -2586,9 +2601,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 end
             else
                 this.crd2RefFrame;
-                Core.getLogger.addMarkedMessage('Starting computation!');
+                core.log.addMarkedMessage('Starting computation!');
                 
-                this.state.save(Main_Settings.LAST_SETTINGS);
+                core.state.save(Main_Settings.LAST_SETTINGS);
                 this.ok_go = true;
                 close(this.w_main);
             end
@@ -2599,7 +2614,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.updateINI();
                 this.updateCooTable();
                 this.updateCmdList();
-                this.ini_path.String = this.state.getIniPath();
+                this.ini_path.String = Core.getCurrentSettings.getIniPath();
                 this.updateSessionGUI();
                 this.updateSessionSummary()
                 this.updateSessionFromState();
@@ -2754,21 +2769,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function updateSessionSummary(this)
             if ~isempty(this.session_summary.start)
-                [~,doy_st] = this.state.sss_date_start.getDOY;
-                week_st =  this.state.sss_date_start.getGpsWeek;
-                [~,doy_en] = this.state.sss_date_stop.getDOY;
-                week_en =  this.state.sss_date_stop.getGpsWeek;
+                state = Core.getCurrentSettings;
+                [~,doy_st] = state.sss_date_start.getDOY;
+                week_st =  state.sss_date_start.getGpsWeek;
+                [~,doy_en] = state.sss_date_stop.getDOY;
+                week_en =  state.sss_date_stop.getGpsWeek;
                 this.session_summary.start.String = sprintf( ...
                     ['Start Date/Time:\n',...
                     '  %s\n',...
                     '  week: %d doy: %d\n'], ...
-                    this.state.sss_date_start.toString('yyyy-mm-dd  HH:MM:SS'), week_st, doy_st);
+                    state.sss_date_start.toString('yyyy-mm-dd  HH:MM:SS'), week_st, doy_st);
                 this.session_summary.stop.String = sprintf( ...
                     ['End Date/Time:\n', ...
                     '  %s\n', ...
                     '  week: %d doy: %d\n'], ...
-                    this.state.sss_date_stop.toString('yyyy-mm-dd  HH:MM:SS'), week_en, doy_en);
-                if this.state.isRinexSession()
+                    state.sss_date_stop.toString('yyyy-mm-dd  HH:MM:SS'), week_en, doy_en);
+                if state.isRinexSession()
                     this.session_summary.size.String = sprintf( ...
                         ['Duration: rinex based\n', ...
                         'Buffer: none\n']);
@@ -2776,7 +2792,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     this.session_summary.size.String = sprintf( ...
                         ['Duration: %10d [s]\n', ...
                         'Buffer: %6d, %6d [s]\n'], ...
-                        this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
+                        state.sss_duration, state.sss_buffer(1), state.sss_buffer(end));
                 end
             end           
         end
@@ -2786,7 +2802,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             ui_tspan = findobj(this.w_main, 'Tag', 'sss_duration');
             ui_buffer = findobj(this.w_main, 'Tag', 'sss_buffer');
             ui_smooth_tropo = findobj(this.w_main, 'Tag', 'sss_smooth');
-            if this.state.isRinexSession()
+            if Core.getCurrentSettings.isRinexSession()
                 Core_UI.disableElement(ui_tspan);
                 Core_UI.disableElement(ui_buffer);
                 Core_UI.disableElement(ui_smooth_tropo);

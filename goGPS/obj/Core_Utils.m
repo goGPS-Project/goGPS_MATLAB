@@ -530,20 +530,21 @@ classdef Core_Utils < handle
             end
         end
         
-        function [z, l, m] = getAllZernike(l_max, m_max, az, el)
+        
+        function [z, l, m] = getAllZernike(l_max, m_max, az, r)
             % Generate all the Zernike parameters combinations
             %
             % INPUT 
             %   l_max   maximum degree
             %   m_max   maximum order
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %
             % SINTAX
-            %   [z, l, m] = getAllZernike(l_max, az, el)
-            %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
+            %   [z, l, m] = getAllZernike(l_max, az, r)
+            %   [z, l, m] = getAllZernike(l_max, m_max, az, r)
             if nargin == 3
-                el = az;
+                r = az;
                 az = m_max;
                 m_max = l_max;
             end
@@ -562,7 +563,7 @@ classdef Core_Utils < handle
             l(abs(m) > m_max) = [];
             m(abs(m) > m_max) = [];
             
-            z = Core_Utils.getZernike(l, m, az, el);
+            z = Core_Utils.getZernike(l, m, az, r);
         end
         
         function [n] = getAllNormCoeffZernike(l_max, m_max)
@@ -584,20 +585,20 @@ classdef Core_Utils < handle
             n = sqrt((1+(m~=0)).*(l+1)/pi);
         end
         
-        function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
+        function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, r)
             % Generate all the Zernike parameters combinations
             %
             % INPUT
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %
             % SINTAX
             %   [z, l, m] = getAllZernike(l_max, az, el)
             %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
             if nargin == 3
-                el = az;
+                r = az;
                 az = m_max;
                 m_max = l_max;
             end
@@ -616,67 +617,50 @@ classdef Core_Utils < handle
             l(abs(m) > m_max) = [];
             m(abs(m) > m_max) = [];
             
-            z = Core_Utils.getZernikeNorm(l, m, az, el);
+            z = Core_Utils.getZernikeNorm(l, m, az, r);
         end
         
-        function z = getZernikeNorm(l, m, az, el)
+        function z = getZernikeNorm(l, m, az, r)
             % Get Zernike values for the polynomials
             %
             % INPUT 
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %
             % SINTAX
             %   z = getZernike(l, m, az, el)
             
-            %
-            r = 1 - (2 * el(:) / pi);
-            %r = cos(el(:));
-            theta = az(:);
-            
-            %[x,y,z] = sph2cart(az, el, 1);
-            %[theta1, r1] = cart2pol(x,y);
-            
-            z = zernfun(l, m, r, theta,'norm');
+            z = zernfun(l, m, r(:), az(:), 'norm');
         end
         
-        function z = getZernike(l, m, az, el)
+        function z = getZernike(l, m, az, r)
             % Get Zernike values for the polynomials
             %
             % INPUT 
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       radius [0..1]
             %
             % SINTAX
-            %   z = getZernike(l, m, az, el)
-            
-            %
-            %r = 1 - (2 * el(:) / pi);
-            %r = cos(el(:));
-            r = 1 - sin(el(:));
-            theta = az(:);
-            
-            %[x,y,z] = sph2cart(az, el, 1);
-            %[theta1, r1] = cart2pol(x,y);
-            
-            z = zernfun(l, m, r, theta);
+            %   z = getZernike(l, m, az, r)
+                                    
+            z = zernfun(l, m, r(:), az(:));
         end
                 
-        function [S] = reorthZernikeMask(lat,lon,el_thrsh,n_sample)
+        function [S] = reorthZernikeMask(lat, lon, el_thrsh, n_sample)
             % get an orthogonal basis of zernike function that maximize the
             % power in the area of interest
             %
             % SYNTAX:
             % [S] = Core_Utils.reorthZernikeMask(lat,lon,el_thrsh)
             if nargin < 4
-            n_sample = 500000;
+                n_sample = 500000;
             end
-%             N = zeros(741,741);
-%             for j = 1 :10
+            %             N = zeros(741,741);
+            %             for j = 1 :10
             xy = (rand(n_sample*2,2)-0.5)*2;
             len= sqrt(xy(:,1).^2 + xy(:,2).^2);
             xy(len > 1,:) = [];
@@ -701,15 +685,15 @@ classdef Core_Utils < handle
             theta = atan2(xy(:,2),xy(:,1));
             el = pi/2 - r*pi/2;
             
-            [z1] = Core_Utils.getAllZernike(10, 10, theta, el);
+            [z1] = Core_Utils.getAllZernike(10, 10, theta, r);
             %z1 = [zernfun(1,1,r,theta,'norm')      zernfun(1,-1,r,theta,'norm') zernfun(5,5,r,theta,'norm')];%           2/sqrt(pi)
             %z1 = [r .* sin(theta)      r .* cos(theta)];
             %       1   -1    r * sin(theta)                 2/sqrt(pi)
             
-%             N = N + z1'*z1;
-%             j
-%             end
-N = z1'*z1;
+            %             N = N + z1'*z1;
+            %             j
+            %             end
+            N = z1'*z1;
             [U,D,V] = svd(N);
             d = diag(D);
             % get the flexum
@@ -723,7 +707,7 @@ N = z1'*z1;
             S = U(:,1:stop);
         end
         
-        function [z_interp, l, m] = zSinthesysAll(l_max, m_max, az, el, z_par)
+        function [z_interp, l, m] = zSinthesysAll(l_max, m_max, az, r, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
@@ -731,7 +715,7 @@ N = z1'*z1;
             %   l_max   maximum degree
             %   m_max   maximum order
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %   z_par   Zernike coefficients
             %
             % SINTAX
@@ -739,11 +723,11 @@ N = z1'*z1;
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az, el);
+            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az, r);
             z_interp(id_ok) = A * z_par;
         end
         
-        function [z_interp, l, m] = zSinthesys(l, m, az, el, z_par)
+        function [z_interp, l, m] = zSinthesys(l, m, az, r, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
             %
@@ -751,7 +735,7 @@ N = z1'*z1;
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %   z_par   Zernike coefficients
             %
             % SINTAX
@@ -759,18 +743,18 @@ N = z1'*z1;
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
-            A = Core_Utils.getZernike(l, m, az, el);
+            A = Core_Utils.getZernike(l, m, az, r);
             z_interp(id_ok) = A * z_par;
         end
         
-        function [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, r, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % INPUT
             %   l_max   maximum degree
             %   m_max   maximum order
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %   data    list of data to be analized
             %   max_reg maximum regularization
             %
@@ -778,29 +762,17 @@ N = z1'*z1;
             %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), el(id_ok));
+            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), r(id_ok));
             if nargin == 6 && ~isempty(max_reg) && max_reg
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
             else
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
             end
-            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ (A' * data(id_ok));
-            
-            %N = (A'*A);
-            %[U, s, V] = svd(N);
-            %s = diag(s);
-            %id_ko = s < 1e-5;
-            % 
-            %V(:,id_ko) = [];
-            %U(:,id_ko) = [];
-            %s(id_ko) = [];
-            %s = 1./s(:);
-            %X = (V.*s.')*U';
-            %z_par = X * (A' * data(id_ok));            
+            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ (A' * data(id_ok));    
         end
         
          
-        function [z_par, l, m, A] = zroAnalisysAll(l_max, m_max, az, el, data, S)
+        function [z_par, l, m, A] = zroAnalisysAll(l_max, m_max, az, r, data, S)
             % Get Zernike polynomials parameters form reothonormalize
             % function
             %
@@ -808,7 +780,7 @@ N = z1'*z1;
             %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, S)
             
             id_ok = ~isnan(data(:));
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), el(id_ok));
+            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), r(id_ok));
             N = A'*A;
             B = A'*data;
             N = S'*N*S;
@@ -817,14 +789,14 @@ N = z1'*z1;
             z_par = S*z_par;
         end
         
-        function [z_par, l, m, A] = zAnalisys(l, m, az, el, data, max_reg)
+        function [z_par, l, m, A] = zAnalisys(l, m, az, r, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % INPUT 
             %   l       list of degrees
             %   m       list of orders
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %   data    list of data to be analized
             %   max_reg maximum regularization
             %
@@ -832,7 +804,7 @@ N = z1'*z1;
             %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
             
             id_ok = ~isnan(data(:));
-            A = Core_Utils.getZernike(l, m, az(id_ok), el(id_ok));
+            A = Core_Utils.getZernike(l, m, az(id_ok), r(id_ok));
             if nargin == 6 && ~isempty(flag_reg) && flag_reg
                 reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
             else
@@ -841,14 +813,14 @@ N = z1'*z1;
             z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ (A' * data(id_ok));
         end
                 
-        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, el, data, max_reg)
+        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, r, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % INPUT
             %   l_max   maximum degree
             %   m_max   maximum order
             %   az      list of azimuth angles   [rad]
-            %   el      list of elevation angles [rad]
+            %   r       disc radius              [0 1]
             %   data    list of data to be analized
             %   max_reg maximum regularization
             %
@@ -856,9 +828,9 @@ N = z1'*z1;
             %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
             
             if nargin == 6
-                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data, max_reg);
+                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data, max_reg);
             else
-                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data);
+                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data);
             end
             filtered_data = A * z_par;
         end
@@ -1042,28 +1014,42 @@ N = z1'*z1;
             %Core_UI.beautifyFig(fh, 'dark');
         end
         
-        function fh = polarZerMap(l_max, m_max, az, el, data)
+        function fh = polarZerMap(l_max, m_max, az, r, data)
             % Take scattered observation and plot a polar interpolation
             %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   r       disc radius              [0 1]
+            %   data    list of data to be analized            
+            %
             % SYNTAX
-            %   fh = polarZerMap(l_max, m_max, az, el, data)
-            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az, el, data, 1);
+            %   fh = polarZerMap(l_max, m_max, az, r, data)
+            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data, 1);
             fh = Core_Utils.showZernike(l, m, z_par);
         end
         
-        function fh = polarZerMapDual(l_max, m_max, az, el, data)
+        function fh = polarZerMapDual(l_max, m_max, az, r, data)
             % Take scattered observation and plot:
             %  - a scattered polar
             %  - a polar interpolation
             %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   r       disc radius              [0 1]
+            %   data    list of data to be analized            
+            %
             % SYNTAX
             %   fh = polarZerMapDual(l_max, m_max, az, el, data)
             fh = figure('Visible', 'off'); subplot(1,2,1); hold on;
-            Core_Utils.polarZerMap(l_max, m_max, az, el, data);
+            Core_Utils.polarZerMap(l_max, m_max, az, r, data);
             fh.Visible = false;
             cax = caxis();
             subplot(1,2,2); hold on; 
-            polarScatter(az, (pi/2 - el), 50, data, 'filled'); colorbar(); colormap(jet);
+            polarScatter(az, (r * pi/2), 50, data, 'filled'); colorbar(); colormap(jet);
             cax_s = caxis();
             %cax = [min(cax(1), cax_s(1)) max(cax(2), cax_s(2))];
             cax = cax_s;
@@ -1074,12 +1060,19 @@ N = z1'*z1;
             Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
         
-        function fh = polarZerMapQuad(l_max, m_max, az, el, data)
+        function fh = polarZerMapQuad(l_max, m_max, az, r, data)
             % Take scattered observation and plot:
             %  - a scattered polar
             %  - a polar interpolation
             %  - a scattered vs el
             %  - an interpolation vs el
+            %
+            % INPUT
+            %   l_max   maximum degree
+            %   m_max   maximum order
+            %   az      list of azimuth angles   [rad]
+            %   r       disc radius              [0 1]
+            %   data    list of data to be analized            
             %
             % SYNTAX
             %   fh = polarZerMapQuad(l_max, m_max, az, el, data)
@@ -1090,11 +1083,11 @@ N = z1'*z1;
             end
             
             subplot(2,2,1); hold on;
-            Core_Utils.polarZerMap(l_max, m_max, az, el, data);
+            Core_Utils.polarZerMap(l_max, m_max, az, r, data);
             cax = caxis();
             
             subplot(2,2,2); hold on; 
-            polarScatter(az, (pi/2 - el), 50, data, 'filled'); colorbar(); colormap(jet);
+            polarScatter(az, r * pi/2, 50, data, 'filled'); colorbar(); colormap(jet);
             cax_s = caxis();
             %cax = [min(cax(1), cax_s(1)) max(cax(2), cax_s(2))];
             cax = cax_s;
@@ -1103,19 +1096,19 @@ N = z1'*z1;
             caxis(cax);
             
             subplot(2,2,3); 
-            data_smooth = Core_Utils.zFilter(l_max, m_max, az, el, data); hold on;       
-            plot(el / pi * 180, data_smooth, '.', 'Color', Core_UI.getColor(1));
+            data_smooth = Core_Utils.zFilter(l_max, m_max, az, r, data); hold on;       
+            plot((r * pi/2) / pi * 180, data_smooth, '.', 'Color', Core_UI.getColor(1));
             
             el_grid = 0 : 90;
-            plot(el_grid, Core_Utils.interp1LS(el / pi * 180, data_smooth, 3, el_grid), '--', 'LineWidth', 2, 'Color', Core_UI.getColor(3));
+            plot(el_grid, Core_Utils.interp1LS((r * pi/2) / pi * 180, data_smooth, 3, el_grid), '--', 'LineWidth', 2, 'Color', Core_UI.getColor(3));
             
             ylim(cax);
             xlim([0 90]);
             grid minor;
 
             subplot(2,2,4); hold on; 
-            plot(el / pi * 180, data, '.', 'Color', Core_UI.getColor(2)); hold on;
-            plot(el_grid, Core_Utils.interp1LS(el / pi * 180, data, 3, el_grid), '--', 'LineWidth', 2 , 'Color', Core_UI.getColor(5));
+            plot((r * pi/2) / pi * 180, data, '.', 'Color', Core_UI.getColor(2)); hold on;
+            plot(el_grid, Core_Utils.interp1LS((r * pi/2) / pi * 180, data, 3, el_grid), '--', 'LineWidth', 2 , 'Color', Core_UI.getColor(5));
             ylim(cax);
             xlim([0 90]);
             grid minor;
@@ -1123,6 +1116,7 @@ N = z1'*z1;
             fh.Visible = true;
             Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
         end
+        
                 
         function sphTest()
             %%  along track analysis            
@@ -1348,7 +1342,66 @@ N = z1'*z1;
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
-            export_fig(fh, out_path, '-transparent', '-r150');
+            box = findall(fh, 'type', 'uicontainer');
+            if isempty(box)
+                export_fig(fh, out_path, '-transparent', '-r150');
+            else
+                % Special tricks in case of figure containing boxes
+                
+                % Use saveas instead of export_fig
+                [~, ~, ext] = fileparts(out_path);
+                if strcmp(ext, '.png')
+                    bg_color = [1 255 1]; % Use green screen
+                else
+                    bg_color = [255 255 255];
+                end
+                % fallback
+                bg_box = {};
+                for b = 1: numel(box)
+                    try
+                        bg_box{b} = box(b).BackgroundColor;
+                        box(b).BackgroundColor = bg_color/255;
+                    catch ex
+                    end
+                end
+                saveas(fh, out_path);
+                for b = 1: numel(box)
+                    try                        
+                        box(b).BackgroundColor = bg_box{b};
+                    catch ex
+                    end
+                end
+                
+                % saveas does not have transparency management
+                if strcmp(ext, '.png')
+                    % Tricks are just for PNG file type
+
+                    % read the just saved image 
+                    [im_out] = imread(out_path);
+                    % convert it in hue saturation value
+                    im_hsv = rgb2hsv(im_out);
+                    bg_hsv = rgb2hsv(bg_color/255);
+                    alpha_mask = (im_hsv(:,:,1) ~= bg_hsv(1));
+                    color_mask = (~(im_out(:,:,1) == bg_color(1) & im_out(:,:,2) == bg_color(2) & im_out(:,:,3) == bg_color(3)));
+                    saturation = im_hsv(:,:,2);
+                    value = im_hsv(:,:,3);
+                    hue = im_hsv(:,:,1);
+                    saturation(alpha_mask ~= 1) = 0;
+                    hue(alpha_mask ~= 1) = 1;
+                    alpha_mask = double(alpha_mask);
+                    
+                    % get alpha value for the value component of the image
+                    alpha_mask(logical(color_mask - alpha_mask)) = double(1-value(logical(color_mask - alpha_mask)));
+                    
+                    im_hsv(:,:,1) = hue;
+                    im_hsv(:,:,2) = saturation;
+                    im_hsv(:,:,3) = value;
+                    im_out = hsv2rgb(im_hsv);
+                    
+                    imwrite(im_out, out_path, 'alpha', alpha_mask);
+                end               
+            end
+                
             fh.WindowStyle = ws_bk;
             fh.Color = col;
         end
@@ -2080,7 +2133,25 @@ N = z1'*z1;
                 data1(isnan(data1)) = data2(isnan(data1));
                 data2(isnan(data2)) = data1(isnan(data2));
             end
-            % Merge
+            
+            % Do not Merge nans
+            last_ok = find(~isnan(data1), 1, 'last');
+            if isempty(last_ok)
+                last_ok = 0;
+            end
+            w1((last_ok + 1) : end) = 0;
+            data1((last_ok + 1) : end) = 0;
+            w2((last_ok + 1) : end) = 1;
+            
+            % Do not Merge nans
+            first_ok = find(~isnan(data2), 1, 'first');
+            if isempty(last_ok)
+                first_ok = numel(data2) + 1;
+            end
+            w1(1 : (first_ok - 1)) = 1;
+            w2(1 : (first_ok - 1)) = 0;
+            data2(1 : (first_ok - 1)) = 0;
+            
             data = w1.*data1 + w2.*data2;
             %data(id_ko) = [];
             data = data(id_keep);
@@ -2502,7 +2573,36 @@ N = z1'*z1;
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
+            state.setMPDir('antenna/MP');
+            if ~exist(state.getMPDir, 'dir')
+                try
+                    mkdir(state.getMPDir);
+                catch ex
+                end
+            end
+                
+            crd_file = state.getCrdFile;
+            if ~exist(crd_file, 'file')
+                try
+                    % try to create an empty ocean loading file
+                    fid = fopen(crd_file, 'w');
+                    fwrite(fid, '# Insert here the coordinates of the receivers');
+                    fclose(fid);
+                catch ex
+                end
+            end
+            
             state.setOceanDir('station/ocean');
+            ocean_file = fullfile(state.getHomeDir, state.getOceanFile);
+            if ~exist(ocean_file, 'file')
+                try
+                    % try to create an empty ocean loading file
+                    fid = fopen(ocean_file, 'w');
+                    fwrite(fid, '$$ Insert here the ocean loading displacements');
+                    fclose(fid);
+                catch ex
+                end
+            end
             
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             if nargin == 3

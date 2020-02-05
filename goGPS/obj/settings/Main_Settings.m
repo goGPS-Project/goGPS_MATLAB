@@ -192,7 +192,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
-                                                        %  - weights = 3: weight based on satellite elevation (exp)
+                                                        %  - weights = 3: weight based on the square of satellite elevation (sin^2)
                                                 
         
         PPP_REWEIGHT_MODE = 1                           % PPP re-weight / snooping
@@ -258,6 +258,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 1 : GMF
                                                         % 2 : VMF gridded
                                                         % 3 : Niell
+        MAPPING_FUNCTION_GRADIENT = 1                   % Mapping function to be used
+                                                        % 1 : chen and  herring
+                                                        % 2 : macmillan
                                                         % ADV ATMOSPHERE
         METEO_DATA = 2;                                 % Meteo data to be used
                                                         % 1: standard atmopshere
@@ -267,7 +270,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %SIGMA0_TROPO_GRADIENT = 1;                     % Std of a priori tropospheric gradient
 
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
+        STD_TROPO_GRADIENT = 0.0005;                    % Std of tropospheric gradient [m/h]
         STD_TROPO_ABS = 0.5;                            % abs value regularization Std of tropospheric delay [m]
         STD_TROPO_GRADIENT_ABS = 0.02;                  % abs value regularization Std  of tropospheric gradient [m/h]
         STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
@@ -301,14 +304,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUT_RES_PR = true;     % residuals
         FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
+        getNumZerTropoCoef = 0;
     end
 
     properties (Constant, Access = 'public')
 
         % id to string of weight functions
         W_SMODE = {'uniform', ...
-                   'sat elevation (sin) dependent' ...
-                   'sat elevation (exp) dependent'}
+                   'sat elevation (sin) dependent', ...
+                   'square of sat elevation (sin^2) dependent'}
 
         % id to string of ionospheric models
         IONO_SMODE = {'1: no model', ...
@@ -386,6 +390,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             '2: Vienna Mapping Function gridded', ...
             '3: Niell Mapping Function'}
         MF_LABEL = {'GMF','VMF gridded','Niell'}
+
+        % id to string of gradients mappig functions
+        MFG_SMODE = {'1: Chen and Herring', '2: MacMillan'}
+        MFG_LABEL = {'Chen and Herring','MacMillan'}
+        
         % id to string of meteo data
         MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
@@ -634,7 +643,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         w_mode = Main_Settings.W_MODE;
         %  - weights = 1: same weight for all the observations
         %  - weights = 2: weight based on satellite elevation (sin)
-        %  - weights = 3: weight based on satellite elevation (exp)
+        %  - weights = 3: weight based on the square of satellite elevation (sin^2)
 
         % PPP re-weight / snooping
         ppp_reweight_mode = Main_Settings.PPP_REWEIGHT_MODE;
@@ -686,6 +695,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % A-priori Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
         zd_model = Main_Settings.ZD_MODEL;
         mapping_function = Main_Settings.MAPPING_FUNCTION;
+        mapping_function_gradient = Main_Settings.MAPPING_FUNCTION_GRADIENT;
+
         meteo_data = Main_Settings.METEO_DATA;
 
         %------------------------------------------------------------------
@@ -972,6 +983,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.iono_model = state.getData('iono_model');
                 this.zd_model = state.getData('zd_model');
                 this.mapping_function = state.getData('mapping_function');
+                this.mapping_function_gradient = state.getData('mapping_function_gradient');
+
                 this.meteo_data = state.getData('meteo_data');
 
                 % ADV ATMOSPHERE
@@ -1148,6 +1161,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.iono_model = state.iono_model;
                 this.zd_model = state.zd_model;
                 this.mapping_function = state.mapping_function;
+                this.mapping_function_gradient = state.mapping_function_gradient;
+
                 this.meteo_data = state.meteo_data;
 
                 % ADV ATMOSPHERE
@@ -1347,7 +1362,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model})];
             str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
             str = [str sprintf(' A-priori Zenith model                             %s\n', this.ZD_SMODE{this.zd_model})];
-            str = [str sprintf(' Tropospheric model                                %s\n', this.MF_SMODE{this.mapping_function})];
+            str = [str sprintf(' Tropospheric mapping functiom                     %s\n', this.MF_SMODE{this.mapping_function})];
+            str = [str sprintf(' Gradient mapping function                         %s\n', this.MFG_SMODE{this.mapping_function_gradient})];
+
             str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
@@ -1835,8 +1852,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Mapping function', str_cell);
             str_cell = Ini_Manager.toIniString('mapping_function', this.mapping_function, str_cell);
+           
+
             for i = 1 : numel(this.MF_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MF_SMODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniString('mapping_function_gradient', this.mapping_function_gradient, str_cell);
+            for i = 1 : numel(this.MFG_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MFG_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteo data', str_cell);
@@ -2523,6 +2546,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 2;              % Use VMF for a-priori
             this.mapping_function = 2;      % Use VMF grids
+            this.mapping_function_gradient = 2;      % Use chen and herring
+
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
@@ -2624,6 +2649,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             this.zd_model = 1;              % Use Saastamoinen for a-priori
             this.mapping_function = 1;      % Use GMF grids
+                        this.mapping_function_gradient = 1;      % Use chen and herrign
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
@@ -2755,6 +2781,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('iono_model',[1 numel(this.IONO_SMODE)]);
             this.checkNumericField('zd_model',[1 numel(this.ZD_SMODE)]);
             this.checkNumericField('mapping_function',[1 numel(this.MF_SMODE)]);
+            this.checkNumericField('mapping_function_gradient',[1 numel(this.MFG_SMODE)]);
+
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
             this.checkLogicalField('flag_tropo');
             this.checkLogicalField('flag_tropo_gradient');
@@ -3329,7 +3357,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             else
                 out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
             end
-        end
+        end                
         
         function out = getMPDir(this)
             % Get the path of the mp file dir
@@ -3337,7 +3365,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   file_path = this.getMPFile()
             fnp = File_Name_Processor;
-            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.prj_home));
+            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.getHomeDir), this.getHomeDir);
         end
         
         function out = getMPFile(this)
@@ -3771,8 +3799,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
+            if isempty(this.vmf_name)
+                fw = File_Wizard;
+                fw.conjureVmfFiles(date_start, date_stop);
+            end
             file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name), this.getHomeDir());
-
             date_start = date_start.getCopy;
             date_stop = date_stop.getCopy;
             fnp = File_Name_Processor();
@@ -4135,6 +4166,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %  this.setObsName(obs_dir)
             this.obs_name = name_list;
+            this.obs_full_name = {};
         end
         
         function setObsDir(this, obs_dir)
@@ -4143,6 +4175,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.setObsDir(obs_dir)
             this.obs_dir = obs_dir;
+        end
+        
+        function setMPDir(this, mp_dir)
+            % Set the path of the mp file dir
+            %
+            % SYNTAX
+            %   this.setMPDirmp_dir()
+            this.mp_dir = mp_dir;
         end
         
         function setOutDir(this, out_dir)

@@ -926,7 +926,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -996,7 +996,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1115,7 +1115,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ï¿½C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1659,6 +1659,9 @@ classdef Atmosphere < handle
             else % compute mapping function first
                 % get the index of the interpolating points
                 if isempty(this.vmf_coeff.first_lat)
+                    this.initVMF(time.first, time.last);
+                end
+                if isempty(this.vmf_coeff.first_lat)
                     gmfh = [];
                     gmfw = [];
                 else
@@ -1733,6 +1736,8 @@ classdef Atmosphere < handle
                 end
             end
         end
+        
+       
         
         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
             %angles in radians!!
@@ -1881,7 +1886,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45ï¿½ lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
@@ -2086,6 +2091,35 @@ classdef Atmosphere < handle
             %ZHD (Saastamoinen model)
             ZHD = 0.0022768 * P(:) .* (1 + 0.00266 * cosd(2*lat(:)) + 0.00000028 * h(:));
             %ZHD = 0.0022767 * P(:) ./ (1 - 0.00266 * cosd(2*lat(:)) - 0.00000028 * h(:));
+        end
+        
+        function [cotan_term] = macmillanGrad(el)
+            % formual from macmillan
+            %
+            % INPUT:
+            %  el  elevation [rad]
+            %
+            % SYNTAX:
+            %  [cotan_term] = Atmosphere.macmillanGrad(el)
+            %
+            % NOTE:
+            %    angle in radians !!!
+            cotan_term = cot(el);
+        end
+        
+        function [cotan_term] = chenHerringGrad(el)
+            % forumal from chen and herring
+            % coefficient from chao
+            %
+            % INPUT:
+            %  el  elevation [rad]
+            %
+            % SYNTAX:
+            %  [cotan_term] = Atmosphere.chenHerringGrad(el)
+            %
+            % NOTE:
+            %    angle in radians !!!
+            cotan_term = 1 ./ ( sin(el).*tan(el) + 0.0032);
         end
         
     end

@@ -47,7 +47,7 @@ classdef Core_UI < Logos
         DEFAULT_MODE = 'dark';
         DEFAULT_EXPORT_MODE = 'light';
         
-        FONT_SIZE_CONVERSION_LNX = 1;
+        FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
         
@@ -271,6 +271,7 @@ classdef Core_UI < Logos
                         '*.fig','MATLAB figure (*.fig)'; ...
                         '*.*',  'All Files (*.*)'}, ...
                         'Save the figure as', fullfile(Core.getState.getOutDir, 'Images', 'file_name.png'));
+                    file_name = fullfile(path_name, file_name);
                 else                
                     file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
                 end
@@ -592,6 +593,18 @@ classdef Core_UI < Logos
             end
             
             % ResizeFig
+            Core_UI.resizeFig(fig_handle);
+        end
+        
+        function resizeFig(fig_handle)
+            % Change size of a figure with standard values
+            % (only if it is small)
+            % 
+            % INPUT:
+            %   fig_handle  figure handler (e.g. gcf)
+            %
+            % SYNTAX:
+            %   Core_UI.resizeFig(fig_handle)
             unit = fig_handle.Units;
             fig_handle.Units = 'pixels';
             drawnow
@@ -617,7 +630,6 @@ classdef Core_UI < Logos
             end
             fig_handle.Units = unit;
         end
-        
     end
     %% METHODS INIT
     % ==================================================================================================================================================

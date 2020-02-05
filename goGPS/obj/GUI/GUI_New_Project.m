@@ -325,7 +325,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                     end
                     
                     if this.rin_op.Value < 4                        
-                        state.setObsName(Core_Utils.getStationList(obs_path, 'oO', true));
+                        state.setObsName(Core_Utils.getStationList(state.getObsDir, 'oO', true));
                     end
                 end
                         
@@ -338,6 +338,9 @@ classdef GUI_New_Project < GUI_Unique_Win
             try
                 this.w_main.init();
                 this.w_main.updateUI();
+                rf = Core.getReferenceFrame;
+                rf.init(state.getCrdFile);
+                this.updateCooTable();
             catch
                 % Windows have been closed?
             end

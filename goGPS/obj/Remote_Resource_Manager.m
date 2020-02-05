@@ -340,7 +340,7 @@ classdef Remote_Resource_Manager < Ini_Manager
                         server = this.getData('SERVER', server{1});
                     end
                     % The protocol could be improved woth more values
-                    if iscell(server) && numel(server) == 2
+                    if iscell(server) && numel(server) == 2 && ~isempty(server{2})
                         switch server{2}
                             case '21'
                                 protocol = 'ftp://';

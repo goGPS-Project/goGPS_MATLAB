@@ -356,7 +356,7 @@ classdef LS_Manipulator < Exportable
                     amb_obs_count(amb_obs_count < min_arc) = [];
                     for ko_amb = fliplr(ko_amb_list)
                         id_ko = amb_idx == ko_amb;
-                        obs_set.remObs(id_ko,false)
+                        obs_set.remObs(id_ko, false)
                     end
                     
                 end
@@ -890,6 +890,9 @@ classdef LS_Manipulator < Exportable
                 n_tropo_g = max(tropo_g_idx) + order_tropo_g;
                 tropo_g_dt = rem(id_sync_out-1 + delta_tropo_time_sart,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
+            
+                        state = Core.getCurrentSettings;
+
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
@@ -914,6 +917,8 @@ classdef LS_Manipulator < Exportable
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 elseif this.state.getWeigthingStrategy == 2
                     variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^2;
+                elseif this.state.getWeigthingStrategy == 3
+                    variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^4;
                 else
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 end
@@ -993,11 +998,15 @@ classdef LS_Manipulator < Exportable
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     %cotan_term = cot(el_stream) .* mfw_stream;
-                    cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
+                    if state.mapping_function_gradient == 1
+                        cotan_term = Atmosphere.chenHerringGrad(el_stream);
+                    elseif state.mapping_function_gradient == 2
+                        cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
+                    end
                     
                     if isempty(tropo_rate) || tropo_rate(2) == 0
                         prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
+                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % north gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                         prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
@@ -1006,12 +1015,12 @@ classdef LS_Manipulator < Exportable
                         spline_v = Core_Utils.spline(tropo_g_dt(id_ok_stream),order_tropo_g);
                         for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
-                            A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*spline_v(:,o); % noth gradient spli
+                            A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*spline_v(:,o); % north gradient spline
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream) + o-1;
                         end
                         for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
-                            A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient
+                            A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient spline
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
                         end
                     end
@@ -1045,7 +1054,7 @@ classdef LS_Manipulator < Exportable
             else
                 p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
-           
+            
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
                 this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg , this.PAR_TROPO_V * ones(tropo_v_g) ];
             if obs_set.hasPhase()

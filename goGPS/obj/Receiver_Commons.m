@@ -99,6 +99,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
         tge      % tropospheric gradient east          double   [n_epoch x n_sat]
+        
+        tzer     % zernike modeling of the tropo
     end
     
     % ==================================================================================================================================================
@@ -461,30 +463,56 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function slant_td = getSlantTD(this)
+        function slant_td = getSlantTD(this, go_id)
             % Get the slant total delay
             %
             % SYNTAX
             %   slant_td = this.getSlantTD();
             
-            [mfh, mfw] = this.getSlantMF();
-            n_sat = size(mfh,2);
-            zwd = this.getZwd();
-            apr_zhd = this.getAprZhd();
-            [az, el] = this.getAzEl();
-            [tgn, tge] = this.getGradient();
-            res = this.getResidual();
-            if isempty(res(:)) || ~any(tgn(:)) || ~any(tge(:)) || isempty(mfh(:)) || isempty(mfw(:))
-                slant_td = [];
+            if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
+                this.log.addMessage(this.log.indent('Updating tropospheric errors'))
+                
+                go_id = unique(this.go_id)';
             else
-                cotel = zero2nan(cotd(el));
-                cosaz = zero2nan(cosd(az));
-                sinaz = zero2nan(sind(az));
-                slant_td = nan2zero(zero2nan(res) ...
-                    + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                    + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                    + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                    + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+                 go_id = serialize(go_id)';
+            end
+            
+            
+            slant_td = zeros(size(this.sat.el));
+            
+            zwd = nan2zero(this.getZwd);
+            apr_zhd = single(this.getAprZhd);
+            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
+            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
+            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
+            [gn ,ge] = this.getGradient();
+            [mfh, mfw, cotan_term] = this.getSlantMF();
+            if any(mfh(:)) && any(mfw(:))
+                if any(ge(:))
+                    for g = go_id
+                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                    end
+                else
+                    for g = go_id
+                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
+                    end
+                end
+                if ~isempty(this.tzer)
+                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
+                    el = this.sat.el(this.id_sync,:);
+                    
+                    rho = (90 - el)/(90);
+                    zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
+                    
+                    az = this.sat.az(this.id_sync,:);
+                    idx = el>0;
+                    for  g = go_id
+                        zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
+                    end
+                    for i = 4 : Main_Settings.getNumZerTropoCoef;
+                        slant_td(this.id_sync,:) = slant_td(this.id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
+                    end
+                end
             end
         end
         
@@ -531,7 +559,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                     if (lim(l, 2) - lim(l, 1) + 1) > 3
                                         id_ok = lim(l, 1) : lim(l, 2);
                                         ztd = this.getZtd();
-                                        sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
+                                        sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));                                        
                                     end
                                 end
                             end
@@ -566,8 +594,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   [n_sat, n_sat_ss] = this.getNSat()
             
+            n_sat = nan;
+            n_sat_ss = struct();
             cc = this.getCC;
-            if isfield(this.quality_info, 'n_spe') && ~isempty(this.quality_info.n_spe)
+            if isfield(this.quality_info, 'n_spe') && ~isempty(this.quality_info.n_spe)  && ~isempty(this.quality_info.n_sat)
                 n_sat = this.quality_info.n_spe.A(this.getIdSync);
                 for sys_c = cc.getActiveSysChar()
                     if ~isempty(this.quality_info.n_spe.(sys_c))
@@ -855,8 +885,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     try
                         this(r).updateCoordinates;
                         time = this(r).getTime();
-                        [year, doy] = time.first().getDOY();
-                        t_start = time.first().toString('HHMM');
+                        state = Core.getCurrentSettings;
+
+                        t_start = state.sss_date_start;
+                        t_end = state.sss_date_stop;
+                        [year, doy] = t_start.getDOY();
+                        t_start_str = t_start.toString('HHMM');
+                        t_start.toUtc();
                         time.toUtc();
                         
                         lat = this(r).lat; %#ok<NASGU>
@@ -871,10 +906,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if ~exist(out_dir, 'file')
                             mkdir(out_dir);
                         end
-                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.m']);
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.m']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.mat']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
@@ -914,11 +949,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 if max(this(r).quality_info.s0) < 0.10
                     try
                         this(r).updateCoordinates;
+                        state = Core.getCurrentSettings;
                         time = this(r).getTime();
-                        [year, doy] = time.first().getDOY();
-                        t_start = time.first().toString('HHMM');
+                        t_start = state.sss_date_start;
+                        t_end = state.sss_date_stop;
+                        [year, doy] = t_start.getDOY();
+                        t_start_str = t_start.toString('HHMM');
+                        t_start.toUtc();
                         time.toUtc();
-                        ztd = this(r).getZtd(); 
+                        ztd = this(r).getZtd();
                         zwd = this(r).getZwd();
                         [gn,ge ] =  this(r).getGradient();
                         
@@ -927,10 +966,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             mkdir(out_dir);
                         end
                         
-                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start) '*.csv']);
+                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.csv']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(time.last()-time.first())) '.csv']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)) '.csv']);
                                                 
                         fid = fopen(fname,'Wb');
                         n_data = time.length;
@@ -1054,8 +1093,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('ENU_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1066,12 +1103,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
                             t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
                             if numel(t) < size(xyz,1)
-                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
+                                fprintf('%s) There is a problem with add_coo, coordinates are incompatible with their times\n', rec.parent.getMarkerName4Ch);
                                 % This is a problem: times and data should have the same dimension
                                 xyz = xyz(1:numel(t),:);
                             end
                         end
                         xyz0 = rec.getMedianPosXYZ();
+                        
+                        fig_name = sprintf('ENU_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
                         
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
@@ -1087,7 +1127,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [mm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [mm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~flag_one_plot, subplot(3,1,2); end
                         n = 1e3 * (enu(:,2) - enu0(2));
                         plot(t, n, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
@@ -1120,6 +1160,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        Core_UI.addExportMenu(f);
                         f.Visible = 'on'; drawnow;
                     else
                         rec(1).log.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
@@ -1147,8 +1188,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('EN_U_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1166,6 +1205,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         end                        
                         xyz0 = rec.getMedianPosXYZ();
                         
+                        fig_name = sprintf('EN_U_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+
                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
@@ -1212,7 +1254,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         ylim(max_r * [-1 1]);
                         xlim(max_r * [-1 1]);
                         grid on;
-                        h = title(sprintf('Position Stability %s\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
+                        h = title(sprintf('Position Stability %s @%gs\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
                         h.FontWeight = 'bold';
                         
                         ax = axes('Parent', tmp_box2);
@@ -1230,6 +1272,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         grid on;
                         Core_UI.beautifyFig(f);
                         Core_UI.addBeautifyMenu(f);
+                        Core_UI.addExportMenu(f);
                         f.Visible = 'on'; drawnow;
                     else
                         rec(1).log.addMessage('Plotting a single point static position is not yet supported');
@@ -1241,7 +1284,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function fh_list = showPositionXYZ(this, flag_one_plot, flag_add_coo)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
-            if nargin == 1
+            if nargin == 1 || isempty(flag_one_plot)
                 flag_one_plot = false;
             end
             if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
@@ -1258,8 +1301,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('XYZ_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
                         color_order = handle(gca).ColorOrder;
                         
                         if flag_add_coo == 0
@@ -1275,6 +1316,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 xyz = xyz(1:numel(t),:);
                             end
                         end
+                        fig_name = sprintf('XYZ_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        f.UserData = struct('fig_name', fig_name);
+                        
                         xyz0 = rec.getMedianPosXYZ();
                         
                         x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
@@ -1285,7 +1329,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                         ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Position stability of the receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [cm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~flag_one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
@@ -1607,7 +1651,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             flag_debug = false;
             grid_step = 0.5;
             if nargin < 3 || isempty(l_max)
-                l_max = 43;
+                l_max = [43 43 43];
+            end
+            if numel(l_max) == 1
+                l_max = [l_max l_max l_max];
             end
             
             if nargin < 4 || isempty(flag_reg)
@@ -1735,28 +1782,48 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                             end
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/2)', 3 + flag_reg*1, l_max), 9));
+                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 3 + flag_reg*1, l_max(1)), 9));
                             %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
                             
                             % Use two
-                            mapElevation1 = @(el) pi/2*(1-cos(el));
-                            mapElevation2 = @(el) pi/2*(1-cos(pi/2*(1-cos(el))));
+                            el2radius1 = @(el) cos(el).^2;
+                            el2radius2 = @(el) sin(pi/2*cos(el).^2);
+                            el2radius3 = @(el) sin(pi/2*cos(el));
+                            %omf = @(el) 1 - sin(el);
+                            %el2radius3 = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
                             res_work = res_all;
                             
-                            [res_filt, z_par1, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation1(el_all), res_work, 1e-5);
+                            [res_filt, z_par1, l1, m1] = Core_Utils.zFilter(l_max(1), m_max(1), az_all, el2radius1(el_all), res_work, 1e-5);
                             res_work = res_work - res_filt;
                             
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/2)', 4 + flag_reg*1, l_max), 9));
-                            %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
-                            [res_filt, z_par2, l, m] = Core_Utils.zFilter(l_max, m_max, az_all, mapElevation2(el_all), res_work, 1e-5);
-                            res_work = res_work - res_filt;
+                            if l_max(2) > 0
+                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 4 + flag_reg*1, l_max(2)), 9));
+                                %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
+                                [res_filt, z_par2, l2, m2] = Core_Utils.zFilter(l_max(2), m_max(2), az_all, el2radius2(el_all), res_work, 1e-5);
+                                res_work = res_work - res_filt;
+                            end    
+                            
+                            if l_max(3) > 0
+                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/3)', 4 + flag_reg*1, l_max(3)), 9));
+                                [res_filt, z_par3, l3, m3] = Core_Utils.zFilter(l_max(3), m_max(3), az_all, el2radius3(el_all), res_work, 1e-5);
+                                res_work = res_work - res_filt;
+                            end
 
                             % Generate maps
                             log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 5 + flag_reg*1), 9));
                             [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid);
-                            [z_map1] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation1(el_mgrid), z_par1);
-                            [z_map2] = Core_Utils.zSinthesys(l, m, az_mgrid, mapElevation2(el_mgrid), z_par2);
-                            z_map = z_map1 + z_map2;
+                            [z_map1] = Core_Utils.zSinthesys(l1, m1, az_mgrid, el2radius1(el_mgrid), z_par1);
+                            if l_max(2) <= 0
+                                z_map2 = 0;
+                            else
+                                [z_map2] = Core_Utils.zSinthesys(l2, m2, az_mgrid, el2radius2(el_mgrid), z_par2);
+                            end
+                            if l_max(3) <= 0
+                                z_map3 = 0;
+                            else
+                                [z_map3] = Core_Utils.zSinthesys(l3, m3, az_mgrid, el2radius3(el_mgrid), z_par3);
+                            end
+                            z_map = z_map1 + z_map2 + z_map3;
                             res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
                             [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, [4 1], grid_step);
                             
@@ -1768,6 +1835,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Zernike expansion (2) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
 
+                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map3)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
+                                title((sprintf('Zernike expansion (3) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+
                                 %zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([z_map(:,end) z_map z_map(:,1)])', 'linear');                                
                                 %[g_map, n_map, az_grid_tmp, el_grid_tmp] = Core_Utils.polarGridder(az_all, el_all, zmap2scatter(az_all, el_all), [5 1]);
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
@@ -1775,13 +1845,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                                                            
+
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                 title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
 
                                 [tmp] = Core_Utils.polarGridder(az_all, el_all, res_all, [4 1], grid_step);
                                 figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(tmp)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
+                                title((sprintf('Gridded map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
                             end
                             
                             if ~isfield(ant_mp, sys_c)
@@ -1923,9 +1993,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                             if data_found
-                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el_all(id_subset), res_all(id_subset) * scale, 1e-8);
+                                el2radius = @(el) 1 - el ./ (pi/2);
+                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el2radius(el_all(id_subset)), res_all(id_subset) * scale, 1e-8);
                                 %figure; scatter(m, -l, 150, z_par, 'filled');                                
-                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el_all, z_par);                                
+                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el2radius(el_all), z_par);                                
                                 %[res_allf, z_par, l, m,  A] = Core_Utils.zFilter(l_max, m_max, az_all, el_all, res_all * scale);
                                 [std(res_all*scale) std(res_all*scale - res_allf)]
                                 res_all = res_all*scale - res_allf;
@@ -2241,8 +2312,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         function fh_list = showAniZwdSlant(this, time_start, time_stop, show_map)
             fh_list = [];
-            if isempty(this.zwd) || ~any(this.sat.slant_td(:))
-                this.log.addWarning('ZWD and slants have not been computed');
+            if isempty(this.zwd)
+                this.log.addWarning('ZWD have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
                 
@@ -2335,9 +2406,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         function fh_list = showZtdSlant(this, time_start, time_stop)
-            %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
-            %    this(1).log.addWarning('ZTD and/or slants have not been computed');
-            %else
             fh_list = [];
             rec = this;
             if isempty(rec)
@@ -2345,7 +2413,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             else
                 cc = this.getCC;
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant %s', f.Number, this.parent.getMarkerName4Ch, cc.sys_c); f.NumberTitle = 'off';
-                fh_list = [fh_list; f]; %#ok<AGROW>
+                fh_list = [fh_list; f];
                 fig_name = sprintf('ZTD_Slant_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 

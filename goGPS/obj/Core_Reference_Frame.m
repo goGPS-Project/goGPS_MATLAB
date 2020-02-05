@@ -73,10 +73,10 @@ classdef Core_Reference_Frame < handle
             try
                 fname = Core.getState.getCrdFile();
                 this.load(fname);
-            catch
+            catch ex
                 this.is_valid = false;
                 log = Logger.getInstance();
-                log.addError('CRD file seems to be corrupted');
+                log.addError('CRD file seems empty or corrupted');
             end
         end
         

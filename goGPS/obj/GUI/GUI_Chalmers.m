@@ -368,28 +368,32 @@ classdef GUI_Chalmers < handle
                 % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
                 fclose(fid);
                 
-                % get new line separators
+                % get new line separators                
                 nl = regexp(txt, '\n')';
-                if nl(end) <  (numel(txt) - double(has_cr))
-                    nl = [nl; numel(txt)];
+                if isempty(nl)
+                    station_code = [];
+                else
+                    if nl(end) <  (numel(txt) - double(has_cr))
+                        nl = [nl; numel(txt)];
+                    end
+                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                    lim = [lim (lim(:,2) - lim(:,1) + 1)];
+                    while lim(end,3) < 3
+                        lim(end,:) = [];
+                    end
+                    
+                    % removing empty lines at end of file
+                    min_line_width = 6;
+                    lim(lim(1:end,3) < min_line_width,:) = [];
+                    
+                    % removing commented lines
+                    lim(txt(lim(:,1)) == '$', :) = [];
+                    
+                    %txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))
+                    
+                    % Convert 4ch marker to num
+                    station_code = Core_Utils.code4Char2Num(upper(txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))));
                 end
-                lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                lim = [lim (lim(:,2) - lim(:,1) + 1)];
-                while lim(end,3) < 3
-                    lim(end,:) = [];
-                end
-                
-                % removing empty lines at end of file
-                min_line_width = 6;
-                lim(lim(1:end,3) < min_line_width,:) = [];
-                
-                % removing commented lines
-                lim(txt(lim(:,1)) == '$', :) = [];
-                
-                %txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))
-                
-                % Convert 4ch marker to num
-                station_code = Core_Utils.code4Char2Num(upper(txt(repmat(lim(:,1), 1, 4) + repmat(2 : 5, size(lim, 1), 1))));
             else
                 station_code = [];
             end

@@ -844,14 +844,15 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.exportHydroNET
             try
-                min_time = GPS_Time();
-                max_time = GPS_Time();
-                for r = 1 : numel(sta_list)
-                    min_time.append(sta_list(r).out.time.minimum);
-                    max_time.append(sta_list(r).out.time.maximum);
-                end
-                min_time = min_time.minimum;
-                max_time = max_time.maximum;
+                state = Core.getCurrentSettings;
+                min_time = state.sss_date_start;
+                max_time = state.sss_date_stop;
+%                 for r = 1 : numel(sta_list)
+%                     min_time.append(sta_list(r).out.time.minimum);
+%                     max_time.append(sta_list(r).out.time.maximum);
+%                 end
+%                 min_time = min_time.minimum;
+%                 max_time = max_time.maximum;
                 min_time.toUtc();
                 max_time.toUtc();
                 [year,doy] = min_time.getDOY();
@@ -2054,7 +2055,7 @@ classdef GNSS_Station < handle
 
             med_tropo = mean(tropo, 1, 'omitnan')';
 
-            degree = 4;
+            degree = 2;
             coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
             [lat, lon, up, h_o] = coo.getGeodetic;
                         
@@ -2101,7 +2102,7 @@ classdef GNSS_Station < handle
             % Refine mask keeping only points above sea level close to the station to process
             [xg, yg] = meshgrid(x_id, y_id); 
             % for Japan max was 25 -> elsewhere the bases are further away
-            d = max(100, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.35))); % 35% of min distance is used to enlarge the area of interpolation
+            d = min(100, round(perc(noNaN(zero2nan(lower(sqrt((xg - xg').^2 + (yg - yg').^2)))), 0.15))); % 35% of min distance is used to enlarge the area of interpolation
             mask = (circConv2(mask, d) > 0) & (dtm >= -10);
             conv_mask = [0 0 1 1 1 0 0; ...
                          0 1 1 1 1 1 0; ...
@@ -3261,7 +3262,7 @@ classdef GNSS_Station < handle
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot);
+            %   this.plotPositionENU(flag_one_plot, flag_add_coo);
             if nargin == 1
                 one_plot = false;
             end
@@ -3283,7 +3284,7 @@ classdef GNSS_Station < handle
             % Plot Planar and Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.showPositionPlanarUp();
+            %   this.showPositionPlanarUp(flag_add_coo);
             
             if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
@@ -3298,9 +3299,9 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showPositionXYZ(sta_list, one_plot)
-            % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionXYZ();
+        function fh_list = showPositionXYZ(sta_list, one_plot, flag_add_coo)
+            % Plot X Y Z coordinates of the receiver
+            % SYNTAX this.plotPositionXYZ(flag_one_plot, flag_add_coo);
             if nargin == 1
                 one_plot = false;
             end
@@ -3851,7 +3852,7 @@ classdef GNSS_Station < handle
             coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
 
-            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 100, res_tropo(epoch(1),:)', 'filled');
+            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 300, res_tropo(epoch(1),:)', 'filled');
             hold on;
             % plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
             caxis([min(res_tropo(:)) max(res_tropo(:))]);
@@ -4130,8 +4131,10 @@ classdef GNSS_Station < handle
                 case 'zhd'
                 case 'nsat'
             end
-            cmap = Cmap.get('c51',512);
-            colormap(flipud(cmap(2:end,:)));
+            %cmap = Cmap.get('c51',512);
+            %colormap(flipud(cmap(2:end,:)));
+            cmap = Cmap.get('RdBu'); 
+            colormap(cmap);
             %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
             % redraw boxes
@@ -4186,7 +4189,8 @@ classdef GNSS_Station < handle
                     case 'zhd'
                     case 'nsat'
                 end
-                cmap = Cmap.get('c51',512);
+                %cmap = Cmap.get('c51',512);
+                cmap = Cmap.get('RdBu');
                 colormap(flipud(cmap(2:end,:)));
                 %colormap(Cmap.smoothMap(Cmap.noaaRain));
             
@@ -5158,7 +5162,7 @@ classdef GNSS_Station < handle
                 
                 time_grad{r} = time_grad{r}/86400 + double(t0);
                 tropo_modulus{r} = double(hypot(gne{r}(:,1), gne{r}(:,2)));                
-                tropo_az{r} = acosd(gne{r}(:,1).^2 ./ (gne{r}(:,1) .* tropo_modulus{r}));
+                tropo_az{r} = 90 - atan2d(gne{r}(:,1), gne{r}(:,2));
             end
             time_grad_ref = time_grad_ref/86400 + double(t0);
         end
@@ -5172,56 +5176,60 @@ classdef GNSS_Station < handle
             %% DEBUG sta_list = rec(~rec.isEmpty_mr);
             sta_list = sta_list(~sta_list.isEmpty_mr);
             
-            % Order Station by longitude
-            %enu = sta_list.getMedianPosENU;
-            %[~, id_sort] = sort(enu(:,1));
-            %sta_list = sta_list(id_sort);
-            
-            max_n_arrows = 100;
-            
-            [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = sta_list.getTropoGradients(max_n_arrows);
-            
-            % Scale factor gradients
-            g_scale = 1e3; % m -> mm                       
-            
-            f = figure('Visible', 'off');
-            f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
-            fh_list = f;
-            fig_name = 'All_Tropo_Gradients';
-            f.UserData = struct('fig_name', fig_name);
-
-            ax = axes;
-            
-            xlim([time_grad_ref(1) time_grad_ref(end)] + median(diff(time_grad_ref), 'omitnan') .* [-1 1]);
-            ylim([0 numel(sta_list) + 1]);
-            Core_UI.beautifyFig(f);
-            drawnow
-
-            plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
-
-            % Compute the 0.8 percentile modulus            
-            mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
-            max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
-            for r = 1 : numel(sta_list)                
-                triPlot(time_grad{r}, ...
+            if numel(sta_list) == 1
+                fh_list = sta_list.showZtdAndGradients();
+            else
+                % Order Station by longitude
+                enu = sta_list.getMedianPosENU;
+                [~, id_sort] = sort(enu(:,2));
+                sta_list = sta_list(id_sort);
+                
+                max_n_arrows = 100;
+                
+                [tropo_az, tropo_modulus, gne, time_grad, time_grad_ref] = sta_list.getTropoGradients(max_n_arrows);
+                
+                % Scale factor gradients
+                g_scale = 1e3; % m -> mm
+                
+                f = figure('Visible', 'off');
+                f.Name = sprintf('%03d: Gradients', f.Number); f.NumberTitle = 'off';
+                fh_list = f;
+                fig_name = 'All_Tropo_Gradients';
+                f.UserData = struct('fig_name', fig_name);
+                
+                ax = axes;
+                
+                xlim([time_grad_ref(1) time_grad_ref(end)] + median(diff(time_grad_ref), 'omitnan') .* [-1 1]);
+                ylim([0 numel(sta_list) + 1]);
+                Core_UI.beautifyFig(f);
+                drawnow
+                
+                plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
+                
+                % Compute the 0.8 percentile modulus
+                mod_perc = g_scale * perc(cell2mat(tropo_modulus'), 0.9);
+                max_size = min(1, (2 * diff(xlim) / max_n_arrows) / plot_scale_factor);
+                for r = 1 : numel(sta_list)
+                    triPlot(time_grad{r}, ...
                         r * ones(numel(tropo_az{r}), 1), ...
                         tropo_az{r}, ...
                         tropo_modulus{r} * g_scale, ...
                         max_size, ...
                         max_size/mod_perc);
+                end
+                setTimeTicks();
+                yticks(1 : numel(sta_list));
+                yticklabels(sta_list.getMarkerName4Ch());
+                cb = colorbar;
+                title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
+                Core_UI.beautifyFig(f);
+                
+                Core_UI.addExportMenu(f);
+                Core_UI.addBeautifyMenu(f);
+                f.Visible = 'on'; drawnow;
+                
+                colormap(flipud(Cmap.get('RdBu')));
             end
-            setTimeTicks();
-            yticks(1 : numel(sta_list));
-            yticklabels(sta_list.getMarkerName4Ch());
-            cb = colorbar;
-            title(sprintf('Tropospheric gradients [mm]\nNorth on top\\fontsize{5} \n'), 'FontName', 'Open Sans');
-            Core_UI.beautifyFig(f);
-            
-            Core_UI.addExportMenu(f);
-            Core_UI.addBeautifyMenu(f);  
-            f.Visible = 'on'; drawnow;
-            
-            colormap(flipud(Cmap.get('RdBu')));
         end
         
         function fh_list = showTropoPar(sta_list, par_name, new_fig, sub_plot_nsat, flag_od)
@@ -5261,7 +5269,7 @@ classdef GNSS_Station < handle
             
             if numel(sta_list) == 0 || ~flag_ok
                 log = Core.getLogger();
-                log.addError('No valid troposphere is present in the receiver list');
+                log.addError('The requested atmospheric parameter have not been computed or stored');
             else
                 if nargin < 3
                     new_fig = true;
@@ -5290,7 +5298,10 @@ classdef GNSS_Station < handle
 
                     if new_fig
                         cc = Core.getState.getConstellationCollector;
+                        drawnow;
                         f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s %s', f.Number, par_name, cc.sys_c); f.NumberTitle = 'off';
+                        Core_UI.beautifyFig(f);
+                        drawnow;                        
                     else
                         f = gcf;
                     end
@@ -5323,9 +5334,6 @@ classdef GNSS_Station < handle
                         f = gcf();
                     end
                     
-                    Core_UI.beautifyFig(f);
-                    Core_UI.addExportMenu(f);
-                    Core_UI.addBeautifyMenu(f);
                     drawnow;
                     e = 0;
                     for r = 1 : numel(sta_list)
@@ -6020,7 +6028,7 @@ classdef GNSS_Station < handle
                         color_order = handle(gca).ColorOrder;
 
                         if ~one_plot, subplot(3,1,1); end
-                        plot(t, baseline(:, 1), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        Core_Utils.plotSep(t, baseline(:, 1), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         ax(3) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
@@ -6041,7 +6049,7 @@ classdef GNSS_Station < handle
                         end
 
                         if ~one_plot, subplot(3,1,2); end
-                        plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));                        
+                        Core_Utils.plotSep(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));                        
                         if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,2), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(2) = gca();
                         if (t(end) > t(1))
@@ -6058,7 +6066,7 @@ classdef GNSS_Station < handle
                         
                         grid minor;
                         if ~one_plot, subplot(3,1,3); end
-                        plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        Core_Utils.plotSep(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         if ~one_plot, h = title(sprintf('std %.2f [mm]', std(baseline(:,3), 'omitnan')), 'interpreter', 'none'); h.FontWeight = 'bold'; end
                         ax(1) = gca();
                         if (t(end) > t(1))
@@ -6419,7 +6427,7 @@ classdef GNSS_Station < handle
                 
                 % Compute values
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
-                [m_diff, s_diff] = deal(nan(numel(rds), 1));
+                [m_diff, s_diff, m_diff_sta, s_diff_sta] = deal(nan(numel(rds), 1));
                 log.addMonoMessage(sprintf(' ZTD Radiosonde Validation\n---------------------------------------------------------------------------------------\n'));
                 log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
                 log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
@@ -6471,6 +6479,17 @@ classdef GNSS_Station < handle
                         
                         % radiosondes
                         [ztd_rds, time_rds] = rds(s).getZtd();
+                        
+                        [ztd_diff_sta, id_mean] = deal(nan(time_rds.length, 1));
+                        for e = 1 : time_rds.length
+                            [t_min, id_min(e)] = min(abs(s_time - time_rds.getEpoch(e)));
+                            if t_min < 3600
+                                ztd_diff_sta(e) = ztd_rds(e) - 1e2.*s_ztd(id_min(e));
+                            end
+                        end
+                        m_diff_sta(s) = mean(ztd_diff_sta, 1, 'omitnan');
+                        s_diff_sta(s) = std(ztd_diff_sta, 1, 'omitnan');
+                        
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 40);
                         outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                             sprintf('ZTD RAOB @ %s', rds(s).getName())};
@@ -6480,7 +6499,8 @@ classdef GNSS_Station < handle
                         for i = 1 : numel(icons)
                             icons(i).MarkerSize = 18;
                         end
-                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)), 'FontName', 'Open Sans');
+                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\n Interpolated (%.1f cm, %.1f cm)\n %s station (%.1f cm, %.1f cm)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s), m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s)), 'FontName', 'Open Sans');
+                        
                         setTimeTicks; grid minor;
                         drawnow;
                         ax = gca; ax.FontSize = 16;
@@ -6559,7 +6579,7 @@ classdef GNSS_Station < handle
                     end
                                         
                     %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
-                    col_data = Cmap.getColor(round(abs(data_mean) * 10) + 1, n_col + 1, 'linspaced');
+                    col_data = Cmap.getColor(max(1, round(abs(data_mean) * 10) + 1), n_col + 1, 'linspaced');
                     plot(x, y, 's', ...
                         'MarkerSize', 32, ...
                         'MarkerFaceColor', [0 0 0], ...
@@ -6600,6 +6620,7 @@ classdef GNSS_Station < handle
             ge_stat = nan(n_rec,2);
             sta_names = {};
             id_ok = true(n_rec, 1);
+            flag_plot = false;
             for r = 1:n_rec
                 if ~sta_list(r).out.isEmpty
                     xyz_diff = sta_list(r).out.xyz - sta_list(r).out.getIgsXYZ;
@@ -6607,6 +6628,7 @@ classdef GNSS_Station < handle
                     if ~any(xyz_diff(:))
                         id_ok(r) = false;
                     else
+                        flag_plot = true;
                         enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ, xyz_diff);
                         sensor= enu_diff - repmat(median(enu_diff,'omitnan'),size(enu_diff,1),1);
                         out_idx = sum((abs(sensor) > 0.05),2) >0;
@@ -6629,132 +6651,136 @@ classdef GNSS_Station < handle
                 end
                 sta_names{end+1} = lower(sta_list(r).getMarkerName4Ch);
             end
-            % sort by bet on the east axis
-            %[~,idx] = sort(abs(east_stat(:,1)));
-            [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
-            idx = idx(id_ok(idx));
-            east_stat = east_stat(idx,:);
-            north_stat = north_stat(idx,:);
-            up_stat = up_stat(idx,:);
-            ztd_stat = ztd_stat(idx,:);
-            gn_stat = gn_stat(idx,:);
-            ge_stat = ge_stat(idx,:);
-            sta_names = sta_names(idx);
-            
-            sta_list = sta_list(idx);
-            
-            n_rec = length(sta_list);
-            
-            fh = figure('Visible', 'off');
-            fh.Name = sprintf('%03d: IGS Validation', fh.Number); fh.NumberTitle = 'off';
-            
-            fh_list = [fh_list; fh];
-            if numel(sta_list) == 1
-                % If I have only one receiver use as name the name of the receiver
-                fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+            if ~flag_plot
+                Core.getLogger.addWarning('No IGS station found!');
             else
-                % If I have more than one receiver use as name the name of the project
-                fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
+                % sort by bet on the east axis
+                %[~,idx] = sort(abs(east_stat(:,1)));
+                [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
+                idx = idx(id_ok(idx));
+                east_stat = east_stat(idx,:);
+                north_stat = north_stat(idx,:);
+                up_stat = up_stat(idx,:);
+                ztd_stat = ztd_stat(idx,:);
+                gn_stat = gn_stat(idx,:);
+                ge_stat = ge_stat(idx,:);
+                sta_names = sta_names(idx);
+                
+                sta_list = sta_list(idx);
+                
+                n_rec = length(sta_list);
+                
+                fh = figure('Visible', 'off');
+                fh.Name = sprintf('%03d: IGS Validation', fh.Number); fh.NumberTitle = 'off';
+                
+                fh_list = [fh_list; fh];
+                if numel(sta_list) == 1
+                    % If I have only one receiver use as name the name of the receiver
+                    fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                else
+                    % If I have more than one receiver use as name the name of the project
+                    fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
+                end
+                fh.UserData = struct('fig_name', fig_name);
+                
+                subplot(3,2,1)
+                errorbar(1:n_rec,east_stat(:,1),east_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(1,6))
+                ylabel('[mm]')
+                title('Position East')
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-30 -10 0 10 30])
+                ylim([-30 30])
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                set(gca,'fontweight','bold','fontsize',16)
+                setAllLinesWidth(1.3)
+                
+                subplot(3,2,3)
+                errorbar(1:n_rec,north_stat(:,1),north_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(2,6))
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-30 -10 0 10 30])
+                ylim([-30 30])
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                ylabel('[mm]')
+                set(gca,'fontweight','bold','fontsize',16)
+                title('Position North')
+                
+                subplot(3,2,5)
+                errorbar(1:n_rec,up_stat(:,1),up_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(3,6))
+                ax = gca;
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                ylim([-50 50]);
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'YTick', [-50 -20 0 20 50])
+                %set(gca, 'XTick', [1:28])
+                set(gca, 'XTickLabels', {})
+                ylabel('[mm]')
+                title('Position Up')
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                set(gca, 'XTick', [1:n_rec]);
+                set(gca, 'XTickLabels', upper(sta_names))
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                subplot(3,2,2)
+                errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(4,6))
+                ylabel('[mm]')
+                xlim([0.5, n_rec + 0.5]);
+                set(gca, 'XTickLabels', {})
+                ylim([-25 25])
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-25 -10 0 10 25])
+                set(gca,'fontweight','bold','fontsize',16)
+                title('ZTD')
+                
+                subplot(3,2,4)
+                errorbar(1:n_rec,gn_stat(:,1),gn_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(5,6))
+                ylabel('[mm]')
+                set(gca, 'XTickLabels', {})
+                ylim([-4 4])
+                xlim([0.5, n_rec + 0.5]);
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-4 -1 0 1 4])
+                set(gca,'fontweight','bold','fontsize',16)
+                title('North gradient')
+                
+                subplot(3,2,6)
+                errorbar(1:n_rec,ge_stat(:,1),ge_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(6,6))
+                ylabel('[mm]')
+                ylim([-4 4])
+                xlim([0.5, n_rec + 0.5]);
+                ax = gca;
+                
+                ax.YGrid = 'on';
+                ax.GridLineStyle = '-';
+                set(gca, 'YTick', [-4 -1 0 1 4])
+                set(gca, 'XTickLabels', {})
+                title('East gradient');
+                
+                set(gca, 'XTick', [1:n_rec]);
+                set(gca, 'XTickLabels', upper(sta_names))
+                set(gca, 'XTickLabelRotation', 45)
+                set(gca,'fontweight','bold','fontsize',16)
+                
+                Core_UI.addExportMenu(fh);
+                Core_UI.addBeautifyMenu(fh);
+                Core_UI.beautifyFig(fh, 'dark');
+                fh.Visible = 'on';
             end
-            fh.UserData = struct('fig_name', fig_name);
-            
-            subplot(3,2,1)
-            errorbar(1:n_rec,east_stat(:,1),east_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(1,6))
-            ylabel('[mm]')
-            title('Position East')
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-30 -10 0 10 30])
-            ylim([-30 30])
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            set(gca,'fontweight','bold','fontsize',16)
-            setAllLinesWidth(1.3)
-            
-            subplot(3,2,3)
-            errorbar(1:n_rec,north_stat(:,1),north_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(2,6))
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-30 -10 0 10 30])
-            ylim([-30 30])
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            ylabel('[mm]')
-            set(gca,'fontweight','bold','fontsize',16)
-            title('Position North')
-            
-            subplot(3,2,5)
-            errorbar(1:n_rec,up_stat(:,1),up_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(3,6))
-            ax = gca;
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            ylim([-50 50]);
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'YTick', [-50 -20 0 20 50])
-            %set(gca, 'XTick', [1:28])
-            set(gca, 'XTickLabels', {})
-            ylabel('[mm]')
-            title('Position Up')
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-
-            set(gca, 'XTick', [1:n_rec]);
-            set(gca, 'XTickLabels', upper(sta_names))
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-            
-            subplot(3,2,2)
-            errorbar(1:n_rec,ztd_stat(:,1),ztd_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(4,6))
-            ylabel('[mm]')
-            xlim([0.5, n_rec + 0.5]);
-            set(gca, 'XTickLabels', {})
-            ylim([-25 25])
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-25 -10 0 10 25])
-            set(gca,'fontweight','bold','fontsize',16)
-            title('ZTD')
-            
-            subplot(3,2,4)
-            errorbar(1:n_rec,gn_stat(:,1),gn_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(5,6))
-            ylabel('[mm]')
-            set(gca, 'XTickLabels', {})
-            ylim([-4 4])
-            xlim([0.5, n_rec + 0.5]);
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-4 -1 0 1 4])
-            set(gca,'fontweight','bold','fontsize',16)
-            title('North gradient')
-            
-            subplot(3,2,6)
-            errorbar(1:n_rec,ge_stat(:,1),ge_stat(:,2),'.','MarkerSize',25,'LineWidth',2,'Color',Core_UI.getColor(6,6))
-            ylabel('[mm]')
-            ylim([-4 4])
-            xlim([0.5, n_rec + 0.5]);
-            ax = gca;
-            
-            ax.YGrid = 'on';
-            ax.GridLineStyle = '-';
-            set(gca, 'YTick', [-4 -1 0 1 4])
-            set(gca, 'XTickLabels', {})
-            title('East gradient');
-            
-            set(gca, 'XTick', [1:n_rec]);
-            set(gca, 'XTickLabels', upper(sta_names))
-            set(gca, 'XTickLabelRotation', 45)
-            set(gca,'fontweight','bold','fontsize',16)
-            
-            Core_UI.addExportMenu(fh);
-            Core_UI.addBeautifyMenu(fh);
-            Core_UI.beautifyFig(fh, 'dark');
-            fh.Visible = 'on';
         end
         
         function [fh_list, m_diff, s_diff] = showIgsZtdValidation(sta_list, igs_list)
