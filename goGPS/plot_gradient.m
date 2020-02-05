@@ -1,0 +1,1 @@
+T = readtable('ALSN1730.17zpd', 'HeaderLines',30);  % skips the first three rows of data

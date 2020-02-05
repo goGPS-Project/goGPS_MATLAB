@@ -125,6 +125,19 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods
+        function coo = getMedianPos(this)
+            % get the median of the coordinates
+            %
+            % SYNTAX
+            %   coo = getMedianPos(this)
+            try
+                coo = Coordinates.fromXYZ(median(this.xyz, 1, 'omitnan'));
+            catch
+                Core.getLogger.addWarning('No data found in coordinate object');
+                coo = Coordinates();
+            end           
+        end
+        
         function coo = getElement(this, id_el)
             % get a copy of the coordinates relative to a specific id (or epoch)
             %
