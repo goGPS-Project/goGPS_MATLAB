@@ -1640,135 +1640,137 @@ classdef LS_Manipulator_new < handle
             ii  = 1;
             for i = 0 : step : floor(max_ep / step) * step % sparse matrix library became very slow in case of big/huge matrix the reduction can be applyed dividing the matrices in parts
                 idx_time_obs = ref_time_obs > (i-this.obs_rate/10) &  ref_time_obs < (i + step -this.obs_rate/10 );
-                idx_time_par_red = time_par_red > (i-this.obs_rate/10)  &  time_par_red < (i + step -this.obs_rate/10 );
-                idx_red_cycle = idx_reduce;
-                idx_red_cycle(idx_red_cycle) = idx_time_par_red;
-                
-                cp_cycle = class_par(idx_red_cycle);
-                rp_cycle = rec_par(idx_red_cycle);
-     
-                idx_reduce_cycle_sat_clk = cp_cycle == this.PAR_SAT_CLK | cp_cycle == this.PAR_SAT_CLK_PH | cp_cycle == this.PAR_SAT_CLK_PR;
-                idx_reduce_cycle_rec_clk = cp_cycle == this.PAR_REC_CLK | cp_cycle == this.PAR_REC_CLK_PH | cp_cycle == this.PAR_REC_CLK_PR;
-                idx_reduce_cycle_iono = cp_cycle == this.PAR_IONO;
-                
-                
-                
-                
-                Awr_t = Aw( idx_red_cycle, idx_time_obs);
-                Ar_t = A(idx_time_obs, idx_red_cycle);
-                Ae_t = A(idx_time_obs, ~idx_reduce);
-                y_t = y(idx_time_obs);
-                
-                Nr_t = Awr_t*Ar_t;
-                Br_t = Awr_t*y_t;
-                
-                Ner_t = Awr_t*Ae_t;
-                
-                if iono
-                    n_iono = sum(idx_reduce_cycle_iono);
-                    iIono = spdiags(1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono)),0,n_iono,n_iono);
-                    Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
-                    Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
-                    Nt = Nx_iono' * iIono;
-                    Nt_cycle = Nx_iono_cycle * iIono;
-                    N = N - Nt * Nx_iono;
-                    Nr_t = Nr_t(~idx_reduce_cycle_iono,~idx_reduce_cycle_iono) - Nt_cycle * Nr_t(idx_reduce_cycle_iono,~idx_reduce_cycle_iono);
-                    Ner_t(~idx_reduce_cycle_iono, :) = Ner_t(~idx_reduce_cycle_iono, :) - Nt_cycle*Nx_iono;
-                    Ner_t(idx_reduce_cycle_iono, :) = [];
-
-                    B_iono = Br_t(idx_reduce_cycle_iono);
-                    B = B - Nt * B_iono;
-                    Br_t = Br_t(~idx_reduce_cycle_iono) - Nt_cycle*B_iono;
+                if any(idx_time_obs)
+                    idx_time_par_red = time_par_red > (i-this.obs_rate/10)  &  time_par_red < (i + step -this.obs_rate/10 );
+                    idx_red_cycle = idx_reduce;
+                    idx_red_cycle(idx_red_cycle) = idx_time_par_red;
                     
-                    cross_terms_t{1} = {iIono B_iono [Nx_iono Nx_iono_cycle'] idx_reduce_cycle_iono};
-                end
-                
-                if sat_clk
-                    i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
-                    cp = cp_cycle( ~idx_reduce_cycle_iono);
-                    idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
-                    idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                    if sum(idx_2) > 0 & iono
-                        iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
-                    else
-                        n_sat_clk = sum(i_sat_clk_tmp);
-                        iSatClk = spdiags(1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp)),0,n_sat_clk,n_sat_clk);
-                    end
-                    Nx_satclk = Ner_t(i_sat_clk_tmp, :);
-                    Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
-                    idx_full = sum(Nx_satclk~=0,1) >0;
-                    Nt = Nx_satclk(:,idx_full)' * iSatClk;
-                    Nt_cycle = Nx_satclk_cyle * iSatClk;
+                    cp_cycle = class_par(idx_red_cycle);
+                    rp_cycle = rec_par(idx_red_cycle);
                     
-                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_satclk(:,idx_full)));
-                    Nr_t = Nr_t(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt_cycle * Nr_t(i_sat_clk_tmp, ~i_sat_clk_tmp);
-                    Ner_t(~i_sat_clk_tmp, :) = Ner_t(~i_sat_clk_tmp, :) - Nt_cycle*Nx_satclk;
-                    Ner_t(i_sat_clk_tmp, :) = [];
+                    idx_reduce_cycle_sat_clk = cp_cycle == this.PAR_SAT_CLK | cp_cycle == this.PAR_SAT_CLK_PH | cp_cycle == this.PAR_SAT_CLK_PR;
+                    idx_reduce_cycle_rec_clk = cp_cycle == this.PAR_REC_CLK | cp_cycle == this.PAR_REC_CLK_PH | cp_cycle == this.PAR_REC_CLK_PR;
+                    idx_reduce_cycle_iono = cp_cycle == this.PAR_IONO;
                     
                     
-                    B_satclk =  Br_t(i_sat_clk_tmp);
-                    B(idx_full) = B(idx_full) - Nt * B_satclk;
-                    Br_t = Br_t(~i_sat_clk_tmp) - Nt_cycle * B_satclk;
                     
-                    cross_terms_t{2} = {iSatClk B_satclk [Nx_satclk Nx_satclk_cyle'] idx_reduce_cycle_sat_clk};
                     
-                end
-                
-                if rec_clk
-                    i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
-                    n_rec_clk = sum(i_rec_clk_tmp);
-                    if n_rec > 1 
-                        if sat_clk
-                        rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
-                        cp = cp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
+                    Awr_t = Aw( idx_red_cycle, idx_time_obs);
+                    Ar_t = A(idx_time_obs, idx_red_cycle);
+                    Ae_t = A(idx_time_obs, ~idx_reduce);
+                    y_t = y(idx_time_obs);
+                    
+                    Nr_t = Awr_t*Ar_t;
+                    Br_t = Awr_t*y_t;
+                    
+                    Ner_t = Awr_t*Ae_t;
+                    
+                    if iono
+                        n_iono = sum(idx_reduce_cycle_iono);
+                        iIono = spdiags(1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono)),0,n_iono,n_iono);
+                        Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
+                        Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
+                        Nt = Nx_iono' * iIono;
+                        Nt_cycle = Nx_iono_cycle * iIono;
+                        N = N - Nt * Nx_iono;
+                        Nr_t = Nr_t(~idx_reduce_cycle_iono,~idx_reduce_cycle_iono) - Nt_cycle * Nr_t(idx_reduce_cycle_iono,~idx_reduce_cycle_iono);
+                        Ner_t(~idx_reduce_cycle_iono, :) = Ner_t(~idx_reduce_cycle_iono, :) - Nt_cycle*Nx_iono;
+                        Ner_t(idx_reduce_cycle_iono, :) = [];
                         
-                        indices = {};
-                        for r = 2 : n_rec
-                            indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & (cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR);
-                            indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
-                        end
-                        n_i = length(indices);
-                        jj = 1;
-                        while  jj <= n_i
-                            if sum(indices{jj}) == 0
-                                indices(jj) = [];
-                                jj = jj - 1;
-                                n_i = n_i - 1;
-                            end
-                            jj = jj +1;
-                        end
-                        if length(indices) > 1
-                            iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
-                        else
-                            iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
-                        end
-                        else
-                            cp = cp_cycle( ~idx_reduce_cycle_iono);
-                            idx_1 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR;
-                            idx_2 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
-                            if sum(idx_2) > 0
-                                iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr')
-                            else
-                                iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
-                            end
-                        end
-                    else
-                        iRecClk = inv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp));
+                        B_iono = Br_t(idx_reduce_cycle_iono);
+                        B = B - Nt * B_iono;
+                        Br_t = Br_t(~idx_reduce_cycle_iono) - Nt_cycle*B_iono;
+                        
+                        cross_terms_t{1} = {iIono B_iono [Nx_iono Nx_iono_cycle'] idx_reduce_cycle_iono};
                     end
                     
-                    Nx_recclk = Ner_t(i_rec_clk_tmp, :);
-                    idx_full = sum(Nx_recclk~=0,1) >0;
-
-                    Nt = Nx_recclk(:,idx_full)' * iRecClk;
-                    N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_recclk(:,idx_full)));
+                    if sat_clk
+                        i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
+                        cp = cp_cycle( ~idx_reduce_cycle_iono);
+                        idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
+                        idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
+                        if sum(idx_2) > 0 & iono
+                            iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
+                        else
+                            n_sat_clk = sum(i_sat_clk_tmp);
+                            iSatClk = spdiags(1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp)),0,n_sat_clk,n_sat_clk);
+                        end
+                        Nx_satclk = Ner_t(i_sat_clk_tmp, :);
+                        Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
+                        idx_full = sum(Nx_satclk~=0,1) >0;
+                        Nt = Nx_satclk(:,idx_full)' * iSatClk;
+                        Nt_cycle = Nx_satclk_cyle * iSatClk;
+                        
+                        N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_satclk(:,idx_full)));
+                        Nr_t = Nr_t(~i_sat_clk_tmp,~i_sat_clk_tmp) - Nt_cycle * Nr_t(i_sat_clk_tmp, ~i_sat_clk_tmp);
+                        Ner_t(~i_sat_clk_tmp, :) = Ner_t(~i_sat_clk_tmp, :) - Nt_cycle*Nx_satclk;
+                        Ner_t(i_sat_clk_tmp, :) = [];
+                        
+                        
+                        B_satclk =  Br_t(i_sat_clk_tmp);
+                        B(idx_full) = B(idx_full) - Nt * B_satclk;
+                        Br_t = Br_t(~i_sat_clk_tmp) - Nt_cycle * B_satclk;
+                        
+                        cross_terms_t{2} = {iSatClk B_satclk [Nx_satclk Nx_satclk_cyle'] idx_reduce_cycle_sat_clk};
+                        
+                    end
                     
-                    B_recclk = Br_t(i_rec_clk_tmp);
-                    B(idx_full) = B(idx_full) - Nt * B_recclk;
-                    
-                    cross_terms_t{3} = {iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk};
+                    if rec_clk
+                        i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
+                        n_rec_clk = sum(i_rec_clk_tmp);
+                        if n_rec > 1
+                            if sat_clk
+                                rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
+                                cp = cp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
+                                
+                                indices = {};
+                                for r = 2 : n_rec
+                                    indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & (cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR);
+                                    indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
+                                end
+                                n_i = length(indices);
+                                jj = 1;
+                                while  jj <= n_i
+                                    if sum(indices{jj}) == 0
+                                        indices(jj) = [];
+                                        jj = jj - 1;
+                                        n_i = n_i - 1;
+                                    end
+                                    jj = jj +1;
+                                end
+                                if length(indices) > 1
+                                    iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
+                                else
+                                    iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
+                                end
+                            else
+                                cp = cp_cycle( ~idx_reduce_cycle_iono);
+                                idx_1 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR;
+                                idx_2 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
+                                if sum(idx_2) > 0
+                                    iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr')
+                                else
+                                    iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
+                                end
+                            end
+                        else
+                            iRecClk = inv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp));
+                        end
+                        
+                        Nx_recclk = Ner_t(i_rec_clk_tmp, :);
+                        idx_full = sum(Nx_recclk~=0,1) >0;
+                        
+                        Nt = Nx_recclk(:,idx_full)' * iRecClk;
+                        N(idx_full,idx_full) = N(idx_full,idx_full) - sparse(full(Nt) * full(Nx_recclk(:,idx_full)));
+                        
+                        B_recclk = Br_t(i_rec_clk_tmp);
+                        B(idx_full) = B(idx_full) - Nt * B_recclk;
+                        
+                        cross_terms_t{3} = {iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk};
+                    end
+                    cross_terms{ii} = {cross_terms_t idx_red_cycle};
+                    ii = ii +1;
                 end
-                cross_terms{ii} = {cross_terms_t idx_red_cycle}; 
-               ii = ii +1;
             end
             
             % ------- fix the ambiguities
