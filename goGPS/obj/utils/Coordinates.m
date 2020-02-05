@@ -379,7 +379,7 @@ classdef Coordinates < Exportable & handle
             % Set the Coordinates from Geodetic coordinates
             %
             % INPUT
-            %   lat, lon [radians]
+            %   lat, lon [rad]
             %
             % SYNTAX
             %   this = Coordinates.fromGeodetic(phi, lam, h_ellips);
@@ -583,6 +583,11 @@ classdef Coordinates < Exportable & handle
             %   ondu = getOrthometricCorrFromLatLon(lat, lon);
             
             geoid = Core.getRefGeoid();
+            if (geoid.grid == 0)
+                core = Core.getInstance(false);
+                core.initGeoid();
+                geoid = core.getRefGeoid();
+            end
             
             ondu = zeros(numel(lon), 1);
             for i = 1 : numel(lon)

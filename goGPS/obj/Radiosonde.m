@@ -33,16 +33,16 @@ classdef Radiosonde < handle
     
     properties
         name            % station name
-        sta_num        % station number
+        sta_num         % station number
         
-        lat             % latitude
-        lon             % logitude
-        elevation       % elevation
+        lat             % latitude  [rad]
+        lon             % logitude  [rad]
+        height          % orthometric height [m]
         
         data_time       % time as datetime                  datetime [n_records x 1]
         pressure        % pressure [hPa]                    double   [n_records x 1]
         height          % height [m]                        double   [n_records x 1]
-        temperature     % temperature [°C]                  double   [n_records x 1]
+        temperature     % temperature [°C]                 double   [n_records x 1]
         rel_humidity    % relatibe humidity [%]             double   [n_records x 1]
         
         ref_time        % launch epoch;
@@ -151,7 +151,7 @@ classdef Radiosonde < handle
             
             this.lat = 0;
             this.lon = 0;
-            this.elevation = 0;
+            this.height = 0;
             
             this.data_time = [];
             this.pressure  = [];
@@ -225,7 +225,7 @@ classdef Radiosonde < handle
                     char_array = regexprep(char_array,'<.*?>','');
                     this.lat = str2double(regexp(char_array,'(?<=(Station latitude\: ))([\-0-9]|\.)*','match', 'once'));
                     this.lon = str2double(regexp(char_array,'(?<=(Station longitude\: ))([\-0-9]|\.)*','match', 'once'));
-                    this.elevation = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
+                    this.height = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
                     this.name = regexp(char_array,['(?<=' sta_num ' ).+?(?=( Observations))'],'match', 'once');
                     this.sta_num = sta_num;
                     if ~instr(char_array, 'Observations')
@@ -298,16 +298,64 @@ classdef Radiosonde < handle
     end
     
     methods % Public Access
+        function coo = getPos(this)
+            % Get coordinate of the radiosonde launch site
+            %
+            % INPUT
+            %   this    single radiosonde object
+            %
+            % OUTPUT 
+            %   coo     Coordinate object
+            %
+            % SYNTAX
+            %   coo = this.getPos()
+            
+            coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.height);
+        end
+        
         function lat = getLat(rds_list)
+            % Get latitude
+            %
+            % INPUT
+            %   rds_list    radiosonde list
+            %
+            % OUTPUT 
+            %   lat         latitude [deg]
+            %
+            % SYNTAX
+            %   lat = rds_list.getLat()
+            
             lat = [rds_list.lat]';
         end
         
         function lon = getLon(rds_list)
+            % Get latitude
+            %
+            % INPUT
+            %   rds_list    radiosonde list
+            %
+            % OUTPUT 
+            %   lon         longitude [deg]
+            %
+            % SYNTAX
+            %   lon = rds_list.getLon()
+                        
             lon = [rds_list.lon]';
         end
         
-        function el = getElevation(rds_list)
-            el = [rds_list.elevation]';
+        function height = getHeight(rds_list)
+            % Get height (orthometric height)
+            %
+            % INPUT
+            %   rds_list    radiosonde list
+            %
+            % OUTPUT 
+            %   height      orthometric height [deg]
+            %
+            % SYNTAX
+            %   heigth = rds_list.getHeight()
+            
+            height = [rds_list.height]';
         end
         
         function [ztd, time] = getZtd(this)

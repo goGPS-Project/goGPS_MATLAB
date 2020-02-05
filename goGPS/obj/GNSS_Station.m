@@ -2232,12 +2232,14 @@ classdef GNSS_Station < handle
             %                - ztd
             %                - zwd
             %                - pwv
+            %   dlat_out    latitude of the point of interpolation  [deg]
+            %   dlon_out    longitude of the point of interpolation [deg]
+            %   h_out       orthometric height of the point of interpolation [m]            
             %   rate        rate in seconds, nearest to closest observation 
             %               it should be a subsample of the data rate (e.g. 300 with 30s data)
-            %   flag_show   if true show debug images
             %
             % SYNTAX
-            %   [tropo_grid, x_grid, y_grid, time, tropo_height_correction] = sta_list.getTropoMap(par_name, rate)
+            %   [tropo_out, tropo_height_correction, time] = sta_list.getTropoInterp(par_name, dlat_out, dlon_out, h_out, rate)
             
             % Defining interpolation
             if numel(sta_list) > 2
@@ -6393,13 +6395,13 @@ classdef GNSS_Station < handle
                 rds = Radiosonde.fromList(rds_list, start_time, stop_time);
                 
                 % Get closer GNSS station
-                [id_rec, d3d, dup] = sta_list.getCloserRec(rds.getLat(), rds.getLon(), rds.getElevation());
+                [id_rec, d3d, dup] = sta_list.getCloserRec(rds.getLat(), rds.getLon(), rds.getHeight());
                 gnss_list = sta_list(id_rec);
                 
                 % Interpolate ZTD
                 log.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
                 if numel(sta_list) > 1
-                    [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation(), 300);
+                    [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getHeight(), 300);
                 else
                     log.addWarning('Interpolation is not possible with just one station!!!');
                     ztd_height_correction = 0;
@@ -6410,8 +6412,8 @@ classdef GNSS_Station < handle
                 %             [lat, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
                 %             [~, id_sort] = sort(lat);
                 %             id_north = (lat(id_sort) / pi * 180) > 41;
-                %             [ztd_n, ztd_height_correction_n] = sta_list(id_sort(id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
-                %             [ztd_s, ztd_height_correction_s] = sta_list(id_sort(~id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getElevation());
+                %             [ztd_n, ztd_height_correction_n] = sta_list(id_sort(id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getHeight());
+                %             [ztd_s, ztd_height_correction_s] = sta_list(id_sort(~id_north)).getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getHeight());
                 %             ztd_ns(:,rds.getLat > 41) = ztd_n(:,rds.getLat > 41);
                 %             ztd_ns(:,rds.getLat <= 41) = ztd_s(:,rds.getLat <= 41);
                 
