@@ -37,7 +37,7 @@ classdef Radiosonde < handle
         
         lat             % latitude  [rad]
         lon             % logitude  [rad]
-        height          % orthometric height [m]
+        elevation       % orthometric height [m]
         
         data_time       % time as datetime                  datetime [n_records x 1]
         pressure        % pressure [hPa]                    double   [n_records x 1]
@@ -151,7 +151,7 @@ classdef Radiosonde < handle
             
             this.lat = 0;
             this.lon = 0;
-            this.height = 0;
+            this.elevation = 0;
             
             this.data_time = [];
             this.pressure  = [];
@@ -225,7 +225,7 @@ classdef Radiosonde < handle
                     char_array = regexprep(char_array,'<.*?>','');
                     this.lat = str2double(regexp(char_array,'(?<=(Station latitude\: ))([\-0-9]|\.)*','match', 'once'));
                     this.lon = str2double(regexp(char_array,'(?<=(Station longitude\: ))([\-0-9]|\.)*','match', 'once'));
-                    this.height = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
+                    this.elevation = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
                     this.name = regexp(char_array,['(?<=' sta_num ' ).+?(?=( Observations))'],'match', 'once');
                     this.sta_num = sta_num;
                     if ~instr(char_array, 'Observations')
@@ -310,7 +310,7 @@ classdef Radiosonde < handle
             % SYNTAX
             %   coo = this.getPos()
             
-            coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.height);
+            coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.elevation);
         end
         
         function lat = getLat(rds_list)
@@ -343,7 +343,7 @@ classdef Radiosonde < handle
             lon = [rds_list.lon]';
         end
         
-        function height = getHeight(rds_list)
+        function height = getLaunchHeight(rds_list)
             % Get height (orthometric height)
             %
             % INPUT
@@ -353,9 +353,9 @@ classdef Radiosonde < handle
             %   height      orthometric height [deg]
             %
             % SYNTAX
-            %   heigth = rds_list.getHeight()
+            %   heigth = rds_list.getLaunchHeight()
             
-            height = [rds_list.height]';
+            height = [rds_list.elevation]';
         end
         
         function [ztd, time] = getZtd(this)
