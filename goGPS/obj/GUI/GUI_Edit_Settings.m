@@ -161,7 +161,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             log = Core.getLogger;
 
-            % Get the old goGPS windows
+            % Get the old goGPS window
             if flag_wait
                % If goGPS is started rec have been reinitialized, close the inspector then
                 fh_list = get(groot, 'Children');
@@ -390,6 +390,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
             drawnow
             this.w_main.Visible = 'on';
+            % the update of the command list is repeated here because at
+            % least on linux the handle to the java container is not valid
+            % till visibility is on
+            this.updateCmdList();
+
             t_win = toc(t0);
             cm = log.getColorMode();
             log.setColorMode(false);
