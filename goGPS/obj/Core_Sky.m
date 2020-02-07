@@ -1852,25 +1852,56 @@ classdef Core_Sky < handle
                 coord_pol_coeff = this.coord_pol_coeff_com;
             end
         end
-        
-     
-        
-        
-        function [X_sat, V_sat] = getSatCoord(this, gps_time_list, sat)
-            % Get the coordinate of the satellite "sat" e.g. G21
+                
+        function [az, el, sat_coo] = getAzimuthElevation(this, coo, gps_time, sat)
+            % Get the azimuth and elevation of a satellite "sat" e.g. G21
+            % 
+            % INPUT
+            %   gps_time    GPS_Time object
+            %   sat         satellite (eg. 'R02') / go_id (e.g. 34)
+            %
+            % OUTPUT
+            %   az, el      azimuth and elevation [deg]
+            %   sat_coo     coordinates of the satellite (Coordinate object)
             %
             % SYNTAX
-            %   [X_sat, V_sat] = this.getSatCoord(gps_time_list, <sat>)
+            %   [az, el, sat_coo] = getAzimuthElevation(this, coo, gps_time, sat)
+            
+            if nargin == 4
+                sat_xyz = this.getSatCoord(gps_time, sat);
+            else
+                sat_xyz = this.getSatCoord(gps_time);
+            end
+            [az, el] = this.computeAzimuthElevationXS(sat_xyz, coo.getXYZ());
+            
+            if nargout == 3
+                sat_coo = Coordinates.fromXYZ(sat_xyz);
+            end
+        end
+        
+        function [X_sat, V_sat] = getSatCoord(this, gps_time, sat)
+            % Get the coordinate of the satellite "sat" e.g. G21
+            %
+            % INPUT
+            %   gps_time    GPS_Time object
+            %   sat         satellite (eg. 'R02') / go_id (e.g. 34)
+            %
+            % SYNTAX
+            %   [X_sat, V_sat] = this.getSatCoord(gps_time, <sat>)
             
             if nargin == 3
-                go_id_list = this.cc.getIndex(sat);                
-                [X_sat, V_sat] = coordInterpolate(this, gps_time_list, go_id_list);
+                if isnumeric(sat)
+                    go_id_list = sat;
+                else
+                    go_id_list = this.cc.getIndex(sat);
+                end
+                [X_sat, V_sat] = coordInterpolate(this, gps_time, go_id_list);
             else
-                [X_sat, V_sat] = coordInterpolate(this, gps_time_list);
+                [X_sat, V_sat] = coordInterpolate(this, gps_time);
             end
         end        
         
-        function [X_sat, V_sat] = coordInterpolate(this, gps_time_list, go_id)
+        function [X_sat, V_sat] = coordInterpolate(this, gps_time, go_id)
             % Interpolate coordinates of satellites
             %
             % INPUT:
@@ -3232,46 +3263,54 @@ classdef Core_Sky < handle
             
         end
         
-        function [az,el] = computeAzimuthElevationXS(XS,XR)
-              % SYNTAX
-            %   [az, el] = this.computeAzimuthElevationXS(XS)
+        function [az, el] = computeAzimuthElevationXS(XS, XR)
+            %   Compute Azimuth and elevation of the staellite
             %
             % INPUT
-            % XS = positions of satellite [n_epoch x 1]
-            % XR = positions of reciever [n_epoch x 1] (optional, non static
-            % case)
-            % OUTPUT
-            % Az = Azimuths of satellite [n_epoch x 1]
-            % El = Elevations of satellite [n_epoch x 1]
-            % during time of travel
+            %   XS = positions of satellite [n_epoch x 1]
+            %   XR = positions of reciever [n_epoch x 1] (optional, non static case)
             %
-            %   Compute Azimuth and elevation of the staellite
+            % OUTPUT
+            %   az = Azimuths of satellite [n_epoch x 1]     [deg]
+            %   el = Elevations of satellite [n_epoch x 1]   [deg]
+            %   at time of travel
+            %
+            % SYNTAX
+            %   [az, el] = this.computeAzimuthElevationXS(XS)
             n_epoch = size(XS,1);
-
-            az = zeros(n_epoch,1); el = zeros(n_epoch,1);
-            
-            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
-            if size(XR,1) == size(XS,1)
-                XSR = XS - XR; %%% sats orbit with origin in receiver
+            if size(XS, 3) == 3                
+                n_sat = size(XS,2);
             else
-                XSR = XS;
-                XSR(:,1)  = XSR(:,1) - XR(1,1);
-                XSR(:,2)  = XSR(:,2) - XR(1,2);
-                XSR(:,3)  = XSR(:,3) - XR(1,3);
+                n_sat = 1;
             end
+
+            [az, el] = deal(zeros(n_epoch, n_sat));
+            
+            if n_sat > 1 % multi-satellite
+                XR = reshape(XR, size(XR,1), 1, size(XR,2));
+                XR = repmat(XR, iif(size(XR,1) == 1, size(XS,1), 1), size(XS, 2), 1);
+            end
+            
+            if n_sat > 1 % multi-satellite
+                [phi, lam] = cart2geod(serialize(XR(:,:,1)), serialize(XR(:,:,2)), serialize(XR(:,:,3)));
+            else
+                [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
+            end
+            XSR = XS - XR; %%% sats orbit with origin in receiver
+            XSR = reshape(XSR, n_epoch * n_sat, 3);
             
             e_unit = [-sin(lam)            cos(lam)           zeros(size(lam)) ]; % East unit vector
             n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
             u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
             
-            e = sum(e_unit .* XSR,2);
-            n = sum(n_unit .* XSR,2);
-            u = sum(u_unit .* XSR,2);
+            e = sum(e_unit .* XSR, 2);
+            n = sum(n_unit .* XSR, 2);
+            u = sum(u_unit .* XSR, 2);
             
             hor_dist = sqrt( e.^2 + n.^2);
             
             zero_idx = hor_dist < 1.e-20;
-            
+                
             az(zero_idx) = 0;
             el(zero_idx) = 90;
             
