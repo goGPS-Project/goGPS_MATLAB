@@ -141,6 +141,7 @@ classdef GLONASS_SS < Satellite_System
         function copy = getCopy(this)
             % Get a copy of this
             copy = GLONASS_SS(this.getOffset());
+            copy.import(this);
         end
     end
 
