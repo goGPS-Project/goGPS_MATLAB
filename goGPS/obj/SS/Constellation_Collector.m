@@ -932,7 +932,52 @@ classdef Constellation_Collector < Settings_Interface
             c = Constellation_Collector([0 1 1 0 0 1 0]);
             c.testInterfaceRoutines();
         end
-        
+    end
+    
+    % =========================================================================
+    %  UTILITIES
+    % =========================================================================
+    
+    methods (Static, Access = 'public')
+       
+        function code = obsCode2num(obs_code, prn)
+            % Get unique code for identifying an observation of a satellite
+            % numeric full obs_code: <SS> + <prn> + <type of combination> + [<obs. type> + <obs. freq.> <obs. tracking>]
+            %
+            % SYNTAX
+            %   code = obsCode2num(obs_code, prn);
+            
+            ss_type = 'GREJCIS';
+            comb_type = char([uint32('0'):uint32('9') uint32('A'):uint32('Z')]);
+            obs_type = 'LCDS';
+            freq_type = char(uint32('0'):uint32('9'));
+            trk_type = char(uint32('A'):uint32('Z'));
+            field_dim = cumprod(uint64([numel(ss_type), 100, numel(comb_type), numel(obs_type), numel(freq_type), numel(freq_type), numel(obs_type), numel(freq_type), numel(freq_type), numel(obs_type), numel(freq_type), numel(freq_type)]));
+            % for each entry
+            code = zeros(numel(prn), 1, 'uint64');
+            
+            % if there is no combination character add an empty space
+            if size(obs_code,2) == 4
+                obs_code = [obs_code char(32 * ones(size(obs_code,1), 1, 'uint32'))];
+            end
+            for i = 1 : size(obs_code, 1)
+                num = uint64(find(ss_type == obs_code(i,1)) - 1);                     % sys
+                num = num + prn(i) * field_dim(1);                                    % prn
+                tmp = uint64(find(comb_type == obs_code(i,end)) - 1) * field_dim(2);
+                num = num + iif(isempty(tmp), 0, tmp);                                % combination
+                for c = 2 : (size(obs_code, 2) - 1)
+                    if mod(c,3) == 2 % type
+                        tmp = uint64(find(obs_type == obs_code(i, c)) - 1) * field_dim(c+1);
+                    elseif mod(c,3) == 0 % freq
+                        tmp = uint64(find(freq_type == obs_code(i, c)) - 1) * field_dim(c+1);
+                    else % tracking
+                        tmp = uint64(find(trk_type == obs_code(i, c)) - 1) * field_dim(c+1);
+                    end
+                    num = num + iif(isempty(tmp), 0, tmp);
+                end
+                code(i) = num;
+            end
+        end
         
         function abb = constToAbb(constellation_name)
             % given the constellation name return is abberaviation in uppercase
