@@ -122,6 +122,7 @@ classdef Residuals < Exportable
             
             res = Residuals();            
             res.init(type, time, value, prn, obs_code, rec_coo);
+            
             this.appendRes(res);
         end    
         
@@ -276,11 +277,13 @@ classdef Residuals < Exportable
                     code_old = [];
                 else
                     code_old = Constellation_Collector.obsCode2num(this.obs_code, this.prn);
+                    this.remEntry(code_old == 0);
                 end
                 if isempty(res.prn)
                     code_new = [];
                 else
                     code_new = Constellation_Collector.obsCode2num(res.obs_code, res.prn);
+                    res.remEntry(code_new == 0);
                 end
                 
                 % new satellites to add
@@ -324,6 +327,25 @@ classdef Residuals < Exportable
             id_ok = ~lid_ko;
             this.time = this.time.getEpoch(id_ok);
             this.value(lid_ko, :) = [];
+        end
+        
+        function remEntry(this, lid_ko)
+            % Remove an enntry from the residuals
+            %
+            % INPUT 
+            %   lid_ko  logical array of ko entry
+            %
+            % SYNTAX
+            %   this.remEntry(lid_ko);
+            
+            if ~islogical(lid_ko)
+                id_ko = lid_ko;
+                lid_ko = false(1, size(this.value,2));
+                lid_ko(id_ko) = true;
+            end
+            this.value(:, lid_ko) = [];
+            this.prn(lid_ko) = [];
+            this.obs_code(lid_ko, :) = [];
         end
         
         function cutEpochs(this, new_lim)
@@ -1050,6 +1072,10 @@ classdef Residuals < Exportable
             this.prn = prn;
             this.obs_code = obs_code;
             this.rec_coo = rec_coo;
+            
+            % Remove entry with no obs_code
+            code_ko = Constellation_Collector.obsCode2num(this.obs_code, this.prn);
+            this.remEntry(code_ko == 0);
         end                
     end
     
