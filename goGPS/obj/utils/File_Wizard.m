@@ -181,6 +181,7 @@ classdef File_Wizard < handle
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile());
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
+            this.center_name = this.state.selected_center{1};
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
