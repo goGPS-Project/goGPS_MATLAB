@@ -68,7 +68,7 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
             x = cos(az_l).*d;
             y = sin(az_l).*d;
             plot(x,y,'color',[0.6 0.6 0.6]);
-            text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');            
+            text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);            
         end
         %plot meridian
         az_step = 30/180 *pi;
@@ -79,7 +79,7 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
             y = sin(a).*decl_l;
             plot(x,y,'color',[0.6 0.6 0.6]);
             if abs(a-2*pi) > 0.0001
-                text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
+                text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);
             end
         end
         axis equal
