@@ -45,8 +45,8 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
     %%%
 
     decl_n = decl_grid/(pi/2)*scale;
-    x = sin(az_grid) .* decl_n;
-    y = cos(az_grid) .* decl_n;
+    x = repmat(sin(az_grid(:)'), numel(decl_n), 1) .* repmat(decl_n(:), 1, numel(az_grid));
+    y = repmat(cos(az_grid(:)'), numel(decl_n), 1) .* repmat(decl_n(:), 1, numel(az_grid));
     %scatter(x(data~=0),y(data~=0),20,data(data~=0),'filled')
     
     dataInterp = scatteredInterpolant(x(:), y(:), data(:), 'linear' );
@@ -58,6 +58,7 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
     polar_data(id_ok) = dataInterp(x_mg(id_ok), y_mg(id_ok));
     h = imagesc(x, y, polar_data);
     h.AlphaData = id_ok; 
+    h.AlphaData(isnan(polar_data)) = 0; 
     set(gca,'Ydir','normal');
     
     is_hold = ishold();
