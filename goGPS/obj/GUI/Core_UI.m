@@ -502,6 +502,58 @@ classdef Core_UI < Logos
             set(fig_handle, 'DefaultAxesTickDir', 'out');
             set(fig_handle, 'DefaultAxesTickDirMode', 'manual');
             
+
+            ui_list = findall(fig_handle, 'Type', 'uicontrol');
+            for ui = ui_list(:)'
+                if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor > 0.5)
+                    ui.FontName = FONT;
+                    ui.FontSize = iif(ui.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
+                end
+            end
+            
+            cb_list = findall(fig_handle, 'Type', 'colorbar');
+            for cb = cb_list(:)'
+                cb.FontName = FONT;
+                cb.FontSize = Core_UI.getFontSize(13);
+                cbt_list = findall(cb.UserData, 'Type', 'text');
+                for cbt = cbt_list(:)'
+                    cbt.FontName = FONT;
+                    cbt.FontSize = Core_UI.getFontSize(12);
+                end
+            end
+            
+            ax_list = findall(fig_handle,'type','axes');
+            for ax = ax_list(:)'
+                ax.FontName = FONT;
+                ax.FontSize = Core_UI.getFontSize(11);
+                text_label = findall(ax, 'Type', 'text');
+                for txt = text_label(:)'
+                    % If the text have the same color of the background change it accordingly
+                    txt.FontName = FONT;
+                    %txt.FontSize = iif(txt.FontSize == 9, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
+                end
+            end
+            text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
+            for txt = text_label(:)'
+                txt.FontName = FONT;
+                txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+            end
+            text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
+            for txt = text_label(:)'
+                txt.FontName = FONT;
+                txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+            end
+            text_label = findall(gcf,'Tag', 'm_ruler_label');
+            for txt = text_label(:)'
+                txt.FontName = FONT;
+                txt.FontSize = iif(txt.FontSize == 12, 13, 15);
+            end
+            legend = findall(gcf, 'type', 'legend');
+            for lg = legend(:)'
+                lg.FontName = FONT;
+                lg.FontSize = 11;
+            end
+            
             if strcmp(color_mode, 'dark') % ------------------------------------------------------------------- DARK
                 fig_handle.Color = [0.15, 0.15 0.15];
                 box_list = findall(fig_handle, 'Type', 'uicontainer');
@@ -514,8 +566,6 @@ classdef Core_UI < Logos
                 for ui = ui_list(:)'
                     if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor > 0.5)
                         ui.ForegroundColor = 1 - ui.ForegroundColor;
-                        ui.FontName = FONT;
-                        ui.FontSize = iif(ui.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
                         ui.BackgroundColor = 1 - ui.BackgroundColor;
                     end
                 end
@@ -523,13 +573,9 @@ classdef Core_UI < Logos
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
                     cb.Color = [0.9 0.9 0.9];
-                    cb.FontName = FONT;
-                    cb.FontSize = Core_UI.getFontSize(13);
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = [0.9 0.9 0.9];
-                        cbt.FontName = FONT;
-                        cbt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
                 ax_list = findall(fig_handle,'type','axes');
@@ -542,8 +588,6 @@ classdef Core_UI < Logos
                     ax.XColor = [0.9 0.9 0.9];
                     ax.YColor = [0.9 0.9 0.9];
                     ax.ZColor = [0.9 0.9 0.9];
-                    ax.FontName = FONT;
-                    ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         % If the text have the same color of the background change it accordingly
@@ -560,31 +604,22 @@ classdef Core_UI < Logos
                                 txt.BackgroundColor = 1 - txt.BackgroundColor;
                             end
                         end
-                        txt.FontName = FONT;
-                        %txt.FontSize = iif(txt.FontSize == 9, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
                     end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
                     txt.Color = [0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
-                    lg.FontName = FONT;
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
                     lg.TextColor = 1-[0.9 0.9 0.9];
@@ -610,13 +645,9 @@ classdef Core_UI < Logos
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
                     cb.Color = 1-[0.9 0.9 0.9];
-                    cb.FontName = FONT;
-                    cb.FontSize = Core_UI.getFontSize(13);
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
                         cbt.Color = 1-[0.9 0.9 0.9];
-                        cbt.FontName = FONT;
-                        cbt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
                 ax_list = findall(fig_handle,'type','axes');
@@ -629,8 +660,6 @@ classdef Core_UI < Logos
                     ax.XColor = 1-[0.9 0.9 0.9];
                     ax.YColor = 1-[0.9 0.9 0.9];
                     ax.ZColor = 1-[0.9 0.9 0.9];
-                    ax.FontName = FONT;
-                    ax.FontSize = Core_UI.getFontSize(11);
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         % If the text have the same color of the background change it accordingly
@@ -647,31 +676,22 @@ classdef Core_UI < Logos
                                 txt.BackgroundColor = 1 - txt.BackgroundColor;
                             end
                         end
-                        txt.FontName = FONT;
-                        %txt.FontSize = iif(txt.FontSize == 10, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
                     end
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
                     txt.Color = 1-[0.9 0.9 0.9];
-                    txt.FontName = FONT;
-                    txt.FontSize = iif(txt.FontSize == 12, 13, 15);
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
-                    lg.FontName = FONT;
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
                     lg.TextColor = 1-[0.9 0.9 0.9];
