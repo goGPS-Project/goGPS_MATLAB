@@ -135,8 +135,8 @@ classdef Core_Sky < handle
                 this.cc = cc;
             end
             
-            flag_coo_loaded = this.getFirstEpochCoord <= start_date && this.getLastEpochCoord >= stop_date;
-            flag_time_loaded = this.getFirstEpochClock <= start_date && this.getLastEpochClock >= stop_date;
+            flag_coo_loaded = ~isempty(this.getFirstEpochCoord) && this.getFirstEpochCoord <= start_date && this.getLastEpochCoord >= stop_date;
+            flag_time_loaded = ~isempty(this.getFirstEpochClock) && this.getFirstEpochClock <= start_date && this.getLastEpochClock >= stop_date;
             if ~isempty(start_date) && (~flag_coo_loaded || ~flag_time_loaded)
                 eph_f_name   = Core.getState.getEphFileName(start_date, stop_date);
                 clock_f_name = Core.getState.getClkFileName(start_date, stop_date);
