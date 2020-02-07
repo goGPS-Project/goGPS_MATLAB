@@ -145,12 +145,14 @@ classdef Command_Interpreter < handle
         PAR_S_PSTAT     % Processing statistics
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
-        PAR_S_RES       % Residuals cartesian
-        PAR_S_RES_COS   % Combined Residuals satellite per satellite
-        PAR_S_RES_PRS   % Uncombined pseudo-range residuals satellite per satellite
-        PAR_S_RES_PHS   % Uncombined carrier-phase residuals satellite per satellite
-        PAR_S_RES_SKY   % Residuals sky plot
-        PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
+        PAR_S_RES_PR       % Residuals cartesian
+        PAR_S_RES_PH       % Residuals cartesian
+        PAR_S_RES_PR_STAT  % pseudo-range residuals (stat)
+        PAR_S_RES_PH_STAT  % carrier-phase residuals (stat)
+        PAR_S_RES_PR_SKY   % pseudo-range residuals sky plot
+        PAR_S_RES_PH_SKY   % carrier-phase sky plot
+        PAR_S_RES_PR_SKYP  % pseudo-range residuals sky plot (polar plot)
+        PAR_S_RES_PH_SKYP  % carrier-phase sky plot (polar plot)
         PAR_S_NSAT      % N. of satellites seen per epoch
         PAR_S_NSATSS    % N. of satellites seen constellation by constellation
         PAR_S_NSATSSS   % N. of satellites seen constellation by constellation (smooth)
@@ -518,47 +520,68 @@ classdef Command_Interpreter < handle
             this.PAR_S_OCSP.limits = [];
             this.PAR_S_OCSP.accepted_values = [];
             
-            this.PAR_S_RES.name = 'Residuals plot';
-            this.PAR_S_RES.descr = 'RES                Residual plot';
-            this.PAR_S_RES.par = '(res)|(RES)';
-            this.PAR_S_RES.class = '';
-            this.PAR_S_RES.limits = [];
-            this.PAR_S_RES.accepted_values = [];
-
-            this.PAR_S_RES_COS.name = 'Output | Work-Space combined residuals (stats)';
-            this.PAR_S_RES_COS.descr = 'RES_(O|W)_COS      Output | Work-Space combined residuals';
-            this.PAR_S_RES_COS.par = '(res_o_cos)|(RES_O_COS)|(res_w_co)|(RES_W_COS)';
-            this.PAR_S_RES_COS.class = '';
-            this.PAR_S_RES_COS.limits = [];
-            this.PAR_S_RES_COS.accepted_values = [];
+            this.PAR_S_RES_PR.name = 'Residuals plot';
+            this.PAR_S_RES_PR.descr = 'RES_(O|W)_PR       Residual plot';
+            this.PAR_S_RES_PR.par = '(res_o_pr)|(RES_O_PR)|(res_w_pr)|(RES_W_PR)';
+            this.PAR_S_RES_PR.class = '';
+            this.PAR_S_RES_PR.limits = [];
+            this.PAR_S_RES_PR.accepted_values = [];
             
-            this.PAR_S_RES_PRS.name = 'Output | Work-Space uncombined pseudo-range residuals (stats)';
-            this.PAR_S_RES_PRS.descr = 'RES_(O|W)_PRS      Output | Work-Space combined pseudo-range residuals';
-            this.PAR_S_RES_PRS.par = '(res_o_prs)|(RES_O_PRS)|(res_w_prs)|(RES_W_PRS)';
-            this.PAR_S_RES_PRS.class = '';
-            this.PAR_S_RES_PRS.limits = [];
-            this.PAR_S_RES_PRS.accepted_values = [];
+            this.PAR_S_RES_PH.name = 'Residuals plot';
+            this.PAR_S_RES_PH.descr = 'RES_(O|W)_PH       Residual plot';
+            this.PAR_S_RES_PH.par = '(res_o_ph)|(RES_O_PH)|(res_w_ph)|(RES_W_PH)';
+            this.PAR_S_RES_PH.class = '';
+            this.PAR_S_RES_PH.limits = [];
+            this.PAR_S_RES_PH.accepted_values = [];
+            
+            this.PAR_S_RES_PR_STAT.name = 'Output | Work-Space pseudo-range residuals (stats)';
+            this.PAR_S_RES_PR_STAT.descr = 'RES_(O|W)_PR_STAT  Output | Work-Space combined pseudo-range residuals';
+            this.PAR_S_RES_PR_STAT.par = '(res_o_prs_stat)|(RES_O_PR_STAT)|(res_w_pr_stat)|(RES_W_PR_STAT)';
+            this.PAR_S_RES_PR_STAT.class = '';
+            this.PAR_S_RES_PR_STAT.limits = [];
+            this.PAR_S_RES_PR_STAT.accepted_values = [];
 
-            this.PAR_S_RES_PHS.name = 'Output | Work-Space uncombined phase residuals (stats)';
-            this.PAR_S_RES_PHS.descr = 'RES_(O|W)_PHS      Output | Work-Space combined phase residuals';
-            this.PAR_S_RES_PHS.par = '(res_o_phs)|(RES_O_PHS)|(res_w_phs)|(RES_W_PHS)';
-            this.PAR_S_RES_PHS.class = '';
-            this.PAR_S_RES_PHS.limits = [];
-            this.PAR_S_RES_PHS.accepted_values = [];
+            this.PAR_S_RES_PH_STAT.name = 'Output | Work-Space phase residuals (stats)';
+            this.PAR_S_RES_PH_STAT.descr = 'RES_(O|W)_PH_STAT  Output | Work-Space combined phase residuals';
+            this.PAR_S_RES_PH_STAT.par = '(res_o_phs_stat)|(RES_O_PH_STAT)|(res_w_phs)|(RES_W_PH_STAT)';
+            this.PAR_S_RES_PH_STAT.class = '';
+            this.PAR_S_RES_PH_STAT.limits = [];
+            this.PAR_S_RES_PH_STAT.accepted_values = [];
 
-            this.PAR_S_RES_SKY.name = 'Residuals sky plot';
-            this.PAR_S_RES_SKY.descr = 'RES_SKY            Residual sky plot';
-            this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
-            this.PAR_S_RES_SKY.class = '';
-            this.PAR_S_RES_SKY.limits = [];
-            this.PAR_S_RES_SKY.accepted_values = [];
+            this.PAR_S_RES_PR_SKY.name = 'Output | Work-Space pseudo-range residuals sky plot';
+            this.PAR_S_RES_PR_SKY.descr = 'RES_(O|W)_PR_SKY   Residual sky plot';
+            this.PAR_S_RES_PR_SKY.par = '(res_o_pr_sky)|(RES_O_PR_SKY)|(res_w_pr_sky)|(RES_W_PR_SKY)';
+            this.PAR_S_RES_PR_SKY.class = '';
+            this.PAR_S_RES_PR_SKY.limits = [];
+            this.PAR_S_RES_PR_SKY.accepted_values = [];
 
-            this.PAR_S_RES_SKYP.name = 'Residuals sky plot (polar plot)';
-            this.PAR_S_RES_SKYP.descr = 'RES_SKYP           Residual sky plot (polar plot)';
-            this.PAR_S_RES_SKYP.par = '(res_skyp)|(RES_SKYP)';
-            this.PAR_S_RES_SKYP.class = '';
-            this.PAR_S_RES_SKYP.limits = [];
-            this.PAR_S_RES_SKYP.accepted_values = [];
+            this.PAR_S_RES_PH_SKY.name = 'Output | Work-Space phase residuals sky plot';
+            this.PAR_S_RES_PH_SKY.descr = 'RES_(O|W)_PH_SKY   Residual sky plot';
+            this.PAR_S_RES_PH_SKY.par = '(res_o_ph_sky)|(RES_O_PH_SKY)|(res_w_ph_sky)|(RES_W_PH_SKY)';
+            this.PAR_S_RES_PH_SKY.class = '';
+            this.PAR_S_RES_PH_SKY.limits = [];
+            this.PAR_S_RES_PH_SKY.accepted_values = [];
+            
+            this.PAR_S_RES_PR_SKYP.name = 'Output | Work-Space pseudo-range residuals sky plot (polar plot)';
+            this.PAR_S_RES_PR_SKYP.descr = 'RES_(O|W)_PR_SKYP  Residual sky plot';
+            this.PAR_S_RES_PR_SKYP.par = '(res_o_pr_skyp)|(RES_O_PR_SKYP)|(res_w_pr_skyp)|(RES_W_PR_SKYP)';
+            this.PAR_S_RES_PR_SKYP.class = '';
+            this.PAR_S_RES_PR_SKYP.limits = [];
+            this.PAR_S_RES_PR_SKYP.accepted_values = [];
+            
+            this.PAR_S_RES_PH_SKYP.name = 'Output | Work-Space phase residuals sky plot (polar plot)';
+            this.PAR_S_RES_PH_SKYP.descr = 'RES_(O|W)_PH_SKYP  Residual sky plot';
+            this.PAR_S_RES_PH_SKYP.par = '(res_o_ph_skyp)|(RES_O_PH_SKYP)|(res_w_ph_skyp)|(RES_W_PH_SKYP)';
+            this.PAR_S_RES_PH_SKYP.class = '';
+            this.PAR_S_RES_PH_SKYP.limits = [];
+            this.PAR_S_RES_PH_SKYP.accepted_values = [];
+
+            this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
+            this.PAR_S_RES_STD.descr = 'RES_STD            Slants Total Delay residuals (polar plot)';
+            this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
+            this.PAR_S_RES_STD.class = '';
+            this.PAR_S_RES_STD.limits = [];
+            this.PAR_S_RES_STD.accepted_values = [];
 
             this.PAR_S_NSAT.name = 'Number of satellites used per epoch';            
             this.PAR_S_NSAT.descr = 'NSAT               Number of satellite used (multi-receiver)';
@@ -636,13 +659,6 @@ classdef Command_Interpreter < handle
             this.PAR_S_STD.class = '';
             this.PAR_S_STD.limits = [];
             this.PAR_S_STD.accepted_values = [];
-
-            this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
-            this.PAR_S_RES_STD.descr = 'RES_STD            Slants Total Delay residuals (polar plot)';
-            this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
-            this.PAR_S_RES_STD.class = '';
-            this.PAR_S_RES_STD.limits = [];
-            this.PAR_S_RES_STD.accepted_values = [];
 
             this.PAR_S_TGRAD.name = 'Gradients table';
             this.PAR_S_TGRAD.descr = 'TGRAD              Tropospheric gradients table';
@@ -882,8 +898,8 @@ classdef Command_Interpreter < handle
                 this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_CTYPE...
                 this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK ...
                 this.PAR_S_MP1 this.PAR_S_MP2 this.PAR_S_SNR this.PAR_S_SNRI ...
-                this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_COS this.PAR_S_RES_PRS this.PAR_S_RES_PHS this.PAR_S_RES_SKY ...
-                this.PAR_S_RES_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
+                this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_PR this.PAR_S_RES_PH this.PAR_S_RES_PR_STAT this.PAR_S_RES_PH_STAT this.PAR_S_RES_PR_SKY this.PAR_S_RES_PH_SKY ...
+                this.PAR_S_RES_PR_SKYP this.PAR_S_RES_PH_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
                 this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD this.PAR_S_TGRAD];
 
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
@@ -2443,23 +2459,31 @@ classdef Command_Interpreter < handle
                                 if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showOutliersAndCycleSlip_p(sys_list)]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
-                                if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showRes()]; %#ok<AGROW>
-                                show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_COS.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PR.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(i).work.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
+                                        fh_list = [fh_list; trg(i).work.showRes(sys_list, 'pr')]; %#ok<AGROW>
                                     end
                                 else
                                     for i = 1 : numel(trg)
-                                        fh_list = [fh_list; trg(i).out.showResPerSat(sys_list, 'co')]; %#ok<AGROW>
+                                        fh_list = [fh_list; trg(i).out.showRes(sys_list, 'pr')]; %#ok<AGROW>
                                     end
                                 end
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PRS.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PH.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
+                                if lower(tok{t}(5)) == 'w'
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showRes(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                else
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showRes(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                end
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PR_STAT.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
@@ -2471,7 +2495,7 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PHS.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PH_STAT.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
                                 if lower(tok{t}(5)) == 'w'
                                     for i = 1 : numel(trg)
@@ -2483,13 +2507,53 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PR_SKY.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showResSky_c(sys_list)]; %#ok<AGROW>
+                                if lower(tok{t}(5)) == 'w'
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResSkyCartScatter(sys_list, 'pr')]; %#ok<AGROW>
+                                    end
+                                else
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResSkyCartScatter(sys_list, 'pr')]; %#ok<AGROW>
+                                    end
+                                end
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PH_SKY.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showResSky_p(sys_list)]; %#ok<AGROW>
+                                if lower(tok{t}(5)) == 'w'
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResSkyCartScatter(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                else
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResSkyCartScatter(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                end
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PR_SKYP.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
+                                if lower(tok{t}(5)) == 'w'
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResSkyPolarScatter(sys_list, 'pr')]; %#ok<AGROW>
+                                    end
+                                else
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResSkyPolarScatter(sys_list, 'pr')]; %#ok<AGROW>
+                                    end
+                                end
+                                show_ok  = show_ok + 1;
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_PH_SKYP.par ')*$'], 'once'))
+                                if Core_Utils.isHold; hold off; end
+                                if lower(tok{t}(5)) == 'w'
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).work.showResSkyPolarScatter(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                else
+                                    for i = 1 : numel(trg)
+                                        fh_list = [fh_list; trg(i).out.showResSkyPolarScatter(sys_list, 'ph')]; %#ok<AGROW>
+                                    end
+                                end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end

@@ -4699,12 +4699,12 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showResSky_c(sta_list, sys_list, type)
+        function fh_list = showResSkyCartScatter(sta_list, sys_list, type)
             % Show Residuals for each receiver workspace
             % (cartesian plot)
             %
             % SYNTAX
-            %   this.showResSky_c(sys_list)
+            %   this.showResSkyCartScatter(sys_list)
             
             if nargin < 2 || isempty()
                 sys_list = Core.getConstellationCollector.getAvailableSys();
@@ -4712,23 +4712,23 @@ classdef GNSS_Station < handle
             
             fh_list = [];
             for s = 1 : numel(sta_list)
-                fh_list = [fh_list; sta_list(s).work.showResSky_c(sys_list)]; %#ok<AGROW>
+                fh_list = [fh_list; sta_list(s).work.showResSkyCartScatter(sys_list)]; %#ok<AGROW>
             end
         end
         
-        function fh_list = showResSky_p(sta_list, sys_list)
+        function fh_list = showResSkyPolarScatter(sta_list, sys_list)
             % Show Residuals for each receiver workspace
             % (polar plot)
             %
             % SYNTAX
-            %   this.showResSky_p(sys_list)
+            %   this.showResSkyPolarScatter(sys_list)
             
             if nargin < 2
                 sys_list = Core.getConstellationCollector.getAvailableSys();
             end
             fh_list = [];
             for s = 1 : numel(sta_list)
-                fh_list = [fh_list; sta_list(s).work.showResSky_p(sys_list)]; %#ok<AGROW>
+                fh_list = [fh_list; sta_list(s).work.showResSkyPolarScatter(sys_list)]; %#ok<AGROW>
             end
         end
         

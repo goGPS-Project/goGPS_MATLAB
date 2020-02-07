@@ -49,19 +49,17 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
-        used_sys_c   % constellatioj used in the computataions
-        selected_sys_c % active constellations in the compuatatio
+        used_sys_c     % constellatioj used in the computataions
+        selected_sys_c % active constellations in the computation
         sat = struct( ...
-            'outliers',   [], ...    % logical index of outliers
-            'cycle_slip',[], ...    % logical index of cycle slips
+            'outliers',         [], ...    % logical index of outliers
+            'cycle_slip',       [], ...    % logical index of cycle slips
             'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation
-            'res',              [], ...    % residual per satellite
-            'res_pr_by_pr',     [], ...    % code residual per uncombined tracking
-            'res_ph_by_ph',     [], ...    % phase residual per uncombined tracking
-            'mfw',              [], ...    % mapping funvtion wet
-            'mfh',              []  ...    % mapping funvtion hysdrostatic
+            'mfw',              [], ...    % mapping function wet
+            'mfh',              [], ...    % mapping function hysdrostatic
+            'res',              [] ...    % processing residuals object
             )
     end
     % ==================================================================================================================================================
@@ -449,9 +447,6 @@ classdef Receiver_Output < Receiver_Commons
             if ~isempty(this.sat.el)
                 this.sat.el(ep_idx,:) = [];
             end
-            if ~isempty(this.sat.res)
-                this.sat.res(ep_idx,:) = [];
-            end
             if ~isempty(this.sat.mfw)
                 this.sat.mfw(ep_idx,:) = [];
             end
@@ -500,6 +495,7 @@ classdef Receiver_Output < Receiver_Commons
                     id_ss = mod(sync_time, rate) == 0;
                     rec_work.id_sync = id_sync(id_ss);
                 end
+                
                 rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
@@ -590,8 +586,16 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
                                 this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
                             end
-                            if this.state.isResCoOut
-                                this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                            if this.state.isResOut
+                                if isempty(this.sat.res)
+                                    this.sat.res = Residuals();
+                                end
+                                
+                                % Get the residual only in the time span relative to the session (no buffers)
+                                res = rec_work.sat.res.getCopy();
+                                [~, lim] = this.state.getSessionLimits;                                
+                                res.cutEpochs(lim);
+                                this.sat.res.injest(res);
                             end
                         else
                             % there is probably smoothing
@@ -681,13 +685,16 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = Core_Utils.injectSmtData(zero2nan(this.tgn), zero2nan(gn), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                                 this.tge     = Core_Utils.injectSmtData(zero2nan(this.tge), zero2nan(ge), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start);
                             end
-                            if this.state.isResCoOut
-                                res = nan(this.time.length, size(this.sat.res, 2));
-                                res_in = rec_work.getResidual();
-                                for i = 1 : size(this.sat.res, 2)
-                                    res(:,i)  = Core_Utils.injectSmtData(zero2nan(this.sat.res(:,i)), zero2nan(res_in(:,i)), idx_smt1, idx_smt2, time_1, time_2, id_stop, id_start, false);
-                                end
-                                this.sat.res = res;
+                            if this.state.isResOut
+                                if isempty(this.sat.res)
+                                    this.sat.res = Residuals();
+                                end                                
+                                
+                                % Get the residual only in the time span relative to the session (no buffers)
+                                res = rec_work.sat.res.getCopy();
+                                [~, lim] = this.state.getSessionLimits;                                
+                                res.cutEpochs(lim);
+                                this.sat.res.injest(res);
                             end
                         else
                             % Inject tropo related parameters
@@ -708,8 +715,8 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = [this.tgn; gn(~idx_smt2)];
                                 this.tge     = [this.tge; ge(~idx_smt2)];
                             end
-                            if this.state.flag_out_res_co
-                                res_in = rec_work.getResidual();
+                            if this.state.isResCoOut
+                                res_in = rec_work.getU1();
                                 this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
                             end
                         end

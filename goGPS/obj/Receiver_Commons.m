@@ -37,6 +37,16 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %--------------------------------------------------------------------------
 classdef Receiver_Commons <  matlab.mixin.Copyable
+    % ==================================================================================================================================================
+    %% CONSTANT PROTECTED
+    % ==================================================================================================================================================
+    properties (Constant, Access = protected)
+        EMPTY_RES = struct('type', 0, 'time', GPS_Time, 'pr', [], 'ph', [], 'system', '', 'prn', [], 'obs_code', '')
+    end
+    
+    % ==================================================================================================================================================
+    %% OBJ POINTERS
+    % ==================================================================================================================================================
     properties (SetAccess = public, GetAccess = public)
         parent         % habdle to parent object
         
@@ -68,9 +78,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         
         add_coo
         %         = struct( ...
-        %             'coo',      [], ...    % additional estimated coo
-        %             'time',         [], ...    % time of the coo
-        %             'rate',          [] ...    % rate of the coo
+        %             'coo',  [], ...    % additional estimated coo
+        %             'time', [], ...    % time of the coo
+        %             'rate', [] ...    % rate of the coo
         %             )
         
         
@@ -606,37 +616,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         n_sat_ss.(sys_c) = [];
                     end
                 end
-            else                
+            else
+                n_sat = nan;
                 n_sat_ss.G = [];
-                if isempty(this.n_sat_ep)
-                    % retrieve the n_sat from residuals
-                    if this.state.isResCoOut && ~isempty(this.sat.res)
-                        n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
-                        for sys_c = cc.sys_c
-                            n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
-                        end
-                    else
-                        n_sat = nan(size(this.getIdSync));
-                        n_sat_ss.G = n_sat;
-                    end
-                else
-                    if (max(this.getIdSync) > numel(this.n_sat_ep))
-                        n_sat = nan(size(this.getIdSync), 'single');
-                        n_sat_ss.G = n_sat;
-                    else
-                        n_sat = this.n_sat_ep(this.getIdSync);
-                        if any(serialize(this.sat.res(this.getIdSync,:)))
-                            % retrieve the n_sat from residuals
-                            n_sat = sum(~isnan(zero2nan(this.sat.res(this.getIdSync,:))), 2);
-                            for sys_c = cc.sys_c
-                                n_sat_ss.(sys_c) = sum(~isnan(zero2nan(this.sat.res(this.getIdSync, cc.system == sys_c))), 2);
-                            end
-                        end
-                    end
-                end
-                if isempty(n_sat_ss.G)
-                    n_sat_ss.G = n_sat;
-                end
             end
         end
         
@@ -732,17 +714,32 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             el = this.sat.el(this.getIdSync, go_id);
         end
         
-        function res = getResidual(this)
+        function [res, obs_code, prn] = getU1(this)
             % get residual
             %
             % SYNTAX
-            %   res = this.getResidual()
-            try
-                res = this.sat.res(this.getIdSync(),:);
-            catch
-                res = [];
-            end
+            %   [res, obs_code, prn] = this.getU1()
+            res = this.sat.res.getU1;
+            res = res(this.getIdSync(), :);
         end
+        
+        function [res, obs_code, prn] = getPhU2(this)
+            % get phase residual
+            %
+            % SYNTAX
+            %   res = this.getPhU2()
+            [res, obs_code, prn] = this.sat.res.getPhU2;
+            res = res(this.getIdSync(), :);
+        end
+        
+        function [res, obs_code, prn] = getPrU2(this)
+            % get code residual
+            %
+            % SYNTAX
+            %   res = this.getPrU2()
+            [res, obs_code, prn] = this.sat.res.getPrU2;
+            res = res(this.getIdSync(), :);
+       end
         
         function out_prefix = getOutPrefix(this)
             % Get the name for exporting output (valid for dayly output)
@@ -1086,8 +1083,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.showZtd();
             this.showZtdSlant();
             this.showZtdSlantRes_p();
-            this.showResSky_p();
-            this.showResSky_c();
+            this.showResSkyPolarScatter();
+            this.showResSkyCartScatter();
             this.showOutliersAndCycleSlip();
             this.showOutliersAndCycleSlip_p();
             dockAllFigures();
@@ -1497,166 +1494,107 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         
-        function fh_list = showResSky_p(this, sys_c_list)
+        function fh_list = showResSkyPolarScatter(sta_list, sys_c_list, type)
             % Plot residuals of the solution on polar scatter
-            % SYNTAX this.plotResSkyPolar(sys_c)
+            %
+            % INPUT
+            %   sys_c_list  list of satellite system to show e.g. 'GRE'
+            %   type        'pr' | 'ph'  pseudo-ranges or phases
+            %
+            % SYNTAX 
+            %   this.plotResSkyPolar(sys_c)
             
             fh_list = [];
-            cc = this.getCC;
-            if isempty(this.sat.res)
-                this.log.addWarning('Residuals have not been computed');
-            else
-                if nargin == 1 || isempty(sys_c_list)
-                    sys_c_list = unique(cc.system);
-                end
-                
-                for sys_c = sys_c_list
-                    s = cc.getGoIds(sys_c);%this.go_id(this.system == sys_c);
-                    res = abs(this.sat.res(:, s)) * 1e2;
-                    
-                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('SNR_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
-                    f.UserData = struct('fig_name', fig_name);
-                    
-                    id_ok = (res~=0);
-                    az = this.sat.az(:, s);
-                    el = this.sat.el(:, s);
-                    polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
-                    caxis([min(abs(this.sat.res(:)*1e2)) min(20, min(6*std(zero2nan(this.sat.res(:)*1e2),'omitnan'), max(abs(zero2nan(this.sat.res(:)*1e2)))))]);
-                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
-                    h = title(sprintf('Satellites residuals - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold';
-                    Core_UI.beautifyFig(f);
-                    Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on'; drawnow;
+            for r = numel(sta_list)
+                rec = sta_list(r);
+                if ~isempty(rec.sat.res)
+                    switch nargin
+                        case 1
+                            fh_list = [fh_list; rec.sat.res.showResSkyPolarScatter(rec.parent.getMarkerName4Ch)]; %#ok<AGROW>
+                        case 2
+                            fh_list = [fh_list; rec.sat.res.showResSkyPolarScatter(rec.parent.getMarkerName4Ch, sys_c_list)]; %#ok<AGROW>
+                        case 3
+                            fh_list = [fh_list; rec.sat.res.showResSkyPolarScatter(rec.parent.getMarkerName4Ch, sys_c_list, type(2) == 'h')]; %#ok<AGROW>
+                    end
                 end
             end
         end
         
-        function fh_list = showResSky_c(this, sys_c_list)
+        function fh_list = showResSkyCartScatter(sta_list, sys_c_list, type)
             % Plot residuals of the solution on cartesian axes
-            % SYNTAX this.plotResSkyCart()
-            fh_list = [];
-            cc = this.getCC;
-            if isempty(this.sat.res)
-                this.log.addWarning('Residuals have not been computed');
-            else
-                if nargin == 1 || isempty(sys_c_list)
-                    sys_c_list = unique(cc.system);
-                end
-                
-                for sys_c = sys_c_list
-                    s  = cc.getGoIds(sys_c); %unique(this.go_id(this.system == sys_c));
-                    res = abs(this.sat.res(:, s)) * 1e2;
-                    
-                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res SkyC %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                    
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('SNR_cartesian_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
-                    f.UserData = struct('fig_name', fig_name);
-                    
-                    % this.updateAzimuthElevation()
-                    id_ok = (res~=0);
-                    az = this.sat.az(:, s);
-                    el = this.sat.el(:, s);
-                    scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
-                    caxis([min(abs(this.sat.res(:)*1e2)) min(20, min(6*std(zero2nan(this.sat.res(:)*1e2),'omitnan'), max(abs(zero2nan(this.sat.res(:)*1e2)))))]);
-                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt; ax = gca; ax.Color = 'none';
-                    h = title(sprintf('Satellites residuals - receiver %s - %s', this.parent.marker_name, cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold';
-                    hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
-                    hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
-                    Core_UI.beautifyFig(f);                    
-                    Core_UI.addBeautifyMenu(f);
-                    f.Visible = 'on'; drawnow;                    
-                end
-            end
-        end
-        
-        function fh_list = showRes(sta_list)
-            % In a future I could use multiple tabs for each constellation
+            %
+            % INPUT
+            %   sys_c_list  list of satellite system to show e.g. 'GRE'
+            %   type        'pr' | 'ph'  pseudo-ranges or phases
+            %
+            % SYNTAX 
+            %   sta_list.showResSkyCartScatter(sys_c_list, type)
+            
             fh_list = [];
             for r = numel(sta_list)
-                cc = sta_list(r).getCC;
-                work = sta_list(r);
-                if ~work.isEmpty
-                    
-                    win = figure('Visible', 'on', ...
-                        'NumberTitle', 'off', ...
-                        'units', 'normalized', ...
-                        'outerposition', [0 0 1 1]); % create maximized figure
-                    win.Name = sprintf('%03d - %s residuals', win.Number, work.parent.getMarkerName4Ch);
-                    
-                    fh_list = [fh_list; win]; %#ok<AGROW>
-                    fig_name = sprintf('ENU_s0_%s_%s', work.parent.getMarkerName4Ch, work.time.first.toString('yyyymmdd_HHMM'));
-                    win.UserData = struct('fig_name', fig_name);
-                    
-                    v_main = uix.VBoxFlex('Parent', win, ...
-                        'Spacing', 5);
-                    
-                    % Axe with all the satellites
-                    overview_box = uix.VBoxFlex('Parent', v_main, ...
-                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                    
-                    ax_all = axes('Parent', overview_box, 'Units', 'normalized');
-                    
-                    % Single sat axes
-                    n_sat = work.getMaxSat;
-                    
-                    sat_box = uix.VBoxFlex('Parent', v_main, ...
-                        'Padding', 5, ...
-                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                    
-                    v_main.Heights = [-2 -5];
-                    
-                    scroller = uix.ScrollingPanel('Parent', sat_box);
-                    sat_grid = uix.Grid('Parent', scroller, ...
-                        'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                    scroller.Heights = 120 * ceil(n_sat / 4);
-                    for s = 1 : n_sat
-                        single_sat(s) = uix.VBox('Parent', sat_grid, ...
-                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        uicontrol('Parent', single_sat(s), ...
-                            'Style', 'Text', ...
-                            'String', sprintf('Satellite %s', cc.getSatName(s)), ...
-                            'ForegroundColor', Core_UI.BLACK, ...
-                            'HorizontalAlignment', 'center', ...
-                            'FontSize', Core_UI.getFontSize(7), ...
-                            'FontWeight', 'Bold', ...
-                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        ax_sat(s) = axes('Parent', single_sat(s));
+                rec = sta_list(r);
+                if ~rec.isEmpty && ~isempty(rec.sat.res)
+                    switch nargin
+                        case 1
+                            fh_list = [fh_list; rec.sat.res.showResSkyCartScatter(rec.parent.getMarkerName4Ch)]; %#ok<AGROW>
+                        case 2
+                            fh_list = [fh_list; rec.sat.res.showResSkyCartScatter(rec.parent.getMarkerName4Ch, sys_c_list)]; %#ok<AGROW>
+                        case 3
+                            fh_list = [fh_list; rec.sat.res.showResSkyCartScatter(rec.parent.getMarkerName4Ch, sys_c_list, type(2) == 'h')]; %#ok<AGROW>
                     end
-                    sat_grid.Heights = -ones(1, ceil(n_sat / 4));
-                    for s = 1 : n_sat
-                        single_sat(s).Heights = [18, -1];
-                        drawnow
+                end
+            end
+        end
+        
+        function fh_list = showRes(sta_list, sys_c_list, type)
+            % Plot residuals 
+            %
+            % INPUT
+            %   sys_c_list  list of satellite system to show e.g. 'GRE'
+            %   type        'pr' | 'ph'  pseudo-ranges or phases
+            %
+            % SYNTAX
+            %   fh_list = sta_list.showRes()            
+            fh_list = [];
+            for r = numel(sta_list)
+                rec = sta_list(r);
+                if ~rec.isEmpty && ~isempty(rec.sat.res)
+                    switch nargin
+                        case 1
+                            fh_list = [fh_list; rec.sat.res.showRes(rec.parent.getMarkerName4Ch)]; %#ok<AGROW>
+                        case 2
+                            fh_list = [fh_list; rec.sat.res.showRes(rec.parent.getMarkerName4Ch, sys_c_list)]; %#ok<AGROW>
+                        case 3
+                            fh_list = [fh_list; rec.sat.res.showRes(rec.parent.getMarkerName4Ch, sys_c_list, type(2) == 'h')]; %#ok<AGROW>
                     end
-                    
-                    %% fill the axes
-                    win.Visible = 'on'; drawnow;
-                    colors = Core_UI.getColor(1 : n_sat, n_sat);
-                    ax_all.ColorOrder = colors; hold(ax_all, 'on');
-                    plot(ax_all, work.time.getMatlabTime, zero2nan(work.sat.res)*1e3, '.-');
-                    setTimeTicks(ax_all, 3, 'auto');
-                    drawnow; ylabel('residuals [mm]'); grid on;
-                    
-                    id_ok = false(n_sat, 1);
-                    for s = 1 : n_sat
-                        res = zero2nan(work.sat.res(:,s))*1e3;
-                        id_ok(s) = any(res);
-                        if id_ok(s)
-                            plot(ax_sat(s), work.time.getMatlabTime, res, '-', 'LineWidth', 2, 'Color', colors(s, :));
-                            grid on; ax_sat(s).YMinorGrid = 'on'; ax_sat(s).XMinorGrid = 'on';
-                            %setTimeTicks(ax_sat(s), 2,'HH:MM');
-                        else
-                            single_sat(s).Visible = 'off';
-                        end
-                    end
-                    linkaxes([ ax_all,ax_sat(id_ok)]);
-                    drawnow
                 end
             end            
-        end        
+        end       
+        
+        function fh_list = showResPerSat(sta_list, sys_c_list, type)
+            % Plot the residuals of phase per Satellite
+            %
+            % INPUT
+            %   sys_c_list  list of satellite system to show e.g. 'GRE'
+            %   type        'pr' | 'ph'  pseudo-ranges or phases
+            %
+            % SYNTAX
+            %   sta_list.showResPerSat(sys_c_list, is_ph)
+            fh_list = [];
+            for r = numel(sta_list)
+                rec = sta_list(r);
+                if ~rec.isEmpty && ~isempty(rec.sat.res)                    
+                    switch nargin
+                        case 1
+                            fh_list = [fh_list; rec.sat.res.showResPerSat(rec.parent.getMarkerName4Ch)]; %#ok<AGROW>
+                        case 2
+                            fh_list = [fh_list; rec.sat.res.showResPerSat(rec.parent.getMarkerName4Ch, sys_c_list)]; %#ok<AGROW>
+                        case 3
+                            fh_list = [fh_list; rec.sat.res.showResPerSat(rec.parent.getMarkerName4Ch, sys_c_list, type(2) == 'h')]; %#ok<AGROW>
+                    end
+                end
+            end
+        end
                                 
         function ant_mp = computeMultiPath(this, type, l_max, flag_reg)
             % Get Zernike multi pth coefficients
@@ -1670,554 +1608,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   this.computeMultiPath(type, l_max, flag_mask_reg)
             
-            flag_debug = false;
-            grid_step = 0.5;
-            if nargin < 3 || isempty(l_max)
-                l_max = [43 43 43];
-            end
-            if numel(l_max) == 1
-                l_max = [l_max l_max l_max];
-            end
-            
-            if nargin < 4 || isempty(flag_reg)
-                flag_reg = true;
-            end
-            
-            deg2rad = pi/180;
-            
-            cc = Core.getState.getConstellationCollector;
-            sys_c_list = cc.getAvailableSys;
-            if nargin < 2 || isempty(type)
-                type = 'ph';
-            end
-            
-            if type(2) == 'r'
-                res = this.sat.res_pr_by_pr;
-            else
-                res = this.sat.res_ph_by_ph;
-            end
-            
-            if type(2) == 'r'
-                name = 'Uncombined pseudo-ranges residuals';
-                id_obs = this.obs_code(:,1) == 'C';
-            else
-                name = 'Uncombined carrier-phase residuals';
-                id_obs = this.obs_code(:,1) == 'L';
-            end
-            
-            id_obs = find(id_obs);
-            
-            log = Core.getLogger;
-            log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', this.parent.getMarkerName));
-            ant_mp = struct();
-            if isempty(res)
-                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
-            else
-                ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);
-                % for each satellite system
-                for sys_c = ss_ok
-                    id_obs_sys = id_obs(this.system(id_obs) == sys_c);
-                    trk_ok = Core_Utils.unique2ch(this.obs_code(id_obs_sys,1:2));
-                    % for each tracking
-                    for t = 1 : size(trk_ok, 1)
-                        cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2));
-                        [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));
-                                                                                                
-                        data_found = false;
-
-                        cur_res = res(:, cur_res_id);
-                        %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
-                        
-                        % Zernike filter
-                        m_max = l_max;
-                        
-                        az_all = [];
-                        el_all = [];
-                        res_all = [];
-                        for s = 1 : sum(cur_res_id)
-                            id_ok = find(~isnan(zero2nan(cur_res(:, s))));
-                            if any(id_ok)
-                                data_found = true;
-                                res_all = [res_all; cur_res(id_ok, s)];
-                                
-                                go_id = cc.getIndex(sys_c, prn(s));
-                                az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
-                                el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
-                            end
-                        end
-                        if data_found                            
-                            log.addMessage(log.indent(sprintf('1. preparing data for %s %s', sys_c, trk_ok(t,:)), 9));
-                            az_all = [];
-                            el_all = [];
-                            res_all = cur_res(~isnan(zero2nan(cur_res(:))));
-                            res_smt = Receiver_Commons.smoothMat(cur_res, 'spline', 300/this.getTime.getRate);
-                            res_smt = res_smt(~isnan(zero2nan(cur_res(:))));                            
-                            % az and el must be retrieved satellite by satellite
-                            for s = 1 : sum(cur_res_id)
-                                id_ok = find(~isnan(zero2nan(cur_res(:, s))));
-                                if any(id_ok)
-                                    data_found = true;
-                                    
-                                    go_id = cc.getIndex(sys_c, prn(s));
-                                    az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
-                                    el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
-                                end
-                            end
-                            
-                            % Remove outliers
-                            id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]) & Core_Utils.polarCleaner(az_all, el_all, res_smt, [360, 1]);
-                            log.addMessage(log.indent(sprintf('2. Outlier rejection (%.3f%%)', (sum(~id_ok) / numel(id_ok)) * 100), 9));
-                            if flag_debug
-                                figure; plot(el_all/pi*180, res_all*1e3, '.'); hold on; plot(el_all(~id_ok)/pi*180, res_all(~id_ok)*1e3, 'o');
-                                legend('residuals', 'outliers');
-                                title((sprintf('Residuals of  %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                                grid on;
-                            end
-                            clear res_smt;
-                            az_all = az_all(id_ok);
-                            el_all = el_all(id_ok);
-                            res_all = res_all(id_ok);
-                            n_obs = numel(res_all);
-                            
-                            % 3 sigma filter per latitude
-                            if flag_reg
-                                log.addMessage(log.indent('3. Preparing regularization', 9));
-                                % Get regularization points based on empty sky areas
-                                [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, [1 1]);
-                                [az_grid, el_grid] = meshgrid(az_grid, el_grid);
-                                az_reg = az_grid(n_data_map <= 0);
-                                el_reg = el_grid(n_data_map <= 0);
-                                
-                                [~, z_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 0.5);
-                                az_all = [az_all; az_reg];
-                                el_all = [el_all; el_reg];
-                                res_all = [res_all; zeros(size(el_reg))];
-                                
-                                % Add additional points at the board
-                                for i = 0 : 0.5 : (Core.getState.getCutOff - 3)
-                                    az_all = [az_all; (-pi : 0.05 : pi)'];
-                                    el_all = [el_all; i/180*pi + (-pi : 0.05 : pi)'*0];
-                                    res_all = [res_all; (-pi : 0.05 : pi)'*0];
-                                end
-                            else
-                                az_grid = ((-180 + (grid_step(1) / 2)) : grid_step(1) : (180 - grid_step(1) / 2)) .* (pi/180);
-                                el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
-                            end
-                            
-                            log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 3 + flag_reg*1, l_max(1)), 9));
-                            %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
-                            
-                            % Use two
-                            el2radius1 = @(el) cos(el).^2;
-                            el2radius2 = @(el) sin(pi/2*cos(el).^2);
-                            el2radius3 = @(el) sin(pi/2*cos(el));
-                            %omf = @(el) 1 - sin(el);
-                            %el2radius3 = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
-                            res_work = res_all;
-                            
-                            [res_filt, z_par1, l1, m1] = Core_Utils.zFilter(l_max(1), m_max(1), az_all, el2radius1(el_all), res_work, 1e-5);
-                            res_work = res_work - res_filt;
-                            
-                            if l_max(2) > 0
-                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 4 + flag_reg*1, l_max(2)), 9));
-                                %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
-                                [res_filt, z_par2, l2, m2] = Core_Utils.zFilter(l_max(2), m_max(2), az_all, el2radius2(el_all), res_work, 1e-5);
-                                res_work = res_work - res_filt;
-                            end    
-                            
-                            if l_max(3) > 0
-                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/3)', 4 + flag_reg*1, l_max(3)), 9));
-                                [res_filt, z_par3, l3, m3] = Core_Utils.zFilter(l_max(3), m_max(3), az_all, el2radius3(el_all), res_work, 1e-5);
-                                res_work = res_work - res_filt;
-                            end
-
-                            % Generate maps
-                            log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 5 + flag_reg*1), 9));
-                            [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid);
-                            [z_map1] = Core_Utils.zSinthesys(l1, m1, az_mgrid, el2radius1(el_mgrid), z_par1);
-                            if l_max(2) <= 0
-                                z_map2 = 0;
-                            else
-                                [z_map2] = Core_Utils.zSinthesys(l2, m2, az_mgrid, el2radius2(el_mgrid), z_par2);
-                            end
-                            if l_max(3) <= 0
-                                z_map3 = 0;
-                            else
-                                [z_map3] = Core_Utils.zSinthesys(l3, m3, az_mgrid, el2radius3(el_mgrid), z_par3);
-                            end
-                            z_map = z_map1 + z_map2 + z_map3;
-                            res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
-                            [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, [4 1], grid_step);
-                            
-                            if flag_debug
-                                %figure; imagesc(1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map1)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Zernike expansion (1) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Zernike expansion (2) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map3)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Zernike expansion (3) of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                %zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([z_map(:,end) z_map z_map(:,1)])', 'linear');                                
-                                %[g_map, n_map, az_grid_tmp, el_grid_tmp] = Core_Utils.polarGridder(az_all, el_all, zmap2scatter(az_all, el_all), [5 1]);
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Gridder residuals of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Zernike expansion of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Final map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-
-                                [tmp] = Core_Utils.polarGridder(az_all, el_all, res_all, [4 1], grid_step);
-                                figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(tmp)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                title((sprintf('Gridded map of %s %s%s [mm]', this.parent.getMarkerName4Ch, sys_c, trk_ok(t,:)))); drawnow
-                            end
-                            
-                            if ~isfield(ant_mp, sys_c)
-                                ant_mp.(sys_c) = struct;
-                            end
-                            if ~isfield(ant_mp.(sys_c), trk_ok(t,:))
-                                ant_mp.(sys_c).(trk_ok(t,:)) = struct;
-                            end
-                            % Keep multiple solutions in the struct
-                            % decide a-posteriori what it's better
-                            
-                            % Save grids of multi-path
-                            ant_mp.(sys_c).(trk_ok(t,:)).az_grid = single(az_grid);
-                            ant_mp.(sys_c).(trk_ok(t,:)).el_grid = single(el_grid);
-                            ant_mp.(sys_c).(trk_ok(t,:)).z_map = single(z_map);             % Zernike math
-                            ant_mp.(sys_c).(trk_ok(t,:)).g_map = single(z_map + g_map);     % Second gridding step
-                            % Save Zernike coefficients
-                            %ant_mp.(sys_c).(trk_ok(t,:)).z_par = [z_par1 z_par2];
-                            %ant_mp.(sys_c).(trk_ok(t,:)).l = l;
-                            %ant_mp.(sys_c).(trk_ok(t,:)).m = m;
-                        end
-                        if ~data_found
-                            log = Core.getLogger;
-                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
-                        end
-                    end
-                end
-                ant_mp.time_lim = this.time.getEpoch([1 this.time.length]);                
-            end
-        end
-
-        function fh_list = showResScatter(this, sys_c_list, type, res)
-            % Plot the residuals of phase per Satellite
-            %
-            % INPUT
-            %   type    can be:
-            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
-            %            'pr'   -> Uncombined pseudo-ranges residuals
-            %            'ph'   -> Uncombined carrier-phase residuals
-            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
-            %
-            % SYNTAX
-            %   this.showResScatter(sys_c_list, type, res)
-            
-            fh_list = [];
-            cc = Core.getState.getConstellationCollector;
-            if nargin < 2 || isempty(sys_c_list)
-                sys_c_list = cc.getAvailableSys;
-            end
-            if nargin < 3 || isempty(type)
-                type = 'ph';
-            end
-            
-            if nargin < 4 || isempty(res)                
-                if type(2) == 'o'
-                    res = this.sat.res;
-                elseif type(2) == 'r'
-                    res = this.sat.res_pr_by_pr;
-                else
-                    res = this.sat.res_ph_by_ph;
-                end
-            end
-            if type(2) == 'o'
-                name = 'Combined residuals sat. by sat.';
-                scale = 1e3; % mm
-                id_obs = 1 : size(res, 2);
-            elseif type(2) == 'r'
-                name = 'Uncombined pseudo-ranges residuals';
-                id_obs = this.obs_code(:,1) == 'C';
-                scale = 1e2; % cm
-            else
-                name = 'Uncombined carrier-phase residuals';
-                id_obs = this.obs_code(:,1) == 'L';
-                scale = 1e3; % mm
-            end
-            id_obs = find(id_obs);
-            if isempty(res)
-                log = Core.getLogger;
-                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
-            else
-                if type(2) == 'o'
-                    ss_ok = intersect(cc.sys_c, sys_c_list);
-                else
-                    ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);                    
-                end
-                for sys_c = ss_ok
-                    if type(2) == 'o'
-                        trk_ok = 'COM'; % combined tracking -> only this is existing
-                    else
-                        id_obs_sys = id_obs(this.system(id_obs) == sys_c);
-                        trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
-                    end
-                    for t = 1 : size(trk_ok, 1)
-                        if type(2) == 'o'
-                            cur_res_id = cc.system == sys_c;
-                            prn = cc.prn(cur_res_id);
-                        else
-                            cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
-                            [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));                            
-                        end
-                        
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s ResMap %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                        
-                        fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('Res_Map_%s_%s_%s_%s_%s', type, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
-                                                                        
-                        data_found = false;
-
-                        res_tmp = res(:, cur_res_id);
-                        ax1 = axes;
-                        deg2rad = pi/180;
-                        % For each satellite
-                        
-                        %res_tmp = Receiver_Commons.smoothMat(res_tmp, 'spline', 10);
-                        zfilter = false;
-                        time = this.getTime();
-                        [year, doy] = time.getDOY();                        
-                        if zfilter
-                            % Zernike filter
-                            l_max = 37;
-                            m_max = l_max;
-                            az_all = [];
-                            el_all = [];
-                            res_all = [];
-                            id_subset = []; offset = 0;
-                            for s = 1 : sum(cur_res_id)
-                                id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
-                                [~, tmp] = intersect(id_ok, find(mod(doy,2) == 0 | mod(doy,2) == 1));
-                                id_subset = [id_subset; tmp + offset];
-                                offset = offset + numel(id_ok);
-                                if any(id_ok)
-                                    data_found = true;
-                                    res_all = [res_all; res_tmp(id_ok, s)];
-                                    
-                                    go_id = cc.getIndex(sys_c, prn(s));
-                                    az_all = [az_all; this.sat.az(id_ok, go_id) .* deg2rad];
-                                    el_all = [el_all; (this.sat.el(id_ok, go_id)) .* deg2rad];
-                                end
-                            end
-                            if data_found
-                                el2radius = @(el) 1 - el ./ (pi/2);
-                                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az_all(id_subset), el2radius(el_all(id_subset)), res_all(id_subset) * scale, 1e-8);
-                                %figure; scatter(m, -l, 150, z_par, 'filled');                                
-                                [res_allf] = Core_Utils.zSinthesys(l, m, az_all, el2radius(el_all), z_par);                                
-                                %[res_allf, z_par, l, m,  A] = Core_Utils.zFilter(l_max, m_max, az_all, el_all, res_all * scale);
-                                [std(res_all*scale) std(res_all*scale - res_allf)]
-                                res_all = res_all*scale - res_allf;
-                                [~, id_sort] = sort(abs(res_all));
-                                polarScatter(az_all(id_sort), pi/2 - el_all(id_sort), 20, res_all(id_sort), 'filled');                                
-                                %hold off; Core_Utils.showZernike3StylePCV(l, m, z_par); drawnow; colormap((Cmap.get('PuOr', 2^11)));
-                                %subplot(ax1);                                
-                            end
-                        else                            
-                            for s = 1 : sum(cur_res_id)
-                                id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
-                                if any(id_ok)
-                                    data_found = true;
-                                    go_id = cc.getIndex(sys_c, prn(s));
-                                    [~, id_sort] = sort(abs(res_tmp(id_ok, s)));
-                                    polarScatter(this.sat.az(id_ok(id_sort), go_id).*deg2rad, (90 - this.sat.el(id_ok(id_sort), go_id)).*deg2rad, 20, scale * (res_tmp(id_ok(id_sort), s)), 'filled');
-                                    %polarScatter(this.sat.az(id_ok, go_id).*deg2rad, (90 - this.sat.el(id_ok, go_id)).*deg2rad, 80, scale * (res_tmp(id_ok, s)), 'filled');
-                                    hold on;
-                                end
-                            end
-                            caxis(perc(abs(serialize(scale * (res_tmp(id_ok, :)))), 0.997) .* [-1.1 1.1]);
-                        end
-                        
-                        if ~data_found
-                            close(f)
-                            log = Core.getLogger;
-                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
-                        else
-                            colorbar;
-                            cax = caxis(ax1);
-                            caxis(ax1, [-1 1] * max(abs(cax)));
-                            %colormap(Cmap.get('RdBu', 2^11));
-                            colormap((Cmap.get('PuOr', 2^11)));
-                            %if min(abs(cax)) > 5
-                            %    setColorMap('RdBu', caxis(), 0.90, [-5 5])
-                            %end
-                            cb = colorbar(ax1); cb.UserData = title(cb, iif(scale == 1e2, '[cm]', '[mm]')); ax1.Color = [0.9 0.9 0.9];
-                            h = ylabel(ax1, 'Elevation [deg]'); h.FontWeight = 'bold';
-                            grid(ax1, 'on');
-                            h = xlabel(ax1, 'Azimuth [deg]'); h.FontWeight = 'bold';
-                            if type(2) == 'o'
-                                h = title(ax1, sprintf('%s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
-                            else
-                                h = title(ax1, sprintf('%s %s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), trk_ok(t,:), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
-                            end
-                            
-                            Core_UI.beautifyFig(f, 'dark');
-                            Core_UI.addBeautifyMenu(f);
-                            f.Visible = 'on'; drawnow;
-                        end
-                    end
-                end
-            end
-        end
-        
-        function fh_list = showResPerSat(this, sys_c_list, type, res)
-            % Plot the residuals of phase per Satellite
-            %
-            % INPUT
-            %   type    can be:
-            %            'co'   -> Combined residuals (one set for each satellite) DEFAULT
-            %            'pr'   -> Uncombined pseudo-ranges residuals
-            %            'ph'   -> Uncombined carrier-phase residuals
-            %   res     is the matrix of residuals satellite by satellite and can be passed from e.g. NET
-            %
-            % SYNTAX
-            %   this.showResPerSat(sys_c_list, type, res)
-            
-            fh_list = [];
-            cc = Core.getState.getConstellationCollector;
-            if nargin < 2 || isempty(sys_c_list)
-                sys_c_list = cc.getAvailableSys;
-            end
-            if nargin < 3 || isempty(type)
-                type = 'co';
-            end
-            
-            if nargin < 4 || isempty(res)                
-                if type(2) == 'o'
-                    res = this.sat.res;
-                elseif type(2) == 'r'
-                    res = this.sat.res_pr_by_pr;
-                else
-                    res = this.sat.res_ph_by_ph;
-                end
-            end
-            if type(2) == 'o'
-                name = 'Combined residuals sat. by sat.';
-                scale = 1e3; % mm
-                id_obs = 1 : size(res, 2);
-            elseif type(2) == 'r'
-                name = 'Uncombined pseudo-ranges residuals';
-                id_obs = this.obs_code(:,1) == 'C';
-                scale = 1e2; % cm
-            else
-                name = 'Uncombined carrier-phase residuals';
-                id_obs = this.obs_code(:,1) == 'L';
-                scale = 1e3; % mm
-            end
-            id_obs = find(id_obs);
-            if isempty(res)
-                log = Core.getLogger;
-                log.addError(sprintf('No %s residuals found in %s', name, this.parent.getMarkerName4Ch));
-            else
-                if type(2) == 'o'
-                    ss_ok = intersect(cc.sys_c, sys_c_list);
-                else
-                    ss_ok = intersect(unique(this.system(id_obs)), sys_c_list);                    
-                end
-                for sys_c = ss_ok
-                    if type(2) == 'o'
-                        trk_ok = 'COM'; % combined tracking -> only this is existing
-                    else
-                        id_obs_sys = id_obs(this.system(id_obs) == sys_c);
-                        trk_ok = Core_Utils.unique3ch(this.obs_code(id_obs_sys,:));
-                    end
-                    for t = 1 : size(trk_ok, 1)
-                        if type(2) == 'o'
-                            cur_res_id = cc.system == sys_c;
-                            prn = cc.prn(cur_res_id);
-                        else
-                            cur_res_id = (this.system(id_obs)' == sys_c) & (this.obs_code(id_obs, 2) == trk_ok(t,2)) & (this.obs_code(id_obs, 3) == trk_ok(t,3));
-                            [~, prn] = cc.getSysPrn(this.go_id(id_obs(cur_res_id)));                            
-                        end
-                        
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Res %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                        
-                        fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('Res_Per_Sat_%s_%s_%s_%s_%s', type, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
-                        
-                        ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
-                        
-                        fun = @(err) min(256,max(1, round(256 / max(zero2nan(std(this.sat.res(:,:), 'omitnan')).*1e3) * err)));
-                        ax2 = subplot(1, 24, 19:24);
-                        ax1 = subplot(1, 24, 1:16);
-                        
-                        data_found = false;
-
-                        res_tmp = res(:, cur_res_id);
-                        for s = 1 : sum(cur_res_id)
-                            id_ok = find(~isnan(zero2nan(res_tmp(:, s))));
-                            if any(id_ok)
-                                data_found = true;
-                                [~, id_sort] = sort(abs(res_tmp(id_ok, s)));
-                                scatter(ax1, id_ok(id_sort),  prn(s) * ones(size(id_ok)), 80, scale * (res_tmp(id_ok(id_sort), s)), 'filled');
-                                hold(ax1, 'on');
-                                err = std(zero2nan(res_tmp(:,s)), 'omitnan') * scale;
-                                if  verLessThan('matlab', '9.4') 
-                                    plot(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan') + [-err err], prn(s) * [1 1], '.-', 'MarkerSize', 15, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);
-                                    plot(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan'), prn(s), '.', 'MarkerSize', 30, 'Color', [0.6 0.6 0.6]);
-                                else
-                                    errorbar(ax2, mean(zero2nan(res_tmp(:,s)), 'omitnan') .* scale, prn(s), err, '.', 'horizontal', 'MarkerSize', 30, 'LineWidth', 3, 'Color', [0.6 0.6 0.6]);
-                                end
-                                hold(ax2, 'on');
-                            end
-                        end
-                        
-                        if ~data_found
-                            close(f)
-                            log = Core.getLogger;
-                            log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_ok(t,:), this.parent.getMarkerName4Ch, cc.getSysName(sys_c)));
-                        else
-                            cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
-                            colormap(Cmap.get('RdBu', 2^11));
-                            if min(abs(cax)) > 5
-                                setColorMap('RdBu', caxis(), 0.90, [-5 5])
-                            end
-                            cb = colorbar(ax1); cb.UserData = title(cb, iif(scale == 1e2, '[cm]', '[mm]')); ax1.Color = [0.9 0.9 0.9];
-                            prn_ss = unique(cc.prn(cc.system == sys_c));
-                            xlim(ax1, [1 size(this.sat.res,1)]);
-                            ylim(ax1, [min(prn_ss) - 1 max(prn_ss) + 1]);
-                            h = ylabel(ax1, 'PRN'); h.FontWeight = 'bold';
-                            ax1.YTick = prn_ss;
-                            grid(ax1, 'on');
-                            h = xlabel(ax1, 'epoch'); h.FontWeight = 'bold';
-                            if type(2) == 'o'
-                                h = title(ax1, sprintf('%s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
-                            else
-                                h = title(ax1, sprintf('%s %s %s %s\\fontsize{5} \n', cc.getSysName(sys_c), strrep(this.parent.marker_name, '_', '\_'), trk_ok(t,:), name), 'interpreter', 'tex'); h.FontWeight = 'bold';
-                            end
-                            
-                            ylim(ax2, [min(prn_ss) - 1 max(prn_ss) + 1]);
-                            xlim(ax2, [-1 1] * (max(max(abs(mean(zero2nan(res(:,:)), 'omitnan'))) * scale, ...
-                                max(std(zero2nan(res(:,:)), 'omitnan')) * scale) + 1));
-                            ax2.YTick = prn_ss; ax2.Color = [1 1 1];
-                            grid(ax2, 'on');
-                            xlabel(ax2, sprintf('mean %s', iif(scale == 1e2, 'cm', 'mm')));
-                            h = title(ax2, sprintf('mean\\fontsize{5} \n'), 'interpreter', 'tex'); h.FontWeight = 'bold';
-                            linkaxes([ax1, ax2], 'y');
-                            
-                            Core_UI.beautifyFig(f, 'dark');
-                            Core_UI.addBeautifyMenu(f);
-                            f.Visible = 'on'; drawnow;
-                        end
-                    end
-                end
-            end
-        end
+            ant_mp = this.sat.res.computeMultiPath(type, l_max, flag_reg);
+        end                
         
         function fh_list = showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             sztd = this.getSlantZTD(this.parent.slant_filter_win);
@@ -2609,7 +2001,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         function fh_list = showZtdSlantRes_p(this, time_start, time_stop)
             
             fh_list = [];
-            if isempty(this.sat.res)
+            if isempty(this.ztd)
                 this.log.addWarning('ZTD and slants have not been computed');
             else                
                 id_sync = this.getIdSync();
@@ -2629,14 +2021,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time_start = max(1, time_start);
                         time_stop = min(size(sztd,1), time_stop);
                     else
-                        time_start = 1;
+                        time_start = 2;
                         time_stop = size(sztd,1);
                     end
                     
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
-                    az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                    el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                    az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi;
+                    el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi;
+                    id_ko = this.sat.el < Core.getState.getCutOff | abs(sztd) > 1;
+                    sztd(id_ko) = nan;
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s Slant Residuals', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
                     
@@ -2650,7 +2044,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     end
                     f.UserData = struct('fig_name', fig_name);
                     
-                    polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
+                    polarScatter(az(~id_ko), el(~id_ko), 25, abs(sztd(~id_ko)), 'filled'); hold on;
                     caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95];
                     cb = colorbar(); cbt = title(cb, '[cm]'); cbt.Parent.UserData = cbt;
                     h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -2877,33 +2271,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 new_fig = true;
             end
             fh_list = this.showMedianTropoPar('PWV', new_fig);
-        end
-                
-        function plotResidual(this, flag_smooth)
-            % Legacy plot residuals
-            %
-            % INPUT
-            %   flag_smooth ift can be logical or a value (for spline_base_size) 
-            %
-            % SYNTAX
-            %   this.plotResidual(flag_smooth)
-            figure
-            id_ok = any(this.sat.res);
-            if nargin == 2 && flag_smooth
-                if islogical(flag_smooth)
-                    n_spline = 1800/30;
-                else
-                    n_spline = flag_smooth;
-                end
-                plot(this.smoothMat(zero2nan(this.sat.res(:,id_ok)), 'spline', n_spline),'.-');
-            else
-                plot(zero2nan(this.sat.res(:,id_ok)),'.');
-            end
-            cc = Core.getConstellationCollector();
-            ant_ids = cc.getAntennaId();
-            legend(ant_ids(id_ok));
-            
-        end
+        end                        
     end    
     %% METHODS UTILITIES FUNCTIONS
     % ==================================================================================================================================================
@@ -2942,6 +2310,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             % Create an el/az grid
             [phi_g, az_g] = getGrid(step);
+            
             az_g = sort(mod(az_g, 360));
             el_g = phi_g(phi_g > 0);
             
@@ -2952,7 +2321,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             rec.w_bar.createNewBar('Computing map');
             rec.w_bar.setBarLen(numel(rec));
             
-            data = (rec.getResidual());
+            data = rec.getU1();
             if sys_c == 'A'
                 [sys, prn] = cc.getSysPrn(1:size(data,2));
                 id_keep = 1 : numel(sys);
@@ -2971,6 +2340,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 % Extract non NaN serialized data
                 data = zero2nan(data);
                 id_ok = (~isnan(data));
+                %[map, n_data_map] = Core_Utils.polarGridder(az(id_ok)./180*pi, el(id_ok)./180*pi, data(id_ok), [4 1], 0.5);
                 
                 % Eliminate empty epochs
                 az = az(:, sum(id_ok) > 1);

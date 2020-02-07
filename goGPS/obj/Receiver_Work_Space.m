@@ -40,7 +40,6 @@ classdef Receiver_Work_Space < Receiver_Commons
     %% CONSTANTS
     properties (Constant)
         S02_IP_THR = 1e3;
-        RES_TYPE = {'0: no residuals', '1: code_only', '2: U1 engine iono-free', '3: U2 engine'};
     end
     
     % ==================================================================================================================================================
@@ -62,7 +61,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         rec_settings;  % receiver settings
         
-        loaded_sys = 'G';    % At the initialization this was the requested sys
+        loaded_sys = 'G'; % At the initialization this was the requested sys
         active_sys = 'G'; % Actually active constellations (Constellation Collector used was initialized)
     end
     % ==================================================================================================================================================
@@ -100,7 +99,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         ant                          % Antenna PCO/PCV object
         ant_mp                       % Currently applied multipath mitigation
         
-        pp_status = false;      % flag is pre-proccesed / not pre-processed
+        pp_status = false;         % flag is pre-proccesed / not pre-processed
         iono_status           = 0; % flag to indicate if measurements ahave been corrected by an external ionpheric model
         group_delay_status    = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
         dts_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
@@ -149,10 +148,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             'cycle_slip_ph_by_ph', [], ...    % logical index of cycle slips
             'err_tropo',           [], ...    % double  [n_epoch x n_sat] tropo error
             'err_iono',            [], ...    % double  [n_epoch x n_sat] iono error
-            'res_type',            [], ...    % type of residual (0: prepro, 1: uncombined engine, 2: undifferenced and uncombined engine)
-            'res',                 [], ...    % residual per staellite
-            'res_pr_by_pr',        [], ...    % pseudo-ranges uncombined residuals
-            'res_ph_by_ph',        [], ...    % carrier-phases uncombined residuals
+            'res',                 [], ...    % processing residuals object
             'solid_earth_corr',    [], ...    % double  [n_epoch x n_sat] solid earth corrections
             'tot',                 [], ...    % double  [n_epoch x n_sat] time of travel
             'az',                  [], ...    % double  [n_epoch x n_sat] azimuth
@@ -247,10 +243,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.el                = [];
             this.sat.XS_tx             = [];
             this.sat.crx               = [];
-            this.sat.res_type          = 0;
-            this.sat.res               = [];
-            this.sat.res_pr_by_pr      = [];
-            this.sat.res_ph_by_ph      = [];
+            this.sat.res               = Residuals();
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
@@ -412,9 +405,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.el                = [];
             this.sat.XS_tx             = [];
             this.sat.crx               = [];
-            this.sat.res               = [];
-            this.sat.res_ph_by_ph      = [];
-            this.sat.res_pr_by_pr      = [];
+            this.sat.res               = Residuals();
             this.sat.cycle_slip        = [];
             this.sat.outliers          = [];
             this.sat.amb_mat           = [];
@@ -721,8 +712,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(this.sat.el)
                 this.sat.el(:, go_out) = 0;
             end
-            if ~isempty(this.sat.res)
-                this.sat.res(:, go_out) = 0;
+            if ~isempty(this.sat.res) && (this.sat.res.type == 1 || this.sat.res.type == 2)
+                if ~isempty(this.sat.res.value)
+                    this.sat.res.value(:, go_out) = 0;
+                end
             end
             try
                 if ~isempty(this.sat.amb)
@@ -1351,11 +1344,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(this.sat.el)
                     this.sat.el(bad_epochs, :) = [];
                 end
-                if ~isempty(this.sat.res)
-                    n_ep_res = size(this.sat.res,1);
-                    bad_res = bad_epochs;
-                    bad_res(bad_res > n_ep_res) = [];
-                    this.sat.res(bad_res, :) = [];
+                if ~isempty(this.sat.res) && (this.sat.res.type == 1 || this.sat.res.type == 2)
+                    if ~isempty(this.sat.res.value)
+                        n_ep_res = size(this.sat.res.value,1);
+                        bad_res = bad_epochs;
+                        bad_res(bad_res > n_ep_res) = [];
+                        this.sat.res.value(bad_res, :) = [];
+                    end                    
                 end
             end
         end
@@ -2441,8 +2436,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.setPhases(ph,wl,lid_ph); % set back phases                
             end
             
-            % Add epochs with no valid code            
-            id_ko = ~any(this.sat.res, 2);
+            % Add epochs with no valid code
+            id_ko = ~any(this.getCodeAvailability(), 2);
             if any(id_ko)
                 n_out = sum(serialize(this.sat.outliers_ph_by_ph(id_ko, :)));
                 n_ko = sum(serialize(~isnan(ph(id_ko, :))));
@@ -2473,9 +2468,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     %res(cs(c):cs(c+1)-1) = res(cs(c):cs(c+1)-1) - round(mean(res(cs(c):cs(c+1)-1),'omitnan'));
                     idx_bf = find((1:length(res)) < cs(c)& ~isnan(res'),1,'last');
                     idx_aft = find((1:length(res)) >= cs(c)& ~isnan(res'),1,'first');
-                    if abs(fracFNI(res(idx_aft) -res(idx_bf))) < 0.1 & true %abs(res(idx_aft) -res(idx_bf)) < 1e3
+                    if abs(fracFNI(res(idx_aft) - res(idx_bf))) < 0.1 %abs(res(idx_aft) -res(idx_bf)) < 1e3
                         phases(cs(c):end,i) = phases(cs(c):end,i) - round(res(idx_aft) - res(idx_bf))*wl(i);
-                        r = r+1;
+                        r = r + 1;
                     else
                         this.sat.cycle_slip_ph_by_ph(cs(c),i) = true;
                         nr=nr+1;
@@ -2485,17 +2480,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             Core.getLogger.addMarkedMessage(sprintf('%d out of %d cycle slips repaired',r,r+nr));
             this.setPhases(phases, wl, lid);
         end
-        
-        function cycleSlipPPPres(this)
-            sensor = Core_Utils.diffAndPred(this.sat.res);
-            ph_idx =  this.obs_code(:,1) == 'L';
-            idx = abs(sensor) > 0.03;
-            for i = 1 : size(sensor,2)
-                sat_idx = this.go_id(ph_idx) == i;
-                this.sat.cycle_slip_ph_by_ph(idx(:,i), :) = 1;
-            end
-        end
-        
+                
         function tryCycleSlipRepair(this)
             % Cycle slip repair
             %
@@ -3802,12 +3787,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function res = getResidual(this)
-            cc = Core.getConstellationCollector;
-            if size(this.sat.res,1) < max(this.id_sync)
-                res = nan(numel(this.id_sync), cc.getMaxNumSat());
+        function res = getU1(this)
+            res = this.sat.res.getU1;
+            if size(res,1) < max(this.id_sync)
+                res = [];
             else
-                res =  this.sat.res(this.id_sync,:);
+                res = res(this.id_sync,:);
             end
         end
         
@@ -4158,7 +4143,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
             %time_tx.addSeconds(); % rel clok neglegible
-            [XS_tx] = Core.getCoreSky.coordInterpolate(time_tx, sat);
+            sky = Core.getCoreSky;
+            %sky.initSession(this.time.first, this.time.last, Core.getConstellationCollector);
+            [XS_tx] = sky.coordInterpolate(time_tx, sat);
             
             
             %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
@@ -4487,11 +4474,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             sys_c = unique(this.system(:))';
         end
         
-        function residual_std_iono = getResidualIonoError(this)
+        function residual_std_iono = getU1IonoError(this)
             % get the residual iono error
             %
             % SYNTAX:
-            %   this.getResidualIonoError(residual_std_iono)
+            %   this.getU1IonoError(residual_std_iono)
             residual_std_iono = this.residual_std_iono;
         end
         
@@ -4530,29 +4517,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
         
-        function [res_ph, wl, id_ph] = getResPhases(this, sys_c, freq_c)
-            % Get the phases residual observations in meter (not cycles)
-            %
-            % SYNTAX 
-            %   [ph, wl, id_ph] = this.getResPhases(<sys_c>, <freq_c>)
-            %
-            % NOTE: if they are not present return empty
-                        
-            idx_ph_all = find(this.obs_code(:, 1) == 'L');
-            if nargin > 2
-                id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == freq_c;
-            else
-                id_ph = this.obs_code(:, 1) == 'L';
-            end
-            
-            if (nargin == 2) && ~isempty(sys_c)
-                id_ph = id_ph & (this.system == sys_c)';
-            end
-            wl = this.wl(id_ph);
-            [~,idx_ph_ph] = intersect(find(id_ph),idx_ph_all);
-            res_ph = this.sat.res_ph_by_ph(:, idx_ph_ph);            
-        end
-        
         function [obs_set] = getObsSet(this, flag, sys_c, prn)
             % get observation set corrspondiung to the requested
             % observation
@@ -4576,9 +4540,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for i = 1 : size(obs_set.obs_code,1)
                 obs_set.sigma(i) = rec_set.getStd(obs_set.obs_code(i,1),obs_set.obs_code(i,2:end));
             end
-            
         end
-        
         
         function [last_repair, old_ph, old_synt] = getLastRepair(this, go_id, band_tracking)
             % Get the last integer (or half cycle) ambiguity repair applyied to the satellite
@@ -4638,24 +4600,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_pr = id_pr & ismember(this.system, sys_c)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
-        end
-        
-        function [res_pr, id_pr] = getResPseudoRanges(this, sys_c, freq_c)
-            % get the phases residual observations in meter (not cycles)
-            % SYNTAX [ph, wl, id_pr] = this.getResPseudoRanges(<sys_c>, <freq_c>)
-            % SEE ALSO: 
-            idx_pr_all = find(this.obs_code(:, 1) == 'C');
-            if nargin > 2
-                id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == freq_c;
-            else
-                id_pr = this.obs_code(:, 1) == 'C';
-            end
-            
-            if (nargin == 2) && ~isempty(sys_c)
-                id_pr = id_pr & (this.system == sys_c)';
-            end
-            [~,idx_pr_pr] = intersect(find(id_pr),idx_pr_all);
-            res_pr = this.sat.res_pr_by_pr(:, idx_pr_pr);            
         end
         
         function [dop, wl, id_dop] = getDoppler(this, sys_c)
@@ -6552,6 +6496,41 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.updateAzimuthElevation;
             this.sat.avail_index = this.sat.el > 0;
         end
+        
+        function ep_ok = getCodeAvailability(this)
+            % Get all the epochs having code observations
+            %
+            % SYNTAX
+            %   ep_ok = getCodeAvailability()
+            cc = Core.getState.getConstellationCollector;
+            ep_ok = false(this.time.length, cc.getMaxNumSat);
+            
+            data_row = this.obs_code(:,1) == 'C';
+            go_id = this.go_id(data_row);
+            datachk = (this.obs(data_row, :))'~=0 & ~isnan((this.obs(data_row, :))');
+            for s = unique(go_id)'
+                av_idx = any(datachk(:,go_id == s), 2);
+                ep_ok(:,s) = av_idx;
+            end
+        end
+        
+        function ep_ok = getPhaseAvailability(this)
+            % Get all the epochs having code observations
+            %
+            % SYNTAX
+            %   ep_ok = getPhAvailability()
+            cc = Core.getState.getConstellationCollector;
+            ep_ok = false(this.time.length, cc.getMaxNumSat);
+            
+            data_row = this.obs_code(:,1) == 'L';
+            go_id = this.go_id(data_row);
+            datachk = (this.obs(data_row, :))'~=0 & ~isnan((this.obs(data_row, :))');
+            for s = unique(go_id)'
+                av_idx = any(datachk(:,go_id == s), 2);
+                ep_ok(:,s) = av_idx;
+            end
+        end
+            
     end
     
     % ==================================================================================================================================================
@@ -8177,8 +8156,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             %corr = 2*GM/(Core_Utils.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
-            sh_delay = 2*GM/(Core_Utils.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
-            
+            sh_delay = 2*GM/(Core_Utils.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));            
         end
         
         %--------------------------------------------------------
@@ -9086,7 +9064,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     % A bit of outlier detection does not hurt nobody
-                    sensor = this.sat.res;
+                    sensor = this.sat.res.getU1();
                     for s = 1 : size(sensor,2)
                         sensor(:,s)  = zero2nan(sensor(:,s)) - median(sensor(:,s));
                     end
@@ -9334,18 +9312,27 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dt = zeros(this.time.length,1);
                 this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
                 isb = x(x(:,2) == 4,1);
-                this.sat.res = zeros(this.length, cc.getMaxNumSat());
+                
+                res_tmp = zeros(this.length, cc.getMaxNumSat());
                 % LS does not know the max number of satellite stored
                 dsz = max(id_sync) - size(res,1);
                 if dsz == 0
-                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                 else
                     if dsz > 0
                         id_sync = id_sync(1 : end - dsz);
                     end
-                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                 end
-                this.sat.res_type = 1; % code only
+                
+                [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());                
+                obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
+                obs_code(:,1) = sys(:);
+                obs_code(:,2) = 'C';
+                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                this.sat.res = Residuals();
+                this.sat.res.import(1, this.time, res_tmp, prn, obs_code, rec_coo);
+                
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
                 this.quality_info.n_obs = size(ls.epoch, 1);
@@ -9421,21 +9408,26 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, cc.getMaxNumSat());
-            % LS does not know the max number of satellite stored
-            
-            
-            this.sat.res = zeros(this.length, cc.getMaxNumSat());
+
+            % LS does not know the max number of satellite stored            
+            res_tmp = zeros(this.length, cc.getMaxNumSat());
             dsz = max(id_sync) - size(res,1);
             if dsz == 0
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             else
                 if dsz > 0
                     id_sync = id_sync(1 : end - dsz);
                 end
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
-            this.sat.res_type = 1; % code only
+            
+            [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
+            obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
+            obs_code(:,1) = sys(:);
+            obs_code(:,2) = 'C';
+            rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+            this.sat.res = Residuals();
+            this.sat.res.import(1, this.time, res_tmp, prn, obs_code, rec_coo);
         end
         
         function s0 = initDynamicPositioning(this)
@@ -10016,11 +10008,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                     n_sat = size(this.sat.el,2);                    
                     this.id_sync = id_sync;
                     
-                    this.sat.res = zeros(this.time.length, n_sat, 'single');
-                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                    this.sat.res_type = 2; % U2 engine iono-free
-
-                    this.n_sat_ep = uint8(sum(this.sat.res ~= 0,2));
+                    res_tmp = zeros(this.time.length, n_sat, 'single');
+                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                    
+                    [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
+                    obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
+                    obs_code(:,1) = sys(:);
+                    obs_code(:,2) = 'L';
+                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                    this.sat.res = Residuals();
+                    this.sat.res.import(2, this.time, res_tmp, prn, obs_code, rec_coo);
+                    
+                    this.n_sat_ep = uint8(sum(res_tmp ~= 0,2));
                     
                     %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                     if this.state.isSepCooAtBoundaries
@@ -10513,33 +10512,42 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     % save phase residuals
                     idx_ph = find(this.obs_code(:,1) == 'L');
-                    this.sat.res_ph_by_ph = nan(this.time.length, length(idx_ph));
+                    res_ph = nan(this.time.length, length(idx_ph));
+                    obs_code_ph = char(32 * ones(length(idx_ph), size(ls.unique_obs_codes{1},2), 'uint8'));
+                    prn_ph = nan(length(idx_ph), 1);
                     for i = 1 : length(idx_ph)
                         ip = idx_ph(i);
                         id_code = Core_Utils.findAinB({[this.system(ip) this.obs_code(ip,:)]}, ls.unique_obs_codes);
                         idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.go_id(ip);
                         if any(idx_res)
                             [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                            this.sat.res_ph_by_ph(idx_time,i) = ls.res(idx_res);
+                            res_ph(idx_time, i) = ls.res(idx_res);
                         end
+                        obs_code_ph(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(find(idx_res, 1, 'first'))};                        
+                        [~, prn_ph(i)] = cc.getSysPrn(ls.satellite_obs(find(idx_res, 1, 'first')));
                     end
-                    
+                                                            
                     % save pseudorange residuals
                     idx_pr = find(this.obs_code(:,1) == 'C');
-                    this.sat.res_pr_by_pr = nan(this.time.length, length(idx_ph));
+                    res_pr = nan(this.time.length, length(idx_pr));
+                    obs_code_pr = char(32 * ones(length(idx_pr), size(ls.unique_obs_codes{1},2), 'uint8'));
+                    prn_pr = nan(length(idx_pr), 1);
                     for i = 1 : length(idx_pr)
                         ip = idx_pr(i);
                         id_code = Core_Utils.findAinB({[this.system(ip) this.obs_code(ip,:)]}, ls.unique_obs_codes);
                         idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.go_id(ip);
                         if any(idx_res)
                             [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                            this.sat.res_pr_by_pr(idx_time,i) = ls.res(idx_res);
+                            res_pr(idx_time,i) = ls.res(idx_res);
+                            obs_code_pr(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(find(idx_res, 1, 'first'))};                        
+                            [~, prn_pr(i)] = cc.getSysPrn(ls.satellite_obs(find(idx_res, 1, 'first')));
                         end
                     end
+                                        
+                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                    this.sat.res = Residuals();
+                    this.sat.res.import(3, this.time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
 
-                    this.sat.res = []; % To avoid confusion when using U2 empty the sat by sat res
-                    this.sat.res_type = 3; % U2 engine iono-free                    
-                    
                     % -------------------- estimate additional coordinate set
                     if state.flag_coo_rate
                         this.add_coo = []; % Empty previously estimated coordinates
@@ -10747,11 +10755,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tropo = x(x(:,2) == 7,1);
                 amb = x(x(:,2) == 5,1);
                 
-                this.sat.res = zeros(this.length, n_sat);
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                this.sat.res_type = 2; % U1 engine iono-free
-
-                keyboard
+                res_tmp = zeros(this.time.length, n_sat, 'single');
+                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                
+                [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
+                obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
+                obs_code(:,1) = sys(:);
+                obs_code(:,2) = 'L';
+                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                this.sat.res = Residuals();
+                this.sat.res.import(2, this.time, res_tmp, prn, obs_code, rec_coo);
             end
             
         end

@@ -325,6 +325,93 @@ classdef Core_UI < Logos
             end
         end
         
+        function addSatMenu(fig_handle, go_id_list)
+            % Insert the menu to set the satellites to view
+            cc = Core.getConstellationCollector;
+            m = findall(fig_handle.Children, 'Type', 'uimenu', 'Label', 'Satellite');
+            if ~isempty(m)
+                m = m(1);
+            else
+                m = uimenu(fig_handle, 'Label', 'Satellite');
+            end
+            
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'Check All');
+            if ~isempty(mitem)
+                % Item already present
+                %    mitem = mitem(1);
+            else
+                mitem = uimenu(m, 'Label', 'Check All');
+                mitem.UserData = go_id_list;
+                mitem.Callback = @updateSatVisibility;
+            end
+            
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'Check None');
+            if ~isempty(mitem)
+                % Item already present
+                %    mitem = mitem(1);
+            else
+                mitem = uimenu(m, 'Label', 'Check None');
+                mitem.UserData = [];
+                mitem.Callback = @updateSatVisibility;
+            end
+            
+            for i = 1 : numel(go_id_list)
+                sat_name = cc.getSatName(go_id_list(i));
+                mitem = findall(m.Children, 'Type', 'uimenu', 'Label', sat_name);
+                if ~isempty(mitem)
+                    % Item already present
+                    %    mitem = mitem(1);
+                else
+                    mitem = uimenu(m, 'Label', sat_name, 'Checked', 'on');
+                    mitem.UserData = go_id_list(i);
+                    mitem.Callback = @updateSatVisibility;
+                end
+            end
+            
+            function updateSatVisibility(this, caller, event)
+                % Refresh the visibility of the lines
+                lh = [];
+                fh = caller.Source.Parent.Parent;
+                % None selected
+                if isempty(caller.Source.UserData)
+                    % Find all the lines
+                    lh = findall(fh.Children(end).Children, 'Type', 'scatter');
+                    if isempty(lh)
+                        lh = findall(fh.Children(end).Children, 'Type', 'line');
+                    end
+                    mh = caller.Source.Parent.Children(1 : (end - 2));
+                    value = 'off';
+                    % All Selected
+                elseif numel(caller.Source.UserData) > 1
+                    % Find all the lines
+                    lh = findall(fh.Children(end).Children, 'Type', 'scatter');
+                    if isempty(lh)
+                        lh = findall(fh.Children(end).Children, 'Type', 'line');
+                    end
+                    mh = caller.Source.Parent.Children(1 : (end - 2));
+                    value = 'on';
+                else
+                    % One selected
+                    % Find the line with the right go_id
+                    lh = findall(fh.Children(end).Children, 'Type', 'scatter', 'UserData', caller.Source.UserData);
+                    if isempty(lh)
+                        lh = findall(fh.Children(end).Children, 'Type', 'line', 'UserData', caller.Source.UserData);
+                    end
+                    mh = caller.Source;
+                    value = iif(lh(1).Visible(2) == 'n', 'off', 'on'); % toggle visibility
+                end
+                
+                for i = 1 : numel(lh)
+                    % all the lines
+                    lh(i).Visible = value;
+                end
+                for i = 1 : numel(mh)
+                    % all the menus
+                    mh(i).Checked = value;
+                end
+            end
+        end
+
         function addBeautifyMenu(fig_handle)
             % Add a menu Aspect to figure
             % with 2 sub menu for changing figure aspect 

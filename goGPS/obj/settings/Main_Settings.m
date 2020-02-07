@@ -4641,6 +4641,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             s_rate = this.s_rate;
         end
 
+        function flag = isResOut(this)
+            % flag: is exporting of combined residuals requested?
+            %
+            % SYNTAX
+            %   flag = isResCoOut(this)
+            
+            flag = this.flag_out_res_co || this.flag_out_res_pr || this.flag_out_res_ph;
+        end
+        
         function flag = isResCoOut(this)
             % flag: is exporting of combined residuals requested?
             %
