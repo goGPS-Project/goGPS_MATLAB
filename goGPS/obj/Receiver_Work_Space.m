@@ -10523,8 +10523,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                             [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                             res_ph(idx_time, i) = ls.res(idx_res);
                         end
-                        obs_code_ph(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(find(idx_res, 1, 'first'))};                        
-                        [~, prn_ph(i)] = cc.getSysPrn(ls.satellite_obs(find(idx_res, 1, 'first')));
+                        id_first = find(idx_res, 1, 'first');
+                        if ~isempty(id_first)
+                            % if there are residuals
+                            obs_code_ph(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(id_first)};
+                            [~, prn_ph(i)] = cc.getSysPrn(ls.satellite_obs(id_first));
+                        end
                     end
                                                             
                     % save pseudorange residuals
@@ -10539,8 +10543,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         if any(idx_res)
                             [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                             res_pr(idx_time,i) = ls.res(idx_res);
-                            obs_code_pr(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(find(idx_res, 1, 'first'))};                        
-                            [~, prn_pr(i)] = cc.getSysPrn(ls.satellite_obs(find(idx_res, 1, 'first')));
+                            id_first = find(idx_res, 1, 'first');
+                            if ~isempty(id_first)
+                                % if there are residuals
+                                obs_code_pr(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(id_first)};
+                                [~, prn_pr(i)] = cc.getSysPrn(ls.satellite_obs(id_first));
+                            end
                         end
                     end
                                         
