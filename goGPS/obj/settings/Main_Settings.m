@@ -233,7 +233,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
-        FLAG_REC_MP = false;                            % Flag to enable receiver multipath corrections
+        FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
         FLAG_SEPARATE_APC = false;                      % Flag to enable different phase center for each system
