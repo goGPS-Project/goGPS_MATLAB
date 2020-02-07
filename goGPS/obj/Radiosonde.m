@@ -42,7 +42,7 @@ classdef Radiosonde < handle
         data_time       % time as datetime                  datetime [n_records x 1]
         pressure        % pressure [hPa]                    double   [n_records x 1]
         height          % height [m]                        double   [n_records x 1]
-        temperature     % temperature [°C]                 double   [n_records x 1]
+        temperature     % temperature [°C]                  double   [n_records x 1]
         rel_humidity    % relatibe humidity [%]             double   [n_records x 1]
         
         ref_time        % launch epoch;
@@ -313,6 +313,21 @@ classdef Radiosonde < handle
             coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.elevation);
         end
         
+        function height = getHeight(rds_list)
+            % Get launch site orthometric height
+            %
+            % INPUT
+            %   rds_list    radiosonde list
+            %
+            % OUTPUT 
+            %   height      orthometric height [m]
+            %
+            % SYNTAX
+            %   height = rds_list.getLat()
+            
+            height = [rds_list.elevation]';
+        end
+
         function lat = getLat(rds_list)
             % Get latitude
             %
@@ -327,7 +342,7 @@ classdef Radiosonde < handle
             
             lat = [rds_list.lat]';
         end
-        
+
         function lon = getLon(rds_list)
             % Get latitude
             %
