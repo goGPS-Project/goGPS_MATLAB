@@ -975,7 +975,7 @@ classdef Constellation_Collector < Settings_Interface
                     end
                     num = num + iif(isempty(tmp), 0, tmp);
                 end
-                code(i) = num;
+                code(i) = iif(isempty(num), 0, num);
             end
         end
         
