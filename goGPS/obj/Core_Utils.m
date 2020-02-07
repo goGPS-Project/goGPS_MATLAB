@@ -1268,7 +1268,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function plotSep(t, data, varargin)
+        function lh = plotSep(t, data, varargin)
             % Special wrapper to regular plot
             % Works on regularly sampled data
             % When there is a gap of data, it insert a nan value
@@ -1280,15 +1280,15 @@ classdef Core_Utils < handle
             %   varagin     add other useful parameters of the plot
             %
             % SYNTAX
-            %   Core_Utils.plotSep(t, data, varagin);
+            %   lh = Core_Utils.plotSep(t, data, varagin);
             %
             % SEE ALSO
             %   plot
             [t, data] = Core_Utils.insertNan4Plots(t, data);
             if nargin <= 2
-                plot(t, data);
+                lh = plot(t, data);
             else
-                plot(t, data, varargin{:});
+                lh = plot(t, data, varargin{:});
             end
         end
         

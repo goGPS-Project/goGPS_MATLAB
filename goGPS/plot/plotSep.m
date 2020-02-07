@@ -45,12 +45,12 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
         
-function plotSep(t, data, varargin)
+function lh = plotSep(t, data, varargin)
     [t, data] = insertNan4Plots(t, data);
     if nargin <= 2
-        plot(t, data);
+        lh = plot(t, data);
     else
-        plot(t, data, varargin{:});
+        lh = plot(t, data, varargin{:});
     end
 end
 
