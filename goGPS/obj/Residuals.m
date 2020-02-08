@@ -1,5 +1,5 @@
 classdef Residuals < Exportable
-        
+    
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
     %     __ _ ___ / __| _ | __|
@@ -42,22 +42,22 @@ classdef Residuals < Exportable
         value       % matrix of residuals
         
         prn         % prn of the satellite (1 x col of pr/ph)
-        obs_code    % type of tracking of the column (e.g. GL1C, GL1CL2WI, ...)      
+        obs_code    % type of tracking of the column (e.g. GL1C, GL1CL2WI, ...)
         
         rec_coo     % <optional> Coordinates of the receiver
     end
-        
+    
     methods
         % Creator
         function this = Residuals()
             % Object creator
             this.reset();
         end
-                
+        
     end
     
     % =========================================================================
-    %  METHODS OBJ MANAGEMENT
+    %%  METHODS OBJ MANAGEMENT
     % =========================================================================
     
     methods % Public Access
@@ -93,17 +93,17 @@ classdef Residuals < Exportable
             %   type        % 0,1,2,3 see RES_TYPE
             %   time        % time as GPS_Time                        GPS_Time [1 x 1] stores n_epoch
             %   value       % matrix of residuals
-            % 
+            %
             %   prn         % prn of the satellite (1 x col of pr/ph)
             %   obs_code    % type of tracking of the column (e.g. GL1C, GL1CL2WI, ...)
-            % 
+            %
             %   rec_coo     % <optional> Coordinates of the receiver
             %
             % SYNTAX
             %   this.import(type, time, value, prn, obs_code, rec_coo)
             this.init(type, time, value, prn, obs_code, rec_coo)
         end
-                
+        
         function append(this, type, time, value, prn, obs_code, rec_coo)
             % Append new residuals to the one already stored
             %
@@ -111,139 +111,19 @@ classdef Residuals < Exportable
             %   type        % 0,1,2,3 see RES_TYPE
             %   time        % time as GPS_Time                        GPS_Time [1 x 1] stores n_epoch
             %   value       % matrix of residuals
-            % 
+            %
             %   prn         % prn of the satellite (1 x col of pr/ph)
             %   obs_code    % type of tracking of the column (e.g. GL1C, GL1CL2WI, ...)
-            % 
+            %
             %   rec_coo     % <optional> Coordinates of the receiver
             %
             % SYNTAX
             %   this.import(type, time, value, prn, obs_code, rec_coo)
             
-            res = Residuals();            
+            res = Residuals();
             res.init(type, time, value, prn, obs_code, rec_coo);
             
             this.appendRes(res);
-        end    
-        
-        function [res, obs_code, prn] = getU1(this, sys_c, freq_c)
-            % Get residual matrix of the combined/single_freq processing
-            % 
-            % SYNTAX
-            %    [res, obs_code, prn] = this.getU1()
-            if this.type < 3
-                id_ok =  true(numel(this.prn), 1);
-                if nargin > 1 && ~isempty(sys_c)
-                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
-                end
-                if nargin > 2 && ~isempty(freq_c)
-                    id_ok(this.obs_code(:,3) ~= freq_c) = false;
-                end
-                
-                prn = this.prn(id_ok);
-                obs_code = this.obs_code(id_ok,:);
-                res = this.value(:, id_ok);
-            else
-                prn = [];
-                obs_code = '';
-                res = [];            
-            end
-        end
-        
-        function [res, obs_code, prn] = getPrU2(this, sys_c, freq_c)
-            % Get residual matrix of the uncombined processing
-            % Pseudo-codes residuals 
-            %
-            % SYNTAX
-            %    [res, obs_code, prn] =  = this.getPrU2()
-            if this.type == 3
-                id_ok =  this.obs_code(:,2) == 'C';
-                if nargin > 1 && ~isempty(sys_c)
-                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
-                end
-                if nargin > 2 && ~isempty(freq_c)
-                    id_ok(this.obs_code(:,3) ~= freq_c) = false;
-                end
-                
-                prn = this.prn(id_ok);
-                obs_code = this.obs_code(id_ok,:);
-                res = this.value(:, id_ok);
-            else
-                prn = [];
-                obs_code = '';
-                res = [];
-            end
-        end
-        
-        function [res, obs_code, prn] = getPhU2(this, sys_c, freq_c)
-            % Get residual matrix of the combined processing
-            % Carrier-phase residuals
-            % 
-            % SYNTAX
-            %    [res, obs_code, prn] = this.getPhU2()            
-            if this.type == 3
-                id_ok =  this.obs_code(:,2) == 'L'; 
-                if nargin > 1 && ~isempty(sys_c)
-                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
-                end
-                if nargin > 2 && ~isempty(freq_c)
-                    id_ok(this.obs_code(:,3) ~= freq_c) = false;                    
-                end
-                
-                prn = this.prn(id_ok);
-                obs_code = this.obs_code(id_ok,:);
-                res = this.value(:, id_ok);
-            else
-                prn = [];
-                obs_code = '';
-                res = [];
-            end
-        end
-        
-        function [res, obs_code, prn, type] = get(this, sys_c, freq_c)
-            % Get residual matrix stored in residuals
-            %
-            % INPUT 
-            %   sys_c   single character describing the constellation e.g. 'G', 'R', 'E', ...
-            %   freq_c  single character describing the frequency number e.g. '1', '2', ....
-            % 
-            % SYNTAX
-            %    [res, obs_code, prn, type] = this.get(sys_c, freq_c)
-            type = this.type;
-            switch type
-                case 0
-                    prn = [];
-                    obs_code = '';
-                    res = [];
-                case {1, 2} % Prepro or unconbined residuals (both uses U1)
-                    if nargin == 1
-                        [res, obs_code, prn] = this.getU1();
-                    elseif nargin == 2
-                        [res, obs_code, prn] = this.getU1(sys_c);
-                    elseif nargin == 3
-                        [res, obs_code, prn] = this.getU1(freq_c);
-                    end
-                case 3 % if I have uncombined residuals, return just phases
-                    if nargin == 1
-                        [res, obs_code, prn] = this.getPhU2();
-                    elseif nargin == 2
-                        [res, obs_code, prn] = this.getPhU2(sys_c);
-                    elseif nargin == 3
-                        [res, obs_code, prn] = this.getPhU2(freq_c);
-                    end
-            end            
-        end
-        
-        function res = getCopy(this)
-            % Get a copy of the object
-            %
-            % SYNTAX
-            %   res = this.getCopy();
-            
-            res = Residuals;
-            res.importFromStruct(this.toStruct);
-            res.time = this.time.getCopy;
-            res.rec_coo = this.rec_coo.getCopy;
         end
         
         function injest(this, res)
@@ -313,7 +193,7 @@ classdef Residuals < Exportable
         function remEpoch(this, lid_ko)
             % Remove an epoch from the residuals
             %
-            % INPUT 
+            % INPUT
             %   lid_ko  logical array of ko epochs
             %
             % SYNTAX
@@ -332,7 +212,7 @@ classdef Residuals < Exportable
         function remEntry(this, lid_ko)
             % Remove an enntry from the residuals
             %
-            % INPUT 
+            % INPUT
             %   lid_ko  logical array of ko entry
             %
             % SYNTAX
@@ -370,13 +250,158 @@ classdef Residuals < Exportable
     end
     
     % =========================================================================
-    %  AUXILLIARY
+    %%  GETTERS
+    % =========================================================================
+    methods
+        function [res, obs_code, prn] = getU1(this, sys_c, freq_c)
+            % Get residual matrix of the combined/single_freq processing
+            %
+            % SYNTAX
+            %    [res, obs_code, prn] = this.getU1()
+            if this.type < 3
+                id_ok =  true(numel(this.prn), 1);
+                if nargin > 1 && ~isempty(sys_c)
+                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
+                end
+                if nargin > 2 && ~isempty(freq_c)
+                    id_ok(this.obs_code(:,3) ~= freq_c) = false;
+                end
+                
+                prn = this.prn(id_ok);
+                obs_code = this.obs_code(id_ok,:);
+                res = this.value(:, id_ok);
+            else
+                prn = [];
+                obs_code = '';
+                res = [];
+            end
+        end
+        
+        function [res, obs_code, prn] = getPrU2(this, sys_c, freq_c)
+            % Get residual matrix of the uncombined processing
+            % Pseudo-codes residuals
+            %
+            % SYNTAX
+            %    [res, obs_code, prn] =  = this.getPrU2()
+            if this.type == 3
+                id_ok =  this.obs_code(:,2) == 'C';
+                if nargin > 1 && ~isempty(sys_c)
+                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
+                end
+                if nargin > 2 && ~isempty(freq_c)
+                    id_ok(this.obs_code(:,3) ~= freq_c) = false;
+                end
+                
+                prn = this.prn(id_ok);
+                obs_code = this.obs_code(id_ok,:);
+                res = this.value(:, id_ok);
+            else
+                prn = [];
+                obs_code = '';
+                res = [];
+            end
+        end
+        
+        function [res, obs_code, prn] = getPhU2(this, sys_c, freq_c)
+            % Get residual matrix of the combined processing
+            % Carrier-phase residuals
+            %
+            % SYNTAX
+            %    [res, obs_code, prn] = this.getPhU2()
+            if this.type == 3
+                id_ok =  this.obs_code(:,2) == 'L';
+                if nargin > 1 && ~isempty(sys_c)
+                    id_ok(this.obs_code(:,1) ~= sys_c) = false;
+                end
+                if nargin > 2 && ~isempty(freq_c)
+                    id_ok(this.obs_code(:,3) ~= freq_c) = false;
+                end
+                
+                prn = this.prn(id_ok);
+                obs_code = this.obs_code(id_ok,:);
+                res = this.value(:, id_ok);
+            else
+                prn = [];
+                obs_code = '';
+                res = [];
+            end
+        end
+        
+        function [res, obs_code, prn, type] = get(this, sys_c, freq_c)
+            % Get residual matrix stored in residuals
+            %
+            % INPUT
+            %   sys_c   single character describing the constellation e.g. 'G', 'R', 'E', ...
+            %   freq_c  single character describing the frequency number e.g. '1', '2', ....
+            %
+            % SYNTAX
+            %    [res, obs_code, prn, type] = this.get(sys_c, freq_c)
+            type = this.type;
+            switch type
+                case 0
+                    prn = [];
+                    obs_code = '';
+                    res = [];
+                case {1, 2} % Prepro or unconbined residuals (both uses U1)
+                    if nargin == 1
+                        [res, obs_code, prn] = this.getU1();
+                    elseif nargin == 2
+                        [res, obs_code, prn] = this.getU1(sys_c);
+                    elseif nargin == 3
+                        [res, obs_code, prn] = this.getU1(sys_c, freq_c);
+                    end
+                case 3 % if I have uncombined residuals, return just phases
+                    if nargin == 1
+                        [res, obs_code, prn] = this.getPhU2();
+                        if isempty(res)
+                            [res, obs_code, prn] = this.getPrU2();
+                        end
+                    elseif nargin == 2
+                        [res, obs_code, prn] = this.getPhU2(sys_c);
+                        if isempty(res)
+                            [res, obs_code, prn] = this.getPrU2(sys_c);
+                        end
+                    elseif nargin == 3
+                        [res, obs_code, prn] = this.getPhU2(sys_c, freq_c);
+                        if isempty(res)
+                            [res, obs_code, prn] = this.getPrU2(sys_c, freq_c);
+                        end
+                    end
+            end
+        end
+        
+        function res = getCopy(this)
+            % Get a copy of the object
+            %
+            % SYNTAX
+            %   res = this.getCopy();
+            
+            res = Residuals;
+            res.importFromStruct(this.toStruct);
+            res.time = this.time.getCopy;
+            res.rec_coo = this.rec_coo.getCopy;
+        end
+        
+        function sigma = getStd(this)
+            % Get std of all the stored residuals
+            % WARNING this is still a very rough estimation, 
+            %         different frequencies have different noise
+            %
+            % SINTAX
+            %   sigma = this.getStd()
+            sigma = std(zero2nan(serialize(this.get())), 'omitnan');
+        end
+        
+    end
+    
+    % =========================================================================
+    %%  AUXILLIARY
     % =========================================================================
     methods
         function [az, el, sat_coo, sat_name, go_id] = getAzimuthElevation(this)
             % Get azimuth and elevation of each satellite stored in residuals
             %
-            % 
+            %
             %   [az, el, sat_coo, sat_name, go_id] = this.getAzimuthElevation();
             
             core = Core.getCurrentCore;
@@ -394,7 +419,7 @@ classdef Residuals < Exportable
     end
     
     % =========================================================================
-    %  MULTIPATH
+    %%  MULTIPATH
     % =========================================================================
     methods
         function ant_mp = computeMultiPath(this, marker_name, l_max, flag_reg, is_ph)
@@ -449,7 +474,7 @@ classdef Residuals < Exportable
                 [az, el, ~, ~, go_id] = this.getAzimuthElevation();
                 sys_c_list = cc.getAvailableSys;
                 
-                                
+                
                 log = Core.getLogger;
                 log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', marker_name));
                 
@@ -479,7 +504,7 @@ classdef Residuals < Exportable
                             
                             res_all = res(~isnan(res(:)));
                             res_smt = Receiver_Commons.smoothMat(res, 'spline', 300/this.time.getRate);
-                            res_smt = res_smt(~isnan(res(:)));                            
+                            res_smt = res_smt(~isnan(res(:)));
                             
                             go_id_list = [];
                             for s = 1 : numel(res_go_id)
@@ -638,17 +663,17 @@ classdef Residuals < Exportable
                 % Get the time limit of the map solution
                 ant_mp.time_lim = this.time.getEpoch([1 this.time.length]);
             end
-        end        
+        end
     end
     
     % =========================================================================
-    %  SHOW
+    %%  SHOW
     % =========================================================================
     methods
         function fh_list = showResSkyCartScatter(this, marker_name, sys_c_list, is_ph)
             % Plot residuals of the solution on cartesian axes
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.showResSkyCartScatter(marker_name, sys_c_list, is_ph)
             log = Core.getLogger();
             fh_list = [];
@@ -743,7 +768,7 @@ classdef Residuals < Exportable
         function fh_list = showResSkyPolarScatter(this, marker_name, sys_c_list, is_ph)
             % Plot residuals of the solution on polar axes
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.showResSkyPolarScatter(marker_name, sys_c_list, is_ph)
             log = Core.getLogger();
             fh_list = [];
@@ -829,13 +854,13 @@ classdef Residuals < Exportable
                 if isempty(fh_list)
                     log.addWarning('Residuals have not been computed');
                 end
-            end            
+            end
         end
         
         function fh_list = showRes(this, marker_name, sys_c_list, is_ph)
             % Plot residuals of the solution
             %
-            % SYNTAX 
+            % SYNTAX
             %   fh_list = this.showRes(marker_name, sys_c_list, is_ph)
             log = Core.getLogger();
             fh_list = [];
@@ -928,7 +953,7 @@ classdef Residuals < Exportable
                 end
             end
         end
-
+        
         function fh_list = showResPerSat(this, marker_name, sys_c_list, is_ph)
             % Plot the residuals of phase per tracking
             %
@@ -976,7 +1001,7 @@ classdef Residuals < Exportable
                             id = ids(obs_id_num == uobs_id(t)); % tracking for the specific obs_code
                             trk_code = this.obs_code(id(1),:);
                             
-                            res = this.value(:, id) * scale;                            
+                            res = this.value(:, id) * scale;
                             
                             fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: %s Res %s', fh.Number, marker_name, trk_code); fh.NumberTitle = 'off';
                             Core_UI.beautifyFig(fh); drawnow;
@@ -984,11 +1009,11 @@ classdef Residuals < Exportable
                             fh_list = [fh_list; fh]; %#ok<AGROW>
                             fig_name = sprintf('Res_Per_Sat_%s_%s_%s_%s_%s', trk_code(2:end), marker_name, cc.getSysName(sys_c), trk_code, this.time.first.toString('yyyymmdd_HHMM'));
                             fh.UserData = struct('fig_name', fig_name);
-                                                        
+                            
                             ax2 = subplot(1, 24, 19:24);
                             ax1 = subplot(1, 24, 1:16);
                             
-                            data_found = false;                            
+                            data_found = false;
                             figure(fh); % get focus;
                             for s = 1 : numel(id)
                                 id_ok = find(~isnan(zero2nan(res(:,s))));
@@ -1048,7 +1073,10 @@ classdef Residuals < Exportable
         end
     end
     
-    methods (Access = private)                
+    % =========================================================================
+    %%  PRIVATE
+    % =========================================================================
+    methods (Access = private)
         function init(this, type, time, value, prn, obs_code, rec_coo)
             % Init the residual object with new residuals (destroy the prevous content
             %
@@ -1076,9 +1104,12 @@ classdef Residuals < Exportable
             % Remove entry with no obs_code
             code_ko = Constellation_Collector.obsCode2num(this.obs_code, this.prn);
             this.remEntry(code_ko == 0);
-        end                
+        end
     end
     
+    % =========================================================================
+    %%  STATIC
+    % =========================================================================
     methods (Static)
         
     end

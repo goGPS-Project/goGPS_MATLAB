@@ -776,10 +776,11 @@ classdef Parallel_Manager < Com_Interface
                                         % try to read it again
                                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
                                     end
-                                    if std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan') * 1e2 > 2
-                                        this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), job_id, tmp.rec.state.getCurSession()));
+                                    s0 = tmp.rec.work.sat.res.getStd();
+                                    if s0 * 1e2 > 2
+                                        this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', s0, job_id, tmp.rec.state.getCurSession()));
                                     else
-                                        this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, std(zero2nan(tmp.rec.work.sat.res(:)), 'omitnan'), tmp.rec.state.getCurSession), 9));
+                                        this.log.addMessage(this.log.indent(sprintf('job %d residuals s0 = %.3f from parallel execution (session %d)', job_id, s0, tmp.rec.state.getCurSession), 9));
                                     end
                                     if core.rec(job_id).out.isEmpty
                                         % import all
