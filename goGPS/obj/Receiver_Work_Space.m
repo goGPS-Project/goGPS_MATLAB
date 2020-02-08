@@ -9341,41 +9341,71 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_sat = length(unique(ls.sat));
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;               
-                this.generateNumSatPerEpoch(ls ,res,id_sync)
+                this.generateNumSatPerEpochU1(ls ,res, id_sync)
             
             end
         end
         
         
-        function generateNumSatPerEpoch(this,ls ,res,id_sync)
-                % Get sat number per epoch
-                %
-                % SYNTAX:
-                % this.generateNumSatPerEpoch(ls ,res)
-                if nargin < 4
-                    id_sync = ls.true_epoch;
+        function generateNumSatPerEpochU1(this, ls, res, id_sync)
+            % Get sat number per epoch
+            %
+            % SYNTAX:
+            %    this.generateNumSatPerEpochU1(ls, res)
+            if nargin < 4
+                id_sync = ls.true_epoch;
+            end
+            cc = Core.getConstellationCollector();
+            [~, id] = intersect(cc.index, ls.sat_go_id);
+            sys_c_list = cc.system(id);
+            all_sys_c = cc.getActiveSysChar;
+            this.quality_info.n_spe = struct('A', uint8(zeros(this.time.length,1)), ...
+                'G', [], ...
+                'R', [], ...
+                'E', [], ...
+                'J', [], ...
+                'C', [], ...
+                'I', []);
+            this.quality_info.n_spe.A(id_sync) = sum((res(:, ls.sat_go_id)) ~= 0, 2);
+            for sys_c = all_sys_c
+                id_sys = ls.sat_go_id(sys_c_list == sys_c);
+                this.quality_info.n_spe.(sys_c) = uint8(zeros(this.time.length,1));
+                
+                if sum(id_sys) >0
+                    this.quality_info.n_spe.(sys_c)(id_sync)  = uint8(sum((res(:, id_sys)) ~= 0, 2));
                 end
-                cc = Core.getConstellationCollector();
-                [~, id] = intersect(cc.index, ls.sat_go_id);
-                sys_c_list = cc.system(id);
-                all_sys_c = cc.getActiveSysChar;
-                this.quality_info.n_spe = struct('A', uint8(zeros(this.time.length,1)), ...
-                    'G', [], ...
-                    'R', [], ...
-                    'E', [], ...
-                    'J', [], ...
-                    'C', [], ...
-                    'I', []);
-                this.quality_info.n_spe.A(id_sync) = sum((res(:, ls.sat_go_id)) ~= 0, 2);
-                for sys_c = all_sys_c
-                    id_sys = ls.sat_go_id(sys_c_list == sys_c);
-                    this.quality_info.n_spe.(sys_c) = uint8(zeros(this.time.length,1));
-
-                    if sum(id_sys) >0
-                        this.quality_info.n_spe.(sys_c)(id_sync)  = uint8(sum((res(:, id_sys)) ~= 0, 2));
-                    end
-                end
+            end
         end
+        
+        function generateNumSatPerEpochU2(this, ls_new)
+            % Get sat number per epoch
+            %
+            % SYNTAX:
+            %    this.generateNumSatPerEpochU2(ls_new ,res)
+            [res_ph, sat, obs_id] = ls_new.getPhRes(1);
+            go_id_list = unique(sat);
+            obs_ok = false(size(res_ph, 1), numel(go_id_list));
+            for s = 1 : numel(go_id_list)
+                obs_ok(:,s) = any(res_ph(:, sat == go_id_list(s)), 2);
+            end
+            cc = Core.getConstellationCollector();
+            [~, id] = intersect(cc.index, go_id_list);
+            sys_c_list = cc.system(id);
+            all_sys_c = unique(sys_c_list);
+            this.quality_info.n_spe = struct('A', uint8(sum(obs_ok, 2)), ...
+                'G', [], ...
+                'R', [], ...
+                'E', [], ...
+                'J', [], ...
+                'C', [], ...
+                'I', []);
+            for sys_c = all_sys_c
+                [~,id_sys] = intersect(sat(sys_c_list == sys_c), go_id_list);
+                this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(:, id_sys), 2));
+            end
+            clear res_ph sat obs_id obs_ok
+        end
+        
         function [dpos, s0, ls] = codeDynamicPositioning(this, sys_list, id_sync, cut_off)
             cc = Core.getState.getConstellationCollector;
             ls = LS_Manipulator();
@@ -9496,7 +9526,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.fixing_ratio = 0;
                 
                 % Get sat number per epoch
-                this.generateNumSatPerEpoch(ls ,res)
+                this.generateNumSatPerEpochU1(ls ,res)
 
                 
                 % final estimation of time of flight
@@ -10069,7 +10099,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
                     end
                                         
-                    this.generateNumSatPerEpoch(ls ,res)
+                    this.generateNumSatPerEpochU1(ls ,res)
 
                     
                     if s0 > 0.10
@@ -10487,28 +10517,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
                     end
                     
-%                     % Get sat number per epoch
-%                     [res_ph, sat, obs_id] = ls.getPhRes(1);
-%                     go_id_list = unique(sat);
-%                     obs_ok = false(size(res_ph,1), numel(go_id_list));
-%                     for s = 1 : numel(go_id_list)
-%                         obs_ok(:,s) = any(res_ph(:, sat == go_id_list(s)), 2);
-%                     end
-%                     [~, id] = intersect(cc.index, go_id_list);
-%                     sys_c_list = cc.system(id);
-%                     all_sys_c = unique(sys_c_list);
-%                     this.quality_info.n_spe = struct('A', uint8(sum(obs_ok, 2)), ...
-%                         'G', [], ...
-%                         'R', [], ...
-%                         'E', [], ...
-%                         'J', [], ...
-%                         'C', [], ...
-%                         'I', []);
-%                     for sys_c = all_sys_c
-%                         [~,id_sys] = intersect(sat(sys_c_list == sys_c),go_id_list);
-%                         this.quality_info.n_spe.(sys_c) = uint8(sum(obs_ok(:, id_sys), 2));
-%                     end
-%                     clear res_ph sat obs_id obs_ok
+                     % Get sat number per epoch
+                    this.generateNumSatPerEpochU2(ls)
                     
                     % save phase residuals
                     idx_ph = find(this.obs_code(:,1) == 'L');
