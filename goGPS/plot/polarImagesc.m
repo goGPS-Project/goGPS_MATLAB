@@ -1,7 +1,7 @@
 function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
-% Similar to polarScatter but for maps
+% Similar to polarImagesc but for maps
 % SYNTAX:
-%    polarScatter(az, decl, point_size, color, <flag>)
+%    polarImagesc(az, decl, point_size, color, <flag_plot_bg>)
 %
 % INPUT
 %   az      azimuth      [rad]
@@ -10,6 +10,9 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
 %
 % OUTPUT
 %   h       handle to the scattered points
+%
+% SEE ALSO
+%   polarScatter
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -19,9 +22,9 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
 %    |___/                    v 1.0b6
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       Mirko Reguzzoni
-%  Contributors:     Giulio Tagliaferro, Andrea Gatti ...
+%  Copyright (C) 2020 Andrea Gatti, Giulio Tagliaferro, Eugenio Realini
+%  Written by:       Andrea Gatti
+%  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
