@@ -276,13 +276,12 @@ classdef Observation_Set < handle
             %     idx = this.getTimeIdx(this,time_st, rate)
             %
             if nargin == 3
-            idx = round((this.time -time_st)/rate) +1;
-            else %assume time_st is the full time
+                idx = round((this.time - time_st) / rate) +1;
+            else % assume time_st is the full time
                 rate = time_st.getRate();
-                time_rec = time_st.getNominalTime(rate).getRefTime(time_st.first.getMatlabTime);
-                time_obs = this.time.getNominalTime(rate).getRefTime(time_st.first.getMatlabTime);
-                [~,idx] = ismember(time_rec,time_obs);
-                
+                time_rec = time_st.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
+                time_obs = this.time.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
+                [~, idx] = intersect(round(time_rec * rate), round(time_obs * rate));                
             end
         end
         
@@ -392,7 +391,7 @@ classdef Observation_Set < handle
             % SYNTAX:
             %   [obs_c_matrix] = getMRObsMat(obs_set_list, p_time, id_sync)
             if nargin < 2
-                [p_time, id_sync] = getSyncTimeExpanded(obs_set_list)
+                [p_time, id_sync] = getSyncTimeExpanded(obs_set_list);
             end
             % finde the unique vectors of go id
             n_r = length(obs_set_list);
