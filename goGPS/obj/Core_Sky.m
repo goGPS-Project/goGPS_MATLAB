@@ -1628,7 +1628,7 @@ classdef Core_Sky < handle
                 % if coordinates refers to center of mass apply also pco
                 sat_pco = ant.getPCO(f_code) * 1e-3;
                 neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
-                pco_delay = neu_los*sat_pco;
+                pco_delay = neu_los * sat_pco;
             else
                 pco_delay = zeros(size(el));
             end

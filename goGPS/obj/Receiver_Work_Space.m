@@ -8184,11 +8184,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         pco_cache = {}; % PCO cache
                         f_id_cache = [];
                         c = 0; % cache counter
+                        % figure;
                         for s = unique(this.go_id)'
                             sat_idx = this.sat.avail_index(:, s);
                             el = this.sat.el(sat_idx, s);
                             az = this.sat.az(sat_idx, s);
-                            % Extract ENU component of the PCV
+                            % Extract NEU component of the PCV
                             neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                             obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                             obs_idx = obs_idx & this.go_id == s;
@@ -8202,13 +8203,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if isempty(f_code_cache) || ~sum(strLineMatch(f_code_cache, f_code))
                                         % if not in cache
                                         % cache is also used to avoid multiple warnings for the same frequency
-                                        [pco, f_id] = this.getPCO(f_code);
-                                        c = c + 1;
-                                        pco_cache{c} = pco; %#ok<AGROW>
-                                        f_id_cache = [f_id_cache; f_id]; %#ok<AGROW>
-                                        f_code_cache = [f_code_cache; f_code]; %#ok<AGROW>
-                                        if isempty(pco)
-                                            this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
+                                        if isempty(this.ant)
+                                            pco = [];
+                                        else
+                                            [pco, f_id] = this.ant.getPCO(f_code);
+                                            c = c + 1;
+                                            pco_cache{c} = pco; %#ok<AGROW>
+                                            f_id_cache = [f_id_cache; f_id]; %#ok<AGROW>
+                                            f_code_cache = [f_code_cache; f_code]; %#ok<AGROW>
+                                            if isempty(pco)
+                                                this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s', this.parent.ant_type, f_code)));
+                                            end
                                         end
                                     else
                                         % get from cache
@@ -8219,20 +8224,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     
                                     if ~isempty(pco)
                                         % get los PCO component
-                                        pco_delays = neu_los * (pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
-                                        pcv_delays = pco_delays - this.ant.getPCV(f_id, el, az) * 1e-3;
+                                        pco_delays = neu_los * pco; %(pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
+                                        pcv_delays = (pco_delays + this.ant.getPCV(f_id, el, az)) * 1e-3;
                                         for o = find(obs_idx_f)'
                                             pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
                                             o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections
                                             if  this.obs_code(o, 1) == 'L'
-                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) - sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
                                             else
-                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) - sign(sgn) * pcv_delays(pcv_idx);
                                             end
                                         end
                                     end
                                 end
                             end
+                            % polarScatter(az/180*pi,(90 -  el)/180*pi, 50, this.ant.getPCV(f_id, el, az) * 1e-3); hold on
                         end
                     end
                 end
@@ -8295,20 +8301,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.obs = this.obs'; % Transpose for speed-up
             end
             
-        end
-        
-        function [pco, f_id] = getPCO(this, f_code)
-            % get pco
-            if ~isempty(this.ant)
-                [pco, f_id] = this.ant.getPCO(f_code);
-                % Switch from NEU to ENU
-                if numel(pco) == 3
-                    pco = pco([2 1 3]) * 1e-3; % Convert into meters
-                end
-            else
-                pco = [];
-            end
-        end
+        end                
         
         function applyPCV(this)
             if (this.pcv_delay_status == 0)
@@ -9366,13 +9359,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 'J', [], ...
                 'C', [], ...
                 'I', []);
-            this.quality_info.n_spe.A(id_sync) = sum((res(:, ls.sat_go_id)) ~= 0, 2);
+            this.quality_info.n_spe.A(id_sync) = sum((res(id_sync, ls.sat_go_id)) ~= 0, 2);
             for sys_c = all_sys_c
                 id_sys = ls.sat_go_id(sys_c_list == sys_c);
                 this.quality_info.n_spe.(sys_c) = uint8(zeros(this.time.length,1));
                 
                 if sum(id_sys) >0
-                    this.quality_info.n_spe.(sys_c)(id_sync)  = uint8(sum((res(:, id_sys)) ~= 0, 2));
+                    this.quality_info.n_spe.(sys_c)(id_sync)  = uint8(sum((res(id_sync, id_sys)) ~= 0, 2));
                 end
             end
         end
