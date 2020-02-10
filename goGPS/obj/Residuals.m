@@ -327,6 +327,27 @@ classdef Residuals < Exportable
             end
         end
         
+        function [res, obs_code, prn, time] = getRangeResiduals(this, sys_c)
+            % Get range residuals
+            %
+            % SYNTAX
+            %    [res, obs_code, prn] = this.getU1()
+            if this.type < 3
+                if nargin == 1
+                    [res, obs_code, prn] = this.getU1();
+                else
+                    [res, obs_code, prn] = this.getU1(sys_c);
+                end
+                time = this.time;
+            else
+                % To be done!!! in case of uncombined residuals
+                prn = [];
+                obs_code = '';
+                res = [];
+                time = GPS_Time;
+            end
+        end
+
         function [res, obs_code, prn, type] = get(this, sys_c, freq_c)
             % Get residual matrix stored in residuals
             %

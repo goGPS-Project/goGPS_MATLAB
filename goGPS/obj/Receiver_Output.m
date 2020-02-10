@@ -275,9 +275,14 @@ classdef Receiver_Output < Receiver_Commons
             id_sync = 1 : this.time.length;
         end
         
-        function [mfh, mfw] = getSlantMF(this)
+        function [mfh, mfw, cotan_term] = getSlantMF(this)
             mfh = this.sat.mfh;
             mfw = this.sat.mfw;
+            if nargout == 3
+                % at the moment this is needed for experimental Zernike estimation -> not yet implemented for out
+                Core.getLogger.addWarning('at the moment Cotan_term in getSlantMF is needed for experimental Zernike estimation -> not yet implemented for out objects');
+                cotan_term = nan; 
+            end            
         end
         
         function [day_lim] = getDayLim(this)

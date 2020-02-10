@@ -434,6 +434,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        
         % tropo
         function [tropo, time] = getTropoPar(sta_list, par_name)
             % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
@@ -473,54 +474,65 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function slant_td = getSlantTD(this, go_id)
+        function [slant_td, slant_wd, go_id] = getSlantTD(this, go_id)
             % Get the slant total delay
             %
             % SYNTAX
-            %   slant_td = this.getSlantTD();
+            %   [slant_td, go_id] = this.getSlantTD();
             
             if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
             else
-                 go_id = serialize(go_id)';
-            end
+                go_id = serialize(go_id)';
+            end            
             
+            id_sync  = this.getIdSync;
             
-            slant_td = zeros(size(this.sat.el));
+            slant_td = zeros(size(this.sat.el)); % Slant Total Delay
+            slant_wd = zeros(size(this.sat.el)); % Slant Wet Delay
             
             zwd = nan2zero(this.getZwd);
             apr_zhd = single(this.getAprZhd);
-            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
-            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
-            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
+            cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
+            cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
+            sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
             [gn ,ge] = this.getGradient();
-            [mfh, mfw, cotan_term] = this.getSlantMF();
+            if ~isempty(this.tzer)
+                [mfh, mfw, cotan_term] = this.getSlantMF();
+            else
+                [mfh, mfw] = this.getSlantMF();
+            end
+            
+            % Computing delays
             if any(mfh(:)) && any(mfw(:))
                 if any(ge(:))
                     for g = go_id
-                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                        slant_wd(id_sync, g) = mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                        slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
                     end
                 else
                     for g = go_id
-                        slant_td(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
+                        slant_wd(id_sync, g) = mfw(:,g).*zwd;
+                        slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
                     end
                 end
+                % If Zernike have been used rebuild delays in this way:
                 if ~isempty(this.tzer)
                     degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
-                    el = this.sat.el(this.id_sync,:);
+                    el = this.sat.el(id_sync,:);
                     
                     rho = (90 - el)/(90);
                     zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
                     
-                    az = this.sat.az(this.id_sync,:);
+                    az = this.sat.az(id_sync,:);
                     idx = el>0;
                     for  g = go_id
                         zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
                     end
-                    for i = 4 : Main_Settings.getNumZerTropoCoef;
-                        slant_td(this.id_sync,:) = slant_td(this.id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
+                    for i = 4 : Main_Settings.getNumZerTropoCoef
+                        slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
                     end
                 end
             end
@@ -908,7 +920,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.m']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)) '.mat']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)+1) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'pwv', 'utc_time','-v6');
                         
                         log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
@@ -952,8 +964,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         this(r).updateCoordinates;
                         state = Core.getCurrentSettings;
                         time = this(r).getTime.getNominalTime;
-                        t_start = state.sss_date_start;
-                        t_end = state.sss_date_stop;
+                        if isa(this, 'Receiver_Work_Space')
+                            [~, t_start] = state.getSessionLimits();
+                            t_end = t_start.last;
+                            t_start = t_start.first;
+                        else
+                            t_start = state.sss_date_start;
+                            t_end = state.sss_date_stop;
+                        end
                         [year, doy] = t_start.getDOY();
                         t_start_str = t_start.toString('HHMM');
                         t_start.toUtc();
@@ -971,7 +989,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.csv']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)) '.csv']);
+                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)+1) '.csv']);
                                                 
                         n_data = time.length;
                         if n_data == 0
@@ -999,7 +1017,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             data = [data char(10 .* ones(n_data,1))];
                             fprintf(fid,data');
                             fclose(fid);
-                            this(1).log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                            log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
                             for f = 1 : numel(old_file_list)
                                 % If I did not overwrite the old file, delete it
                                 if ~strcmp([out_dir filesep old_file_list(f).name], fname)
@@ -1009,6 +1027,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                         end
                     catch ex
+                        Core_Utils.printEx(ex);
                         log.addError(sprintf('saving Tropo in csv format failed: "%s"', ex.message));
                     end
                 else
@@ -1018,6 +1037,217 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
                     end
                 end
+            end
+        end
+        
+        function err_code = exportSlantWD(this, time_rate, mode, format, flag_append)
+            % Export Slant Wet Delay
+            % 
+            % INPUT 
+            %   time_rate   it could be a rate in seconds - default 21600 (6 hours)
+            %               or an object of class GPS_Time
+            %               (e.g. GPS_Time.fromString(2013/06/04 12:00:00))
+            %
+            %   mode        indicate if it is necessary to add the residuals
+            %               0 - do not add residuals
+            %               1 - add residuals 
+            %               2 - add spline smoothed residuals (1 spline every 900 seconds)
+            %
+            %   format      'compact' - MJD SAT SWD EL AZ (default)
+            %               'extended' - extended - Year DOY SOD SWD SAT SAT_X SAT_Y SAT_Z Receiver REC_X REC_Y REC_Z elAngle(rad) elAngle(deg) Azimuth(rad) Azimuth(deg)
+            %
+            %   flag_append if provided (true) go in append mode (default == true for compact mode, false for extended mode)
+            %
+            %
+            % NOTE: at the moment adding residuals works only if the data have been porcessed 
+            %       with the combined engine in iono-free mode
+            %
+            % SYNTAX
+            %   this.exportSlantWD(this, time_rate, mode, format, flag_append)
+            
+            err_code = 1;
+            if nargin < 4 || isempty(format)
+                format = 'compact';
+            end
+            if nargin < 3 || isempty(mode)
+                mode = 0;
+            end
+            if nargin < 2 || isempty(time_rate)
+                time_rate = 21600;
+            end
+            
+            if nargin<5 || isempty(flag_append)
+                if format(1) == 'c'
+                    flag_append = true;
+                else
+                    flag_append = false;
+                end
+            end
+            
+            try
+                log = Core.getLogger();
+                cut_off = Core.getState.getCutOff;
+                state = Core.getCurrentSettings;
+                
+                cc = Core.getConstellationCollector;
+                go_id = [];
+                if ~isempty(this.sat.res) && ~this.sat.res.isEmpty
+                    go_id = cc.getIndex(this.sat.res.obs_code(:,1), this.sat.res.prn);
+                end
+                
+                if isa(this, 'Receiver_Work_Space')
+                    [~, t_start] = state.getSessionLimits();
+                    t_end = t_start.last;
+                    t_start = t_start.first;
+                    
+                    if isempty(go_id)
+                        go_id = unique(this.go_id);
+                    end
+                else
+                    t_start = state.sss_date_start;
+                    t_end = state.sss_date_stop;
+                    if isempty(go_id)
+                        go_id = cc.index;
+                    end
+                end
+                t_start_str = t_start.toString('HHMM');
+                
+                time_slant = this.getTime;
+                if isempty(time_slant)
+                    log.addWarning(sprintf('No solution found for %s', this.parent.getMarkerName4Ch));
+                else
+                    time0 = round(time_slant.first.getMatlabTime);
+                    time_slant.changeRef(time0);  % Time referred to the beginning of the day;
+                    time_slant = time_slant.getNominalTime;
+                    if isa(time_rate, 'GPS_Time')
+                        time_ref = time_rate;
+                    else
+                        time_ref = GPS_Time.fromRefTime(time0, unique(round(time_slant.getRefTime / time_rate)) * time_rate);
+                    end
+                    [~, slant_wd, go_id] = this.getSlantTD(go_id);
+                    slant_wd = slant_wd(:, go_id);
+                    if ~isempty(time_slant) && ~isempty(slant_wd)
+                        sky = Core.getCoreSky;
+                        coo = this.getPos;
+                        time_pos = this.getPositionTime;
+                        time_pos.changeRef(time0);
+                        
+                        
+                        [year, doy] = t_start.getDOY();
+                        % Preparing the file_name
+                        out_dir = fullfile(this.state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                        if ~exist(out_dir, 'file')
+                            mkdir(out_dir);
+                        end
+                        if format(1) == 'e'
+                            file_path = sprintf('%s',[out_dir filesep this.parent.getMarkerName4Ch sprintf('_SlantWD_%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)+1) '.SNX']);
+                            fid = fopen(file_path, 'wb');
+                        end
+                        if format(1) == 'e' && fid <= 0
+                            log.addError(sprintf('Writing "%s" seems impossible', file_path));
+                        else
+                            % Print header
+                            if format(1) == 'e'
+                                fprintf(fid, ['Year               Day           Seconds    Slant WV Delay(mm)     Satellite             SAT_X(Km)         SAT_Y(Km)         SAT_Z(Km)      ' ...
+                                    'Receiver             REC_X(Km)         REC_Y(Km)         REC_Z(Km)  elAngle(rad)      elAngle(deg)      Azimuth(rad)      Azimuth(deg)']);
+                            end
+                            
+                            % Get the data at the requested time
+                            [az, el, sat_coo] = sky.getAzimuthElevation(coo, time_ref, go_id);
+                            
+                            % Get residuals
+                            if mode > 0
+                                [res, obs_code_res, prn_res, time_res] = this.sat.res.getRangeResiduals();
+                                go_id_res = cc.getIndex(obs_code_res(:,1), prn_res);
+                                [go_id, idr, ids] = intersect(go_id_res, go_id);
+                                
+                                % Delete slants with no residuals (and res with no slant)
+                                slant_wd = slant_wd(:, ids);
+                                res = res(:, idr);
+                                obs_code_res = obs_code_res(idr, :);
+                                prn_res = prn_res(idr);
+                                
+                                if mode == 2
+                                    res = Receiver_Commons.smoothMat(res, 'spline', 900 / this.getRate);
+                                end
+                            end
+                            
+                            sat_name = cc.getSatName(go_id);
+                            err_code = time_ref.length;
+                            for e = 1 : time_ref.length
+                                
+                                % Get id of the closest (in time) position
+                                [time_dist, id_min] = min(abs(time_pos - time_ref.getEpoch(e)));
+                                rec_xyz = coo.getElement(id_min).getXYZ;
+                                
+                                % Get id of the closest (in time) slant set
+                                [time_dist, id_min] = min(abs(time_slant - time_ref.getEpoch(e)));
+                                if time_dist > 1800 % (seconds)
+                                    log.addWarning(sprintf('No solution found for %s at %s', this.parent.getMarkerName4Ch, time_ref.getEpoch(e).toString));
+                                else
+                                    slant_set = slant_wd(id_min, :);
+                                    slant_set(el(e, :) < cut_off) = nan;
+                                    
+                                    % Find residuals close to the required slant time
+                                    if mode > 0
+                                        [time_dist, id_min] = min(abs(time_res - time_ref.getEpoch(e)));
+                                        if time_dist > 180 % (seconds)
+                                            log.addWarning(sprintf('No residuals found for %s at %s', this.parent.getMarkerName4Ch, time_ref.getEpoch(e).toString));
+                                        else
+                                            slant_set = slant_set + double(zero2nan(res(id_min, :)));
+                                        end
+                                    end
+                                    
+                                    sat_ok = ~isnan(slant_set);
+                                    
+                                    [year, doy, sod] = time_ref.getEpoch(e).getDOY;
+                                    
+                                    str = '';
+                                    if format(1) == 'c'
+                                        for s = find(sat_ok)
+                                            str = sprintf('%s%11.5f %4s %3s %8.4f %8.4f %8.4f\n', ...
+                                                str, time_ref.getEpoch(e).getMJD, this.parent.getMarkerName4Ch, sat_name(s,:), slant_set(s), el(e, s), mod(az(e, s), 360));
+                                        end
+                                    elseif format(1) == 'e'
+                                        for s = find(sat_ok)
+                                            sat_xyz = squeeze(sat_coo.xyz(e, s, :));
+                                            str = sprintf(['%s%04d %03d %05d %.6f %3s %.6f %.6f %.6f ' ...
+                                                '%4s %.6f %.6f %.6f %.6f %.6f %.6f %.6f\n'], ...
+                                                str, year, doy, sod, slant_set(s)*1e3, sat_name(s,:), sat_xyz(1)*1e-3, sat_xyz(2)*1e-3, sat_xyz(3)*1e-3, ...
+                                                this.parent.getMarkerName4Ch, rec_xyz(1)*1e-3, rec_xyz(2)*1e-3, rec_xyz(3)*1e-3, el(e, s)/180*pi, el(e, s), mod(az(e, s), 360)/180*pi, mod(az(e, s), 360));
+                                        end
+                                    end
+                                    if format(1) == 'c'
+                                        file_path = sprintf('%s', fullfile(out_dir, sprintf('CE_%04d%03d%02d_hydr_gradients.SWD', year, doy, round(sod/3600))));
+                                        if flag_append
+                                            fid = fopen(file_path, 'ab');
+                                        else
+                                            fid = fopen(file_path, 'wb');
+                                        end
+                                        if fid <= 0
+                                            log.addError(sprintf('Writing "%s" seems impossible', file_path));
+                                        else
+                                            fprintf(fid, '%s', str);
+                                            fclose(fid);
+                                        end
+                                        log.addStatusOk(sprintf('Slant WV delay for %s %s into: "%s"', this.parent.getMarkerName4Ch, iif(flag_append, 'appended', 'saved'), file_path));
+                                    else
+                                        fprintf(fid, '%s', str);
+                                    end
+                                end
+                                err_code = err_code - 1;
+                            end
+                            if format(1) == 'e'
+                                fclose(fid);
+                                log.addStatusOk(sprintf('Slant WV delay saved into: "%s"', file_path));
+                                err_code = 0;
+                            end                            
+                        end
+                    end
+                end
+            catch ex
+                Core_Utils.printEx(ex);
+                log.addError(sprintf('saving slants in plain text format failed: "%s"', ex.message));
             end
         end
         
