@@ -783,7 +783,7 @@ classdef GPS_Time < Exportable & handle
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (double(this.time_ref) - 719529) * 86400;
-                    this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
+                    this.unix_time = uint32(fix(round((time_s + this.time_diff), 4)));
                     rounding = 2.^(round(47 - max(0,log2(time_s + eps(time_s))))); % 52 bits of mantissa -> but I need to consider only 47 bits to keep precision
                     this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding + double(this.time_diff);
                     second_correction = - floor(this.unix_time_f);
@@ -805,7 +805,7 @@ classdef GPS_Time < Exportable & handle
                     this.time_type = 2;
                     this.time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
-                    this.time_diff = (this.mat_time - this.time_ref) * 86400;
+                    this.time_diff = round((this.mat_time - this.time_ref) * 86400, 4);
                     this.mat_time = [];
                 case 1 % I'm in UNIX TIME
                     this.time_type = 2;
@@ -813,7 +813,7 @@ classdef GPS_Time < Exportable & handle
                     % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;
                     this.time_ref = fix(time_d(1));
-                    this.time_diff = round((time_d - this.time_ref) * 86400) + this.unix_time_f;
+                    this.time_diff = round((time_d - this.time_ref) * 86400, 4) + this.unix_time_f;
                     this.unix_time = [];
                     this.unix_time_f = [];
                 case 2 % I'm already in REF TIME
@@ -1959,6 +1959,23 @@ classdef GPS_Time < Exportable & handle
             unix_s = uint32((datenummx(year , 1, doy)  - datenummx(1970,1,1))*86400) + uint32(floor(sod));
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
+        end
+        
+        function this = fromRefTime(time_matlab_reference, time_difference, is_gps)
+            % construct from matlab reference time / time diff
+            %
+            % INPUT 
+            %   time_matlab_reference   time in matlab format
+            %   time_difference         second from the reference
+            %   is_gps                  flag, is GPS or UTC time?
+            %
+            % SYNTAX
+            %   this = GPS_Time.fromRefTime(time_matlab_reference, time_difference, is_gps)
+            this = GPS_Time;
+            if nargin < 3 || isempty(is_gps)
+                is_gps = true;
+            end
+            this = this.GPS_Time_ref(time_matlab_reference, time_difference, is_gps);
         end
         
         function this = fromMJD(mjd)
