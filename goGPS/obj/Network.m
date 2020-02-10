@@ -650,7 +650,7 @@ classdef Network < handle
 %                 idx_fix = ls.class_par == ls.PAR_AMB;
 %                 idx_fix(idx_fix) = abs(fracFNI(ls.x(idx_fix))) < 1e-9; % fixed ambiguoty
 %                 ls.removeEstParam(idx_fix);
-                ls.simpleSnoop(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
                 ls.solve(Core.getState.net_amb_fix_approach >1);                
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
@@ -1338,10 +1338,11 @@ classdef Network < handle
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 % sigma of the session
                 this.rec_list(i).work.quality_info.s0 = s0;
-                this.rec_list(i).work.quality_info.n_epochs = length(unique(ls.time_par(ls.rec_par == i)));
-                this.rec_list(i).work.quality_info.n_obs = sum(ls.receiver_obs == i);
-                this.rec_list(i).work.quality_info.n_sat = length(unique(ls.satellite_obs(ls.receiver_obs == i)));
-                this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getEpoch(ls.receiver_obs == i).getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + double(ls.satellite_obs(ls.receiver_obs == i))), this.rec_list(i).work.quality_info.n_epochs ));
+                this.rec_list(i).work.quality_info.n_epochs = length(unique(ls.time_par(ls.rec_par == i & ~ls.out_par)));
+                idx_obs = ls.receiver_obs == i & ~ls.outlier_obs;
+                this.rec_list(i).work.quality_info.n_obs = sum(idx_obs);
+                this.rec_list(i).work.quality_info.n_sat = length(unique(ls.satellite_obs(idx_obs)));
+                this.rec_list(i).work.quality_info.n_sat_max = max(hist(unique(ls.time_obs.getEpoch(idx_obs).getNominalTime(ls.obs_rate).getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000 + double(ls.satellite_obs(idx_obs))), this.rec_list(i).work.quality_info.n_epochs ));
                 this.rec_list(i).work.quality_info.fixing_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * 100; %TBD
                 
                 % residual
