@@ -945,7 +945,9 @@ classdef Meteo_Data < handle
                     data = data_fill;
                     
                     if type == Meteo_Data.HR
+                        inan = isnan(data);
                         data = min(100, max(0, data));
+                        data(inan) = nan;
                     end
                 end
             end
