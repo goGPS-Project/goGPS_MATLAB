@@ -75,7 +75,8 @@ classdef LS_Manipulator < Exportable
         tropo_g_idx  % index of tropo gradients par
         tropo_time_start % index of tiem start
         go_id_amb    % go ids of the amb idx
-        phase_idx       % index of the phase measurements
+        obs_code     % observation code used
+        phase_idx    % index of the phase measurements
         out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
         N_ep         % Stacked epoch-wise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         G            % hard constraints (Lagrange multiplier)
@@ -843,7 +844,6 @@ classdef LS_Manipulator < Exportable
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             phase_s = find(obs_set.wl ~=  -1);
-            islinspline = ~isempty(tropo_rate);
             
             if ~isempty(tropo_rate) && sum(abs(tropo_rate)) ~= 0
                 if isempty(this.tropo_time_start)
@@ -1063,6 +1063,8 @@ classdef LS_Manipulator < Exportable
                 amb_set_jmp = [];
             end
             
+            % Save obs_code
+            this.obs_code = obs_set.obs_code;
         end
         
         function setTimeRegularization(this, param_class, time_variability)

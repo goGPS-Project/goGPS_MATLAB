@@ -2065,6 +2065,9 @@ classdef Core_Utils < handle
                 end
             end
             if ~isempty(data2)
+                if size(data1, 1) < idx2
+                    data1((end + 1) : idx2, :) = nan;
+                end
                 data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
             else
                 data = data1;

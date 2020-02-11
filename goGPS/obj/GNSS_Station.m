@@ -2751,7 +2751,7 @@ classdef GNSS_Station < handle
                         rec_rate = min(86400, iif(rec(r).out.time_pos.length == 1, 86400, rec(r).out.time_pos.getRate));
                         t = [t; round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate];
                     else
-                        rec_rate = min(1, rec(r).out.time.getRate);
+                        rec_rate = min(5, rec(r).out.time.getRate);
                         t = [t; round(rec(r).out.time.getRefTime(p_time_zero) / rec_rate) * rec_rate];
                     end
                     % p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
@@ -2773,7 +2773,7 @@ classdef GNSS_Station < handle
                         rec_rate = iif(rec(r).out.time_pos.length == 1, 86400, rec(r).out.time_pos.getRate);
                         [~, id1, id2] = intersect(t, round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate);
                     else
-                        rec_rate = min(1, rec(r).out.time.getRate);
+                        rec_rate = min(5, rec(r).out.time.getRate);
                         [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
                     end
 

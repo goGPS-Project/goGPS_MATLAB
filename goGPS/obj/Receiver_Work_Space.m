@@ -8882,6 +8882,25 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.time.addSeconds(time_desync - this.dt_pr);
         end
         
+        function [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
+            % if we have a good approximate position do a coarse robust
+            % estimation on the dt
+            %
+            % SYNTAX:
+            % [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
+            [pr, wl, id_ph] = this.getPseudoRanges();
+            [ph, wl, id_ph] = this.getPhases();
+
+            
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
+            
+            synt_pr = this.getPseudoRanges;
+            synt_ph = this.getSyntPhases;
+            
+            dt = pr 
+        end
+        
         function s0 = initPositioning(this, sys_c)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
@@ -9327,7 +9346,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs_code(:,2) = 'C';
                 rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
                 this.sat.res = Residuals();
-                this.sat.res.import(1, this.time, res_tmp, prn, obs_code, rec_coo);
+                this.sat.res.import(1, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
                 
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
@@ -9453,7 +9472,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_code(:,2) = 'C';
             rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
             this.sat.res = Residuals();
-            this.sat.res.import(1, this.time, res_tmp, prn, obs_code, rec_coo);
+            this.sat.res.import(1, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
         end
         
         function s0 = initDynamicPositioning(this)
@@ -9883,6 +9902,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   using epochs from 501 to 2380
             %    - this.staticPPP([], 500:2380);
             
+            state = Core.getCurrentSettings;
             log = Core.getLogger;
             cc = Core.getState.getConstellationCollector;
             if this.isEmpty()
@@ -9913,13 +9933,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 log.addMessage(log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                if this.state.getAmbFixPPP()
+                if state.getAmbFixPPP()
                     this.coarseAmbEstimation();
                 end
                 ls = LS_Manipulator(cc);
                 pos_idx = [];
-                if this.state.isSepCooAtBoundaries
-                    [ss_lim_ext, ss_lim_int] = this.state.getSessionLimits();
+                if state.isSepCooAtBoundaries
+                    [ss_lim_ext, ss_lim_int] = state.getSessionLimits();
                     pos_idx = ones(this.time.length,1);
                     idx_bf  = this.time < ss_lim_int.first;
                     idx_aft = this.time > ss_lim_int.last;
@@ -9933,9 +9953,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     pos_idx(idx_aft) = max(pos_idx) + 1;
                 end
-                order_tropo = this.state.spline_tropo_order;
-                order_tropo_g = this.state.spline_tropo_gradient_order;
-                tropo_rate = [this.state.spline_rate_tropo*double(order_tropo>0)  this.state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
+                order_tropo = state.spline_tropo_order;
+                order_tropo_g = state.spline_tropo_gradient_order;
+                tropo_rate = [state.spline_rate_tropo*double(order_tropo>0)  state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
                 id_obs = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
                 if isempty(id_obs)
                     log.addWarning('No processable epochs found, skipping PPP');
@@ -9943,32 +9963,32 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.Astack2Nstack();
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
-                    ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600* rate); % really small regularization
-                    if this.state.flag_tropo
-                        ls.setMeanRegularization(ls.PAR_TROPO, this.state.std_tropo_abs^2);% this.state.std_tropo / 3600 * rate  );
+                    ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600* rate); % really small regularization
+                    if state.flag_tropo
+                        ls.setMeanRegularization(ls.PAR_TROPO, state.std_tropo_abs^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo == 0
-                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                            ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
                         else
-                            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * tropo_rate(1) );% this.state.std_tropo / 3600 * rate  );
+                            ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * tropo_rate(1) );% state.std_tropo / 3600 * rate  );
                         end
                     end
-                    if this.state.flag_tropo_gradient
-                        ls.setMeanRegularization(ls.PAR_TROPO_N, this.state.std_tropo_gradient_abs^2);% this.state.std_tropo / 3600 * rate  );
-                        ls.setMeanRegularization(ls.PAR_TROPO_E, this.state.std_tropo_gradient_abs^2);% this.state.std_tropo / 3600 * rate  );
+                    if state.flag_tropo_gradient
+                        ls.setMeanRegularization(ls.PAR_TROPO_N, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
+                        ls.setMeanRegularization(ls.PAR_TROPO_E, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo_g == 0
-                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                         else
-                            ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%this.state.std_tropo / 3600 * rate );
-                            ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%this.state.std_tropo  / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%state.std_tropo  / 3600 * rate );
                         end
                     end
                     log.addMessage(log.indent('Solving the system'));
                     [x, res, s0, ~, l_fixed] = ls.solvePPP();
                     % REWEIGHT ON RESIDUALS
-                    if this.state.getReweightPPP > 1
+                    if state.getReweightPPP > 1
                         flag_recompute = true;
-                        switch this.state.getReweightPPP()
+                        switch state.getReweightPPP()
                             case 2, ls.reweightHuber;
                             case 3, ls.reweightHubNoThr;
                             case 4, ls.reweightDanish;
@@ -10015,7 +10035,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     
-                    if this.state.getAmbFixPPP && false
+                    if state.getAmbFixPPP && false
                         this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1), ls.wl_amb, ls.amb_idx, ls.go_id_amb,ls.true_epoch);
                         %pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
                     end
@@ -10033,22 +10053,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     n_sat = size(this.sat.el,2);                    
                     this.id_sync = id_sync;
-                    
-                    res_tmp = zeros(this.time.length, n_sat, 'single');
-                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                    
-                    [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
-                    obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
-                    obs_code(:,1) = sys(:);
-                    obs_code(:,2) = 'L';
+                                       
+                    [sys, prn] = cc.getSysPrn(ls.sat_go_id);
+                    obs_code = ls.obs_code;
                     rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
                     this.sat.res = Residuals();
-                    this.sat.res.import(2, this.time, res_tmp, prn, obs_code, rec_coo);
+                    this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
                     
-                    this.n_sat_ep = uint8(sum(res_tmp ~= 0,2));
+                    this.n_sat_ep = uint8(sum(res(id_sync, ls.sat_go_id) ~= 0,2));
                     
                     %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                    if this.state.isSepCooAtBoundaries
+                    if state.isSepCooAtBoundaries
                         cox = x(x(:,2) == 1,1);
                         coy = x(x(:,2) == 2,1);
                         coz = x(x(:,2) == 3,1);
@@ -10091,7 +10106,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
                     this.quality_info.n_sat = length(unique(ls.sat));
                     this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
-                    if this.state.getAmbFixPPP
+                    if state.getAmbFixPPP
                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
                     end
                                         
@@ -10102,12 +10117,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                     end
                     if s0 < 0.5 % with over 50cm of error the results are not meaningfull
-                        if isempty(pos_idx) || this.state.isSepCooAtBoundaries
+                        if isempty(pos_idx) || state.isSepCooAtBoundaries
                             this.xyz = this.xyz + coo;
                         else
                             this.xyz = this.xyz + coo(2,:);
                         end
-                        if this.state.flag_tropo
+                        if state.flag_tropo
                             zwd = this.getZwd();
                             zwd_tmp = zeros(size(this.zwd));
                             zwd_tmp(this.id_sync) = zwd;
@@ -10142,7 +10157,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             this.sat.amb = amb;
                         end
-                        if this.state.flag_tropo_gradient
+                        if state.flag_tropo_gradient
                             if isempty(this.tgn) || all(isnan(this.tgn))
                                 this.tgn = nan(this.time.length,1);
                             end
@@ -10166,17 +10181,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                         this.updateErrTropo();
                         % -------------------- estimate additional coordinate set
-                        if this.state.flag_coo_rate
+                        if state.flag_coo_rate
                             for i = 1 : 3
-                                if this.state.coo_rates(i) ~= 0
+                                if state.coo_rates(i) ~= 0
                                     pos_idx = [ones(sum(this.time < this.out_start_time),1)];
                                     time_1 = this.out_start_time.getCopy;
                                     time_2 = this.out_start_time.getCopy;
-                                    time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2));
-                                    for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/this.state.coo_rates(i)) - 1)
+                                    time_2.addSeconds(min(state.coo_rates(i),this.out_stop_time - time_2));
+                                    for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/state.coo_rates(i)) - 1)
                                         pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time < time_2),1)];
-                                        time_1.addSeconds(this.state.coo_rates(i));
-                                        time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2) );
+                                        time_1.addSeconds(state.coo_rates(i));
+                                        time_2.addSeconds(min(state.coo_rates(i),this.out_stop_time - time_2) );
                                     end
                                     pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                     
@@ -10188,22 +10203,22 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     
                                     rate = time.getRate();
                                     
-                                    ls.setTimeRegularization(ls.PAR_REC_CLK, (this.state.std_clock)^2 / 3600 * rate); % really small regularization
-                                    ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-                                    if this.state.flag_tropo_gradient
-                                        ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                                        ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                                    ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600 * rate); % really small regularization
+                                    ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
+                                    if state.flag_tropo_gradient
+                                        ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
+                                        ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                                     end
                                     log.addMessage(log.indent('Solving the system'));
                                     [x, res, s0]  = ls.solve();
                                     
                                     coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
                                     time_coo = this.out_start_time.getCopy;
-                                    time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
+                                    time_coo.addSeconds([0 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
                                     sub_coo = struct();
                                     sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
                                     sub_coo.time = time_coo.getCopy();
-                                    sub_coo.rate = this.state.coo_rates(i);
+                                    sub_coo.rate = state.coo_rates(i);
                                     if isempty(this.add_coo)
                                         this.add_coo = sub_coo;
                                     else
@@ -10213,7 +10228,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                             end
                         end
-                        %this.smoothAndApplyDt(0, false, false, 2);
+                        this.smoothAndApplyDt(0, false, false, 2);
                         %this.pushResult();
                     end
                 end
@@ -10492,8 +10507,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             valid_ep = tropo_idx ~=0;
                             spline_base = Core_Utils.spline(tropo_dt,state.spline_tropo_gradient_order);
                             
-                            getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, this.state.spline_tropo_gradient_order + 1) + repmat((0 : this.state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, state.spline_tropo_gradient_order + 1) + repmat((0 : state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, state.spline_tropo_gradient_order + 1) + repmat((0 : state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
                             
                         end
                         this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
@@ -10725,7 +10740,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = LS_Manipulator(Core.getConstellationCollector);
-                id_sync = ls.setUpPPP(this, sys_list, id_sync, this.state.getCutOff, true);
+                id_sync = ls.setUpPPP(this, sys_list, id_sync, state.getCutOff, true);
                 ls.Astack2Nstack();
                 
                 time = this.time.getSubSet(id_sync);
@@ -10747,10 +10762,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.setTimeRegularization(ls.PAR_X, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_Y, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_Z, 1 * rate); % really small regularization
-                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-                if this.state.flag_tropo_gradient
-                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
+                if state.flag_tropo_gradient
+                    ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
+                    ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                 end
                 log.addMessage(log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
@@ -10778,7 +10793,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs_code(:,2) = 'L';
                 rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
                 this.sat.res = Residuals();
-                this.sat.res.import(2, this.time, res_tmp, prn, obs_code, rec_coo);
+                this.sat.res.import(2, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
             end
             
         end
