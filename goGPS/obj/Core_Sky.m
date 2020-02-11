@@ -1761,7 +1761,7 @@ classdef Core_Sky < handle
             %    for i = 1 : n_coeff_set
             %        for j = 1 : 3
             %            % this.coord_pol_coeff(: , j, s, i) = (A' * A) \ A' * squeeze(this.coord(i : i + n_obs - 1, s, j));
-            %            this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + n_obs - 1, s, j));
+            %            coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + n_obs - 1, s, j));
             %        end
             %    end
             %end
@@ -1916,9 +1916,9 @@ classdef Core_Sky < handle
                 else
                     go_id_list = this.cc.getIndex(sat);
                 end
-                [X_sat, V_sat] = coordInterpolate(this, gps_time, go_id_list);
+                [X_sat, V_sat] = this.coordInterpolate(gps_time, go_id_list);
             else
-                [X_sat, V_sat] = coordInterpolate(this, gps_time);
+                [X_sat, V_sat] = this.coordInterpolate(gps_time);
             end
         end        
         

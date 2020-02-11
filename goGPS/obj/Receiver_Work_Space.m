@@ -8231,14 +8231,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if ~isempty(pco)
                                         % get los PCO component
                                         pco_delays = neu_los * pco; %(pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
-                                        pcv_delays = (pco_delays + this.ant.getPCV(f_id, el, az)) * 1e-3;
+                                        pcv_delays = (pco_delays - this.ant.getPCV(f_id, el, az)) * 1e-3;
                                         for o = find(obs_idx_f)'
                                             pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
                                             o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections
                                             if  this.obs_code(o, 1) == 'L'
-                                                this.obs(o_idx, o) = this.obs(o_idx, o) - sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx) ./ this.wl(o);
                                             else
-                                                this.obs(o_idx, o) = this.obs(o_idx, o) - sign(sgn) * pcv_delays(pcv_idx);
+                                                this.obs(o_idx, o) = this.obs(o_idx, o) + sign(sgn) * pcv_delays(pcv_idx);
                                             end
                                         end
                                     end
@@ -10170,8 +10170,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 tropo_dt = rem(ls.true_epoch-1,tropo_rate(2)/this.time.getRate)/(tropo_rate(2)/this.time.getRate);
                                 spline_base = Core_Utils.spline(tropo_dt,order_tropo_g);
                                 tropo_g_idx_prog = zeros(max(ls.tropo_g_idx),1);
-                                tropo_g_idx_prog(unique(ls.tropo_g_idx)) = 1 : length(unique(ls.tropo_g_idx)); % tropo idx to prgessive tropo idx
-                                this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(obs_set_id2true_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(obs_set_id2true_ep)),1)),2);
+                                tropo_g_idx_prog(unique(ls.tropo_g_idx)) = 1 : length(unique(ls.tropo_g_idx)); % tropo idx to progessive tropo idx
+                                this.tgn(valid_ep) = nan2zero(this.tgn(valid_ep)) + sum(spline_base.*gntropo(repmat(tropo_g_idx_prog(ls.tropo_g_idx(obs_set_id2true_ep)),1,order_tropo_g+1)+repmat((0:order_tropo_g),numel(ls.tropo_g_idx(obs_set_id2true_ep)),1)),2);
                             end
                             if isempty(this.tge) || all(isnan(this.tge))
                                 this.tge = nan(this.time.length,1);
