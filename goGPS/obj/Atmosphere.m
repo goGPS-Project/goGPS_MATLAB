@@ -1735,9 +1735,7 @@ classdef Atmosphere < handle
                     gmfw = valb.*repmat((1-st),1,n_sat) + vala.*repmat(st,1,n_sat);
                 end
             end
-        end
-        
-       
+        end               
         
         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
             %angles in radians!!
@@ -1803,6 +1801,7 @@ classdef Atmosphere < handle
             [h_h_coorection] = this.hydrostaticMFHeigthCorrection(h_ell,el);
             gmfh = gmfh + h_h_coorection;
         end
+                        
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1890,6 +1889,59 @@ classdef Atmosphere < handle
             bw = 0.00146;
             cw = 0.04391;
         end
+        
+        function zhd_corr = getZenithDelayCorrection(coo1, pr1, coo2, pr2)
+            %
+            % Compute ztd_corr and iwv_corr at one receiver height from another
+            %
+            % Corresponding about the script: alessandra.mascitelli (at) polimi.it
+            %
+            % OUTPUT
+            %   ztd_corr     zenith total delay correction [mm]
+            %   pwv_corr     integrated water vapor correction [mm]
+            %
+            tc2tk = 273.15; %temperature conversion from Celsius to Kelvin
+            Tisa = 288.15; %temperature International Standard Atmosphere [K]
+            R = 8.31432;  %universal gas constant for air [J K^-1 mol^-1]
+            rv = 461.5; %specific gas constant - Water vapor [N m/kg K]
+            md = 0.0289644; %molar mass of dry air [kg mol^-1]
+            g = 9.80665; %gravitational acceleration [m/s^2]
+            k3 = 377600; %constant[K^2/mbar]
+            k2 = 17; %constant[K/mbar]
+            %
+            [lat1, ~, h_ellips1, h_ortho1] = coo1.getGeodetic();
+            [lat2, ~, h_ellips2, h_ortho2] = coo2.getGeodetic();
+            %
+            %if meteo data from raob are not available, it is possible to compute it from gnss in
+            %the following way from Berberan-Santos et al. 1997 and Bai et al. 2003
+            if nargin < 4
+                %compute p_raob from p_gnss
+                pr2 = pr1 * exp(-(g * md * (h_ortho2 - h_ortho1)) / (R * Tisa));
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %
+            %compute zhd_gnss [m] at gnss receiver height
+            %compute function f_gnss (f from Bevis et al. 1992)
+            f1 = 1 - 0.00266 * cos(2 * lat1) - 0.00028 * (h_ellips1 / 1000); %in this formula h_ell [km] and lat_gnss [rad]
+            %
+            zhd1 = (2.2779 * pr1 / f1) / 1000; %zhd_gnss [mm] --> [m]
+            %
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %
+            %compute zhd_raob [m] at raob receiver height
+            %compute function f_raob (f from Bevis et al. 1992)
+            f2 = 1 - 0.00266 * cos (2 * lat2) - 0.00028 * (h_ellips2 / 1000); %in this formula h_ell [km] and lat_raob [rad]
+            %
+            zhd2 = (2.2779*pr2/f2)/1000; %zhd_raob [mm] --> [m]
+            %
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %
+            
+            % corrections
+            zhd_corr = zhd2 - zhd1;
+        end
+
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
