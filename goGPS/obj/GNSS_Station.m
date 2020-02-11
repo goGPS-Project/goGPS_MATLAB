@@ -5419,6 +5419,7 @@ classdef GNSS_Station < handle
                             id_ko_tmp = false(size(data_tmp));
                         end
                         mode = '.-';
+                        figure(f);
                         if new_fig
                             if strcmp(par_name, 'nsat')
                                 Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
@@ -5471,8 +5472,10 @@ classdef GNSS_Station < handle
                         xlim(tlim);
                         ylim(dlim);
                     catch ex
+                        % Grrr MATLAB is out of sync
                         Core_Utils.printEx(ex);
-                        keyboard
+                        delete(f);
+                        keyboard;
                     end
 
                     outm = [old_legend, outm];
