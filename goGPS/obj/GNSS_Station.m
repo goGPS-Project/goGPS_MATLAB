@@ -811,6 +811,62 @@ classdef GNSS_Station < handle
             log.addStatusOk('Export completed successfully');
         end
         
+        function exportSlantTD(sta_list, time_rate, mode, format, flag_work)
+            % Export Slant Total Delay
+            % 
+            % INPUT 
+            %   time_rate   it could be a rate in seconds - default 21600 (6 hours)
+            %               or an object of class GPS_Time
+            %               (e.g. GPS_Time.fromString(2013/06/04 12:00:00))
+            %
+            %   mode        indicate if it is necessary to add the residuals
+            %               0 - do not add residuals
+            %               1 - add residuals 
+            %               2 - add spline smoothed residuals (1 spline every 900 seconds)
+            %
+            %   format      'compact' - MJD SAT SWD EL AZ (default)
+            %               'extended' - extended - Year DOY SOD SWD SAT SAT_X SAT_Y SAT_Z Receiver REC_X REC_Y REC_Z elAngle(rad) elAngle(deg) Azimuth(rad) Azimuth(deg)
+            %
+            %   flag_work  use the receiver work_space instead of output
+            %
+            %
+            % NOTE: at the moment adding residuals works only if the data have been porcessed 
+            %       with the combined engine in iono-free mode
+            %
+            % SYNTAX
+            %   this.exportSlantTD(this, time_rate, mode, format, flag_work)
+            
+            log = Core.getLogger();
+            if nargin < 4 || isempty(format)
+                format = 'compact';
+            end
+            if nargin < 3 || isempty(mode)
+                mode = 0;
+            end
+            if nargin < 2 || isempty(time_rate)
+                time_rate = 21600;
+            end
+            err_code = 0;
+            if nargin >= 5 && ~isempty(flag_work) && flag_work
+                % use receiver work_space
+                sta_list = sta_list(~sta_list.isEmptyWork_mr);
+                for s = 1 : numel(sta_list)
+                    err_code = err_code + sta_list(s).work.exportSlantDelay(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true), false);
+                end
+            else
+                % use receiver out
+                sta_list = sta_list(~sta_list.isEmptyOut_mr);
+                for s = 1 : numel(sta_list)
+                    err_code = err_code + sta_list(s).out.exportSlantDelay(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true), false);
+                end                
+            end
+            if err_code > 0
+                log.addError('Export failed');
+            else
+                log.addStatusOk('Export completed');
+            end
+        end
+        
         function exportSlantWD(sta_list, time_rate, mode, format, flag_work)
             % Export Slant Wet Delay
             % 
@@ -851,13 +907,13 @@ classdef GNSS_Station < handle
                 % use receiver work_space
                 sta_list = sta_list(~sta_list.isEmptyWork_mr);
                 for s = 1 : numel(sta_list)
-                    err_code = err_code + sta_list(s).work.exportSlantWD(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true));
+                    err_code = err_code + sta_list(s).work.exportSlantDelay(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true), true);
                 end
             else
                 % use receiver out
                 sta_list = sta_list(~sta_list.isEmptyOut_mr);
                 for s = 1 : numel(sta_list)
-                    err_code = err_code + sta_list(s).out.exportSlantWD(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true));
+                    err_code = err_code + sta_list(s).out.exportSlantDelay(time_rate, mode, format, iif(format(1) == 'c' && s == 1, false, true), true);
                 end                
             end
             if err_code > 0

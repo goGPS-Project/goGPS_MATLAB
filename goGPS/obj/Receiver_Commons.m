@@ -1040,8 +1040,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function err_code = exportSlantWD(this, time_rate, mode, format, flag_append)
-            % Export Slant Wet Delay
+        function err_code = exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
+            % Export Slant Total or Wet Delay
             % 
             % INPUT 
             %   time_rate   it could be a rate in seconds - default 21600 (6 hours)
@@ -1058,12 +1058,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %
             %   flag_append if provided (true) go in append mode (default == true for compact mode, false for extended mode)
             %
+            %   flag_wet    true if wet delay must be exported, otherwise export total delay
+            %
             %
             % NOTE: at the moment adding residuals works only if the data have been porcessed 
             %       with the combined engine in iono-free mode
             %
             % SYNTAX
-            %   this.exportSlantWD(this, time_rate, mode, format, flag_append)
+            %   this.exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
             
             err_code = 1;
             if nargin < 4 || isempty(format)
@@ -1084,6 +1086,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
             
+            if nargin < 6 || isempty(flag_wet)
+                flag_wet = true;
+            end
+            
             try
                 log = Core.getLogger();
                 cut_off = Core.getState.getCutOff;
@@ -1091,7 +1097,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 
                 cc = Core.getConstellationCollector;
                 go_id = [];
-                if ~isempty(this.sat.res) && ~this.sat.res.isEmpty
+                if ~isempty(this.sat.res) && (isa(this.sat.res, 'Residuals') && ~this.sat.res.isEmpty)
                     go_id = cc.getIndex(this.sat.res.obs_code(:,1), this.sat.res.prn);
                 end
                 
@@ -1124,9 +1130,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     else
                         time_ref = GPS_Time.fromRefTime(time0, unique(round(time_slant.getRefTime / time_rate)) * time_rate);
                     end
-                    [~, slant_wd, go_id] = this.getSlantTD(go_id);
-                    slant_wd = slant_wd(:, go_id);
-                    if ~isempty(time_slant) && ~isempty(slant_wd)
+                    [slant_td, slant_wd, go_id] = this.getSlantTD(go_id);
+                    if flag_wet
+                        slant_d = slant_wd;
+                    else
+                        slant_d = slant_td;
+                    end
+                    slant_d = slant_d(:, go_id);
+                    if ~isempty(time_slant) && ~isempty(slant_d)
                         sky = Core.getCoreSky;
                         coo = this.getPos;
                         time_pos = this.getPositionTime;
@@ -1140,7 +1151,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             mkdir(out_dir);
                         end
                         if format(1) == 'e'
-                            file_path = sprintf('%s',[out_dir filesep this.parent.getMarkerName4Ch sprintf('_SlantWD_%04d%03d_%4s_%d', year, doy, t_start_str, round(t_end-t_start)+1) '.SNX']);
+                            file_path = sprintf('%s',[out_dir filesep this.parent.getMarkerName4Ch sprintf('_Slant%cD_%04d%03d_%4s_%d', iif(flag_wet, 'W', 'T'), year, doy, t_start_str, round(t_end-t_start)+1) '.SNX']);
                             fid = fopen(file_path, 'wb');
                         end
                         if format(1) == 'e' && fid <= 0
@@ -1162,7 +1173,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 [go_id, idr, ids] = intersect(go_id_res, go_id);
                                 
                                 % Delete slants with no residuals (and res with no slant)
-                                slant_wd = slant_wd(:, ids);
+                                slant_d = slant_d(:, ids);
                                 res = res(:, idr);
                                 obs_code_res = obs_code_res(idr, :);
                                 prn_res = prn_res(idr);
@@ -1185,7 +1196,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 if time_dist > 1800 % (seconds)
                                     log.addWarning(sprintf('No solution found for %s at %s', this.parent.getMarkerName4Ch, time_ref.getEpoch(e).toString));
                                 else
-                                    slant_set = slant_wd(id_min, :);
+                                    slant_set = slant_d(id_min, :);
                                     slant_set(el(e, :) < cut_off) = nan;
                                     
                                     % Find residuals close to the required slant time
@@ -1218,7 +1229,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                         end
                                     end
                                     if format(1) == 'c'
-                                        file_path = sprintf('%s', fullfile(out_dir, sprintf('CE_%04d%03d%02d_hydr_gradients.SWD', year, doy, round(sod/3600))));
+                                        file_path = sprintf('%s', fullfile(out_dir, sprintf('CE_%04d%03d%02d_hydr_gradients.S%cD', year, doy, round(sod/3600), iif(flag_wet, 'W', 'T'))));
                                         if flag_append
                                             fid = fopen(file_path, 'ab');
                                         else
@@ -1230,7 +1241,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                             fprintf(fid, '%s', str);
                                             fclose(fid);
                                         end
-                                        log.addStatusOk(sprintf('Slant WV delay for %s %s into: "%s"', this.parent.getMarkerName4Ch, iif(flag_append, 'appended', 'saved'), file_path));
+                                        log.addStatusOk(sprintf('Slant %s delay for %s %s into: "%s"', iif(flag_wet, 'WV', 'Total'), this.parent.getMarkerName4Ch, iif(flag_append, 'appended', 'saved'), file_path));
                                     else
                                         fprintf(fid, '%s', str);
                                     end
@@ -1239,7 +1250,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                             if format(1) == 'e'
                                 fclose(fid);
-                                log.addStatusOk(sprintf('Slant WV delay saved into: "%s"', file_path));
+                                log.addStatusOk(sprintf('Slant %s delay saved into: "%s"', iif(flag_wet, 'WV', 'Total'), file_path));
                                 err_code = 0;
                             end                            
                         end
