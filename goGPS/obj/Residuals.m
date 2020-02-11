@@ -179,7 +179,7 @@ classdef Residuals < Exportable
                 this.value = [this.value nan(size(this.value, 1), numel(code_add))];
                 
                 % add new data
-                this.value(id_start + (0 : n_obs_new - 1) , [id_old (end - numel(code_add) + 1) : end]) = res.value(:, [id_new id_add]);
+                this.value(id_start + (0 : n_obs_new - 1) , [id_old; (size(this.value, 2) - numel(code_add) + 1) : size(this.value, 2)]) = res.value(:, [id_new; id_add]);
                 this.obs_code = [this.obs_code; res.obs_code(id_add, :)];
                 this.prn = [this.prn; res.prn(id_add)];
                 
