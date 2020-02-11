@@ -1952,16 +1952,16 @@ classdef Core_Utils < handle
                 end
                 
                 [resp, txt] = system([rem_check_cmd filename]);
-                if strfind(txt,' 200 OK')
+                if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
                     status = true;
                 else
                     [resp, txt] = system([rem_check_cmd filename '.gz']);
-                    if strfind(txt,' 200 OK')
+                    if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
                         ext = '.gz';
                         status = true;
                     else
                         [resp, txt] = system([rem_check_cmd filename '.Z']);
-                        if strfind(txt,' 200 OK')
+                        if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
                             ext = '.Z';
                             status = true;
                         else
