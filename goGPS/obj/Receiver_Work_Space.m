@@ -8882,6 +8882,25 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.time.addSeconds(time_desync - this.dt_pr);
         end
         
+        function [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
+            % if we have a good approximate position do a coarse robust
+            % estimation on the dt
+            %
+            % SYNTAX:
+            % [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
+            [pr, wl, id_ph] = this.getPseudoRanges();
+            [ph, wl, id_ph] = this.getPhases();
+
+            
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
+            
+            synt_pr = this.getPseudoRanges;
+            synt_ph = this.getSyntPhases;
+            
+            dt = pr 
+        end
+        
         function s0 = initPositioning(this, sys_c)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()

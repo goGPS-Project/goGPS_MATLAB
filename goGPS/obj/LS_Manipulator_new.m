@@ -1754,7 +1754,7 @@ classdef LS_Manipulator_new < handle
                                 end
                             end
                         else
-                            iRecClk = inv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp));
+                            iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
                         end
                         
                         Nx_recclk = Ner_t(i_rec_clk_tmp, :);
