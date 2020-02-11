@@ -1205,7 +1205,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                     str = '';
                                     if format(1) == 'c'
                                         for s = find(sat_ok)
-                                            str = sprintf('%s%11.5f %4s %3s %8.4f %8.4f %8.4f\n', ...
+                                            str = sprintf('%s%11.5f %4s %3s %8.4f %8.4f  %8.4f\n', ...
                                                 str, time_ref.getEpoch(e).getMJD, this.parent.getMarkerName4Ch, sat_name(s,:), slant_set(s), el(e, s), mod(az(e, s), 360));
                                         end
                                     elseif format(1) == 'e'
