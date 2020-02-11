@@ -427,8 +427,10 @@ classdef Residuals < Exportable
             
             core = Core.getCurrentCore;
             sky = core.sky;
-            %fw = File_Wizard(Core.getCurrentSettings);
-            %fw.conjureNavFiles(this.time.first, this.time.last);
+            if isempty(core.state.eph_name)
+                fw = File_Wizard(Core.getCurrentSettings);
+                fw.conjureNavFiles(this.time.first, this.time.last);
+            end
             lim = this.time.first.getCopy;
             lim.append(this.time.last);
             core.initSkySession(lim);

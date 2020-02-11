@@ -1143,6 +1143,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time_pos = this.getPositionTime;
                         time_pos.changeRef(time0);
                         
+                        core = Core.getCurrentCore;
+                        sky = core.sky;
+                        if isempty(state.eph_name)
+                            fw = File_Wizard(Core.getCurrentSettings);
+                            fw.conjureNavFiles(this.time.first, this.time.last);
+                        end
+                        lim = this.time.first.getCopy;
+                        lim.append(this.time.last);
+                        core.initSkySession(lim);
                         
                         [year, doy] = t_start.getDOY();
                         % Preparing the file_name
@@ -1164,7 +1173,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             end
                             
                             % Get the data at the requested time
-                            [az, el, sat_coo] = sky.getAzimuthElevation(coo, time_ref, go_id);
+                            [az, el, sat_coo] = sky.getAzimuthElevation(coo.getMedianPos, time_ref, go_id);
                             
                             % Get residuals
                             if mode > 0
@@ -1258,7 +1267,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             catch ex
                 Core_Utils.printEx(ex);
-                log.addError(sprintf('saving slants in plain text format failed: "%s"', ex.message));
+                log.addError(sprintf('saving slants in text format failed for %s: "%s"', this.parent.getMarkerName4Ch, ex.message));
             end
         end
         
