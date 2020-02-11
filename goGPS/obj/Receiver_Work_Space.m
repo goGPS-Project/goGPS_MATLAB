@@ -1514,6 +1514,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [sys_c, prn] = cc.getSysPrn(s);
                     if all(nan_clock(:,s))
                         sat_nan_clock = sprintf('%s, %s%02d', sat_nan_clock, sys_c, prn);
+                        if Core.getCurrentSettings.isRemSatNoClock
+                            this.obs(o_idx, :) = 0;
+                        end
                     else
                         sat_bad_clock = sprintf('%s, %s%02d', sat_bad_clock, sys_c, prn);
                         % removing near empty clock -> think a better solution

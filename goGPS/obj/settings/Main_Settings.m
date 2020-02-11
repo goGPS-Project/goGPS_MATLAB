@@ -219,6 +219,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  2 = lambda
                                                         %  3 = bayesian
                                                         
+        FLAG_REM_SAT_NO_CLOCK = true                    % Remove Satellites having no clocks in ephemeris                                             
         FLAG_PPP_FORCE_SINGLE_FREQ = false              % Force PPP solution for single frequency receivers
                                                         
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
@@ -4372,6 +4373,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   amb_fix = this.getAmbFixNET()
             amb_fix = this.net_amb_fix_approach;
+        end
+        
+        function flag_rem = isRemSatNoClock(this)
+            % Remove satellites with no clock in ephemerides
+            %
+            % SYNTAX
+            %   amb_fix = this.isPPPOnSF(this)
+            flag_rem = this.FLAG_REM_SAT_NO_CLOCK;
         end
         
         function amb_fix = isPPPOnSF(this)
