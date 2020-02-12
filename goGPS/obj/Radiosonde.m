@@ -1230,6 +1230,7 @@ classdef Radiosonde < handle
                 '03005  Lerwick';
                 '03238  Albermarle';
                 '03354  Nottingham/Watnall';
+                '03882  Herstmonceux';
                 '04018  Keflavikurflugvollur (BIKF)';
                 '04220  Aasiaat (Egedesminde) (BGEM)';
                 '04270  Narsarsuaq (BGBW)';
@@ -1794,7 +1795,8 @@ classdef Radiosonde < handle
             raob_list.s01415 = struct('lat',   58.87, 'lon',    5.67, 'name', 'ENZV Stavanger');
             raob_list.s03005 = struct('lat',   60.13, 'lon',   -1.18, 'name', 'Lerwick');
             raob_list.s03238 = struct('lat',   55.01, 'lon',   -1.52, 'name', 'Albermarle');
-            raob_list.s03354 = struct('lat',   53.00, 'lon',   -1.25, 'name', 'Nottingham');
+            raob_list.s03354 = struct('lat',   53.00, 'lon',   -1.25, 'name', 'Nottingham');            
+            raob_list.s03882 = struct('lat',   50.90, 'lon',    0.32, 'name', 'Herstmonceux');
             raob_list.s03808 = struct('lat',   50.22, 'lon',   -5.32, 'name', 'Camborne');
             raob_list.s03953 = struct('lat',   51.93, 'lon',  -10.25, 'name', 'Valentia Observatory');
             raob_list.s04018 = struct('lat',   63.96, 'lon',  -22.60, 'name', 'BIKF Keflavikurflugvollur');
