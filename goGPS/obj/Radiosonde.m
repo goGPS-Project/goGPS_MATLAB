@@ -270,19 +270,24 @@ classdef Radiosonde < handle
                             %radiosonde(i,1).name=sta_num(s,:);
                             date_time = datetime_vec(i,:);
                             
-                            this.data_time = [this.data_time; repmat(date_time, length(pres), 1)];
-                            this.pressure = [this.pressure; pres];
-                            this.height = [this.height; height];
-                            this.temperature = [this.temperature; temp];
-                            this.rel_humidity = [this.rel_humidity; relh];
-                            [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
-                            
-                            if err_code
+                            if max(pres) < 800 % this is an outlier!!!!
                                 log = Logger.getInstance();
-                                log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
+                                log.addError(sprintf('The radiosonde "%s" launched at %s have a maximum invalid pressure (%.f mbar)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM'), max(pres)));
+                            else                                
+                                this.data_time = [this.data_time; repmat(date_time, length(pres), 1)];
+                                this.pressure = [this.pressure; pres];
+                                this.height = [this.height; height];
+                                this.temperature = [this.temperature; temp];
+                                this.rel_humidity = [this.rel_humidity; relh];
+                                [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
+                                
+                                if err_code
+                                    log = Logger.getInstance();
+                                    log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
+                                end
+                                this.ztd = [this.ztd ztd];
+                                this.ref_time = [this.ref_time this.data_time(id_1)];
                             end
-                            this.ztd = [this.ztd ztd];
-                            this.ref_time = [this.ref_time this.data_time(id_1)];
                         end
                         
                         rds_pwv(1,j).pwv = pw_vec_d;
