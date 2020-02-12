@@ -236,8 +236,8 @@ classdef Core_Sky < handle
                     %end
                 end
                 
-                % Interp clock, not necessary since they are always interpolated
-                %this.fillClockGaps('spline');
+                % Interp clock
+                this.fillClockGaps(10, 'spline'); % try to save small interval of missing clocks
                 
                 % load erp
                 Core.getLogger.addMarkedMessage('Importing Earth Rotation Parameters');
@@ -866,7 +866,7 @@ classdef Core_Sky < handle
             this.coord = zero2nan(this.coord);  % <--- nan is slow for the computation of the polynomial coefficents
         end
                 
-        function fillClockGaps(this, mode)
+        function fillClockGaps(this, max_gap, mode)
             % Fill clock gaps linearly interpolating neighbour clocks
             %
             % INPUT
@@ -886,7 +886,7 @@ classdef Core_Sky < handle
             % SEE ALSO:
             %   fillmissing
             
-            if nargin == 1
+            if nargin < 3
                 mode = 'custom';
             end
             if ~exist('fillmissing', 'file')
@@ -898,6 +898,7 @@ classdef Core_Sky < handle
                     for i = 1 : size(this.clock,2)
                         if not(sum(this.clock(:,i),1) == 0)
                             empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
+                            clk_ok = ~empty_clk_idx;
                             n_ep = size(this.clock,1);
                             if sum(empty_clk_idx) < n_ep && sum(empty_clk_idx) > 0
                                 this.clock(empty_clk_idx,i) = nan;
@@ -913,14 +914,17 @@ classdef Core_Sky < handle
                                     end
                                 end
                             end
+                            this.clock(~flagMergeArcs(clk_ok, max_gap), i) = nan;
                         end
                     end
                 otherwise
                     for s = 1 : size(this.clock, 2)
                         % If there is a good observation and a missing value
                         if any(this.clock(:,s)) && any(isnan(zero2nan(this.clock(:,s))))
+                            clk_ok = this.clock(:,s) ~= 0 & ~isnan(this.clock(:,s));                            
                             %this.clock(:,s) = fillmissing(zero2nan(this.clock(:,s)), mode, 'EndValues','nearest');
                             this.clock(:,s) = fillmissing(zero2nan(this.clock(:,s)), mode); % do not extrapolate
+                            this.clock(~flagMergeArcs(clk_ok, max_gap), s) = nan;
                         end
                     end
             end
@@ -1818,7 +1822,7 @@ classdef Core_Sky < handle
         
         function computeSMPolyCoeff(this)
             % SYNTAX:
-            %   this.computeSatPolyCoeff();
+            %   this.computeSMPolyCoeff();
             %
             % INPUT:
             %

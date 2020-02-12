@@ -1556,7 +1556,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 log.addWarning(sprintf('Satellite %s have some missing clocks values\nremoving invalid epochs', sat_bad_clock(3:end)));
             end
             if ~isempty(sat_nan_clock)
-                log.addWarning(sprintf('Satellites with missing clocks: %s\nRemember to process them only in network mode\n', sat_nan_clock(3:end)));
+                if Core.getCurrentSettings.isRemSatNoClock
+                    log.addWarning(sprintf('Satellites with missing clocks: %s\nthey will not be used\n', sat_nan_clock(3:end)));
+                else
+                    log.addWarning(sprintf('Satellites with missing clocks: %s\nRemember to process them only in network mode\n', sat_nan_clock(3:end)));
+                end
             end
             
             % remove moon midnight or shadow crossing epoch
