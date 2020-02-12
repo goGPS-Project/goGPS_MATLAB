@@ -553,9 +553,9 @@ classdef GNSS_Station < handle
             pressure_gnss = interp1q(p_time, pr_gnss, time.getMatlabTime);
             
             if nargin == 3
-                zhd_corr = Athmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo);
+                zhd_corr = Atmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo);
             else
-                zhd_corr = Athmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo, pressure);
+                zhd_corr = Atmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo, pressure);
             end
         end
 
@@ -6560,7 +6560,7 @@ classdef GNSS_Station < handle
                 
                 % Compute values
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
-                [m_diff, s_diff, m_diff_sta, s_diff_sta] = deal(nan(numel(rds), 1));
+                [m_diff, s_diff, m_diff_sta, s_diff_sta, m_diff_sta_hcorr, s_diff_sta_hcorr] = deal(nan(numel(rds), 1));
                 log.addMonoMessage(sprintf(' ZTD Radiosonde Validation\n---------------------------------------------------------------------------------------\n'));
                 log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
                 log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
@@ -6596,8 +6596,8 @@ classdef GNSS_Station < handle
                     % Plot comparisons
                     for s = 1 : numel(rds)
                         f = figure('Visible', 'off');
-                        f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';
-                        
+                        Core_UI.beautifyFig(f);
+                        f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';                        
                         fh_list = [fh_list; f]; %#ok<AGROW>
                         fig_name = sprintf('Raob_ZTD_%d_validation', s);
                         f.UserData = struct('fig_name', fig_name);
@@ -6613,33 +6613,77 @@ classdef GNSS_Station < handle
                         % radiosondes
                         [ztd_rds, time_rds] = rds(s).getZtd();
                         
-                        [ztd_diff_sta, id_mean] = deal(nan(time_rds.length, 1));
+                        % get Radiosonde coordinates and pressure
+                        coo1 = Coordinates.fromGeodetic(rds(s).lat / 180 * pi, rds(s).lon / 180 * pi, [] ,rds(s).elevation);
+                        launch_id = [1; (find(diff(datenum(rds(s).data_time)) > 0.4) + 1)];
+                        launch_time = datenum(rds(s).data_time(launch_id));
+                        pr1 = rds(s).pressure(launch_id);
+                        
+                        % Fill non valid values (< 6 sigma)
+                        pr1((pr1 - median(pr1, 'omitnan') + 6 * std(pr1 - median(pr1, 'omitnan'))) < 0) = nan;
+                        pr1 = interp1q(launch_time(~isnan(pr1)), pr1(~isnan(pr1)), launch_time);
+                        
+                        % Get GNSS station coordinates and pressure
+                        coo2 = sta_list(id_rec(s)).getPos.getMedianPos;
+                        [pr2, t2, h2] = sta_list(id_rec(s)).getPTH_mr;
+                        time_pr2 = sta_list(id_rec(s)).getTime.getNominalTime.getMatlabTime;
+                        
+                        % find common epochs (around 30 min)
+                        [~, idt_gnss, idt_raob] = intersect(round(time_pr2*48), round(launch_time*48));
+                        
+                        bias = pr2(idt_gnss) - pr1(idt_raob);
+                        id_ko = pr1(idt_raob) == 1000; % it seems that all the values for a radiosonde less then 1000 (at ground) are saturated to 1000
+                        bias = interp1q(launch_time(idt_raob(~id_ko)), bias(~id_ko), launch_time(idt_raob(id_ko)));
+                        pr1(idt_raob(id_ko)) = pr2(idt_gnss(id_ko)) - bias;
+                        % figure; plot(time_pr2(idt_gnss), pr2(idt_gnss), '*' ); hold on; plot(launch_time(idt_raob), pr1(idt_raob),'o'); setTimeTicks
+                        
+                        % This is my ZHD correction to move the closest
+                        % station to the radiosonde data
+                        time_corr = launch_time(idt_raob);
+                        zhd_corr = Atmosphere.getZenithDelayCorrection(coo1, pr1(idt_raob), coo2, pr2(idt_gnss)) ;
+                        
+                        Core_Utils.plotSep(s_time.getMatlabTime, (s_ztd - interp1q(time_corr, zhd_corr, s_time.getMatlabTime)) * 1e2, '.-', 'LineWidth', 2);
+
+                        [ztd_diff_sta, ztd_diff_sta_hcorr, id_mean] = deal(nan(time_rds.length, 1));
                         for e = 1 : time_rds.length
                             [t_min, id_min(e)] = min(abs(s_time - time_rds.getEpoch(e)));
                             if t_min < 3600
-                                ztd_diff_sta(e) = ztd_rds(e) - 1e2.*s_ztd(id_min(e));
+                                ztd_diff_sta(e) = ztd_rds(e) - 1e2.*s_ztd(id_min(e));                                
+                                ztd_diff_sta_hcorr(e) = ztd_diff_sta(e) + 1e2 .* interp1q(time_corr, zhd_corr, time_pr2(id_min(e)));
                             end
                         end
                         m_diff_sta(s) = mean(ztd_diff_sta, 1, 'omitnan');
                         s_diff_sta(s) = std(ztd_diff_sta, 1, 'omitnan');
                         
-                        plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 40);
-                        outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                        m_diff_sta_hcorr(s) = mean(ztd_diff_sta_hcorr, 1, 'omitnan');
+                        s_diff_sta_hcorr(s) = std(ztd_diff_sta_hcorr, 1, 'omitnan');
+                        
+                        plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
+                        plot(time_rds.getMatlabTime, ztd_rds, '.w', 'MarkerSize', 40, 'LineWidth', 2);
+                        plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
+                        outm = {'ZTD GPS from interpolation', ...
+                            sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                            sprintf('ZTD GPS of %s @ RAOB height and pressure', sta_list(id_rec(s)).getMarkerName4Ch), ...
                             sprintf('ZTD RAOB @ %s', rds(s).getName())};
-                        [~, icons] = legend(outm, 'location', 'northwest');
+                        [~, icons] = legend(outm, 'location', 'southwest');
                         n_entry = numel(outm);
                         icons = icons(n_entry + 2 : 2 : end);
                         for i = 1 : numel(icons)
                             icons(i).MarkerSize = 18;
                         end
-                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\n Interpolated (%.1f cm, %.1f cm)\n %s station (%.1f cm, %.1f cm)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s), m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s)), 'FontName', 'Open Sans');
+                        title(sprintf('Summary (mean, std)\n Interpolated (%.2f cm, %.2f cm)\n %s station (%.2f cm, %.2f cm)\n %s station ZHD corrected (%.2f cm, %.2f cm)\\fontsize{5} \n', ...
+                            m_diff(s), s_diff(s), ...
+                            sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s), ...
+                            sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s)), 'FontName', 'Open Sans');
                         
+                        xlim(s_time.getEpoch([1, s_time.length]).getMatlabTime);
+                        ylabel(sprintf('ZTD [cm] comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
                         setTimeTicks; grid minor;
                         drawnow;
                         ax = gca; ax.FontSize = 16;
-                        Core_UI.beautifyFig(gcf);
-                        Core_UI.addExportMenu(gcf);             
-                        Core_UI.addBeautifyMenu(gcf);             
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addExportMenu(f);             
+                        Core_UI.addBeautifyMenu(f);             
                         f.Visible = 'on'; drawnow;
                     end
                     Core_UI.beautifyFig(f);
