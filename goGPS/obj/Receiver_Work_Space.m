@@ -7475,67 +7475,67 @@ classdef Receiver_Work_Space < Receiver_Commons
             XR = this.getXR();
             
             [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
-            %north (b) and radial (c) local unit vectors
+            % north (b) and radial (c) local unit vectors
             b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
             c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
             
-            %interpolate sun moon and satellites
+            % interpolate sun moon and satellites
             time = this.time.getCopy;
             cs = Core.getCoreSky;
             [X_sun, X_moon]  = cs.sunMoonInterpolate(time);
             XS               = cs.coordInterpolate(time, sat);
-            %receiver geocentric position
+            % receiver geocentric position
             
             
             XR_u = rowNormalize(XR);
             
-            %sun geocentric position
+            % sun geocentric position
             X_sun_n = repmat(sqrt(sum(X_sun.^2,2)),1,3);
             X_sun_u = X_sun ./ X_sun_n;
             
-            %moon geocentric position
+            % moon geocentric position
             X_moon_n = repmat(sqrt(sum(X_moon.^2,2)),1,3);
             X_moon_u = X_moon ./ X_moon_n;
             
-            %latitude dependence
+            % latitude dependence
             p = (3*sin(phiC)^2-1)/2;
             
-            %gravitational parameters
+            % gravitational parameters
             GE = Galileo_SS.ORBITAL_P.GM; %Earth
             GS = GE*332946.0; %Sun
             GM = GE*0.01230002; %Moon
             
-            %Earth equatorial radius
+            % Earth equatorial radius
             R = 6378136.6;
             
-            %nominal degree 2 Love number
+            % nominal degree 2 Love number
             H2 = 0.6078 - 0.0006*p;
-            %nominal degree 2 Shida number
+            % nominal degree 2 Shida number
             L2 = 0.0847 + 0.0002*p;
             
-            %solid Earth tide displacement (degree 2)
+            % solid Earth tide displacement (degree 2)
             Vsun  = repmat(sum(conj(X_sun_u) .* XR_u, 2),1,3);
             Vmoon = repmat(sum(conj(X_moon_u) .* XR_u, 2),1,3);
-            r_sun2  = (GS*R^4)./(GE*X_sun_n.^3) .*(H2.*XR_u.*(1.5*Vsun.^2  - 0.5)+ 3*L2*Vsun .*(X_sun_u  - Vsun .*XR_u));
-            r_moon2 = (GM*R^4)./(GE*X_moon_n.^3).*(H2.*XR_u.*(1.5*Vmoon.^2 - 0.5) + 3*L2*Vmoon.*(X_moon_u - Vmoon.*XR_u));
+            r_sun2  = (GS*R^4)./(GE*X_sun_n.^3) .*(H2.*XR_u.*(1.5 * Vsun.^2  - 0.5) + 3 * L2 * Vsun .*(X_sun_u  - Vsun .*XR_u));
+            r_moon2 = (GM*R^4)./(GE*X_moon_n.^3).*(H2.*XR_u.*(1.5 * Vmoon.^2 - 0.5) + 3 * L2 * Vmoon.*(X_moon_u - Vmoon.*XR_u));
             r = r_sun2 + r_moon2;
             
-            %nominal degree 3 Love number
+            % nominal degree 3 Love number
             H3 = 0.292;
-            %nominal degree 3 Shida number
+            % nominal degree 3 Shida number
             L3 = 0.015;
             
-            %solid Earth tide displacement (degree 3)
+            % solid Earth tide displacement (degree 3)
             r_sun3  = (GS.*R^5)./(GE.*X_sun_n.^4) .*(H3*XR_u.*(2.5.*Vsun.^3  - 1.5.*Vsun)  +   L3*(7.5*Vsun.^2  - 1.5).*(X_sun_u  - Vsun .*XR_u));
             r_moon3 = (GM.*R^5)./(GE.*X_moon_n.^4).*(H3*XR_u.*(2.5.*Vmoon.^3 - 1.5.*Vmoon) +   L3*(7.5*Vmoon.^2 - 1.5).*(X_moon_u - Vmoon.*XR_u));
             r = r + r_sun3 + r_moon3;
             
-            %from "conventional tide free" to "mean tide"
-            radial = (-0.1206 + 0.0001*p)*p;
-            north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
-            r = r;% + repmat([radial*c + north*b]',time.length,1);
+            % from "conventional tide free" to "mean tide"
+            %radial = (-0.1206 + 0.0001*p)*p;
+            %north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
+            %r = r + repmat([radial*c + north*b]',time.length,1);
             
-            %displacement along the receiver-satellite line-of-sight
+            % displacement along the receiver-satellite line-of-sight
             [XS] = this.getXSLoc();
             for i  = 1 : length(sat)
                 s = sat(i);

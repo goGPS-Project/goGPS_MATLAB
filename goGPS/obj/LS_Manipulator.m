@@ -2567,7 +2567,7 @@ classdef LS_Manipulator < Exportable
             end
             
             
-            % -- removing epoch for which no satellite is seen by at least teo receivers
+            % -- removing epoch for which no satellite is seen by at least two receivers
             idx_rem = sum(presence_mat > 1, 2) == 0;
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
