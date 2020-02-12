@@ -6671,10 +6671,10 @@ classdef GNSS_Station < handle
                         for i = 1 : numel(icons)
                             icons(i).MarkerSize = 18;
                         end
-                        title(sprintf('Summary (mean, std)\n Interpolated (%.2f cm, %.2f cm)\n %s station (%.2f cm, %.2f cm)\n %s station ZHD corrected (%.2f cm, %.2f cm)\\fontsize{5} \n', ...
-                            m_diff(s), s_diff(s), ...
+                        title(sprintf('Summary (mean, std)\n %s station ZHD corrected (%.2f cm, %.2f cm)\n %s station (%.2f cm, %.2f cm)\n Interpolated (%.2f cm, %.2f cm)\\fontsize{5} \n', ...
+                            sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), ...
                             sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s), ...
-                            sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s)), 'FontName', 'Open Sans');
+                            m_diff(s), s_diff(s)), 'FontName', 'Open Sans');
                         
                         xlim(s_time.getEpoch([1, s_time.length]).getMatlabTime);
                         ylabel(sprintf('ZTD [cm] comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
@@ -6685,11 +6685,7 @@ classdef GNSS_Station < handle
                         Core_UI.addExportMenu(f);             
                         Core_UI.addBeautifyMenu(f);             
                         f.Visible = 'on'; drawnow;
-                    end
-                    Core_UI.beautifyFig(f);
-                    Core_UI.addExportMenu(f);
-                    Core_UI.addBeautifyMenu(f);
-                    xlim(minMax(time_rds.getMatlabTime));
+                    end                     
                 end
                 
                 % Plot map of all the radiosondes tests ----------------------------------------------
@@ -6699,8 +6695,8 @@ classdef GNSS_Station < handle
                     log.addMarkedMessage('Preparing map, please wait...');
                     
                     % Radiometers points
-                    data_mean = m_diff;
-                    data_std = s_diff;
+                    data_mean = m_diff_sta_hcorr;
+                    data_std = s_diff_sta_hcorr;
                     data_lat = rds.getLat();
                     data_lon = rds.getLon();
 
@@ -6769,7 +6765,7 @@ classdef GNSS_Station < handle
                             'UserData', 'RAOB_point');
                     end
                     
-                    title(sprintf('Map of Radiosonde Validation\nMean [cm] and StD [cm]\\fontsize{5} \n'), 'FontSize', 16);
+                    title(sprintf('Map of Radiosonde Validation\nUsing the closest GNSS Station (ZHD corrected)\nMean [cm] and StD [cm]\\fontsize{5} \n'), 'FontSize', 16);
                     Core_UI.beautifyFig(fh);
                     Core_UI.addExportMenu(fh);
                     Core_UI.addBeautifyMenu(fh);
