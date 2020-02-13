@@ -2638,7 +2638,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %
             % SYNTAX:
             %   this.updateRecList
-            
+            persistent last_check
+
             if nargin < 2 || isnan(flag_force)
                 flag_force = false;
             end
@@ -2673,10 +2674,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             persistent unique_dir dir_list 
             
             if (tot_rec < 10000) || flag_force
-                % If last check is older than 30 minutes ago
-                % force_check
-                persistent last_check
-                if isempty(last_check) || (now - last_check) > (1800 / 86400)
+                % If last check is older than 30 minutes ago force_check                
+                % if flag_force is passed to the function it means that a check is not requested because cache hould exist
+                % but if the cache does not exist it is better to force its creation
+                if (nargin == 2) && (isempty(last_check) || (now - last_check) > (1800 / 86400))
                     last_check = now;
                     flag_force = true;
                 end
@@ -2691,10 +2692,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     end
                 end
                 
-                % If the number of files to check is > 366 or the cache is clean
-                if (max_sss * n_rec > 366)
-                    % Check if the cache is for the same set of folders
-                    cur_unique_dir = unique(dir_path);
+                % Check if the cache is for the same set of folders
+                cur_unique_dir = unique(dir_path);
+                % If the number of files to check is > 370  and the number of folder to scan is less than 150 (scanning folders might be slow)
+                if (max_sss * n_rec > 370) && numel(cur_unique_dir) <= 100
                     % back-up cache
                     old_unique_dir = iif(flag_force, cell(0), unique_dir);
                     old_dir_list = iif(flag_force, cell(0), dir_list);
@@ -2706,7 +2707,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         else
                             log.addMessage(log.indent(sprintf(' - Dirty cache found for updateRecList() "%s"', fullfile(cur_unique_dir{d}, '*.*'))));
                             dir_list{d} = dir(fullfile(cur_unique_dir{d}, '*.*'));
-                            flag_force = true;
+                            % flag_force = true;
                         end
                     end
                     
