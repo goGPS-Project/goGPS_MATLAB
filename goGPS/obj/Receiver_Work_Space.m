@@ -4326,6 +4326,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
                             end
                         end
+                        if isempty(H)
+                            H = zeros(size(P));
+                        end
                     end
                     
                     if any(isnan(H))
