@@ -2629,7 +2629,6 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found -> nothing to do');
             else
                 trg = rec(id_trg);
-
                 
                 for t = 1 : numel(tok) % global for all target
                     try

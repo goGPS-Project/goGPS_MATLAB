@@ -6561,7 +6561,7 @@ classdef GNSS_Station < handle
                 % Compute values
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 [m_diff, s_diff, m_diff_sta, s_diff_sta, m_diff_sta_hcorr, s_diff_sta_hcorr] = deal(nan(numel(rds), 1));
-                log.addMonoMessage(sprintf(' ZTD Radiosonde Validation\n---------------------------------------------------------------------------------------\n'));
+                log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs interpolated ZTD)\n---------------------------------------------------------------------------------------\n'));
                 log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
                 log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
@@ -6593,6 +6593,11 @@ classdef GNSS_Station < handle
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 
                 if flag_show
+                    
+                    log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs height corrected closest station)\n---------------------------------------------------------------------------------------\n'));
+                    log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
+                    log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
+                    log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                     % Plot comparisons
                     for s = 1 : numel(rds)
                         f = figure('Visible', 'off');
@@ -6657,7 +6662,8 @@ classdef GNSS_Station < handle
                         
                         m_diff_sta_hcorr(s) = mean(ztd_diff_sta_hcorr, 1, 'omitnan');
                         s_diff_sta_hcorr(s) = std(ztd_diff_sta_hcorr, 1, 'omitnan');
-                        
+                        log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
+
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
                         plot(time_rds.getMatlabTime, ztd_rds, '.w', 'MarkerSize', 40, 'LineWidth', 2);
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
@@ -6685,6 +6691,21 @@ classdef GNSS_Station < handle
                         Core_UI.addExportMenu(f);             
                         Core_UI.addBeautifyMenu(f);             
                         f.Visible = 'on'; drawnow;
+                        
+                        % Histogram
+                        f = figure('Visible', 'off');
+                        Core_UI.beautifyFig(f);
+                        f.Name = sprintf('%03d: Rds Hist %d', f.Number, s); f.NumberTitle = 'off';                        
+                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fig_name = sprintf('Raob_ZTD_%d_validation_hist', s);
+                        f.UserData = struct('fig_name', fig_name);
+                        hist(ztd_diff_sta_hcorr,25);
+                        title('Histogram of ZTD RAOB - GNSS (ZHD corrected)');
+                        xlabel('dZTD [cm]');
+                        Core_UI.beautifyFig(f);
+                        Core_UI.addExportMenu(f);             
+                        Core_UI.addBeautifyMenu(f);             
+                        f.Visible = 'on'; drawnow;                        
                     end                     
                 end
                 
