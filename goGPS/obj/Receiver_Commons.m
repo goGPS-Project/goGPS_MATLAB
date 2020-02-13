@@ -416,7 +416,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
             for r = 1 : numel(this)
                 xyz = this(r).getPosXYZ();
-                xyz = median(xyz, 1);
+                xyz = median(xyz, 1,'omitnan');
                 if ~isempty(xyz) && ~isempty(this(r))
                     [lat_d(r), lon_d(r), h_ellips(r)] = cart2geod(xyz);
                     if nargout == 4
@@ -502,7 +502,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if ~isempty(this.tzer)
                 [mfh, mfw, cotan_term] = this.getSlantMF();
             else
-                [mfh, mfw] = this.getSlantMF();
+                if ~isempty(zwd)
+                    [mfh, mfw] = this.getSlantMF();
+                else
+                    mfh = [];
+                    mfw = [];
+                end
             end
             
             % Computing delays
