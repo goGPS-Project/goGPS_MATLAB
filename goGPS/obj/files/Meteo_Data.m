@@ -110,7 +110,7 @@ classdef Meteo_Data < handle
         time = GPS_Time();  % array of observation epochs
         rate                % observations rate;
 
-        data = [];          % Meteorological file
+        data = [];          % Meteorological file [n_epoch x n_type]
 
         xyz = [0 0 0];      % geocentric coordinate of the sensor
         amsl = 0;           % hortometric height of the sensor
@@ -120,7 +120,7 @@ classdef Meteo_Data < handle
         
         smoothing = [900 300 300 0 0 0 0 0 0 0 0]; % Spline base for smoothing (in seconds)
     end
-
+    
     methods (Access = private)
         function parseRinHead(this, txt, lim, eoh)
             % Parse header and update the object, having as input the meteo_file in txt
@@ -409,6 +409,8 @@ classdef Meteo_Data < handle
             if ~any(this.xyz)
                 this.log.addWarning(sprintf('No position found in meteorological file "%s"\n this meteorological station cannot be used correctly', File_Name_Processor.getFileName(file_name)), verbosity_lev);                
             end
+            
+            this.checkInput()
         end
     end
     
@@ -713,7 +715,7 @@ classdef Meteo_Data < handle
                                 data_in = data_in(~isnan(data_in));
                                 data_in = [data_in(1); data_in; data_in(end)];
                                 time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
-                                data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
+                                data = interp1(time_data, data_in, time_pred, 'pchip', 'extrap');
                                 if this.smoothing(data_id) > 0
                                     data = splinerMat(time_pred * 86400, data - mean(data), (this.smoothing(data_id)), 0) + mean(data);
                                 end
@@ -829,6 +831,47 @@ classdef Meteo_Data < handle
             % SINTAX
             %   time = this.getObsTime();
             time = this.time;
+        end
+    end
+    
+    % =========================================================================
+    %  INPUT CHECK
+    % =========================================================================
+    methods
+        function checkInput(this)
+            % Check validity of the fields
+            %
+            % SYNTAX
+            %   this.checkInput()
+            
+            this.correctK2C;
+            this.correctInvalidPressure;
+        end
+        
+        function correctK2C(this)
+            % If degree Kelvin are used in the met file convert them into Celsius
+            % 
+            % SYNTAX
+            %   this.correctK2C()
+            id_k = (this.data(:, this.type == Meteo_Data.TD) > 100);
+            this.data(id_k, this.type == Meteo_Data.TD) = this.data(id_k, this.type == Meteo_Data.TD) - 273.15;
+            if ~isempty(id_k)
+                this.log.addWarning(sprintf('Temperature are in K instead of Celsius in "%s"', this.getMarkerName));
+            end
+
+        end
+        
+        function correctInvalidPressure(this)
+            % If the pressure is a too low value (or too high) use standard pressure
+            % limits: 750 - 1200
+            % 
+            % SYNTAX
+            %   this.correctInvalidPressure()
+            id_p = (this.data(:, this.type == Meteo_Data.PR) < 750) | (this.data(:, this.type == Meteo_Data.PR) > 1200);
+            this.data(id_p, this.type == Meteo_Data.PR) = 1013.25;
+            if ~isempty(id_p)
+                this.log.addWarning(sprintf('Pressure is out of the valid range 750~1200 mbar in "%s"', this.getMarkerName));
+            end
         end
     end
 
