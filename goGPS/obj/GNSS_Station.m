@@ -7054,44 +7054,67 @@ classdef GNSS_Station < handle
             tsc = Tropo_Sinex_Compare();
             tsc.addIGSOfficialStation(igs_list, p_time);
             
-            log.addMarkedMessage('Get GNSS interpolated ZTD @ IGS locations');
-            
-            [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho(), 300);
-            
+            % For now disable interpolation, check only IGS stations
+            % log.addMarkedMessage('Get GNSS interpolated ZTD @ IGS locations');            
+            % [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho(), 300);            
             
             % Get closer GNSS stations
             [id_rec, d3d, dup] = sta_list.getCloserRec(tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho());
             gnss_list = sta_list(id_rec);
 
             % Compute values
-            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
+            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
             [m_diff, s_diff] = deal(nan(tsc.getNumberSinex(), 1));
-            log.addMonoMessage(sprintf(' ZTD IGS Validation\n---------------------------------------------------------------------------------------\n'));
-            log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
-            log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  IGS Station\n'));
-            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
+            log.addMonoMessage(sprintf(' ZTD IGS Validation\n---------------------------------------------------------------------------------------'));
+            log.addMonoMessage(sprintf('                                Marker              Elevation     '));
+            log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  IGS Station'));
+            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
+            % For each IGS station
             for s = 1 : tsc.getNumberSinex()
                 % radiosondes
                 [ztd_igs, time_igs] = tsc.getZtdSinex(s);
                 ztd_igs = ztd_igs*100;
-                id_min = zeros(time_igs.length, 1);
-                ztd_diff = nan(time_igs.length, 1);
-                for e = 1 : time_igs.length
-                    [t_min, id_min(e)] = min(abs(time - time_igs.getEpoch(e)));
-                    if t_min < 900
-                        ztd_diff(e) = ztd_igs(e) - (ztd(id_min(e),s) + ztd_height_correction(s));
-                    end
-                end
+                % gnss
+                [ztd_gogps, time_gogps] = gnss_list(s).getZtd;
                 
+                [~, id_igs, id_gogps] = intersect(round(time_igs.getMatlabTime * (86400 / 300)), round(time_gogps.getMatlabTime * (86400 / 300)));
+                
+                ztd_diff = ztd_igs(id_igs) - ztd_gogps(id_gogps)*1e2;
                 m_diff(s) = mean(ztd_diff, 1, 'omitnan');
                 s_diff(s) = std(ztd_diff, 1, 'omitnan');
                 log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), tsc.getName(s)));
+
+                if flag_show
+                    f = figure('Visible', 'on'); Core_UI.beautifyFig(f);
+                    f.Name = sprintf('%03d: dZTD %s', f.Number, sta_list(id_rec(s)).getMarkerName4Ch); f.NumberTitle = 'off';                    
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('IGS_dZTD_%d_Validation', s);
+                    f.UserData = struct('fig_name', fig_name);                    
+                    Core_Utils.plotSep(time_igs.getEpoch(id_igs).getMatlabTime, ztd_diff, '.-');
+                    xlim(time_igs.getEpoch(id_igs([1 end])).getMatlabTime);
+                    title(sprintf('%s dZTD IGS vs. goGPS [ cm ]\\fontsize{5} \n', sta_list(id_rec(s)).getMarkerName4Ch));
+                    setTimeTicks();
+                    Core_UI.addExportMenu(f);
+                    Core_UI.addBeautifyMenu(f);
+                    Core_UI.beautifyFig(f);
+                    
+                    f = figure('Visible', 'on'); Core_UI.beautifyFig(f);
+                    f.Name = sprintf('%03d: dZTD_hist %s', f.Number, sta_list(id_rec(s)).getMarkerName4Ch); f.NumberTitle = 'off';                    
+                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fig_name = sprintf('IGS_dZTD_hist_%d_Validation', s);
+                    f.UserData = struct('fig_name', fig_name);                    
+                    hist(ztd_diff,100);
+                    title(sprintf('%s dZTD IGS vs. goGPS [ cm ]\nMean %.2f cm, std %.2fcm\\fontsize{5} \n', sta_list(id_rec(s)).getMarkerName4Ch, m_diff(s), s_diff(s)));
+                    Core_UI.addExportMenu(f);
+                    Core_UI.addBeautifyMenu(f);
+                    Core_UI.beautifyFig(f);                    
+                end                
             end
             log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
 
             if flag_show
                 % Plot comparisons
-                for s = 1 : tsc.getNumberSinex()
+                for s = 1 : tsc.getNumberSinex()                    
                     %%
                     f = figure('Visible', 'off');
                     f.Name = sprintf('%03d: IGS Validation %d', f.Number, s); f.NumberTitle = 'off';
@@ -7101,17 +7124,19 @@ classdef GNSS_Station < handle
                     f.UserData = struct('fig_name', fig_name);
                     
                     % interpolated ZTD
-                    Core_Utils.plotSep(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.-', 'LineWidth', 2, 'MarkerSize', 5);
-                    hold on;
+                    %Core_Utils.plotSep(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.-', 'LineWidth', 2, 'MarkerSize', 5);
+                    %hold on;
                     
                     % closer ZTD
-                    [s_ztd, s_time] = sta_list(id_rec(s)).getZtd_mr();
-                    Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2, 'MarkerSize', 5);
+                    [s_ztd, s_time] = gnss_list(s).getZtd;
+                    Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2, 'MarkerSize', 5); hold on;
 
                     % IGS values
                     [ztd_igs, time_igs] = tsc.getZtdSinex(s);
                     Core_Utils.plotSep(time_igs.getMatlabTime, ztd_igs*100, '.-k', 'MarkerSize', 5, 'LineWidth', 2);
-                    outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                    %outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                    %    sprintf('IGS ZTD @ %s', tsc.getName(s))};
+                    outm = {sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
                         sprintf('IGS ZTD @ %s', tsc.getName(s))};
                     [~, icons] = legend(outm, 'location', 'northwest');
                     n_entry = numel(outm);
@@ -7260,7 +7285,7 @@ classdef GNSS_Station < handle
                 
                 % Label BG (in background w.r.t. the point)
                 for r = 1 : numel(gnss_list)
-                    name = sprintf('%.1f, %.1f', data_mean(r), data_std(r));
+                    name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
                     text(x(r), y(r), ['     ' name ' '], ...
                         'FontWeight', 'bold', 'FontSize', 12, 'Color', [1 1 1], ...
                         'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
@@ -7269,7 +7294,7 @@ classdef GNSS_Station < handle
                 end
                 
                 for r = 1 : tsc.getNumberSinex
-                    name = sprintf('%.1f, %.1f', data_mean(r), data_std(r));
+                    name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
                     text(x(r), y(r), ['     ' name ' '], ...
                         'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
                         'Margin', 2, 'LineWidth', 2, ...
