@@ -1037,6 +1037,9 @@ classdef Meteo_Data < handle
                 [x, y, z] = station(s).getLocation();
                 [e_obs(s), n_obs(s)] = cart2plan(x, y, z);
             end
+            id_ok = ~isnan(e_obs);
+            n_obs = n_obs(id_ok); 
+            e_obs = e_obs(id_ok); 
             st_type = st_type';
 
             [e_mesh, n_mesh] = meshgrid(e_obs, n_obs);
@@ -1046,17 +1049,17 @@ classdef Meteo_Data < handle
             % fun for pressure
             fun = @(dist) 0.2 * exp(-(dist/0.8e4)) + exp(-(dist/6e3).^2);
             %fun = @(dist) min(1, 1 ./ dist.);
-            pres = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.PR);
+            pres = Meteo_Data.getMeteoData(station(id_ok), st_type(id_ok,:), fun, time, amsl, d_oo, d_op, Meteo_Data.PR);
                         
             % fun for temperature
             fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
             %fun = @(dist) min(1, 1 ./ dist);
-            temp = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.TD);
+            temp = Meteo_Data.getMeteoData(station(id_ok), st_type(id_ok,:), fun, time, amsl, d_oo, d_op, Meteo_Data.TD);
             
             % fun for humidity
             fun = @(dist) exp(-(dist/1e4)) + exp(-(dist/8e3).^2);
             % fun = @(dist) min(1, 1 ./ dist);
-            hum = Meteo_Data.getMeteoData(station, st_type, fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
+            hum = Meteo_Data.getMeteoData(station(id_ok), st_type(id_ok,:), fun, time, amsl, d_oo, d_op, Meteo_Data.HR);
             
             data = [pres temp hum];
             if sum(any(data))
