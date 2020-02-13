@@ -76,7 +76,7 @@ classdef Core_Reference_Frame < handle
             catch ex
                 this.is_valid = false;
                 log = Logger.getInstance();
-                log.addError('CRD file seems empty or corrupted');
+                log.addWarning('CRD file seems empty or corrupted');
             end
         end
         
