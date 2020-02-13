@@ -132,15 +132,22 @@ classdef Residuals < Exportable
             % 1) Remove the old overlapped residuals
             % Find the first epoch to remove from the existing res
             if ~res.time.isEmpty
-                id_start = find(this.time.getNominalTime.getRefTime(res.time.getNominalTime.first.getMatlabTime) > 0, 1, 'first');
-                if isempty(id_start)
+                if isempty(this.time)
                     id_start = this.time.length + 1;
+                    id_stop = 0;
+                    
+                else
+                    id_start = find(this.time.getNominalTime.getRefTime(res.time.getNominalTime.first.getMatlabTime) > 0, 1, 'first');
+                    id_stop = find(this.time.getNominalTime.getRefTime(res.time.getNominalTime.last.getMatlabTime) <= 0, 1, 'last');
+                    
+                    if isempty(id_start)
+                        id_start = this.time.length + 1;
+                    end
+                    if isempty(id_stop)
+                        id_stop = 0;
+                    end
                 end
                 % Find the last epoch to remove from the existing res
-                id_stop = find(this.time.getNominalTime.getRefTime(res.time.getNominalTime.last.getMatlabTime) <= 0, 1, 'last');
-                if isempty(id_stop)
-                    id_stop = 0;
-                end
                 id_ko = id_start : id_stop;
                 if ~isempty(id_ko)
                     this.remEpoch(id_ko);
@@ -168,7 +175,7 @@ classdef Residuals < Exportable
                 
                 % new satellites to add
                 [code_add, id_add] = setdiff(code_new, code_old);
-                [code_common, id_new, id_old] = intersect(code_old, code_new);
+                [code_common, id_new, id_old] = intersect( code_new, code_old);
                 
                 n_obs_new = size(res.value, 1);
                 
@@ -179,7 +186,7 @@ classdef Residuals < Exportable
                 this.value = [this.value nan(size(this.value, 1), numel(code_add))];
                 
                 % add new data
-                this.value(id_start + (0 : n_obs_new - 1) , [id_old; (size(this.value, 2) - numel(code_add) + 1) : size(this.value, 2)]) = res.value(:, [id_new; id_add]);
+                this.value(id_start + (0 : n_obs_new - 1) , [id_old; ((end - numel(code_add) + 1) : end)']) = res.value(:, [id_new; id_add]);
                 this.obs_code = [this.obs_code; res.obs_code(id_add, :)];
                 this.prn = [this.prn; res.prn(id_add)];
                 
