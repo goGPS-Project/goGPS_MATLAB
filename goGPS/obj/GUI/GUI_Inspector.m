@@ -1409,6 +1409,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                 cmd = Core.getCommandInterpreter();
                 if ~isempty(cmd_list)
                     [cleaned_cmd_list, err_list, loop_lev] = cmd.fastCheck(cmd_list{1});
+                    cmd_list{1} = cleaned_cmd_list;
                     loop_lev = loop_lev - (diff([0 loop_lev]) > 0);
                     
                     cid = 0; % index running on valid commands
