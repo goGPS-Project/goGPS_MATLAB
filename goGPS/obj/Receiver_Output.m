@@ -359,7 +359,7 @@ classdef Receiver_Output < Receiver_Commons
             ge = nan(size(this.tge));
             tsc = Tropo_Sinex_Compare();
             sta_name = this.parent.getMarkerName4Ch;
-            [missing_days] = tsc.addIGSOfficialStation( sta_name, this.time);
+            [missing_days] = tsc.addIGSOfficialStation(sta_name, this.time);
             lid_excl = false(this.time.length,1);
             for d = missing_days
                 d1 = GPS_Time.fromMJD(d);
@@ -371,16 +371,16 @@ classdef Receiver_Output < Receiver_Commons
                 this.log.addWarning(sprintf('No IGS solutions found for station %s',sta_name));
             else
                 if strcmpi(mode,'interp_value')
-                    ztd  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).ztd,this.time.getMatlabTime,'linear');
-                    gn  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tgn,this.time.getMatlabTime,'linear');
-                    ge  = interp1(tsc.results.r2.(upper(sta_name)).time.getMatlabTime,tsc.results.r2.(upper(sta_name)).tge,this.time.getMatlabTime,'linear');
+                    ztd  = interp1(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime,tsc.results.r2.(['r' upper(sta_name)]).ztd,this.time.getMatlabTime,'linear');
+                    gn  = interp1(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime,tsc.results.r2.(['r' upper(sta_name)]).tgn,this.time.getMatlabTime,'linear');
+                    ge  = interp1(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime,tsc.results.r2.(['r' upper(sta_name)]).tge,this.time.getMatlabTime,'linear');
                     ztd(lid_excl) = nan;
                     gn(lid_excl) = nan;
                     ge(lid_excl) = nan;
                 elseif strcmpi(mode,'difference')
-                    ztd = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).ztd, this.time.getMatlabTime, this.ztd,'aggregate');
-                    gn = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).tgn, this.time.getMatlabTime, this.tgn,'aggregate');
-                    ge = timeSeriesComparison(tsc.results.r2.(upper(sta_name)).time.getMatlabTime, tsc.results.r2.(upper(sta_name)).tge, this.time.getMatlabTime, this.tge,'aggregate');
+                    ztd = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).ztd, this.time.getMatlabTime, this.ztd,'aggregate');
+                    gn = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).tgn, this.time.getMatlabTime, this.tgn,'aggregate');
+                    ge = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).tge, this.time.getMatlabTime, this.tge,'aggregate');
                     
                 end
             end
