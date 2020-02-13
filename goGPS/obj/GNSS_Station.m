@@ -6559,12 +6559,12 @@ classdef GNSS_Station < handle
                 %             ztd_ns(:,rds.getLat <= 41) = ztd_s(:,rds.getLat <= 41);
                 
                 % Compute values
-                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
+                log.addMonoMessage(sprintf('\n---------------------------------------------------------------------------------------'));
                 [m_diff, s_diff, m_diff_sta, s_diff_sta, m_diff_sta_hcorr, s_diff_sta_hcorr] = deal(nan(numel(rds), 1));
-                log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs interpolated ZTD)\n---------------------------------------------------------------------------------------\n'));
-                log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
-                log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
-                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
+                log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs interpolated ZTD)\n---------------------------------------------------------------------------------------'));
+                log.addMonoMessage(sprintf('                                Closer              Elevation     '));
+                log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station'));
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
                 for s = 1 : numel(rds)
                     %                 if rds(s).getLat > 41
                     %                     ztd = ztd_n;
@@ -6590,14 +6590,13 @@ classdef GNSS_Station < handle
                     s_diff(s) = std(ztd_diff, 1, 'omitnan');
                     log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
                 end
-                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
-                
+                log.addMonoMessage(sprintf('\n---------------------------------------------------------------------------------------'));
                 if flag_show
                     
-                    log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs height corrected closest station)\n---------------------------------------------------------------------------------------\n'));
+                    log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs height corrected closest station)\n---------------------------------------------------------------------------------------'));
                     log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
                     log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
-                    log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
+                    log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
                     % Plot comparisons
                     for s = 1 : numel(rds)
                         f = figure('Visible', 'off');
@@ -6790,7 +6789,6 @@ classdef GNSS_Station < handle
                     Core_UI.beautifyFig(fh);
                     Core_UI.addExportMenu(fh);
                     Core_UI.addBeautifyMenu(fh);
-                    log.addStatusOk('The map is ready ^_^');
                 end
             end
         end
