@@ -2642,7 +2642,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str_cell = Ini_Manager.toIniStringSection('---- U2 PARAMETRIZATION --------------------------------------------------', str_cell);
             str_cell = Ini_Manager.toIniStringComment(' Estimates coordinates in PPP', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_coo_ppp', this.flag_coo_ppp, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Estimates coordinates in network', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_net', this.flag_coo_net, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Time parametrization coordinates PPP', str_cell);
@@ -2825,6 +2825,27 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_ppp', this.dreg_sat_trkbias_ppp, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite intertracking bias  in network [m/sqrt(h)]', str_cell);
             str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_net', this.dreg_sat_trkbias_net, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('---- UNDOCUMENTED--------------------------------------------------', str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p2_net', this.sreg_iono_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p1_net', this.sreg_iono_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_iono_net', this.flag_sreg_iono_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p2_ppp', this.sreg_iono_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p1_ppp', this.sreg_iono_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_iono_ppp', this.flag_sreg_iono_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p2_net', this.sreg_grad_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p1_net', this.sreg_grad_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_grad_net', this.flag_sreg_grad_net , str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p2_net', this.sreg_ztd_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p1_net', this.sreg_ztd_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_ztd_net', this.flag_sreg_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p2_ppp', this.sreg_grad_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p1_ppp', this.sreg_grad_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_grad_ppp', this.flag_sreg_grad_ppp , str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p2_ppp', this.sreg_ztd_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p1_ppp', this.sreg_ztd_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_ztd_ppp', this.flag_sreg_ztd_ppp, str_cell);
+
             
             
             
@@ -3756,26 +3777,26 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('dreg_grad_ppp');
             this.checkNumericField('dreg_grad_net');
             this.checkLogicalField('flag_sreg_ztd_ppp');
-            this.checkNumericField('sreg_ztd_p1_ppp',[1 1e50]);
-            this.checkNumericField('sreg_ztd_p2_ppp',[1 1e50]);
+            this.checkNumericField('sreg_ztd_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_ztd_p2_ppp',[-1 1e50]);
             this.checkLogicalField('flag_sreg_ztd_net');
-            this.checkNumericField('sreg_ztd_p1_net',[1 1e50]);
-            this.checkNumericField('sreg_ztd_p2_net',[1 1e50]);
+            this.checkNumericField('sreg_ztd_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_ztd_p2_net',[-1 1e50]);
             this.checkLogicalField('flag_sreg_grad_ppp');
-            this.checkNumericField('sreg_grad_p1_ppp',[1 1e50]);
-            this.checkNumericField('sreg_grad_p2_ppp',[1 1e50]);
+            this.checkNumericField('sreg_grad_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_grad_p2_ppp',[-1 1e50]);
             this.checkLogicalField('flag_sreg_grad_net');
-            this.checkNumericField('sreg_grad_p1_net',[1 1e50]);
-            this.checkNumericField('sreg_grad_p2_net',[1 1e50]);
+            this.checkNumericField('sreg_grad_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_grad_p2_net',[-1 1e50]);
             this.checkLogicalField('flag_free_net_tropo');
             this.checkLogicalField('flag_iono_ppp');
             this.checkLogicalField('flag_iono_net');
             this.checkLogicalField('flag_sreg_iono_ppp');
-            this.checkNumericField('sreg_iono_p1_ppp',[1 1e50]);
-            this.checkNumericField('sreg_iono_p2_ppp',[1 1e50]);
+            this.checkNumericField('sreg_iono_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_iono_p2_ppp',[-1 1e50]);
             this.checkLogicalField('flag_sreg_iono_net');
-            this.checkNumericField('sreg_iono_p1_net',[1 1e50]);
-            this.checkNumericField('sreg_iono_p2_net',[1 1e50]);
+            this.checkNumericField('sreg_iono_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_iono_p2_net',[-1 1e50]);
             this.checkLogicalField('flag_rec_clock_ppp');
             this.checkLogicalField('flag_rec_clock_net');
             this.checkLogicalField('flag_phpr_rec_clock_ppp');
