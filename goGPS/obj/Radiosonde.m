@@ -1753,6 +1753,7 @@ classdef Radiosonde < handle
                 '22845  Kargopol, AR';
                 '26075  St.Petersburg(Voejkovo), St.Petersburg(Voejkovo), LE (ULLI)';
                 '26298  Bologoe, LE';
+                '26477  Velikie Luki, LE (ULOL)';
                 '26702  Kaliningrad, MI';
                 '26781  Smolensk, MI';
                 '27038  Vologda, AR (ULWW)';
@@ -1892,6 +1893,7 @@ classdef Radiosonde < handle
             raob_list.s26038 = struct('lat',   59.38, 'lon',   24.58, 'name', 'ULTT Tallinn');
             raob_list.s26075 = struct('lat',   59.95, 'lon',   30.70, 'name', 'ULLI St.Petersburg(Voejkovo)');
             raob_list.s26298 = struct('lat',   57.90, 'lon',   34.05, 'name', 'Bologoe');
+            raob_list.s26477 = struct('lat',   56.35, 'lon',   30.61, 'name', 'Velikie Luki');
             raob_list.s26702 = struct('lat',   54.71, 'lon',   20.55, 'name', 'Kaliningrad');
             raob_list.s26781 = struct('lat',   54.75, 'lon',   32.06, 'name', 'Smolensk');
             raob_list.s27038 = struct('lat',   59.32, 'lon',   39.93, 'name', 'ULWW Vologda');
