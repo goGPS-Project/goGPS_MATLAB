@@ -264,7 +264,7 @@ classdef LS_Manipulator < Exportable
                             for i = 1 : length(obs_type)
                                 if ~isempty(f)
                                     c_o_s = rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_list);
-                                    c_o_s.sigma = c_o_s.sigma + rec.getResidualIonoError;
+                                    c_o_s.sigma = c_o_s.sigma; %+ rec.getResidualIonoError;
                                     obs_set.merge(c_o_s);
                                 end
                             end
@@ -373,8 +373,8 @@ classdef LS_Manipulator < Exportable
                 % if phase observations are present check if the computation of troposphere parameters is required
                 
                 if phase_present
-                    tropo = this.state.flag_tropo;
-                    tropo_g = this.state.flag_tropo_gradient;
+                    tropo = this.state.flag_ztd_ppp;
+                    tropo_g = this.state.flag_grad_ppp;
                 else
                     tropo = false;
                     tropo_g = false;
@@ -742,8 +742,8 @@ classdef LS_Manipulator < Exportable
             if nargin < 5
                 tropo_rate = [];
             end
-            tropo = rec.state.flag_tropo && obs_set.hasPhase();
-            tropo_g = rec.state.flag_tropo_gradient  && obs_set.hasPhase();
+            tropo = rec.state.flag_ztd_ppp && obs_set.hasPhase();
+            tropo_g = rec.state.flag_grad_ppp  && obs_set.hasPhase();
             dynamic = rec.state.rec_dyn_mode;
             phase_present =  obs_set.hasPhase();
             
@@ -819,8 +819,21 @@ classdef LS_Manipulator < Exportable
             n_obs = sum(sum(diff_obs ~= 0));
             
             % Building Design matrix
-            order_tropo = this.state.spline_tropo_order;
-            order_tropo_g = this.state.spline_tropo_gradient_order;
+            if this.state.tparam_ztd_ppp == 2
+                order_tropo = 1;
+            elseif this.state.tparam_ztd_ppp == 3
+                order_tropo = 3;
+            else
+                order_tropo = 0;
+            end
+               
+            if this.state.tparam_grad_ppp == 2
+                order_tropo_g = 1;
+            elseif this.state.tparam_grad_ppp == 3
+                order_tropo_g = 3;
+            else
+                order_tropo_g = 0;
+            end
             tropo_v_g = false && obs_set.hasPhase(); 
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
