@@ -298,9 +298,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Tabs settings --------------------------------------------------------------------------------------------
 
                 if enable_rri
-                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Regularization', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Parametrization', 'Atmosphere'};
                 else
-                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Regularization', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Parametrization', 'Atmosphere'};
                 end
 
                 % Botton Panel ---------------------------------------------------------------------------------------------
@@ -1454,67 +1454,418 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function insertTabRegularization(this, container)
-            tab = uix.Grid('Parent', container, ...
+            state  = Core.getCurrentSettings;
+            color_tab = Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT;
+             outerbox = uix.VBox('Parent', container,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            uicontrol('Parent', outerbox, ...
+                'Style', 'Text', ...
+                'String', '* paramter present only on undifferenced mode', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'FontWeight' , 'bold', ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(8), ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+             tab_panel = uix.TabPanel('Parent', outerbox, ...
+                    'TabWidth', 80, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', color_tab, ...
+                    'SelectionChangedFcn', @this.onTabChange);
+            tab_ppp = uix.Grid('Parent', tab_panel, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_tab);
             
-            %%% TROPO ADVANCED REGULARIZATION
-            tropo_opt_adv = Core_UI.insertPanelLight(tab, 'Regularization options');
-            tropo_opt_v_adv = uix.VBox('Parent', tropo_opt_adv,...
+            %%% COO ADVANCED REGULARIZATION
+            coo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Coordinates');
+            coo_opt_ppp_h = uix.HBox('Parent', coo_opt_ppp,...
+                'Spacing', 20, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            coo_op_ppp_v1 = uix.VBox('Parent', coo_opt_ppp_h,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            clock_reg_hbox = uix.HBox('Parent', tropo_opt_v_adv,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(clock_reg_hbox, 'clock regularization', 'std_clock', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
-            Core_UI.insertEmpty(clock_reg_hbox);
-            clock_reg_hbox.Widths = [332 -1];
-            tropo_opt_hbox_adv = uix.HBox('Parent', tropo_opt_v_adv,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tropo_opt_v_adv.Heights = [25 -1];
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v1, 'Estimate', 'flag_coo_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+
+            coo_op_ppp_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
-            tropo_opt_vl_adv = uix.VBox('Parent', tropo_opt_hbox_adv,...
+            coo_op_ppp_v2 = uix.VBox('Parent', coo_opt_ppp_h,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute Regularization [Hor Vert] *', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.edit_texts_array{end}.Visible = 'off';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential Regularization [Hor Vert] *', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            coo_op_ppp_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
+            this.edit_texts_array{end}.Visible = 'off';
+
+            coo_opt_ppp_h.Widths = [300 -1];
             
-            Core_UI.insertEmpty(tropo_opt_hbox_adv);
-            tropo_opt_vr_adv = uix.VBox('Parent', tropo_opt_hbox_adv,...
+            %%% iono paramters
+            iono_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Ionosphere');
+            iono_opt_ppp_h = uix.HBox('Parent', iono_opt_ppp,...
+                'Spacing', 20, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_h, 'Estimate', 'flag_iono_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            
+            iono_opt_ppp_h.Widths = [ -1];
+            
+            
+            %%% tropo paramters
+            tropo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Troposphere');
+            tropo_opt_ppp_h = uix.HBox('Parent', tropo_opt_ppp,...
+                'Spacing', 10, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            ztd_ppp = uix.VBox('Parent', tropo_opt_ppp_h,...
                 'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tropo_opt_hbox_adv.Widths = [-1 20 -1];
-            
-            uicontrol('Parent', tropo_opt_vl_adv, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+              uicontrol('Parent', ztd_ppp, ...
                 'Style', 'Text', ...
-                'String', 'ZTD estimation', ...
+                'String', 'ZTD', ...
+                 'FontWeight' , 'bold', ...
                 'ForegroundColor', Core_UI.BLACK, ...
-                'FontWeight' , 'bold', ...
-                'HorizontalAlignment', 'left', ...
+                'HorizontalAlignment', 'center', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(ztd_ppp, 'Estimate', 'flag_ztd_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(ztd_ppp, 'Time parametrization', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(ztd_ppp, 'Rate ', 'rate_ztd_ppp', 's', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(ztd_ppp, 'Absolute Regularization', 'areg_ztd_ppp', 'm', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(ztd_ppp, 'Differential Regularization', 'dreg_ztd_ppp', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
-            uicontrol('Parent', tropo_opt_vr_adv, ...
+            
+            
+            
+            gardient_ppp = uix.VBox('Parent', tropo_opt_ppp_h,...
+                'Spacing', 5, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+              uicontrol('Parent', gardient_ppp,...
                 'Style', 'Text', ...
-                'String', 'ZTD gradients estimation', ...
+                'String', 'ZTD Gradients', ...
+                 'FontWeight' , 'bold', ...
                 'ForegroundColor', Core_UI.BLACK, ...
-                'FontWeight' , 'bold', ...
-                'HorizontalAlignment', 'left', ...
+                'HorizontalAlignment', 'center', ...
                 'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(gardient_ppp, 'Estimate ', 'flag_grad_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(gardient_ppp, 'Time parametrization', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(gardient_ppp, 'Rate', 'rate_grad_ppp', 's', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(gardient_ppp, 'Absolute Regularization', 'areg_grad_ppp', 'm', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(gardient_ppp, 'Differential Regularization', 'dreg_grad_ppp', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            coo_opt_ppp_h.Widths = [300 -1];
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Absolute regularization', 'std_tropo_abs', 'm', @this.onEditChange, [-1 80 5 70]);            
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'First der. regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);            
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vl_adv, 'Spline rate', 'spline_rate_tropo', 's', @this.onEditChange, [-1 80 5 70]);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vl_adv, 'Order of the spline',Core.getCurrentSettings.SPLINE_TROPO_ORDER_LABEL ,'spline_tropo_order', @this.onPopUpChange, [-1 160]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Absolute regularization', 'std_tropo_gradient_abs', 'm', @this.onEditChange, [-1 80 5 70]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'First der. regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_vr_adv, 'Spline rate', 'spline_rate_tropo_gradient', 's', @this.onEditChange, [-1 80 5 70]);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_vr_adv, 'Order of the spline',Core.getCurrentSettings.SPLINE_TROPO_GRADIENT_ORDER_LABEL ,'spline_tropo_gradient_order', @this.onPopUpChange, [-1 160]);
-                        
-            tropo_opt_vl_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
-            tropo_opt_vr_adv.Heights = Core_UI.LINE_HEIGHT * ones(5,1);
-            tab.Heights = 195;
-            tab.Widths = 700;
+            %%%% bias paramters
+            bias_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Bias *');
+               bias_opt_ppp_h = uix.VBox('Parent', bias_opt_ppp,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+             rec_bias_ppp = uix.VBox('Parent', bias_opt_ppp_h,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                  uicontrol('Parent', rec_bias_ppp,...
+                'Style', 'Text', ...
+                'String', 'Receiver', ...
+                 'FontWeight' , 'bold', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'center', ...
+                'FontSize', Core_UI.getFontSize(8), ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            rec_line1 = uix.HBox('Parent', rec_bias_ppp,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+       
             
-            this.uip.tab_reg = tab;
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Separate pr ph clock ', 'flag_phpr_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            tab_rec_bias = uix.Grid('Parent', rec_bias_ppp, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_tab);
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Clock', 'flag_rec_clock_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+           
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Frequency Bias', 'flag_rec_ifbias_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Tracking Bias', 'flag_rec_trkbias_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             Core_UI.insertText(tab_rec_bias, 'Clock', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_bias, 'IF Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_bias, 'IT Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             
+            
+            Core_UI.insertText(tab_rec_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_ifbias_ppp', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_itbias_ppp', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            
+            Core_UI.insertText(tab_rec_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_ifbias_ppp', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_itbias_ppp', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            
+            Core_UI.insertText(tab_rec_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_itbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            
+            Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_itbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            
+            
+            
+
+
+            
+            tab_rec_bias.Widths = [150 150 150 150 150 ];
+            tab_rec_bias.Heights = [25 25 25 25];
+            rec_bias_ppp.Heights = [25 25 -1];
+            
+%             sat_bias_ppp = uix.VBox('Parent', bias_opt_ppp_h,...
+%                 'Spacing', 5, ...
+%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+%             uicontrol('Parent', sat_bias_ppp,...
+%                 'Style', 'Text', ...
+%                 'String', 'Satellite', ...
+%                 'FontWeight' , 'bold', ...
+%                 'ForegroundColor', Core_UI.BLACK, ...
+%                 'HorizontalAlignment', 'center', ...
+%                 'FontSize', Core_UI.getFontSize(8), ...
+%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            
+            bias_opt_ppp_h.Heights = [-1];
+
+            tab_ppp.Heights = [105 40 160 -1];
+            tab_ppp.Widths = 780;
+            % ----- Tab Network
+            tab_net = uix.Grid('Parent', tab_panel, ...
+                'Padding', 5, ...
+                'BackgroundColor', color_tab);
+            
+            %%% COO ADVANCED REGULARIZATION
+            coo_opt_ppp = Core_UI.insertPanelLight2(tab_net, 'Coordinates');
+            coo_opt_ppp_h = uix.HBox('Parent', coo_opt_ppp,...
+                'Spacing', 20, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            coo_op_ppp_v1 = uix.VBox('Parent', coo_opt_ppp_h,...
+                'Spacing', 3, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v1, 'Estimate', 'flag_coo_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 70],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+
+            coo_op_ppp_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
+            
+            coo_op_ppp_v2 = uix.VBox('Parent', coo_opt_ppp_h,...
+                'Spacing', 3, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_ppp', @this.onPopUpChange,[],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute Regularization [Hor Vert] *', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.edit_texts_array{end}.Visible = 'off';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential Regularization [Hor Vert] *', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.edit_texts_array{end}.Visible = 'off';
+            coo_op_ppp_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
+            coo_opt_ppp_h.Widths = [300 -1];
+            
+            %%% iono paramters
+            iono_opt_ppp = Core_UI.insertPanelLight2(tab_net, 'Ionosphere');
+            iono_opt_ppp_h = uix.HBox('Parent', iono_opt_ppp,...
+                'Spacing', 20, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_h, 'Estimate', 'flag_iono_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            
+            iono_opt_ppp_h.Widths = [ -1];
+            
+            
+            %%% tropo paramters
+            tropo_opt_net = Core_UI.insertPanelLight2(tab_net, 'Troposphere');
+            tropo_opt_net_v = uix.VBox('Parent', tropo_opt_net,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                  
+            rec_line1 = uix.HBox('Parent', tropo_opt_net_v,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+           
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            tab_rec_tropo = uix.Grid('Parent', tropo_opt_net_v, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_tab);
+            
+            Core_UI.insertText(tab_rec_tropo, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_tropo, 'ZTD', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_tropo, 'ZTD Gradients', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            
+            Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+           
+             tab_rec_tropo.Widths = [150 150 150 150 150 ];
+            tab_rec_tropo.Heights = [10 25 25];
+            tropo_opt_net_v.Heights = [0 -1];
+            
+            
+            
+            %%%% bias paramters
+            bias_opt_net = Core_UI.insertPanelLight2(tab_net, 'Bias *');
+               bias_opt_net_h = uix.VBox('Parent', bias_opt_net,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+             rec_bias_net = uix.VBox('Parent', bias_opt_net_h,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                  uicontrol('Parent', rec_bias_net,...
+                'Style', 'Text', ...
+                'String', 'Receiver', ...
+                 'FontWeight' , 'bold', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'center', ...
+                'FontSize', Core_UI.getFontSize(8), ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            rec_line1 = uix.HBox('Parent', rec_bias_net,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Separate pr ph clock ', 'flag_phpr_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+           
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Clock', 'flag_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Frequency Bias', 'flag_rec_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Tracking Bias', 'flag_rec_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            tab_rec_bias = uix.Grid('Parent', rec_bias_net, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_tab);
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Clock', 'flag_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Frequency Bias', 'flag_rec_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Tracking Bias', 'flag_rec_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             Core_UI.insertText(tab_rec_bias, 'Clock', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_bias, 'IF Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_rec_bias, 'IT Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            
+            Core_UI.insertText(tab_rec_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_ifbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_itbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_rec_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_ifbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_itbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            Core_UI.insertText(tab_rec_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+
+            tab_rec_bias.Widths = [150 150 150 150 150 ];
+            tab_rec_bias.Heights = [10 25 25 25];
+            rec_bias_net.Heights = [10 25 -1];
+            
+            sat_bias_net = uix.VBox('Parent', bias_opt_net_h,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            uicontrol('Parent', sat_bias_net,...
+                'Style', 'Text', ...
+                'String', 'Satellite', ...
+                'FontWeight' , 'bold', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'center', ...
+                'FontSize', Core_UI.getFontSize(8), ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            rec_line1 = uix.HBox('Parent', sat_bias_net,...
+                'Spacing', 0, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Separate pr ph clock ', 'flag_phpr_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Clock', 'flag_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Frequency Bias', 'flag_sat_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Tracking Bias', 'flag_sat_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            tab_sat_bias = uix.Grid('Parent', sat_bias_net, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_tab);
+            Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Clock', 'flag_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Inter Frequency Bias', 'flag_sat_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Inter Tracking Bias', 'flag_sat_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%             Core_UI.insertText(tab_sat_bias, 'Clock', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_sat_bias, 'IF Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+%             Core_UI.insertText(tab_sat_bias, 'IT Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            
+            Core_UI.insertText(tab_sat_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_sat_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_sat_ifbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_sat_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_sat_itbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_sat_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'rate_sat_ifbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'rate_sat_itbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_sat_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            Core_UI.insertText(tab_sat_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            
+            tab_sat_bias.Widths = [150 150 150 150 150 ];
+            tab_sat_bias.Heights = [10 25 25 25];
+            sat_bias_net.Heights = [10 25 -1];
+            
+            
+            bias_opt_net_h.Heights = [-1 -1];
+
+            tab_net.Heights = [100 40 90 -1];
+            tab_net.Widths = 780;
+            outerbox.Heights = [ 10 -1];
+            
+            
+            
+
+            tab_panel.TabTitles = {'PPP', 'Network'};
+            this.uip.tab_reg = tab_panel;
+
         end
         
         function insertTabAtmosphere(this, container)
@@ -1525,7 +1876,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             state = Core.getCurrentSettings;
             
             %%% IONO
-            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
+            iono_options = Core_UI.insertPanelLight2(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
@@ -1533,7 +1884,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertEmpty(tab);
             
             %%% TROPO
-            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
+            tropo_options = Core_UI.insertPanelLight2(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -2457,7 +2808,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Core.getLogger.addMessage('File availability checked');
         end
         
-        function updateAndPlotRecList(this, caller, event)
+        function goEditSettings(this, caller, event)
             % Update file name list and plot daily availability of the files
             %
             % SYNTAX:

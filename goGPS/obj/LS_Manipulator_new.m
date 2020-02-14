@@ -1767,8 +1767,9 @@ classdef LS_Manipulator_new < handle
                         B(idx_full) = B(idx_full) - Nt * B_recclk;
                         
                         cross_terms_t{3} = {iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk};
+                         cross_terms{ii} = {cross_terms_t idx_red_cycle};
                     end
-                    cross_terms{ii} = {cross_terms_t idx_red_cycle};
+                   
                     ii = ii +1;
                 end
             end
@@ -1928,7 +1929,7 @@ classdef LS_Manipulator_new < handle
                         [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial' );
                         ambs = zeros(sum(idx_amb),1);
                         ambs(idx_amb_est) = amb_fixed(:,1);
-%                         ambs = N_amb_amb \ B_amb_amb;
+                         ambs(idx_amb_est) = amb_float;
                         B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
                        
                         x_reduced = zeros(size(N,1),1);
@@ -1964,7 +1965,11 @@ classdef LS_Manipulator_new < handle
                      x_reduced = result(:,1);
                      this.coo_vcv = result([idx_x; idx_y; idx_z] ,2 : end);
                 else
-                     x_reduced = N\B;
+                   % [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
+                   F = factorization_svd(N);
+                   x_reduced = F \ B;
+
+                 %    x_reduced = N\B;
                 end
             end
             % ------- substitute back
@@ -2372,8 +2377,7 @@ classdef LS_Manipulator_new < handle
                     this.PAR_AMB;
                     this.PAR_REC_CLK_PR;
                     this.PAR_REC_CLK_PH;
-                    
-                    this.PAR_IONO
+                    this.PAR_IONO;
                     ];  %
                
                 if state.flag_tropo

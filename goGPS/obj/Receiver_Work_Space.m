@@ -8898,17 +8898,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX:
             % [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
-            [pr, wl, id_ph] = this.getPseudoRanges();
-            [ph, wl, id_ph] = this.getPhases();
-
-            
-            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
-            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
-            
-            synt_pr = this.getPseudoRanges;
-            synt_ph = this.getSyntPhases;
-            
-            dt = pr 
+            this.updateAllAvailIndex();
+            [pr] = this.getPseudoRanges();
+            [ph] = this.getPhases();
+            [~, ~, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [~, ~, is_pr_jumping] = Core_PP.remDtJumps(pr);
+            synt_pr = this.getSyntPrObs;
+            dt = median(pr - synt_pr,2,'omitnan');
+            this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
+            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            [pr] = this.getPseudoRanges();
+            synt_pr = this.getSyntPrObs;
+            dt = median(pr - synt_pr,2,'omitnan');
+            this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
+            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
         end
         
         function s0 = initPositioning(this, sys_c)
@@ -10235,7 +10238,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         this.add_coo(end+1) = sub_coo;
                                     end
                                 end
-                                
+                                this.time
                             end
                         end
                         this.smoothAndApplyDt(0, false, false, 2);
@@ -10298,7 +10301,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls = LS_Manipulator_new();
                 parametrization = LS_Parametrization();
                 [out_lim, int_lim] = state.getSessionLimits();
-
+                
+                % time parametrization coordinates
+                parametrization.rec_x(1) = state.tparam_coo_ppp;
+                parametrization.rec_y(1) = state.tparam_coo_ppp;
+                parametrization.rec_z(1) = state.tparam_coo_ppp;
+                
                 % Estimate different set of coordinates for the left and write buffer
                 if state.isSepCooAtBoundaries
                     steps = out_lim.getEpoch(1);
@@ -10314,50 +10322,104 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Estimate different Antenna Phase Center for each frequency/constellation
-                if ~state.flag_separate_apc
-                    parametrization.rec_x(4) = parametrization.ALL_FREQ;
-                    parametrization.rec_y(4) = parametrization.ALL_FREQ;
-                    parametrization.rec_z(4) = parametrization.ALL_FREQ;
-                end 
+              
+                parametrization.rec_x(4) = state.fparam_coo_ppp;
+                parametrization.rec_y(4) = state.fparam_coo_ppp;
+                parametrization.rec_z(4) = state.fparam_coo_ppp;
                 
                 % Use spline for estimating ZTD
-                if  state.spline_tropo_order > 0
-                    if state.spline_tropo_order == 1
-                        parametrization.tropo(1) = parametrization.SPLINE_LIN;
-                    end
-                    if state.spline_tropo_order == 3
-                        parametrization.tropo(1) = parametrization.SPLINE_CUB;
-                    end
-                    parametrization.tropo_opt.spline_rate = state.spline_rate_tropo;
-                end
-                                
-                % Use spline for estimating ZTD gradients
-                if  state.spline_tropo_gradient_order > 0
-                    if state.spline_tropo_gradient_order == 1
-                        parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
-                        parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
-                        
-                    end
-                    if state.spline_tropo_gradient_order == 3
-                        parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
-                        parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
-                        
-                    end
-                    parametrization.tropo_n_opt.spline_rate = state.spline_rate_tropo_gradient;
-                    parametrization.tropo_e_opt.spline_rate = state.spline_rate_tropo_gradient;
+                if state.tparam_ztd_ppp == 1
+                    parametrization.tropo(1) = parametrization.EP_WISE;
+                elseif state.tparam_ztd_ppp == 2
+                    parametrization.tropo(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
+                elseif state.tparam_ztd_ppp == 3
+                    parametrization.tropo(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
                 end
                 
+            
+                
+                                
+                % Use spline for estimating ZTD gradients
+                if state.tparam_grad_ppp == 1
+                    parametrization.tropo_n(1) = parametrization.EP_WISE;
+                    parametrization.tropo_e(1) = parametrization.EP_WISE;
+                elseif state.tparam_grad_ppp == 2
+                    parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                elseif state.tparam_grad_ppp == 3
+                    parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                end
+                   param_selection = [LS_Manipulator_new.PAR_AMB;];
+                if state.flag_coo_ppp
+                    param_selection = [param_selection;
+                        LS_Manipulator_new.PAR_REC_X;
+                        LS_Manipulator_new.PAR_REC_Y;
+                        LS_Manipulator_new.PAR_REC_Z;
+                        ];
+                end
+                
+                if state.flag_iono_ppp
+                     param_selection =  [param_selection;
+                        LS_Manipulator_new.PAR_IONO;
+                        ];
+                end
+                if state.flag_rec_clock_ppp
+                    if state.flag_phpr_rec_clock_ppp
+                        param_selection =  [param_selection;
+                            LS_Manipulator_new.PAR_REC_CLK_PR;
+                            LS_Manipulator_new.PAR_REC_CLK_PH;
+                            ];
+                    else
+                         param_selection =  [param_selection;
+                            LS_Manipulator_new.PAR_REC_CLK;
+                            LS_Manipulator_new.PAR_REC_PPB;
+                            ];
+                    end
+                end
+                
+                
+                if state.flag_rec_trkbias_ppp
+                    param_selection =  [param_selection;
+                    LS_Manipulator_new.PAR_REC_EB;];
+                end
+                
+                if state.flag_rec_ifbias_ppp
+                    param_selection =  [param_selection;
+                    LS_Manipulator_new.PAR_REC_EBFR;];
+                end
+                
+                
+                
+                
                 % Prepare the LS object
-                ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
+                ls.setUpPPP(this, sys_list, this.getIdSync, param_selection, parametrization)
                 %ls.setUpIonoFreePPP(this, this.getIdSync);
                 % Set up time dependent regularizations for the tropospheric parameters
-                if state.flag_tropo
-                 ls.timeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600);
+                if state.areg_ztd_ppp > 0
+                   ls.absValRegularization(ls.PAR_TROPO, (state.areg_ztd_ppp)^2);
                 end
-                if state.flag_tropo_gradient
-                 ls.timeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600);
-                 ls.timeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600);
+                if state.areg_grad_ppp > 0
+                   ls.absValRegularization(ls.PAR_TROPO_N, (state.areg_grad_ppp)^2);
+                   ls.absValRegularization(ls.PAR_TROPO_E, (state.areg_grad_ppp)^2);
                 end
+                
+                if state.dreg_ztd_ppp > 0
+                   ls.timeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2/ 3600);
+                end
+                if state.dreg_grad_ppp > 0
+                   ls.timeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2/ 3600);
+                   ls.timeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2/ 3600);
+                end
+
                 % Solve the LS problem
                 ls.solve();
                     
