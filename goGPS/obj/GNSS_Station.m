@@ -5184,7 +5184,12 @@ classdef GNSS_Station < handle
             f.Name = sprintf('%03d: %s %s', f.Number, 'PTH', sta_list(1).out.getCC.sys_c); f.NumberTitle = 'off';
             set(f,'defaultAxesColorOrder', Core_UI.getColor(1 : numel(sta_list), numel(sta_list)));
             ax(1) = subplot(3,1,1);
-            Core_Utils.plotSep(p_time.getMatlabTime, pressure, '.-', 'Color', Core_UI.getColor(1));
+            
+            if numel(sta_list) == 1
+                Core_Utils.plotSep(p_time.getMatlabTime, pressure, '.-', 'Color', Core_UI.getColor(1));
+            else
+                Core_Utils.plotSep(p_time.getMatlabTime, pressure, '.-');
+            end
             ylim( minMax(pressure) + [-2.5 2.5]);
             h = ylabel('Pres. [mbar]'); h.FontWeight = 'bold';
 
@@ -5200,10 +5205,14 @@ classdef GNSS_Station < handle
             end
 
             ax(2) = subplot(3,1,2);
-            Core_Utils.plotSep(p_time.getMatlabTime, temperature, '.-', 'Color', Core_UI.getColor(2));
+            if numel(sta_list) == 1
+                Core_Utils.plotSep(p_time.getMatlabTime, temperature, '.-', 'Color', Core_UI.getColor(2));
+            else
+                Core_Utils.plotSep(p_time.getMatlabTime, temperature, '.-');
+            end
             ylim( minMax(temperature) + [-2.5 2.5]);
             h = ylabel('Temp. [deg C]'); h.FontWeight = 'bold';
-
+            
             outm = {};
             for r = 1 : numel(sta_list)
                 outm{r} = ['T. ' sta_list(r).getMarkerName4Ch()];
@@ -5214,9 +5223,13 @@ classdef GNSS_Station < handle
             for i = 1 : numel(icons)
                 icons(i).MarkerSize = 18;
             end
-
+            
             ax(3) = subplot(3,1,3);
-            Core_Utils.plotSep(p_time.getMatlabTime, humidity, '.-', 'Color', Core_UI.getColor(3));
+            if numel(sta_list) == 1
+                Core_Utils.plotSep(p_time.getMatlabTime, humidity, '.-', 'Color', Core_UI.getColor(3));
+            else
+                Core_Utils.plotSep(p_time.getMatlabTime, humidity, '.-');
+            end
             ylim([0 105]);
             h = ylabel('Hum. [%]'); h.FontWeight = 'bold';
 
