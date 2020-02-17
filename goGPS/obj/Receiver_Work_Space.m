@@ -10335,10 +10335,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % Estimate different Antenna Phase Center for each frequency/constellation
               
-                parametrization.rec_x(4) = state.fparam_coo_ppp;
-                parametrization.rec_y(4) = state.fparam_coo_ppp;
-                parametrization.rec_z(4) = state.fparam_coo_ppp;
-                
                 % Use spline for estimating ZTD
                 if state.tparam_ztd_ppp == 1
                     parametrization.tropo(1) = parametrization.EP_WISE;
@@ -10412,8 +10408,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if state.flag_rec_trkbias_ppp
                     param_selection =  [param_selection;
                     LS_Manipulator_new.PAR_REC_EB;];
-                    if state.tparam_rec_trkbias_ppp > 1 && state.rate_rec_trkbias_net > 0
-                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_trkbias_net );
+                parametrization.setTimeParametrization(LS_Manipulator_new.PAR_REC_EB, state.tparam_rec_trkbias_ppp );
+                    if state.tparam_rec_trkbias_ppp > 1 && state.rate_rec_trkbias_ppp > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_trkbias_ppp );
                     end
 
                 end
@@ -10421,8 +10418,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if state.flag_rec_ifbias_ppp
                     param_selection =  [param_selection;
                         LS_Manipulator_new.PAR_REC_EBFR;];
-                    if state.tparam_rec_ifbias_ppp > 1 && state.rate_rec_ifbias_net > 0
-                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_ifbias_net );
+                    parametrization.setTimeParametrization(LS_Manipulator_new.PAR_REC_EBFR, state.tparam_rec_ifbias_ppp );
+                    if state.tparam_rec_ifbias_ppp > 1 && state.rate_rec_ifbias_ppp > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_ifbias_ppp );
                     end
                 end
                 
