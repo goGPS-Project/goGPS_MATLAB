@@ -51,6 +51,8 @@ classdef Radiosonde < handle
     end
     
     properties (Constant)
+        MAX_DIST = 150;  % Maximum distance in Km from a station to consider it valid
+        
         JAPAN_STATION = {'47401', '47418', '47412', '47580', '47582', '47600', '47646', '47681', '47678', '47741', '47778', '47807', '47827', '47909', '47945', '47918'};
         ITALY_STATION = {'16045', '16080', '16113', '16245', '16320', '16429', '16546'};
         ITALY_LINATE = '16080';
@@ -163,7 +165,7 @@ classdef Radiosonde < handle
             this.pwv  = [];
             this.ztd = [];
         end
-        
+                
         function rds_pwv = download(this, region, sta_num, date_start, date_stop)
             date_list = datevec(floor(date_start.getMatlabTime() * 2)/2 : 0.5 : floor(date_stop.getMatlabTime() * 2)/2);
             [~, id_unique] = unique(date_list(:,1)*1e5 + date_list(:,2));
@@ -190,50 +192,86 @@ classdef Radiosonde < handle
                     end
                 end
                 
-                options = weboptions;
-                options.Timeout = 10;
-                plot_type = 'TEXT';
-                % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
-                address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year(e)) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
-                fprintf('           get %s\n', address);
-                flag_retry = 4;
-                while flag_retry > 1
+                [sta_path, sta_dir] = getLocalFilePath(sta_num, year(e), month(e,:), from, to);
+                flag_download = false;
+                if exist(sta_path, 'file')                    
                     try
-                        char_array = webread(address);
+                        fid = fopen(sta_path, 'rb');
+                        char_array = fread(fid, '*char')';
+                        fclose(fid);
                         flag_retry = 0;
                     catch
-                        flag_retry = flag_retry - 1;
-                        pause(0.5 + randi(1,1) * 5);
+                        flag_download = true;
                     end
-                end
-                % LAst try
-                if flag_retry == 1
-                    % try again after some seconds
+                else
                     try
-                        fprintf('           retry access to %s\n', address);
-                        pause(6 + randi(1,1) * 5);
-                        char_array = webread(address);
-                        flag_retry = 0;
-                    catch ex
-                        fprintf('           download failed');
-                        %Core_Utils.printEx(ex);
+                        mkdir(sta_dir);
+                    catch
+                        Core.getLogger.addWarning(sprintf('RAOB dir cannot be created at "%s"', sta_dir));
+                    end
+                    flag_download = true;
+                end
+                   
+                if flag_download
+                    options = weboptions;
+                    options.Timeout = 10;
+                    plot_type = 'TEXT';
+                    % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
+                    address = ['http://weather.uwyo.edu/cgi-bin/sounding?region=' region '&TYPE=' plot_type '%3ALIST&YEAR=' sprintf('%04d', year(e)) '&MONTH=' sprintf('%04d', month(e,:)) '&FROM=' from '&TO=' to '&STNM=' sta_num(:,:)];
+                    fprintf('           get %s\n', address);
+                    flag_retry = 4;
+                    while flag_retry > 1
+                        try
+                            char_array = webread(address);
+                            flag_retry = 0;
+                        catch
+                            flag_retry = flag_retry - 1;
+                            pause(0.5 + randi(1,1) * 5);
+                        end
+                    end
+                    % Last try
+                    if flag_retry == 1
+                        % try again after some seconds
+                        try
+                            fprintf('           retry access to %s\n', address);
+                            pause(6 + randi(1,1) * 5);
+                            char_array = webread(address);
+                            flag_retry = 0;
+                        catch ex
+                            fprintf('           download failed\n');
+                            %Core_Utils.printEx(ex);
+                        end
+                    end
+                    
+                    % Try to save the file
+                    
+                    try
+                        if ~isempty(char_array)
+                            fid = fopen(sta_path, 'wb');
+                            fwrite(fid, char_array, '*char');
+                            fclose(fid);
+                            Core.getLogger.addStatusOk(sprintf('RAOB file cached at "%s"', sta_path));
+                        end
+                    catch
+                        Core.getLogger.addWarning(sprintf('RAOB file cannot be written at "%s"', sta_path));
                     end
                 end
                 if (flag_retry == 0)
                     char_array = regexprep(char_array,'<script.*?/script>','');
                     char_array = regexprep(char_array,'<style.*?/style>','');
                     char_array = regexprep(char_array,'<.*?>','');
-                    this.lat = str2double(regexp(char_array,'(?<=(Station latitude\: ))([\-0-9]|\.)*','match', 'once'));
-                    this.lon = str2double(regexp(char_array,'(?<=(Station longitude\: ))([\-0-9]|\.)*','match', 'once'));
-                    this.elevation = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
-                    this.name = regexp(char_array,['(?<=' sta_num ' ).+?(?=( Observations))'],'match', 'once');
-                    this.sta_num = sta_num;
-                    if ~instr(char_array, 'Observations')
-                        warning('no data available :-(')
+                    if ~instr(char_array, 'Observations') || instr(char_array, 'Can''t get')
+                        Core.getLogger.addWarning(sprintf('no data available in "" :-(', sta_path));
                         rds_pwv(1,j).pwv = [];
                         rds_pwv(1,j).datetime = [];
                         rds_pwv(1,j).sta_numer = sta_num;
                     else
+                        this.lat = str2double(regexp(char_array,'(?<=(Station latitude\: ))([\-0-9]|\.)*','match', 'once'));
+                        this.lon = str2double(regexp(char_array,'(?<=(Station longitude\: ))([\-0-9]|\.)*','match', 'once'));
+                        this.elevation = str2double(regexp(char_array,'(?<=(Station elevation\: ))([0-9]|\.)*','match', 'once'));
+                        this.name = regexp(char_array,['(?<=' sta_num ' ).+?(?=( Observations))'],'match', 'once');
+                        this.sta_num = sta_num;
+
                         %pwv
                         str_pw = 'Precipitable water [mm] for entire sounding:';
                         str_idx_pw = strfind(char_array,str_pw);
@@ -245,60 +283,74 @@ classdef Radiosonde < handle
                         
                         %time
                         str_obs_time = 'Observation time:';
-                        str_idx_time = strfind(char_array,str_obs_time);
-                        
-                        for i=1:length(str_idx_time)
-                            time_vec(i,:)=[char_array(1,str_idx_time(i)+length(str_obs_time)+1:str_idx_time(i)+length(str_obs_time)+7) char_array(1,str_idx_time(i)+length(str_obs_time)+8:str_idx_time(i)+length(str_obs_time)+11) '00'];
-                        end
-                        datetime_vec = datetime(time_vec,'InputFormat','yyMMdd/HHmmSS');
-                        
-                        str_idx_header = strfind(char_array,'-----------------------------------------------------------------------------');
-                        str_idx_header = str_idx_header(2:2:end);
-                        str_idx_header_fin = strfind(char_array,'Station information and sounding indices');
-                        for i = 1 : length(str_idx_header)
-                            id_1 = length(this.data_time) + 1;
-                            temp = char_array(str_idx_header(i)+79:str_idx_header_fin(i)-2);
-                            data(:,i) = textscan(temp,'%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%[^\n\r]','delimiter','','multipleDelimsAsOne',false,'TreatAsEmpty',{'[]'},'EmptyValue',NaN,'whitespace','','CollectOutput',true);
-                            %pressure (hpa)
-                            pres = str2double(data{1,i}(:,1));
-                            %height (m)
-                            height = str2double(data{1,i}(:,2));
-                            %temperature (Celsius degree)
-                            temp = str2double(data{1,i}(:,3));
-                            %rel humidity (%)
-                            relh = str2double(data{1,i}(:,5));
-                            %radiosonde(i,1).name=sta_num(s,:);
-                            date_time = datetime_vec(i,:);
-                            
-                            if max(pres) < 800 % this is an outlier!!!!
-                                log = Logger.getInstance();
-                                log.addError(sprintf('The radiosonde "%s" launched at %s have a maximum invalid pressure (%.f mbar)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM'), max(pres)));
-                            else                                
-                                this.data_time = [this.data_time; repmat(date_time, length(pres), 1)];
-                                this.pressure = [this.pressure; pres];
-                                this.height = [this.height; height];
-                                this.temperature = [this.temperature; temp];
-                                this.rel_humidity = [this.rel_humidity; relh];
-                                [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
-                                
-                                if err_code
-                                    log = Logger.getInstance();
-                                    log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
-                                end
-                                this.ztd = [this.ztd ztd];
-                                this.ref_time = [this.ref_time this.data_time(id_1)];
+                        str_idx_time = strfind(char_array, str_obs_time);                        
+                        if isempty(str_idx_time)
+                            Core.getLogger.addWarning(sprintf('no data available in "%s" :-(', sta_path));
+                        else                            
+                            for i=1:length(str_idx_time)
+                                time_vec(i,:)=[char_array(1,str_idx_time(i)+length(str_obs_time)+1:str_idx_time(i)+length(str_obs_time)+7) char_array(1,str_idx_time(i)+length(str_obs_time)+8:str_idx_time(i)+length(str_obs_time)+11) '00'];
                             end
+                            datetime_vec = datetime(time_vec,'InputFormat','yyMMdd/HHmmSS');
+                            
+                            str_idx_header = strfind(char_array,'-----------------------------------------------------------------------------');
+                            str_idx_header = str_idx_header(2:2:end);
+                            str_idx_header_fin = strfind(char_array,'Station information and sounding indices');
+                            for i = 1 : length(str_idx_header)
+                                id_1 = length(this.data_time) + 1;
+                                temp = char_array(str_idx_header(i)+79:str_idx_header_fin(i)-2);
+                                data(:,i) = textscan(temp,'%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%7s%[^\n\r]','delimiter','','multipleDelimsAsOne',false,'TreatAsEmpty',{'[]'},'EmptyValue',NaN,'whitespace','','CollectOutput',true);
+                                %pressure (hpa)
+                                pres = str2double(data{1,i}(:,1));
+                                %height (m)
+                                height = str2double(data{1,i}(:,2));
+                                %temperature (Celsius degree)
+                                temp = str2double(data{1,i}(:,3));
+                                %rel humidity (%)
+                                relh = str2double(data{1,i}(:,5));
+                                %radiosonde(i,1).name=sta_num(s,:);
+                                date_time = datetime_vec(i,:);
+                                
+                                if max(pres) < 800 % this is an outlier!!!!
+                                    log = Logger.getInstance();
+                                    log.addError(sprintf('The radiosonde "%s" launched at %s have a maximum invalid pressure (%.f mbar)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM'), max(pres)));
+                                else
+                                    this.data_time = [this.data_time; repmat(date_time, length(pres), 1)];
+                                    this.pressure = [this.pressure; pres];
+                                    this.height = [this.height; height];
+                                    this.temperature = [this.temperature; temp];
+                                    this.rel_humidity = [this.rel_humidity; relh];
+                                    [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
+                                    
+                                    if err_code
+                                        log = Logger.getInstance();
+                                        log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
+                                    end
+                                    this.ztd = [this.ztd ztd];
+                                    this.ref_time = [this.ref_time this.data_time(id_1)];
+                                end
+                            end
+                            
+                            rds_pwv(1,j).pwv = pw_vec_d;
+                            rds_pwv(1,j).datetime = datetime_vec;
+                            rds_pwv(1,j).sta_numer = sta_num(:,:);
+                            this.pwv = [this.pwv, rds_pwv(e).pwv'];
+                            clear datetime_vec pw_vec_d time_vec
                         end
-                        
-                        rds_pwv(1,j).pwv = pw_vec_d;
-                        rds_pwv(1,j).datetime = datetime_vec;
-                        rds_pwv(1,j).sta_numer = sta_num(:,:);
-                        this.pwv = [this.pwv, rds_pwv(e).pwv'];
-                        clear datetime_vec pw_vec_d time_vec
                     end
                 end
                 j = j + 1;
             end
+            
+            function [sta_path, sta_dir] = getLocalFilePath(sta_num, year, month, from, to)
+                % Get the RAOB local path
+                %
+                % SYNTAX
+                %   [sta_path, sta_dir] = getLocalFilePath(sta_num, year, month, from, to)
+                data_dir = fullfile(Core.getInstallDir, '..' , 'data');
+                fnp = File_Name_Processor;
+                sta_dir = fullfile(sprintf('%s/station/RAOB/%s/', data_dir, sta_num));
+                sta_path = fullfile(sta_dir, sprintf('%s_%04d_%02d_%s_%s.raob', sta_num, year, month, from, to));
+            end            
         end
     end
     
@@ -315,7 +367,7 @@ classdef Radiosonde < handle
             % SYNTAX
             %   coo = this.getPos()
             
-            coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.elevation);
+            coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.elevation, GPS_Time(this.ref_time));
         end
         
         function height = getHeight(rds_list)
@@ -2432,6 +2484,9 @@ classdef Radiosonde < handle
             lon_sta = [raob_list.lon]';
             
             if numel(lat) > 1
+                % Use a box % it does not work at longitute 180
+                % ToDo: manage it
+                
                 % lat is a limit
                 lat = sort(lat);
                 lon = sort(lon);
