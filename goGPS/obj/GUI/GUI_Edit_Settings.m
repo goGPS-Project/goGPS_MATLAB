@@ -2703,6 +2703,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 if ~isempty(value)
                     if  isprop(state,[upper(this.pop_ups{i}.UserData) '_UI2INI'])
                         this.pop_ups{i}.Value = find(state.([upper(this.pop_ups{i}.UserData) '_UI2INI']) == value);
+                    elseif strcmpi(this.pop_ups{i}.UserData(1:6),'tparam')
+                        this.pop_ups{i}.Value = find(state.(['TIME_PARAMETRIZATION_UI2INI']) == value);
                     else
                         this.pop_ups{i}.Value = value;
                     end
