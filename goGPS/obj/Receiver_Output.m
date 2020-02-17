@@ -72,6 +72,28 @@ classdef Receiver_Output < Receiver_Commons
         humidity      % humidity           double   [n_epoch x 1]
     end
     % ==================================================================================================================================================
+    %% METHODS MANIPULATION
+    methods
+        function applyRemAntennaOffset(sta_list, sgn)            
+            % Add/Rem antennna offset stored in parent
+            %
+            % INPUT
+            %   sgn:    +1 apply
+            %           -1 remove
+            % SYNTAX
+            %    this.applyRemAntennaOffset(<sgn = 1>)
+            
+            if nargin == 1
+                sgn = 1;
+            end
+            for r = 1 : numel(sta_list)
+                coo_out = sta_list(r).getPos;
+                coo_out.addOffset(-sgn .* [sta_list(r).parent.ant_delta_en sta_list(r).parent.ant_delta_h]);
+                sta_list(r).xyz = coo_out.getXYZ;
+            end
+        end
+    end
+    
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     
@@ -649,7 +671,12 @@ classdef Receiver_Output < Receiver_Commons
                         data_len  = rec_work.getPositionTime().length;
                     end
                     
-                    this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
+                    % Add antennna offset
+                    coo_work = rec_work.getPos;
+                    coo_work.addOffset(-[rec_work.parent.ant_delta_en rec_work.parent.ant_delta_h]);
+                    xyz_work = coo_work.getXYZ;
+                    
+                    this.xyz      = Core_Utils.injectData(this.xyz, xyz_work, idx1, idx2, [data_len, 3]);
                     xyz_vcv = rec_work.getVCVXYZ;
                     if ~isempty(xyz_vcv)
                         this.xyz_vcv  = Core_Utils.injectData(this.xyz_vcv, xyz_vcv, idx1, idx2, [data_len, 6]);
