@@ -317,7 +317,7 @@ classdef Network < handle
                 
               
                 
-                if ~reduce_iono
+                if ~this.state.flag_iono_net
                     parametrization.iono(2) = LS_Parametrization.ALL_REC;
                 end
                 

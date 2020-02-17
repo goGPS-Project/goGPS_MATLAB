@@ -322,12 +322,12 @@ classdef Command_Interpreter < handle
             this.PAR_M_FREE_NET.limits = [];
             this.PAR_M_FREE_NET.accepted_values = [];
         
-            this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
-            this.PAR_M_IONO.descr = '--iono             Reduce for ionosphere delay';
-            this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)|(-iono)|(-IONO)|(--i)|(--I)';
-            this.PAR_M_IONO.class = '';
-            this.PAR_M_IONO.limits = [];
-            this.PAR_M_IONO.accepted_values = [];
+%             this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
+%             this.PAR_M_IONO.descr = '--iono             Reduce for ionosphere delay';
+%             this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)|(-iono)|(-IONO)|(--i)|(--I)';
+%             this.PAR_M_IONO.class = '';
+%             this.PAR_M_IONO.limits = [];
+%             this.PAR_M_IONO.accepted_values = [];
             
             this.PAR_M_CLK.name = 'Export clock';
             this.PAR_M_CLK.descr = '--clk              Export common Parameter in network';
@@ -854,7 +854,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_M_IONO this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS  this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED]; %this.PAR_M_IONO
                         
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SEID (Satellite specific Epoch differenced Ionospheric Delay model)'];
@@ -1873,9 +1873,9 @@ classdef Command_Interpreter < handle
                     coo_rate = rate;
                 end
                 for t = 1 : numel(tok)
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_IONO.par ')*$'], 'once'))
-                        flag_iono_reduce = true;
-                    end
+%                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_IONO.par ')*$'], 'once'))
+%                         flag_iono_reduce = true;
+%                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_CLK.par ')*$'], 'once'))
                         flag_clk_export = true;
                     end
