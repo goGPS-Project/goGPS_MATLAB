@@ -50,6 +50,7 @@ classdef Core_UI < Logos
         FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
+        LIGHT_GREY_BG_NOT_SO_LIGHT2 =  0.65 * ones(3, 1);
         LIGHT_GREY_BG_NOT_SO_LIGHT =  0.75 * ones(3, 1);
         LIGHT_GREY_BG = 0.85 * ones(3, 1);
         DARK_GREY_BG = [0.2431372549 0.2470588235 0.2509803922];
