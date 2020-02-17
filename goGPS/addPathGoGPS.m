@@ -34,6 +34,13 @@ function addPathGoGPS()
 
     p = genpath(pwd);
 
+    % bin folder
+    [l1, l2] = regexp(p,'(?<=:)[^:]*bin[\/|\\]maps[^:]*:');
+
+    for l = size(l1, 2) : -1 : 1
+        p(l1(l) : l2(l)) = [];
+    end
+    
     % GACOS folder
     [l1, l2] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
 
