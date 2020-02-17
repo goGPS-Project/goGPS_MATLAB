@@ -3,9 +3,9 @@ function dist = sphericalDistance(latd_a, lond_a, latd_b, lond_b)
 %   dist = sphericalDistance(latd_a, lond_a, latd_b, lond_b);
 %
 % INPUT:
-%   latd_a  = latitude of point a [degree]
+%   latd_a  = latitude of point a  [degree]
 %   lond_a  = longitude of point a [degree]
-%   latd_b  = latitude of point b [degree]
+%   latd_b  = latitude of point b  [degree]
 %   lond_b  = longitude of point b [degree]
 %
 % OUTPUT:

@@ -80,6 +80,7 @@ function resetTimeTicks(h, num, format)
                 
             tick_pos = round(tick_pos ./ round_val) .* round_val; % round ticks
             tick_pos((tick_pos < ax(1)) | (tick_pos > ax(2))) = []; % delete ticks outside figure;
+            tick_pos = unique(tick_pos);
             
             set(h(i), 'XTick', tick_pos);
             if strcmp(format, 'auto')

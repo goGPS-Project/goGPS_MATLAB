@@ -54,21 +54,31 @@ function setTimeTicks(num,format,ax)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    if nargin < 1
+    if (nargin > 0) && (nargin ~= 3) && isa(num, 'handle')
+        if nargin == 2
+            num = format;
+            format = 'auto';
+        elseif nargin == 3
+            h = num;
+            num = format;
+            format = ax;
+        else
+            h = num;
+            num = 4;
+        end
+    elseif (nargin < 3)
+        h = gca;
+    end
+
+    if nargin < 1 || isempty(num)
         num = 4;
     end
-    
+
     if nargin < 2 || isempty(format)
         format = 'auto';
     end
 
-    if (nargin == 3)
-        h = num;
-        num = format;
-        format = ax;
-    else
-        h = gca;
-    end
+    
     ttData.num = num;
     ttData.format = format;
 
