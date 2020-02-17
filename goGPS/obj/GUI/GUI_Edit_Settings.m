@@ -1614,7 +1614,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             
             Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                        Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+            %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            % dgred not posssible fro reduction reason TBD
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_trkbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
@@ -1697,16 +1699,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 0, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
            
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             tab_rec_tropo = uix.Grid('Parent', tropo_opt_net_v, ...
                 'Padding', 0, ...
                 'BackgroundColor', color_tab);
             
             Core_UI.insertText(tab_rec_tropo, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_rec_tropo, 'ZTD', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_rec_tropo, 'ZTD Gradients', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
@@ -1757,9 +1755,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Separate pr ph clock ', 'flag_phpr_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
            
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Clock', 'flag_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Frequency Bias', 'flag_rec_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Tracking Bias', 'flag_rec_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+%
             
             tab_rec_bias = uix.Grid('Parent', rec_bias_net, ...
                 'Padding', 0, ...
@@ -1768,9 +1764,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Clock', 'flag_rec_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Frequency Bias', 'flag_rec_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_bias, 'Inter Tracking Bias', 'flag_rec_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             Core_UI.insertText(tab_rec_bias, 'Clock', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_rec_bias, 'IF Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_rec_bias, 'IT Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             
             Core_UI.insertText(tab_rec_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
@@ -1788,7 +1781,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                                    Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+
+            %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
@@ -1813,11 +1808,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             
             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Separate pr ph clock ', 'flag_phpr_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Clock', 'flag_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Frequency Bias', 'flag_sat_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBox(rec_line1, 'Inter Tracking Bias', 'flag_sat_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            
+                       
             tab_sat_bias = uix.Grid('Parent', sat_bias_net, ...
                 'Padding', 0, ...
                 'BackgroundColor', color_tab);
@@ -1825,9 +1816,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Clock', 'flag_sat_clock_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Inter Frequency Bias', 'flag_sat_ifbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_sat_bias, 'Inter Tracking Bias', 'flag_sat_trkbias_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-%             Core_UI.insertText(tab_sat_bias, 'Clock', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_sat_bias, 'IF Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-%             Core_UI.insertText(tab_sat_bias, 'IT Bias', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+
             
             Core_UI.insertText(tab_sat_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
@@ -1845,7 +1834,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             Core_UI.insertText(tab_sat_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+                                    Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
+
+            %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
