@@ -487,10 +487,10 @@ classdef GNSS_Station < handle
             for rec = sta_list(:)'
                 log.addMarkedMessage(sprintf('Updating multipath corrections for "%s"', rec.getMarkerName4Ch));
                 % If resduals ph by ph are available on out use them
-                if isempty(rec(1).out.sat.res_ph_by_ph)
-                    ant_mp = rec.work.computeMultiPath('ph');
+                if isempty(rec(1).out.sat.res)
+                    ant_mp = rec.work.computeMultiPath();
                 else
-                    ant_mp = rec.out.computeMultiPath('ph');
+                    ant_mp = rec.out.computeMultiPath();
                 end
                 
                 % rec.ant_mp = rec.ant_mp + ant_mp;
@@ -505,6 +505,7 @@ classdef GNSS_Station < handle
                     try
                         % Get the satellite systems available in the zerniche multipath struct
                         sys_c_list = cell2mat(fields(ant_mp)');
+                        sys_c_list = intersect(sys_c_list, 'GREJCIS');
                         for sys_c = sys_c_list
                             trk_list = fields(ant_mp.(sys_c))';
                             if ~isfield(rec.ant_mp, sys_c)
@@ -514,7 +515,7 @@ classdef GNSS_Station < handle
                                 for trk = trk_list
                                     if ~isfield(rec.ant_mp.(sys_c), trk{1})
                                         % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
-                                        rec.ant_mp.(sysy_c).(trk{1}) = ant_mp.(sysy_c).(trk{1});
+                                        rec.ant_mp.(sys_c).(trk{1}) = ant_mp.(sys_c).(trk{1});
                                     else
                                         rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).z_map;
                                         rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).g_map;
@@ -1012,7 +1013,7 @@ classdef GNSS_Station < handle
                 fprintf(fid,'[Locations]\n');
                 fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
                 for r = 1 : numel(sta_list)
-                    coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:));
+                    coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:), sta_list(r).out.time_pos);
                     [x,y,h_ellipse,zone] = coo.getENU();
                     %                     ondu = coo.getOrthometricCorrection();
                     %                     h_ortho = h_ellipse - ondu;
@@ -1489,16 +1490,21 @@ classdef GNSS_Station < handle
             end
         end
 
-        function coo = getPos(sta_list)
+        function [coo] = getPos(sta_list)
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   coo     object array [ Coordinate ]
+            %   coo     object array [ Coordinates ]
             %
             % SYNTAX
-            %   coo = sta_list.getPos()
+            %   [coo] = sta_list.getPos()
+            
+            coo = Coordinates;
             for r = 1 : numel(sta_list)
                 coo(r) = sta_list(r).out.getPos();
+                if coo(r).time.isEmpty
+                    coo(r).setTime(sta_list(r).out.getPositionTime());
+                end
             end
         end
         
@@ -2644,20 +2650,39 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [id_rds, lat, lon] = getCloseRaobIdList(sta_list)
+        function [id_rds, lat, lon, appr_dist] = getCloseRaobIdList(sta_list, max_dist)
             % Get all the radiosondes ids and their positions
             % that are located close to the GNSS stations
             %
+            % INPUT
+            %   max_dist      [ km ]
+            %
             % SYNTAX
-            %   [id_rds, lat_lon_rds] = sta_list.getCloseRadiosondeId()
-            if numel(sta_list) == 1
-                [lat, lon] = sta_list.getMedianPosGeodetic();
-                [id_rds, lat, lon] = Radiosonde.getCloseStations(lat, lon, 1);
-            else
-                [lat, lon] = sta_list.getMedianPosGeodetic();
-                lat_lim = minMax(lat) + 0.2 * [-1 1];
-                lon_lim = minMax(lon) + 0.2 * [-1 1];
-                [id_rds, lat, lon] = Radiosonde.getCloseStations(lat_lim, lon_lim);
+            %   [id_rds, lat_lon_rds] = sta_list.getCloseRadiosondeId(max_dist)
+            id_rds = cell(numel(sta_list), 1);
+            [lat, lon, appr_dist] = deal(nan(numel(sta_list), 1));
+            for s = 1 : numel(sta_list)
+                [lat_tmp, lon_tmp] = sta_list(s).getMedianPosGeodetic();
+                [id_rds(s), lat(s), lon(s)] = Radiosonde.getCloseStations(lat_tmp, lon_tmp, 1);
+                coo_gnss = Coordinates.fromGeodetic(lat_tmp./180*pi, lon_tmp./180*pi, 0);
+                coo_raob =  Coordinates.fromGeodetic(lat(s)./180*pi, lon(s)./180*pi, 0);
+                raob_dist = coo_gnss - coo_raob;
+                appr_dist(s) = sqrt(sum(raob_dist.xyz_diff.^2, 2)) .* 1e-3; % distance in km
+            end
+            % Sort them by distance, it's a trick to keep only
+            % the closer distances
+            [appr_dist, id_sort] = sort(appr_dist);
+            id_rds = id_rds(id_sort);            
+            [id_rds, id_ok] = unique(id_rds);
+            appr_dist = appr_dist(id_ok);
+            lat = lat(id_sort(id_ok));
+            lon = lon(id_sort(id_ok));  
+            if nargin == 2
+                id_ok = appr_dist <= max_dist;
+                appr_dist = appr_dist(id_ok);
+                id_rds = id_rds(id_ok);
+                lat = lat (id_ok);
+                lon = lon(id_ok);
             end
         end
     end
@@ -3401,13 +3426,9 @@ classdef GNSS_Station < handle
                 flag_add_coo = 0;
             end
             
-            fh_list = [];
-            for r = 1 : length(sta_list)
-                rec = sta_list(r).out;
-                if ~rec.isEmpty()
-                    fh_list = [fh_list; rec.showPositionENU(one_plot, flag_add_coo)]; %#ok<AGROW>
-                end
-            end
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            out_list = [sta_list.out];
+            fh_list = out_list.showPositionENU(one_plot, flag_add_coo);
         end
 
         function fh_list = showPositionPlanarUp(sta_list, flag_add_coo)
@@ -3420,13 +3441,9 @@ classdef GNSS_Station < handle
                 flag_add_coo = 0;
             end
             
-            fh_list = [];
-            for r = 1 : length(sta_list)
-                rec = sta_list(r).out;
-                if ~rec.isEmpty()
-                    fh_list = [fh_list; rec.showPositionPlanarUp(flag_add_coo)]; %#ok<AGROW>
-                end
-            end
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            out_list = [sta_list.out];
+            fh_list = out_list.showPositionPlanarUp(flag_add_coo);
         end
         
         function fh_list = showPositionXYZ(sta_list, one_plot, flag_add_coo)
@@ -3439,13 +3456,9 @@ classdef GNSS_Station < handle
                 flag_add_coo = 0;
             end
             
-            fh_list = [];
-            for r = 1 : length(sta_list)
-                rec = sta_list(r).out;
-                if ~isempty(rec)
-                    fh_list = [fh_list; rec.showPositionXYZ(one_plot, flag_add_coo)]; %#ok<AGROW>
-                end
-            end
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            out_list = [sta_list.out];
+            fh_list = out_list.showPositionXYZ(one_plot, flag_add_coo);
         end
 
         function fh_list = showPositionSigmas(sta_list, one_plot)
@@ -3981,6 +3994,7 @@ classdef GNSS_Station < handle
 
             coo = Coordinates.fromXYZ(sta_list.getMedianPosXYZ);
             [lat, lon] = coo.getGeodetic;
+            clear coo
 
             sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 300, res_tropo(epoch(1),:)', 'filled');
             hold on;
@@ -5560,22 +5574,25 @@ classdef GNSS_Station < handle
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
 
-                    if n_entry < 50
-                        if ~sub_plot_nsat
-                            [~, icons] = legend(outm, 'Location', 'NorthEast', 'interpreter', 'none');
-                        else
-                            loc = 'SouthWest';
-                            if n_entry > 11
-                                loc = 'NorthWest';
-                            end
-                            [~, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
+                    if ~sub_plot_nsat
+                        loc = 'NorthEast';
+                        [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
+                    else
+                        loc = 'SouthWest';
+                        if n_entry > 11
+                            loc = 'NorthWest';
                         end
-                        icons = icons(n_entry + 2 : 2 : end);
-
-                        for i = 1 : numel(icons)
-                            icons(i).MarkerSize = 18;
-                        end
+                        [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
                     end
+                    icons = icons(n_entry + 2 : 2 : end);
+                    
+                    for i = 1 : numel(icons)
+                        icons(i).MarkerSize = 18;
+                    end
+                    if n_entry > 50
+                        lh.Visible = 'off';
+                    end
+                    
 
                     setTimeTicks(4);
                     h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
@@ -5609,7 +5626,7 @@ classdef GNSS_Station < handle
                             else
                                 Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
                             end
-                            outm{r} = rec(1).getMarkerName();
+                            outm{r} = [rec(1).getMarkerName() ' n sat'];
                         end
                         childs = ax2.Children;
                         tlim = [inf -inf];
@@ -5635,7 +5652,9 @@ classdef GNSS_Station < handle
                             h = ylabel(['# sat']); h.FontWeight = 'bold';
                             grid on;
                             linkaxes([ax1 ax2], 'x');
-                        end
+                        end                        
+                        [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
+                        lh.Visible = 'off';
                     end
                 end
                 Core_UI.beautifyFig(f);
@@ -6402,7 +6421,7 @@ classdef GNSS_Station < handle
         end
                         
         function fh_list = showMapDtmWithCloseRaob(sta_list)
-            [id_rds, lat, lon] = sta_list.getCloseRaobIdList();
+            [id_rds, lat, lon, appr_dist] = sta_list.getCloseRaobIdList(Radiosonde.MAX_DIST); % Get RAOB within 150Km
             fh_list = sta_list.showMapDtm([], [], lat, lon);
             fh.UserData.fig_name = 'RecRaobMapDtm';
             
@@ -6444,7 +6463,7 @@ classdef GNSS_Station < handle
         end
         
         function fh_list = showMapGoogleWithCloseRaob(sta_list)
-            [id_rds, lat, lon] = sta_list.getCloseRaobIdList();
+            [id_rds, lat, lon, appr_dist] = sta_list.getCloseRaobIdList(Radiosonde.MAX_DIST); % Get RAOB within 150Km
             fh_list = sta_list.showMapGoogle([], lat, lon);
             fh.UserData.fig_name = 'RecRaobMapDtm';            
             [x, y] = m_ll2xy(lon, lat);
@@ -6543,7 +6562,7 @@ classdef GNSS_Station < handle
             end
             
             if nargin < 2 || isempty(rds_list)
-                rds_list = sta_list.getCloseRaobIdList();
+                rds_list = sta_list.getCloseRaobIdList(Radiosonde.MAX_DIST);
             end
             
             if isempty(rds_list)
@@ -6565,7 +6584,9 @@ classdef GNSS_Station < handle
                 % Interpolate ZTD
                 log.addMarkedMessage('Get GNSS interpolated ZTD @ radiosonde locations');
                 if numel(sta_list) > 1
+                    warning off;
                     [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', rds.getLat(), rds.getLon(), rds.getHeight(), 300);
+                    warning on;
                 else
                     log.addWarning('Interpolation is not possible with just one station!!!');
                     ztd_height_correction = 0;
@@ -6611,22 +6632,22 @@ classdef GNSS_Station < handle
                     
                     m_diff(s) = mean(ztd_diff, 1, 'omitnan');
                     s_diff(s) = std(ztd_diff, 1, 'omitnan');
-                    log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
+                    log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
                 end
                 log.addMonoMessage(sprintf('\n---------------------------------------------------------------------------------------'));
                 if flag_show
                     
                     log.addMonoMessage(sprintf(' ZTD Radiosonde Validation (vs height corrected closest station)\n---------------------------------------------------------------------------------------'));
-                    log.addMonoMessage(sprintf('                                Closer              Elevation     \n'));
+                    log.addMonoMessage(sprintf('                                Closer              Elevation     '));
                     log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  Radiosonde Station\n'));
                     log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
                     % Plot comparisons
                     for s = 1 : numel(rds)
                         f = figure('Visible', 'off');
                         Core_UI.beautifyFig(f);
-                        f.Name = sprintf('%03d: Rds %d', f.Number, s); f.NumberTitle = 'off';                        
+                        f.Name = sprintf('%03d: Rds %s', f.Number, rds(s).sta_num); f.NumberTitle = 'off';                        
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('Raob_ZTD_%d_validation', s);
+                        fig_name = sprintf('Raob_ZTD_%s_validation', rds(s).sta_num);
                         f.UserData = struct('fig_name', fig_name);
                         
                         % interpolated ZTD
@@ -6660,14 +6681,24 @@ classdef GNSS_Station < handle
                         
                         bias = pr2(idt_gnss) - pr1(idt_raob);
                         id_ko = pr1(idt_raob) == 1000; % it seems that all the values for a radiosonde less then 1000 (at ground) are saturated to 1000
-                        bias = interp1q(launch_time(idt_raob(~id_ko)), bias(~id_ko), launch_time(idt_raob(id_ko)));
-                        pr1(idt_raob(id_ko)) = pr2(idt_gnss(id_ko)) - bias;
-                        % figure; plot(time_pr2(idt_gnss), pr2(idt_gnss), '*' ); hold on; plot(launch_time(idt_raob), pr1(idt_raob),'o'); setTimeTicks
-                        
-                        % This is my ZHD correction to move the closest
-                        % station to the radiosonde data
-                        time_corr = launch_time(idt_raob);
-                        zhd_corr = Atmosphere.getZenithDelayCorrection(coo1, pr1(idt_raob), coo2, pr2(idt_gnss)) ;
+                        if any(~id_ko)
+                            bias = interp1q(launch_time(idt_raob(~id_ko)), bias(~id_ko), launch_time(idt_raob(id_ko)));
+                            pr1(idt_raob(id_ko)) = pr2(idt_gnss(id_ko)) - bias;
+                            % figure; plot(time_pr2(idt_gnss), pr2(idt_gnss), '*' ); hold on; plot(launch_time(idt_raob), pr1(idt_raob),'o'); setTimeTicks
+                            
+                            % This is my ZHD correction to move the closest
+                            % station to the radiosonde data
+                            time_corr = launch_time(idt_raob);
+                            if Core.getState.isMet
+                                zhd_corr = Atmosphere.getZenithDelayCorrection(coo1, pr1(idt_raob), coo2, pr2(idt_gnss));
+                            else
+                                zhd_corr = Atmosphere.getZenithDelayCorrection(coo1, pr1(idt_raob), coo2);
+                            end
+                        else
+                            time_corr = time_pr2(idt_gnss);
+                            % Use the data of the GNSS only -> radiosonde ppressure is not valid
+                            zhd_corr = -Atmosphere.getZenithDelayCorrection(coo2, pr2(idt_gnss), coo1);
+                        end
                         
                         Core_Utils.plotSep(s_time.getMatlabTime, (s_ztd - interp1q(time_corr, zhd_corr, s_time.getMatlabTime)) * 1e2, '.-', 'LineWidth', 2);
 
@@ -6684,7 +6715,7 @@ classdef GNSS_Station < handle
                         
                         m_diff_sta_hcorr(s) = mean(ztd_diff_sta_hcorr, 1, 'omitnan');
                         s_diff_sta_hcorr(s) = std(ztd_diff_sta_hcorr, 1, 'omitnan');
-                        log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
+                        log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"', s, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
 
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
                         plot(time_rds.getMatlabTime, ztd_rds, '.w', 'MarkerSize', 40, 'LineWidth', 2);
@@ -6699,7 +6730,8 @@ classdef GNSS_Station < handle
                         for i = 1 : numel(icons)
                             icons(i).MarkerSize = 18;
                         end
-                        title(sprintf('Summary (mean, std)\n %s station ZHD corrected (%.2f cm, %.2f cm)\n %s station (%.2f cm, %.2f cm)\n Interpolated (%.2f cm, %.2f cm)\\fontsize{5} \n', ...
+                        title(sprintf('Summary comparison @ %d Km, %.1f m up (mean, std)\n %s station ZHD corrected (%.2f cm, %.2f cm)\n %s station (%.2f cm, %.2f cm)\n Interpolated (%.2f cm, %.2f cm)\\fontsize{5} \n', ...
+                            round(d3d(s) / 1e3), dup(s), ...
                             sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), ...
                             sta_list(id_rec(s)).getMarkerName4Ch, m_diff_sta(s), s_diff_sta(s), ...
                             m_diff(s), s_diff(s)), 'FontName', 'Open Sans');
@@ -6717,9 +6749,9 @@ classdef GNSS_Station < handle
                         % Histogram
                         f = figure('Visible', 'off');
                         Core_UI.beautifyFig(f);
-                        f.Name = sprintf('%03d: Rds Hist %d', f.Number, s); f.NumberTitle = 'off';                        
+                        f.Name = sprintf('%03d: Rds Hist %s', f.Number, rds(s).sta_num); f.NumberTitle = 'off';                        
                         fh_list = [fh_list; f]; %#ok<AGROW>
-                        fig_name = sprintf('Raob_ZTD_%d_validation_hist', s);
+                        fig_name = sprintf('Raob_ZTD_%s_validation_hist', rds(s).sta_num);
                         f.UserData = struct('fig_name', fig_name);
                         hist(ztd_diff_sta_hcorr,25);
                         title('Histogram of ZTD RAOB - GNSS (ZHD corrected)');
@@ -6824,7 +6856,7 @@ classdef GNSS_Station < handle
             %   sta_list.showIgsPosValidation()
             
             log = Core.getLogger();
-            
+            state = Core.getCurrentSettings;
             fh_list = [];
             n_rec = length(sta_list);
             east_stat = nan(n_rec,2);
@@ -6835,40 +6867,66 @@ classdef GNSS_Station < handle
             ge_stat = nan(n_rec,2);
             sta_names = {};
             id_ok = true(n_rec, 1);
-            flag_plot = false;
+            
+            %[missing_days] = this.downloadIGSOfficialStation(sta_name, time, flag_download);
+            
             for r = 1:n_rec
+                flag_plot = true;
                 if ~sta_list(r).out.isEmpty
-                    xyz_diff = sta_list(r).out.xyz - sta_list(r).out.getIgsXYZ;
+                    xyz_igs = sta_list(r).out.getIgsXYZ;
+                    %coo_gogps = Coordinates.fromXYZ(sta_list(r).out.xyz, sta_list(r).out.time_pos);
+                    %coo_gogps.addOffset(-[sta_list(r).ant_delta_en sta_list(r).ant_delta_h]);       % Add antennna offset
+                    %xyz_gogps = coo_gogps.getXYZ;
+                    xyz_gogps = sta_list(r).out.getPos.getXYZ;
                     log.addMarkedMessage(sprintf('Analysing station "%s"', sta_list(r).getMarkerName4Ch));
-                    if ~any(xyz_diff(:))
+                    if ~any(xyz_igs(:))
                         id_ok(r) = false;
+                        log.addError(sprintf('"%s" does not appear in the IGS combination of AC global solutions', sta_list(r).getMarkerName4Ch));
                     else
-                        flag_plot = true;
-                        enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ, xyz_diff);
-                        sensor= enu_diff - repmat(median(enu_diff,'omitnan'),size(enu_diff,1),1);
-                        out_idx = sum((abs(sensor) > 0.05),2) >0;
-                        enu_diff(out_idx,:) =[];
-                        east_stat(r,:) = [mean(enu_diff(:,1),'omitnan'),perc(abs(enu_diff(:,1) - mean(enu_diff(:,1),'omitnan')),0.95)]*1e3;
-                        north_stat(r,:) = [mean(enu_diff(:,2),'omitnan'),perc(abs(enu_diff(:,2) - mean(enu_diff(:,2),'omitnan')),0.95)]*1e3;
-                        up_stat(r,:) = [mean(enu_diff(:,3),'omitnan'),perc(abs(enu_diff(:,3) - mean(enu_diff(:,3),'omitnan')),0.95)]*1e3;
-                        [ztd_diff, gn_diff, ge_diff] =  sta_list(r).out.getIgsTropo('interp_value');
-                        ztd_diff = ztd_diff - sta_list(r).out.ztd;
-                        gn_diff = gn_diff - sta_list(r).out.tgn;
-                        ge_diff = ge_diff - sta_list(r).out.tge;
-                        out_idx = abs(ztd_diff) >0.05 | abs(gn_diff) >0.01 | abs(ge_diff) > 0.01;
-                        ztd_diff(out_idx) = [];
-                        gn_diff(out_idx) = [];
-                        ge_diff(out_idx) = [];
-                        ztd_stat(r,:) = [mean(ztd_diff,'omitnan'),perc(abs(ztd_diff - mean(ztd_diff,'omitnan')),0.95)]*1e3;
-                        gn_stat(r,:) = [mean(gn_diff,'omitnan'),perc(abs(gn_diff - mean(gn_diff,'omitnan')),0.95)]*1e3;
-                        ge_stat(r,:) = [mean(ge_diff,'omitnan'),perc(abs(ge_diff - mean(ge_diff,'omitnan')),0.95)]*1e3;
+                        coo_gogps = sta_list(r).getPos;
+                        coo_igs = Coordinates.fromXYZ(xyz_igs, coo_gogps.time);
+                        if flag_plot
+                            fh = Coordinates.showCompareENU([coo_igs; coo_gogps]);
+                            figure(fh);
+                            ax = subplot(3,1,1);
+                            ax.Title.String{1} = [sta_list(r).getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                            % If I have only one receiver use as name the name of the receiver
+                            fig_name = sprintf('IGS_vs_goGPS_%s_%s', sta_list(r).getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));                        
+                            fh.UserData = struct('fig_name', fig_name);
+                            Core_UI.addExportMenu(fh);
+                            fh_list = [fh_list; fh];   
+                            drawnow
+                        end
+
+                        xyz_diff = xyz_gogps - xyz_igs;
+                        if ~any(xyz_diff(:))
+                            log.addError(sprintf('"%s" does not have valid positions for goGPS or IGS', sta_list(r).getMarkerName4Ch));
+                            id_ok(r) = false;
+                        else
+                            enu_diff = Coordinates.cart2local(sta_list(r).out.getMedianPosXYZ, xyz_diff);
+                            sensor = enu_diff - repmat(median(enu_diff,'omitnan'),size(enu_diff,1),1);
+                            out_idx = sum((abs(sensor) > 0.05),2) > 0;
+                            enu_diff(out_idx,:) =[];
+                            east_stat(r,:) = [mean(enu_diff(:,1),'omitnan'),perc(abs(enu_diff(:,1) - mean(enu_diff(:,1),'omitnan')),0.95)]*1e3;
+                            north_stat(r,:) = [mean(enu_diff(:,2),'omitnan'),perc(abs(enu_diff(:,2) - mean(enu_diff(:,2),'omitnan')),0.95)]*1e3;
+                            up_stat(r,:) = [mean(enu_diff(:,3),'omitnan'),perc(abs(enu_diff(:,3) - mean(enu_diff(:,3),'omitnan')),0.95)]*1e3;
+                            [ztd_diff, gn_diff, ge_diff] =  sta_list(r).out.getIgsTropo('interp_value');
+                            ztd_diff = ztd_diff - sta_list(r).out.ztd;
+                            gn_diff = gn_diff - sta_list(r).out.tgn;
+                            ge_diff = ge_diff - sta_list(r).out.tge;
+                            out_idx = abs(ztd_diff) >0.05 | abs(gn_diff) >0.01 | abs(ge_diff) > 0.01;
+                            ztd_diff(out_idx) = [];
+                            gn_diff(out_idx) = [];
+                            ge_diff(out_idx) = [];
+                            ztd_stat(r,:) = [mean(ztd_diff,'omitnan'),perc(abs(ztd_diff - mean(ztd_diff,'omitnan')),0.95)]*1e3;
+                            gn_stat(r,:) = [mean(gn_diff,'omitnan'),perc(abs(gn_diff - mean(gn_diff,'omitnan')),0.95)]*1e3;
+                            ge_stat(r,:) = [mean(ge_diff,'omitnan'),perc(abs(ge_diff - mean(ge_diff,'omitnan')),0.95)]*1e3;
+                        end
                     end
                 end
                 sta_names{end+1} = lower(sta_list(r).getMarkerName4Ch);
             end
-            if ~flag_plot
-                Core.getLogger.addWarning('No IGS station found!');
-            else
+            if any(id_ok)             
                 % sort by bet on the east axis
                 %[~,idx] = sort(abs(east_stat(:,1)));
                 [~, idx] = sort(east_stat(:,1).^2 + north_stat(:,1).^2 + 0*up_stat(:,1).^2);
@@ -6891,7 +6949,7 @@ classdef GNSS_Station < handle
                 fh_list = [fh_list; fh];
                 if numel(sta_list) == 1
                     % If I have only one receiver use as name the name of the receiver
-                    fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, sta_list.getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('IGS_Comparison_%s_%s', sta_list.getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));
                 else
                     % If I have more than one receiver use as name the name of the project
                     fig_name = sprintf('IGS_Comparison_%s', strrep(Core.getState.getPrjName,' ', '_'));
@@ -6998,7 +7056,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [fh_list, m_diff, s_diff] = showIgsZtdValidation(sta_list, igs_list)
+        function [fh_list, m_diff, s_diff] = showIgsTropoValidation(sta_list, igs_list)
             % Compute and show comparison with igs station
             % given region list, and station id (as cell arrays)
             %
@@ -7011,22 +7069,22 @@ classdef GNSS_Station < handle
             %   s_diff          std of the ZTD differences
             %
             % SYNTAX
-            %  [m_diff, s_diff] = sta_list.showIgsZtdValidation(station_list);
+            %  [m_diff, s_diff] = sta_list.showIgsTropoValidation(station_list);
             %
             % EXAMPLE
             %  % testing geonet full network
-            %  [m_diff, s_diff] = sta_list.showIgsZtdValidation(Radiosonde.JAPAN_STATION);
+            %  [m_diff, s_diff] = sta_list.showIgsTropoValidation(Radiosonde.JAPAN_STATION);
             %
             % SEE ALSO
-            %   Radiosonde GNSS_Station.getIgsZtdValidation
+            %   Radiosonde GNSS_Station.getIgsTropoValidation
             if nargin == 1
                 igs_list = [];
             end
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
-            [m_diff, s_diff, fh_list] = sta_list.getIgsZtdValidation(igs_list, true);
+            [m_diff, s_diff, fh_list] = sta_list.getIgsTropoValidation(igs_list, true);
         end
         
-        function [m_diff, s_diff, fh_list] = getIgsZtdValidation(sta_list, igs_list, flag_show)
+        function [m_diff, s_diff, fh_list] = getIgsTropoValidation(sta_list, igs_list, flag_show, flag_download)
             % Compute a comparison with IGS ststion
             % given region list, and station id (as cell arrays)
             %
@@ -7039,15 +7097,20 @@ classdef GNSS_Station < handle
             %   s_diff          std of the ZTD differences
             %
             % SYNTAX
-            %  [m_diff, s_diff] = sta_list.getIgsZtdValidation(station_list);
+            %  [m_diff, s_diff] = sta_list.getIgsTropoValidation(station_list);
             %
             % EXAMPLE
             %  % testing geonet full network
-            %  [m_diff, s_diff] = sta_list.getIgsZtdValidation('usno');
+            %  [m_diff, s_diff] = sta_list.getIgsTropoValidation('usno');
             %
+            
+            if nargin < 4 || isempty(flag_download)
+                flag_download = true;
+            end
             
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
             log = Core.getLogger();
+            state = Core.getCurrentSettings;
             fh_list = [];
             if nargin < 3
                  flag_show = false;
@@ -7065,269 +7128,299 @@ classdef GNSS_Station < handle
 
             % Download IGS Stations
             tsc = Tropo_Sinex_Compare();
-            tsc.addIGSOfficialStation(igs_list, p_time);
+            tsc.addIGSOfficialStation(igs_list, p_time, flag_download);
             
-            % For now disable interpolation, check only IGS stations
-            % log.addMarkedMessage('Get GNSS interpolated ZTD @ IGS locations');            
-            % [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho(), 300);            
-            
-            % Get closer GNSS stations
-            [id_rec, d3d, dup] = sta_list.getCloserRec(tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho());
-            gnss_list = sta_list(id_rec);
-
-            % Compute values
-            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
-            [m_diff, s_diff] = deal(nan(tsc.getNumberSinex(), 1));
-            log.addMonoMessage(sprintf(' ZTD IGS Validation\n---------------------------------------------------------------------------------------'));
-            log.addMonoMessage(sprintf('                                Marker              Elevation     '));
-            log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  IGS Station'));
-            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
-            % For each IGS station
-            for s = 1 : tsc.getNumberSinex()
-                % radiosondes
-                [ztd_igs, time_igs] = tsc.getZtdSinex(s);
-                ztd_igs = ztd_igs*100;
-                % gnss
-                [ztd_gogps, time_gogps] = gnss_list(s).getZtd;
+            if isempty(tsc.results)
+                log.addWarning('No IGS valid station found for comparison');
+            else
+                % For now disable interpolation, check only IGS stations
+                % log.addMarkedMessage('Get GNSS interpolated ZTD @ IGS locations');
+                % [ztd, ztd_height_correction, time] = sta_list.getTropoInterp('ZTD', tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho(), 300);
                 
-                [~, id_igs, id_gogps] = intersect(round(time_igs.getMatlabTime * (86400 / 300)), round(time_gogps.getMatlabTime * (86400 / 300)));
+                % Get closer GNSS stations
+                [id_rec, d3d, dup] = sta_list.getCloserRec(tsc.getLat(), tsc.getLon(), tsc.getHeightOrtho());
+                gnss_list = sta_list(id_rec);
                 
-                ztd_diff = ztd_igs(id_igs) - ztd_gogps(id_gogps)*1e2;
-                m_diff(s) = mean(ztd_diff, 1, 'omitnan');
-                s_diff(s) = std(ztd_diff, 1, 'omitnan');
-                log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), tsc.getName(s)));
-
-                if flag_show
-                    f = figure('Visible', 'on'); Core_UI.beautifyFig(f);
-                    f.Name = sprintf('%03d: dZTD %s', f.Number, sta_list(id_rec(s)).getMarkerName4Ch); f.NumberTitle = 'off';                    
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('IGS_dZTD_%d_Validation', s);
-                    f.UserData = struct('fig_name', fig_name);                    
-                    Core_Utils.plotSep(time_igs.getEpoch(id_igs).getMatlabTime, ztd_diff, '.-');
-                    xlim(time_igs.getEpoch(id_igs([1 end])).getMatlabTime);
-                    title(sprintf('%s dZTD IGS vs. goGPS [ cm ]\\fontsize{5} \n', sta_list(id_rec(s)).getMarkerName4Ch));
-                    setTimeTicks();
-                    Core_UI.addExportMenu(f);
-                    Core_UI.addBeautifyMenu(f);
-                    Core_UI.beautifyFig(f);
-                    
-                    f = figure('Visible', 'on'); Core_UI.beautifyFig(f);
-                    f.Name = sprintf('%03d: dZTD_hist %s', f.Number, sta_list(id_rec(s)).getMarkerName4Ch); f.NumberTitle = 'off';                    
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('IGS_dZTD_hist_%d_Validation', s);
-                    f.UserData = struct('fig_name', fig_name);                    
-                    hist(ztd_diff,100);
-                    title(sprintf('%s dZTD IGS vs. goGPS [ cm ]\nMean %.2f cm, std %.2fcm\\fontsize{5} \n', sta_list(id_rec(s)).getMarkerName4Ch, m_diff(s), s_diff(s)));
-                    Core_UI.addExportMenu(f);
-                    Core_UI.addBeautifyMenu(f);
-                    Core_UI.beautifyFig(f);                    
-                end                
-            end
-            log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
-
-            if flag_show
-                % Plot comparisons
-                for s = 1 : tsc.getNumberSinex()                    
-                    %%
-                    f = figure('Visible', 'off');
-                    f.Name = sprintf('%03d: IGS Validation %d', f.Number, s); f.NumberTitle = 'off';
-                    
-                    fh_list = [fh_list; f]; %#ok<AGROW>
-                    fig_name = sprintf('IGS_ZTD_%d_Validation', s);
-                    f.UserData = struct('fig_name', fig_name);
-                    
-                    % interpolated ZTD
-                    %Core_Utils.plotSep(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.-', 'LineWidth', 2, 'MarkerSize', 5);
-                    %hold on;
-                    
-                    % closer ZTD
-                    [s_ztd, s_time] = gnss_list(s).getZtd;
-                    Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2, 'MarkerSize', 5); hold on;
-
-                    % IGS values
+                % Compute values
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
+                [m_diff, s_diff] = deal(nan(tsc.getNumberSinex(), 1));
+                log.addMonoMessage(sprintf(' ZTD IGS Validation\n---------------------------------------------------------------------------------------'));
+                log.addMonoMessage(sprintf('                                Marker              Elevation     '));
+                log.addMonoMessage(sprintf('       Mean          Std         GNSS    Dist [km]  diff. [m]  IGS Station'));
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
+                
+                % For each IGS station
+                for s = 1 : tsc.getNumberSinex()
+                    % radiosondes
                     [ztd_igs, time_igs] = tsc.getZtdSinex(s);
-                    Core_Utils.plotSep(time_igs.getMatlabTime, ztd_igs*100, '.-k', 'MarkerSize', 5, 'LineWidth', 2);
-                    %outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
-                    %    sprintf('IGS ZTD @ %s', tsc.getName(s))};
-                    outm = {sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
-                        sprintf('IGS ZTD @ %s', tsc.getName(s))};
-                    [~, icons] = legend(outm, 'location', 'northwest');
-                    n_entry = numel(outm);
-                    icons = icons(n_entry + 2 : 2 : end);
-                    for i = 1 : numel(icons)
-                        icons(i).MarkerSize = 18;
+                    [gn_igs, ge_igs] = tsc.getGradientsSinex(s);
+                    ztd_igs = ztd_igs * 100;
+                    % gnss
+                    [ztd_gogps, time_gogps] = gnss_list(s).getZtd;
+                    gn_gogps = gnss_list(s).getTropoPar('gn');
+                    ge_gogps = gnss_list(s).getTropoPar('ge');
+                    
+                    [~, id_igs, id_gogps] = intersect(round(time_igs.getMatlabTime * (86400 / 300)), round(time_gogps.getMatlabTime * (86400 / 300)));
+                    
+                    ztd_diff = ztd_igs(id_igs) - ztd_gogps(id_gogps)*1e2;
+                    gn_diff = gn_igs(id_igs)*1e3 - gn_gogps(id_gogps)*1e3;
+                    ge_diff = ge_igs(id_igs)*1e3 - ge_gogps(id_gogps)*1e3;
+                    
+                    m_diff(s) = mean(ztd_diff, 1, 'omitnan');
+                    s_diff(s) = std(ztd_diff, 1, 'omitnan');
+                    log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"\n', s, m_diff(s), s_diff(s), gnss_list(s).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), tsc.getName(s)));
+                    
+                    if flag_show
+                        fh = figure('Visible', 'on'); Core_UI.beautifyFig(fh);
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
+                        subplot(2,2,1);
+                        fh.Name = sprintf('%03d: dZTD %s', fh.Number, gnss_list(s).getMarkerName4Ch); fh.NumberTitle = 'off';
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
+                        fig_name = sprintf('IGS_dZTD_%s_Validation', gnss_list(s).getMarkerName4Ch);
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_Utils.plotSep(time_igs.getEpoch(id_igs).getMatlabTime, ztd_diff, '.-');
+                        xlim(time_igs.getEpoch(id_igs([1 end])).getMatlabTime);
+                        ylabel('dZTD [cm]')
+                        title(sprintf('%s IGS vs. goGPS [ cm ]\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch));
+                        setTimeTicks(3);
+                        
+                        subplot(2,2,2);
+                        hist(ztd_diff,100);
+                        title(sprintf('%s IGS vs. goGPS [ cm ]\ndZTD  Mean %.2f cm, std %.2fcm\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch, m_diff(s), s_diff(s)));
+                        
+                        subplot(2,2,3);
+                        hist(gn_diff,100);
+                        title(sprintf('%s IGS vs. goGPS [ mm ]\ndGN Mean %.2f mm, std %.2fmm\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch, mean(gn_diff, 1, 'omitnan'), mean(gn_diff, 1, 'omitnan')));
+                        
+                        subplot(2,2,4);
+                        hist(ge_diff,100);
+                        title(sprintf('%s IGS vs. goGPS [ mm ]\ndGE Mean %.2f mm, std %.2fmm\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch, mean(ge_diff, 1, 'omitnan'), mean(ge_diff, 1, 'omitnan')));
+                        
+                        Core_UI.addExportMenu(fh);
+                        Core_UI.addBeautifyMenu(fh);
+                        Core_UI.beautifyFig(fh);
                     end
-                    if (d3d < 0.5)
-                        title(sprintf('ZTD comparison\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
-                    else
-                        title(sprintf('ZTD comparison @ %d Km (%.1f m up)\\fontsize{5} \n', round(d3d(s) / 1e3), dup(s)));
-                    end
-                    setTimeTicks; grid minor;
-                    drawnow;
-                    ax = gca; ax.FontSize = 16;
-                    Core_UI.beautifyFig(gcf);
-                    Core_UI.addExportMenu(gcf);             
-                    Core_UI.addBeautifyMenu(gcf);             
-                    f.Visible = 'on'; drawnow;
-                end
-            end
-            
-            % Plot map of all the radiosondes tests ----------------------------------------------
-            % Retrieve DTM model
-            
-            if flag_show
-                Core.getLogger.addMarkedMessage('Preparing map, please wait...');
-                % set map limits
-                lat = tsc.getLat;
-                lon = tsc.getLon;
-                % set map limits
-                if numel(sta_list) == 1
-                    lon_lim = minMax(lon) + [-0.05 0.05];
-                    lat_lim = minMax(lat) + [-0.05 0.05];
-                else
-                    lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim) / 6;
-                    lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
-                end
-                nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
-                clon = nwse([2 4]) + [-0.001 0.001];
-                clat = nwse([3 1]) + [-0.001 0.001];
-                
-                fh = figure('Visible', 'off');
-                fh.Color = [1 1 1];
-                
-                fh_list = [fh_list; fh];
-                fig_name = 'IGS_Validation_map';
-                fh.UserData = struct('fig_name', fig_name);
-                fh.Name = sprintf('%03d: IGS ZTD Val.', fh.Number); fh.NumberTitle = 'off';
-                
-                m_proj('equidistant','lon',clon,'lat',clat);   % Projection
-                % m_proj('utm', 'lon',clon,'lat',clat);   % Projection
-                axes
-                cmap = flipud(gray(1000)); 
-                colormap(cmap(150: end, :));
-                
-                % retrieve external DTM
-                try
-                    [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', 'low');
-                    dtm = flipud(dtm);
-                    % comment the following line to have bathimetry
-                    dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
                     
-                    % uncomment the following line to have colors
-                    % colormap(Cmap.adaptiveTerrain(minMax(dtm(:))));
-                    drawnow;
+                    coo_gogps = gnss_list(s).getPos;
+                    coo_igs = Coordinates.fromXYZ(tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).xyz, tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).coord_time);
                     
-                    [shaded_dtm] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1], 'gra', 30);
-                    
-                    %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
-                    %h_dtm.CData = shaded_dtm;
-                    m_image(lon_dtm, lat_dtm, shaded_dtm);
-                catch
-                    % use ETOPO1 instead
-                    m_etopo2('shadedrelief','gradient', 3);
+                    fh = Coordinates.showCompareENU([coo_igs, coo_gogps]);
+                    figure(fh);
+                    ax = subplot(3,1,1);
+                    ax.Title.String{1} = [gnss_list(s).getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                    fig_name = sprintf('IGS_TropoCoo_vs_goGPS_%s_%s', gnss_list(s).getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));
+                    fh.UserData = struct('fig_name', fig_name);
+                    Core_UI.addExportMenu(fh);
+                    fh_list = [fh_list; fh]; %#ok<AGROW>
                 end
+                log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 
-                % read shapefile
-                shape = 'none';
-                if (~strcmp(shape,'none'))
-                    if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
-                        if (strcmp(shape,'10m'))
-                            M = m_shaperead('countries_10m');
-                        elseif (strcmp(shape,'30m'))
-                            M = m_shaperead('countries_30m');
-                        else
-                            M = m_shaperead('countries_50m');
+                if flag_show
+                    % Plot comparisons
+                    for s = 1 : tsc.getNumberSinex()
+                        %%
+                        fh = figure('Visible', 'off');
+                        fh.Name = sprintf('%03d: IGS Tropo %s', fh.Number, gnss_list(s).getMarkerName4Ch); fh.NumberTitle = 'off';
+                        
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
+                        fig_name = sprintf('IGS_Tropo_vs_goGPS_%s_%s', gnss_list(s).getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        
+                        % interpolated ZTD
+                        %Core_Utils.plotSep(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.-', 'LineWidth', 2, 'MarkerSize', 5);
+                        %hold on;
+                        
+                        % closer ZTD
+                        [s_ztd, s_time] = gnss_list(s).getZtd;
+                        Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2, 'MarkerSize', 5); hold on;
+                        
+                        % IGS values
+                        [ztd_igs, time_igs] = tsc.getZtdSinex(s);
+                        Core_Utils.plotSep(time_igs.getMatlabTime, ztd_igs*100, '.-k', 'MarkerSize', 5, 'LineWidth', 2);
+                        %outm = {'ZTD GPS from interpolation', sprintf('ZTD GPS of %s', sta_list(id_rec(s)).getMarkerName4Ch), ...
+                        %    sprintf('IGS ZTD @ %s', tsc.getName(s))};
+                        outm = {sprintf('ZTD GPS of %s', gnss_list(s).getMarkerName4Ch), ...
+                            sprintf('IGS ZTD @ %s', tsc.getName(s))};
+                        [~, icons] = legend(outm, 'location', 'northwest');
+                        n_entry = numel(outm);
+                        icons = icons(n_entry + 2 : 2 : end);
+                        for i = 1 : numel(icons)
+                            icons(i).MarkerSize = 18;
                         end
-                        [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
-                        [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
-                        for k = 1 : length(M.ncst)
-                            lam_c = M.ncst{k}(:,1);
-                            ids = lam_c <  min(lon);
-                            lam_c(ids) = lam_c(ids) + 360;
-                            phi_c = M.ncst{k}(:,2);
-                            [x, y] = m_ll2xy(lam_c, phi_c);
-                            if sum(~isnan(x))>1
-                                x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
-                                line(x,y,'color', [0.3 0.3 0.3]);
+                        if (d3d(s) < 2.5)
+                            title(sprintf('%s IGS comparison [cm]\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch));
+                        else
+                            title(sprintf('%s IGS comparison @ %d Km (%.1f m up)\\fontsize{5} \n', gnss_list(s).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s)));
+                        end
+                        ylabel('ZTD [cm]');
+                        xlim(minMax(time_igs.getMatlabTime));
+                        setTimeTicks; grid minor;
+                        drawnow;
+                        ax = gca; ax.FontSize = 16;
+                        Core_UI.beautifyFig(gcf);
+                        Core_UI.addExportMenu(gcf);
+                        Core_UI.addBeautifyMenu(gcf);
+                        fh.Visible = 'on'; drawnow;
+                    end
+                end
+                
+                % Plot map of all the radiosondes tests ----------------------------------------------
+                % Retrieve DTM model
+                
+                if flag_show
+                    Core.getLogger.addMarkedMessage('Preparing map, please wait...');
+                    % set map limits
+                    lat = tsc.getLat;
+                    lon = tsc.getLon;
+                    % set map limits
+                    if numel(gnss_list) == 1
+                        lon_lim = minMax(lon) + [-0.05 0.05];
+                        lat_lim = minMax(lat) + [-0.05 0.05];
+                    else
+                        lon_lim = minMax(lon); lon_lim = lon_lim + [-1 1] * diff(lon_lim) / 6;
+                        lat_lim = minMax(lat); lat_lim = lat_lim + [-1 1] * diff(lat_lim) / 6;
+                    end
+                    nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
+                    clon = nwse([2 4]) + [-0.001 0.001];
+                    clat = nwse([3 1]) + [-0.001 0.001];
+                    
+                    fh = figure('Visible', 'off');
+                    fh.Color = [1 1 1];
+                    
+                    fh_list = [fh_list; fh];
+                    fig_name = 'IGS_Validation_map';
+                    fh.UserData = struct('fig_name', fig_name);
+                    fh.Name = sprintf('%03d: IGS ZTD Val.', fh.Number); fh.NumberTitle = 'off';
+                    
+                    m_proj('equidistant','lon',clon,'lat',clat);   % Projection
+                    % m_proj('utm', 'lon',clon,'lat',clat);   % Projection
+                    axes
+                    cmap = flipud(gray(1000));
+                    colormap(cmap(150: end, :));
+                    
+                    % retrieve external DTM
+                    try
+                        [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', 'low');
+                        dtm = flipud(dtm);
+                        % comment the following line to have bathimetry
+                        dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
+                        
+                        % uncomment the following line to have colors
+                        % colormap(Cmap.adaptiveTerrain(minMax(dtm(:))));
+                        drawnow;
+                        
+                        [shaded_dtm] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1], 'gra', 30);
+                        
+                        %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
+                        %h_dtm.CData = shaded_dtm;
+                        m_image(lon_dtm, lat_dtm, shaded_dtm);
+                    catch
+                        % use ETOPO1 instead
+                        m_etopo2('shadedrelief','gradient', 3);
+                    end
+                    
+                    % read shapefile
+                    shape = 'none';
+                    if (~strcmp(shape,'none'))
+                        if (~strcmp(shape,'coast')) && (~strcmp(shape,'fill'))
+                            if (strcmp(shape,'10m'))
+                                M = m_shaperead('countries_10m');
+                            elseif (strcmp(shape,'30m'))
+                                M = m_shaperead('countries_30m');
+                            else
+                                M = m_shaperead('countries_50m');
+                            end
+                            [x_min, y_min] = m_ll2xy(min(lon_lim), min(lat_lim));
+                            [x_max, y_max] = m_ll2xy(max(lon_lim), max(lat_lim));
+                            for k = 1 : length(M.ncst)
+                                lam_c = M.ncst{k}(:,1);
+                                ids = lam_c <  min(lon);
+                                lam_c(ids) = lam_c(ids) + 360;
+                                phi_c = M.ncst{k}(:,2);
+                                [x, y] = m_ll2xy(lam_c, phi_c);
+                                if sum(~isnan(x))>1
+                                    x(find(abs(diff(x)) >= abs(x_max - x_min) * 0.90) + 1) = nan; % Remove lines that occupy more than th 90% of the plot
+                                    line(x,y,'color', [0.3 0.3 0.3]);
+                                end
+                            end
+                        else
+                            if (strcmp(shape,'coast'))
+                                m_coast('line','color', lineCol);
+                            else
+                                m_coast('patch',lineCol);
                             end
                         end
-                    else
-                        if (strcmp(shape,'coast'))
-                            m_coast('line','color', lineCol);
-                        else
-                            m_coast('patch',lineCol);
-                        end
                     end
-                end
-                
-                hold on;                
-                m_grid('box','fancy','tickdir','in', 'fontsize', 16);
-
-                drawnow
-                m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
-                
-                % IGS points
-                data_mean = m_diff;
-                data_std = s_diff;
-                data_lat = tsc.getLat();
-                data_lon = tsc.getLon();
-
-                [x, y] = m_ll2xy(data_lon, data_lat);
-                                
-                plot(x(:), y(:),'.k', 'MarkerSize', 5);
-
-                n_col = round(max(abs(minMax(data_mean))*10)) + 1;
-                caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
-                drawnow
-                try
-                    % It seems that the only way to have a colorbar correctly moving with the figure is to use the internal colorbar object
-                    cb = colorbar;
-                    %cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
-                    %cb.Units = 'pixels';
-                    %cb_m.Units = 'pixels';
-                    %cb_m.Position(1) = cb.Position(1) + 10;
-                    %ax_pos = ax.Position;
-                    %delete(cb); % deleting the colorbar changes the size of the axes
-                    %ax.Position = ax_pos;
-                    %cb_m.Units = 'normalized';
-                    xlabel(cb, 'cm','color','k');
+                    
+                    hold on;
+                    m_grid('box','fancy','tickdir','in', 'fontsize', 16);
+                    
                     drawnow
-                catch
+                    m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
+                    
+                    % IGS points
+                    data_mean = m_diff;
+                    data_std = s_diff;
+                    data_lat = tsc.getLat();
+                    data_lon = tsc.getLon();
+                    
+                    [x, y] = m_ll2xy(data_lon, data_lat);
+                    
+                    plot(x(:), y(:),'.k', 'MarkerSize', 5);
+                    
+                    n_col = round(max(abs(minMax(data_mean))*10)) + 1;
+                    caxis(n_col * [0 1] ./ 10); colormap(Cmap.get('linspaced', n_col));
                     drawnow
+                    try
+                        % It seems that the only way to have a colorbar correctly moving with the figure is to use the internal colorbar object
+                        cb = colorbar;
+                        %cb_m = m_contfbar(0.97, cb.Position(2) + [0 cb.Position(4)],[0 n_col/10], 0:0.1:(n_col/10),'edgecolor','none','endpiece','no', 'fontsize', 16);
+                        %cb.Units = 'pixels';
+                        %cb_m.Units = 'pixels';
+                        %cb_m.Position(1) = cb.Position(1) + 10;
+                        %ax_pos = ax.Position;
+                        %delete(cb); % deleting the colorbar changes the size of the axes
+                        %ax.Position = ax_pos;
+                        %cb_m.Units = 'normalized';
+                        xlabel(cb, 'cm','color','k');
+                        drawnow
+                    catch
+                        drawnow
+                    end
+                    
+                    % Label BG (in background w.r.t. the point)
+                    for r = 1 : numel(gnss_list)
+                        name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
+                        text(x(r), y(r), ['     ' name ' '], ...
+                            'FontWeight', 'bold', 'FontSize', 12, 'Color', [1 1 1], ...
+                            'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                            'Margin', 2, 'LineWidth', 2, ...
+                            'HorizontalAlignment','left');
+                    end
+                    
+                    for r = 1 : tsc.getNumberSinex
+                        name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
+                        text(x(r), y(r), ['     ' name ' '], ...
+                            'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
+                            'Margin', 2, 'LineWidth', 2, ...
+                            'HorizontalAlignment','left');
+                    end
+                    
+                    %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
+                    col_data = Cmap.getColor(floor(abs(data_mean) * 10) + 1, n_col, 'linspaced');
+                    plot(x(:), y(:), '.', 'MarkerSize', 100, 'Color', [0 0 0]);
+                    for r = 1 : numel(gnss_list)
+                        plot(x(r), y(r), '.', 'MarkerSize', 92, 'Color', col_data(r,:));
+                    end
+                    
+                    title(sprintf('Map of IGS Tropo Validation\nMean [cm] and StD [cm]\\fontsize{5} \n'), 'FontSize', 16);
+                    
+                    Core_UI.addExportMenu(fh);
+                    Core_UI.addBeautifyMenu(fh);
+                    Core_UI.beautifyFig(fh);
+                    fh.Visible = 'on';
+                    Core.getLogger.addStatusOk('The map is ready ^_^');
                 end
-                
-                % Label BG (in background w.r.t. the point)
-                for r = 1 : numel(gnss_list)
-                    name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
-                    text(x(r), y(r), ['     ' name ' '], ...
-                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [1 1 1], ...
-                        'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                        'Margin', 2, 'LineWidth', 2, ...
-                        'HorizontalAlignment','left');
-                end
-                
-                for r = 1 : tsc.getNumberSinex
-                    name = sprintf('%.2f, %.2f', data_mean(r), data_std(r));
-                    text(x(r), y(r), ['     ' name ' '], ...
-                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [0 0 0], ...
-                        'Margin', 2, 'LineWidth', 2, ...
-                        'HorizontalAlignment','left');
-                end
-                                
-                %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
-                col_data = Cmap.getColor(floor(abs(data_mean) * 10) + 1, n_col, 'linspaced');
-                plot(x(:), y(:), '.', 'MarkerSize', 100, 'Color', [0 0 0]);
-                for r = 1 : numel(gnss_list)
-                    plot(x(r), y(r), '.', 'MarkerSize', 92, 'Color', col_data(r,:));
-                end
-                
-                title(sprintf('Map of IGS Validation\nMean [cm] and StD [cm]\\fontsize{5} \n'), 'FontSize', 16);
-
-                Core_UI.addExportMenu(fh); 
-                Core_UI.addBeautifyMenu(fh);
-                Core_UI.beautifyFig(fh);
-                fh.Visible = 'on';
-                Core.getLogger.addStatusOk('The map is ready ^_^');
             end
         end        
     end

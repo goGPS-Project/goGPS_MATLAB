@@ -96,12 +96,10 @@ classdef Tropo_Sinex_Compare < handle
             end
         end
         
-        function [missing_days] = addIGSOfficialStation(this, sta_name, time)
-            % add IGS offical station
-            %
-            % SYNTAX
-            %     this.addIGSOfficialStation(sta_name, time)
-            
+        function [missing_days] = downloadIGSOfficialStation(this, sta_name, time, flag_download)
+            if nargin < 4
+                flag_download = true;
+            end
             if ~iscell(sta_name)
                 sta_name = {sta_name};
             end
@@ -112,30 +110,66 @@ classdef Tropo_Sinex_Compare < handle
             data_dir = fullfile(Core.getInstallDir, '..' , 'data');
             % Try to download data using aria
             flag_aria = true;
-            for d = unique(mjd)'
+            i = 0;
+            file_name_lst = {};
+            f_ext_lst = {};
+            u_mjd = unique(mjd)';
+            for d = u_mjd
                 if flag_aria
-                    i = 0;
-                    file_name_lst = {};
-                    f_ext_lst = {};
                     f_status_lst = false(0);
                     c_time = GPS_Time.fromMJD(d);
+                    dest_dir = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/TROPO/${YYYY}/${DOY}/', data_dir), c_time);
+                    file_list = dir([dest_dir, '*zpd']);
                     for s = 1 : numel(sta_name)
-                        file_path = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/TROPO/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd', data_dir, lower(sta_name{s})), c_time);
-                        if exist(file_path, 'file') ~= 2
-                            [out_dir, file_name, file_ext] = fileparts(file_path);
+                        file_path = fnp.dateKeyRep(sprintf('%s%s${DOY}0.${YY}zpd', dest_dir, lower(sta_name{s})), c_time);
+                        [out_dir, file_name, file_ext] = fileparts(file_path);
+                        if ~ismember([file_name, file_ext], {file_list.name})
                             i = i + 1;
                             file_name_lst(i) = {fnp.dateKeyRep(sprintf('ftp://cddis.nasa.gov/pub/gps/products/troposphere/zpd/${YYYY}/${DOY}/%s${DOY}0.${YY}zpd', lower(sta_name{s})), c_time)};
                             f_ext_lst(i) = {'.gz'};
                             f_status_lst(i) = false;
                         end
                     end
-                    if ~isempty(file_name_lst)
-                        f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, [], out_dir);
-                        flag_aria = ~isempty(f_status_lst);
+                end
+            end
+            % Download with aria2c
+            if ~isempty(file_name_lst) && flag_download
+                f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, [], out_dir);
+                flag_aria = ~isempty(f_status_lst);
+            end
+            
+            for d = u_mjd(1 : (end - 1))
+                if flag_aria
+                    c_time = GPS_Time.fromMJD(d);
+                    [year, doy] = c_time.getDOY;
+                    dest_dir = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/TROPO/${YYYY}/${DOY}/', data_dir), c_time);
+                    if ~isempty(dir(fullfile(out_dir, sprintf('*%03d0.*zpd', doy))))
+                        movefile(fullfile(out_dir, sprintf('*%03d0.*zpd', doy)), dest_dir);
                     end
                 end
             end
+        end
+        
+        function [missing_days] = addIGSOfficialStation(this, sta_name, time, flag_download)
+            % add IGS offical station
+            %
+            % SYNTAX
+            %     this.addIGSOfficialStation(sta_name, time)
             
+            if nargin < 4
+                flag_download = true;
+            end
+            if ~iscell(sta_name)
+                sta_name = {sta_name};
+            end
+            [mjd] = floor(time.getMJD);
+            missing_days = [];
+            fnp = File_Name_Processor();
+                                   
+            data_dir = fullfile(Core.getInstallDir, '..' , 'data');
+            
+            [missing_days] = this.downloadIGSOfficialStation(sta_name, time, flag_download);
+            flag_aria = true;
             for d = unique(mjd)'
                 c_time = GPS_Time.fromMJD(d);
                 for s = 1 : numel(sta_name)
@@ -734,13 +768,24 @@ classdef Tropo_Sinex_Compare < handle
             n = length(fieldnames(this.results.r2));
         end
         
-        function [ztd,time] = getZtdSinex(this,s)
+        function [ztd, time] = getZtdSinex(this,s)
             % get ztd and time of the sth station
             %
             % SYNTAX
             %  [ztd,time] = this.getZtdSinex(s)
             stas = fieldnames(this.results.r2);
             ztd = this.results.r2.(stas{s}).ztd;
+            time =  this.results.r2.(stas{s}).time;
+        end
+        
+        function [tgn, tge, time] = getGradientsSinex(this,s)
+            % get ztd and time of the sth station
+            %
+            % SYNTAX
+            %  [ztd,time] = this.getZtdSinex(s)
+            stas = fieldnames(this.results.r2);
+            tgn = this.results.r2.(stas{s}).tgn;
+            tge = this.results.r2.(stas{s}).tge;
             time =  this.results.r2.(stas{s}).time;
         end
         
@@ -843,69 +888,75 @@ classdef Tropo_Sinex_Compare < handle
             fid = fopen(filename);
             txt = fread(fid,'*char')';
             fclose(fid);
-            
-            % get new line separators
-            nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            % get starting block lines
-            st_idxes = find(txt(lim(:,1)) == '+');
-            end_idxes = find(txt(lim(:,1)) == '-');
-            for i = 1:length(st_idxes)
-                st_idx = st_idxes(i);
-                end_idx = end_idxes(i);
-                if strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/DESCRIPTION')
-                    for l = st_idx : end_idx
-                        if strfind(txt(lim(l,1): lim(l,2)),' SOLUTION_FIELDS_1')
-                            pars = strsplit(strtrim(txt(lim(l,1): lim(l,2))));
-                            pars(1) = [];
-                            n_par = length(pars);
-                            for i = 1: n_par
-                                pars{i} = strrep(pars{i},'#','NUM_');
-                                all_res.(pars{i}) = [];
+            if isempty(txt)
+                % the file is empty or corrupted)
+                delete(filename);
+                % it will be re-downloaded in the future
+                results = struct();
+            else
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                % get starting block lines
+                st_idxes = find(txt(lim(:,1)) == '+');
+                end_idxes = find(txt(lim(:,1)) == '-');
+                for i = 1:length(st_idxes)
+                    st_idx = st_idxes(i);
+                    end_idx = end_idxes(i);
+                    if strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/DESCRIPTION')
+                        for l = st_idx : end_idx
+                            if strfind(txt(lim(l,1): lim(l,2)),' SOLUTION_FIELDS_1')
+                                pars = strsplit(strtrim(txt(lim(l,1): lim(l,2))));
+                                pars(1) = [];
+                                n_par = length(pars);
+                                for i = 1: n_par
+                                    pars{i} = strrep(pars{i},'#','NUM_');
+                                    all_res.(pars{i}) = [];
+                                end
                             end
+                        end
+                        
+                    elseif strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/STA_COORDINATES')
+                        n_lin = end_idx - st_idx -2;
+                        sta_4char = txt(repmat(lim(st_idx+2:end_idx-1,1),1,4) + repmat([1:4],n_lin ,1));
+                        xyz = reshape(sscanf( (txt(repmat(lim(st_idx+2:end_idx-1,1),1,39) + repmat([16:54], n_lin,1)))','%f %f %f\n'),3,n_lin)';
+                    elseif strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/SOLUTION')
+                        n_lin = end_idx - st_idx -2;
+                        sta_4char_trp = txt(repmat(lim(st_idx+2:end_idx-1,1),1,4) + repmat([1:4],n_lin,1));
+                        obs_lines = st_idx+2:end_idx-1;
+                        idx_no_ast = txt(lim(obs_lines,1)) ~= '*';
+                        idx_no_ast = obs_lines(idx_no_ast);
+                        n_lin = length(idx_no_ast);
+                        sta_4char_trp = txt(repmat(lim(idx_no_ast,1),1,4) + repmat([1:4],n_lin,1));
+                        end_col = min(lim(idx_no_ast,3));
+                        
+                        data = reshape(sscanf( (txt(repmat(lim(idx_no_ast,1),1,end_col) + repmat([0 :(end_col-1)],n_lin,1)))',['%*s %f:%f:%f' repmat(' %f',1,n_par)] ),n_par+3,n_lin)';
+                        year = data(:,1);
+                        idx_70 = year<70;
+                        year(idx_70) = year(idx_70) + 2000;
+                        year(~idx_70) = year(~idx_70) + 1900;
+                        doy = data(:,2);
+                        sod = data(:,3);
+                        for i = 1 : n_par
+                            all_res.(pars{i}) = [all_res.(pars{i}) ;  data(:,3+i)/1e3]; % -> covert in meters
                         end
                     end
                     
-                elseif strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/STA_COORDINATES')
-                    n_lin = end_idx - st_idx -2;
-                    sta_4char = txt(repmat(lim(st_idx+2:end_idx-1,1),1,4) + repmat([1:4],n_lin ,1));
-                    xyz = reshape(sscanf( (txt(repmat(lim(st_idx+2:end_idx-1,1),1,39) + repmat([16:54], n_lin,1)))','%f %f %f\n'),3,n_lin)';
-                elseif strfind(txt(lim(st_idx,1): lim(st_idx,2)),'TROP/SOLUTION')
-                    n_lin = end_idx - st_idx -2;
-                    sta_4char_trp = txt(repmat(lim(st_idx+2:end_idx-1,1),1,4) + repmat([1:4],n_lin,1));
-                    obs_lines = st_idx+2:end_idx-1;
-                    idx_no_ast = txt(lim(obs_lines,1)) ~= '*';
-                    idx_no_ast = obs_lines(idx_no_ast);
-                    n_lin = length(idx_no_ast);
-                    sta_4char_trp = txt(repmat(lim(idx_no_ast,1),1,4) + repmat([1:4],n_lin,1));
-                    end_col = min(lim(idx_no_ast,3));
-                    
-                    data = reshape(sscanf( (txt(repmat(lim(idx_no_ast,1),1,end_col) + repmat([0 :(end_col-1)],n_lin,1)))',['%*s %f:%f:%f' repmat(' %f',1,n_par)] ),n_par+3,n_lin)';
-                    year = data(:,1);
-                    idx_70 = year<70;
-                    year(idx_70) = year(idx_70) + 2000;
-                    year(~idx_70) = year(~idx_70) + 1900;
-                    doy = data(:,2);
-                    sod = data(:,3);
-                    for i = 1 : n_par
-                        all_res.(pars{i}) = [all_res.(pars{i}) ;  data(:,3+i)/1e3]; % -> covert in meters
-                    end
                 end
-                
-            end
-            for s = 1: size(sta_4char,1)
-                c_sta_4char = sta_4char(s,:);
-                idx_sta  = strLineMatch(sta_4char_trp,c_sta_4char);
-                if sum(idx_sta) > 0
-                    for i = 1 : n_par
-                        results.(['r' c_sta_4char]).(pars{i}) = all_res.(pars{i})(idx_sta);
+                for s = 1: size(sta_4char,1)
+                    c_sta_4char = sta_4char(s,:);
+                    idx_sta  = strLineMatch(sta_4char_trp,c_sta_4char);
+                    if sum(idx_sta) > 0
+                        for i = 1 : n_par
+                            results.(['r' c_sta_4char]).(pars{i}) = all_res.(pars{i})(idx_sta);
+                        end
+                        results.(['r' c_sta_4char]).time = GPS_Time.fromDoySod(year(idx_sta),doy(idx_sta),sod(idx_sta));
+                        results.(['r' c_sta_4char]).xyz = xyz(s,:);
                     end
-                    results.(['r' c_sta_4char]).time = GPS_Time.fromDoySod(year(idx_sta),doy(idx_sta),sod(idx_sta));
-                    results.(['r' c_sta_4char]).xyz = xyz(s,:);
                 end
             end
         end

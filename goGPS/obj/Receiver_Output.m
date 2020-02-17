@@ -324,19 +324,35 @@ classdef Receiver_Output < Receiver_Commons
                         [pathstr, name, ext] = fileparts(filename);
                         ftp_dw.downloadUncompress(remote_file_name, pathstr);
                     end
+                    
+                    % Multiplatform
                     if exist(filename, 'file') == 2
-                        [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        fid = fopen(filename, 'rb');
+                        txt = fread(fid, '*char')';
+                        fclose(fid);
+                        cmdout = regexp(txt, sprintf('STAX   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
                         if ~isempty(cmdout)
-                            nl_id = find(cmdout==char(10));
-                            x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                            [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                            nl_id = find(cmdout==char(10));
-                            y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                            [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                            nl_id = find(cmdout==char(10));
-                            z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                            x = sscanf(cmdout{2}(40:61),'%f');
+                            cmdout = regexp(txt, sprintf('STAY   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
+                            y = sscanf(cmdout{2}(40:61),'%f');
+                            cmdout = regexp(txt, sprintf('STAZ   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
+                            z = sscanf(cmdout{2}(40:61),'%f');
                             xyz(e,:) =[x y z];
                         end
+                        % % UNIX only
+                        % if exist(filename, 'file') == 2
+                        %     [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        %     if ~isempty(cmdout)
+                        %         nl_id = find(cmdout==char(10));
+                        %         x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        %         [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        %         nl_id = find(cmdout==char(10));
+                        %         y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        %         [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                        %         nl_id = find(cmdout==char(10));
+                        %         z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                        %         xyz(e,:) =[x y z];
+                        %     end
                     else
                         [pathstr, name, ext] = fileparts(remote_file_name);
                         
@@ -367,8 +383,8 @@ classdef Receiver_Output < Receiver_Commons
                 d2.addSeconds(86400);
                 lid_excl = lid_excl | (this.time> d1 & this.time < d2);
             end
-            if numel(fieldnames(tsc.results)) == 0
-                this.log.addWarning(sprintf('No IGS solutions found for station %s',sta_name));
+            if ~isfield(tsc.results, 'r2') || ~isfield(tsc.results.r2, ['r' upper(sta_name)])
+                this.log.addWarning(sprintf('No IGS solutions found for station %s', sta_name));
             else
                 if strcmpi(mode,'interp_value')
                     ztd  = interp1(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime,tsc.results.r2.(['r' upper(sta_name)]).ztd,this.time.getMatlabTime,'linear');
@@ -740,17 +756,15 @@ classdef Receiver_Output < Receiver_Commons
                             if is_empty_coo
                                 this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
                                 this.add_coo(i).rate = rec_work.add_coo(i).rate;
-                                this.add_coo(i).time = rec_work.add_coo(i).time.getCopy();
                                 this.add_coo(i).coo = rec_work.add_coo(i).coo.getCopy();
                             else
-                                time_o = rec_work.add_coo(i).time.getCopy();
+                                time_o = rec_work.add_coo(i).coo.time.getCopy();
                                 coo_o = rec_work.add_coo(i).coo.getCopy();
                                 discard_time = work_time.first;
                                 discard_time.addSeconds(-this.add_coo(i).rate/2);
                                 idx_rem = time_o < discard_time;
-                                time_o.remEpoch(idx_rem);
                                 coo_o.rem(idx_rem);
-                                [this.add_coo(i).time, idx1, idx2] = this.add_coo(i).time.injectBatch(time_o);
+                                [this.add_coo(i).coo.time, idx1, idx2] = this.add_coo(i).coo.time.injectBatch(time_o);
                                 this.add_coo(i).coo.xyz    = Core_Utils.injectData(this.add_coo(i).coo.xyz , coo_o.xyz , idx1, idx2);
                                 if ~isempty(this.add_coo(i).coo.Cxx) && ~isempty(rec_work.add_coo(i).coo.Cxx)
                                     this.add_coo(i).coo.Cxx    = [this.add_coo(i).coo.Cxx(:,:,1 : idx1 - 1); coo_o.Cxx; this.add_coo(i).coo.Cxx(:,:,idx2 + 1 : end)];

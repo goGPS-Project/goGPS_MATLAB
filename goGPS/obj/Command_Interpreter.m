@@ -2636,7 +2636,7 @@ classdef Command_Interpreter < handle
                             fh_list = [fh_list; trg.showRaobZtdValidation()]; %#ok<AGROW>
                             vld_ok  = vld_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS_ZTD.par ')*$'], 'once'))
-                            fh_list = [fh_list; trg.showIgsZtdValidation()]; %#ok<AGROW>
+                            fh_list = [fh_list; trg.showIgsTropoValidation()]; %#ok<AGROW>
                             vld_ok  = vld_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_V_IGS.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showIgsValidation()]; %#ok<AGROW>

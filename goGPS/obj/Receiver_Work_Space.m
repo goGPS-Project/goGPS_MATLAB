@@ -231,7 +231,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.sat.stec = [];
             this.sat.avail_index       = [];
-            this.sat.outliers_ph_by_ph    = [];
+            this.sat.outliers_ph_by_ph   = [];
             this.sat.cycle_slip_ph_by_ph = [];
             this.sat.err_tropo         = [];
             this.sat.err_iono          = [];
@@ -4802,7 +4802,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % Coordinates
                 v_xyz = movmedian(v_xyz, 7); % try to smooth
-                coo = Coordinates.fromXYZ(cumsum(nan2zero(v_xyz .* t_diff)) + this.getMedianPosXYZ);
+                coo = Coordinates.fromXYZ(cumsum(nan2zero(v_xyz .* t_diff)) + this.getMedianPosXYZ, GPS_Time(t));
                 enu = bsxfun(@minus, coo.getENU(), median(coo.getENU()));
                 enu(:,1) = detrend(enu(:,1));
                 enu(:,2) = detrend(enu(:,2));
@@ -8446,7 +8446,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.mp_delay_status = 0; % not applied
             end
         end
-        
+                
         function applyMultiPath(this, ant_mp, sgn)
             % Apply/Remove the MP corrections of goGPS
             %
@@ -9341,25 +9341,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
                 isb = x(x(:,2) == 4,1);
                 
-                res_tmp = zeros(this.length, cc.getMaxNumSat());
-                % LS does not know the max number of satellite stored
-                dsz = max(id_sync) - size(res,1);
-                if dsz == 0
-                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                else
-                    if dsz > 0
-                        id_sync = id_sync(1 : end - dsz);
-                    end
-                    res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                end
-                
-                [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());                
-                obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
-                obs_code(:,1) = sys(:);
-                obs_code(:,2) = 'C';
-                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                id_sync = ls.true_epoch;
+                this.id_sync = id_sync;
+                                       
+                [sys, prn] = cc.getSysPrn(ls.sat_go_id);
+                obs_code = ls.obs_code;
+                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
                 this.sat.res = Residuals();
-                this.sat.res.import(1, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
+                this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
                 
                 this.quality_info.s0_ip = s0;
                 this.quality_info.n_epochs = ls.n_epochs;
@@ -9370,7 +9359,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                 this.quality_info.fixing_ratio = 0;               
                 this.generateNumSatPerEpochU1(ls ,res, id_sync)
-            
             end
         end
         
@@ -9467,25 +9455,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt(ls.true_epoch,1) = dt ./ Core_Utils.V_LIGHT;
             isb = x(x(:,2) == 4,1);
 
-            % LS does not know the max number of satellite stored            
-            res_tmp = zeros(this.length, cc.getMaxNumSat());
-            dsz = max(id_sync) - size(res,1);
-            if dsz == 0
-                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-            else
-                if dsz > 0
-                    id_sync = id_sync(1 : end - dsz);
-                end
-                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-            end
+            id_sync = ls.true_epoch;
+            this.id_sync = id_sync;
             
-            [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
-            obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
-            obs_code(:,1) = sys(:);
-            obs_code(:,2) = 'C';
-            rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+            [sys, prn] = cc.getSysPrn(ls.sat_go_id);
+            obs_code = ls.obs_code;
+            rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
             this.sat.res = Residuals();
-            this.sat.res.import(1, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
+            this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
         end
         
         function s0 = initDynamicPositioning(this)
@@ -10076,12 +10053,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.ztd = zeros(this.time.length(),1, 'single');
                     end
                     
-                    n_sat = size(this.sat.el,2);                    
                     this.id_sync = id_sync;
                                        
                     [sys, prn] = cc.getSysPrn(ls.sat_go_id);
                     obs_code = ls.obs_code;
-                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
                     this.sat.res = Residuals();
                     this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
                     
@@ -10241,8 +10217,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     time_coo = this.out_start_time.getCopy;
                                     time_coo.addSeconds([0 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
                                     sub_coo = struct();
-                                    sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
-                                    sub_coo.time = time_coo.getCopy();
+                                    sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1) + coo, time_coo);
                                     sub_coo.rate = state.coo_rates(i);
                                     if isempty(this.add_coo)
                                         this.add_coo = sub_coo;
@@ -10702,7 +10677,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                                         
-                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
                     this.sat.res = Residuals();
                     this.sat.res.import(3, this.time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
 
@@ -10745,10 +10720,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 time_coo.addSeconds([0 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
                                 time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
                                 sub_coo = struct();
-                                sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo);
-                                sub_coo.time = time_coo.getCopy();
+                                tmp_time = time_coo.getCopy();
+                                tmp_time.addSeconds(sub_coo.rate / 2);
                                 sub_coo.rate = state.coo_rates(i);
-                                sub_coo.time.addSeconds(sub_coo.rate / 2);
+                                sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo, time_coo);
                                 if isempty(this.add_coo)
                                     this.add_coo = sub_coo;
                                 else
@@ -10913,16 +10888,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 tropo = x(x(:,2) == 7,1);
                 amb = x(x(:,2) == 5,1);
                 
-                res_tmp = zeros(this.time.length, n_sat, 'single');
-                res_tmp(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                
-                [sys, prn] = cc.getSysPrn(1:cc.getMaxNumSat());
-                obs_code = char(32 * ones(cc.getMaxNumSat(), 6, 'uint8'));
-                obs_code(:,1) = sys(:);
-                obs_code(:,2) = 'L';
-                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+                id_sync = ls.true_epoch;
+                this.id_sync = id_sync;
+                                       
+                [sys, prn] = cc.getSysPrn(ls.sat_go_id);
+                obs_code = ls.obs_code;
+                rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
                 this.sat.res = Residuals();
-                this.sat.res.import(2, this.time.getEpoch(id_sync), res_tmp, prn, obs_code, rec_coo);
+                this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
             end
             
         end

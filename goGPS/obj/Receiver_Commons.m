@@ -1357,87 +1357,44 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 flag_add_coo = 0;
             end
             
+            log = Core.getLogger();
             fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
                     if size(xyz, 1) > 1 || flag_add_coo > 0
-                        rec(1).log.addMessage('Plotting positions');
-                        
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
-                        fh_list = [fh_list; f]; %#ok<AGROW>
-                        color_order = handle(gca).ColorOrder;
+                        log.addMessage('Plotting positions');
                         
                         if flag_add_coo == 0
-                            xyz = rec.getPosXYZ();
-                            
-                            t = rec.getPositionTime().getMatlabTime();
+                            coo = rec.getPos();
+                            if coo.time.isEmpty
+                                coo.setTime(rec.getPositionTime());
+                            end
                         else
-                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
-                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
-                            if numel(t) < size(xyz,1)
-                                fprintf('%s) There is a problem with add_coo, coordinates are incompatible with their times\n', rec.parent.getMarkerName4Ch);
-                                % This is a problem: times and data should have the same dimension
-                                xyz = xyz(1:numel(t),:);
+                            if ~isempty(rec.add_coo)
+                                coo = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.time);
+                                end
+                            else
+                                log.addWarning(sprintf('No additional coordinates are present into %s', rec.parent.getMarkerName4Ch));
+                                coo = rec.getPos();
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.getPositionTime());
+                                end
                             end
                         end
-                        xyz0 = rec.getMedianPosXYZ();
-                        
-                        fig_name = sprintf('ENU_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
-                        
-                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-                        
-                        if ~flag_one_plot, subplot(3,1,1); end
-                        e = 1e3 * (enu(:,1) - enu0(1));
-                        plot(t, e, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                        ax(3) = gca();
-                        if (t(end) > t(1))
-                            xlim([t(1) t(end)]);
-                        end
-                        yl = minMax(e);
-                        ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
-                        grid on;
-                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [mm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, sqrt(var(enu(:,1)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                        if ~flag_one_plot, subplot(3,1,2); end
-                        n = 1e3 * (enu(:,2) - enu0(2));
-                        plot(t, n, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                        ax(2) = gca();
-                        if (t(end) > t(1))
-                            xlim([t(1) t(end)]);
-                        end
-                        yl = minMax(n);
-                        ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('std %.2f [mm]',sqrt(var(enu(:,2)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
-                        grid on;
-                        if ~flag_one_plot, subplot(3,1,3); end
-                        up = 1e3 * (enu(:,3) - enu0(3));
-                        plot(t, up, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                        ax(1) = gca();
-                        if (t(end) > t(1))
-                            xlim([t(1) t(end)]);
-                        end
-                        yl = minMax(up);
-                        ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('std %.2f [mm]',sqrt(var(enu(:,3)*1e3))),'interpreter', 'none'); h.FontWeight = 'bold';
-                        grid on;
-                        if flag_one_plot
-                            h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
-                        else
-                            linkaxes(ax, 'x');
-                        end                        
-                        grid on;
-                        Core_UI.beautifyFig(f);
-                        Core_UI.addBeautifyMenu(f);
-                        Core_UI.addExportMenu(f);
-                        f.Visible = 'on'; drawnow;
+                        fh = coo.showPositionENU(flag_one_plot);    
+                        figure(fh);
+                        ax = subplot(3,1,1);
+                        ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                        fig_name = sprintf('ENU_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_UI.addExportMenu(fh);
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
                     else
-                        rec(1).log.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
+                        Core.getLogger.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
                     end
                 end
             end
@@ -1451,105 +1408,45 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
+            
+            log = Core.getLogger();
             fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(xyz, 1) > 1 || flag_add_coo > 0                        
-                        rec(1).log.addMessage('Plotting positions');
-                        
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
-                        
-                        fh_list = [fh_list; f]; %#ok<AGROW>
-                        color_order = handle(gca).ColorOrder;
+                    if size(xyz, 1) > 1 || flag_add_coo > 0
+                        log.addMessage('Plotting positions');
                         
                         if flag_add_coo == 0
-                            xyz = rec.getPosXYZ();
-                            
-                            t = rec.getPositionTime().getMatlabTime();
-                        else
-                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
-                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
-                            if numel(t) < size(xyz,1)
-                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
-                                % This is a problem: times and data should have the same dimension
-                                xyz = xyz(1:numel(t),:);
+                            coo = rec.getPos();
+                            if coo.time.isEmpty
+                                coo.setTime(rec.getPositionTime());
                             end
-                        end                        
-                        xyz0 = rec.getMedianPosXYZ();
-                        
-                        fig_name = sprintf('EN_U_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
-
-                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-                        
-                        main_vb = uix.VBox('Parent', f, ...
-                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        
-                        tmp_box1 = uix.VBox('Parent', main_vb, ...
-                            'Padding', 5, ...
-                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        tmp_box2 = uix.VBox('Parent', main_vb, ...
-                            'Padding', 5, ...
-                            'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        main_vb.Heights = [-2 -1];
-                        Core_UI.beautifyFig(f);
-                        f.Visible = 'on';
-                        drawnow
-                        f.Visible = 'off';
-                        ax = axes('Parent', tmp_box1);
-
-                        % Plot parallel
-                        max_e = ceil(max(abs(1e3 * minMax(enu(:,1) - enu0(1))))/5) * 5;
-                        max_n = ceil(max(abs(1e3 * minMax(enu(:,2) - enu0(2))))/5) * 5;
-                        max_r = ceil(sqrt(max_e^2 + max_n^2) / 5) * 5;
-                       
-                        % Plot circles of precision
-                        az_l = 0 : pi/200: 2*pi;
-                        % dashed
-                        id_dashed = serialize(bsxfun(@plus, repmat((0:20:395)',1,5), (1:5)));
-                        az_l(id_dashed) = nan;
-                        decl_s = ((10 : 10 : max_r));
-                        for d = decl_s
-                            x = cos(az_l).*d;
-                            y = sin(az_l).*d;
-                            plot(x,y,'color',[0.6 0.6 0.6], 'LineWidth', 2); hold on;
-                            x = cos(az_l).*(d-5);
-                            y = sin(az_l).*(d-5);
-                            plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
+                        else
+                            if ~isempty(rec.add_coo)
+                                coo = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.time);
+                                end
+                            else
+                                log.addWarning(sprintf('No additional coordinates are present into %s', rec.parent.getMarkerName4Ch));
+                                coo = rec.getPos();
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.getPositionTime());
+                                end
+                            end
                         end
-                        
-                        plot((enu(:,1) - enu0(1)) * 1e3, (enu(:,2) - enu0(2)) * 1e3, 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                        axis equal;
-                        h = ylabel('East [mm]'); h.FontWeight = 'bold';
-                        h = xlabel('North [mm]'); h.FontWeight = 'bold';
-                        ylim(max_r * [-1 1]);
-                        xlim(max_r * [-1 1]);
-                        grid on;
-                        h = title(sprintf('Position Stability %s @%gs\nstd E %.2f mm - N %.2f mm\\fontsize{5} \n', strrep(rec.parent.getMarkerName4Ch, '_', '\_'), round(median(diff(t * 86400), 'omitnan')*1e3) / 1e3, std((enu(:,1) - enu0(1)) * 1e3, 'omitnan'), std((enu(:,2) - enu0(2)) * 1e3, 'omitnan')), 'FontName', 'Open Sans'); 
-                        h.FontWeight = 'bold';
-                        
-                        ax = axes('Parent', tmp_box2);
-                                   
-                        up = 1e3 * (enu(:,3) - enu0(3));
-                        plot(t, up, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                        ax(1) = gca();
-                        if (t(end) > t(1))
-                            xlim([t(1) t(end)]);
-                        end
-                        yl = minMax(up);
-                        ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
-                        h = title(sprintf('Up std %.2f [mm]', std(enu(:,3)*1e3)), 'interpreter', 'none'); h.FontWeight = 'bold';
-                        grid on;
-                        Core_UI.beautifyFig(f);
-                        Core_UI.addBeautifyMenu(f);
-                        Core_UI.addExportMenu(f);
-                        f.Visible = 'on'; drawnow;
+                        fh = coo.showPositionPlanarUp();    
+                        figure(fh);
+                        ax = fh.Children(end).Children(end).Children(1);
+                        ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                        fig_name = sprintf('PUP_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_UI.addExportMenu(fh);
+                        fh_list = [fh_list; fh]; %#ok<AGROW>                         
                     else
-                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
+                        Core.getLogger.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
                     end
                 end
             end
@@ -1557,7 +1454,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
 
         function fh_list = showPositionXYZ(this, flag_one_plot, flag_add_coo)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionXYZ();
+            % SYNTAX this.plotPositionXYZ();            
             if nargin == 1 || isempty(flag_one_plot)
                 flag_one_plot = false;
             end
@@ -1565,68 +1462,47 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 flag_add_coo = 0;
             end
             
+            log = Core.getLogger();
             fh_list = [];
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
                     if size(xyz, 1) > 1 || flag_add_coo > 0
-                        rec(1).log.addMessage('Plotting XYZ positions');
-                        
-                        f = figure('Visible', 'off'); f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
-                        fh_list = [fh_list; f]; %#ok<AGROW>
-                        color_order = handle(gca).ColorOrder;
+                        log.addMessage('Plotting positions');
                         
                         if flag_add_coo == 0
-                            xyz = rec.getPosXYZ();
-                            
-                            t = rec.getPositionTime().getMatlabTime();
+                            coo = rec.getPos();
+                            if coo.time.isEmpty
+                                coo.setTime(rec.getPositionTime());
+                            end
                         else
-                            xyz = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.getXYZ;
-                            t   = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).time.getMatlabTime();
-                            if numel(t) < size(xyz,1)
-                                fprintf('%s) There is a problem with add_coo, they are incompatible with their times\n', rec.parent.getMarkerName4Ch);
-                                % This is a problem: times and data should have the same dimension
-                                xyz = xyz(1:numel(t),:);
+                            if ~isempty(rec.add_coo)
+                                coo = rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.add_coo(min(numel(rec.add_coo), flag_add_coo)).coo.time);
+                                end
+                            else
+                                log.addWarning(sprintf('No additional coordinates are present into %s', rec.parent.getMarkerName4Ch));
+                                coo = rec.getPos();
+                                if coo.time.isEmpty
+                                    coo.setTime(rec.getPositionTime());
+                                end
                             end
                         end
-                        fig_name = sprintf('XYZ_at%gs_%s_%s', round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                        f.UserData = struct('fig_name', fig_name);
-                        
-                        xyz0 = rec.getMedianPosXYZ();
-                        
-                        x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
-                        y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
-                        z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
-                        
-                        if ~flag_one_plot, subplot(3,1,1); end
-                        plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('X [cm]'); h.FontWeight = 'bold';
-                        grid on;
-                        h = title(sprintf('Position stability of the receiver %s @%gs\n std %.2f [cm]', rec(1).parent.marker_name, round(median(diff(t * 86400), 'omitnan') * 1e3) / 1e3, sqrt(var(x))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                        if ~flag_one_plot, subplot(3,1,2); end
-                        plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
-                        grid on;
-                        h = title(sprintf('std %.2f [cm]',sqrt(var(y))),'interpreter', 'none'); h.FontWeight = 'bold';
-                        if ~flag_one_plot, subplot(3,1,3); end
-                        plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
-                        grid on;
-                        if flag_one_plot
-                            h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
-                        end
-                        linkaxes(ax, 'x');                        
-                        Core_UI.beautifyFig(f);
-                        Core_UI.addBeautifyMenu(f);
-                        f.Visible = 'on'; drawnow;
-                        h = title(sprintf('std %.2f [cm]',sqrt(var(z))),'interpreter', 'none'); h.FontWeight = 'bold';
-
+                        fh = coo.showPositionXYZ(flag_one_plot);    
+                        figure(fh);
+                        ax = subplot(3,1,1);
+                        ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                        fig_name = sprintf('XYZ_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_UI.addExportMenu(fh);
+                        fh_list = [fh_list; fh]; %#ok<AGROW>                         
                     else
-                        rec.log.addMessage('Plotting a single point static position is not yet supported');
+                        Core.getLogger.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
                     end
                 end
-            end
+            end            
         end
         
         function fh_list = showPositionSigmas(this, one_plot)
@@ -1851,19 +1727,19 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
                                 
-        function ant_mp = computeMultiPath(this, type, l_max, flag_reg)
+        function ant_mp = computeMultiPath(this, l_max)
             % Get Zernike multi pth coefficients
             %
             % INPUT
-            %   type    can be:
-            %            'pr'   -> Uncombined pseudo-ranges residuals
-            %            'ph'   -> Uncombined carrier-phase residuals
             %   l_max   maximum degree for of the Zernike polynomials
             %
             % SYNTAX
-            %   this.computeMultiPath(type, l_max, flag_mask_reg)
+            %   this.computeMultiPath(l_max)
             
-            ant_mp = this.sat.res.computeMultiPath(type, l_max, flag_reg);
+            if nargin < 2
+                l_max = []; % managed within the function in res
+            end            
+            ant_mp = this.sat.res.computeMultiPath(this.parent.getMarkerName4Ch, l_max);
         end                
         
         function fh_list = showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
@@ -1874,7 +1750,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 this.log.addWarning('ZTD and slants have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
-                fh_list = [fh_list; f]; %#ok<AGROW>
+                fh_list = [fh_list; f];
                 fig_name = sprintf('ZTD_Slant_ANI_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
                 
