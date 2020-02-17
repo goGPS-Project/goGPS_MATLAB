@@ -8466,7 +8466,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sgn = -1;
                 mp_type = this.mp_delay_status * 1;
             end
-            cc = state.getConstellationCollector;
             
             % Get the satellite systems available in the zerniche multipath struct
             sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
@@ -8485,52 +8484,56 @@ classdef Receiver_Work_Space < Receiver_Commons
                     trk_list = fields(ant_mp.(sys_c));
                     
                     for t = 1 : numel(trk_list)
-                        log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
-                        if trk_list{t}(1) == 'L'
-                            %[obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2), trk_list{t}(3));
-                            [obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2));
-                        elseif  trk_list{t}(1) == 'C'
-                            %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
-                            [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
-                        end
-                        % DEBUG obs_tmp = obs;                        
-                        go_id = this.go_id(id_obs);
-
-                        % DEBUG obs = obs_tmp;                        
-                        % DEBUG figure;
-                        for s = 1 : numel(go_id)
-                            el = this.sat.el(:,go_id(s)) / 180 * pi;
-                            id_ko = el < 0 | isnan(obs(:,s));
-                            el(id_ko) = [];
-                            az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
-                            
-                            switch (mp_type)
-                                case 1
-                                    [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
-                                    zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                    mp_corr = zmap2scatter(az, el);
-                                case 2
-                                    [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
-                                    zmap2scatter = griddedInterpolant(double(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])'), double(flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])'), flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                    mp_corr = zmap2scatter(az, el);
-                                case -1 % legacy support (z_par where saved in the structure)
-                                    l = ant_mp.(sys_c).(trk_list{t}).l;
-                                    m = ant_mp.(sys_c).(trk_list{t}).m;
-                                    z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
-                                    mp_corr = Core_Utils.zSinthesys(l, m, az, el, sgn * z_par(:,1));
+                        if trk_list{t}(end) ~= 'U' % uncombined mp mat are the only maps that can be applied here
+                            %log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                            %log.addMessage(log.indent('This is a combination map, skipped here', 9));
+                        else
+                            log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                            if trk_list{t}(1) == 'L'
+                                %[obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2), trk_list{t}(3));
+                                [obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2));
+                            elseif  trk_list{t}(1) == 'C'
+                                %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
+                                [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
                             end
-                            % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
-                            obs(~id_ko, s) = obs(~id_ko, s) - double(mp_corr);
-                        end
-                        % DEBUG 
-                        caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
-                        
-                        if trk_list{t}(1) == 'L'
-                            this.setPhases(obs, wl, id_obs);
-                        elseif  trk_list{t}(1) == 'C'
-                            this.setPseudoRanges(obs, id_obs);
+                            % DEBUG obs_tmp = obs;
+                            go_id = this.go_id(id_obs);
+                            
+                            % DEBUG obs = obs_tmp;
+                            % DEBUG figure;
+                            for s = 1 : numel(go_id)
+                                el = this.sat.el(:,go_id(s)) / 180 * pi;
+                                id_ko = el < 0 | isnan(obs(:,s));
+                                el(id_ko) = [];
+                                az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
+                                
+                                switch (mp_type)
+                                    case 1
+                                        [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                        mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
+                                        zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                        mp_corr = zmap2scatter(az, el);
+                                    case 2
+                                        [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                        mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
+                                        zmap2scatter = griddedInterpolant(double(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])'), double(flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])'), flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                        mp_corr = zmap2scatter(az, el);
+                                    case -1 % legacy support (z_par where saved in the structure)
+                                        l = ant_mp.(sys_c).(trk_list{t}).l;
+                                        m = ant_mp.(sys_c).(trk_list{t}).m;
+                                        z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
+                                        mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par(:,1));
+                                end
+                                % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
+                                obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);
+                            end
+                            % DEBUG caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
+                            
+                            if trk_list{t}(1) == 'L'
+                                this.setPhases(obs, wl, id_obs);
+                            elseif  trk_list{t}(1) == 'C'
+                                this.setPseudoRanges(obs, id_obs);
+                            end
                         end
                     end
                 end

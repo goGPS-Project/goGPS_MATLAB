@@ -249,7 +249,10 @@ classdef LS_Manipulator < Exportable
                                 end
                             end
                         end
-                        
+                        if this.state.isIonoFree
+                            obs_set.applyIFMultiPath(rec.parent.ant_mp);
+                        end
+
                         if flag_amb_fix && phase_present
                             [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
                             f_vec = GPS_SS.F_VEC;

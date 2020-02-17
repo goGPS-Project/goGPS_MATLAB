@@ -122,6 +122,83 @@ classdef Observation_Set < handle
             this.cycle_slip = [this.cycle_slip cycle_slip2];
         end
         
+        function applyIFMultiPath(this, ant_mp, sgn)
+            if nargin < 3 || isempty(sgn)
+                sgn = +1;
+            end
+            % Get type of multipath to apply
+            mp_type = Core.getCurrentSettings.flag_rec_mp;
+            
+            if mp_type > 0 && ~isempty(ant_mp)
+                flag_applied = false;
+                % Get the satellite systems available in the zerniche multipath struct
+                sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
+                
+                log = Core.getLogger;
+                cc = Core.getConstellationCollector;
+                
+                if isempty(this.obs)
+                    log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
+                else
+                    u_obs_num = cc.obsCode2num(this.obs_code, ones(size(this.obs_code,1),1));
+                    if sgn > 0
+                        log.addMarkedMessage(sprintf('Applying multipath mitigation on the iono-free combination'));
+                    else
+                        log.addMarkedMessage(sprintf('Removing multipath mitigation on the iono-free combination'));
+                    end
+                    for sys_c = sys_c_list
+                        trk_list = fields(ant_mp.(sys_c));
+                        
+                        for t = 1 : numel(trk_list)
+                            if trk_list{t}(end) ~= 'I' % uncombined mp mat are the only maps that can be applied here
+                                % log.addMessage(log.indent('This is not a iono-free map, skipped here'));
+                            else
+                                % Get all the observations with the same tracking code
+                                trk_num = cc.obsCode2num([sys_c trk_list{t}], 1);
+                                id_sat = find(u_obs_num == trk_num);
+                                if any(id_sat)
+                                    log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                                    
+                                    go_id = this.go_id(id_sat);
+                                    obs = zero2nan(this.obs(:, id_sat));
+                                    
+                                    % DEBUG obs_tmp = obs;
+                                    % DEBUG figure;
+                                    for s = 1 : numel(go_id)
+                                        el = this.el(:,id_sat(s)) / 180 * pi;
+                                        id_ko = el < 0 | isnan(obs(:,s));
+                                        el(id_ko) = [];
+                                        az = this.az(~id_ko, id_sat(s)) / 180 * pi;
+                                        
+                                        switch (mp_type)
+                                            case 1
+                                                [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
+                                                zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                                mp_corr = zmap2scatter(az, el);
+                                            case 2
+                                                [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
+                                                zmap2scatter = griddedInterpolant(double(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])'), double(flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])'), flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                                mp_corr = zmap2scatter(az, el);
+                                        end
+                                        % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
+                                        obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);
+                                    end
+                                    % DEBUG caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
+                                    flag_applied = true;
+                                    this.obs(:, id_sat) = nan2zero(obs);
+                                end
+                            end
+                        end
+                    end
+                    if flag_applied
+                        log.addStatusOk('Multipath mitigation completed');
+                    end
+                end
+            end
+        end
+        
         function remUnderCutOff(this, cut_off)
             % Remove observations under the selcted cut off
             %
