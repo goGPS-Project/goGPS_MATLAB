@@ -1683,7 +1683,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             iono_opt_ppp_h = uix.HBox('Parent', iono_opt_ppp,...
                 'Spacing', 20, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_h, 'Estimate', 'flag_iono_ppp', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_h, 'Estimate', 'flag_iono_net', @this.onCheckBoxChange,Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             
             iono_opt_ppp_h.Widths = [ -1];
