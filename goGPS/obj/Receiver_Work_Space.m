@@ -10412,11 +10412,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if state.flag_rec_trkbias_ppp
                     param_selection =  [param_selection;
                     LS_Manipulator_new.PAR_REC_EB;];
+                    if state.tparam_rec_trkbias_ppp > 1 && state.rate_rec_trkbias_net > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_trkbias_net );
+                    end
+
                 end
                 
                 if state.flag_rec_ifbias_ppp
                     param_selection =  [param_selection;
-                    LS_Manipulator_new.PAR_REC_EBFR;];
+                        LS_Manipulator_new.PAR_REC_EBFR;];
+                    if state.tparam_rec_ifbias_ppp > 1 && state.rate_rec_ifbias_net > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_ifbias_net );
+                    end
                 end
                 
                 
@@ -10430,18 +10437,39 @@ classdef Receiver_Work_Space < Receiver_Commons
                    ls.absValRegularization(ls.PAR_TROPO, (state.areg_ztd_ppp)^2);
                 end
                 if state.areg_grad_ppp > 0
-                   ls.absValRegularization(ls.PAR_TROPO_N, (state.areg_grad_ppp)^2);
-                   ls.absValRegularization(ls.PAR_TROPO_E, (state.areg_grad_ppp)^2);
+                    ls.absValRegularization(ls.PAR_TROPO_N, (state.areg_grad_ppp)^2);
+                    ls.absValRegularization(ls.PAR_TROPO_E, (state.areg_grad_ppp)^2);
+                end
+                if state.areg_rec_clock_ppp > 0
+                    if  state.flag_phpr_rec_clock_ppp
+                        ls.absValRegularization(ls.PAR_REC_CLK_PH, (state.areg_rec_clock_ppp)^2);
+                        ls.absValRegularization(ls.PAR_REC_CLK_PR, (state.areg_rec_clock_ppp)^2);
+                    else
+                        ls.absValRegularization(ls.PAR_REC_CLK, (state.areg_rec_clock_ppp)^2);
+                    end
+                end
+                if state.areg_rec_ifbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EBFR, (state.areg_rec_ifbias_ppp)^2);
+                end
+                if state.areg_rec_trkbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EB, (state.areg_rec_trkbias_ppp)^2);
                 end
                 
                 if state.dreg_ztd_ppp > 0
-                   ls.timeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2/ 3600);
+                    ls.timeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2/ 3600);
                 end
                 if state.dreg_grad_ppp > 0
-                   ls.timeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2/ 3600);
-                   ls.timeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2/ 3600);
+                    ls.timeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2/ 3600);
+                    ls.timeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2/ 3600);
                 end
-
+                
+                if state.dreg_rec_ifbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EBFR, (state.dreg_rec_ifbias_ppp)^2/ 3600);
+                end
+                if state.dreg_rec_trkbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EB, (state.dreg_rec_trkbias_ppp)^2/ 3600);
+                end
+                
                 % Solve the LS problem
                 ls.solve();
                     

@@ -92,6 +92,8 @@ classdef LS_Parametrization < handle
         rec_eb =     [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
         rec_ppb =    [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
         rec_eb_lin = [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
+        rec_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
+
 
         
         sat_eb =   [LS_Parametrization.CONST      LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
@@ -127,6 +129,8 @@ classdef LS_Parametrization < handle
         rec_z_opt;
         rec_eb_opt = struct('rule',1);
         rec_ppb_opt;
+        rec_ebfr_opt = struct('spline_rate',3600);
+
         sat_eb_opt = struct('rule',1);
         sat_ppb_opt;
         sat_ebfr_opt = struct('rule',1,'spline_rate',3600);
@@ -165,6 +169,73 @@ classdef LS_Parametrization < handle
             this.rec_ppb_opt.rule = {['PHASE:' num2str(LS_Parametrization.ALL_FREQ)],['PSRANGE:' num2str(LS_Parametrization.NONE)]};
             this.rec_eb_opt_lin.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
         end
+        
+        function setRate(this, par_class, rate)
+               % set the rate for the paramter
+            % class p
+            %
+            % SYNTAX:
+            %    [parametriz, option] = setRate(this, par_class, rate)
+            switch par_class
+                case LS_Manipulator_new.PAR_REC_X
+                    this.rec_x_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_Y
+                    this.rec_y_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_Z
+                    this.rec_z_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_X
+                    this.sat_x_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_Y
+                    this.sat_y_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_Z
+                    this.sat_z_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_EB
+                    this.rec_eb_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_EB_LIN
+                    this.rec_eb_lin_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_EB
+                    this.sat_eb_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_AMB
+                    this.amb_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_CLK
+                    this.rec_clk_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_CLK
+                    this.sat_clk_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_CLK_PR
+                    this.rec_clk_pr_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_CLK_PR
+                    this.sat_clk_pr_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_CLK_PH
+                    this.rec_clk_ph_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_CLK_PH
+                    this.sat_clk_ph_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO
+                    this.tropo_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO_N
+                    this.tropo_n_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO_S
+                    this.tropo_s_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO_E
+                    this.tropo_e_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO_V
+                    this.tropo_v_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_TROPO_Z
+                    this.tropo_z_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_IONO
+                    this.iono_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_ANT_MP
+                    this.ant_mp_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_PPB
+                    this.rec_ppb_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_PPB
+                    this.sat_ppb_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_REC_EBFR
+                    this.rec_ebfr_opt.spline_rate = rate;
+                case LS_Manipulator_new.PAR_SAT_EBFR
+                    this.sat_ebfr_opt.spline_rate = rate;
+            end
+        end
+        
        
         function [parametriz, option] = getParametrization(this, par_class, obs_code)
             % get the parametrization and the options for the paramter
@@ -189,7 +260,7 @@ classdef LS_Parametrization < handle
                     parametriz = this.sat_y;
                     option = this.sat_y_opt;
                 case LS_Manipulator_new.PAR_SAT_Z
-                    parametriz = this.rec_z;
+                    parametriz = this.sat_z;
                     option = this.sat_z_opt;
                 case LS_Manipulator_new.PAR_REC_EB
                     parametriz = this.rec_eb;

@@ -1598,25 +1598,25 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertText(tab_rec_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_ifbias_ppp', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_itbias_ppp', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_trkbias_ppp', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             
             Core_UI.insertText(tab_rec_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_ifbias_ppp', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_itbias_ppp', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_trkbias_ppp', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             
             Core_UI.insertText(tab_rec_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_itbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_trkbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             
             Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_itbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_trkbias_ppp', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             
             
@@ -1876,7 +1876,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             state = Core.getCurrentSettings;
             
             %%% IONO
-            iono_options = Core_UI.insertPanelLight2(tab, 'Ionosphere options');
+            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
@@ -1884,7 +1884,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertEmpty(tab);
             
             %%% TROPO
-            tropo_options = Core_UI.insertPanelLight2(tab, 'Tropospheric options');
+            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
