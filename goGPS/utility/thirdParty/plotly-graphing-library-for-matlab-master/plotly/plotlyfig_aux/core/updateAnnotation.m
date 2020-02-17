@@ -136,7 +136,14 @@ obj.layout.annotations{anIndex}.font.size = text_data.FontSize;
 switch text_data.FontWeight
     case {'bold','demi'}
         %-bold text-%
-        obj.layout.annotations{anIndex}.text = ['<b>' obj.layout.annotations{anIndex}.text '</b>'];
+        if iscell(obj.layout.annotations{anIndex}.text)
+            for i = 1 : (numel(obj.layout.annotations{anIndex}.text) - 1)
+                obj.layout.annotations{anIndex}.text{i} = [obj.layout.annotations{anIndex}.text{i} ' - '];
+            end
+            obj.layout.annotations{anIndex}.text = ['<b>' cell2mat(obj.layout.annotations{anIndex}.text') '</b>'];
+        else
+            obj.layout.annotations{anIndex}.text = ['<b>' obj.layout.annotations{anIndex}.text '</b>'];
+        end        
     otherwise
 end
 

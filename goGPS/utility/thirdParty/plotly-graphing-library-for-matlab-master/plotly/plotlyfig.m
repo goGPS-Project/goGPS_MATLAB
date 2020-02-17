@@ -632,6 +632,12 @@ classdef plotlyfig < handle
         
         %----UPDATE PLOT OPTIONS----%
         function obj = updatePlotOptions(obj,src,event)
+            if iscell(obj.PlotOptions.FileName)
+                for i = 1 : numel(obj.PlotOptions.FileName)
+                    obj.PlotOptions.FileName{i} = [obj.PlotOptions.FileName{i} ' - '];
+                end
+                obj.PlotOptions.FileName = cell2mat(obj.PlotOptions.FileName');
+            end
             set(obj.State.Figure.Handle, 'Name', obj.PlotOptions.FileName, 'Visible', obj.PlotOptions.Visible);
         end
         
