@@ -1033,7 +1033,7 @@ classdef GPS_Time < Exportable & handle
                 is_ext = false;
             end
             
-            nominal_time_zero = floor(this.first.getMatlabTime() * 24)/24;
+            nominal_time_zero = round(this.first.getMatlabTime() * 2)/2; % round at the closest time
             rinex_time = this.getRefTime(nominal_time_zero);
             nominal_time = round(rinex_time / rate) * rate;
                 
@@ -1053,8 +1053,7 @@ classdef GPS_Time < Exportable & handle
                 nominal_time = GPS_Time(nominal_time_zero, nominal_time, this.isGPS(), 2);
                 nominal_time.toUnixTime;
             end
-
-        end
+        end       
         
         function [mat_time] = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
