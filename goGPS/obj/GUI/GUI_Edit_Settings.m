@@ -1775,22 +1775,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertText(tab_rec_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_ifbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_itbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_rec_trkbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             Core_UI.insertText(tab_rec_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_rec_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_ifbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_itbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'rate_rec_trkbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             Core_UI.insertText(tab_rec_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'areg_rec_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             Core_UI.insertText(tab_rec_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
 
             tab_rec_bias.Widths = [150 150 150 150 150 ];
             tab_rec_bias.Heights = [10 25 25 25];
@@ -1832,22 +1832,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertText(tab_sat_bias, 'Time Parametrization', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_sat_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_sat_ifbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_sat_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_sat_itbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_sat_bias, '', state.TIME_PARAMETRIZATION_LABEL, 'tparam_sat_trkbias_net', @this.onPopUpChange,[0 -1],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             Core_UI.insertText(tab_sat_bias, 'Rate [s]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             Core_UI.insertText(tab_sat_bias, '', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'rate_sat_ifbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'rate_sat_itbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'rate_sat_trkbias_net', '', @this.onEditChange, [0 -1  0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             Core_UI.insertText(tab_sat_bias, 'Abs. reg. [m]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'areg_sat_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             Core_UI.insertText(tab_sat_bias, 'Diff. reg. [m/sqrt(h)]', 8, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_clock_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_ifbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_itbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_sat_bias, '', 'dreg_sat_trkbias_net', '', @this.onEditChange, [0 -1 0 0],Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
             
             tab_sat_bias.Widths = [150 150 150 150 150 ];
             tab_sat_bias.Heights = [10 25 25 25];

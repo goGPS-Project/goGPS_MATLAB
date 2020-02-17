@@ -1966,10 +1966,10 @@ classdef LS_Manipulator_new < handle
                      this.coo_vcv = result([idx_x; idx_y; idx_z] ,2 : end);
                 else
                    % [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
-                   F = factorization_svd(N);
-                   x_reduced = F \ B;
+%                    F = factorization_svd(N);
+%                    x_reduced = F \ B;
 
-                 %    x_reduced = N\B;
+                     x_reduced = N\B;
                 end
             end
             % ------- substitute back

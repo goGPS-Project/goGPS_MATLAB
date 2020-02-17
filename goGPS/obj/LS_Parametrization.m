@@ -236,6 +236,72 @@ classdef LS_Parametrization < handle
             end
         end
         
+          function setTimeParametrization(this, par_class, time_parm)
+               % set the rate for the paramter
+            % class p
+            %
+            % SYNTAX:
+            %    [parametriz, option] = setRate(this, par_class, rate)
+            switch par_class
+                case LS_Manipulator_new.PAR_REC_X
+                    this.rec_x(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_Y
+                    this.rec_y(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_Z
+                    this.rec_z(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_X
+                    this.sat_x(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_Y
+                    this.sat_y(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_Z
+                    this.sat_z(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_EB
+                    this.rec_eb(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_EB_LIN
+                    this.rec_eb_lin(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_EB
+                    this.sat_eb(1) = time_parm;
+                case LS_Manipulator_new.PAR_AMB
+                    this.amb(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_CLK
+                    this.rec_clk(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_CLK
+                    this.sat_clk(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_CLK_PR
+                    this.rec_clk_pr(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_CLK_PR
+                    this.sat_clk_pr(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_CLK_PH
+                    this.rec_clk_ph(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_CLK_PH
+                    this.sat_clk_ph(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO
+                    this.tropo(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO_N
+                    this.tropo_n(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO_S
+                    this.tropo_s(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO_E
+                    this.tropo_e(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO_V
+                    this.tropo_v(1) = time_parm;
+                case LS_Manipulator_new.PAR_TROPO_Z
+                    this.tropo_z(1) = time_parm;
+                case LS_Manipulator_new.PAR_IONO
+                    this.iono(1) = time_parm;
+                case LS_Manipulator_new.PAR_ANT_MP
+                    this.ant_mp(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_PPB
+                    this.rec_ppb(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_PPB
+                    this.sat_ppb(1) = time_parm;
+                case LS_Manipulator_new.PAR_REC_EBFR
+                    this.rec_ebfr(1) = time_parm;
+                case LS_Manipulator_new.PAR_SAT_EBFR
+                    this.sat_ebfr(1) = time_parm;
+            end
+        end
+        
        
         function [parametriz, option] = getParametrization(this, par_class, obs_code)
             % get the parametrization and the options for the paramter
