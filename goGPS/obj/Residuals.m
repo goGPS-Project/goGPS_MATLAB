@@ -469,7 +469,7 @@ classdef Residuals < Exportable
             if this.isEmpty
                 log.addWarning('Residuals have not been computed');
             else
-                flag_debug = true;
+                flag_debug = false;
                 grid_step = 0.5;
                 if nargin < 3 || isempty(l_max)
                     l_max = [43 43 43];
@@ -513,12 +513,12 @@ classdef Residuals < Exportable
                     if ~any(ids)
                         log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
                     else
-                        obs_id_num = cc.obsCode2num(this.obs_code(ids,1:3), zeros(size(ids, 1), 1)); % get all the data of the same frequency - all the satellites
+                        obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1)); % get all the data of the same frequency - all the satellites
                         uobs_id = unique(obs_id_num);
                         for  t = 1 : numel(uobs_id)
                             id = ids(obs_id_num == uobs_id(t)); % tracking for the specific obs_code
-                            trk_code = this.obs_code(id(1),:);
-                            trk_code = strtrim(trk_code(2:3));
+                            trk_code = this.obs_code(id(1),2:end);
+                            %trk_code = strtrim(trk_code(2:3));
                             
                             data_found = false;
                             
