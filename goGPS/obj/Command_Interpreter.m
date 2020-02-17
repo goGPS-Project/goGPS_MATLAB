@@ -1891,13 +1891,13 @@ classdef Command_Interpreter < handle
                         fr_id = str2num(tok{t}(fr_id+1));
                     end
                 end
-                 try
-                    if flag_uncombined
-                        log.addWarning('Uncombined engine enabled');
-                        net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
-                    else
-                        net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
-                    end
+                try
+                    %if flag_uncombined
+                    log.addMarkedMessage('Uncombined engine enabled');
+                    net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
+                    %else % the old network is deprecate
+                    %    net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
+                    %end
                 catch ex
                     log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
                     Core_Utils.printEx(ex);
