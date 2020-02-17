@@ -1302,11 +1302,15 @@ classdef Core_Utils < handle
             % SYNTAX:
             %  Core_Utils.printEx(ex)
             
+            msg = sprintf(['goGPS encountered a problem, please open an issue on GitHub posting\n' ...
+                    ' the following lines together with a copy of the full log' ]);
+            fprintf('\n---------------------------------------------------------------------\n %s', msg);
             fprintf('\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', ex.message);
+            
             for i=1:numel(ex.stack)
                 fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
             end
-%             keyboard
+            % keyboard
         end
         
         function exportCurFig(out_path, mode)
