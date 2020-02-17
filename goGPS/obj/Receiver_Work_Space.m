@@ -8898,17 +8898,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX:
             % [is_pr_jumping, is_ph_jumping] = coarseDtPreEstimation(this)
-            [pr, wl, id_ph] = this.getPseudoRanges();
-            [ph, wl, id_ph] = this.getPhases();
-
-            
-            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
-            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
-            
-            synt_pr = this.getPseudoRanges;
-            synt_ph = this.getSyntPhases;
-            
-            dt = pr 
+            this.updateAllAvailIndex();
+            [pr] = this.getPseudoRanges();
+            [ph] = this.getPhases();
+            [~, ~, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [~, ~, is_pr_jumping] = Core_PP.remDtJumps(pr);
+            synt_pr = this.getSyntPrObs;
+            dt = median(pr - synt_pr,2,'omitnan');
+            this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
+            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            [pr] = this.getPseudoRanges();
+            synt_pr = this.getSyntPrObs;
+            dt = median(pr - synt_pr,2,'omitnan');
+            this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
+            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
         end
         
         function s0 = initPositioning(this, sys_c)
@@ -9963,9 +9966,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     pos_idx(idx_aft) = max(pos_idx) + 1;
                 end
-                order_tropo = state.spline_tropo_order;
-                order_tropo_g = state.spline_tropo_gradient_order;
-                tropo_rate = [state.spline_rate_tropo*double(order_tropo>0)  state.spline_rate_tropo_gradient*double(order_tropo_g>0)];
+                if state.tparam_ztd_ppp == 2
+                    order_tropo = 1;
+                elseif state.tparam_ztd_ppp == 3
+                    order_tropo = 3;
+                else
+                    order_tropo = 0;
+                end
+                if state.tparam_grad_ppp == 2
+                    order_tropo_g = 1;
+                elseif state.tparam_grad_ppp == 3
+                    order_tropo_g = 3;
+                else
+                    order_tropo_g = 0;
+                end
+                tropo_rate = [state.rate_ztd_ppp*double(order_tropo>0)  state.rate_grad_ppp*double(order_tropo_g>0)];
                 id_obs = ls.setUpPPP(this, sys_list, id_sync, [], false, pos_idx, tropo_rate);
                 if isempty(id_obs)
                     log.addWarning('No processable epochs found, skipping PPP');
@@ -9974,7 +9989,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
                     ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600* rate); % really small regularization
-                    if state.flag_tropo
+                    if state.flag_ztd_ppp
                         ls.setMeanRegularization(ls.PAR_TROPO, state.std_tropo_abs^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo == 0
                             ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
@@ -9982,7 +9997,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * tropo_rate(1) );% state.std_tropo / 3600 * rate  );
                         end
                     end
-                    if state.flag_tropo_gradient
+                    if state.flag_grad_ppp
                         ls.setMeanRegularization(ls.PAR_TROPO_N, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
                         ls.setMeanRegularization(ls.PAR_TROPO_E, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo_g == 0
@@ -10132,7 +10147,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         else
                             this.xyz = this.xyz + coo(2,:);
                         end
-                        if state.flag_tropo
+                        if state.flag_ztd_ppp
                             zwd = this.getZwd();
                             zwd_tmp = zeros(size(this.zwd));
                             zwd_tmp(this.id_sync) = zwd;
@@ -10167,7 +10182,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             this.sat.amb = amb;
                         end
-                        if state.flag_tropo_gradient
+                        if state.flag_grad_ppp
                             if isempty(this.tgn) || all(isnan(this.tgn))
                                 this.tgn = nan(this.time.length,1);
                             end
@@ -10215,7 +10230,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     
                                     ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600 * rate); % really small regularization
                                     ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
-                                    if state.flag_tropo_gradient
+                                    if state.flag_grad_ppp
                                         ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
                                         ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                                     end
@@ -10235,7 +10250,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         this.add_coo(end+1) = sub_coo;
                                     end
                                 end
-                                
+                                this.time
                             end
                         end
                         this.smoothAndApplyDt(0, false, false, 2);
@@ -10298,7 +10313,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls = LS_Manipulator_new();
                 parametrization = LS_Parametrization();
                 [out_lim, int_lim] = state.getSessionLimits();
-
+                
+                % time parametrization coordinates
+                parametrization.rec_x(1) = state.tparam_coo_ppp;
+                parametrization.rec_y(1) = state.tparam_coo_ppp;
+                parametrization.rec_z(1) = state.tparam_coo_ppp;
+                
                 % Estimate different set of coordinates for the left and write buffer
                 if state.isSepCooAtBoundaries
                     steps = out_lim.getEpoch(1);
@@ -10314,50 +10334,140 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Estimate different Antenna Phase Center for each frequency/constellation
-                if ~state.flag_separate_apc
-                    parametrization.rec_x(4) = parametrization.ALL_FREQ;
-                    parametrization.rec_y(4) = parametrization.ALL_FREQ;
-                    parametrization.rec_z(4) = parametrization.ALL_FREQ;
-                end 
-                
+              
                 % Use spline for estimating ZTD
-                if  state.spline_tropo_order > 0
-                    if state.spline_tropo_order == 1
-                        parametrization.tropo(1) = parametrization.SPLINE_LIN;
-                    end
-                    if state.spline_tropo_order == 3
-                        parametrization.tropo(1) = parametrization.SPLINE_CUB;
-                    end
-                    parametrization.tropo_opt.spline_rate = state.spline_rate_tropo;
+                if state.tparam_ztd_ppp == 1
+                    parametrization.tropo(1) = parametrization.EP_WISE;
+                elseif state.tparam_ztd_ppp == 2
+                    parametrization.tropo(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
+                elseif state.tparam_ztd_ppp == 3
+                    parametrization.tropo(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
                 end
+                
+            
+                
                                 
                 % Use spline for estimating ZTD gradients
-                if  state.spline_tropo_gradient_order > 0
-                    if state.spline_tropo_gradient_order == 1
-                        parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
-                        parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
-                        
-                    end
-                    if state.spline_tropo_gradient_order == 3
-                        parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
-                        parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
-                        
-                    end
-                    parametrization.tropo_n_opt.spline_rate = state.spline_rate_tropo_gradient;
-                    parametrization.tropo_e_opt.spline_rate = state.spline_rate_tropo_gradient;
+                if state.tparam_grad_ppp == 1
+                    parametrization.tropo_n(1) = parametrization.EP_WISE;
+                    parametrization.tropo_e(1) = parametrization.EP_WISE;
+                elseif state.tparam_grad_ppp == 2
+                    parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                elseif state.tparam_grad_ppp == 3
+                    parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                end
+                   param_selection = [LS_Manipulator_new.PAR_AMB;];
+                if state.flag_coo_ppp
+                    param_selection = [param_selection;
+                        LS_Manipulator_new.PAR_REC_X;
+                        LS_Manipulator_new.PAR_REC_Y;
+                        LS_Manipulator_new.PAR_REC_Z;
+                        ];
                 end
                 
+                if state.flag_iono_ppp
+                     param_selection =  [param_selection;
+                        LS_Manipulator_new.PAR_IONO;
+                        ];
+                end
+                if state.flag_rec_clock_ppp
+                    if state.flag_phpr_rec_clock_ppp
+                        param_selection =  [param_selection;
+                            LS_Manipulator_new.PAR_REC_CLK_PR;
+                            LS_Manipulator_new.PAR_REC_CLK_PH;
+                            ];
+                    else
+                         param_selection =  [param_selection;
+                            LS_Manipulator_new.PAR_REC_CLK;
+                            LS_Manipulator_new.PAR_REC_PPB;
+                            ];
+                    end
+                end
+                
+                if state.flag_ztd_ppp
+                    param_selection =  [param_selection;
+                    LS_Manipulator_new.PAR_TROPO;];
+                end
+                
+                if state.flag_grad_ppp
+                    param_selection =  [param_selection;
+                    LS_Manipulator_new.PAR_TROPO_E;
+                    LS_Manipulator_new.PAR_TROPO_N;];
+                end
+                
+                if state.flag_rec_trkbias_ppp
+                    param_selection =  [param_selection;
+                    LS_Manipulator_new.PAR_REC_EB;];
+                parametrization.setTimeParametrization(LS_Manipulator_new.PAR_REC_EB, state.tparam_rec_trkbias_ppp );
+                    if state.tparam_rec_trkbias_ppp > 1 && state.rate_rec_trkbias_ppp > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_trkbias_ppp );
+                    end
+
+                end
+                
+                if state.flag_rec_ifbias_ppp
+                    param_selection =  [param_selection;
+                        LS_Manipulator_new.PAR_REC_EBFR;];
+                    parametrization.setTimeParametrization(LS_Manipulator_new.PAR_REC_EBFR, state.tparam_rec_ifbias_ppp );
+                    if state.tparam_rec_ifbias_ppp > 1 && state.rate_rec_ifbias_ppp > 0
+                        parametrization.setRate(LS_Manipulator_new.PAR_REC_EB, state.rate_rec_ifbias_ppp );
+                    end
+                end
+                
+                
+                
+                
                 % Prepare the LS object
-                ls.setUpPPP(this, sys_list, this.getIdSync, [], parametrization)
+                ls.setUpPPP(this, sys_list, this.getIdSync, param_selection, parametrization)
                 %ls.setUpIonoFreePPP(this, this.getIdSync);
                 % Set up time dependent regularizations for the tropospheric parameters
-                if state.flag_tropo
-                 ls.timeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600);
+                if state.areg_ztd_ppp > 0
+                   ls.absValRegularization(ls.PAR_TROPO, (state.areg_ztd_ppp)^2);
                 end
-                if state.flag_tropo_gradient
-                 ls.timeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600);
-                 ls.timeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600);
+                if state.areg_grad_ppp > 0
+                    ls.absValRegularization(ls.PAR_TROPO_N, (state.areg_grad_ppp)^2);
+                    ls.absValRegularization(ls.PAR_TROPO_E, (state.areg_grad_ppp)^2);
                 end
+                if state.areg_rec_clock_ppp > 0
+                    if  state.flag_phpr_rec_clock_ppp
+                        ls.absValRegularization(ls.PAR_REC_CLK_PH, (state.areg_rec_clock_ppp)^2);
+                        ls.absValRegularization(ls.PAR_REC_CLK_PR, (state.areg_rec_clock_ppp)^2);
+                    else
+                        ls.absValRegularization(ls.PAR_REC_CLK, (state.areg_rec_clock_ppp)^2);
+                    end
+                end
+                if state.areg_rec_ifbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EBFR, (state.areg_rec_ifbias_ppp)^2);
+                end
+                if state.areg_rec_trkbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EB, (state.areg_rec_trkbias_ppp)^2);
+                end
+                
+                if state.dreg_ztd_ppp > 0
+                    ls.timeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2/ 3600);
+                end
+                if state.dreg_grad_ppp > 0
+                    ls.timeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2/ 3600);
+                    ls.timeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2/ 3600);
+                end
+                
+                if state.dreg_rec_ifbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EBFR, (state.dreg_rec_ifbias_ppp)^2/ 3600);
+                end
+                if state.dreg_rec_trkbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EB, (state.dreg_rec_trkbias_ppp)^2/ 3600);
+                end
+                
                 % Solve the LS problem
                 ls.solve();
                     
@@ -10431,7 +10541,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         idx_trpz = find(ls.class_par == ls.PAR_TROPO_Z);
                         tropoz =  ls.x(idx_trpz);
                         n_pol = Main_Settings.getNumZerTropoCoef-3;
-                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, state.spline_rate_tropo_gradient)/state.spline_rate_tropo_gradient;
+                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, state.rate_grad_ppp)/state.rate_grad_ppp;
                         spline_base = Core_Utils.spline(tropo_dt,3);
                         zer_tropo = zeros(size(spline_base,1),n_pol);
                         n_coeff_o = length(idx_trpz) / n_pol;
@@ -10439,8 +10549,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                             idx_tmp = (i-1)*n_coeff_o + (1 : n_coeff_o);
                             idx_trpzt = idx_trpz(idx_tmp);
                             tropozt = tropoz(idx_tmp);
-                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpzt).minimum)/state.spline_rate_tropo_gradient);
-                            [~,tropo_idx] = ismember(tropo_idx*state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpzt).getNominalTime.getRefTime(ls.getTimePar(idx_trpzt).minimum.getMatlabTime));
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpzt).minimum)/state.rate_grad_ppp);
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpzt).getNominalTime.getRefTime(ls.getTimePar(idx_trpzt).minimum.getMatlabTime));
                             valid_ep = tropo_idx ~=0;
                             zer_tropo(valid_ep,i) = sum(spline_base .* tropozt(repmat(tropo_idx(valid_ep), 1, 3 + 1) + repmat((0 : 3), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
@@ -10448,24 +10558,29 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     % Push tropo from LS object to rec
-                    if state.flag_tropo
+                    if state.flag_ztd_ppp
                         zwd = this.getZwd();
                         zwd_tmp = zeros(size(this.zwd));
                         zwd_tmp(this.id_sync) = zwd;
-                        if state.spline_tropo_order == 0
+                        if state.tparam_ztd_ppp == 1
                             idx_trp = ls.class_par == ls.PAR_TROPO;
                             [~,valid_ep] = ismember(ls.getTimePar(idx_trp).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                             tropo =  ls.x(idx_trp);
                         else
                             idx_trp = ls.class_par == ls.PAR_TROPO;
                             tropo =  ls.x(idx_trp);
-                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trp).minimum, state.spline_rate_tropo)/ state.spline_rate_tropo;
-                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp).minimum)/state.spline_rate_tropo);
-                            [~,tropo_idx] = ismember(tropo_idx*state.spline_rate_tropo, ls.getTimePar(idx_trp).getNominalTime.getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
+                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trp).minimum, state.rate_ztd_ppp)/ state.rate_ztd_ppp;
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trp).minimum)/state.rate_ztd_ppp);
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_ztd_ppp, ls.getTimePar(idx_trp).getNominalTime.getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
                             valid_ep = tropo_idx ~=0;
-                            spline_base = Core_Utils.spline(tropo_dt,state.spline_tropo_order);
+                            if state.tparam_ztd_ppp == 2
+                            spline_order = 1;
+                            elseif state.tparam_ztd_ppp == 3
+                                spline_order = 3;
+                            end
+                            spline_base = Core_Utils.spline(tropo_dt,spline_order );
                             
-                            tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, state.spline_tropo_order + 1) + repmat((0 : state.spline_tropo_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
                         if zernike_temp
                             this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo ; %+ zer_tropo(:,1)
@@ -10493,11 +10608,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     % Push tropo gradients from LS object to rec
-                    if state.flag_tropo_gradient
+                    if state.flag_grad_ppp
                         if isempty(this.tgn) || all(isnan(this.tgn))
                             this.tgn = nan(this.time.length,1);
                         end
-                        if state.spline_tropo_gradient_order == 0
+                        if state.tparam_grad_ppp == 1
                             idx_trpe = ls.class_par == ls.PAR_TROPO_E;
                             idx_trpn = ls.class_par == ls.PAR_TROPO_N;
                             [~,valid_ep] = ismember(ls.getTimePar(idx_trpe).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
@@ -10510,15 +10625,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                             tropoe =  ls.x(idx_trpe);
                             tropon =  ls.x(idx_trpn);
-                            
-                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, state.spline_rate_tropo_gradient)/state.spline_rate_tropo_gradient;
-                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/state.spline_rate_tropo_gradient);
-                            [~,tropo_idx] = ismember(tropo_idx*state.spline_rate_tropo_gradient, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
+                             if state.tparam_grad_ppp == 2
+                            spline_order = 1;
+                            elseif state.tparam_grad_ppp == 3
+                                spline_order = 3;
+                            end 
+                            tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, state.rate_grad_ppp)/state.rate_grad_ppp;
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/state.rate_grad_ppp);
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
                             valid_ep = tropo_idx ~=0;
-                            spline_base = Core_Utils.spline(tropo_dt,state.spline_tropo_gradient_order);
+                            spline_base = Core_Utils.spline(tropo_dt,spline_order);
                             
-                            getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, state.spline_tropo_gradient_order + 1) + repmat((0 : state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
-                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, state.spline_tropo_gradient_order + 1) + repmat((0 : state.spline_tropo_gradient_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
                             
                         end
                         this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
@@ -10613,7 +10732,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                                 ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600 * rate); % really small regularization
                                 ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
-                                if state.flag_tropo_gradient
+                                if state.flag_grad_ppp
                                     ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
                                     ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                                 end
@@ -10773,7 +10892,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ls.setTimeRegularization(ls.PAR_Y, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_Z, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
-                if state.flag_tropo_gradient
+                if state.flag_grad_ppp
                     ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                 end

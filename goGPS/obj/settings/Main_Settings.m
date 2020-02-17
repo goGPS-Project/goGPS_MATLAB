@@ -165,6 +165,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % STD PAR ----------------------------------------------------------------------------------------------------------------------------------------------
         
         % ADV RECEIVER DEFAULT PARAMETERS
+
         STD_CODE = 3;                                   % Std of code observations [m]
         STD_PHASE = 0.003;                              % Std of phase observations [m]
         STD_PHASE_IF = 0.009;                           % Std of iono-free phase observations [m]
@@ -305,7 +306,193 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUT_RES_PR = true;     % residuals
         FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
+        
+        % Uncombined options
+        
+        FLAG_COO_PPP  = true; % estimate coordinets in ppp
+        FLAG_COO_NET  = true; % estimate coordinates in network
+        
+        TPARAM_COO_PPP = LS_Parametrization.CONST; % time paramterization of coordinates ppp
+        TPARAM_COO_NET = LS_Parametrization.CONST; % time paramterization of coordinates net
+        
+        FPARAM_COO_PPP = LS_Parametrization.ALL_FREQ; % frequenccy paramterization of coordinates ppp
+        FPARAM_COO_NET = LS_Parametrization.ALL_FREQ;  % frequenccy paramterization of coordinates net
+        
+        RATE_COO_PPP = 0; % time rate coordinates ppp
+        RATE_COO_NET = 0;  % time rate coordinates net
+        
+        AREG_COO_PPP  = [-1 -1];  % horizantial absolute regularization coordinates ppp
+        AREG_COO_NET = [-1 -1];  % horizantial absolute regularization coordinates net
+                
+        DREG_COO_PPP = [-1 -1];  % horizantial differential regularization coordinates ppp
+        DREG_COO_NET = [-1 -1];   % horizantial differential regularization coordinates net
+         
+        FLAG_FREE_NET_COO = false; % absolute coordinates in network
+        
+        
+        
+        FLAG_ZTD_PPP  = true; % estimate ztd in ppp
+        FLAG_ZTD_NET  = true; % estimate ztd in net
+        
+        TPARAM_ZTD_PPP  = LS_Parametrization.EP_WISE;   % time paramterization of ztd ppp
+        TPARAM_ZTD_NET  = LS_Parametrization.SPLINE_CUB;  % time paramterization of ztd net
+        
+        RATE_ZTD_PPP = 900; % time rate ztd ppp
+        RATE_ZTD_NET = 900; % time rate ztd net
+        
+        AREG_ZTD_PPP = 0.5; % absolute regularization ztd ppp
+        AREG_ZTD_NET = 0.5; % absolute regularization ztd net
+        
+        DREG_ZTD_PPP  = 0.015;  % differential regularization ztd ppp
+        DREG_ZTD_NET  = 0.015;  % differential regularization ztd net
+        
+        FLAG_GRAD_PPP  = true; % estimate ztd gradient in ppp
+        FLAG_GRAD_NET  = true; % estimate ztd gradient in net
+        
+        TPARAM_GRAD_PPP  = LS_Parametrization.EP_WISE;  % time paramterization of ztd  gradient ppp
+        TPARAM_GRAD_NET  = LS_Parametrization.SPLINE_CUB;  % time paramterization of ztd gradient net 
+        
+        RATE_GRAD_PPP = 7200; % time rate ztd gradient ppp
+        RATE_GRAD_NET  = 7200; % time rate ztd gradient net
+        
+        AREG_GRAD_PPP = 0.02; % absolute regularization ztd gradient  in ppp
+        AREG_GRAD_NET = 0.02; % absolute regularization  ztd gradient  in network
+        
+        DREG_GRAD_PPP = 0.001; % differential regularization ztd gradient  in ppp
+        DREG_GRAD_NET = 0.001; % differential  regularization ztd gradient  in network
+        
+        
+        FLAG_SREG_ZTD_PPP = false;
+        SREG_ZTD_P1_PPP = -1;
+        SREG_ZTD_P2_PPP = -1;
+        
+        FLAG_SREG_ZTD_NET =  false;
+        SREG_ZTD_P1_NET= -1;
+        SREG_ZTD_P2_NET= -1;
+        
+        
+        FLAG_SREG_GRAD_PPP=  false;
+        SREG_GRAD_P1_PPP= -1;
+        SREG_GRAD_P2_PPP= -1;
+        
+        FLAG_SREG_GRAD_NET = false;
+        SREG_GRAD_P1_NET=-1;
+        SREG_GRAD_P2_NET= -1;
+        
+        %FLAG_FREE_NET_TROPO = false;  % absolute tropo in network
+        
+        %%% IONO
+        
+        FLAG_IONO_PPP = true; % estimate iono ppp
+        FLAG_IONO_NET = true; % estimate iono network
+        
+        FLAG_SREG_IONO_PPP = false;
+        SREG_IONO_P1_PPP= -1;
+        SREG_IONO_P2_PPP= -1;
+        
+        FLAG_SREG_IONO_NET =false;
+        SREG_IONO_P1_NET= -1;
+        SREG_IONO_P2_NET= -1;
+        
+        
+        %%% BIAS
+        
+        
+        % CLOCK
+        
+        FLAG_REC_CLOCK_PPP = true;  % estimate receiver clock ppp
+        FLAG_REC_CLOCK_NET = true;  % estimate receiver clock net
+        
+        FLAG_PHPR_REC_CLOCK_PPP = true; % estimate separate phase and pseudorange receiver clock ppp
+        FLAG_PHPR_REC_CLOCK_NET = true; % estimate separate phase and pseudorange receiver clock net
+        
+        AREG_REC_CLOCK_PPP = -1; % absolute regularization receiver clock  in ppp
+        AREG_REC_CLOCK_NET = -1; % absolute regularization receiver clock in net
+        
+        DREG_REC_CLOCK_PPP = -1; % differential regularization receiver clock  in ppp
+        DREG_REC_CLOCK_NET = -1; % differential regularization receiver clock  in net
+        
+        
+        FLAG_SAT_CLOCK_PPP = true; % estimate satellite clock ppp
+        FLAG_SAT_CLOCK_NET = true; % estimate satellite clock ppp
+        
+        FLAG_PHPR_SAT_CLOCK_PPP = true; % estimate separate phase and pseudorange satellite clock ppp
+        FLAG_PHPR_SAT_CLOCK_NET = true; % estimate separate phase and pseudorange satellite clock net
+        
+        AREG_SAT_CLOCK_PPP = -1; % absolute regularization satellite clock  in ppp
+        AREG_SAT_CLOCK_NET = -1; % absolute regularization satellite clock  in net
+        
+        DREG_SAT_CLOCK_PPP = -1; % differential regularization satellite clock  in ppp
+        DREG_SAT_CLOCK_NET = -1; % differential regularizationsatellite clock in net
+        
+        
+        % BIAS
+        
+        FLAG_REC_IFBIAS_PPP = false;  % estimate receiver inter frequency bias ppp
+        FLAG_REC_IFBIAS_NET = false;  % estimate receiver inter frequency bias net
+        
+        TPARAM_REC_IFBIAS_PPP  = LS_Parametrization.SPLINE_CUB;  % time paramterization of receiver inter frequency bias ppp
+        TPARAM_REC_IFBIAS_NET  = LS_Parametrization.SPLINE_CUB;  % time paramterization of receiver inter frequency bias net
+        
+        RATE_REC_IFBIAS_PPP = 3600;  % time rate of receiver inter frequency bias ppp 
+        RATE_REC_IFBIAS_NET = 3600;  % time rate of receiver inter frequency bias net
+        
+        AREG_REC_IFBIAS_PPP = -1; % absolute regularization receiver inter frequency  in ppp
+        AREG_REC_IFBIAS_NET = -1; % absolute regularization receiver inter frequency  in net
+        
+        DREG_REC_IFBIAS_PPP = -1; % differential regularization receiver inter frequency  in ppp
+        DREG_REC_IFBIAS_NET = -1; % differential regularization receiver inter frequency  in net
+        
+        FLAG_SAT_IFBIAS_PPP = true;  % estimate satellite inter frequency bias ppp
+        FLAG_SAT_IFBIAS_NET = true;  % estimate satellite inter frequency bias net
+        
+        TPARAM_SAT_IFBIAS_PPP = LS_Parametrization.SPLINE_CUB;  % time paramterization of satellite inter frequency bias ppp
+        TPARAM_SAT_IFBIAS_NET = LS_Parametrization.SPLINE_CUB;  % time paramterization of satellite inter frequency bias net
+        
+        RATE_SAT_IFBIAS_PPP = 3600;  % time rate of satellite inter frequency bias ppp 
+        RATE_SAT_IFBIAS_NET = 3600;  % time rate of satellite inter frequency bias net
+        
+        AREG_SAT_IFBIAS_PPP = -1; % absolute regularization satellite inter frequency  in ppp
+        AREG_SAT_IFBIAS_NET = -1; % absolute regularization satellite inter frequency  in net
+        
+        DREG_SAT_IFBIAS_PPP = -1; % differential regularization satellite inter frequency  in ppp
+        DREG_SAT_IFBIAS_NET = -1; % differential regularization satellite inter frequency  in net
+        
+        FLAG_REC_TRKBIAS_PPP = true;  % estimate receiver inter tracking bias ppp
+        FLAG_REC_TRKBIAS_NET = true;  % estimate receiver inter tracking bias net
+        
+        TPARAM_REC_TRKBIAS_PPP = LS_Parametrization.CONST;  % time paramterization of receiver inter tracking bias ppp
+        TPARAM_REC_TRKBIAS_NET = LS_Parametrization.CONST;  % time paramterization of receiver inter tracking bias net
+        
+        RATE_REC_TRKBIAS_PPP = 0;  % time rate of receiver inter tracking bias ppp 
+        RATE_REC_TRKBIAS_NET = 0;  % time rate of receiver inter tracking bias net
+        
+        AREG_REC_TRKBIAS_PPP = -1; % absolute regularization receiver inter tracking  in ppp
+        AREG_REC_TRKBIAS_NET = -1; % absolute regularization receiver inter tracking  in net
+         
+        DREG_REC_TRKBIAS_PPP = -1; % differential regularization receiver inter tracking  in ppp
+        DREG_REC_TRKBIAS_NET = -1; % differential regularization receiver inter tracking  in net
+        
+        
+        FLAG_SAT_TRKBIAS_PPP = true; % estimate satellite inter tracking bias ppp
+        FLAG_SAT_TRKBIAS_NET = true; % estimate satellite inter tracking bias net
+        
+        TPARAM_SAT_TRKBIAS_PPP = LS_Parametrization.CONST;   % time paramterization of satellite inter tracking bias ppp
+        TPARAM_SAT_TRKBIAS_NET = LS_Parametrization.CONST;   % time paramterization of satellite inter tracking bias net
+        
+        RATE_SAT_TRKBIAS_PPP = 0;  % time rate of satellite inter tracking bias ppp 
+        RATE_SAT_TRKBIAS_NET = 0;  % time rate of satellite inter tracking bias net
+        
+        AREG_SAT_TRKBIAS_PPP = -1; % absolute regularization satellite inter tracking  in ppp
+        AREG_SAT_TRKBIAS_NET = -1; % absolute regularization satellite inter tracking  in net
+        
+        DREG_SAT_TRKBIAS_PPP = -1; % differential regularization satellite inter tracking  in ppp
+        DREG_SAT_TRKBIAS_NET = -1; % differential regularization satellite inter tracking  in net  
+        
+        % TEMPORAL PARAMTER
+        
         getNumZerTropoCoef = 0;
+
     end
 
     properties (Constant, Access = 'public')
@@ -367,15 +554,29 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                       'lambda_partial', ...
                       'bayesian_with_monte_carlo', ...
                       'best_integer_equivariant', ...
-                      'sequential_best_integer_equivariant'}                  
-        NET_REWEIGHT_LABEL = {'none', ...
+                      'sequential_best_integer_equivariant'}
+                  NET_REWEIGHT_LABEL = {'none', ...
                       'simple 4 loops', ...
                       '4 loops + remove bad satellites'}
-
-        % Multipath management
-        FLAG_REC_MP_SMODE = {'0: No multipath management', ...
-          '1: Multipath Zernike interpolated maps', ...
-          '2: (1) + stacking maps'}
+                  TIME_PARAMETRIZATION_LABEL = {'Constant',...
+                      'Epoch wise', ...
+                      'Stepwise consant',...
+                      'Regular spaced constant',...
+                      'Linear Spline',...
+                      'Cubic Spline'}
+                  TIME_TROPO_PARAMETRIZATION_LABEL = {'Epoch wise', ...
+                      'Linear Spline',...
+                      'Cubic Spline'}
+                  FREQUENCY_PARAMETRIZATION_LABEL = {'Per tracking',...
+                      'Per frequency',...
+                      'One for all',...
+                      'Per binned frequency',...
+                      'Per frequency and constellation',...
+                      'Per Rinex Band'}
+                  % Multipath management
+                  FLAG_REC_MP_SMODE = {'0: No multipath management', ...
+                      '1: Multipath Zernike interpolated maps', ...
+                      '2: (1) + stacking maps'}
         FLAG_REC_MP_LABEL = {'none', ...
                     'Multipath Zernike interpolated maps',...
                     '(1) + stacking maps'}
@@ -722,6 +923,122 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         tropo_gradient_spatial_reg_sigma = Main_Settings.TROPO_GRADIENT_SPATIAL_REG_SIGMA;
         tropo_gradient_spatial_reg_d_distance = Main_Settings.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE;
         
+        %------------------------------------------------------------------
+        % UNDIFFERNCED PARAMETRIZATION
+        %------------------------------------------------------------------
+        
+        
+        flag_coo_ppp            = Main_Settings.FLAG_COO_PPP            ;
+        flag_coo_net            = Main_Settings.FLAG_COO_NET            ;
+        tparam_coo_ppp          = Main_Settings.TPARAM_COO_PPP          ;
+        tparam_coo_net          = Main_Settings.TPARAM_COO_NET          ;
+        fparam_coo_ppp          = Main_Settings.FPARAM_COO_PPP          ;
+        fparam_coo_net          = Main_Settings.FPARAM_COO_NET          ;
+        rate_coo_ppp            = Main_Settings.RATE_COO_PPP            ;
+        rate_coo_net            = Main_Settings.RATE_COO_NET            ;
+        areg_coo_ppp        = Main_Settings.AREG_COO_PPP        ;
+        areg_coo_net        = Main_Settings.AREG_COO_NET        ;
+        dreg_coo_ppp        = Main_Settings.DREG_COO_PPP        ;
+        dreg_coo_net        = Main_Settings.DREG_COO_NET        ;
+        flag_free_net_coo       = Main_Settings.FLAG_FREE_NET_COO       ;
+        flag_ztd_ppp            = Main_Settings.FLAG_ZTD_PPP            ;
+        flag_ztd_net            = Main_Settings.FLAG_ZTD_NET            ;
+        tparam_ztd_ppp          = Main_Settings.TPARAM_ZTD_PPP          ;
+        tparam_ztd_net          = Main_Settings.TPARAM_ZTD_NET          ;
+        rate_ztd_ppp            = Main_Settings.RATE_ZTD_PPP            ;
+        rate_ztd_net            = Main_Settings.RATE_ZTD_NET            ;
+        areg_ztd_ppp            = Main_Settings.AREG_ZTD_PPP            ;
+        areg_ztd_net            = Main_Settings.AREG_ZTD_NET            ;
+        dreg_ztd_ppp            = Main_Settings.DREG_ZTD_PPP            ;
+        dreg_ztd_net            = Main_Settings.DREG_ZTD_NET            ;
+        flag_grad_ppp           = Main_Settings.FLAG_GRAD_PPP           ;
+        flag_grad_net           = Main_Settings.FLAG_GRAD_NET           ;
+        tparam_grad_ppp         = Main_Settings.TPARAM_GRAD_PPP         ;
+        tparam_grad_net         = Main_Settings.TPARAM_GRAD_NET         ;
+        rate_grad_ppp           = Main_Settings.RATE_GRAD_PPP           ;
+        rate_grad_net           = Main_Settings.RATE_GRAD_NET           ;
+        areg_grad_ppp           = Main_Settings.AREG_GRAD_PPP           ;
+        areg_grad_net           = Main_Settings.AREG_GRAD_NET           ;
+        dreg_grad_ppp           = Main_Settings.DREG_GRAD_PPP           ;
+        dreg_grad_net           = Main_Settings.DREG_GRAD_NET           ;
+        flag_sreg_ztd_ppp       = Main_Settings.FLAG_SREG_ZTD_PPP       ;
+        sreg_ztd_p1_ppp         = Main_Settings.SREG_ZTD_P1_PPP         ;
+        sreg_ztd_p2_ppp         = Main_Settings.SREG_ZTD_P2_PPP         ;
+        flag_sreg_ztd_net       = Main_Settings.FLAG_SREG_ZTD_NET       ;
+        sreg_ztd_p1_net         = Main_Settings.SREG_ZTD_P1_NET         ;
+        sreg_ztd_p2_net         = Main_Settings.SREG_ZTD_P2_NET         ;
+        flag_sreg_grad_ppp      = Main_Settings.FLAG_SREG_GRAD_PPP      ;
+        sreg_grad_p1_ppp        = Main_Settings.SREG_GRAD_P1_PPP        ;
+        sreg_grad_p2_ppp        = Main_Settings.SREG_GRAD_P2_PPP        ;
+        flag_sreg_grad_net      = Main_Settings.FLAG_SREG_GRAD_NET      ;
+        sreg_grad_p1_net        = Main_Settings.SREG_GRAD_P1_NET        ;
+        sreg_grad_p2_net        = Main_Settings.SREG_GRAD_P2_NET        ;
+        %flag_free_net_tropo     = Main_Settings.FLAG_FREE_NET_TROPO     ;
+        flag_iono_ppp           = Main_Settings.FLAG_IONO_PPP           ;
+        flag_iono_net           = Main_Settings.FLAG_IONO_NET           ;
+        flag_sreg_iono_ppp      = Main_Settings.FLAG_SREG_IONO_PPP      ;
+        sreg_iono_p1_ppp        = Main_Settings.SREG_IONO_P1_PPP        ;
+        sreg_iono_p2_ppp        = Main_Settings.SREG_IONO_P2_PPP        ;
+        flag_sreg_iono_net      = Main_Settings.FLAG_SREG_IONO_NET      ;
+        sreg_iono_p1_net        = Main_Settings.SREG_IONO_P1_NET        ;
+        sreg_iono_p2_net        = Main_Settings.SREG_IONO_P2_NET        ;
+        flag_rec_clock_ppp      = Main_Settings.FLAG_REC_CLOCK_PPP      ;
+        flag_rec_clock_net      = Main_Settings.FLAG_REC_CLOCK_NET      ;
+        flag_phpr_rec_clock_ppp = Main_Settings.FLAG_PHPR_REC_CLOCK_PPP ;
+        flag_phpr_rec_clock_net = Main_Settings.FLAG_PHPR_REC_CLOCK_NET ;
+        areg_rec_clock_ppp      = Main_Settings.AREG_REC_CLOCK_PPP      ;
+        areg_rec_clock_net      = Main_Settings.AREG_REC_CLOCK_NET      ;
+        dreg_rec_clock_ppp      = Main_Settings.DREG_REC_CLOCK_PPP      ;
+        dreg_rec_clock_net      = Main_Settings.DREG_REC_CLOCK_NET      ;
+        flag_sat_clock_ppp      = Main_Settings.FLAG_SAT_CLOCK_PPP      ;
+        flag_sat_clock_net      = Main_Settings.FLAG_SAT_CLOCK_NET      ;
+        flag_phpr_sat_clock_ppp = Main_Settings.FLAG_PHPR_SAT_CLOCK_PPP ;
+        flag_phpr_sat_clock_net = Main_Settings.FLAG_PHPR_SAT_CLOCK_NET ;
+        areg_sat_clock_ppp      = Main_Settings.AREG_SAT_CLOCK_PPP      ;
+        areg_sat_clock_net      = Main_Settings.AREG_SAT_CLOCK_NET      ;
+        dreg_sat_clock_ppp      = Main_Settings.DREG_SAT_CLOCK_PPP      ;
+        dreg_sat_clock_net      = Main_Settings.DREG_SAT_CLOCK_NET      ;
+        flag_rec_ifbias_ppp     = Main_Settings.FLAG_REC_IFBIAS_PPP     ;
+        flag_rec_ifbias_net     = Main_Settings.FLAG_REC_IFBIAS_NET     ;
+        tparam_rec_ifbias_ppp   = Main_Settings.TPARAM_REC_IFBIAS_PPP   ;
+        tparam_rec_ifbias_net   = Main_Settings.TPARAM_REC_IFBIAS_NET   ;
+        rate_rec_ifbias_ppp     = Main_Settings.RATE_REC_IFBIAS_PPP     ;
+        rate_rec_ifbias_net     = Main_Settings.RATE_REC_IFBIAS_NET     ;
+        areg_rec_ifbias_ppp     = Main_Settings.AREG_REC_IFBIAS_PPP     ;
+        areg_rec_ifbias_net     = Main_Settings.AREG_REC_IFBIAS_NET     ;
+        dreg_rec_ifbias_ppp     = Main_Settings.DREG_REC_IFBIAS_PPP     ;
+        dreg_rec_ifbias_net     = Main_Settings.DREG_REC_IFBIAS_NET     ;
+        flag_sat_ifbias_ppp     = Main_Settings.FLAG_SAT_IFBIAS_PPP     ;
+        flag_sat_ifbias_net     = Main_Settings.FLAG_SAT_IFBIAS_NET     ;
+        tparam_sat_ifbias_ppp   = Main_Settings.TPARAM_SAT_IFBIAS_PPP   ;
+        tparam_sat_ifbias_net   = Main_Settings.TPARAM_SAT_IFBIAS_NET   ;
+        rate_sat_ifbias_ppp     = Main_Settings.RATE_SAT_IFBIAS_PPP     ;
+        rate_sat_ifbias_net     = Main_Settings.RATE_SAT_IFBIAS_NET     ;
+        areg_sat_ifbias_ppp     = Main_Settings.AREG_SAT_IFBIAS_PPP     ;
+        areg_sat_ifbias_net     = Main_Settings.AREG_SAT_IFBIAS_NET     ;
+        dreg_sat_ifbias_ppp     = Main_Settings.DREG_SAT_IFBIAS_PPP     ;
+        dreg_sat_ifbias_net     = Main_Settings.DREG_SAT_IFBIAS_NET     ;
+        flag_rec_trkbias_ppp    = Main_Settings.FLAG_REC_TRKBIAS_PPP    ;
+        flag_rec_trkbias_net    = Main_Settings.FLAG_REC_TRKBIAS_NET    ;
+        tparam_rec_trkbias_ppp  = Main_Settings.TPARAM_REC_TRKBIAS_PPP  ;
+        tparam_rec_trkbias_net  = Main_Settings.TPARAM_REC_TRKBIAS_NET  ;
+        rate_rec_trkbias_ppp    = Main_Settings.RATE_REC_TRKBIAS_PPP    ;
+        rate_rec_trkbias_net    = Main_Settings.RATE_REC_TRKBIAS_NET    ;
+        areg_rec_trkbias_ppp    = Main_Settings.AREG_REC_TRKBIAS_PPP    ;
+        areg_rec_trkbias_net    = Main_Settings.AREG_REC_TRKBIAS_NET    ;
+        dreg_rec_trkbias_ppp    = Main_Settings.DREG_REC_TRKBIAS_PPP    ;
+        dreg_rec_trkbias_net    = Main_Settings.DREG_REC_TRKBIAS_NET    ;
+        flag_sat_trkbias_ppp    = Main_Settings.FLAG_SAT_TRKBIAS_PPP    ;
+        flag_sat_trkbias_net    = Main_Settings.FLAG_SAT_TRKBIAS_NET    ;
+        tparam_sat_trkbias_ppp  = Main_Settings.TPARAM_SAT_TRKBIAS_PPP  ;
+        tparam_sat_trkbias_net  = Main_Settings.TPARAM_SAT_TRKBIAS_NET  ;
+        rate_sat_trkbias_ppp    = Main_Settings.RATE_SAT_TRKBIAS_PPP    ;
+        rate_sat_trkbias_net    = Main_Settings.RATE_SAT_TRKBIAS_NET    ;
+        areg_sat_trkbias_ppp    = Main_Settings.AREG_SAT_TRKBIAS_PPP    ;
+        areg_sat_trkbias_net    = Main_Settings.AREG_SAT_TRKBIAS_NET    ;
+        dreg_sat_trkbias_ppp    = Main_Settings.DREG_SAT_TRKBIAS_PPP    ;
+        dreg_sat_trkbias_net    = Main_Settings.DREG_SAT_TRKBIAS_NET    ;
+        
         
         
         %------------------------------------------------------------------
@@ -736,7 +1053,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_out_tropo_g = true;    % gradients
         flag_out_apr_tropo = true;  % a-priori values
         
-        flag_out_pth = true;        % pressure  / temperature / humidity        
+        flag_out_pth = true;        % pressure  / temperature / humidity
         
         flag_out_ocs = true;        % outliers and cycle slips        
         flag_out_quality = true;    % quality (SNR)        
@@ -883,7 +1200,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.preferred_iono = state.getData('preferred_iono');
                 this.selected_center = state.getData('selected_center');
                 if isempty(this.selected_center)
-                    % try the old name:
+                    %                                try                                                                the old name:
                     this.selected_center = state.getData('preferred_center');
                 end
                 
@@ -1027,6 +1344,189 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_out_res_pr = state.getData('flag_out_res_pr');        % phase residuals
                 this.flag_out_res_ph = state.getData('flag_out_res_ph');        % code residuals
                 this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
+                
+                this.flag_coo_ppp            = state.getData('this.flag_coo_ppp');
+                this.flag_coo_net            = state.getData('flag_coo_net');
+                this.tparam_coo_ppp          = state.getData('tparam_coo_ppp');
+                this.tparam_coo_net          = state.getData('tparam_coo_net');
+                this.fparam_coo_ppp          = state.getData('fparam_coo_ppp');
+                this.fparam_coo_net          = state.getData('fparam_coo_net');
+                this.rate_coo_ppp            = state.getData('rate_coo_ppp');
+                this.rate_coo_net            = state.getData('rate_coo_net');
+                this.areg_coo_ppp        = state.getData('areg_coo_ppp');
+                this.areg_coo_net        = state.getData('areg_coo_net');
+                this.dreg_coo_ppp        = state.getData('dreg_coo_ppp');
+                this.dreg_coo_net        = state.getData('dreg_coo_net');
+                this.flag_free_net_coo       = state.getData('flag_free_net_coo');
+                this.flag_ztd_ppp            = state.getData('flag_ztd_ppp');
+                if isempty(this.flag_ztd_ppp) % compatibility mode
+                    this.flag_ztd_ppp = state.getData('flag_tropo');       
+                end
+                this.flag_ztd_net            = state.getData('flag_ztd_net');
+                if isempty(this.flag_ztd_net) % compatibility mode
+                    this.flag_ztd_net = state.getData('flag_tropo');       
+                end
+                this.tparam_ztd_ppp          = state.getData('tparam_ztd_ppp');
+                if isempty(this.tparam_ztd_ppp) % compatibility mode
+                    this.tparam_ztd_ppp = state.getData('spline_tropo_order');       
+                end
+                this.tparam_ztd_net          = state.getData('tparam_ztd_net');
+                if isempty(this.tparam_ztd_net) % compatibility mode
+                    this.tparam_ztd_net = state.getData('spline_tropo_order');    
+                end
+                this.rate_ztd_ppp            = state.getData('rate_ztd_ppp');
+                if isempty(this.rate_ztd_ppp) % compatibility mode
+                    this.rate_ztd_ppp = state.getData('spline_rate_tropo');     
+                end
+                this.rate_ztd_net            = state.getData('rate_ztd_net');
+                if isempty(this.rate_ztd_net) % compatibility mode
+                    this.rate_ztd_net = state.getData('spline_rate_tropo');   
+                end
+                this.areg_ztd_ppp            = state.getData('areg_ztd_ppp');
+                if isempty(this.areg_ztd_ppp) % compatibility mode
+                    this.areg_ztd_ppp = state.getData('std_tropo_abs');   
+                end
+                this.areg_ztd_net            = state.getData('areg_ztd_net');
+                if isempty(this.areg_ztd_net) % compatibility mode
+                    this.areg_ztd_net = state.getData('std_tropo_abs');   
+                end
+                this.dreg_ztd_ppp            = state.getData('dreg_ztd_ppp');
+                if isempty(this.dreg_ztd_ppp) % compatibility mode
+                    this.dreg_ztd_ppp = state.getData('std_tropo');   
+                end
+                this.dreg_ztd_net            = state.getData('dreg_ztd_net');
+                if isempty(this.dreg_ztd_net) % compatibility mode
+                    this.dreg_ztd_net = state.getData('std_tropo');   
+                end
+                this.flag_grad_ppp           = state.getData('flag_grad_ppp');
+                if isempty(this.flag_grad_ppp) % compatibility mode
+                    this.flag_grad_ppp = state.getData('flag_tropo_gradient')+1;   
+                end
+                this.flag_grad_net           = state.getData('flag_grad_net');
+                if isempty(this.flag_grad_net) % compatibility mode
+                    this.flag_grad_net = state.getData('flag_tropo_gradient');   
+                end
+                this.tparam_grad_ppp         = state.getData('tparam_grad_ppp');
+                if isempty(this.tparam_grad_ppp) % compatibility mode
+                    this.tparam_grad_ppp = state.getData('spline_tropo_gradient_order')+1;   
+                end
+                this.tparam_grad_net         = state.getData('tparam_grad_net');
+                if isempty(this.tparam_grad_net) % compatibility mode
+                    this.tparam_grad_net = state.getData('spline_tropo_gradient_order');   
+                end
+                this.rate_grad_ppp           = state.getData('rate_grad_ppp');
+                if isempty(this.rate_grad_ppp) % compatibility mode
+                    this.rate_grad_ppp = state.getData('spline_rate_tropo_gradient');   
+                end
+                this.rate_grad_net           = state.getData('rate_grad_net');
+                if isempty(this.rate_grad_net) % compatibility mode
+                    this.rate_grad_net = state.getData('spline_rate_tropo_gradient');   
+                end
+                this.areg_grad_ppp           = state.getData('areg_grad_ppp');
+                if isempty(this.areg_grad_ppp) % compatibility mode
+                    this.areg_grad_ppp = state.getData('std_tropo_gradient_abs');   
+                end
+                this.areg_grad_net           = state.getData('areg_grad_net');
+                if isempty(this.areg_grad_net) % compatibility mode
+                    this.areg_grad_net = state.getData('std_tropo_gradient_abs');   
+                end
+                this.dreg_grad_ppp           = state.getData('dreg_grad_ppp');
+                if isempty(this.dreg_grad_ppp) % compatibility mode
+                    this.dreg_grad_ppp = state.getData('std_tropo_gradient');   
+                end
+                this.dreg_grad_net           = state.getData('dreg_grad_net');
+                if isempty(this.dreg_grad_net) % compatibility mode
+                    this.dreg_grad_net = state.getData('std_tropo_gradient');   
+                end
+                this.flag_sreg_ztd_ppp       = state.getData('flag_sreg_ztd_ppp');
+                this.sreg_ztd_p1_ppp         = state.getData('sreg_ztd_p1_ppp');
+                this.sreg_ztd_p2_ppp         = state.getData('sreg_ztd_p2_ppp');
+                this.flag_sreg_ztd_net       = state.getData('flag_sreg_ztd_net');
+                this.sreg_ztd_p1_net         = state.getData('sreg_ztd_p1_net');
+                this.sreg_ztd_p2_net         = state.getData('sreg_ztd_p2_net');
+                this.flag_sreg_grad_ppp      = state.getData('flag_sreg_grad_ppp');
+                this.sreg_grad_p1_ppp        = state.getData('sreg_grad_p1_ppp');
+                this.sreg_grad_p2_ppp        = state.getData('sreg_grad_p2_ppp');
+                this.flag_sreg_grad_net      = state.getData('flag_sreg_grad_net');
+                this.sreg_grad_p1_net        = state.getData('sreg_grad_p1_net');
+                this.sreg_grad_p2_net        = state.getData('sreg_grad_p2_net');
+                
+                this.flag_free_net_tropo     = state.getData('flag_free_net_tropo');
+                this.flag_iono_ppp           = state.getData('flag_iono_ppp');
+                this.flag_iono_net           = state.getData('flag_iono_net');
+                this.flag_sreg_iono_ppp      = state.getData('flag_sreg_iono_ppp');
+                this.sreg_iono_p1_ppp        = state.getData('sreg_iono_p1_ppp');
+                this.sreg_iono_p2_ppp        = state.getData('sreg_iono_p2_ppp');
+                this.flag_sreg_iono_net      = state.getData('flag_sreg_iono_net');
+                this.sreg_iono_p1_net        = state.getData('sreg_iono_p1_net');
+                this.sreg_iono_p2_net        = state.getData('sreg_iono_p2_net');
+                
+                this.flag_rec_clock_ppp      = state.getData('flag_rec_clock_ppp');
+                this.flag_rec_clock_net      = state.getData('flag_rec_clock_net');
+                this.flag_phpr_rec_clock_ppp = state.getData('flag_phpr_rec_clock_ppp');
+                this.flag_phpr_rec_clock_net = state.getData('flag_phpr_rec_clock_net');
+                
+                this.areg_rec_clock_ppp      = state.getData('areg_rec_clock_ppp');
+                this.areg_rec_clock_net      = state.getData('areg_rec_clock_net');
+                this.dreg_rec_clock_ppp      = state.getData('dreg_rec_clock_ppp');
+                if isempty(this.dreg_rec_clock_ppp) % compatibility mode
+                    this.dreg_rec_clock_ppp = state.getData('std_clock');
+                end
+                this.dreg_rec_clock_net      = state.getData('dreg_rec_clock_net');
+                if isempty(this.dreg_rec_clock_net) % compatibility mode
+                    this.dreg_rec_clock_net = state.getData('std_clock');
+                end
+                this.flag_sat_clock_ppp      = state.getData('flag_sat_clock_ppp');
+                this.flag_sat_clock_net      = state.getData('flag_sat_clock_net');
+                this.flag_phpr_sat_clock_ppp = state.getData('flag_phpr_sat_clock_ppp');
+                this.flag_phpr_sat_clock_net = state.getData('flag_phpr_sat_clock_net');
+                this.areg_sat_clock_ppp      = state.getData('areg_sat_clock_ppp');
+                this.areg_sat_clock_net      = state.getData('areg_sat_clock_net');
+                this.dreg_sat_clock_ppp      = state.getData('dreg_sat_clock_ppp');
+                this.dreg_sat_clock_net      = state.getData('dreg_sat_clock_net');
+                if isempty(this.dreg_sat_clock_net) % compatibility mode
+                    this.dreg_sat_clock_net = state.getData('std_clock');
+                end
+                this.flag_rec_ifbias_ppp     = state.getData('flag_rec_ifbias_ppp');
+                this.flag_rec_ifbias_net     = state.getData('flag_rec_ifbias_net');
+                this.tparam_rec_ifbias_ppp   = state.getData('tparam_rec_ifbias_ppp');
+                this.tparam_rec_ifbias_net   = state.getData('tparam_rec_ifbias_net');
+                this.rate_rec_ifbias_ppp     = state.getData('rate_rec_ifbias_ppp');
+                this.rate_rec_ifbias_net     = state.getData('rate_rec_ifbias_net');
+                this.areg_rec_ifbias_ppp     = state.getData('areg_rec_ifbias_ppp');
+                this.areg_rec_ifbias_net     = state.getData('areg_rec_ifbias_net');
+                this.dreg_rec_ifbias_ppp     = state.getData('dreg_rec_ifbias_ppp');
+                this.dreg_rec_ifbias_net     = state.getData('dreg_rec_ifbias_net');
+                this.flag_sat_ifbias_ppp     = state.getData('flag_sat_ifbias_ppp');
+                this.flag_sat_ifbias_net     = state.getData('flag_sat_ifbias_net');
+                this.tparam_sat_ifbias_ppp   = state.getData('tparam_sat_ifbias_ppp');
+                this.tparam_sat_ifbias_net   = state.getData('tparam_sat_ifbias_net');
+                this.rate_sat_ifbias_ppp     = state.getData('rate_sat_ifbias_ppp');
+                this.rate_sat_ifbias_net     = state.getData('rate_sat_ifbias_net');
+                this.areg_sat_ifbias_ppp     = state.getData('areg_sat_ifbias_ppp');
+                this.areg_sat_ifbias_net     = state.getData('areg_sat_ifbias_net');
+                this.dreg_sat_ifbias_ppp     = state.getData('dreg_sat_ifbias_ppp');
+                this.dreg_sat_ifbias_net     = state.getData('dreg_sat_ifbias_net');
+                this.flag_rec_trkbias_ppp    = state.getData('flag_rec_trkbias_ppp');
+                this.flag_rec_trkbias_net    = state.getData('flag_rec_trkbias_net');
+                this.tparam_rec_trkbias_ppp  = state.getData('tparam_rec_trkbias_ppp');
+                this.tparam_rec_trkbias_net  = state.getData('tparam_rec_trkbias_net');
+                this.rate_rec_trkbias_ppp    = state.getData('rate_rec_trkbias_ppp');
+                this.rate_rec_trkbias_net    = state.getData('rate_rec_trkbias_net');
+                this.areg_rec_trkbias_ppp    = state.getData('areg_rec_trkbias_ppp');
+                this.areg_rec_trkbias_net    = state.getData('areg_rec_trkbias_net');
+                this.dreg_rec_trkbias_ppp    = state.getData('dreg_rec_trkbias_ppp');
+                this.dreg_rec_trkbias_net    = state.getData('dreg_rec_trkbias_net');
+                this.flag_sat_trkbias_ppp    = state.getData('flag_sat_trkbias_ppp');
+                this.flag_sat_trkbias_net    = state.getData('flag_sat_trkbias_net');
+                this.tparam_sat_trkbias_ppp  = state.getData('tparam_sat_trkbias_ppp');
+                this.tparam_sat_trkbias_net  = state.getData('tparam_sat_trkbias_net');
+                this.rate_sat_trkbias_ppp    = state.getData('rate_sat_trkbias_ppp');
+                this.rate_sat_trkbias_net    = state.getData('rate_sat_trkbias_net');
+                this.areg_sat_trkbias_ppp    = state.getData('areg_sat_trkbias_ppp');
+                this.areg_sat_trkbias_net    = state.getData('areg_sat_trkbias_net');
+                this.dreg_sat_trkbias_ppp    = state.getData('dreg_sat_trkbias_ppp');
+                this.dreg_sat_trkbias_net    = state.getData('dreg_sat_trkbias_net');
             else
                 % PARALLELISM
                 this.com_dir = state.com_dir;
@@ -1203,9 +1703,122 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_out_res_co = state.flag_out_res_co;        % combined residuals
                 this.flag_out_res_pr = state.flag_out_res_pr;        % code residuals
                 this.flag_out_res_ph = state.flag_out_res_ph;        % phase residuals
-                this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)                
+                this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)     
+                
+                
+                % undifferenced paramters
+                this.flag_coo_ppp            = state.flag_coo_ppp      ;
+                this.flag_coo_net            = state.flag_coo_net           ;
+                this.tparam_coo_ppp          = state.tparam_coo_ppp         ;
+                this.tparam_coo_net          = state.tparam_coo_net         ;
+                this.fparam_coo_ppp          = state.fparam_coo_ppp         ;
+                this.fparam_coo_net          = state.fparam_coo_net         ;
+                this.rate_coo_ppp            = state.rate_coo_ppp           ;
+                this.rate_coo_net            = state.rate_coo_net           ;
+                this.areg_coo_ppp        = state.areg_coo_ppp       ;
+                this.areg_coo_net        = state.areg_coo_net       ;
+                this.dreg_coo_ppp        = state.dreg_coo_ppp       ;
+                this.dreg_coo_net        = state.dreg_coo_net       ;
+                this.flag_free_net_coo       = state.flag_free_net_coo      ;
+                this.flag_ztd_ppp            = state.flag_ztd_ppp           ;
+                this.flag_ztd_net            = state.flag_ztd_net           ;
+                this.tparam_ztd_ppp          = state.tparam_ztd_ppp         ;
+                this.tparam_ztd_net          = state.tparam_ztd_net         ;
+                this.rate_ztd_ppp            = state.rate_ztd_ppp           ;
+                this.rate_ztd_net            = state.rate_ztd_net           ;
+                this.areg_ztd_ppp            = state.areg_ztd_ppp           ;
+                this.areg_ztd_net            = state.areg_ztd_net           ;
+                this.dreg_ztd_ppp            = state.dreg_ztd_ppp           ;
+                this.dreg_ztd_net            = state.dreg_ztd_net           ;
+                this.flag_grad_ppp           = state.flag_grad_ppp          ;
+                this.flag_grad_net           = state.flag_grad_net          ;
+                this.tparam_grad_ppp         = state.tparam_grad_ppp        ;
+                this.tparam_grad_net         = state.tparam_grad_net        ;
+                this.rate_grad_ppp           = state.rate_grad_ppp          ;
+                this.rate_grad_net           = state.rate_grad_net          ;
+                this.areg_grad_ppp           = state.areg_grad_ppp          ;
+                this.areg_grad_net           = state.areg_grad_net          ;
+                this.dreg_grad_ppp           = state.dreg_grad_ppp          ;
+                this.dreg_grad_net           = state.dreg_grad_net          ;
+                this.flag_sreg_ztd_ppp       = state.flag_sreg_ztd_ppp      ;
+                this.sreg_ztd_p1_ppp         = state.sreg_ztd_p1_ppp        ;
+                this.sreg_ztd_p2_ppp         = state.sreg_ztd_p2_ppp        ;
+                this.flag_sreg_ztd_net       = state.flag_sreg_ztd_net      ;
+                this.sreg_ztd_p1_net         = state.sreg_ztd_p1_net        ;
+                this.sreg_ztd_p2_net         = state.sreg_ztd_p2_net        ;
+                this.flag_sreg_grad_ppp      = state.flag_sreg_grad_ppp     ;
+                this.sreg_grad_p1_ppp        = state.sreg_grad_p1_ppp       ;
+                this.sreg_grad_p2_ppp        = state.sreg_grad_p2_ppp       ;
+                this.flag_sreg_grad_net      = state.flag_sreg_grad_net     ;
+                this.sreg_grad_p1_net        = state.sreg_grad_p1_net       ;
+                this.sreg_grad_p2_net        = state.sreg_grad_p2_net       ;
+                this.flag_free_net_tropo     = state.flag_free_net_tropo    ;
+                this.flag_iono_ppp           = state.flag_iono_ppp          ;
+                this.flag_iono_net           = state.flag_iono_net          ;
+                this.flag_sreg_iono_ppp      = state.flag_sreg_iono_ppp     ;
+                this.sreg_iono_p1_ppp        = state.sreg_iono_p1_ppp       ;
+                this.sreg_iono_p2_ppp        = state.sreg_iono_p2_ppp       ;
+                this.flag_sreg_iono_net      = state.flag_sreg_iono_net     ;
+                this.sreg_iono_p1_net        = state.sreg_iono_p1_net       ;
+                this.sreg_iono_p2_net        = state.sreg_iono_p2_net       ;
+                this.flag_rec_clock_ppp      = state.flag_rec_clock_ppp     ;
+                this.flag_rec_clock_net      = state.flag_rec_clock_net     ;
+                this.flag_phpr_rec_clock_ppp = state.flag_phpr_rec_clock_ppp;
+                this.flag_phpr_rec_clock_net = state.flag_phpr_rec_clock_net;
+                this.areg_rec_clock_ppp      = state.areg_rec_clock_ppp     ;
+                this.areg_rec_clock_net      = state.areg_rec_clock_net     ;
+                this.dreg_rec_clock_ppp      = state.dreg_rec_clock_ppp     ;
+                this.dreg_rec_clock_net      = state.dreg_rec_clock_net     ;
+                this.flag_sat_clock_ppp      = state.flag_sat_clock_ppp     ;
+                this.flag_sat_clock_net      = state.flag_sat_clock_net     ;
+                this.flag_phpr_sat_clock_ppp = state.flag_phpr_sat_clock_ppp;
+                this.flag_phpr_sat_clock_net = state.flag_phpr_sat_clock_net;
+                this.areg_sat_clock_ppp      = state.areg_sat_clock_ppp     ;
+                this.areg_sat_clock_net      = state.areg_sat_clock_net     ;
+                this.dreg_sat_clock_ppp      = state.dreg_sat_clock_ppp     ;
+                this.dreg_sat_clock_net      = state.dreg_sat_clock_net     ;
+                this.flag_rec_ifbias_ppp     = state.flag_rec_ifbias_ppp    ;
+                this.flag_rec_ifbias_net     = state.flag_rec_ifbias_net    ;
+                this.tparam_rec_ifbias_ppp   = state.tparam_rec_ifbias_ppp  ;
+                this.tparam_rec_ifbias_net   = state.tparam_rec_ifbias_net  ;
+                this.rate_rec_ifbias_ppp     = state.rate_rec_ifbias_ppp    ;
+                this.rate_rec_ifbias_net     = state.rate_rec_ifbias_net    ;
+                this.areg_rec_ifbias_ppp     = state.areg_rec_ifbias_ppp    ;
+                this.areg_rec_ifbias_net     = state.areg_rec_ifbias_net    ;
+                this.dreg_rec_ifbias_ppp     = state.dreg_rec_ifbias_ppp    ;
+                this.dreg_rec_ifbias_net     = state.dreg_rec_ifbias_net    ;
+                this.flag_sat_ifbias_ppp     = state.flag_sat_ifbias_ppp    ;
+                this.flag_sat_ifbias_net     = state.flag_sat_ifbias_net    ;
+                this.tparam_sat_ifbias_ppp   = state.tparam_sat_ifbias_ppp  ;
+                this.tparam_sat_ifbias_net   = state.tparam_sat_ifbias_net  ;
+                this.rate_sat_ifbias_ppp     = state.rate_sat_ifbias_ppp    ;
+                this.rate_sat_ifbias_net     = state.rate_sat_ifbias_net    ;
+                this.areg_sat_ifbias_ppp     = state.areg_sat_ifbias_ppp    ;
+                this.areg_sat_ifbias_net     = state.areg_sat_ifbias_net    ;
+                this.dreg_sat_ifbias_ppp     = state.dreg_sat_ifbias_ppp    ;
+                this.dreg_sat_ifbias_net     = state.dreg_sat_ifbias_net    ;
+                this.flag_rec_trkbias_ppp    = state.flag_rec_trkbias_ppp   ;
+                this.flag_rec_trkbias_net    = state.flag_rec_trkbias_net   ;
+                this.tparam_rec_trkbias_ppp  = state.tparam_rec_trkbias_ppp ;
+                this.tparam_rec_trkbias_net  = state.tparam_rec_trkbias_net ;
+                this.rate_rec_trkbias_ppp    = state.rate_rec_trkbias_ppp   ;
+                this.rate_rec_trkbias_net    = state.rate_rec_trkbias_net   ;
+                this.areg_rec_trkbias_ppp    = state.areg_rec_trkbias_ppp   ;
+                this.areg_rec_trkbias_net    = state.areg_rec_trkbias_net   ;
+                this.dreg_rec_trkbias_ppp    = state.dreg_rec_trkbias_ppp   ;
+                this.dreg_rec_trkbias_net    = state.dreg_rec_trkbias_net   ;
+                this.flag_sat_trkbias_ppp    = state.flag_sat_trkbias_ppp   ;
+                this.flag_sat_trkbias_net    = state.flag_sat_trkbias_net   ;
+                this.tparam_sat_trkbias_ppp  = state.tparam_sat_trkbias_ppp ;
+                this.tparam_sat_trkbias_net  = state.tparam_sat_trkbias_net ;
+                this.rate_sat_trkbias_ppp    = state.rate_sat_trkbias_ppp   ;
+                this.rate_sat_trkbias_net    = state.rate_sat_trkbias_net   ;
+                this.areg_sat_trkbias_ppp    = state.areg_sat_trkbias_ppp   ;
+                this.areg_sat_trkbias_net    = state.areg_sat_trkbias_net   ;
+                this.dreg_sat_trkbias_ppp    = state.dreg_sat_trkbias_ppp   ;
+                this.dreg_sat_trkbias_net    = state.dreg_sat_trkbias_net   ;
             end
-
+            
             this.check(); % check after import
             this.eph_full_name = '';
             this.clk_full_name = '';
@@ -1380,7 +1993,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Spline order of tropospheric delay gradients:     %g\n\n', this.spline_tropo_gradient_order)];
             str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n', this.tropo_spatial_reg_sigma)];
             str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n', this.tropo_spatial_reg_d_distance)];
-            str = [str sprintf(' Spatial regualrization ztd gardients [m^2]:       %g\n', this.tropo_gradient_spatial_reg_sigma)];
+          
             str = [str sprintf(' Spatial reg. ztd gardients halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
             str = this.toString@Command_Settings(str);
             
@@ -1402,6 +2015,99 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Keep satellite code residuals                     %d\n', this.flag_out_res_pr)];
             str = [str sprintf(' Keep satellite phase residuals                    %d\n', this.flag_out_res_ph)];
             str = [str sprintf(' Keep mapping functions (wet / hydrostatic)        %d\n', this.flag_out_mf)];
+            str = [str '---- U2 PARAMETRIZATION --------------------------------------------------' 10 10];
+            str = [str sprintf(' Estimates coordinates in PPP                      %d\n' ,this.flag_coo_ppp            )];
+            str = [str sprintf(' Estimates coordinates in network                  %d\n' ,this.flag_coo_net            )];
+            str = [str sprintf(' Time parametrization coordinates PPP              %d\n' ,this.tparam_coo_ppp          )];
+            str = [str sprintf(' Time parametrization coordimates network          %d\n' ,this.tparam_coo_net          )];
+            str = [str sprintf(' Frequency paramterization coordinates PPP         %d\n' ,this.fparam_coo_ppp          )];
+            str = [str sprintf(' Frequency paramterization coordinates network     %d\n' ,this.fparam_coo_net          )];
+            str = [str sprintf(' Rate coordinates PPP                              %d\n' ,this.rate_coo_ppp            )];
+            str = [str sprintf(' Rate coordinates network                          %d\n' ,this.rate_coo_net            )];
+            str = [str sprintf(' absolute regularization PPP [m] (Hor Vert)     %d %d\n' ,this.areg_coo_ppp        )];
+            str = [str sprintf(' absolute regularization network [m] (Hor Vert) %d %d\n' ,this.areg_coo_net        )];
+            str = [str sprintf(' Differential regularization PPP [m/h^0.5] (Hor Vert)     %d %d\n' ,this.dreg_coo_ppp        )];
+            str = [str sprintf(' Differential regularization network [m/h^0.5] (Hor Vert)     %d %d\n' ,this.dreg_coo_net        )];
+            str = [str sprintf(' Free network coordinates                          %d\n' ,this.flag_free_net_coo       )];
+            str = [str sprintf(' Estimate ZTD PPP                                  %d\n' ,this.flag_ztd_ppp            )];
+            str = [str sprintf(' Estimate ZTD network                              %d\n' ,this.flag_ztd_net            )];
+            str = [str sprintf(' Time parametrization ZTD PPP                      %d\n' ,this.tparam_ztd_ppp          )];
+            str = [str sprintf(' Time parametrization ZTD network                  %d\n' ,this.tparam_ztd_net          )];
+            str = [str sprintf(' Rate ZTD PPP                                      %d\n' ,this.rate_ztd_ppp            )];
+            str = [str sprintf(' Rate ZTD network                                  %d\n' ,this.rate_ztd_net            )];
+            str = [str sprintf(' Absolute regularization ZTD PPP [m]               %d\n' ,this.areg_ztd_ppp            )];
+            str = [str sprintf(' Absolute regularization ZTD network [m]           %d\n' ,this.areg_ztd_net            )];
+            str = [str sprintf(' Differential regularization ZTD PPP [m/h^0.5]     %d\n' ,this.dreg_ztd_ppp            )];
+            str = [str sprintf(' Differential regularization ZTD network [m/h^0.5] %d\n' ,this.dreg_ztd_net            )];
+            str = [str sprintf(' Estimates ZTD gradients in PPP                    %d\n' ,this.flag_grad_ppp           )];
+            str = [str sprintf(' Estimates ZTD gradients in network                %d\n' ,this.flag_grad_net           )];
+            str = [str sprintf(' Time paramterization ZTD gradients in PPP         %d\n' ,this.tparam_grad_ppp         )];
+            str = [str sprintf(' Time paramterization ZTD gradients in network     %d\n' ,this.tparam_grad_net         )];
+            str = [str sprintf(' Rate ZTD gardients in PPP                         %d\n' ,this.rate_grad_ppp           )];
+            str = [str sprintf(' Rate ZTD gradients in network                     %d\n' ,this.rate_grad_net           )];
+            str = [str sprintf(' Absolute regularization ZTD gradient PPP [m]      %g\n' ,this.areg_grad_ppp           )];
+            str = [str sprintf(' Absolute regularization ZTD gradient network [m]  %g\n' ,this.areg_grad_net           )];
+            str = [str sprintf(' Differential regularization ZTD gradient PPP [m/h^0.5] %g\n' ,this.dreg_grad_ppp           )];
+            str = [str sprintf(' Differential regularization ZTD gradient network [m/h^0.5] %g\n' ,this.dreg_grad_net           )];
+            str = [str sprintf(' Free network for tropo paramters                  %d\n' ,this.flag_free_net_tropo     )];
+            str = [str sprintf(' Estimates ionosphere in PPP                       %d\n' ,this.flag_iono_ppp           )];
+            str = [str sprintf(' Estimates ionosphere in network                   %d\n' ,this.flag_iono_net           )];
+            str = [str sprintf(' Estimate receiver clock error in PPP              %d\n' ,this.flag_rec_clock_ppp      )];
+            str = [str sprintf(' Estimate receiver clock error in network          %d\n' ,this.flag_rec_clock_net      )];
+            str = [str sprintf(' Estimate separate reciever clock per phase and pseudorange in PPP %d\n' ,this.flag_phpr_rec_clock_ppp )];
+            str = [str sprintf(' Estimate separate reciever clock per phase and pseudorange in network  %d\n' ,this.flag_phpr_rec_clock_net )];
+            str = [str sprintf(' Aboslute regularization reciever clock in PPP [m] %g\n' ,this.areg_rec_clock_ppp      )];
+            str = [str sprintf(' Aboslute regularization reciever clock in network [m] %g\n' ,this.areg_rec_clock_net      )];
+            str = [str sprintf(' Differential regularization receiver clock in PPP [m/sqrt(h)] %g\n',this.dreg_rec_clock_ppp      )];
+            str = [str sprintf(' Differential regularization receiver clock in network [m/sqrt(h)]  %g\n' ,this.dreg_rec_clock_net      )];
+            str = [str sprintf(' Estimate satellite clock error in PPP             %d\n' ,this.flag_sat_clock_ppp      )];
+            str = [str sprintf(' Estimate satellite clock error in network         %d\n' ,this.flag_sat_clock_net      )];
+            str = [str sprintf(' Estimate separate satellite clock per phase and pseudorange in PPP %d\n' ,this.flag_phpr_sat_clock_ppp )];
+            str = [str sprintf(' Estimate separate satellite clock per phase and pseudorange in network  %d\n' ,this.flag_phpr_sat_clock_net )];
+            str = [str sprintf(' Absolute regularization satellite clock in PPP [m] %g\n' ,this.areg_sat_clock_ppp      )];
+            str = [str sprintf(' Absolute regularization satellite clock in network [m] %g\n' ,this.areg_sat_clock_net      )];
+            str = [str sprintf(' Differential regularization satellite clock in PPP [m/sqrt(h)] %g\n' ,this.dreg_sat_clock_ppp      )];
+            str = [str sprintf(' Differential regularization satellite clock in network [m/sqrt(h)] %g\n' ,this.dreg_sat_clock_net      )];
+            str = [str sprintf(' Estimate receiver interfrequency bias in PPP                        %d\n' ,this.flag_rec_ifbias_ppp     )];
+            str = [str sprintf(' Estimate receiver interfrequency bias in network                    %d\n' ,this.flag_rec_ifbias_net     )];
+            str = [str sprintf(' Time paramterization receiver interfrequency bias in PPP            %d\n' ,this.tparam_rec_ifbias_ppp   )];
+            str = [str sprintf(' Time paramterization receiver interfrequency bias in network        %d\n' ,this.tparam_rec_ifbias_net   )];
+            str = [str sprintf(' Rate receiver interfrequency bias in PPP                            %d\n' ,this.rate_rec_ifbias_ppp     )];
+            str = [str sprintf(' Rate receiver interfrequency bias in network                        %d\n' ,this.rate_rec_ifbias_net     )];
+            str = [str sprintf(' Absolute regularization receiver interfrequency bias in PPP [m]     %g\n' ,this.areg_rec_ifbias_ppp     )];
+            str = [str sprintf(' Absolute regularization receiver interfrequency bias in network [m] %g\n' ,this.areg_rec_ifbias_net     )];
+            str = [str sprintf(' Differential regularization receiver interfrequency bias in PPP [m/sqrt(h)]       %g\n' ,this.dreg_rec_ifbias_ppp     )];
+            str = [str sprintf(' Differential regularization receiver interfrequency bias in network [m/sqrt(h)]   %g\n' ,this.dreg_rec_ifbias_net     )];
+            str = [str sprintf(' Estimate satellite interfrequency bias in PPP                       %d\n' ,this.flag_sat_ifbias_ppp     )];
+            str = [str sprintf(' Estimate satellite interfrequency bias in network                   %d\n' ,this.flag_sat_ifbias_net     )];
+            str = [str sprintf(' Time paramterization satellite interfrequency bias in PPP           %d\n' ,this.tparam_sat_ifbias_ppp   )];
+            str = [str sprintf(' Time paramterization satellite interfrequency bias in network       %d\n' ,this.tparam_sat_ifbias_net   )];
+            str = [str sprintf(' Rate satellite interfrequency bias in PPP                           %d\n' ,this.rate_sat_ifbias_ppp     )];
+            str = [str sprintf(' Rate satellite interfrequency bias in network                       %d\n' ,this.rate_sat_ifbias_net     )];
+            str = [str sprintf(' Absolute regularization satellite interfrequency bias in PPP [m]    %g\n' ,this.areg_sat_ifbias_ppp     )];
+            str = [str sprintf(' Absolute regularization satellite interfrequency bias in network [m]%g\n' ,this.areg_sat_ifbias_net     )];
+            str = [str sprintf(' Differential regularization satellite interfrequency bias in PPP [m/sqrt(h)]      %g\n' ,this.dreg_sat_ifbias_ppp     )];
+            str = [str sprintf(' Differential regularization satellite interfrequency bias in network [m/sqrt(h)]  %g\n' ,this.dreg_sat_ifbias_net     )];
+            str = [str sprintf(' Estimate receiver intertracking bias in PPP                         %d\n' ,this.flag_rec_trkbias_ppp    )];
+            str = [str sprintf(' Estimate receiver intertracking bias in network                     %d\n' ,this.flag_rec_trkbias_net    )];
+            str = [str sprintf(' Time paramterization receiver intertracking bias in PPP             %d\n' ,this.tparam_rec_trkbias_ppp  )];
+            str = [str sprintf(' Time paramterization receiver intertracking bias in network         %d\n' ,this.tparam_rec_trkbias_net  )];
+            str = [str sprintf(' Rate receiver intertracking bias in PPP                             %d\n' ,this.rate_rec_trkbias_ppp    )];
+            str = [str sprintf(' Rate receiver intertracking bias in network                         %d\n' ,this.rate_rec_trkbias_net    )];
+            str = [str sprintf(' Absolute regularization receiver intertracking bias in PPP [m]      %g\n' ,this.areg_rec_trkbias_ppp    )];
+            str = [str sprintf(' Absolute regularization receiver intertracking bias in network [m]  %g\n' ,this.areg_rec_trkbias_net    )];
+            str = [str sprintf(' Differential regularization receiver intertracking bias  in PPP [m/sqrt(h)]        %g\n' ,this.dreg_rec_trkbias_ppp    )];
+            str = [str sprintf(' Differential regularization receiver intertracking bias  in network [m/sqrt(h)]    %g\n' ,this.dreg_rec_trkbias_net    )];
+            str = [str sprintf(' Estimate satellite intertracking bias in PPP                        %d\n' ,this.flag_sat_trkbias_ppp    )];
+            str = [str sprintf(' Estimate satellite intertracking bias in network                    %d\n' ,this.flag_sat_trkbias_net    )];
+            str = [str sprintf(' Time paramterization satellite intertracking bias in PPP            %d\n' ,this.tparam_sat_trkbias_ppp  )];
+            str = [str sprintf(' Time paramterization satellite intertracking bias in network        %d\n' ,this.tparam_sat_trkbias_net  )];
+            str = [str sprintf(' Rate satellite intertracking bias in PPP                            %d\n' ,this.rate_sat_trkbias_ppp    )];
+            str = [str sprintf(' Rate satellite intertracking bias in network                        %d\n' ,this.rate_sat_trkbias_net    )];
+            str = [str sprintf(' Absolute regularization satellite intertracking bias in PPP [m]     %g\n' ,this.areg_sat_trkbias_ppp    )];
+            str = [str sprintf(' Absolute regularization satellite intertracking bias in network [m] %g\n' ,this.areg_sat_trkbias_net    )];
+            str = [str sprintf(' Differential regularization satellite intertracking bias  in PPP [m/sqrt(h)]       %g\n' ,this.dreg_sat_trkbias_ppp    )];
+            str = [str sprintf(' Differential regularization satellite intertracking bias  in network [m/sqrt(h)]   %g\n' ,this.dreg_sat_trkbias_net    )];
         end
 
         function str_cell = exportIO_project(this, str_cell)
@@ -1933,6 +2639,217 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_out_res_ph', this.flag_out_res_ph, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Keep satellite mapping functions (wet / hydrostatic)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_out_mf, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('---- U2 PARAMETRIZATION --------------------------------------------------', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' Estimates coordinates in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_coo_ppp', this.flag_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimates coordinates in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_coo_net', this.flag_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time parametrization coordinates PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_coo_ppp', this.tparam_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time parametrization coordimates network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_coo_net', this.tparam_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Frequency paramterization coordinates PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('fparam_coo_ppp', this.fparam_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Frequency paramterization coordinates network', str_cell);
+            str_cell = Ini_Manager.toIniString('fparam_coo_net', this.fparam_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate coordinates PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_coo_ppp', this.rate_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate coordinates network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_coo_net', this.rate_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('absolute regularization PPP [m] (Hor Vert)', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_coo_ppp', this.areg_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('absolute regularization network [m] (Hor Vert)', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_coo_net', this.areg_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization PPP [m/h^0.5] (Hor Vert)', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_coo_ppp', this.dreg_coo_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization network [m/h^0.5] (Hor Vert)', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_coo_net', this.dreg_coo_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Free network coordinates', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_free_net_coo', this.flag_free_net_coo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate ZTD PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ztd_ppp', this.flag_ztd_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate ZTD network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ztd_net', this.flag_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time parametrization ZTD PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_ztd_ppp', this.tparam_ztd_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time parametrization ZTD network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_ztd_net', this.tparam_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate ZTD PPP ', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_ztd_ppp', this.rate_ztd_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate ZTD network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_ztd_net', this.rate_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization ZTD PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_ztd_ppp', this.areg_ztd_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization ZTD network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_ztd_net', this.areg_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization ZTD PPP [m/h^0.5]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_ztd_ppp', this.dreg_ztd_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization ZTD network [m/h^0.5]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_ztd_net', this.dreg_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimates ZTD gradients in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_grad_ppp', this.flag_grad_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimates ZTD gradients in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_grad_net', this.flag_grad_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization ZTD gradients in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_grad_ppp', this.tparam_grad_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization ZTD gradients in network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_grad_net', this.tparam_grad_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate ZTD gardients in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_grad_ppp', this.rate_grad_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate ZTD gradients in network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_grad_net', this.rate_grad_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization ZTD gradient PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_grad_ppp', this.areg_grad_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization ZTD gradient network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_grad_net', this.areg_grad_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization ZTD gradient PPP [m/h^0.5]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_grad_ppp', this.dreg_grad_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization ZTD gradient network [m/h^0.5]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_grad_net', this.dreg_grad_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Free network for tropo paramters', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_free_net_tropo', this.flag_free_net_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimates ionosphere in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_iono_ppp', this.flag_iono_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimates ionosphere in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_iono_net', this.flag_iono_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver clock error in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_clock_ppp', this.flag_rec_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver clock error in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_clock_net', this.flag_rec_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate separate reciever clock per phase and pseudorange in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_phpr_rec_clock_ppp', this.flag_phpr_rec_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate separate reciever clock per phase and pseudorange in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_phpr_rec_clock_net', this.flag_phpr_rec_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Aboslute regularization reciever clock in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_clock_ppp', this.areg_rec_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Aboslute regularization reciever clock in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_clock_net', this.areg_rec_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver clock in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_clock_ppp', this.dreg_rec_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver clock in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_clock_net', this.dreg_rec_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite clock error in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_clock_ppp', this.flag_sat_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite clock error in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_clock_net', this.flag_sat_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate separate satellite clock per phase and pseudorange in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_phpr_sat_clock_ppp', this.flag_phpr_sat_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate separate satellite clock per phase and pseudorange in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_phpr_sat_clock_net', this.flag_phpr_sat_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite clock in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_clock_ppp', this.areg_sat_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite clock in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_clock_net', this.areg_sat_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite clock in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_clock_ppp', this.dreg_sat_clock_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite clock in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_clock_net', this.dreg_sat_clock_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_ifbias_ppp', this.flag_rec_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_ifbias_net', this.flag_rec_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization receiver interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_rec_ifbias_ppp', this.tparam_rec_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization receiver interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_rec_ifbias_net', this.tparam_rec_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate receiver interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_rec_ifbias_ppp', this.rate_rec_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate receiver interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_rec_ifbias_net', this.rate_rec_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization receiver interfrequency bias in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_ifbias_ppp', this.areg_rec_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization receiver interfrequency bias in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_ifbias_net', this.areg_rec_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver interfrequency bias in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_ifbias_ppp', this.dreg_rec_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver interfrequency bias in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_ifbias_net', this.dreg_rec_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_ifbias_ppp', this.flag_sat_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_ifbias_net', this.flag_sat_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization satellite interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_sat_ifbias_ppp', this.tparam_sat_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization satellite interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_sat_ifbias_net', this.tparam_sat_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate satellite interfrequency bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_sat_ifbias_ppp', this.rate_sat_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate satellite interfrequency bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_sat_ifbias_net', this.rate_sat_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite interfrequency bias in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_ifbias_ppp', this.areg_sat_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite interfrequency bias in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_ifbias_net', this.areg_sat_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite interfrequency bias in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_ifbias_ppp', this.dreg_sat_ifbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite interfrequency bias in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_ifbias_net', this.dreg_sat_ifbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_trkbias_ppp', this.flag_rec_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate receiver intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_trkbias_net', this.flag_rec_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization receiver intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_rec_trkbias_ppp', this.tparam_rec_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization receiver intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_rec_trkbias_net', this.tparam_rec_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate receiver intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_rec_trkbias_ppp', this.rate_rec_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate receiver intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_rec_trkbias_net', this.rate_rec_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization receiver intertracking bias in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_trkbias_ppp', this.areg_rec_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization receiver intertracking bias in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_rec_trkbias_net', this.areg_rec_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver intertracking bias  in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_trkbias_ppp', this.dreg_rec_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization receiver intertracking bias  in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_rec_trkbias_net', this.dreg_rec_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_trkbias_ppp', this.flag_sat_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Estimate satellite intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sat_trkbias_net', this.flag_sat_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization satellite intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_sat_trkbias_ppp', this.tparam_sat_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Time paramterization satellite intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('tparam_sat_trkbias_net', this.tparam_sat_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate satellite intertracking bias in PPP', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_sat_trkbias_ppp', this.rate_sat_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate satellite intertracking bias in network', str_cell);
+            str_cell = Ini_Manager.toIniString('rate_sat_trkbias_net', this.rate_sat_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite intertracking bias in PPP [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_trkbias_ppp', this.areg_sat_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Absolute regularization satellite intertracking bias in network [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('areg_sat_trkbias_net', this.areg_sat_trkbias_net, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite intertracking bias  in PPP [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_ppp', this.dreg_sat_trkbias_ppp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite intertracking bias  in network [m/sqrt(h)]', str_cell);
+            str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_net', this.dreg_sat_trkbias_net, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('---- UNDOCUMENTED--------------------------------------------------', str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p2_net', this.sreg_iono_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p1_net', this.sreg_iono_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_iono_net', this.flag_sreg_iono_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p2_ppp', this.sreg_iono_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_iono_p1_ppp', this.sreg_iono_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_iono_ppp', this.flag_sreg_iono_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p2_net', this.sreg_grad_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p1_net', this.sreg_grad_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_grad_net', this.flag_sreg_grad_net , str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p2_net', this.sreg_ztd_p2_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p1_net', this.sreg_ztd_p1_net, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_ztd_net', this.flag_sreg_ztd_net, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p2_ppp', this.sreg_grad_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_grad_p1_ppp', this.sreg_grad_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_grad_ppp', this.flag_sreg_grad_ppp , str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p2_ppp', this.sreg_ztd_p2_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('sreg_ztd_p1_ppp', this.sreg_ztd_p1_ppp, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_sreg_ztd_ppp', this.flag_sreg_ztd_ppp, str_cell);
+
+            
+            
+            
+          
 
             % COMMANDs
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -2007,7 +2924,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   this.importLegacyFile(file_path);
-            try
+                                           try                                                               
                 load(file_path, 'state');
                 this.legacyImport(state);
             catch ex
@@ -2055,7 +2972,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % check_existence 0: do not check
             %                 1: check and do nothing
-            %                 2: check and try to correct
+            %                 2: check and                                try                                                                to correct
             %
             % SYNTAX
             %
@@ -2110,7 +3027,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % File type specific ----------------------------------------------
 
         function file_path = checkCrdPath(this, file_path)
-            % Check if the crd file exists, if not try to look for it into the default dirs
+            % Check if the crd file exists, if not                                try                                                                to look for it into the default dirs
             %
             % SYNTAX
             %   file_path = this.checkCrdPath(<file_path>)
@@ -2138,7 +3055,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function file_path = checkAtxPath(this, file_path)
-            % Check if the atx file exists, if not try to look for it into the default dirs
+            % Check if the atx file exists, if not                                try                                                                to look for it into the default dirs
             %
             % SYNTAX
             %   file_path = this.checkAtxPath(<file_path>)
@@ -2167,7 +3084,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end        
 
         function file_path = checkOceanPath(this, file_path)
-            % Check if the blq file exists, if not try to look for it into the default dirs
+            % Check if the blq file exists, if not                                try                                                                to look for it into the default dirs
             %
             % SYNTAX
             %   file_path = this.checkOceanPath(<file_path>)
@@ -2197,7 +3114,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function file_path = checkMetPath(this, file_path)
-            % Check if the met file exists, if not try to look for it into the default dirs
+            % Check if the met file exists, if not                                try                                                                to look for it into the default dirs
             %
             % SYNTAX
             %   file_path = this.checkMetPath(<file_path>)
@@ -2824,6 +3741,118 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_out_res_pr');
             this.checkLogicalField('flag_out_res_ph');
             this.checkLogicalField('flag_out_mf');
+            
+            % U2 paramterization
+            this.checkLogicalField('flag_coo_ppp');
+            this.checkLogicalField('flag_coo_net');
+            this.checkNumericField('tparam_coo_ppp',[1 100]);
+            this.checkNumericField('tparam_coo_net',[1 100]);
+            this.checkNumericField('fparam_coo_ppp',[1 100]);
+            this.checkNumericField('fparam_coo_net',[1 100]);
+            this.checkNumericField('rate_coo_ppp',[1e-12 1e50]);
+            this.checkNumericField('rate_coo_net',[1e-12 1e50]);
+            this.checkNumericField('areg_coo_ppp',[-2 1e50]);
+            this.checkNumericField('areg_coo_net',[-2 1e50]);
+            this.checkNumericField('dreg_coo_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_coo_net',[-2 1e50]);
+            this.checkLogicalField('flag_free_net_coo');
+            this.checkLogicalField('flag_ztd_ppp');
+            this.checkLogicalField('flag_ztd_net');
+            this.checkNumericField('tparam_ztd_ppp',[1 100]);
+            this.checkNumericField('tparam_ztd_net',[1 100]);
+            this.checkNumericField('rate_ztd_ppp',[1e-12 1e50]);
+            this.checkNumericField('rate_ztd_net',[1e-12 1e50]);
+            this.checkNumericField('areg_ztd_ppp',[-2 1e50]);
+            this.checkNumericField('areg_ztd_net',[-2 1e50]);
+            this.checkNumericField('dreg_ztd_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_ztd_net',[-2 1e50]);
+            this.checkLogicalField('flag_grad_ppp');
+            this.checkLogicalField('flag_grad_net');
+            this.checkNumericField('tparam_grad_ppp'),[1 100];
+            this.checkNumericField('tparam_grad_net',[1 100]);
+            this.checkNumericField('rate_grad_ppp');
+            this.checkNumericField('rate_grad_net');
+            this.checkNumericField('areg_grad_ppp');
+            this.checkNumericField('areg_grad_net');
+            this.checkNumericField('dreg_grad_ppp');
+            this.checkNumericField('dreg_grad_net');
+            this.checkLogicalField('flag_sreg_ztd_ppp');
+            this.checkNumericField('sreg_ztd_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_ztd_p2_ppp',[-1 1e50]);
+            this.checkLogicalField('flag_sreg_ztd_net');
+            this.checkNumericField('sreg_ztd_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_ztd_p2_net',[-1 1e50]);
+            this.checkLogicalField('flag_sreg_grad_ppp');
+            this.checkNumericField('sreg_grad_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_grad_p2_ppp',[-1 1e50]);
+            this.checkLogicalField('flag_sreg_grad_net');
+            this.checkNumericField('sreg_grad_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_grad_p2_net',[-1 1e50]);
+            this.checkLogicalField('flag_free_net_tropo');
+            this.checkLogicalField('flag_iono_ppp');
+            this.checkLogicalField('flag_iono_net');
+            this.checkLogicalField('flag_sreg_iono_ppp');
+            this.checkNumericField('sreg_iono_p1_ppp',[-1 1e50]);
+            this.checkNumericField('sreg_iono_p2_ppp',[-1 1e50]);
+            this.checkLogicalField('flag_sreg_iono_net');
+            this.checkNumericField('sreg_iono_p1_net',[-1 1e50]);
+            this.checkNumericField('sreg_iono_p2_net',[-1 1e50]);
+            this.checkLogicalField('flag_rec_clock_ppp');
+            this.checkLogicalField('flag_rec_clock_net');
+            this.checkLogicalField('flag_phpr_rec_clock_ppp');
+            this.checkLogicalField('flag_phpr_rec_clock_net');
+            this.checkNumericField('areg_rec_clock_ppp',[-2 1e50]);
+            this.checkNumericField('areg_rec_clock_net',[-2 1e50]);
+            this.checkNumericField('dreg_rec_clock_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_rec_clock_net',[-2 1e50]);
+            this.checkLogicalField('flag_sat_clock_ppp');
+            this.checkLogicalField('flag_sat_clock_net');
+            this.checkLogicalField('flag_phpr_sat_clock_ppp');
+            this.checkLogicalField('flag_phpr_sat_clock_net');
+            this.checkNumericField('areg_sat_clock_ppp',[-2 1e50]);
+            this.checkNumericField('areg_sat_clock_net',[-2 1e50]);
+            this.checkNumericField('dreg_sat_clock_ppp'),[-2 1e50];
+            this.checkNumericField('dreg_sat_clock_net',[-2 1e50]);
+            this.checkLogicalField('flag_rec_ifbias_ppp');
+            this.checkLogicalField('flag_rec_ifbias_net');
+            this.checkNumericField('tparam_rec_ifbias_ppp',[1 100]);
+            this.checkNumericField('tparam_rec_ifbias_net',[1 100]);
+            this.checkNumericField('rate_rec_ifbias_ppp',[1 1e50]);
+            this.checkNumericField('rate_rec_ifbias_net',[1 1e50]);
+            this.checkNumericField('areg_rec_ifbias_ppp',[-2 1e50]);
+            this.checkNumericField('areg_rec_ifbias_net',[-2 1e50]);
+            this.checkNumericField('dreg_rec_ifbias_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_rec_ifbias_net',[-2 1e50]);
+            this.checkLogicalField('flag_sat_ifbias_ppp');
+            this.checkLogicalField('flag_sat_ifbias_net');
+            this.checkNumericField('tparam_sat_ifbias_ppp',[1 100]);
+            this.checkNumericField('tparam_sat_ifbias_net',[1 100]);
+            this.checkNumericField('rate_sat_ifbias_ppp',[1 1e50]);
+            this.checkNumericField('rate_sat_ifbias_net',[1 1e50]);
+            this.checkNumericField('areg_sat_ifbias_ppp',[-2 1e50]);
+            this.checkNumericField('areg_sat_ifbias_net',[-2 1e50]);
+            this.checkNumericField('dreg_sat_ifbias_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_sat_ifbias_net',[-2 1e50]);
+            this.checkLogicalField('flag_rec_trkbias_ppp');
+            this.checkLogicalField('flag_rec_trkbias_net');
+            this.checkNumericField('tparam_rec_trkbias_ppp');
+            this.checkNumericField('tparam_rec_trkbias_net');
+            this.checkNumericField('rate_rec_trkbias_ppp',[1 1e50]);
+            this.checkNumericField('rate_rec_trkbias_net',[1 1e50]);
+            this.checkNumericField('areg_rec_trkbias_ppp',[-2 1e50]);
+            this.checkNumericField('areg_rec_trkbias_net',[-2 1e50]);
+            this.checkNumericField('dreg_rec_trkbias_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_rec_trkbias_net',[-2 1e50]);
+            this.checkLogicalField('flag_sat_trkbias_ppp');
+            this.checkLogicalField('flag_sat_trkbias_net');
+            this.checkNumericField('tparam_sat_trkbias_ppp',[1 100]);
+            this.checkNumericField('tparam_sat_trkbias_net',[1 100]);
+            this.checkNumericField('rate_sat_trkbias_ppp',[1 1e50]);
+            this.checkNumericField('rate_sat_trkbias_net',[1 1e50]);
+            this.checkNumericField('areg_sat_trkbias_ppp',[-2 1e50]);
+            this.checkNumericField('areg_sat_trkbias_net',[-2 1e50]);
+            this.checkNumericField('dreg_sat_trkbias_ppp',[-2 1e50]);
+            this.checkNumericField('dreg_sat_trkbias_net',[-2 1e50]);
 
             this.cc.check();
         end
@@ -3030,7 +4059,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function dir_path = getFileDir(this, filename)
-            % get file dir (form the resource name try to get the name of the iono)
+            % get file dir (form the resource name                                try                                                                to get the name of the iono)
             %
             % SYNTAX
             %   dir = getFileDir(this, filename)
