@@ -1667,7 +1667,9 @@ classdef LS_Manipulator_new < handle
                     
                     if iono
                         n_iono = sum(idx_reduce_cycle_iono);
-                        iIono = spdiags(1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono)),0,n_iono,n_iono);
+                        diagonal = 1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono));
+                        diagonal(diagonal == Inf) = 0;
+                        iIono = spdiags(diagonal,0,n_iono,n_iono);
                         Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
                         Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
                         Nt = Nx_iono' * iIono;
@@ -1693,7 +1695,9 @@ classdef LS_Manipulator_new < handle
                             iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                         else
                             n_sat_clk = sum(i_sat_clk_tmp);
-                            iSatClk = spdiags(1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp)),0,n_sat_clk,n_sat_clk);
+                            diagonal = 1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp));
+                            diagonal(diagonal == Inf) = 0;
+                            iSatClk = spdiags(diagonal,0,n_sat_clk,n_sat_clk);
                         end
                         Nx_satclk = Ner_t(i_sat_clk_tmp, :);
                         Nx_satclk_cyle = Nr_t(~i_sat_clk_tmp, i_sat_clk_tmp);
@@ -1750,7 +1754,9 @@ classdef LS_Manipulator_new < handle
                                 if sum(idx_2) > 0
                                     iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr')
                                 else
-                                    iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
+                                    diagonal = 1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp));
+                                    diagonal(diagonal == Inf) = 0;
+                                    iRecClk = spdiags(diagonal,0,n_rec_clk,n_rec_clk);
                                 end
                             end
                         else

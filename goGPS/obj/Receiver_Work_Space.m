@@ -4345,7 +4345,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function updateAprTropo(this)
             % update arpiori z tropo delays
-            if isempty(this.tge) || all(isnan(this.tge))
+            if isempty(this.tge) || all(isnan(this.tge)) || ~any(this.tge)
                 this.tge = zeros(this.length,1, 'single');
                 this.tgn = zeros(this.length,1, 'single');
             end
@@ -9167,6 +9167,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     dpos = 0;
                 end
             end
+            
             if s0 > 0
                 this.updateAzimuthElevation()
                 this.updateErrTropo(all_go_id);
@@ -9175,6 +9176,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.codeStaticPositioning(sys_list, ep_coarse, 15, 0);
             end
+            this.id_sync = [];
+             this.updateErrTropo(all_go_id);
         end
         
         function remBadTracking(this, sys_list) %%% important check!! if ph obervation with no code are deleted elsewhere

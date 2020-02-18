@@ -320,7 +320,15 @@ classdef Network < handle
                 if ~this.state.flag_iono_net
                     parametrization.iono(2) = LS_Parametrization.ALL_REC;
                 end
-                
+                 if state.tparam_ztd_net == 1
+                    parametrization.tropo(1) = parametrization.EP_WISE;
+                elseif state.tparam_ztd_net == 2
+                    parametrization.tropo(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_net;
+                elseif state.tparam_ztd_net == 3
+                    parametrization.tropo(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_net;
+                end
                                 
                 % Use spline for estimating ZTD gradients
                 if state.tparam_grad_net == 1
@@ -552,9 +560,9 @@ classdef Network < handle
                 time_clk = ls.time_par(idx_clk);
                 [~,idx_time_clk] = ismember(time_clk, this.common_time.getNominalTime.getRefTime(ls.time_min.getMatlabTime));
                 this.clock(idx_time_clk,i) = nan2zero(this.clock(idx_time_clk,i)) + clk;
-                
+                state = this.state;
                 if this.state.flag_ztd_net
-                    if this.tparam_ztd_net > 0
+                    if state.tparam_ztd_net > 1
                         if state.tparam_ztd_net == 2
                             spline_order = 1;
                         elseif state.tparam_ztd_net == 3
@@ -570,7 +578,7 @@ classdef Network < handle
                         
                         ztd =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
 
-                        this.ztd(valid_ep,i) = nan2zero(this.ztd(:,i))  + ztd;
+                        this.ztd(valid_ep,i) = nan2zero(this.ztd(valid_ep,i))  + ztd;
                     else
                         idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         tropo = ls.x(idx_trp);
@@ -581,7 +589,7 @@ classdef Network < handle
                 end
                 
                 if this.state.flag_grad_net
-                    if state.tparam_grad_net > 0
+                    if state.tparam_grad_net > 1
                            if state.tparam_grad_net == 2
                             spline_order = 1;
                             elseif state.tparam_grad_net == 3
@@ -733,13 +741,13 @@ classdef Network < handle
                 idx_pos = idx_pos(idx_pos > 0);
                 clk = this.clock(idx_res_av, i);
                 this.rec_list(i).work.dt(idx_pos) = clk(idx_is) ./ Core_Utils.V_LIGHT;
-                if this.state.flag_tropo
+                if this.state.flag_ztd_net
                     ztd = this.ztd(idx_res_av, i);
                     this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);
                     %zhd = this.rec_list(i).work.getAprZhd();
                     this.rec_list(i).work.zwd(idx_pos) = ztd(idx_is) - this.rec_list(i).work.apr_zhd(idx_pos);
                 end
-                if this.state.flag_tropo_gradient
+                if this.state.flag_grad_net
                     gn = this.ztd_gn(idx_res_av, i);
                     this.rec_list(i).work.tgn(idx_pos) = gn(idx_is);
                     ge = this.ztd_ge(idx_res_av, i);

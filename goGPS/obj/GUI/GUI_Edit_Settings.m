@@ -2394,6 +2394,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function onPopUpChange(this, caller, event)
             if isprop(Core.getCurrentSettings,[upper(caller.UserData) '_UI2INI'])
                 value = Core.getCurrentSettings.([upper(caller.UserData) '_UI2INI'])(caller.Value);
+            elseif strcmpi(caller.UserData(1:6),'tparam') && isempty(strfind(caller.UserData,'ztd')) && isempty(strfind(caller.UserData,'grad'))
+                value = Core.getCurrentSettings.(['TIME_PARAMETRIZATION_UI2INI'])(caller.Value);
             else
                 value = caller.Value;
             end
@@ -2675,7 +2677,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 if ~isempty(value)
                     if  isprop(state,[upper(this.pop_ups{i}.UserData) '_UI2INI'])
                         this.pop_ups{i}.Value = find(state.([upper(this.pop_ups{i}.UserData) '_UI2INI']) == value);
-                    elseif strcmpi(this.pop_ups{i}.UserData(1:6),'tparam')
+                    elseif strcmpi(this.pop_ups{i}.UserData(1:6),'tparam')  && isempty(strfind(this.pop_ups{i}.UserData,'ztd')) && isempty(strfind(this.pop_ups{i}.UserData,'grad'))
                         this.pop_ups{i}.Value = find(state.(['TIME_PARAMETRIZATION_UI2INI']) == value);
                     else
                         this.pop_ups{i}.Value = value;
