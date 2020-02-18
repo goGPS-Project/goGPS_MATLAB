@@ -1839,7 +1839,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             state = Core.getCurrentSettings;
             
             %%% IONO
-            iono_options = Core_UI.insertPanelLight2(tab, 'Ionosphere options');
+            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
@@ -1847,7 +1847,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertEmpty(tab);
             
             %%% TROPO
-            tropo_options = Core_UI.insertPanelLight2(tab, 'Tropospheric options');
+            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
