@@ -762,7 +762,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
              
             % left top left
-            coo_panel = this.insertCooOptions(opt_tll);
+            %coo_panel = this.insertCooOptions(opt_tll);
             Core_UI.insertEmpty(opt_tll);            
             pp_panel = this.insertTabProcessingOptions(opt_tll);
                         
@@ -775,7 +775,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
             opt_l.Heights = [-1 Core_UI.LINE_HEIGHT];
-            opt_tll.Heights = [93, 5, -1];
+            opt_tll.Heights = [0 -1];
             opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
             
             opt_h.Widths = [-1 5 210];
@@ -819,15 +819,15 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
             opt_list.Heights = Core_UI.LINE_HEIGHT * ones(3,1);
             
-            proc_opt = Core_UI.insertPanelLight(vpopt, 'Troposphere Options');
-            opt_list = uix.VBox('Parent', proc_opt,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tropo_opt_est_grid = uix.HBox('Parent', opt_list,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
-            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
+%             proc_opt = Core_UI.insertPanelLight(vpopt, 'Troposphere Options');
+%             opt_list = uix.VBox('Parent', proc_opt,...
+%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+%             tropo_opt_est_grid = uix.HBox('Parent', opt_list,...
+%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
+%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);            
+%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
+%             opt_list.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
             
             proc_opt = Core_UI.insertPanelLight(vpopt, 'Ionosphere Options');
             opt_list = uix.VBox('Parent', proc_opt,...
@@ -850,7 +850,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
             opt_list_net.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
 
-            vpopt.Heights = 25 + [3, 2, 1, 3, 2] .* Core_UI.LINE_HEIGHT;
+            vpopt.Heights = 25 + [3, 1, 3, 2] .* Core_UI.LINE_HEIGHT;
         end
         
         function ss_panel = insertSatSelector(this, container)
@@ -1500,11 +1500,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 3, ...
                 'BackgroundColor', color_tab);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_ppp', @this.onPopUpChange,[],color_tab);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
-            this.edit_texts_array{end}.Visible = 'off';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_tab);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_tab);
+%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+%             this.edit_texts_array{end}.Visible = 'off';
+%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+%             this.edit_texts_array{end}.Visible = 'off';
             coo_op_ppp_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
-            this.edit_texts_array{end}.Visible = 'off';            
             coo_opt_ppp_h.Widths = [300 -1];
             
             %%% iono parameters
@@ -1651,10 +1653,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 3, ...
                 'BackgroundColor', color_tab);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_net', @this.onPopUpChange,[],color_tab);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
-            this.edit_texts_array{end}.Visible = 'off';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
-            this.edit_texts_array{end}.Visible = 'off';
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_tab);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_tab);
+            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+            %             this.edit_texts_array{end}.Visible = 'off';
+            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+            %             this.edit_texts_array{end}.Visible = 'off';
             coo_op_net_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             coo_opt_net_h.Widths = [300 -1];
             
@@ -1676,30 +1680,40 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,color_tab);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,color_tab);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'Absolute Tropo in Network', 'flag_free_net_tropo', @this.onCheckBoxChange,color_tab);
+            
             
             Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, color_tab,  Core_UI.BLACK, 'center');
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_net', @this.onPopUpChange,[0 -1],color_tab);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_net', @this.onPopUpChange,[0 -1],color_tab);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            
             
             Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, color_tab,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_net', '', @this.onEditChange, [0 -1  0 0],color_tab);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_net', '', @this.onEditChange, [0 -1  0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            
             
             Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, color_tab,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            
             
             
             Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_tab,  Core_UI.BLACK, 'center');
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
             
-            tab_rec_tropo.Heights = [21 25 25];            
-            tab_rec_tropo.Widths = [150 150 150 150 150 ];
+            
+            tab_rec_tropo.Heights = [21 25  25];
+            tab_rec_tropo.Widths = [200 150 140 140 140 ];
             
             %%%% BIAS parameters
             bias_opt_net = Core_UI.insertPanelLight2(tab_net, 'Bias *');
-            tab_net.Heights = [100 40 100 -1];
+            tab_net.Heights = [100 40 120 -1];
             
             bias_opt_net_h = uix.VBox('Parent', bias_opt_net,...
                 'Spacing', 0, ...
