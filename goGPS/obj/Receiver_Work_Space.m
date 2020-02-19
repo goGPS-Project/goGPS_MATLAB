@@ -8397,10 +8397,30 @@ classdef Receiver_Work_Space < Receiver_Commons
                         for trk = trk_list
                             is_empty = is_empty && ~any(ant_mp.(sys_c).(trk{1}).z_map(:)) && ~any(ant_mp.(sys_c).(trk{1}).g_map(:));
                         end
-                    end                         
+                    end
                 end
             end
+            
         end
+        function has_range = hasRangeObs(this)
+                % Return if the object does not cantains any observation
+                %
+                % SYNTAX
+                %   is_empty = this.isEmpty();
+                
+                has_range = this.hasPhases  || this.hasPseudoRanges;
+            end
+            
+            function has_range = hasRangeObs_mr(this)
+                % Return if the object does not cantains any observation
+                %
+                % SYNTAX
+                %   is_empty = this.isEmpty();
+                has_range =  zeros(numel(this), 1);
+                for r = 1 : numel(this)
+                    has_range(r) =  this(r).hasRangeObs();
+                end
+            end
         
         function applyremMP(this, sgn)
             % Apply/Remove the MP Mitigation

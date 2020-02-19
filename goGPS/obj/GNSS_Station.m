@@ -1310,6 +1310,20 @@ classdef GNSS_Station < handle
             end
         end
         
+         function has_phases = hasRangeObs_mr(sta_list)
+            % Return if the object does not cantain any observations (work) or results (out)
+            %
+            % SYNTAX
+            %   is_empty = this.hasRangeObs_mr();
+            %
+            % SEE ALSO
+            %   isEmptyOut_mr isEmptyWork_mr
+            has_phases = false(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                has_phases(r) =  ~sta_list(r).work.isEmpty() && sta_list(r).work.hasRangeObs();
+            end
+        end
+        
 
         function is_empty = isEmptyWork_mr(sta_list)
             % Return if the object work does not cantains any observation
