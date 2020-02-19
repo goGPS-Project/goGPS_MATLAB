@@ -10735,7 +10735,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
                                 sub_coo = struct();
                                 tmp_time = time_coo.getCopy();
-                                tmp_time.addSeconds(sub_coo.rate / 2);
+                                tmp_time.addSeconds(tmp_time.rate / 2);
                                 sub_coo.rate = state.coo_rates(i);
                                 sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo, time_coo);
                                 if isempty(this.add_coo)
