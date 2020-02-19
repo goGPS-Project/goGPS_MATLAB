@@ -1185,7 +1185,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             tab_net = uix.VBox('Parent', tab_panel, ...
                 'Padding', 2, ...
                 'BackgroundColor', color_bg);
-            tab_panel.TabTitles = {'Data selection', 'Athmosphere', 'Pre-Processing', 'Generic Options', 'PPP Parameters', 'NET Parameters'};
+            tab_panel.TabTitles = {'Data selection', 'Atmosphere', 'Pre-Processing', 'Generic Options', 'PPP Parameters', 'NET Parameters'};
             
             this.insertDataSelection(tab_sat, color_bg);
             this.insertTabAtmosphere(tab_atm, color_bg)
