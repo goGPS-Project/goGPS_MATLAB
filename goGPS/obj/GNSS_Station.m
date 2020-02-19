@@ -6885,7 +6885,7 @@ classdef GNSS_Station < handle
                     else
                         coo_gogps = sta_list(r).getPos;
                         coo_igs = Coordinates.fromXYZ(xyz_igs, coo_gogps.time);
-                        if flag_plot
+                        if flag_plot && coo_igs.time.length > 1
                             fh = Coordinates.showCompareENU([coo_igs; coo_gogps]);
                             figure(fh);
                             ax = subplot(3,1,1);
@@ -7202,16 +7202,18 @@ classdef GNSS_Station < handle
                     end
                     
                     coo_gogps = gnss_list(s).getPos;
-                    coo_igs = Coordinates.fromXYZ(tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).xyz, tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).coord_time);
-                    
-                    fh = Coordinates.showCompareENU([coo_igs, coo_gogps]);
-                    figure(fh);
-                    ax = subplot(3,1,1);
-                    ax.Title.String{1} = [gnss_list(s).getMarkerName4Ch  ax.Title.String{1}(9:end)];
-                    fig_name = sprintf('IGS_TropoCoo_vs_goGPS_%s_%s', gnss_list(s).getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));
-                    fh.UserData = struct('fig_name', fig_name);
-                    Core_UI.addExportMenu(fh);
-                    fh_list = [fh_list; fh]; %#ok<AGROW>
+                    if isfield(tsc.results.r2, (['r' gnss_list(s).getMarkerName4Ch]))
+                        coo_igs = Coordinates.fromXYZ(tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).xyz, tsc.results.r2.(['r' gnss_list(s).getMarkerName4Ch]).coord_time);
+                        
+                        fh = Coordinates.showCompareENU([coo_igs, coo_gogps]);
+                        figure(fh);
+                        ax = subplot(3,1,1);
+                        ax.Title.String{1} = [gnss_list(s).getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                        fig_name = sprintf('IGS_TropoCoo_vs_goGPS_%s_%s', gnss_list(s).getMarkerName4Ch, state.getSessionsStart.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_UI.addExportMenu(fh);
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
+                    end
                 end
                 log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------\n'));
                 
