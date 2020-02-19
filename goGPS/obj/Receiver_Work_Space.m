@@ -4354,8 +4354,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         function updateAprTropo(this)
             % update arpiori z tropo delays
             if isempty(this.tge) || all(isnan(this.tge)) || ~any(this.tge)
-                this.tge = zeros(this.length,1, 'single');
-                this.tgn = zeros(this.length,1, 'single');
+                this.tge = zeros(this.time.length,1, 'single');
+                this.tgn = zeros(this.time.length,1, 'single');
             end
             if this.state.zd_model == 1 % sastamoinen + met
                 [P,T,H] = this.getPTH();
@@ -10735,7 +10735,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
                                 sub_coo = struct();
                                 tmp_time = time_coo.getCopy();
-                                tmp_time.addSeconds(tmp_time.rate / 2);
+                                tmp_time.addSeconds(tmp_time.getRate / 2);
                                 sub_coo.rate = state.coo_rates(i);
                                 sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo, time_coo);
                                 if isempty(this.add_coo)
