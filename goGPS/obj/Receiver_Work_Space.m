@@ -12255,10 +12255,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                             az = this.sat.az(:,this.go_id(snr_id));
                             el = this.sat.el(:,this.go_id(snr_id));
                             if Core_Utils.isHold; hold off; end
-                            if nargin < 3 || isempty(l_max)                                
-                                fh = Core_Utils.polarZerMap(11, 11, az(id_ok) / 180 * pi, el(id_ok) / 180 * pi, snr(id_ok));
+                            if nargin < 3 || isempty(l_max)
+                                l_max = 11;
+                                fh = Core_Utils.polarZerMap(l_max, l_max, az(id_ok) / 180 * pi, (90 - el(id_ok)) / 90, snr(id_ok));
                             else
-                                fh = Core_Utils.polarZerMap(l_max, l_max, az(id_ok) / 180 * pi, el(id_ok) / 180 * pi, snr(id_ok));
+                                fh = Core_Utils.polarZerMap(l_max, l_max, az(id_ok) / 180 * pi, (90 - el(id_ok)) / 90, snr(id_ok));
                             end
                             
                             fh.Name = sprintf('%03d: %s S%d%c %s', fh.Number, this.parent.getMarkerName4Ch, b, trk, cc.getSysName(sys_c)); fh.NumberTitle = 'off';
