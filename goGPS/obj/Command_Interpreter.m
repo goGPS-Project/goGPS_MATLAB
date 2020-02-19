@@ -1161,7 +1161,8 @@ classdef Command_Interpreter < handle
             
             t0 = tic();
             try
-                [cmd_list, err_list, execution_block, sss_list, trg_list, ~, flag_push, flag_parallel] = this.fastCheck(cmd_list);
+                [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = this.fastCheck(cmd_list);
+                sss_level = session_lev + level_add;
                 level = execution_block + level_add;
                 % for each command
                 cur_line_id = 0;
@@ -1337,11 +1338,11 @@ classdef Command_Interpreter < handle
                                     case this.CMD_KEEP.name                 % KEEP
                                         this.runKeep(core.rec.getWork(), tok(2:end));
                                     case this.CMD_SHOW.name                 % SHOW
-                                        this.runShow(core.rec, tok, level(cur_line_id));
+                                        this.runShow(core.rec, tok, sss_level(cur_line_id));
                                     case this.CMD_VALIDATE.name             % VALIDATE
-                                        this.runValidation(core.rec, tok, level(cur_line_id));
+                                        this.runValidation(core.rec, tok, sss_level(cur_line_id));
                                     case this.CMD_EXPORT.name               % EXPORT
-                                        this.runExport(core.rec, tok, level(cur_line_id));
+                                        this.runExport(core.rec, tok, sss_level(cur_line_id));
                                     case this.CMD_PUSHOUT.name              % PUSHOUT
                                         this.runPushOut(core.rec, tok);
                                     case this.CMD_LOAD.name                 % LOAD
