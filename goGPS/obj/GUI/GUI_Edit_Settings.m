@@ -268,15 +268,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Main Panel -----------------------------------------------------------------------------------------------
                 
                 wait_box = uix.VBox( 'Parent', panel_g_border, ...
-                    'Padding', 250, ...
+                    'Padding', 200, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                uicontrol('Parent', wait_box, ...
-                    'Style', 'Text', ...
-                    'String', 'Building interface...', ...
-                    'ForegroundColor', Core_UI.BLACK, ...
-                    'HorizontalAlignment', 'center', ...
-                    'FontSize', Core_UI.getFontSize(10), ...
-                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                this.insertWaitBox(wait_box, 'Building interface...');
+                
+                
+               
                 drawnow; 
                 delete(wait_box)
                 tab_panel = uix.TabPanel('Parent', panel_g_border, ...
@@ -410,10 +407,30 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
             log.setColorMode(cm);
         end
+        
+
     end
     %% METHODS INSERT
     % ==================================================================================================================================================
     methods
+        function insertWaitBox(this, container, status)
+            % Insert a wait spinner
+            % Thanks to undocumented MATLAB blog
+            iconsClassName = 'com.mathworks.widgets.BusyAffordance$AffordanceSize';
+            iconsSizeEnums = javaMethod('values',iconsClassName);
+            SIZE_32x32 = iconsSizeEnums(2);  % (1) = 16x16,  (2) = 32x32
+            j_spinner = com.mathworks.widgets.BusyAffordance(SIZE_32x32, 'Loading...');  % icon, label
+            
+            j_spinner.setPaintsWhenStopped(true);  % default = false
+            j_spinner.useWhiteDots(false);         % default = false (true is good for dark backgrounds)
+            tmp = javacomponent(j_spinner.getComponent, [0,0,80,150], container);
+            tmp.setBackground(java.awt.Color(Core_UI.LIGHT_GREY_BG(1),Core_UI.LIGHT_GREY_BG(2),Core_UI.LIGHT_GREY_BG(3)));
+            
+            j_spinner.start;
+            j_spinner.setBusyText(status);
+            drawnow
+        end        
+        
         function insertResources(this, container)
             resources_BG = Core_UI.LIGHT_GREY_BG;
             tab = uix.VBox('Parent', container, ...
@@ -707,18 +724,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             ocean_panel = Core_UI.insertPanelLight(container, 'Ocean loading file');
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
-        
-        function ocean_panel = insertCooOptions(this, container)
-            ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
-            opt_v = uix.VBox('Parent', ocean_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
-            %this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
-            set( opt_v, 'Heights', [1 1 1] .* Core_UI.LINE_HEIGHT );
-        end
-                        
+                                
         function out_panel = insertOutOptions(this, container)
             %%% processing options
             opt_container = uix.VBox('Parent', container,...
