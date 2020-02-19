@@ -42,16 +42,18 @@ function resetTimeTicks(h, num, format)
     end
     for i = 1 : numel(h)
         try
-            ax = double(axis(h(i)));
+            h(i).TickLength = [0.005 0.01];
+            ax = double(axis(h(i)));            
+
             step = (ax(2)-ax(1))/(num);
             time_span = ax(2)-ax(1);
-            tick_pos = (ax(1) + 0*(step/2)) : step : (ax(2) - 0*(step/2));
+
             % depending on the time_span round ticks
             round_val = 1 / 86400; % one second
                         
-            if time_span > 20                 % greater than 20days
+            if time_span > 8                 % greater than 20days
                 round_val =  1;               % round on 1 day
-            elseif time_span > 5              % greater than 5 days
+            elseif time_span > 4              % greater than 5 days
                 round_val =  12 / 24;         % round on 12 hour
             elseif time_span > 1              % greater than a day
                 round_val =  1 / 24;          % round on 1 hour
@@ -69,6 +71,8 @@ function resetTimeTicks(h, num, format)
                 round_val =  5 / 86400;       % round on 5 seconds
             end
 
+            tick_pos = (ax(1) + (step/2)) : step : (ax(2) - (step/2));
+            
             c_out = 0;
             if round_val >= 1 / (24 * 60) % rounding is greater than 1 minute
                 c_out = 3;                % do not show seconds
@@ -87,29 +91,31 @@ function resetTimeTicks(h, num, format)
                 last_date = [0 0 0 0 0 0];
                 h.XTickLabel = cell(size(tick_pos));
 
+                x_labels = cell(size(tick_pos));
                 for l = 1 : numel(tick_pos)
-                    str_time_format = '';
+                    str_time_format = 'HH:MM:SS';
                     new_date = datevec(double(tick_pos(l)));
                     if last_date(1) ~= new_date(1)        % if the year is different
-                        str_time_format = 'yyyy/mm/dd HH:MM:SS';
+                        str_time_format = [char(32 * ones(1, floor(c_out/2) + 5)) str_time_format(1:end - c_out) '-newlinemmm dd, yyyy'];
                     elseif last_date(2) ~= new_date(2)    % if the month is different 
-                        str_time_format = 'mm/dd HH:MM:SS';
+                        str_time_format = [char(32 * ones(1, floor(c_out/2) + 5)) str_time_format(1:end - c_out) '-newlinemmm dd, yyyy'];
                     elseif last_date(3) ~= new_date(3)    % if the day is different 
-                        str_time_format = 'dd HH:MM:SS';
+                        str_time_format = [char(32 * ones(1, floor(c_out/2) + 5)) str_time_format(1:end - c_out) '-newlinemmm dd, yyyy'];
                     elseif last_date(4) ~= new_date(4)    % if the hour is different 
-                        str_time_format = 'HH:MM:SS';
+                        str_time_format = str_time_format(1:end - c_out);
                     else % if last_date(5) ~= new_date(5)    % if the hour is different
-                        str_time_format = 'HH:MM:SS';
+                        str_time_format = str_time_format(1:end - c_out);
                     end                    
-                    str_time_format = str_time_format(1:end - c_out);
                     if isempty(str_time_format)
                         h.XTickLabel{l} = '';
                     else
-                        % add padding
-                        n_pad = (19 - c_out) - length(str_time_format);
-                        fill_c = '        ';
-                        str_time_format = [fill_c(1 : ceil(n_pad / 2)) str_time_format fill_c(1 : floor(n_pad / 2))];
-                        h.XTickLabel{l} = sprintf('%16s', datestr(tick_pos(l), str_time_format));
+                        if round_val == 1
+                            tmp = datestr(tick_pos(l), regexp(str_time_format, '(?<=line).*','match', 'once'));
+                        else
+                            tmp = datestr(tick_pos(l), str_time_format);
+                            tmp(tmp == '-') = '\';
+                        end
+                        h.XTickLabel{l} = tmp;
                     end
                     last_date = new_date;
                 end
