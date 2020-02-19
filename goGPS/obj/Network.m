@@ -228,12 +228,12 @@ classdef Network < handle
                 param_selection = [param_selection;
                     ls.PAR_IONO;];
                 
-                if this.state.flag_tropo
+                if this.state.flag_ztd_net
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
                 end
                 
-                if this.state.flag_tropo_gradient
+                if this.state.flag_grad_net
                     param_selection = [param_selection;
                         ls.PAR_TROPO_N;
                         ls.PAR_TROPO_E;];
@@ -308,7 +308,7 @@ classdef Network < handle
                 if state.flag_sat_ifbias_net
                     param_selection =  [param_selection;
                         LS_Manipulator_new.PAR_SAT_EBFR;];
-                    parametrization.setTimeParametrization(LS_Manipulator_new.PAR_SAT_EBFR, state.rate_sat_ifbias_net );
+                    parametrization.setTimeParametrization(LS_Manipulator_new.PAR_SAT_EBFR, state.tparam_sat_ifbias_net );
                     if state.tparam_sat_ifbias_net > 1 && state.rate_sat_ifbias_net > 0
                         parametrization.setRate(LS_Manipulator_new.PAR_SAT_EBFR, state.rate_sat_ifbias_net );
                     end
@@ -569,6 +569,7 @@ classdef Network < handle
                             spline_order = 3;
                         end
                         idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
+                        if sum(idx_trp) > 0
                         tropo = ls.x(idx_trp);
                         tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum, this.state.rate_ztd_net)/ this.state.rate_ztd_net;
                         tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum)/this.state.rate_ztd_net);
@@ -579,6 +580,7 @@ classdef Network < handle
                         ztd =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
 
                         this.ztd(valid_ep,i) = nan2zero(this.ztd(valid_ep,i))  + ztd;
+                        end
                     else
                         idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         tropo = ls.x(idx_trp);
@@ -596,6 +598,7 @@ classdef Network < handle
                                 spline_order = 3;
                             end 
                         idx_trp_n = ls.class_par == LS_Manipulator_new.PAR_TROPO_E & idx_rec;
+                        if sum(idx_trp_n) > 0
                         tropo_n = ls.x(idx_trp_n);
                         idx_trp_e = ls.class_par == LS_Manipulator_new.PAR_TROPO_N & idx_rec;
                         
@@ -610,6 +613,7 @@ classdef Network < handle
                         tropo_e =sum(spline_base .* tropo_e(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         this.ztd_gn(valid_ep,i) = nan2zero(this.ztd_gn(valid_ep,i))  + tropo_n;
                         this.ztd_ge(valid_ep,i) = nan2zero(this.ztd_ge(valid_ep,i))  + tropo_e;
+                        end
                     else
                         idx_tropo_n = ls.class_par == LS_Manipulator_new.PAR_TROPO_N & idx_rec;
                         tropo_n = ls.x(idx_tropo_n);
@@ -666,11 +670,11 @@ classdef Network < handle
                     this.clock(i,:) = (S*this.clock(i,:)')';
                     % ztd
                     if ~this.is_tropo_decorrel
-                        if this.state.flag_tropo
+                        if this.state.flag_ztd_net
                             this.ztd(i,:) = (S*this.ztd(i,:)')';
                         end
                         % gradients
-                        if this.state.flag_tropo_gradient
+                        if this.state.flag_grad_net
                             this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
                             this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
                         end
@@ -695,22 +699,24 @@ classdef Network < handle
                 %
                 [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.getTime.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
+                if ~isempty(idx_pos)
                 clk_rec = this.rec_list(i).work.getDt();
                 this.clock(idx_pos,i) = this.clock(idx_pos,i) + clk_rec(idx_is);
                 
-                if this.state.flag_tropo
+                if this.state.flag_ztd_net
                     ztd_rec = this.rec_list(i).work.getZtd();
                     ztd_rec_apr = this.rec_list(i).work.getZwd() + this.rec_list(i).work.getAprZhd();
                     ztd_rec(ztd_rec == 0) = ztd_rec_apr(ztd_rec == 0);
                     this.ztd(idx_pos,i) = this.ztd(idx_pos,i) + ztd_rec(idx_is);
                 end
                 
-                if this.state.flag_tropo_gradient
+                if this.state.flag_grad_net
                     [gn_rec, ge_rec] = this.rec_list(i).work.getGradient();
                     
                     this.ztd_gn(idx_pos,i) = this.ztd_gn(idx_pos,i) + gn_rec(idx_is);
                     
                     this.ztd_ge(idx_pos,i) = this.ztd_ge(idx_pos,i) + ge_rec(idx_is);
+                end
                 end
             end
         end

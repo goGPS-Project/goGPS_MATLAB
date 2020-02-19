@@ -9999,24 +9999,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                     ls.Astack2Nstack();
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
-                    ls.setTimeRegularization(ls.PAR_REC_CLK, (state.std_clock)^2 / 3600* rate); % really small regularization
                     if state.flag_ztd_ppp
-                        ls.setMeanRegularization(ls.PAR_TROPO, state.std_tropo_abs^2);% state.std_tropo / 3600 * rate  );
+                        ls.setMeanRegularization(ls.PAR_TROPO, state.areg_ztd_ppp^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo == 0
-                            ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
+                            ls.setTimeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
                         else
-                            ls.setTimeRegularization(ls.PAR_TROPO, (state.std_tropo)^2 / 3600 * tropo_rate(1) );% state.std_tropo / 3600 * rate  );
+                            ls.setTimeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2 / 3600 * tropo_rate(1) );% state.std_tropo / 3600 * rate  );
                         end
                     end
                     if state.flag_grad_ppp
-                        ls.setMeanRegularization(ls.PAR_TROPO_N, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
-                        ls.setMeanRegularization(ls.PAR_TROPO_E, state.std_tropo_gradient_abs^2);% state.std_tropo / 3600 * rate  );
+                        ls.setMeanRegularization(ls.PAR_TROPO_N, state.areg_grad_ppp^2);% state.std_tropo / 3600 * rate  );
+                        ls.setMeanRegularization(ls.PAR_TROPO_E, state.areg_grad_ppp^2);% state.std_tropo / 3600 * rate  );
                         if order_tropo_g == 0
-                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
-                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
                         else
-                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.std_tropo_gradient)^2 / 3600 * tropo_rate(2) );%state.std_tropo / 3600 * rate );
-                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.std_tropo_gradient)^2 / 3600 * tropo_rate(2));%state.std_tropo  / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2 / 3600 * tropo_rate(2) );%state.std_tropo / 3600 * rate );
+                            ls.setTimeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2 / 3600 * tropo_rate(2));%state.std_tropo  / 3600 * rate );
                         end
                     end
                     log.addMessage(log.indent('Solving the system'));

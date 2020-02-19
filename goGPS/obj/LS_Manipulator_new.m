@@ -2386,11 +2386,11 @@ classdef LS_Manipulator_new < handle
                     this.PAR_IONO;
                     ];  %
                
-                if state.flag_tropo
+                if state.flag_ztd_ppp
                     param_selction = [param_selction;
                     this.PAR_TROPO;];
                 end
-                if state.flag_tropo_gradient
+                if state.flag_grad_ppp
                     param_selction = [param_selction;
                     this.PAR_TROPO_N;
                     this.PAR_TROPO_E;];
