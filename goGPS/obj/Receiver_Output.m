@@ -511,6 +511,15 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
+            state = Core.getCurrentSettings();
+            if nargin < 3 || isempty(rate)
+                if rec_work.time.getRate == state.getTropoOutRate
+                    rate = [];
+                else
+                    rate = state.getTropoOutRate();
+                end
+            end
+                
             if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && ~(rec_work.quality_info.s0 < 1e-5))))
                 % set the id_sync only to time in between out times
                 basic_export = false;
@@ -531,7 +540,7 @@ classdef Receiver_Output < Receiver_Commons
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
                 
-                if nargin == 3 && ~isempty(rate)
+                if ~isempty(rate)
                     id_sync_bk = rec_work.getIdSync;
                     id_sync = rec_work.getIdSync;
                     sync_time = round(rec_work.getTime.getRefTime(round(rec_work.time.getCentralTime.getMatlabTime * 2)/2) * (rec_work.getRate/2)) / (rec_work.getRate/2);
@@ -803,7 +812,7 @@ classdef Receiver_Output < Receiver_Commons
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end
                 
-                if nargin == 3 && ~isempty(rate)
+                if ~isempty(rate)
                     rec_work.id_sync = id_sync_bk;
                 end
             end

@@ -703,20 +703,22 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
-            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,2))];
+            err_box_g.Heights = (Core_UI.LINE_HEIGHT * ones(1,2));
                                                             
             this.uip.tab_pre_proc = tab;
         end
         
         function insertTabOutput(this, container)
-            data_selection_bg = Core_UI.LIGHT_GREY_BG;
+            color_bg = Core_UI.LIGHT_GREY_BG;
             tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
-                'BackgroundColor', data_selection_bg);
+                'Spacing', 10, ...
+                'BackgroundColor', color_bg);
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(tab, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
-            Core_UI.insertEmpty(tab)
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab, 'Output rate of the tropospheric parameters', 'trp_out_rate', 's', @this.onEditChange, [280 100 5 50], color_bg);
+            this.edit_texts{end}.TooltipString = 'Insert zero to export the date at the original processing rate';
             opt_out = this.insertOutOptions(tab);
-            tab.Heights = [Core_UI.LINE_HEIGHT 10 -1];
+            tab.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             this.uip.tab_proc = tab;
         end
         

@@ -240,6 +240,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
+        
+        TRP_OUT_RATE = 0;                            % Troposphere output rate 0 means use the rate the receivers
 
         % ATMOSPHERE
         FLAG_FREE_NET_TROPO = false;                    % Flag for enabling free network of ztd in network estimation
@@ -294,7 +296,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
         
-        % Uncombined options
+        % UNCOMBINED OPTIONS
         
         FLAG_COO_PPP  = true; % estimate coordinets in ppp
         FLAG_COO_NET  = true; % estimate coordinates in network
@@ -872,7 +874,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         flag_coo_rate     = Main_Settings.FLAG_COO_RATE;
         coo_rates         = Main_Settings.COO_RATES;
-
+        
+        trp_out_rate      = Main_Settings.TRP_OUT_RATE;
+        
         %------------------------------------------------------------------
         % ATMOSPHERE
         %------------------------------------------------------------------
@@ -1275,6 +1279,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
                 this.coo_rates     = state.getData('coo_rates');
+                
+                this.trp_out_rate = state.getData('trp_out_rate');
 
                 % ATMOSPHERE
                 this.flag_free_net_tropo = state.getData('flag_free_net_tropo');
@@ -1624,6 +1630,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 
                 this.flag_coo_rate = state.flag_coo_rate;
                 this.coo_rates     = state.coo_rates;
+                
+                this.trp_out_rate = state.trp_out_rate;
                
                 % ATMOSPHERE
                 this.flag_free_net_tropo = state.flag_free_net_tropo;
@@ -1924,9 +1932,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
             str = [str sprintf(' Enable Receiver multipath corrections:            %s\n', this.FLAG_REC_MP_SMODE{this.flag_rec_mp + 1})];
             str = [str sprintf(' Enable apriori iono correction:                   %d\n\n', this.flag_apr_iono)];
-            str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
-            
+            str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];            
             str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
+            
+            str = [str sprintf(' Rate of the exported tropospheric parameters:     %g\n\n', this.trp_out_rate)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' No reference for tropospheric paramters           %d\n\n', this.flag_free_net_tropo)];
@@ -2477,6 +2486,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
+
+            str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate of the exported tropospheric parameters, this should be a multiplier of the processing rate', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('0 uses the rate of the data', str_cell);
+            str_cell = Ini_Manager.toIniString('trp_out_rate', this.trp_out_rate, str_cell);
             
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
@@ -3380,6 +3394,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
             this.coo_rates = [0 0 0];
             
+            % Output
+            this.trp_out_rate = this.TRP_OUT_RATE;
+            
             % Atmosphere
             this.iono_management = 1;       % iono-free
             this.iono_model = 3;            % use IONEX external model for reductions
@@ -3470,6 +3487,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Coordinates
             this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
             this.coo_rates = [0 0 0];
+            
+            % Output
+            this.trp_out_rate = this.TRP_OUT_RATE;
             
             % Atmosphere
             this.iono_management = 1;       % iono-free
@@ -3594,6 +3614,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
              
             this.checkLogicalField('flag_coo_rate');
             this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
+
+            this.checkNumericField('trp_out_rate',[0 4.32*1e17]); % <- Age of the universe!!
 
             % ATMOSPHERE
             this.checkNumericField('iono_model',[1 numel(this.IONO_SMODE)]);
@@ -5689,7 +5711,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
  
         function flag = getPreferredIono(this)
-            % Set the preferred iono sequence:
+            % Get the preferred iono sequence:
             %   1 final
             %   2 predicted 1
             %   3 predicted 2
@@ -5709,6 +5731,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     case 'broadcast', flag(4) = true;
                 end
             end
+        end
+        
+        function rate = getTropoOutRate(this)
+            % Get the output rate of tropo to be used in PUSHOUT commands
+            %
+            % SYNTAX
+            %   rate = this.getTropoOutRate()
+            rate = this.trp_out_rate;
         end
     end
     
