@@ -2054,7 +2054,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             log.addMessage(log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
             phs = this.getSyntPhases;
-            %%
+            
+            % remove jumps (>0.5m) from discontinuities of the clock products
+            go_id = this.go_id(lid_ph);            
+            dts_range = zero2nan(this.getDtS(go_id)) * Core_Utils.V_LIGHT; % get satellites clocks
+            ddts = Core_Utils.diffAndPred(dts_range, 1);                   % get time derivate
+            ddts = (ddts - movmedian(ddts,3, 'omitnan'));                  % movmedian filter detect jumps
+            ddts(abs(ddts) < 0.5) = 0;                                     % Keep only jumps grater than 0.5 meters
+            phs = zero2nan(phs) + cumsum(nan2zero(ddts));                  % Adjust synthesised phases accordingly
+            
             sensor_ph0 = Core_Utils.diffAndPred(ph - phs, 1, [], 'zeros');
             
             % subtract median (clock error)
