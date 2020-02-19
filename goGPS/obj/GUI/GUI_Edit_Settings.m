@@ -1522,7 +1522,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'BackgroundColor', color_bg);            
             iono_opt_ppp_v1 = uix.VBox('Parent', iono_opt_ppp_h,...
                 'BackgroundColor', color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_v1, 'Eliminate (U2)', 'flag_iono_ppp', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_v1, 'Estimate (U2)', 'flag_iono_ppp', @this.onCheckBoxChange, color_bg);
             iono_opt_ppp_v2 = uix.VBox('Parent', iono_opt_ppp_h,...
                 'BackgroundColor', color_bg);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(iono_opt_ppp_v2, 'Ionosphere Management (comb)', state.IE_LABEL, 'iono_management', @this.onPopUpChange, [], color_bg);
@@ -1681,7 +1681,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'BackgroundColor', color_bg);
             iono_opt_net_v1 = uix.VBox('Parent', iono_opt_net_h,...
                 'BackgroundColor', color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_net_v1, 'Eliminate (U2)', 'flag_iono_net', @this.onCheckBoxChange,color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_net_v1, 'Estimate (U2)', 'flag_iono_net', @this.onCheckBoxChange,color_bg);
             
                         
             
