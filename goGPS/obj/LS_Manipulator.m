@@ -556,7 +556,7 @@ classdef LS_Manipulator < Exportable
             iob_flag = double(n_iob > 0);
             
             % separte antenna phase centers
-            apc_flag = this.state.isSeparateApc() & phase_present ;
+            apc_flag = false;
             n_apc = 3 * n_iob * apc_flag;
             apc_p_idx =  zeros(length(obs_set.wl),3);
             u_sys_c = unique(obs_set.obs_code(:,1));

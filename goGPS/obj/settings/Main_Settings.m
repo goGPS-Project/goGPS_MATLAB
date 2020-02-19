@@ -238,13 +238,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
-        FLAG_SEPARATE_APC = false;                      % Flag to enable different phase center for each system
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
 
         % ATMOSPHERE
-        FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
-        FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
         FLAG_FREE_NET_TROPO = false;                    % Flag for enabling free network of ztd in network estimation
         IONO_MANAGEMENT = 1;                            % Flag for enabling the usage of iono-free combination
         IONO_MODEL = 2;                                 % Ionospheric model to be used (1: none, 2: Klobuchar, 3: SBAS)
@@ -270,16 +267,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 3: MET File
         %SIGMA0_TROPO = 0.2;                            % Std of a priori tropospheric delay
         %SIGMA0_TROPO_GRADIENT = 1;                     % Std of a priori tropospheric gradient
-
-        STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.0005;                    % Std of tropospheric gradient [m/h]
-        STD_TROPO_ABS = 0.5;                            % abs value regularization Std of tropospheric delay [m]
-        STD_TROPO_GRADIENT_ABS = 0.02;                  % abs value regularization Std  of tropospheric gradient [m/h]
-        STD_CLOCK = 1e30;                               % Std of clock variations [m/h]
-        SPLINE_RATE_TROPO = 300;                        % rate of spline for tropo param [s]
-        SPLINE_RATE_TROPO_GRADIENT = 300;               % rate of spline for tropo gradient param [s]
-        SPLINE_TROPO_ORDER = 0;                         % order of the spline for the tropo
-        SPLINE_TROPO_GRADIENT_ORDER = 0;                % order of the spline for the tropo gradient
         
         
         TROPO_SPATIAL_REG_SIGMA = 1e-7;                % spatial regularization ztd sigma^2 m^2
@@ -884,17 +871,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_apr_iono    = Main_Settings.FLAG_APR_IONO;
         
         flag_coo_rate     = Main_Settings.FLAG_COO_RATE;
-        flag_separate_apc = Main_Settings.FLAG_SEPARATE_APC;
         coo_rates         = Main_Settings.COO_RATES;
 
         %------------------------------------------------------------------
         % ATMOSPHERE
         %------------------------------------------------------------------
 
-        % Flag for enabling the estimation of tropospheric delay
-        flag_tropo = Main_Settings.FLAG_TROPO;
-        % Flag for enabling the estimation of tropospheric delay
-        flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
         % Flag for enabling no constain on the ztd estimation in network
         % mode
         flag_free_net_tropo = Main_Settings.FLAG_FREE_NET_TROPO;
@@ -919,15 +901,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %sigma0_tropo = Main_Settings.SIGMA0_TROPO;
         %sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
         % Std of tropospheric delay [m / h]
-        std_tropo = Main_Settings.STD_TROPO;
-        std_tropo_gradient = Main_Settings.STD_TROPO;
-        std_tropo_abs = Main_Settings.STD_TROPO_ABS;
-        std_tropo_gradient_abs = Main_Settings.STD_TROPO_ABS;
-        std_clock = Main_Settings.STD_CLOCK;
-        spline_rate_tropo = Main_Settings.SPLINE_RATE_TROPO;
-        spline_rate_tropo_gradient = Main_Settings.SPLINE_RATE_TROPO_GRADIENT;
-        spline_tropo_order = Main_Settings.SPLINE_TROPO_ORDER;
-        spline_tropo_gradient_order = Main_Settings.SPLINE_TROPO_GRADIENT_ORDER;
         
         tropo_spatial_reg_sigma = Main_Settings.TROPO_SPATIAL_REG_SIGMA;
         tropo_spatial_reg_d_distance = Main_Settings.TROPO_SPATIAL_REG_D_DISTANCE;
@@ -1301,12 +1274,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_rec_mp = state.getData('flag_rec_mp');
                 this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
-                this.flag_separate_apc = state.getData('flag_separate_apc');
                 this.coo_rates     = state.getData('coo_rates');
 
                 % ATMOSPHERE
-                this.flag_tropo = state.getData('flag_tropo');
-                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
                 this.flag_free_net_tropo = state.getData('flag_free_net_tropo');
                 this.iono_management = state.getData('iono_management');
                 this.iono_model = state.getData('iono_model');
@@ -1319,15 +1289,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo  = state.getData('sigma0_tropo');
                 %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
-                this.std_tropo   = state.getData('std_tropo');
-                this.std_tropo_gradient   = state.getData('std_tropo_gradient');
-                this.std_tropo_abs   = state.getData('std_tropo_abs');
-                this.std_tropo_gradient_abs   = state.getData('std_tropo_gradient_abs');
-                this.std_clock   = state.getData('std_clock');
-                this.spline_rate_tropo   = state.getData('spline_rate_tropo');
-                this.spline_rate_tropo_gradient   = state.getData('spline_rate_tropo_gradient');
-                this.spline_tropo_order   = state.getData('spline_tropo_order');
-                this.spline_tropo_gradient_order   = state.getData('spline_tropo_gradient_order');
                 
                 this.tropo_spatial_reg_sigma   = state.getData('tropo_spatial_reg_sigma');
                 this.tropo_spatial_reg_d_distance   = state.getData('tropo_spatial_reg_d_distance');
@@ -1662,12 +1623,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_apr_iono = state.flag_apr_iono;
                 
                 this.flag_coo_rate = state.flag_coo_rate;
-                this.flag_separate_apc = state.flag_separate_apc;
                 this.coo_rates     = state.coo_rates;
                
                 % ATMOSPHERE
-                this.flag_tropo = state.flag_tropo;
-                this.flag_tropo_gradient = state.flag_tropo_gradient;
                 this.flag_free_net_tropo = state.flag_free_net_tropo;
                 this.iono_management = state.iono_management;
                 this.iono_model = state.iono_model;
@@ -1680,15 +1638,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo = state.sigma0_tropo;
                 %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
-                this.std_tropo = state.std_tropo;
-                this.std_tropo_gradient = state.std_tropo_gradient;
-                this.std_tropo_abs = state.std_tropo_abs;
-                this.std_tropo_gradient_abs = state.std_tropo_gradient_abs;
-                this.std_clock = state.std_clock;
-                this.spline_rate_tropo = state.spline_rate_tropo;
-                this.spline_rate_tropo_gradient = state.spline_rate_tropo_gradient;
-                this.spline_tropo_order = state.spline_tropo_order;
-                this.spline_tropo_gradient_order = state.spline_tropo_gradient_order;
                 
                 this.tropo_spatial_reg_sigma = state.tropo_spatial_reg_sigma;
                 this.tropo_spatial_reg_d_distance = state.tropo_spatial_reg_d_distance;
@@ -1975,14 +1924,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
             str = [str sprintf(' Enable Receiver multipath corrections:            %s\n', this.FLAG_REC_MP_SMODE{this.flag_rec_mp + 1})];
             str = [str sprintf(' Enable apriori iono correction:                   %d\n\n', this.flag_apr_iono)];
-            str = [str sprintf(' Separate antenna phase center for each GNSS:      %d\n', this.flag_separate_apc)];
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
             
             str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
-            str = [str sprintf(' Estimate tropospheric delay                       %d\n', this.flag_tropo)];
-            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n', this.flag_tropo_gradient)];
             str = [str sprintf(' No reference for tropospheric paramters           %d\n\n', this.flag_free_net_tropo)];
             str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model})];
             str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
@@ -1993,16 +1939,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
-            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.std_tropo_abs)];
-            str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
-            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.std_tropo_gradient_abs)];
-            str = [str sprintf(' STD of tropospheric gradient:                     %g\n', this.std_tropo_gradient)];
-            str = [str sprintf(' STD of clock:                                     %g\n\n', this.std_clock)];
-            str = [str sprintf(' Spline rate of tropospheric delay:                %g\n', this.spline_rate_tropo)];
-            str = [str sprintf(' Spline rate of tropospheric delay gradients:      %g\n', this.spline_rate_tropo_gradient)];
-            str = [str sprintf(' Spline order of tropospheric delay:               %g\n', this.spline_tropo_order)];
-            str = [str sprintf(' Spline order of tropospheric delay gradients:     %g\n\n', this.spline_tropo_gradient_order)];
-            str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n', this.tropo_spatial_reg_sigma)];
+           str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n', this.tropo_spatial_reg_sigma)];
             str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n', this.tropo_spatial_reg_d_distance)];
           
             str = [str sprintf(' Spatial reg. ztd gardients halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
@@ -2536,7 +2473,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             str_cell = Ini_Manager.toIniStringComment('Separate the antenna phase center for each constellations', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_separate_apc', this.flag_separate_apc, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
@@ -2558,8 +2494,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);           
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniString('flag_free_net_tropo', this.flag_free_net_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('A-priori zenith delay model', str_cell);
@@ -2588,24 +2522,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.STD_TROPO_ABS), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo_abs', this.std_tropo_abs, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.4f)', this.STD_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.STD_TROPO_GRADIENT_ABS), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo_gradient_abs', this.std_tropo_gradient_abs, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of clock [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('std_clock', this.std_clock, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay [s] (default = %.0f)', this.SPLINE_RATE_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('spline_rate_tropo', this.spline_rate_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline rate tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_RATE_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('spline_rate_tropo_gradient', this.spline_rate_tropo_gradient, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay [s] (default = %.0f)', this.SPLINE_TROPO_ORDER), str_cell);
-            str_cell = Ini_Manager.toIniString('spline_tropo_order', this.spline_tropo_order, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Spline order tropospheric delay gradients [s] (default = %.0f)', this.SPLINE_TROPO_GRADIENT_ORDER), str_cell);
-            str_cell = Ini_Manager.toIniString('spline_tropo_gradient_order', this.spline_tropo_gradient_order, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo [m^2] (default = %.0f)', this.TROPO_SPATIAL_REG_SIGMA), str_cell);
             str_cell = Ini_Manager.toIniString('tropo_spatial_reg_sigma', this.tropo_spatial_reg_sigma, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo halving distance [m] (default = %.0f)', this.TROPO_SPATIAL_REG_D_DISTANCE), str_cell);
@@ -3461,7 +3377,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_apr_iono = 1;
             
             % Coordinates
-            this.flag_separate_apc = 0;  % hope that the antenna is calibrated such that only one center of phase per constellation is present
             this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
             this.coo_rates = [0 0 0];
             
@@ -3469,8 +3384,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.iono_management = 1;       % iono-free
             this.iono_model = 3;            % use IONEX external model for reductions
             
-            this.flag_tropo = 1;            % compute troposphere
-            this.flag_tropo_gradient = 1;   % compute troposphere
             this.flag_free_net_tropo = 0;   % no reference in tropo est 
             
             this.zd_model = 2;              % Use VMF for a-priori
@@ -3480,15 +3393,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
-            this.std_tropo = 0.0015;
-            this.std_tropo_gradient = 0.0002;
-            this.std_tropo_abs = 0.5;
-            this.std_tropo_gradient_abs = 0.02;
-            this.std_clock = 1e+30;
-            this.spline_rate_tropo = 900;
-            this.spline_rate_tropo_gradient = 1800;
-            this.spline_tropo_order = 0;
-            this.spline_tropo_gradient_order = 0;
             
             this.tropo_spatial_reg_sigma = 1e-7;
             this.tropo_spatial_reg_d_distance = 25e3;
@@ -3564,16 +3468,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_apr_iono = 1;
             
             % Coordinates
-            this.flag_separate_apc = 0;  % hope that the antenna is calibrated such that only one center of phase per constellation is present
             this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
             this.coo_rates = [0 0 0];
             
             % Atmosphere
             this.iono_management = 1;       % iono-free
             this.iono_model = 3;            % use IONEX external model for reductions
-            
-            this.flag_tropo = 1;            % compute troposphere
-            this.flag_tropo_gradient = 1;   % compute troposphere
+
             this.flag_free_net_tropo = 0;
             
             this.zd_model = 1;              % Use Saastamoinen for a-priori
@@ -3582,15 +3483,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.meteo_data = 2;            % Use GPT
             
             % Regularization
-            this.std_tropo = 0.015;
-            this.std_tropo_gradient = 0.001;
-            this.std_tropo_abs = 0.5;
-            this.std_tropo_gradient_abs = 0.02;
-            this.std_clock = 1e+30;
-            this.spline_rate_tropo = 900;
-            this.spline_rate_tropo_gradient = 3600;
-            this.spline_tropo_order = 3;
-            this.spline_tropo_gradient_order = 3;
             
             % Save Results
             this.flag_out_pwv = 0;
@@ -3616,8 +3508,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % No iono - No Tropo
             this.setToMediumNET();
             
-            this.flag_tropo = 0;            % do not compute troposphere
-            this.flag_tropo_gradient = 0;   % do not compute tropospheric gradients
             this.flag_free_net_tropo = 0;
 
             this.flag_out_pwv = 0;
@@ -3703,7 +3593,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_apr_iono');
              
             this.checkLogicalField('flag_coo_rate');
-            this.checkLogicalField('flag_separate_apc');
             this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
 
             % ATMOSPHERE
@@ -3713,24 +3602,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('mapping_function_gradient',[1 numel(this.MFG_SMODE)]);
 
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
-            this.checkLogicalField('flag_tropo');
-            this.checkLogicalField('flag_tropo_gradient');
             this.checkLogicalField('flag_free_net_tropo');
-            if this.flag_tropo_gradient && ~this.flag_tropo
-                this.flag_tropo_gradient = false;
-                log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
-            end
                         
             % ADV ATMOSPHERE
-            this.checkNumericField('std_tropo_abs',[1e-11 10]);
-            this.checkNumericField('std_tropo',[1e-12 1e50]);
-            this.checkNumericField('std_tropo_gradient_abs',[1e-11 10]);
-            this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
-            this.checkNumericField('std_clock',[1e-12 1e50]);
-            this.checkNumericField('spline_rate_tropo',[0 1e50]);
-            this.checkNumericField('spline_rate_tropo_gradient',[0 1e50]);
-            this.checkNumericField('spline_tropo_order',[0 3]);
-            this.checkNumericField('spline_tropo_gradient_order',[0 3]);
             this.checkNumericField('tropo_spatial_reg_sigma',[0 1e50]);
             this.checkNumericField('tropo_spatial_reg_d_distance',[0 1e50]);
             this.checkNumericField('tropo_gradient_spatial_reg_sigma',[0 1e50]);
@@ -5495,13 +5369,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
         end
 
-        function is_tropo = isTropoOn(this)
-            % Check whether the tropospheric delay estimation is enabled
-            %
-            % SYNTAX
-            %   is_tropo = this.isTropoOn();
-            is_tropo = this.flag_tropo;
-        end
         
         function is_iono_free = isIonoFree(this)
             % Check whether the iono free combination is enabled
@@ -5607,16 +5474,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
         end
-        
-        function is_apc_sep = isSeparateApc(this)
-               % Should different phase centers been estimated
-            %
-            % SYNTAX
-            %   is_apc_sep = this.isSeparateApc()
-            
-            is_apc_sep = this.flag_separate_apc;
-        end
-        
+   
         function is_smt = isSmoothTropoOut(this)
             % Should the troposphere parameters be smoothed
             %
@@ -5665,14 +5523,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   is_apr_iono= isAprIono(this)
             is_apr_iono = this.flag_apr_iono;
         end  
-
-        function is_tropo_gradient = isTropoGradientEnabled(this)
-            % Check whether the tropospheric delay gradient estimation is enabled
-            %
-            % SYNTAX
-            %   is_tropo_gradient = this.isTropoGradientEnabled();
-            is_tropo_gradient = this.flag_tropo_gradient;
-        end
         
         function is_reference_tropo = isReferenceTropoEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled
