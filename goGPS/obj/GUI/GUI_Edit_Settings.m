@@ -199,7 +199,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Main Window ----------------------------------------------------------------------------------------------
 
                 win = figure( 'Name', sprintf('%s @ %s', state.getPrjName, state.getHomeDir), ...
-                    'Visible', 'off', ...
+                    'Visible', 'on', ...
                     'DockControls', 'off', ...
                     'MenuBar', 'none', ...
                     'ToolBar', 'none', ...
@@ -207,6 +207,14 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'Renderer', 'opengl', ...
                     'Position', [0 0 1040, 640]);
                 win.UserData.name = this.WIN_NAME;
+                % Center the window
+                if isunix && not(ismac())
+                    win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                    win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                else
+                    win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                    win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                end
                 
                 this.w_main = win;            
 
@@ -230,41 +238,65 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     close(win);
                     return;
                 end
-                top_bh = uix.HBox( 'Parent', main_bv);
+                top_bh = uix.HBox( 'Parent', main_bv, 'BackgroundColor', Core_UI.DARK_GREY_BG);
+
+                bottom_bh = uix.HBox( 'Parent', main_bv, ...
+                    'Padding', 5, ...
+                    'Spacing', 5, ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+                main_bv.Heights = [-1 30];
 
                 left_bv = uix.VBox('Parent', top_bh, ...
                     'Padding', 5, ...
                     'BackgroundColor', Core_UI.DARK_GREY_BG);
 
+                panel_g_border = uix.VBox('Parent', top_bh, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
+                %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
+                top_bh.Widths = [210 -1];
+
                 % Set-up menu ----------------------------------------------------------------------------------------------
 
                 this.addGoMenu();
-
+                
                 % Logo/title box -------------------------------------------------------------------------------------------
 
                 Core_UI.insertLogoGUI(left_bv);
-
+                left_bv.Heights = 94;
+                
+                % Main Panel -----------------------------------------------------------------------------------------------
+                
+                wait_box = uix.VBox( 'Parent', panel_g_border, ...
+                    'Padding', 250, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                uicontrol('Parent', wait_box, ...
+                    'Style', 'Text', ...
+                    'String', 'Building interface...', ...
+                    'ForegroundColor', Core_UI.BLACK, ...
+                    'HorizontalAlignment', 'center', ...
+                    'FontSize', Core_UI.getFontSize(10), ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                drawnow; 
+                delete(wait_box)
+                tab_panel = uix.TabPanel('Parent', panel_g_border, ...
+                    'TabWidth', 100, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'SelectionChangedFcn', @this.onTabChange);
+                
+                % Left Panel -----------------------------------------------------------------------------------------------
                 this.insertSessionInfo(left_bv);
 
                 this.insertRecList(left_bv);
 
                 %this.updateRec(left_bv);
 
-                % Main Panel -----------------------------------------------------------------------------------------------
+                session_height = sum(left_bv.Children(2).Heights);
+                left_bv.Heights = [94 session_height -1];                                
 
-                panel_g_border = uix.Grid('Parent', top_bh, ...
-                    'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARK_GREY_BG);
-                %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
-                top_bh.Widths = [210 -1];
-
-                tab_panel = uix.TabPanel('Parent', panel_g_border, ...
-                    'TabWidth', 80, ...
-                    'Padding', 5, ...
-                    'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                    'SelectionChangedFcn', @this.onTabChange);
-
-
+                % Tab creation  --------------------------------------------------------------------------------------------
+                
                 % Main Panel > tab1 settings
                 this.j_settings = this.insertTabAdvanced(tab_panel);
 
@@ -283,32 +315,23 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Main Panel > tab5 CRD of the stations
                 this.insertTabRecSpecificParameters(tab_panel);
 
-                % Main Panel > tab6 pre-processing options
-                this.insertTabPrePro(tab_panel);
-
-                % Main Panel > tab7 processing options
+                % Main Panel > tab6 regularization
                 this.insertTabProcessing(tab_panel);
 
-                % Main Panel > tab8 regularization
-                this.insertTabParametrization(tab_panel);
-
-                % Main Panel > tab9 atmosphere options
-                this.insertTabAtmosphere(tab_panel);
-
+                % Main Panel > tab7 processing options
+                this.insertTabOutput(tab_panel);
+                
                 % Tabs settings --------------------------------------------------------------------------------------------
 
                 if enable_rri
-                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Parametrization', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Output'};
                 else
-                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Pre-Processing', 'Processing', 'Parametrization', 'Atmosphere'};
+                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Output'};
                 end
+                tab_panel.Selection = 3;            
 
                 % Botton Panel ---------------------------------------------------------------------------------------------
-                bottom_bh = uix.HBox( 'Parent', main_bv, ...
-                    'Padding', 5, ...
-                    'Spacing', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
-
+                
                 bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
                     'ButtonSize', [165 28] , ...
                     'Spacing', 5, ...
@@ -365,24 +388,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'Callback', @this.go, ...
                     'FontWeight', 'bold');
                 
-                % Manage dimension -------------------------------------------------------------------------------------------
-
-                main_bv.Heights = [-1 30];
                 %session_height = sum(left_bv.Children(2).Children(1).Heights);
-                session_height = sum(left_bv.Children(2).Heights);
-                left_bv.Heights = [94 session_height -1];
                 bottom_bh.Widths = [60 -1 260];
-                tab_panel.Selection = 3;            
                             
-                set(win, 'CloseRequestFcn', @this.close);
-                
-                if isunix && not(ismac())
-                    win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
-                    win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
-                else
-                    win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-                    win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
-                end
+                set(win, 'CloseRequestFcn', @this.close);                
             end
             
             this.updateUI();
@@ -407,7 +416,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
     methods
         function insertResources(this, container)
             resources_BG = Core_UI.LIGHT_GREY_BG;
-            tab = uix.Grid('Parent', container, ...
+            tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', resources_BG);
             
@@ -657,142 +666,45 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             box_g.Heights = [-1 Core_UI.LINE_HEIGHT];
         end
                 
-        function insertTabPrePro(this, container)
-            data_selection_bg = Core_UI.LIGHT_GREY_BG;
-            tab = uix.Grid('Parent', container, ...
-                'Padding', 5, ...
-                'BackgroundColor', data_selection_bg);
+        function insertTabPrePro(this, container, color_bg)
+            tab = uix.VBox('Parent', container, ...
+                'BackgroundColor', color_bg);
             
             % --------------------------------------------------------
             
-            ds_box = Core_UI.insertPanelLight(tab, 'Data Selection');
+            ds_box = Core_UI.insertPanel(tab, 'Data Selection', color_bg);
             
             % --------------------------------------------------------
             ds_box_g = uix.VBox('Parent', ds_box, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            uicontrol('Parent', ds_box_g, ...
-                'Style', 'Text', ...
-                'String', 'Data to keep during processing (if present in the receiver data)', ...
-                'ForegroundColor', Core_UI.BLACK, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', data_selection_bg);
-            
-            Core_UI.insertHBarLight(ds_box_g);
-            
+                'BackgroundColor', color_bg);
+
             ds_v_box = uix.VBox('Parent', ds_box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            ss_panel  = this.insertSatSelector(ds_v_box); %#ok<NASGU>
-            
-            Core_UI.insertEmpty(ds_v_box);            
-            
+                'BackgroundColor', color_bg);
+                                    
             err_box_g = uix.VBox('Parent', ds_v_box, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [200 40 5 50]);
-            ttip = 'This is not kept in case of snooping';
-            if verLessThan('matlab','9.5')
-                grd.Children(end).TooltipString = ttip;
-            else
-                grd.Children(end).Tooltip = ttip;
-            end
-
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [200 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolute threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
-            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50]);
-            ttip = 'Different trackings have different scaling factor, rescale them w.r.t. the code error level of the first frequency/tracking';
-            if verLessThan('matlab','9.5')
-                grd.Children(end).TooltipString = ttip;
-            else
-                grd.Children(end).Tooltip = ttip;
-            end
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [200 40 5 50]);
-            Core_UI.insertEmpty(err_box_g);
-
-            %[~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Sat to remove', 'sat_to_remove', '', @this.onEditChange, [95 120 0 40 ]);
-            %Core_UI.insertEmpty(err_box_g);
-            
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50]);
-            Core_UI.insertEmpty(err_box_g);
-            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,5)) 10 (Core_UI.LINE_HEIGHT * ones(1,2)) -1];
+                'BackgroundColor', color_bg);
                         
-            ds_v_box.Heights = [168 10 -1];
-            
-            %Core_UI.insertEmpty(ds_box_g);
-            
-            % --------------------------------------------------------
-            
-            Core_UI.insertEmpty(tab);
-            
-            % --------------------------------------------------------
-            
-            this.insertPreProOptions(tab);
-            
-            % --------------------------------------------------------
-            
-            ds_box_g.Heights = [18 15 -1];
-            
-            tab.Widths = [-1 5 190];
-            
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
+            err_box_g.Heights = [(Core_UI.LINE_HEIGHT * ones(1,2))];
+                                                            
             this.uip.tab_pre_proc = tab;
         end
         
-        function insertTabProcessing(this, container)
+        function insertTabOutput(this, container)
             data_selection_bg = Core_UI.LIGHT_GREY_BG;
-            tab = uix.Grid('Parent', container, ...
+            tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', data_selection_bg);
-            
-            % --------------------------------------------------------
-            
-            opt_h = uix.HBox('Parent', tab, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            opt_l = uix.VBox('Parent', opt_h, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            opt_tlh = uix.HBox('Parent', opt_l, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            opt_tll = uix.VBox('Parent', opt_tlh, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                        
-             
-            % left top left
-            %coo_panel = this.insertCooOptions(opt_tll);
-            Core_UI.insertEmpty(opt_tll);            
-            pp_panel = this.insertTabProcessingOptions(opt_tll);
-                        
-            % left bottom
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
-
-            Core_UI.insertEmpty(opt_h);
-            
-            % right                                                           
-            opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
-            
-            opt_l.Heights = [-1 Core_UI.LINE_HEIGHT];
-            opt_tll.Heights = [0 -1];
-            opt_tlr.Heights = 25 + Core_UI.LINE_HEIGHT * 9;
-            
-            opt_h.Widths = [-1 5 210];
-            
-            % --------------------------------------------------------
-            
-            ds_box_g.Heights = [18 15 -1];
-            
-            tab.Heights = -1;
-            
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(tab, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
+            Core_UI.insertEmpty(tab)
+            opt_out = this.insertOutOptions(tab);
+            tab.Heights = [Core_UI.LINE_HEIGHT 10 -1];
             this.uip.tab_proc = tab;
         end
         
         function ocean_panel = insertOceanOptions(this, container)
             ocean_panel = Core_UI.insertPanelLight(container, 'Ocean loading file');
-            opt_grid = uix.Grid('Parent', ocean_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
         
@@ -806,245 +718,37 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
             set( opt_v, 'Heights', [1 1 1] .* Core_UI.LINE_HEIGHT );
         end
-        
-        function proc_opt = insertTabProcessingOptions(this, container)
-            state = Core.getCurrentSettings;
-            vpopt = uix.VBox('Parent', container,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            proc_opt = Core_UI.insertPanelLight(vpopt, 'Generic Options');
-            opt_list = uix.VBox('Parent', proc_opt,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Observation weighting', state.W_SMODE, 'w_mode', @this.onPopUpChange);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max code observation err', 'max_code_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50]);
-            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(3,1);
-            
-%             proc_opt = Core_UI.insertPanelLight(vpopt, 'Troposphere Options');
-%             opt_list = uix.VBox('Parent', proc_opt,...
-%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-%             tropo_opt_est_grid = uix.HBox('Parent', opt_list,...
-%                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimate ZTD', 'flag_tropo', @this.onCheckBoxChange);
-%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tropo_opt_est_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient', @this.onCheckBoxChange);            
-%             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list, 'Absolute tropo in network', 'flag_free_net_tropo', @this.onCheckBoxChange);
-%             opt_list.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
-            
-            proc_opt = Core_UI.insertPanelLight(vpopt, 'Ionosphere Options');
-            opt_list = uix.VBox('Parent', proc_opt,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list, 'Ionosphere Management (combined engine only)', state.IE_LABEL, 'iono_management', @this.onPopUpChange);
-            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(1,1);
-
-
-            proc_opt_net = Core_UI.insertPanelLight(vpopt, 'PPP Options');
-            opt_list_net = uix.VBox('Parent', proc_opt_net,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'PPP Snooping / Reweight', state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_net, 'PPP Try to fix Ambiguity (Experimental)', 'flag_net_amb_fix', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_list_net, 'Enable PPP for receivers containing only a single frequency', 'flag_net_force_single_freq', @this.onCheckBoxChange);
-            
-            proc_opt_net = Core_UI.insertPanelLight(vpopt, 'NET Options');
-            opt_list_net = uix.VBox('Parent', proc_opt_net,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET Snooping / Reweight', state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_list_net, 'NET fixing approach', state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange);
-            opt_list_net.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
-
-            vpopt.Heights = 25 + [3, 1, 3, 2] .* Core_UI.LINE_HEIGHT;
-        end
-        
-        function ss_panel = insertSatSelector(this, container)
-            % Constellation selection
-            ss_panel = Core_UI.insertPanelLight(container, 'Constellation Selection');
-            ss_panel.FontWeight = 'normal';
-            
-            h_box_cc = uix.HBox('Parent', ss_panel, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
-                'ButtonSize', [100 20], ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou',  'C_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange);
-            this.check_boxes{end}.Enable = 'off';
-            
-            Core_UI.insertVBarLight(h_box_cc);
-            
-            %%% frequency selection
-            v_bx_freq = uix.VBox('Parent', h_box_cc, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            n_b_gps = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L1) L1', 'GPS_L1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L2) L2', 'GPS_L2', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L5) L5', 'GPS_L5', @this.onCheckBoxCCChange);
-            
-            n_b_glo = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) G1', 'GLO_G1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) G2', 'GLO_G2', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L3) G3', 'GLO_G3', @this.onCheckBoxCCChange);
-            
-            n_b_gal = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L1) E1 ', 'GAL_E1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L5) E5a', 'GAL_E5a', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L7) E5b', 'GAL_E5b', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L8) E5 ', 'GAL_E5', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L6) E6 ', 'GAL_E6', @this.onCheckBoxCCChange);
-            
-            n_b_qzs = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L5) L5', 'QZS_L5', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L6) L6', 'QZS_LEX6', @this.onCheckBoxCCChange);
-            
-            n_b_bei = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L2) B1', 'BDS_B1', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L7) B2', 'BDS_B2', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L6) B3', 'BDS_B3', @this.onCheckBoxCCChange);
-            
-            n_b_irn = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L5) L5', 'IRN_L5', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L9) S ', 'IRN_S', @this.onCheckBoxCCChange);
-            
-            n_b_sbs = uix.HButtonBox('Parent', v_bx_freq, ...
-                'HorizontalAlignment', 'left', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_sbs, '(L1) L1', 'SBS_L1', @this.onCheckBoxCCChange);
-            this.check_boxes{end}.Enable = 'off';
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_sbs, '(L5) L5', 'SBS_L5', @this.onCheckBoxCCChange);
-            this.check_boxes{end}.Enable = 'off';
-            
-            n_b_gps.ButtonSize(1) = 72;
-            n_b_glo.ButtonSize(1) = 72;
-            n_b_gal.ButtonSize(1) = 72;
-            n_b_qzs.ButtonSize(1) = 72;
-            n_b_bei.ButtonSize(1) = 72;
-            n_b_irn.ButtonSize(1) = 72;
-            n_b_sbs.ButtonSize(1) = 72;
-            
-            v_bx_freq.Heights = 0 * v_bx_freq.Heights + 20;
-            h_box_cc.Widths = [80 20 -1];
-        end
-        
+                        
         function out_panel = insertOutOptions(this, container)
             %%% processing options
             opt_container = uix.VBox('Parent', container,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            out_panel = Core_UI.insertPanelLight(opt_container, 'Results to be stored');
+            out_panel = Core_UI.insertPanelLight(opt_container, 'Results to be stored in the output object of the receiver');
             opt_v = uix.VBox('Parent', out_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dt (clock errors)',       'flag_out_dt', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV',                     'flag_out_pwv', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD',                     'flag_out_zwd', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZTD',                     'flag_out_ztd', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Tropo Gradients',         'flag_out_tropo_g', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'A-priori tropo',          'flag_out_apr_tropo', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'P / T / H',               'flag_out_pth', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Outliers / CS',           'flag_out_ocs', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',           'flag_out_quality', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Number of Sat. per Epoch','flag_out_nspe', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Combined Residuals',      'flag_out_res_co', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Code Res.',    'flag_out_res_pr', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Phase Res.',   'flag_out_res_ph', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Receiver Clock Errors (Dt)',           'flag_out_dt', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV - Precippitable Water Vapour',     'flag_out_pwv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD - Zennith Wet Delay',              'flag_out_zwd', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZTD - Zenith Total Delay',             'flag_out_ztd', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Tropospheric Gradients (East/Norht)',  'flag_out_tropo_g', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'A-priori troposphere',                 'flag_out_apr_tropo', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Pressure / Temperature / Humidity',    'flag_out_pth', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Outliers / Cicle Sleeps events',       'flag_out_ocs', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',                        'flag_out_quality', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Number of Satellite per Epoch',        'flag_out_nspe', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',                  'flag_out_azel', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Combined Residuals',                   'flag_out_res_co', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Code Residuals',            'flag_out_res_pr', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Uncombined Phase Residuals',           'flag_out_res_ph', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Tropospheric Mapping functions',       'flag_out_mf', @this.onCheckBoxChange); 
             opt_v.Heights = ones(1, numel(opt_v.Heights)) * Core_UI.LINE_HEIGHT;
             opt_container.Heights = -1;
             %Core_UI.insertEmpty(opt_container);
             %opt_container.Heights = [264 -1];
         end
-
-        function input_mnp_panel = insertPreProOptions(this, container)
-            %%% processing options
-            popt_vbox = uix.VBox('Parent', container,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             
-            input_mnp_panel = Core_UI.insertPanelLight(popt_vbox, 'Input manipulation');
-            mnp_vbox = uix.VBox('Parent', input_mnp_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            Core_UI.insertEmpty(popt_vbox);
-            ppp_panel = this.insertCorrections(popt_vbox); %#ok<NASGU>
-            popt_vbox.Heights = [72 5 (27 + Core_UI.LINE_HEIGHT * 9 + 50)];
-            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(mnp_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(mnp_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange);
-            ttip = 'Align satellite clocks among each file';
-            if verLessThan('matlab','9.5')
-                this.check_boxes{end}.TooltipString = ttip;
-            else
-                this.check_boxes{end}.Tooltip = ttip;
-            end
-            Core_UI.insertEmpty(mnp_vbox);
-            
-            mnp_vbox.Heights = [[1, 1] .* Core_UI.LINE_HEIGHT -1];
-        end
-        
-        function ppp_panel = insertCorrections(this, container)
-            %%% processing options
-            ppp_panel = Core_UI.insertPanelLight(container, 'Range "corrections"');
-            opt_vbox = uix.VBox('Parent', ppp_panel,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);              
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);            
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Shapiro Delay',           'flag_shapiro', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Ocean Loading',           'flag_ocean_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Atmospheric Loading',     'flag_atm_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'High Order Ionosphere',   'flag_hoi', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
-            hbox_handle = uix.HBox('Parent', opt_vbox, ...
-                'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            Core_UI.insertEmpty(hbox_handle);
-            box_handle = uix.VBox('Parent', hbox_handle, ...
-                'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            hbox_handle.Widths = [15 -1];
-            uicontrol('Parent', box_handle, ...
-                'Style', 'Text', ...
-                'String', '  Multipath mitigation:', ...
-                'ForegroundColor', Core_UI.BLACK, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            this.pop_ups{end+1} = uicontrol('Parent', box_handle,...
-                'Style', 'popup',...
-                'UserData', 'flag_rec_mp',...
-                'String', Core.getCurrentSettings.FLAG_REC_MP_LABEL,...
-                'Callback', @this.onPopUpChange);
-            box_handle.Heights = [Core_UI.LINE_HEIGHT -1];
-            Core_UI.insertEmpty(opt_vbox);
-            opt_vbox.Heights = [ones(1, 9) * Core_UI.LINE_HEIGHT 50 -1];
-        end
-        
         function insertTabRecSpecificParameters(this, container)
-            tab = uix.Grid('Parent', container, ...
+            tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
             
@@ -1453,119 +1157,418 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.coo_tbl.RowName = {};
         end
         
-        function insertTabParametrization(this, container)
-            state  = Core.getCurrentSettings;
-            color_tab = Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT;
-            outerbox = uix.VBox('Parent', container,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+        function insertTabProcessing(this, container)
+            color_bg = Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT;
             
-            uicontrol('Parent', outerbox, ...
-                'Style', 'Text', ...
-                'String', '* parameters present only on undifferenced mode', ...
-                'ForegroundColor', Core_UI.BLACK, ...
-                'HorizontalAlignment', 'right', ...
-                'FontSize', Core_UI.getFontSize(8), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tab_panel = uix.TabPanel('Parent', outerbox, ...
-                'TabWidth', 80, ...
+            tab_panel = uix.TabPanel('Parent', container, ...
+                'TabWidth', 110, ...
                 'Padding', 5, ...
-                'BackgroundColor', color_tab, ...
+                'BackgroundColor', color_bg, ...
                 'SelectionChangedFcn', @this.onTabChange);
-            outerbox.Heights = [ Core_UI.LINE_HEIGHT-2 -1];
             
-            % Insert PPP and NET tabs
-            tab_ppp = uix.Grid('Parent', tab_panel, ...
+            % Insert tabs
+            tab_sat = uix.VBox('Parent', tab_panel, ...
                 'Padding', 2, ...
-                'BackgroundColor', color_tab);
-            tab_net = uix.Grid('Parent', tab_panel, ...
+                'BackgroundColor', color_bg);
+            tab_atm = uix.VBox('Parent', tab_panel, ...
                 'Padding', 2, ...
-                'BackgroundColor', color_tab);
-            tab_panel.TabTitles = {'PPP', 'Network'};
+                'BackgroundColor', color_bg);
+            tab_prepro = uix.VBox('Parent', tab_panel, ...
+                'Padding', 2, ...
+                'BackgroundColor', color_bg);
+            tab_generic = uix.VBox('Parent', tab_panel, ...
+                'Padding', 2, ...
+                'BackgroundColor', color_bg);
+            tab_ppp = uix.VBox('Parent', tab_panel, ...
+                'Padding', 2, ...
+                'BackgroundColor', color_bg);
+            tab_net = uix.VBox('Parent', tab_panel, ...
+                'Padding', 2, ...
+                'BackgroundColor', color_bg);
+            tab_panel.TabTitles = {'Data selection', 'Athmosphere', 'Pre-Processing', 'Generic Options', 'PPP Parameters', 'NET Parameters'};
             
+            this.insertDataSelection(tab_sat, color_bg);
+            this.insertTabAtmosphere(tab_atm, color_bg)
+
+            this.insertTabPrePro(tab_prepro, color_bg);            
+
+            this.insertGenericOpt(tab_generic, color_bg);
+            this.insertPPP(tab_ppp, color_bg);
+            this.insertNET(tab_net, color_bg);
+                        
+            this.uip.tab_reg = tab_panel;
+        end
+        
+        function insertDataSelection(this, tab_sat, color_bg)
+            dopt_vbox = uix.VBox('Parent', tab_sat,...
+                'BackgroundColor', color_bg);
+            
+            uicontrol('Parent', dopt_vbox, ...
+                'Style', 'Text', ...
+                'String', 'Data to keep during processing (if present in the receiver data)', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', color_bg);
+            
+            Core_UI.insertEmpty(dopt_vbox, color_bg);
+            ss_panel  = this.insertSatSelector(dopt_vbox, color_bg); %#ok<NASGU>
+            Core_UI.insertEmpty(dopt_vbox, color_bg);
+            
+            err_box_g = uix.VBox('Parent', dopt_vbox, ...
+                'BackgroundColor', color_bg);
+
+            dopt_vbox.Heights = [18 10 168 10 -1];
+
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [200 40 5 50], color_bg);
+            ttip = 'This is not kept in case of snooping';
+            if verLessThan('matlab','9.5')
+                grd.Children(end).TooltipString = ttip;
+            else
+                grd.Children(end).Tooltip = ttip;
+            end
+
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [200 40 5 50], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolute threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50], color_bg);
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50], color_bg);
+            ttip = 'Different trackings have different scaling factor, rescale them w.r.t. the code error level of the first frequency/tracking';
+            if verLessThan('matlab','9.5')
+                grd.Children(end).TooltipString = ttip;
+            else
+                grd.Children(end).Tooltip = ttip;
+            end
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [200 40 5 50], color_bg);
+            Core_UI.insertEmpty(err_box_g, color_bg);            
+            err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(5,1); -1];            
+        end
+        
+        function ss_panel = insertSatSelector(this, container, color_bg)
+            % Constellation selection
+            ss_vbox = uix.VBox('Parent', container, ...
+                'BackgroundColor', color_bg);
+            ss_panel = Core_UI.insertPanel(ss_vbox, 'Constellation Selection', color_bg);
+            ss_panel.FontWeight = 'normal';
+            Core_UI.insertEmpty(ss_vbox, color_bg);            
+            ss_vbox.Heights = [168 -1];
+            
+            h_box_cc = uix.HBox('Parent', ss_panel, ...
+                'BackgroundColor', color_bg);
+            
+            v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
+                'ButtonSize', [100 20], ...
+                'BackgroundColor', color_bg);
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou',  'C_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange, color_bg);
+            this.check_boxes{end}.Enable = 'off'; % disable SBAS
+
+            Core_UI.insertVBar(h_box_cc, color_bg, Core_UI.DARK_GREY_BG);
+            
+            %%% frequency selection
+            v_bx_freq = uix.VBox('Parent', h_box_cc, ...
+                'BackgroundColor', color_bg);
+            h_box_cc.Widths = [80 20 -1];
+
+            n_b_gps = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            n_b_glo = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            n_b_gal = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            n_b_qzs = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            n_b_bei = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);             
+            n_b_irn = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            n_b_sbs = uix.HButtonBox('Parent', v_bx_freq, ...
+                'HorizontalAlignment', 'left', ...
+                'BackgroundColor', color_bg);
+            
+            v_bx_freq.Heights = 0 * v_bx_freq.Heights + 20;
+            
+            n_b_gps.ButtonSize(1) = 72;
+            n_b_glo.ButtonSize(1) = 72;
+            n_b_gal.ButtonSize(1) = 72;
+            n_b_qzs.ButtonSize(1) = 72;
+            n_b_bei.ButtonSize(1) = 72;
+            n_b_irn.ButtonSize(1) = 72;
+            n_b_sbs.ButtonSize(1) = 72;
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L1) L1', 'GPS_L1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L2) L2', 'GPS_L2', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gps, '(L5) L5', 'GPS_L5', @this.onCheckBoxCCChange, color_bg);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) G1', 'GLO_G1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) G2', 'GLO_G2', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L3) G3', 'GLO_G3', @this.onCheckBoxCCChange, color_bg);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L1) E1 ', 'GAL_E1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L5) E5a', 'GAL_E5a', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L7) E5b', 'GAL_E5b', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L8) E5 ', 'GAL_E5', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L6) E6 ', 'GAL_E6', @this.onCheckBoxCCChange, color_bg);
+            
+           
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L5) L5', 'QZS_L5', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L6) L6', 'QZS_LEX6', @this.onCheckBoxCCChange, color_bg);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L2) B1', 'BDS_B1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L7) B2', 'BDS_B2', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L6) B3', 'BDS_B3', @this.onCheckBoxCCChange, color_bg);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L5) L5', 'IRN_L5', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L9) S ', 'IRN_S', @this.onCheckBoxCCChange, color_bg);
+            
+            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_sbs, '(L1) L1', 'SBS_L1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end}.Enable = 'off';
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_sbs, '(L5) L5', 'SBS_L5', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end}.Enable = 'off';                        
+        end        
+
+        function input_mnp_panel = insertInputManipulation(this, container, color_bg)
+            %%% processing options
+            popt_vbox = uix.VBox('Parent', container,...
+                'BackgroundColor', color_bg);            
+            input_mnp_panel = Core_UI.insertPanel(popt_vbox, 'Input manipulation', color_bg);
+            mnp_vbox = uix.VBox('Parent', input_mnp_panel,...
+                'BackgroundColor', color_bg);                        
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(mnp_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(mnp_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange, color_bg);
+            ttip = 'Align satellite clocks among each file';
+            if verLessThan('matlab','9.5')
+                this.check_boxes{end}.TooltipString = ttip;
+            else
+                this.check_boxes{end}.Tooltip = ttip;
+            end
+        end
+
+        function range_corr_panel = insertCorrections(this, container, color_bg)
+            %%% processing options
+            range_corr_panel = Core_UI.insertPanel(container, 'Range "corrections"', color_bg);
+            opt_vbox = uix.VBox('Parent', range_corr_panel,...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);              
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Shapiro Delay',           'flag_shapiro', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Ocean Loading',           'flag_ocean_load', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Atmospheric Loading',     'flag_atm_load', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'High Order Ionosphere',   'flag_hoi', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_vbox, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange, color_bg);
+            hbox_handle = uix.HBox('Parent', opt_vbox, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_bg);
+            Core_UI.insertEmpty(hbox_handle, color_bg);
+            box_handle = uix.HBox('Parent', hbox_handle, ...
+                'Padding', 0, ...
+                'BackgroundColor', color_bg);
+            hbox_handle.Widths = [15 -1];
+            uicontrol('Parent', box_handle, ...
+                'Style', 'Text', ...
+                'String', '  Multipath mitigation map:', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', color_bg);
+            this.pop_ups{end+1} = uicontrol('Parent', box_handle,...
+                'Style', 'popup',...
+                'UserData', 'flag_rec_mp',...
+                'String', Core.getCurrentSettings.FLAG_REC_MP_LABEL,...
+                'Callback', @this.onPopUpChange);
+            box_handle.Widths = [170 150];
+            Core_UI.insertEmpty(opt_vbox, color_bg);
+            opt_vbox.Heights = [ones(1, 10) * Core_UI.LINE_HEIGHT -1];
+        end
+
+        function insertTabAtmosphere(this, container, color_bg)
+            atm_vbox = uix.VBox('Parent', container, ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            state = Core.getCurrentSettings;
+            
+            %%% IONO
+            iono_options = Core_UI.insertPanel(atm_vbox, 'Ionosphere options', color_bg);
+            iono_opt_grid = uix.VBox('Parent', iono_options,...
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange, [], color_bg);
+            
+            Core_UI.insertEmpty(atm_vbox, color_bg);
+            
+            %%% TROPO
+            tropo_options = Core_UI.insertPanel(atm_vbox, 'Tropospheric options', color_bg);
+            tropo_opt_grid = uix.VBox('Parent', tropo_options,...
+                'Spacing', 5, ...
+                'BackgroundColor', color_bg);
+            
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tropo_opt_grid, 'Mapping function', state.MF_LABEL, 'mapping_function', @this.onPopUpChange, [], color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tropo_opt_grid, 'Gradient mapping function', state.MFG_LABEL, 'mapping_function_gradient', @this.onPopUpChange, [], color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tropo_opt_grid, 'A-priori zenith delay',state.ZD_LABEL ,'zd_model', @this.onPopUpChange, [], color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tropo_opt_grid, 'Meteo Data',state.MD_LABEL ,'meteo_data',@this.onPopUpChange, [], color_bg);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]}, color_bg);
+            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(4,1); -1];
+            tropo_opt_est_grid.Widths = [150; -1];
+            
+            atm_vbox.Heights = [52 5 -1];
+            
+            this.uip.tab_atmo = atm_vbox;
+        end
+        
+        function insertGenericOpt(this, tab_generic, color_bg)
+            state = Core.getCurrentSettings;
+            hopt = uix.HBox('Parent', tab_generic,...
+                'BackgroundColor', color_bg);
+            vpopt_l = uix.VBox('Parent', hopt,...
+                'BackgroundColor', color_bg);
+            Core_UI.insertEmpty(hopt, color_bg);
+            vpopt_r = uix.VBox('Parent', hopt,...
+                'BackgroundColor', color_bg);
+            hopt.Widths = [-1 5 -1];
+            
+            this.insertInputManipulation(vpopt_l, color_bg);
+            this.insertCorrections(vpopt_l, color_bg);
+            vpopt_l.Heights = 25 + [2 10] .* Core_UI.LINE_HEIGHT;
+            
+            proc_opt = Core_UI.insertPanel(vpopt_r, 'Common Processing Options', color_bg);
+            proc_opt_ppp = Core_UI.insertPanel(vpopt_r, 'PPP Options', color_bg);
+            proc_opt_net = Core_UI.insertPanel(vpopt_r, 'NET Options', color_bg);
+            vpopt_r.Heights = 25 + [3 3 2] .* Core_UI.LINE_HEIGHT;
+            
+            % COMMON OPTIONS
+            opt_list = uix.VBox('Parent', proc_opt,...
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(opt_list, 'Observation weighting', state.W_SMODE, 'w_mode', @this.onPopUpChange, [195 150], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max code observation err', 'max_code_err_thr', 'm', @this.onEditChange, [195 40 5 50], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(opt_list, 'Max phase observation err', 'max_phase_err_thr', 'm', @this.onEditChange, [195 40 5 50], color_bg);
+            opt_list.Heights = Core_UI.LINE_HEIGHT * ones(3,1);
+            
+            %%% PPP OPTIONS
+            opt_list_net = uix.VBox('Parent', proc_opt_ppp,...
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(opt_list_net, 'PPP Snooping / Reweight', state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange, [], color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'PPP Try to fix Ambiguity (Experimental)', 'flag_net_amb_fix', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'Enable PPP for receivers containing only a single frequency', 'flag_net_force_single_freq', @this.onCheckBoxChange, color_bg);
+            
+            %%% NET OPTIONS
+            opt_list_net = uix.VBox('Parent', proc_opt_net,...
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(opt_list_net, 'NET Snooping / Reweight', state.NET_REWEIGHT_LABEL, 'net_reweight_mode', @this.onPopUpChange, [], color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(opt_list_net, 'NET fixing approach', state.NET_AMB_FIX_LABEL, 'net_amb_fix_approach', @this.onPopUpChange, [], color_bg);
+            opt_list_net.Heights = Core_UI.LINE_HEIGHT * ones(2,1);
+        end
+        
+        function insertPPP(this, tab_ppp, color_bg)
             % ----- Tab PPP ------------------------------------------------------------------------------------------------------------------------------------
+            state  = Core.getCurrentSettings;
+            coo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'PPP Coordinates');
+            iono_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'PPP Ionosphere');
+            tropo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'PPP Troposphere');
+            bias_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'PPP Bias (U2)');
+            tab_ppp.Heights = [100 48 100 -1];
+
             %%% COO ADVANCED REGULARIZATION
-            coo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Coordinates');
             coo_opt_ppp_h = uix.HBox('Parent', coo_opt_ppp,...
                 'Spacing', 20, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             coo_op_ppp_v1 = uix.VBox('Parent', coo_opt_ppp_h,...
                 'Spacing', 3, ...
-                'BackgroundColor', color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v1, 'Estimate', 'flag_coo_ppp', @this.onCheckBoxChange,color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 70],color_tab);
+                'BackgroundColor', color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v1, 'Estimate', 'flag_coo_ppp', @this.onCheckBoxChange,color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 70],color_bg);
             coo_op_ppp_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             coo_op_ppp_v2 = uix.VBox('Parent', coo_opt_ppp_h,...
                 'Spacing', 3, ...
-                'BackgroundColor', color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_ppp', @this.onPopUpChange,[],color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_tab);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_tab);
-%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v2, 'Frequency parametrization (U2)', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_ppp', @this.onPopUpChange,[],color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_bg);
+%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Absolute regularization [Hor Vert] (U2)', 'areg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_bg);
 %             this.edit_texts_array{end}.Visible = 'off';
-%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+%             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_ppp_v2, 2, 'Differential regularization [Hor Vert] (U2)', 'dreg_coo_ppp', 'm', @this.onEditArrayChange, [220 60 5 40],color_bg);
 %             this.edit_texts_array{end}.Visible = 'off';
             coo_op_ppp_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             coo_opt_ppp_h.Widths = [300 -1];
             
-            %%% iono parameters
-            iono_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Ionosphere');
+            %%% IONO PARAMETERS
             iono_opt_ppp_h = uix.HBox('Parent', iono_opt_ppp,...
-                'Spacing', 20, ...
-                'BackgroundColor', color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_h, 'Estimate', 'flag_iono_ppp', @this.onCheckBoxChange,color_tab);           
+                'BackgroundColor', color_bg);            
+            iono_opt_ppp_v1 = uix.VBox('Parent', iono_opt_ppp_h,...
+                'BackgroundColor', color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_ppp_v1, 'Eliminate (U2)', 'flag_iono_ppp', @this.onCheckBoxChange, color_bg);
+            iono_opt_ppp_v2 = uix.VBox('Parent', iono_opt_ppp_h,...
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(iono_opt_ppp_v2, 'Ionosphere Management (comb)', state.IE_LABEL, 'iono_management', @this.onPopUpChange, [], color_bg);
+            iono_opt_ppp_v1.Heights = Core_UI.LINE_HEIGHT;
+            iono_opt_ppp_v2.Heights = Core_UI.LINE_HEIGHT;
             
-            %%% tropo parameters
-            tropo_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Troposphere');            
+            %%% TROPO PARAMETERS
             tab_rec_tropo = uix.Grid('Parent', tropo_opt_ppp, ...
                 'Padding', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_ppp', @this.onCheckBoxChange,color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_ppp', @this.onCheckBoxChange,color_tab);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_ppp', @this.onCheckBoxChange,color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_ppp', @this.onCheckBoxChange,color_bg);
             
-            Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_ppp', @this.onPopUpChange,[0 -1],color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_ppp', @this.onPopUpChange,[0 -1],color_tab);
+            Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_ppp', @this.onPopUpChange,[0 -1],color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_ppp', @this.onPopUpChange,[0 -1],color_bg);
             
-            Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_ppp', '', @this.onEditChange, [0 -1  0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_ppp', '', @this.onEditChange, [0 -1  0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_ppp', '', @this.onEditChange, [0 -1  0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_ppp', '', @this.onEditChange, [0 -1  0 0],color_bg);
             
-            Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_ppp', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
             
             
-            Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_tab);
+            Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
             
             tab_rec_tropo.Heights = [21 25 25];            
             tab_rec_tropo.Widths = [150 150 150 150 150 ];
             
-            %%%% bias parameters
-            bias_opt_ppp = Core_UI.insertPanelLight2(tab_ppp, 'Bias *');
+            %%% BIAS PARAMETERS
             bias_opt_ppp_h = uix.VBox('Parent', bias_opt_ppp,...
                 'Spacing', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             rec_bias_ppp = uix.VBox('Parent', bias_opt_ppp_h,...
                 'Spacing', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             
             color_inner_tab = Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT2;
             tab_bias_panel = uix.TabPanel('Parent', rec_bias_ppp, ...
-                'TabWidth', 80, ...
+                'TabWidth', 140, ...
                 'Padding', 5, ...
                 'BackgroundColor', color_inner_tab, ...
                 'SelectionChangedFcn', @this.onTabChange);
             
-            tab_bias_rec = uix.Grid('Parent', tab_bias_panel, ...
+            tab_bias_rec = uix.VBox('Parent', tab_bias_panel, ...
                 'Padding', 2, ...
                 'BackgroundColor', color_inner_tab);
-            tab_bias_panel.TabTitles = {'Receiver'};
+            tab_bias_panel.TabTitles = {'Receiver Biases'};
 
             rec_bias_ppp_rec = uix.VBox('Parent', tab_bias_rec,...
                 'Spacing', 0, ...
@@ -1630,112 +1633,115 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %                 'ForegroundColor', Core_UI.BLACK, ...
             %                 'HorizontalAlignment', 'center', ...
             %                 'FontSize', Core_UI.getFontSize(8), ...
-            %                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                                   
-            tab_ppp.Heights = [100 40 100 -1];
-            
+            %                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);            
+        end
+        
+        function insertNET(this, tab_net, color_bg)
             % ----- Tab Network --------------------------------------------------------------------------------------------------------------------------------
+            state  = Core.getCurrentSettings;
             
             %%% COO ADVANCED REGULARIZATION
-            coo_opt_net = Core_UI.insertPanelLight2(tab_net, 'Coordinates');
+            coo_opt_net = Core_UI.insertPanelLight2(tab_net, 'NET Coordinates');
             coo_opt_net_h = uix.HBox('Parent', coo_opt_net,...
                 'Spacing', 20, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             coo_op_net_v1 = uix.VBox('Parent', coo_opt_net_h,...
                 'Spacing', 3, ...
-                'BackgroundColor', color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v1, 'Estimate', 'flag_coo_net', @this.onCheckBoxChange,color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_net', @this.onPopUpChange,[],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_net_v1, 'Rate', 'rate_coo_net', 's', @this.onEditChange, [-1 80 5 70],color_tab);
+                'BackgroundColor', color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v1, 'Estimate', 'flag_coo_net', @this.onCheckBoxChange,color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_net', @this.onPopUpChange,[],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_net_v1, 'Rate', 'rate_coo_net', 's', @this.onEditChange, [-1 80 5 70],color_bg);
             coo_op_net_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             coo_op_net_v2 = uix.VBox('Parent', coo_opt_net_h,...
                 'Spacing', 3, ...
-                'BackgroundColor', color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v2, 'Frequency parametrization *', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_net', @this.onPopUpChange,[],color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_tab);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_tab);
-            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Absolute regularization [Hor Vert] *', 'areg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+                'BackgroundColor', color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v2, 'Frequency parametrization (U2)', state.FREQUENCY_PARAMETRIZATION_LABEL, 'fparam_coo_net', @this.onPopUpChange,[],color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v2, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange,color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40],color_bg);
+            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Absolute regularization [Hor Vert] (U2)', 'areg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_bg);
             %             this.edit_texts_array{end}.Visible = 'off';
-            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Differential regularization [Hor Vert] *', 'dreg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_tab);
+            %             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(coo_op_net_v2, 2, 'Differential regularization [Hor Vert] (U2)', 'dreg_coo_net', 'm', @this.onEditArrayChange, [220 60 5 40],color_bg);
             %             this.edit_texts_array{end}.Visible = 'off';
             coo_op_net_v2.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             coo_opt_net_h.Widths = [300 -1];
             
             %%% iono parameters
-            iono_opt_net = Core_UI.insertPanelLight2(tab_net, 'Ionosphere');
+            iono_opt_net = Core_UI.insertPanelLight2(tab_net, 'NET Ionosphere');
             iono_opt_net_h = uix.HBox('Parent', iono_opt_net,...
                 'Spacing', 20, ...
-                'BackgroundColor', color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_net_h, 'Estimate', 'flag_iono_net', @this.onCheckBoxChange,color_tab);
+                'BackgroundColor', color_bg);
+            iono_opt_net_v1 = uix.VBox('Parent', iono_opt_net_h,...
+                'BackgroundColor', color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(iono_opt_net_v1, 'Eliminate (U2)', 'flag_iono_net', @this.onCheckBoxChange,color_bg);
             
                         
             
             %%% tropo parameters
-            tropo_opt_net = Core_UI.insertPanelLight2(tab_net, 'Troposphere');            
+            tropo_opt_net = Core_UI.insertPanelLight2(tab_net, 'NET Troposphere');            
             tab_rec_tropo = uix.Grid('Parent', tropo_opt_net, ...
                 'Padding', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,color_tab);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'Absolute Tropo in Network', 'flag_free_net_tropo', @this.onCheckBoxChange,color_tab);
-            
-            
-            Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_net', @this.onPopUpChange,[0 -1],color_tab);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_net', @this.onPopUpChange,[0 -1],color_tab);
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD', 'flag_ztd_net', @this.onCheckBoxChange,color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'ZTD Gradients', 'flag_grad_net', @this.onCheckBoxChange,color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(tab_rec_tropo, 'Absolute Tropo in Network', 'flag_free_net_tropo', @this.onCheckBoxChange,color_bg);
             
             
-            Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_net', '', @this.onEditChange, [0 -1  0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_net', '', @this.onEditChange, [0 -1  0 0],color_tab);
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_tropo, 'Time Parametrization', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_ztd_net', @this.onPopUpChange,[0 -1],color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(tab_rec_tropo, '', state.TIME_TROPO_PARAMETRIZATION_LABEL, 'tparam_grad_net', @this.onPopUpChange,[0 -1],color_bg);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
             
             
-            Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_tropo, 'Rate [s]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_ztd_net', '', @this.onEditChange, [0 -1  0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'rate_grad_net', '', @this.onEditChange, [0 -1  0 0],color_bg);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
+            
+            
+            Core_UI.insertText(tab_rec_tropo, 'Abs. reg. [m]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_ztd_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
             
             
             
-            Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_tab,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_tab);
-            Core_UI.insertText(tab_rec_tropo, '', 8, color_tab,  Core_UI.BLACK, 'center');
+            Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_bg,  Core_UI.BLACK, 'center');
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
             
             
             tab_rec_tropo.Heights = [21 25  25];
             tab_rec_tropo.Widths = [200 150 140 140 140 ];
             
             %%%% BIAS parameters
-            bias_opt_net = Core_UI.insertPanelLight2(tab_net, 'Bias *');
-            tab_net.Heights = [100 40 120 -1];
+            bias_opt_net = Core_UI.insertPanelLight2(tab_net, 'NET Bias (U2)');
+            tab_net.Heights = [100 48 120 -1];
             
             bias_opt_net_h = uix.VBox('Parent', bias_opt_net,...
                 'Spacing', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             rec_bias_net = uix.VBox('Parent', bias_opt_net_h,...
                 'Spacing', 0, ...
-                'BackgroundColor', color_tab);
+                'BackgroundColor', color_bg);
             
             color_inner_tab = Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT2;
             tab_bias_panel = uix.TabPanel('Parent', rec_bias_net, ...
-                'TabWidth', 80, ...
+                'TabWidth', 140, ...
                 'Padding', 5, ...
                 'BackgroundColor', color_inner_tab, ...
                 'SelectionChangedFcn', @this.onTabChange);
             
-            tab_bias_rec = uix.Grid('Parent', tab_bias_panel, ...
+            tab_bias_rec = uix.VBox('Parent', tab_bias_panel, ...
                 'Padding', 2, ...
                 'BackgroundColor', color_inner_tab);
-            tab_bias_sat = uix.Grid('Parent', tab_bias_panel, ...
+            tab_bias_sat = uix.VBox('Parent', tab_bias_panel, ...
                 'Padding', 2, ...
                 'BackgroundColor', color_inner_tab);
-            tab_bias_panel.TabTitles = {'Receiver', 'Satellite'};
+            tab_bias_panel.TabTitles = {'Receiver Biases', 'Satellite Biases'};
 
             rec_bias_net_rec = uix.VBox('Parent', tab_bias_rec,...
                 'Spacing', 0, ...
@@ -1826,48 +1832,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             tab_sat_bias.Widths = [150 150 150 150 150 ];
             tab_sat_bias.Heights = [21 25 25 25];
-            sat_bias_net.Heights = [25 -1];            
-                        
-            this.uip.tab_reg = tab_panel;
+            sat_bias_net.Heights = [25 -1];
         end
-        
-        function insertTabAtmosphere(this, container)
-            tab = uix.Grid('Parent', container, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            state = Core.getCurrentSettings;
-            
-            %%% IONO
-            iono_options = Core_UI.insertPanelLight(tab, 'Ionosphere options');
-            iono_opt_grid = uix.VBox('Parent', iono_options,...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model', state.IONO_LABEL, 'iono_model', @this.onPopUpChange);
-            
-            Core_UI.insertEmpty(tab);
-            
-            %%% TROPO
-            tropo_options = Core_UI.insertPanelLight(tab, 'Tropospheric options');
-            tropo_opt_grid = uix.VBox('Parent', tropo_options,...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Mapping function', state.MF_LABEL, 'mapping_function', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Gradient mapping function', state.MFG_LABEL, 'mapping_function_gradient', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',state.ZD_LABEL ,'zd_model', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(tropo_opt_grid, 'Meteo Data',state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
-            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
-            tropo_opt_grid.Heights = [Core_UI.LINE_HEIGHT * ones(4,1); -1];
-            tropo_opt_est_grid.Widths = [150; -1];
-
-            tab.Heights = [52 5 -1];
-            tab.Widths = 700;
-            
-            this.uip.tab_atmo = tab;
-        end
-        
+                
         function insertTabRemoteResource(this, container)
-            tab = uix.Grid('Parent', container);
+            tab = uix.VBox('Parent', container);
             
             state = Core.getCurrentSettings;
             tab_bv = uix.VBox( 'Parent', tab, ...
@@ -2005,7 +1974,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function insertOldRemoteResource(this, container)
-            tab = uix.Grid('Parent', container);
+            tab = uix.VBox('Parent', container);
             
             tab_bv = uix.VBox( 'Parent', tab, ...
                 'Spacing', 5, ...
@@ -2181,7 +2150,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
             v_text.Heights = [Core_UI.LINE_HEIGHT + 2, 5, Core_UI.LINE_HEIGHT];
             
-            rec_g = uix.Grid('Parent', this.info_g, ...
+            rec_g = uix.VBox('Parent', this.info_g, ...
                 'Padding', 0, ...
                 'BackgroundColor', Core_UI.DARK_GREY_BG);
             
@@ -2198,7 +2167,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function j_ini = insertTabAdvanced(this, container)
-            tab = uix.Grid('Parent', container);
+            tab = uix.VBox('Parent', container);
             
             com_box = Core_UI.insertPanelLight(tab, 'Parallelism');
             [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(com_box, 'Communication dir', 'com_dir', @this.onEditChange, [25 160 -1 25]);

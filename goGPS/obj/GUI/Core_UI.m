@@ -50,8 +50,8 @@ classdef Core_UI < Logos
         FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
-        LIGHT_GREY_BG_NOT_SO_LIGHT2 =  0.65 * ones(3, 1);
-        LIGHT_GREY_BG_NOT_SO_LIGHT =  0.75 * ones(3, 1);
+        LIGHT_GREY_BG_NOT_SO_LIGHT2 =  0.73 * ones(3, 1);
+        LIGHT_GREY_BG_NOT_SO_LIGHT =  0.79 * ones(3, 1);
         LIGHT_GREY_BG = 0.85 * ones(3, 1);
         DARK_GREY_BG = [0.2431372549 0.2470588235 0.2509803922];
         DARKER_GREY_BG = [0.1529411765 0.1529411765 0.1568627451];
@@ -877,10 +877,10 @@ classdef Core_UI < Logos
             axis(flag_handle, 'off');
         end            
            
-        function chxbox_handle = insertCheckBoxCC(parent, title, but_tag, callback)
+        function chxbox_handle = insertCheckBoxCC(parent, title, but_tag, callback, color)
             chxbox_handle = uicontrol('Parent', parent,...
                 'Style', 'checkbox',...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                'BackgroundColor', color, ...
                 'String', title, ...
                 'UserData', but_tag,...
                 'Callback', callback ...
@@ -934,22 +934,21 @@ classdef Core_UI < Logos
                 'BackgroundColor', bg_color);
         end
         
-        function panel_handle = insertPanelLight(container, title)
+        function panel_handle = insertPanel(container, title, color)
             panel_handle = uix.Panel('Parent', container, ...
                 'Title', title, ...
                 'FontSize', Core_UI.getFontSize(8), ...
                 'FontWeight', 'bold', ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color);
+        end
+        
+        function panel_handle = insertPanelLight(container, title)
+            panel_handle = Core_UI.insertPanel(container, title, Core_UI.LIGHT_GREY_BG);
         end
         
         function panel_handle = insertPanelLight2(container, title)
-            panel_handle = uix.Panel('Parent', container, ...
-                'Title', title, ...
-                'FontSize', Core_UI.getFontSize(8), ...
-                'FontWeight', 'bold', ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
+            panel_handle = Core_UI.insertPanel(container, title, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
         end
         
         function insertHBarDark(container)
@@ -962,7 +961,6 @@ classdef Core_UI < Logos
             Core_UI.insertEmpty(bar_v, Core_UI.DARK_GREY_BG);
             bar_v.Heights = [-1 1 -1];
         end
-       
         
         function insertHBarLight(container)
             bar_v = uix.VBox('Parent', container, ...
@@ -974,27 +972,24 @@ classdef Core_UI < Logos
             Core_UI.insertEmpty(bar_v, Core_UI.LIGHT_GREY_BG);
             bar_v.Heights = [-1 2 -1];
         end
-         
-        function insertVBarDark(container)
+        
+        function insertVBar(container, color_bg, color)
             bar_h = uix.HBox('Parent', container, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            Core_UI.insertEmpty(bar_h, Core_UI.DARK_GREY_BG);
+                'BackgroundColor', color_bg);
+            Core_UI.insertEmpty(bar_h, color_bg);
             bar = uix.Panel( 'Parent', bar_h, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            Core_UI.insertEmpty(bar_h, Core_UI.DARK_GREY_BG);
+                'BackgroundColor', color);
+            Core_UI.insertEmpty(bar_h, color_bg);
             bar_h.Widths = [-1 1 -1];
+        end
+            
+        function insertVBarDark(container)
+            Core_UI.insertVBar(container, Core_UI.DARK_GREY_BG, Core_UI.LIGHT_GREY_BG);
         end
         
         function insertVBarLight(container)
-            bar_h = uix.HBox('Parent', container, ...
-                'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            Core_UI.insertEmpty(bar_h, Core_UI.LIGHT_GREY_BG);
-            bar = uix.Panel( 'Parent', bar_h, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            Core_UI.insertEmpty(bar_h, Core_UI.LIGHT_GREY_BG);
-            bar_h.Widths = [-1 1 -1];
+            Core_UI.insertVBar(container, Core_UI.LIGHT_GREY_BG, Core_UI.DARK_GREY_BG);
         end
         
         function date = insertDateSpinner(container, date_in, callback)
@@ -1019,7 +1014,7 @@ classdef Core_UI < Logos
         function date_hour = insertDateSpinnerHour(container, time, call_back)
             date_hour = uix.HBox('Parent', container, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            Core_UI.insertDateSpinner(date_hour, time.toString('yyyy/mm/dd'), call_back);              
+            Core_UI.insertDateSpinner(date_hour, time.toString('yyyy/mm/dd'), call_back);
             box_handle = uix.Grid('Parent', date_hour, ...
                 'Padding', 0, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1036,15 +1031,15 @@ classdef Core_UI < Logos
                 'Callback', call_back);
         end
         
-         function [box_handle, pop_up_handle] = insertPopUp(parent, description, possible_values, property_name, callback, widths,color_bg,color_txt)
+        function [box_handle, pop_up_handle] = insertPopUp(parent, description, possible_values, property_name, callback, widths, color_bg, color_txt)
             if nargin < 6 || isempty(widths)
                 widths  = [-1 -1];
             end
             if nargin < 7
-               color_bg = Core_UI.LIGHT_GREY_BG; 
+                color_bg = Core_UI.LIGHT_GREY_BG;
             end
             if nargin < 8
-                color_txt = Core_UI.BLACK; 
+                color_txt = Core_UI.BLACK;
             end
             box_handle = uix.HBox('Parent', parent, ...
                 'Padding', 0, ...
@@ -1277,19 +1272,19 @@ classdef Core_UI < Logos
             box_handle.Heights = [23 -1];
         end
         
-        function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxMetML(parent, description, property_name_dir, property_name_file, callback, widths)
+        function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxMetML(parent, description, property_name_dir, property_name_file, callback, widths, color_bg)
             if nargin < 6
                 widths  = {[-1 -1 25], [-1 -1 25]};
             end
             box_handle = uix.VBox('Parent', parent, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             box_top = uix.HBox('Parent', box_handle, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             box_bot = uix.HBox('Parent', box_handle, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             
             uicontrol('Parent', box_top, ...
                 'Style', 'Text', ...
@@ -1297,7 +1292,7 @@ classdef Core_UI < Logos
                 'ForegroundColor', Core_UI.BLACK, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             editable_handle_dir = uicontrol('Parent', box_top,...
                 'Style','edit', ...
                 'FontName', 'Courier New', ...
@@ -1317,7 +1312,7 @@ classdef Core_UI < Logos
                 'ForegroundColor', Core_UI.BLACK, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(9), ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             editable_handle_file = uicontrol('Parent', box_bot,...
                 'Style','edit',...
                 'FontName', 'Courier New', ...
@@ -1368,7 +1363,7 @@ classdef Core_UI < Logos
             box_handle.Heights = -1;
         end
         
-         function [box_handle, editable_handle] = insertEditBox(parent, text_left, property_name, text_right, callback, widths,color_bg, color_txt)
+         function [box_handle, editable_handle] = insertEditBox(parent, text_left, property_name, text_right, callback, widths, color_bg, color_txt)
             if nargin < 6 || isempty(widths)
                 if nargin < 4 || isempty(text_right)
                     widths  = [-1 -1];
