@@ -1345,15 +1345,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
-        function fh_list = showPositionENU(this, flag_one_plot, flag_add_coo)
+        function fh_list = showPositionENU(this, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot, flag_add_coo);
-            if nargin == 1 || isempty(flag_one_plot)
-                flag_one_plot = false;
-            end
-            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+            %   this.plotPositionENU(flag_add_coo);
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
             
@@ -1385,7 +1382,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                         end
-                        fh = coo.showPositionENU(flag_one_plot);    
+                        fh = coo.showPositionENU();    
                         figure(fh);
                         ax = subplot(3,1,1);
                         ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
@@ -1404,7 +1401,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot);            
+            %   this.plotPositionENU(flag_add_coo);            
             if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
@@ -1452,13 +1449,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
 
-        function fh_list = showPositionXYZ(this, flag_one_plot, flag_add_coo)
+        function fh_list = showPositionXYZ(this, flag_add_coo)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();            
-            if nargin == 1 || isempty(flag_one_plot)
-                flag_one_plot = false;
-            end
-            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
             
@@ -1490,7 +1484,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 end
                             end
                         end
-                        fh = coo.showPositionXYZ(flag_one_plot);    
+                        fh = coo.showPositionXYZ();    
                         figure(fh);
                         ax = subplot(3,1,1);
                         ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
@@ -1505,15 +1499,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end            
         end
         
-        function fh_list = showPositionSigmas(this, one_plot)
+        function fh_list = showPositionSigmas(this)
             % Show Sigmas of the solutions
             %
             % SYNTAX
             %   this.showPositionSigmas();
-            
-            if nargin == 1
-                one_plot = false;
-            end
             
             fh_list = [];
             rec = this;
@@ -1523,7 +1513,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     rec(1).log.addMessage('Plotting ENU sigmas');
                     
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
-                    fh_list = [fh_list; f]; %#ok<AGROW>
+                    fh_list = [fh_list; f];
                     fig_name = sprintf('ENU_s0_%s_%s', rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
                     color_order = handle(gca).ColorOrder;
@@ -1533,18 +1523,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     
                     t = rec.getPositionTime().getMatlabTime;
                     
-                    if ~one_plot, subplot(2,1,2); end
+                    subplot(2,1,2);
                     plot(t, s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('s0 [cm]'); h.FontWeight = 'bold';
                     grid on;
-                    if ~one_plot, subplot(2,1,1); end
+                    subplot(2,1,1);
                     plot(t, s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('s0 ip [cm]'); h.FontWeight = 'bold';
                     h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     grid on;
-                    if one_plot
-                        h = ylabel('Sigmas of the processing [cm]'); h.FontWeight = 'bold';
-                    end
                     linkaxes(ax, 'x');
                     Core_UI.beautifyFig(f);
                     Core_UI.addBeautifyMenu(f);

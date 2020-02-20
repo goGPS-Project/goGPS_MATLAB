@@ -3427,22 +3427,19 @@ classdef GNSS_Station < handle
             end
         end
 
-        function fh_list = showPositionENU(sta_list, one_plot, flag_add_coo)
+        function fh_list = showPositionENU(sta_list, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
             % SYNTAX 
-            %   this.plotPositionENU(flag_one_plot, flag_add_coo);
-            if nargin == 1
-                one_plot = false;
-            end
+            %   this.plotPositionENU(flag_add_coo);
 
-            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
             
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
             out_list = [sta_list.out];
-            fh_list = out_list.showPositionENU(one_plot, flag_add_coo);
+            fh_list = out_list.showPositionENU(flag_add_coo);
         end
 
         function fh_list = showPositionPlanarUp(sta_list, flag_add_coo)
@@ -3460,40 +3457,34 @@ classdef GNSS_Station < handle
             fh_list = out_list.showPositionPlanarUp(flag_add_coo);
         end
         
-        function fh_list = showPositionXYZ(sta_list, one_plot, flag_add_coo)
+        function fh_list = showPositionXYZ(sta_list, flag_add_coo)
             % Plot X Y Z coordinates of the receiver
             % SYNTAX this.plotPositionXYZ(flag_one_plot, flag_add_coo);
-            if nargin == 1
-                one_plot = false;
-            end
-            if ~(nargin >= 3 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
                 flag_add_coo = 0;
             end
             
             sta_list = sta_list(~sta_list.isEmptyOut_mr);
             out_list = [sta_list.out];
-            fh_list = out_list.showPositionXYZ(one_plot, flag_add_coo);
+            fh_list = out_list.showPositionXYZ(flag_add_coo);
         end
 
-        function fh_list = showPositionSigmas(sta_list, one_plot)
+        function fh_list = showPositionSigmas(sta_list)
             % Show Sigmas of the solutions
             %
             % SYNTAX
             %   this.showPositionSigmas();
 
-            if nargin == 1
-                one_plot = false;
-            end
             fh_list = [];
             for r = 1 : length(sta_list)
                 rec = sta_list(r).out;
                 if ~isempty(rec)
-                    fh_list = [fh_list; rec.showPositionSigmas(one_plot)]; %#ok<AGROW>
+                    fh_list = [fh_list; rec.showPositionSigmas()]; %#ok<AGROW>
                 end
             end
         end
 
-        function fh_list = showMap(sta_list, new_fig, add_lat, add_lon)
+        function fh_list = showMap(sta_list, new_fig)
             % Show Google Map of the stations
             %
             % CITATION:

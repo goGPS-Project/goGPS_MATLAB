@@ -2399,7 +2399,7 @@ classdef Command_Interpreter < handle
                                 if ~found
                                     fh_list = [fh_list; trg.showPositionENU()]; %#ok<AGROW>
                                 else
-                                    fh_list = [fh_list; trg.showPositionENU([], coo_type)]; %#ok<AGROW>
+                                    fh_list = [fh_list; trg.showPositionENU(coo_type)]; %#ok<AGROW>
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PUP.par ')*$'], 'once'))
@@ -2417,7 +2417,7 @@ classdef Command_Interpreter < handle
                                 if ~found
                                     fh_list = [fh_list; trg.showPositionXYZ()]; %#ok<AGROW>
                                 else
-                                    fh_list = [fh_list; trg.showPositionXYZ([], coo_type)]; %#ok<AGROW>
+                                    fh_list = [fh_list; trg.showPositionXYZ(coo_type)]; %#ok<AGROW>
                                 end
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CKW.par ')*$'], 'once'))

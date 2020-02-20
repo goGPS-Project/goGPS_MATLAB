@@ -321,7 +321,8 @@ classdef Coordinates < Exportable & handle
             %   loc = this.getLocal(ref_pos)
            
             xyz_ref = ref_pos.getXYZ;
-            baseline = ref_pos.getXYZ - this.getXYZ;
+            xyz_this = this.getXYZ;
+            baseline = repmat(xyz_ref,size(xyz_this,1),1) - xyz_this;
             loc = Coordinates.cart2loca(xyz_ref, baseline);
         end
         
@@ -518,25 +519,19 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods (Access = 'public')
-        function fh = showPositionENU(coo_list, no_subplot)
+        function fh = showPositionENU(coo_list)
             % Plot East North Up coordinates
             %
             % SYNTAX 
-            %   this.showPositionENU(coo_list, time);
-            if nargin == 1
-                no_subplot = false;
-            end
-            fh = showCoordinatesENU(coo_list, no_subplot);
+            %   this.showPositionENU(coo_list);
+            fh = showCoordinatesENU(coo_list);
         end
         
-        function fh = showCoordinatesENU(coo_list, no_subplot)
+        function fh = showCoordinatesENU(coo_list)
             % Plot East North Up coordinates
             %
             % SYNTAX 
-            %   this.showCoordinatesENU(coo_list, <no_subplot>);
-            if nargin < 2 || isempty(no_subplot)
-                no_subplot = false;
-            end
+            %   this.showCoordinatesENU(coo_list);
             
             str_title{1} = sprintf('Position stability ENU [mm]\nSTD (detrended)');
             str_title{2} = sprintf('STD (detrended)');
@@ -565,12 +560,15 @@ classdef Coordinates < Exportable & handle
                             if numel(t) < size(enu_diff,1)
                                 log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more coordinates than times\n plotting only the positions with time'))
                                 enu_diff = enu_diff(1:numel(t),:);
+                            elseif numel(t) > size(enu_diff,1)
+                                log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more times than coordinates\n plotting only the first positions'))
+                                t = t(1:size(enu_diff,1),:);
                             end
                         else
                             t = 1 : size(enu_diff, 1);
                         end
                         
-                        if ~no_subplot, subplot(3,1,1); end                        
+                        subplot(3,1,1);                       
                         e = enu_diff(1:numel(t),1);
                         figure(fh);
                         Core_Utils.plotSep(t, e, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
@@ -585,7 +583,7 @@ classdef Coordinates < Exportable & handle
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 1, t);
                         str_title{1} = sprintf('%s %s%.2f', str_title{1}, iif(i>1, '- ', ''), std((enu_diff(:,1) - trend(:)), 'omitnan'));
                         h = title(str_title{1}, 'interpreter', 'none'); h.FontWeight = 'bold';
-                        if ~no_subplot, subplot(3,1,2); end
+                        subplot(3,1,2);
                         
                         n = enu_diff(:,2);                        
                         figure(fh);
@@ -601,7 +599,7 @@ classdef Coordinates < Exportable & handle
                         str_title{2} = sprintf('%s %s%.2f', str_title{2}, iif(i>1, '- ', ''), std((enu_diff(:,2) - trend(:)), 'omitnan'));
                         h = title(str_title{2}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if ~no_subplot, subplot(3,1,3); end
+                        subplot(3,1,3);
                         
                         up = enu_diff(:,3);                        
                         figure(fh);
@@ -617,11 +615,7 @@ classdef Coordinates < Exportable & handle
                         str_title{3} = sprintf('%s %s%.2f', str_title{3}, iif(i>1, '- ', ''), std((enu_diff(:,3) - trend(:)), 'omitnan'));
                         h = title(str_title{3}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if no_subplot
-                            h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
-                        else
-                            linkaxes(ax, 'x');
-                        end                        
+                        linkaxes(ax, 'x');
                         grid on;
                     else
                         log.addMessage('Plotting a single point static coordinates is not yet supported');
@@ -633,25 +627,19 @@ classdef Coordinates < Exportable & handle
             fh.Visible = 'on'; drawnow;
         end
         
-        function fh = showPositionXYZ(coo_list, no_subplot)
+        function fh = showPositionXYZ(coo_list)
             % Plot X Y Z coordinates
             %
             % SYNTAX
             %   this.showPositionXYZ(coo_list);
-            if nargin == 1
-                no_subplot = false;
-            end
-           fh = showCoordinatesXYZ(coo_list, no_subplot);
+           fh = showCoordinatesXYZ(coo_list);
         end
         
-        function fh = showCoordinatesXYZ(coo_list, no_subplot)
+        function fh = showCoordinatesXYZ(coo_list)
             % Plot X Y Z coordinates
             %
             % SYNTAX
-            %   this.showCoordinatesXYZ(coo_list, <one_plot>, <time>);
-            if nargin < 2 || isempty(no_subplot)
-                no_subplot = false;
-            end
+            %   this.showCoordinatesXYZ(coo_list);
             
             str_title{1} = sprintf('Position stability XYZ [mm]\nSTD (detrended)');
             str_title{2} = sprintf('STD (detrended)');
@@ -680,12 +668,15 @@ classdef Coordinates < Exportable & handle
                             if numel(t) < size(xyz_diff,1)
                                 log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more coordinates than times\n plotting only the positions with time'))
                                 xyz_diff = xyz_diff(1:numel(t),:);
+                            elseif numel(t) > size(xyz_diff,1)
+                                log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more times than coordinates\n plotting only the first positions'))
+                                t = t(1:size(xyz_diff,1),:);
                             end
                         else
                             t = 1 : size(xyz_diff, 1);
                         end
                         
-                        if ~no_subplot, subplot(3,1,1); end
+                        subplot(3,1,1);
                         e = xyz_diff(:,1);
                         figure(fh);
                         Core_Utils.plotSep(t, e, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
@@ -700,7 +691,7 @@ classdef Coordinates < Exportable & handle
                         trend = Core_Utils.interp1LS(t(~isnan(xyz_diff(:,1))), xyz_diff(~isnan(xyz_diff(:,1)),1), 1, t);
                         str_title{1} = sprintf('%s %s%.2f', str_title{1}, iif(i>1, '- ', ''), std((xyz_diff(:,1) - trend(:)), 'omitnan'));
                         h = title(str_title{1}, 'interpreter', 'none'); h.FontWeight = 'bold';
-                        if ~no_subplot, subplot(3,1,2); end
+                        subplot(3,1,2);
                         
                         n = xyz_diff(:,2);                        
                         figure(fh);
@@ -716,7 +707,7 @@ classdef Coordinates < Exportable & handle
                         str_title{2} = sprintf('%s %s%.2f', str_title{2}, iif(i>1, '- ', ''), std((xyz_diff(:,2) - trend(:)), 'omitnan'));
                         h = title(str_title{2}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if ~no_subplot, subplot(3,1,3); end
+                        subplot(3,1,3);
                         
                         up = xyz_diff(:,3);                        
                         figure(fh);
@@ -732,11 +723,7 @@ classdef Coordinates < Exportable & handle
                         str_title{3} = sprintf('%s %s%.2f', str_title{3}, iif(i>1, '- ', ''), std((xyz_diff(:,3) - trend(:)), 'omitnan'));
                         h = title(str_title{3}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
-                        if no_subplot
-                            h = ylabel('XYZ [mm]'); h.FontWeight = 'bold';
-                        else
-                            linkaxes(ax, 'x');
-                        end                        
+                        linkaxes(ax, 'x');
                         grid on;
                     else
                         log.addMessage('Plotting a single point static coordinates is not yet supported');
@@ -752,7 +739,7 @@ classdef Coordinates < Exportable & handle
             % Plot East North Up coordinates
             %
             % SYNTAX 
-            %   this.showCoordinatesENU(coo_list, <no_subplot>);
+            %   this.showCoordinatesENU(coo_list);
             
             log = Core.getLogger();
             for i = 1 : numel(coo_list)
@@ -780,6 +767,9 @@ classdef Coordinates < Exportable & handle
                             if numel(t) < size(enu_diff,1)
                                 log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more coordinates than times\n plotting only the positions with time'))
                                 enu_diff = enu_diff(1:numel(t),:);
+                            elseif numel(t) > size(enu_diff,1)
+                                log.addWarning(sprintf('Coordinates are corrupted, it seems that there are more times than coordinates\n plotting only the first positions'))
+                                t = t(1:size(enu_diff,1),:);
                             end
                         else
                             t = 1 : size(enu_diff, 1);
