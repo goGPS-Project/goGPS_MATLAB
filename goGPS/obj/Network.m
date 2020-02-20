@@ -570,16 +570,16 @@ classdef Network < handle
                         end
                         idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
                         if sum(idx_trp) > 0
-                        tropo = ls.x(idx_trp);
-                        tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum, this.state.rate_ztd_net)/ this.state.rate_ztd_net;
-                        tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum)/this.state.rate_ztd_net);
-                        [~,tropo_idx] = ismember(tropo_idx*this.state.rate_ztd_net, ls.getTimePar(idx_trp).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
-                        valid_ep = tropo_idx ~=0;
-                        spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order);
-                        
-                        ztd =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
-
-                        this.ztd(valid_ep,i) = nan2zero(this.ztd(valid_ep,i))  + ztd;
+                            tropo = ls.x(idx_trp);
+                            tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum, this.state.rate_ztd_net)/ this.state.rate_ztd_net;
+                            tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum)/this.state.rate_ztd_net);
+                            [~,tropo_idx] = ismember(tropo_idx*this.state.rate_ztd_net, ls.getTimePar(idx_trp).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_trp).minimum.getMatlabTime));
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropo)-3);
+                            spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order);
+                            
+                            ztd =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            
+                            this.ztd(valid_ep,i) = nan2zero(this.ztd(valid_ep,i))  + ztd;
                         end
                     else
                         idx_trp = ls.class_par == LS_Manipulator_new.PAR_TROPO & idx_rec;
@@ -606,7 +606,7 @@ classdef Network < handle
                         tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum, this.state.rate_grad_net)/ this.state.rate_grad_net;
                         tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum)/this.state.rate_grad_net);
                         [~,tropo_idx] = ismember(tropo_idx*this.state.rate_grad_net, ls.getTimePar(idx_trp_n).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_trp_n).minimum.getMatlabTime));
-                        valid_ep = tropo_idx ~=0;
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropo_n)-3);
                         spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order);
                         
                         tropo_n =sum(spline_base .* tropo_n(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);

@@ -899,10 +899,9 @@ classdef LS_Manipulator_new < handle
                                         time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
                                         ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
                                         for i_o = cols_tmp;
-                                            [~,ep_pgr_id(i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
+                                            [~,ep_pgr_id(:,i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
                                         end
                                         % ----- expand colum of the A matrix
-                                        a_col = this.A(obs_lid,i_col);
                                         if has_not_expanded
                                             this.A = [this.A(:,1:(i_col)) zeros(n_obs,1) this.A(:,(i_col+1):end)];
                                             this.A_idx = [this.A_idx(:,1:(i_col)) zeros(n_obs,1,'uint32') this.A_idx(:,(i_col+1):end)];
@@ -910,7 +909,7 @@ classdef LS_Manipulator_new < handle
                                             i_p = i_p + 1;
                                             has_not_expanded = false;
                                         end
-                                        this.A = [this.A(:,1:(i_col-1)) zeros(n_obs,2) this.A(:,(i_col+1):end)];
+                                        a_col = this.A(obs_lid,i_col);
                                         this.A(obs_lid,i_col + cols_tmp) = [a_col.*spline_v(:,1) a_col.*spline_v(:,2)];
                                         n_prg_id = length(u_e_tmp);
                                     elseif parametriz(1) == ls_parametrization.SPLINE_CUB
