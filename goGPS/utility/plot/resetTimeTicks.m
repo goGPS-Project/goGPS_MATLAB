@@ -86,6 +86,9 @@ function resetTimeTicks(h, num, format)
             tick_pos((tick_pos < ax(1)) | (tick_pos > ax(2))) = []; % delete ticks outside figure;
             tick_pos = unique(tick_pos);
             
+            if all(mod(tick_pos, 1) == 0)
+                round_val = 1;
+            end
             set(h(i), 'XTick', tick_pos);
             if strcmp(format, 'auto')
                 last_date = [0 0 0 0 0 0];

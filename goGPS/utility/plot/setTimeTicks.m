@@ -1,4 +1,4 @@
-function setTimeTicks(num,format,ax)
+function setTimeTicks(num, format, ax)
 % SYNTAX:
 %   setTimeTicks(num,format);
 %   setTimeTicks(ax, num,format);
@@ -57,17 +57,17 @@ function setTimeTicks(num,format,ax)
     if (nargin > 0) && (nargin ~= 3) && isa(num, 'handle')
         if nargin == 2
             num = format;
-            format = 'auto';
-        elseif nargin == 3
-            h = num;
-            num = format;
-            format = ax;
+            format = 'auto';        
         else
             h = num;
             num = 4;
         end
     elseif (nargin < 3)
         h = gca;
+    elseif nargin == 3
+        h = num;
+        num = format;
+        format = ax;
     end
 
     if nargin < 1 || isempty(num)
