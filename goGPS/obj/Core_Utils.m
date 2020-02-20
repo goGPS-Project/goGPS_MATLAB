@@ -2585,6 +2585,41 @@ classdef Core_Utils < handle
             
         end
         
+        function plotSphPatchGrid(el_grid,az_grid)
+            figure;
+            hold on
+            el_grid = flipud(el_grid);
+            az_grid = fliplr(az_grid);
+            d_el  = diff(el_grid);
+            el_grid = el_grid - [d_el; d_el(end)]/2;
+            el_grid =  [el_grid; el_grid(end)+d_el(end)];
+            for e = 1 : (length(el_grid)-1)
+                d_az  = diff(az_grid{e}');
+                az_gridw = az_grid{e}'- [d_az; d_az(end)]/2;
+                az_gridw =  [az_gridw; az_gridw(end)+d_az(end)];
+                for a = 1 : (length(az_gridw)-1)
+                    Core_Utils.plotSphPatch(el_grid(e:e+1)',az_gridw(a:a+1)',rowNormalize(rand(1,3)));
+                end
+            end
+        end
+        
+        function plotSphPatch(lats,lons,color)
+            if lons(2) < lons(1)
+                lons(2) = lons(2)+2*pi;
+            end
+            dlons = (1 + (1 -cos(mean(lats)))*20)/180*pi;
+            lonst = (lons(1):dlons:lons(2))';
+            if lonst(end) ~= lons(2)
+                lonst = [lonst; lons(2)];
+            end
+            lons = lonst;
+            lats = pi/2 -lats;
+            xyz =[ [cos(lons)*sin(lats(1)) sin(lons)*sin(lats(1)) ones(size(lons))*cos(lats(1))];
+                flipud([cos(lons)*sin(lats(2)) sin(lons)*sin(lats(2)) ones(size(lons))*cos(lats(2))])];
+            patch(xyz(:,1),xyz(:,2),xyz(:,3),color);
+        end
+        
+        
         function fr_cy = circularModedRobustMean(cycle)
             % estimate a roubust mean mean for data over 0 -1
             %
