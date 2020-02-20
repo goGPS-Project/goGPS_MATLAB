@@ -514,7 +514,7 @@ classdef Receiver_Output < Receiver_Commons
             state = Core.getCurrentSettings();
             if nargin < 3 || isempty(rate)
                 if rec_work.time.getRate == state.getTropoOutRate
-                    rate = [];
+                    rate = 0;
                 else
                     rate = state.getTropoOutRate();
                 end
@@ -540,7 +540,7 @@ classdef Receiver_Output < Receiver_Commons
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
                 
-                if ~isempty(rate)
+                if any(rate)
                     id_sync_bk = rec_work.getIdSync;
                     id_sync = rec_work.getIdSync;
                     sync_time = round(rec_work.getTime.getRefTime(round(rec_work.time.getCentralTime.getMatlabTime * 2)/2) * (rec_work.getRate/2)) / (rec_work.getRate/2);
@@ -784,13 +784,13 @@ classdef Receiver_Output < Receiver_Commons
                     if this.state.flag_coo_rate
                         if isempty(this.add_coo)
                             is_empty_coo = true;
-                            this.add_coo = struct('rate',[],'time',[],'coo',[]);
+                            this.add_coo = struct('rate',[],'coo',[]);
                         else
                             is_empty_coo = false;
                         end
                         for i = 1 : length(rec_work.add_coo)
                             if is_empty_coo
-                                this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
+                                this.add_coo(i) = struct('rate',[],'coo',[]);
                                 this.add_coo(i).rate = rec_work.add_coo(i).rate;
                                 this.add_coo(i).coo = rec_work.add_coo(i).coo.getCopy();
                             else
@@ -800,7 +800,7 @@ classdef Receiver_Output < Receiver_Commons
                                 discard_time.addSeconds(-this.add_coo(i).rate/2);
                                 idx_rem = time_o < discard_time;
                                 coo_o.rem(idx_rem);
-                                [this.add_coo(i).coo.time, idx1, idx2] = this.add_coo(i).coo.time.injectBatch(time_o);
+                                [this.add_coo(i).coo.time, idx1, idx2] = this.add_coo(i).coo.time.injectBatch(coo_o.time);
                                 this.add_coo(i).coo.xyz    = Core_Utils.injectData(this.add_coo(i).coo.xyz , coo_o.xyz , idx1, idx2);
                                 if ~isempty(this.add_coo(i).coo.Cxx) && ~isempty(rec_work.add_coo(i).coo.Cxx)
                                     this.add_coo(i).coo.Cxx    = [this.add_coo(i).coo.Cxx(:,:,1 : idx1 - 1); coo_o.Cxx; this.add_coo(i).coo.Cxx(:,:,idx2 + 1 : end)];
@@ -812,7 +812,7 @@ classdef Receiver_Output < Receiver_Commons
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end
                 
-                if ~isempty(rate)
+                if any(rate)
                     rec_work.id_sync = id_sync_bk;
                 end
             end
