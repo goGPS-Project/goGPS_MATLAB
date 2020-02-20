@@ -464,7 +464,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function [data_map, n_map, az_grid, el_grid] = polarGridder(az, el, data, step_deg, step_deg_out)
+        function [data_map, n_map, az_grid_out, el_grid_out] = polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
             % Grid points on a regularly gridded semi sphere
             %
             % INPUT 
@@ -472,22 +472,36 @@ classdef Core_Utils < handle
             %   el      elevation
             %
             % SYNTAX
-            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg)
+            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
             
             % az -180 : 180
             % el 0 : 90
-            az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
             el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
-            n_az = numel(az_grid);
+            flag_congurent_cells = nargin >= 6 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
+            
+            if flag_congurent_cells
+                step_az = 360 ./ round((360 / step_deg(1)) * cos(el_grid));
+                az_grid = {};
+                for i = 1 : numel(step_az)
+                   az_grid{i} = ((-180 + (step_az(i) / 2)) : step_az(i) : (180 - step_az(i) / 2)) .* (pi/180);
+                   n_az(i) = numel(az_grid{i});
+                end                
+            else
+                az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+                n_az = numel(az_grid);
+            end
             n_el = numel(el_grid);
             
             % Find map indexes
-            col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
             row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+            if flag_congurent_cells
+                col = max(1, min(floor((az + pi) ./ (step_az(row) / 180 * pi) ) + 1, n_az(i)));
+            else
+                col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
+            end
             
             % init maps
-            n_map = zeros(n_el, n_az);
-            data_map = zeros(n_el, n_az);
+            [n_map, data_map] = deal(zeros(n_el, max(n_az)));
             
             % fill maps
             for i = 1 : numel(data)
@@ -495,38 +509,88 @@ classdef Core_Utils < handle
                 data_map(row(i), col(i)) = data_map(row(i), col(i)) + data(i);
             end
             data_map(n_map > 0) = data_map(n_map > 0) ./ (n_map(n_map > 0));
-            
-            if (nargin == 5) && ~isempty(step_deg_out)
-                % get polar coordinates
-                decl_n = ((pi/2 - el_grid)/(pi/2));
-                x = sin(az_grid) .* decl_n;
-                y = cos(az_grid) .* decl_n;
-                
-                funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map(n_map > 0), 'linear' );
-                x = -1 : 0.005 : 1;
-                y = x;
-                [x_mg, y_mg] = meshgrid(x, y);
-                polar_data = nan(numel(x), numel(y));
-                id_ok = hypot(x_mg, y_mg) < 1;
-                polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
-                
-                % Prepare polar gridder
-                funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');                                                                
 
-                % Define output grid
-                az_grid = ((-180 + (step_deg_out(1) / 2)) : step_deg_out(1) : (180 - step_deg_out(1) / 2)) .* (pi/180);
-                el_grid = flipud(((step_deg_out(end) / 2) : step_deg_out(end) : 90 - (step_deg_out(end) / 2))' .* (pi/180));
-                n_az = numel(az_grid);
-                n_el = numel(el_grid);
+            flag_debug = false;
+            if flag_congurent_cells && flag_debug
+                data_congruent = {};
+                for i = 1 : numel(el_grid)
+                    data_congruent{i} = data_map(i, 1 : numel(az_grid{i}));
+                end
+                Core_Utils.plotSphPatchGrid(el_grid, az_grid, data_congruent);
+            end
             
-                % Get polar coordinates
+            % distort map
+            if (nargin >= 5) && ~isempty(step_deg_out)
+                data_map_in = data_map;
                 decl_n = ((pi/2 - el_grid)/(pi/2));
-                x = sin(az_grid) .* decl_n;
-                y = cos(az_grid) .* decl_n;
                 
-                [az_mg, el_mg] = meshgrid(az_grid, el_grid);
-                data_map = zeros(n_el, n_az);
+                % Define output grid
+                az_grid_out = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+                el_grid_out = el_grid;
+                n_az_out = numel(az_grid_out);
+                n_el_out = numel(el_grid_out);
+                data_map = zeros(n_el_out, n_az_out);
+                
+                n_map = nan2zero(n_map);
+                if flag_congurent_cells
+                    % Interpolate elevation by elevation
+                    [az, el] = deal(zeros(n_el, max(n_az)));
+                    [az_mg, el_mg] = meshgrid(az_grid_out, el_grid_out);
+                    for i = 1 : numel(el_grid)
+                        az_tmp = [az_grid{i} nan(1, max(n_az) - n_az(i))];
+                        az(i, :) = az_tmp;
+                        el(i, :) = el_grid(i);
+                        
+                        if sum(n_map(i, :) > 0) < 2
+                            data_map(i, :) = data_map_in(i,1);
+                        else
+                            az_tmp = az_tmp(n_map(i, :) > 0)';
+                            az_tmp = [az_tmp-2*pi; az_tmp; az_tmp+2*pi];
+                            data_tmp = data_map_in(i, n_map(i, :) > 0)';
+                            data_tmp = [data_tmp; data_tmp; data_tmp];
+                            data_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'linear');
+                            data_tmp = [n_map(i, n_map(i, :) > 0)'; n_map(i, n_map(i, :) > 0)'; n_map(i, n_map(i, :) > 0)'];
+                            n_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'nearest');
+                        end
+                    end
+                    data_map_in = data_map;
+                    
+                    % get polar coordinates
+                    x = sin(az_grid_out) .* decl_n;
+                    y = cos(az_grid_out) .* decl_n;
+                else
+                    % get polar coordinates
+                    x = sin(az_grid) .* decl_n;
+                    y = cos(az_grid) .* decl_n;
+                end
+                funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
+                % x = -1 : 0.005 : 1;
+                % y = x;
+                % [x_mg, y_mg] = meshgrid(x, y);
+                % polar_data = nan(numel(x), numel(y));
+                % id_ok = hypot(x_mg, y_mg) < 1;
+                % polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
+                %
+                % % Prepare polar gridder
+                % funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');
+                
+                
+                % Define output grid
+                az_grid_out = ((-180 + (step_deg_out(1) / 2)) : step_deg_out(1) : (180 - step_deg_out(1) / 2)) .* (pi/180);
+                el_grid_out = flipud(((step_deg_out(end) / 2) : step_deg_out(end) : 90 - (step_deg_out(end) / 2))' .* (pi/180));
+                n_az_out = numel(az_grid_out);
+                n_el_out = numel(el_grid_out);
+                data_map = zeros(n_el_out, n_az_out);
+                
+                % Get polar coordinates
+                decl_n = ((pi/2 - el_grid_out)/(pi/2));
+                x = sin(az_grid_out) .* decl_n;
+                y = cos(az_grid_out) .* decl_n;
+                
                 data_map(:) = funGridder(x(:),y(:));
+            else
+                el_grid_out = el_grid;
+                az_grid_out = az_grid;
             end
         end
         
@@ -2585,40 +2649,57 @@ classdef Core_Utils < handle
             
         end
         
-        function plotSphPatchGrid(el_grid,az_grid)
+        function plotSphPatchGrid(el_grid, az_grid, data)
+            % Plot a 3D spherical cap 
+            % ad hoc function for plotting congruent cells
+            % see. Generating Fuhrmann et al. 2013 statistically robust multipath stacking maps using congruent cells
+            %
+            % used for generateMultipath
+            %
+            % INPUT
+            %   el_grid     array of elevation       [1 x n]
+            %   az_grid     cell of array of azimuth [1 x n] of [1 x m(e)]            
+            %   data        cell of data elevation x elevation in azimuth [1 x n] of [1 x m(e)]
+            %   
+            % SYNTAX: 
+            %   plotSphPatchGrid(el_grid, az_grid, data)
+            
             figure;
             hold on
             el_grid = flipud(el_grid);
             az_grid = fliplr(az_grid);
+            data = fliplr(data);
             d_el  = diff(el_grid);
             el_grid = el_grid - [d_el; d_el(end)]/2;
             el_grid =  [el_grid; el_grid(end)+d_el(end)];
             for e = 1 : (length(el_grid)-1)
+                data{e} = fliplr(data{e});
                 d_az  = diff(az_grid{e}');
-                az_gridw = az_grid{e}'- [d_az; d_az(end)]/2;
-                az_gridw =  [az_gridw; az_gridw(end)+d_az(end)];
-                for a = 1 : (length(az_gridw)-1)
-                    Core_Utils.plotSphPatch(el_grid(e:e+1)',az_gridw(a:a+1)',rowNormalize(rand(1,3)));
+                if ~isempty(d_az)
+                    az_gridw = az_grid{e}'- [d_az; d_az(end)]/2;
+                    az_gridw =  [az_gridw; az_gridw(end)+d_az(end)];
+                    for a = 1 : (length(az_gridw)-1)
+                        plotSphPatch(el_grid(e:e+1)',az_gridw(a:a+1)', data{e}(a));
+                    end
                 end
             end
-        end
-        
-        function plotSphPatch(lats,lons,color)
-            if lons(2) < lons(1)
-                lons(2) = lons(2)+2*pi;
+            
+            function plotSphPatch(lats, lons, color)
+                if lons(2) < lons(1)
+                    lons(2) = lons(2)+2*pi;
+                end
+                dlons = (1 + (1 -cos(mean(lats)))*20)/180*pi;
+                lonst = (lons(1):dlons:lons(2))';
+                if lonst(end) ~= lons(2)
+                    lonst = [lonst; lons(2)];
+                end
+                lons = lonst;
+                lats = pi/2 -lats;
+                xyz =[ [cos(lons)*sin(lats(1)) sin(lons)*sin(lats(1)) ones(size(lons))*cos(lats(1))];
+                    flipud([cos(lons)*sin(lats(2)) sin(lons)*sin(lats(2)) ones(size(lons))*cos(lats(2))])];
+                patch(xyz(:,1),xyz(:,2),xyz(:,3),color);
             end
-            dlons = (1 + (1 -cos(mean(lats)))*20)/180*pi;
-            lonst = (lons(1):dlons:lons(2))';
-            if lonst(end) ~= lons(2)
-                lonst = [lonst; lons(2)];
-            end
-            lons = lonst;
-            lats = pi/2 -lats;
-            xyz =[ [cos(lons)*sin(lats(1)) sin(lons)*sin(lats(1)) ones(size(lons))*cos(lats(1))];
-                flipud([cos(lons)*sin(lats(2)) sin(lons)*sin(lats(2)) ones(size(lons))*cos(lats(2))])];
-            patch(xyz(:,1),xyz(:,2),xyz(:,3),color);
         end
-        
         
         function fr_cy = circularModedRobustMean(cycle)
             % estimate a roubust mean mean for data over 0 -1
