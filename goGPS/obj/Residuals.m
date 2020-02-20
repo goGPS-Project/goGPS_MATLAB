@@ -452,24 +452,42 @@ classdef Residuals < Exportable
     %%  MULTIPATH
     % =========================================================================
     methods
-        function ant_mp = computeMultiPath(this, marker_name, l_max, flag_reg, is_ph)
-            % Get Zernike multi pth coefficients
+        function ant_mp = computeMultiPath(this, marker_name, l_max, flag_reg, is_ph, mode)
+            % Get Zernike multi path coefficients
             %
             % INPUT
-            %   type    can be:
-            %            'pr'   -> pseudo-ranges residuals
-            %            'ph'   -> carrier-phase residuals
-            %   l_max   maximum degree for of the Zernike polynomials
+            %   marker_name     name of the station
+            %   l_max           maximum degree of the 3 steps of the zernike interpolation [l_max1, l_max2, l_max3]
+            %                   to disable Zernike use l_max = 0
+            %   flag_reg        add regularization points (pseudo obs at 0) in the empty areas of the sky
+            %   is_ph           use phases instead of pseudo-ranged (default = true)
+            %   mode            - 0 use Zernike + staking maps using congruent cells (variable azimuthal resolution)
+            %                                   n_step_az = (360/max_n_step_az * cosd(el))
+            %                   - [0, n, m] use Zernike + stacking maps using congruent cells with maximum size of [n x m] note that the output will always be 0.5 x 0.5 degrees 
+            %                   - 1 use Zernike + stacking map of [5 x 1] 
+            %                   - [1, n, m] use Zernike + stacking map of [n x m]
+            % NOTE
+            %   For mode 0 and 1 the output matrix will always be 0.5 x 0.5 degrees 
             %
             % SYNTAX
-            %   this.computeMultiPath(marker_name, l_max, flag_reg, is_ph)
+            %   this.computeMultiPath(marker_name, <l_max=[43,43,43]>, <flag_reg=true>, <is_ph=true>, <mode=[0 5 1]>)
             
+            if nargin < 6 || isempty(mode)
+                mode = 0; % Z + stacking
+            end
+            if numel(mode) == 3
+                stk_grid_step = mode(2,3);
+                mode = mode(1);
+            else
+                stk_grid_step = [5, 1];
+            end
+                        
             log = Core.getLogger();
             ant_mp = struct();
             if this.isEmpty
                 log.addWarning('Residuals have not been computed');
             else
-                flag_debug = false;
+                flag_debug = true;
                 grid_step = 0.5;
                 if nargin < 3 || isempty(l_max)
                     l_max = [43 43 43];
@@ -506,7 +524,7 @@ classdef Residuals < Exportable
                 
                 
                 log = Core.getLogger;
-                log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', marker_name));
+                log.addMarkedMessage(sprintf('1. Computing multipath mitigation coefficients for "%s"', marker_name));
                 
                 for sys_c = sys_c_list(:)'
                     ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
@@ -549,8 +567,7 @@ classdef Residuals < Exportable
                             end
                             
                             if data_found
-                                m_max = l_max;
-                                
+                                m_max = l_max;                                
                                 % Remove outliers
                                 id_ok = Core_Utils.polarCleaner(az_all, el_all, res_all, [360, 1]) & Core_Utils.polarCleaner(az_all, el_all, res_smt, [360, 1]);
                                 log.addMessage(log.indent(sprintf('2. Outlier rejection (%.3f%%)', (sum(~id_ok) / numel(id_ok)) * 100), 9));
@@ -634,7 +651,13 @@ classdef Residuals < Exportable
                                 end
                                 z_map = z_map1 + z_map2 + z_map3;
                                 res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
-                                [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, [4 1], grid_step);
+                                if mode == 1
+                                    flag_congruent = false;
+                                    [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step);
+                                elseif mode == 0
+                                    flag_congruent = true;
+                                    [g_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent);
+                                end
                                 
                                 if flag_debug
                                     clim = [-1 1] * max(-perc(1e3*(z_map(:) + g_map(:)), 0.003),perc(1e3*(z_map(:) + g_map(:)), 0.997));
@@ -657,7 +680,7 @@ classdef Residuals < Exportable
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + g_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Final map of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
                                     
-                                    [tmp] = Core_Utils.polarGridder(az_all, el_all, res_all, [4 1], grid_step);
+                                    tmp = Core_Utils.polarGridder(az_all, el_all, res_all, [5 2.5], grid_step, flag_congruent);
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(tmp)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Gridded map of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
                                 end
