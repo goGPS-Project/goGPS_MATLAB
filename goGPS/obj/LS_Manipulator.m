@@ -589,7 +589,7 @@ classdef LS_Manipulator < Exportable
                 order_tropo_g = 0;
             end
             tropo_v_g = false && obs_set.hasPhase(); 
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo -1) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -658,7 +658,7 @@ classdef LS_Manipulator < Exportable
                 tropo_g_dt = rem(id_sync_out-1 + delta_tropo_time_sart,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
             
-                        state = Core.getCurrentSettings;
+            state = Core.getCurrentSettings;
 
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -712,7 +712,7 @@ classdef LS_Manipulator < Exportable
                 elseif  ~is_fixed
                     prog_p_col = prog_p_col + 3 ;
                 end
-                % ----------- Inster observation bias ------------------
+                % ----------- Inter observation bias ------------------
                 if n_iob > 0
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = iob_idx(s) > 0;
