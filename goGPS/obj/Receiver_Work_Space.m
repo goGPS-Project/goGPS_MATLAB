@@ -10733,7 +10733,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime(this.getRate) >= this.out_stop_time),1);];
                                 
                                 ls = LS_Manipulator(cc);
-                                id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx, tropo_rate);
+                                id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx, [state.rate_ztd_ppp state.rate_grad_ppp]);
                                 ls.Astack2Nstack();
                                 
                                 time = this.time.getSubSet(id_sync_in);
