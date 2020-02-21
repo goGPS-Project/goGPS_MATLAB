@@ -8360,13 +8360,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                     sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
                     for sys_c = sys_c_list
                         if isfield(this.ant_mp, sys_c)
-                            % This constellation is already present into the applied Zernike MultiPath set of coefficients
+                            % This constellation is already present into the applied Zernike MultiPath
                             trk_list = fields(ant_mp.(sys_c))';
                             for trk = trk_list
                                 if isfield(this.ant_mp.(sys_c), trk{1})
-                                    % This tracking frequency is already present into the old Zernike MultiPath set of coefficients                                    
+                                    % This tracking frequency is already present into the old Zernike MultiPath                              
                                     ant_mp.(sys_c).(trk{1}).z_map = double(ant_mp.(sys_c).(trk{1}).z_map) - this.ant_mp.(sys_c).(trk{1}).z_map;
+                                    ant_mp.(sys_c).(trk{1}).r_map = double(ant_mp.(sys_c).(trk{1}).r_map) - this.ant_mp.(sys_c).(trk{1}).r_map;
                                     ant_mp.(sys_c).(trk{1}).g_map = double(ant_mp.(sys_c).(trk{1}).g_map) - this.ant_mp.(sys_c).(trk{1}).g_map;
+                                    ant_mp.(sys_c).(trk{1}).c_map = double(ant_mp.(sys_c).(trk{1}).c_map) - this.ant_mp.(sys_c).(trk{1}).c_map;
+                                    ant_mp.(sys_c).(trk{1}).g1_map = double(ant_mp.(sys_c).(trk{1}).g1_map) - this.ant_mp.(sys_c).(trk{1}).g1_map;
+                                    ant_mp.(sys_c).(trk{1}).c1_map = double(ant_mp.(sys_c).(trk{1}).c1_map) - this.ant_mp.(sys_c).(trk{1}).c1_map;
                                 end
                             end
                         end
@@ -8374,8 +8378,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 catch ex % Managing exception                    
                     % If the set of coefficients are incompatible they need to be removed and applied separately
                     %Core_Utils.printEx(ex);
-                    log.addError(sprintf('The new Zerniche multipath maps for "%s" are not compatible with the previous ones :-(', this.parent.getMarkerName4Ch));
-                    % if any arror arises this set is not compatible with the previous one
+                    log.addError(sprintf('The new multipath maps for "%s" are not compatible with the previous ones :-(\n"%s"', this.parent.getMarkerName4Ch, ex.message));
+                    % if any error arises this set is not compatible with the previous one
                     % e.g. it could have different maximum degree, or different frequencies
                     flag_ok = false;                    
                     ant_mp = ant_mp_bk;
@@ -8395,7 +8399,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % for each tracking
                         trk_list = fields(ant_mp.(sys_c))';
                         for trk = trk_list
-                            is_empty = is_empty && ~any(ant_mp.(sys_c).(trk{1}).z_map(:)) && ~any(ant_mp.(sys_c).(trk{1}).g_map(:));
+                            is_empty = is_empty && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).z_map(:)) && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).r_map(:)) && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).g_map(:)) && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).c_map(:)) && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).g1_map(:)) && ...
+                                ~any(ant_mp.(sys_c).(trk{1}).c1_map(:));
                         end
                     end
                 end
@@ -8524,6 +8534,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
                                 [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
                             end
+                            trk_list{t} = strrep(trk_list{t}, ' ', '_'); % Spaces are not supported in structures
+
                             % DEBUG obs_tmp = obs;
                             go_id = this.go_id(id_obs);
                             
@@ -8535,22 +8547,30 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 el(id_ko) = [];
                                 az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
                                 
-                                switch (mp_type)
-                                    case 1
-                                        [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                        mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
-                                        zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                        mp_corr = zmap2scatter(az, el);
-                                    case 2
-                                        [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                        mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
-                                        zmap2scatter = griddedInterpolant(double(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])'), double(flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])'), flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                        mp_corr = zmap2scatter(az, el);
-                                    case -1 % legacy support (z_par where saved in the structure)
-                                        l = ant_mp.(sys_c).(trk_list{t}).l;
-                                        m = ant_mp.(sys_c).(trk_list{t}).m;
-                                        z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
-                                        mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par(:,1));
+                                if mp_type > 0
+                                    switch (mp_type)
+                                        case 1 % Zernike map
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
+                                        case 2 % Zernike map + gridded residuals
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).r_map);
+                                        case 3 % Simple Gridding of size [stk_grid_step]
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
+                                        case 4 % Congruent cells gridding of size [stk_grid_step]
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).c_map);
+                                        case 5 % Simple Gridding of size [1x1]
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).g1_map);
+                                        case 6 % c1_map Congruent cells gridding of size [1x1]
+                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).c1_map);
+                                    end
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    [az_mgrid, el_mgrid] = meshgrid(Core_Utils.deg2rad(az_grid), Core_Utils.deg2rad(el_grid));
+                                    map2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                    mp_corr = map2scatter(az, el);                                
+                                elseif (mp_type == -1)
+                                    l = ant_mp.(sys_c).(trk_list{t}).l;
+                                    m = ant_mp.(sys_c).(trk_list{t}).m;
+                                    z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
+                                    mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par(:,1));
                                 end
                                 % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
                                 obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);

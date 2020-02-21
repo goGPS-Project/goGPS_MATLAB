@@ -137,8 +137,7 @@ classdef Command_Interpreter < handle
         PAR_S_MAPL      % positions on map legacy (no borders)
         PAR_S_CK        % Clock Error
         PAR_S_CKW       % Clock Error of the last session
-        PAR_S_MP1       % Multipath maps from Zernike analysis
-        PAR_S_MP2       % Multipath maps from Residuals stacking
+        PAR_S_MPN       % Multipath maps
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_SNRI      % SNR Signal to Noise Ratio with Zernike interpolation
         PAR_S_OSTAT     % Observation statistics
@@ -464,19 +463,12 @@ classdef Command_Interpreter < handle
             this.PAR_S_CKW.limits = [];
             this.PAR_S_CKW.accepted_values = [];
 
-            this.PAR_S_MP1.name = 'Multipath map';
-            this.PAR_S_MP1.descr = 'MP1                Zernike interpolated multipath maps stored in the target receiver (polar plot)';
-            this.PAR_S_MP1.par = '(mp1)|(MP1)';
-            this.PAR_S_MP1.class = '';
-            this.PAR_S_MP1.limits = [];
-            this.PAR_S_MP1.accepted_values = [];
-
-            this.PAR_S_MP2.name = 'Multipath map';
-            this.PAR_S_MP2.descr = 'MP2                Multipath stacking maps stored in the target receiver (polar plot)';
-            this.PAR_S_MP2.par = '(mp2)|(MP2)';
-            this.PAR_S_MP2.class = '';
-            this.PAR_S_MP2.limits = [];
-            this.PAR_S_MP2.accepted_values = [];
+            this.PAR_S_MPN.name = 'Multipath map';
+            this.PAR_S_MPN.descr = 'MP<N>              Show multipath map (1: Zernike, 2: Zernike + res, 3: gridded, 4: congruent cell grid, 5: gridded 1x1, 6: congruent cell grid 1x1)';
+            this.PAR_S_MPN.par = '(mp[1-6])|(MP[1-6])';
+            this.PAR_S_MPN.class = '';
+            this.PAR_S_MPN.limits = [];
+            this.PAR_S_MPN.accepted_values = [];
 
             this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
             this.PAR_S_SNR.descr = 'SNR                Signal to Noise Ratio (polar plot)';
@@ -897,7 +889,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM ...
                 this.PAR_S_DA this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_CTYPE...
                 this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK ...
-                this.PAR_S_MP1 this.PAR_S_MP2 this.PAR_S_SNR this.PAR_S_SNRI ...
+                this.PAR_S_MPN this.PAR_S_SNR this.PAR_S_SNRI ...
                 this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_PR this.PAR_S_RES_PH this.PAR_S_RES_PR_STAT this.PAR_S_RES_PH_STAT this.PAR_S_RES_PR_SKY this.PAR_S_RES_PH_SKY ...
                 this.PAR_S_RES_PR_SKYP this.PAR_S_RES_PH_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
                 this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD this.PAR_S_TGRAD];
@@ -1139,11 +1131,11 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
     methods         
-        function ex_list = exec(this, core, cmd_list, level_add)
+        function ex_list = exec(this, core, cmd_list, loop_level_add, sss_level_add)
             % run a set of commands (divided in cells of cmd_list)
             %
             % SYNTAX:
-            %   this.exec(rec, core, cmd_list)
+            %   this.exec(rec, core, cmd_list, level_add, level_add_sss)
             
             log = Core.getLogger;
             ex_number = 0;
@@ -1156,14 +1148,17 @@ classdef Command_Interpreter < handle
                 cmd_list = {cmd_list};
             end
             if nargin < 4
-                level_add = 0;
+                loop_level_add = 0;
+            end
+            if nargin < 5
+                sss_level_add = 0;
             end
             
             t0 = tic();
             try
                 [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = this.fastCheck(cmd_list);
-                sss_level = session_lev + level_add;
-                level = execution_block + level_add;
+                sss_level = session_lev + sss_level_add;
+                level = execution_block + loop_level_add;
                 % for each command
                 cur_line_id = 0;
                 while cur_line_id < numel(cmd_list)
@@ -1212,7 +1207,7 @@ classdef Command_Interpreter < handle
                                         % substitute $ with the current target
                                         cmd_list_loop{c} = strrep(cmd_list_loop{c},'$', num2str(t));
                                     end
-                                    this.exec(core, cmd_list_loop, level(sid + 1));
+                                    this.exec(core, cmd_list_loop, level(sid + 1), sss_level(sid + 1));
                                 end
                                 
                                 % Auto-push if no parallel sessions are present
@@ -1249,7 +1244,7 @@ classdef Command_Interpreter < handle
                                             % substitute £ with the current session
                                             cmd_list_loop{c} = strrep(cmd_list_loop{c},'£', num2str(s));
                                         end
-                                        this.exec(core, cmd_list_loop, level(id_list(1)));
+                                        this.exec(core, cmd_list_loop, level(id_list(1)), sss_level(sid + 1));
                                         
                                         if flag_push(sum(diff(execution_block) < 0) + 1)
                                             for r = 1 : length(core.rec)
@@ -1350,6 +1345,10 @@ classdef Command_Interpreter < handle
                                     case this.CMD_FIX_POS.name              % FIX POS
                                         this.runFixPos(core.rec, tok(2:end));
                                 end
+                                switch upper(tok{1})                                   
+                                    case this.CMD_MPEST.name                % CMD_MPEST
+                                        this.runMPEst(core.rec, tok(2:end));
+                                end
                                 if not(core.getCoreSky.isEmpty())
                                     switch upper(tok{1})
                                         case this.CMD_AZEL.name                 % AZEL
@@ -1370,8 +1369,6 @@ classdef Command_Interpreter < handle
                                             this.runSID(core.rec, tok(2:end));
                                         case this.CMD_REMIONO.name              % REMIONO
                                             this.runRemIono(core.rec, tok(2:end));
-                                        case this.CMD_MPEST.name                % CMD_MPEST
-                                            this.runMPEst(core.rec, tok(2:end));
                                         case this.CMD_SYNC.name                 % SYNC
                                             this.runSync(core.rec, tok(2:end));
                                         case this.CMD_OUTDET.name               % OUTDET
@@ -2428,13 +2425,9 @@ classdef Command_Interpreter < handle
                                 if Core_Utils.isHold; hold off; end
                                 fh_list = [fh_list; trg.showDt()]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MP1.par ')*$'], 'once'))
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MPN.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showMultiPathModel(1)]; %#ok<AGROW>
-                                show_ok  = show_ok + 1;
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MP2.par ')*$'], 'once'))
-                                if Core_Utils.isHold; hold off; end
-                                fh_list = [fh_list; trg.showMultiPathModel(2)]; %#ok<AGROW>
+                                fh_list = [fh_list; trg.showMultiPathModel(str2double(tok{t}(end)))]; %#ok<AGROW>
                                 show_ok  = show_ok + 1;
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
                                 if Core_Utils.isHold; hold off; end

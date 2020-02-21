@@ -158,7 +158,8 @@ classdef Observation_Set < handle
                                 id_sat = find(u_obs_num == trk_num);
                                 if any(id_sat)
                                     log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
-                                    
+                                    trk_list{t} = strrep(trk_list{t}, ' ', '_'); % Spaces are not supported in structures
+
                                     go_id = this.go_id(id_sat);
                                     obs = zero2nan(this.obs(:, id_sat));
                                     
@@ -170,17 +171,25 @@ classdef Observation_Set < handle
                                         el(id_ko) = [];
                                         az = this.az(~id_ko, id_sat(s)) / 180 * pi;
                                         
-                                        switch (mp_type)
-                                            case 1
-                                                [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
-                                                zmap2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                                mp_corr = zmap2scatter(az, el);
-                                            case 2
-                                                [az_mgrid, el_mgrid] = meshgrid(ant_mp.(sys_c).(trk_list{t}).az_grid, ant_mp.(sys_c).(trk_list{t}).el_grid);
-                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
-                                                zmap2scatter = griddedInterpolant(double(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])'), double(flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])'), flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                                mp_corr = zmap2scatter(az, el);
+                                        if (mp_type) > 0
+                                            switch (mp_type)
+                                                case 1 % Zernike map
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
+                                                case 2 % Zernike map + gridded residuals
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).r_map);
+                                                case 3 % Simple Gridding of size [stk_grid_step]
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
+                                                case 4 % Congruent cells gridding of size [stk_grid_step]
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).c_map);
+                                                case 5 % Simple Gridding of size [1x1]
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).g1_map);
+                                                case 6 % c1_map Congruent cells gridding of size [1x1]
+                                                    mp_map = double(ant_mp.(sys_c).(trk_list{t}).c1_map);
+                                            end
+                                            [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                            [az_mgrid, el_mgrid] = meshgrid(Core_Utils.deg2rad(az_grid), Core_Utils.deg2rad(el_grid));
+                                            map2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                            mp_corr = map2scatter(az, el);                                            
                                         end
                                         % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
                                         obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);

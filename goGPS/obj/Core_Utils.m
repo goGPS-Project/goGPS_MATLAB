@@ -566,30 +566,38 @@ classdef Core_Utils < handle
                             data_tmp = data_map_in(i, n_map(i, :) > 0)';
                             data_tmp = [data_tmp; data_tmp; data_tmp];
                             data_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'linear');
-                            data_tmp = [n_map(i, n_map(i, :) > 0)'; n_map(i, n_map(i, :) > 0)'; n_map(i, n_map(i, :) > 0)'];
+                            az_tmp = [az_grid{i}'-2*pi; az_grid{i}'; az_grid{i}'+2*pi];
+                            data_tmp = [n_map(i, 1 : n_az(i))'; n_map(i, 1 : n_az(i))'; n_map(i, 1 : n_az(i))'];
                             n_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'nearest');
                         end
                     end
+                    data_map(n_map == 0) = 0;
+                    n_map(n_map == 0) = 0.1; % this is to cheat the next scatteredInterpolant
                     data_map_in = data_map;
                     
                     % get polar coordinates
                     x = sin(az_grid_out) .* decl_n;
                     y = cos(az_grid_out) .* decl_n;
+                    funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
                 else
                     % get polar coordinates
                     x = sin(az_grid) .* decl_n;
                     y = cos(az_grid) .* decl_n;
+                    
+                    data_map_in(n_map == 0) = 0;
+                    n_map(n_map == 0) = 0.1; % this is to cheat the next scatteredInterpolant
+                    
+                    funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
+                    x = -1 : 0.005 : 1;
+                    y = x;
+                    [x_mg, y_mg] = meshgrid(x, y);
+                    polar_data = nan(numel(x), numel(y));
+                    id_ok = hypot(x_mg, y_mg) < 1;
+                    polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
+                    
+                    % Prepare polar gridder
+                    funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');
                 end
-                funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
-                % x = -1 : 0.005 : 1;
-                % y = x;
-                % [x_mg, y_mg] = meshgrid(x, y);
-                % polar_data = nan(numel(x), numel(y));
-                % id_ok = hypot(x_mg, y_mg) < 1;
-                % polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
-                %
-                % % Prepare polar gridder
-                % funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');
                 
                 
                 % Define output grid

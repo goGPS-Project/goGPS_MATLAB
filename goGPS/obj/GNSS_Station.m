@@ -482,7 +482,7 @@ classdef GNSS_Station < handle
     % ==================================================================================================================================================
     methods
         function updateMultiPath(sta_list)
-            sta_list = sta_list(~sta_list.isEmptyWork_mr);
+            sta_list = sta_list(~sta_list.isEmpty);
             log = Core.getLogger();
             for rec = sta_list(:)'
                 log.addMarkedMessage(sprintf('Updating multipath corrections for "%s"', rec.getMarkerName4Ch));
@@ -513,12 +513,17 @@ classdef GNSS_Station < handle
                                 rec.ant_mp.(sys_c) = ant_mp.(sys_c);
                             else
                                 for trk = trk_list
+                                    trk = strrep(trk, ' ', '_'); % Spaces are not supported in structures
                                     if ~isfield(rec.ant_mp.(sys_c), trk{1})
                                         % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
                                         rec.ant_mp.(sys_c).(trk{1}) = ant_mp.(sys_c).(trk{1});
                                     else
                                         rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).z_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).g_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).r_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).c_map = rec.ant_mp.(sys_c).(trk{1}).c_map + ant_mp.(sys_c).(trk{1}).g_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).i_map = rec.ant_mp.(sys_c).(trk{1}).i_map + ant_mp.(sys_c).(trk{1}).c_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).g1_map;
+                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).r1_map;
                                     end
                                 end
                             end
@@ -526,8 +531,8 @@ classdef GNSS_Station < handle
                         flag_update = true;
                     catch ex
                         %Core_Utils.printEx(ex);
-                        log.addError(sprintf('The new multipath model for "%s" is not compatible with the previous one', rec.getMarkerName4Ch));
-                        % if any arror arises this set is not compatible with the previous one
+                        log.addError(sprintf('The new multipath model for "%s" is not compatible with the previous one\nDelete or do not load the old maps', rec.getMarkerName4Ch));
+                        % if any error arises this set is not compatible with the previous one
                         % e.g. it could have different maximum degree, or different frequencies
                         rec.ant_mp = ant_mp_bk;
                     end
@@ -4899,14 +4904,14 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showMultiPathModel(sta_list, type)
+        function fh_list = showMultiPathModel(sta_list, mp_type)
             % Show MultiPath Maps for each receiver workspace
             % (polar plot Zernike interpolated)
             %
             % SYNTAX
             %   this.showSNR_p(sys_list)
             if nargin == 1
-                type = 1;
+                mp_type = 1;
             end
             log = Core.getLogger;
             state = Core.getState;
@@ -4923,23 +4928,34 @@ classdef GNSS_Station < handle
                             % This constellation is already present into the applied Zernike MultiPath set of coefficients
                             trk_list = fields(ant_mp.(sys_c))';
                             for trk = trk_list
-                                if isfield(ant_mp.(sys_c), trk{1})
-                                    az_grid = double(ant_mp.(sys_c).(trk{1}).az_grid);
-                                    el_grid = double(ant_mp.(sys_c).(trk{1}).el_grid);
-                                    if type == 2 % Map from simple gridding
-                                        map = double(ant_mp.(sys_c).(trk{1}).g_map);
-                                    else % Zenike model
-                                        map = double(ant_mp.(sys_c).(trk{1}).z_map);
+                                trk = strrep(trk{1}, ' ', '_'); %#ok<FXSET> % structures do not support spaces
+                                if isfield(ant_mp.(sys_c), trk)
+                                    switch (mp_type)
+                                        case 1 % Zernike map
+                                            mp_map = double(ant_mp.(sys_c).(trk).z_map);
+                                        case 2 % Zernike map + gridded residuals
+                                            mp_map = double(ant_mp.(sys_c).(trk).r_map);
+                                        case 3 % Simple Gridding of size [stk_grid_step]
+                                            mp_map = double(ant_mp.(sys_c).(trk).g_map);
+                                        case 4 % Congruent cells gridding of size [stk_grid_step]
+                                            mp_map = double(ant_mp.(sys_c).(trk).c_map);
+                                        case 5 % Simple Gridding of size [1x1]
+                                            mp_map = double(ant_mp.(sys_c).(trk).g1_map);
+                                        case 6 % c1_map Congruent cells gridding of size [1x1]
+                                            mp_map = double(ant_mp.(sys_c).(trk).c1_map);
                                     end
-                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk{1}, iif(type==2, 'RAW ', '')); fh.NumberTitle = 'off';
-                                    polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(map)); 
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid);
+                                    el_grid = Core_Utils.deg2rad(el_grid);
+                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk, iif(mp_type==2, 'RAW ', '')); fh.NumberTitle = 'off';
+                                    polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); 
                                     fh_list = [fh_list; fh];
                                     caxis(max(abs(minMax(caxis))) * [-1 1]); 
                                     colormap((Cmap.get('PuOr', 2^11))); 
                                     colorbar;
                                     drawnow
-                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', iif(type==2, '(raw) ', ''), rec.getMarkerName4Ch, sys_c, trk{1}))); drawnow
-                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', iif(type==2, 'raw_', ''), rec.getMarkerName4Ch, sys_c, trk{1}, rec.getTime.last.toString('yyyymmdd_HHMM'));
+                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', iif(mp_type==2, '(raw) ', ''), rec.getMarkerName4Ch, sys_c, trk))); drawnow
+                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', iif(mp_type==2, 'raw_', ''), rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
                                     fh.UserData = struct('fig_name', fig_name);
                                     Core_UI.beautifyFig(fh, 'light');
                                     Core_UI.addExportMenu(fh);
