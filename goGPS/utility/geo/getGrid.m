@@ -1,7 +1,5 @@
-function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambdaMax)
-
-% SYNTAX:
-%   [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambdaMax)
+function [phi_grid, lambda_grid] = getGrid(step, phi_min, phi_max, lambda_min, lambda_max)
+%  Get the array of knots of the grid
 %
 % INPUT:
 %   step:   step of the grid
@@ -13,8 +11,8 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
 %   lambdaGrid = array of knots of the grid (lambda) as
 %                lambdaMin + step / 2 : step : lambdaMax - step / 2;
 %
-% DESCRIPTION:
-%   Get the array of knots of the grid
+% SYNTAX:
+%   [phi_grid, lambda_grid] = getGrid(step, phi_min, phi_max, lambda_min, lambda_max)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -24,7 +22,7 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
 %    |___/                    v 1.0b6
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2011 Andrea Gatti
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -48,24 +46,24 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
 %--------------------------------------------------------------------------
 
     if nargin ==1
-        phiMin = -90;
-        phiMax = 90;
-        lambdaMin = -180;
-        lambdaMax = 180;
+        phi_min = -90;
+        phi_max = 90;
+        lambda_min = -180;
+        lambda_max = 180;
     end
 
-    if phiMin>phiMax
-        tmp = phiMin;
-        phiMin = phiMax;
-        phiMax = tmp;
+    if phi_min > phi_max
+        tmp = phi_min;
+        phi_min = phi_max;
+        phi_max = tmp;
     end
 
-    if lambdaMin > lambdaMax
-        tmp = lambdaMin;
-        lambdaMin = lambdaMax;
-        lambdaMax = tmp;
+    if lambda_min > lambda_max
+        tmp = lambda_min;
+        lambda_min = lambda_max;
+        lambda_max = tmp;
     end
-
-    phiGrid = (phiMax - step/2 : -step : phiMin + step / 2)';
-    lambdaGrid = (lambdaMin + step / 2 : step : lambdaMax - step / 2)';
+    
+    phi_grid = (phi_max - step(1)/2 : -step(1) : phi_min + step(1) / 2)';
+    lambda_grid = (lambda_min + step(end) / 2 : step(end) : lambda_max - step(end) / 2)';
 end

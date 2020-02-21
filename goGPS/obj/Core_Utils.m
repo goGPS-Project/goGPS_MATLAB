@@ -436,6 +436,22 @@ classdef Core_Utils < handle
                 x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
             end
         end
+        
+        function [az_grid, el_grid] = getPolarGrid(step_az, step_el)
+            % Get a regularly spaced lnots coordinates for a polar grid
+            %
+            % INPUT
+            %   step_az     step of the grid in azimuth   [deg]
+            %   step_el     step of the grid in elevation [deg]
+            %
+            % OUTPUT 
+            %   el_grid     grid centers in azimuth   [deg]
+            %   el_grid     grid centers in elevation [deg]
+            %
+            % SYNTAX
+            %   [az_grid, el_grid] = Core_Utils.getPolarGrid(step_az, step_el)
+            [el_grid, az_grid] = getGrid([step_el step_az], 0, 90, -180, 180);
+        end
             
         function id_ok = polarCleaner(az, el, data, step_deg)
             % Remove observations above 3 sigma 
@@ -474,6 +490,7 @@ classdef Core_Utils < handle
             % SYNTAX
             %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
             
+            % Define grid
             % az -180 : 180
             % el 0 : 90
             el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
@@ -1302,6 +1319,26 @@ classdef Core_Utils < handle
             plm = plm(lMin:lMax,:,:);
         end
 
+        %--------------------------------------------------------------------------
+        % TRIGONOMETRIC manipulators
+        %--------------------------------------------------------------------------
+
+        function r_angle = deg2rad(d_angle)
+            % Convert degrees to radians
+            %
+            % SYNTAX
+            %   r_angle =Core_Utils.deg2rad(d_angle)
+            r_angle = d_angle .* (pi/180);
+        end
+        
+        function d_angle = rad2deg(r_angle)
+            % Convert degrees to radians
+            %
+            % SYNTAX
+            %   r_angle =Core_Utils.deg2rad(d_angle)
+            d_angle = r_angle .* (180/pi);
+        end
+        
         %--------------------------------------------------------------------------
         % DATA manipulators
         %--------------------------------------------------------------------------
