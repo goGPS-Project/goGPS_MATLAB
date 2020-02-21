@@ -2766,6 +2766,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core.getLogger.addMessage('File availability plotted');
         end
         
+        function openInspector(this, caller, event)
+            % Create a new project            
+            goInspector;
+        end
+        
         function createNewProject(this, caller, event)
             % Create a new project            
             new = GUI_New_Project(this);
@@ -3128,7 +3133,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.menu.goGPS = uimenu(this.w_main, 'Label', 'goGPS');
             uimenu(this.menu.goGPS, ...
                 'Label', 'About', ...
-                'Callback', @this.about);            
+                'Callback', @this.about);
+            uimenu(this.menu.goGPS, ...
+                'Label', 'Open Inspector', ...
+                'Callback', @this.openInspector);
             this.menu.options = uimenu(this.w_main, 'Label', 'Options');
             uimenu(this.menu.options, ...
                 'Label', 'Set for PPP troposphere estimation', ...
