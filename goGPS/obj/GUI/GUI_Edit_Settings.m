@@ -2752,17 +2752,17 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Core.getLogger.addMessage('File availability checked');
         end
         
-        function goEditSettings(this, caller, event)
+        function updateAndPlotRecList(this, caller, event)
             % Update file name list and plot daily availability of the files
             %
             % SYNTAX:
             %   this.updateAndPlotRecList
             
             % Get file name list
-             state = Core.getCurrentSettings();
+            state = Core.getCurrentSettings();
             state.updateObsFileName;
             Core.getCurrentCore.plotRecList();
-           
+            
             Core.getLogger.addMessage('File availability plotted');
         end
         
