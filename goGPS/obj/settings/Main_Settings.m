@@ -235,13 +235,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
-        FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
+        
+        FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
+        FLAG_MP_IGNORE_TRK = true;                      % Flag to specify if multipath management have to ignore trackings
+                                                        % and combine the data of multiple trackings all together (reccomanded)
         
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
         
-        TRP_OUT_RATE = 0;                            % Troposphere output rate 0 means use the rate the receivers
+        TRP_OUT_RATE = 0;                               % Troposphere output rate 0 means use the rate the receivers
 
         % ATMOSPHERE
         FLAG_FREE_NET_TROPO = false;                    % Flag for enabling free network of ztd in network estimation
