@@ -140,7 +140,14 @@ classdef Observation_Set < handle
                 if isempty(this.obs)
                     log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
                 else
-                    u_obs_num = cc.obsCode2num(this.obs_code, ones(size(this.obs_code,1),1));
+                    obs_code = this.obs_code;
+                    if Core.getCurrentSettings.FLAG_MP_IGNORE_TRK
+                        for i = 1 : size(obs_code, 1)
+                            obs_code(i, 4:3:end) = '_';
+                        end
+                    end
+                    
+                    u_obs_num = cc.obsCode2num(obs_code, ones(size(obs_code,1),1));
                     if sgn > 0
                         log.addMarkedMessage(sprintf('Applying multipath mitigation on the iono-free combination'));
                     else

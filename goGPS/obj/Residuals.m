@@ -546,22 +546,28 @@ classdef Residuals < Exportable
                 log = Core.getLogger;
                 log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', marker_name));
                 
+                obs_code = this.obs_code;
+                if Core.getCurrentSettings.FLAG_MP_IGNORE_TRK
+                    for i = 1 : size(obs_code, 1)
+                        obs_code(i, 4:3:end) = '_';
+                    end
+                end
+                
                 for sys_c = sys_c_list(:)'
-                    ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
+                    ids = find(obs_code(:,1) == sys_c & any((obs_code(:,2:3:end-1)) == search_obs, 2));
                     if ~any(ids)
-                        log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
-                    else
-                        obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1)); % get all the data of the same frequency - all the satellites
+                        log.addWarning(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
+                    else                        
+                        obs_id_num = cc.obsCode2num(obs_code(ids, :), zeros(size(ids, 1), 1)); % get all the data of the same frequency - all the satellites
                         uobs_id = unique(obs_id_num);
                         for  t = 1 : numel(uobs_id)
                             id = ids(obs_id_num == uobs_id(t)); % tracking for the specific obs_code
-                            trk_code = this.obs_code(id(1),2:end);
-                            %trk_code = strtrim(trk_code(2:3));
+                            trk_code = obs_code(id(1),2:end);
                             
                             data_found = false;
                             
                             res = zero2nan(this.value(:, id));
-                            res_go_id = cc.getIndex(this.obs_code(id, 1), this.prn(id));
+                            res_go_id = cc.getIndex(obs_code(id, 1), this.prn(id));
                             
                             
                             % Get all the data to interpolate
