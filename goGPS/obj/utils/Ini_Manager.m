@@ -895,20 +895,20 @@ classdef Ini_Manager < handle
             s = 0;
             this.section = {};
             for r=1:length(this.raw_data)
-                sectionName = regexp(this.raw_data{r}, '(?<=^\[).*(?=\])', 'match');
-                if (~isempty(sectionName))
+                section_name = regexp(this.raw_data{r}, '(?<=^\[).*(?=\])', 'match');
+                if (~isempty(section_name))
                     % we have a new SECTION!
                     s = s+1;
                     p = 0;
-                    this.section{s}.name = sectionName{1};
+                    this.section{s}.name = section_name{1};
                     this.section{s}.key = [];
                 else
                     % maybe this line contains a key, let's check
-                    parName = regexp(this.raw_data{r}, '^(.*(?=\s\=))', 'match');
-                    if (isempty(parName))
-                        parName = regexp(this.raw_data{r}, '^(.*(?=\=))', 'match');
+                    par_name = regexp(this.raw_data{r}, '^(.*(?=\s\=))', 'match');
+                    if (isempty(par_name))
+                        par_name = regexp(this.raw_data{r}, '^(.*(?=\=))', 'match');
                     end
-                    if (~isempty(parName))
+                    if (~isempty(par_name))
                         % we have a PARAMETER!
                         p = p+1;
                         if (s == 0)
@@ -916,43 +916,10 @@ classdef Ini_Manager < handle
                             this.section{s}.name = 'Section';
                             this.section{s}.key = [];
                         end
-                        this.section{s}.key{p}.name = parName{1};
-                        % Get the DATA!
-                        strData = regexp(this.raw_data{r}, '(?<=\=).*', 'match');
-                        if (isempty(strData))
-                            this.section{s}.key{p}.data = [];
-                        else
-                            tmpData = str2num(strData{1}); %#ok<ST2NM>
-                            if (~isempty(tmpData) && isnumeric(tmpData))   % It's a number!
-                                this.section{s}.key{p}.data = tmpData;
-                            else
-                                % It's a string!
-                                % If it is a string properly formatted "string data"
-                                tmpData = regexp(strData{1}, '(?<=\")[^"]*(?=\")', 'match');
-                                if (~isempty(tmpData))
-                                    if (size(tmpData,2) == 1)
-                                        this.section{s}.key{p}.data = tmpData{1};
-                                    else
-                                        % Strip empty cells
-                                        tmpData((cellfun(@length, tmpData)==0)) = [];
-                                        % Strip space only cells
-                                        for c=size(tmpData,2):-1:1
-                                            if isempty(regexp(tmpData{c}, '[^ ]*', 'match'))
-                                                tmpData(c) = [];
-                                            end
-                                        end
-                                        this.section{s}.key{p}.data = tmpData;
-                                    end
-                                else
-                                    % If it appears to be an empty string
-                                    this.section{s}.key{p}.data = '';
-                                end
-                            end
-                        end
+                        this.section{s}.key{p}.name = par_name{1};
+                        this.section{s}.key{p}.data = Ini_Manager.str2value(this.raw_data{r});
                     end
-
                 end
-
             end
         end
 
@@ -967,6 +934,42 @@ classdef Ini_Manager < handle
     % =========================================================================
 
     methods (Static)
+        
+        % str2value -------------------------------------------------------
+        function value = str2value(raw_data)
+            % Get the DATA!            
+            str_data = regexp(raw_data, '(?<=\=).*', 'match');
+            if (isempty(str_data))
+                value = [];
+            else
+                tmpData = str2num(str_data{1}); %#ok<ST2NM>
+                if (~isempty(tmpData) && isnumeric(tmpData))   % It's a number!
+                    value = tmpData;
+                else
+                    % It's a string!
+                    % If it is a string properly formatted "string data"
+                    tmpData = regexp(str_data{1}, '(?<=\")[^"]*(?=\")', 'match');
+                    if (~isempty(tmpData))
+                        if (size(tmpData,2) == 1)
+                            value = tmpData{1};
+                        else
+                            % Strip empty cells
+                            tmpData((cellfun(@length, tmpData)==0)) = [];
+                            % Strip space only cells
+                            for c=size(tmpData,2):-1:1
+                                if isempty(regexp(tmpData{c}, '[^ ]*', 'match'))
+                                    tmpData(c) = [];
+                                end
+                            end
+                            value = tmpData;
+                        end
+                    else
+                        % If it appears to be an empty string
+                        value = '';
+                    end
+                end
+            end
+        end
 
         % cellStringtoString ----------------------------------------------
         function str = strCell2Str(value)
