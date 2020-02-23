@@ -487,8 +487,10 @@ classdef Residuals < Exportable
                 stk_grid_step = mode(2,3);
                 mode = mode(1);
             else
-                stk_grid_step = [5, 1];
+                stk_grid_step = [2, 1];
             end
+            
+            n_min = 3; % minimum  number of points per cell
             
             % z_map  Zernike
             % r_map  Zernike + (the methods specified on mode)
@@ -693,38 +695,44 @@ classdef Residuals < Exportable
                                     else
                                         res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
                                         if mode == 1
-                                            [r_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, false, n_min);
                                         elseif mode == 0
                                             flag_congruent = true;
-                                            [r_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent, n_min);
                                         end
                                     end
                                 end
                                                                 
                                 % Compute normal and congruent maps as comparison (no regularization)
                                 if ltype_of_grids(3) % g_map  Simple Gridding of size [stk_grid_step]
-                                    g_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), stk_grid_step, grid_step);
+                                    g_map = Core_Utils.polarGridder(az_all, el_all, res_all, stk_grid_step, grid_step, false, n_min);
                                 else
                                     g_map = 0;
                                 end
                                 if ltype_of_grids(4) % c_map  Congruent cells gridding of size [stk_grid_step]
-                                    c_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), stk_grid_step, grid_step, true);
+                                    c_map = Core_Utils.polarGridder(az_all, el_all, res_all, stk_grid_step, grid_step, true, n_min);
                                 else
                                     c_map = 0;
                                 end
                                 if ltype_of_grids(5) % g1_map Simple Gridding of size [1x1]
-                                    g1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1]);
+                                    g1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1], false, n_min);
                                 else
                                     g1_map = 0;
                                 end
                                 if ltype_of_grids(6) % c1_map Congruent cells gridding of size [1x1]
-                                    c1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1], true);
+                                    c1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1], true, n_min);
                                 else
                                     c1_map = 0;
                                 end
                                 
                                 if flag_debug
+                                    %%
                                     clim = [-1 1] * max(-perc(1e3*(z_map(:) + r_map(:)), 0.003),perc(1e3*(z_map(:) + r_map(:)), 0.997));
+                                    mp_map = z_map1;
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid)';
+                                    el_grid = Core_Utils.deg2rad(el_grid);
+                                    
                                     %figure; imagesc(1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map1)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Zernike expansion (1) of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
@@ -753,7 +761,7 @@ classdef Residuals < Exportable
                                     title((sprintf('Gridded map of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
                                     
                                     mp_map = c1_map;
-                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(c1_map, 2), 90 / size(mp_map, 1));
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
                                     az_grid = Core_Utils.deg2rad(az_grid);
                                     el_grid = Core_Utils.deg2rad(el_grid);
                                     
@@ -789,7 +797,7 @@ classdef Residuals < Exportable
                             else
                                 if ~data_found
                                     log = Core.getLogger;
-                                    log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_code, marker_name, cc.getSysName(sys_c)));
+                                    log.addWarning(sprintf('No %s %s found in %s for constellation %s', name, trk_code, marker_name, cc.getSysName(sys_c)));
                                 end
                                 
                             end
@@ -842,7 +850,7 @@ classdef Residuals < Exportable
                 for sys_c = sys_c_list(:)'
                     ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
                     if ~any(ids)
-                        log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
+                        log.addWarning(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
                     else
                         obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1));
                         uobs_id = unique(obs_id_num);
@@ -937,7 +945,7 @@ classdef Residuals < Exportable
                 for sys_c = sys_c_list(:)'
                     ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
                     if ~any(ids)
-                        log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
+                        log.addWarning(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
                     else
                         obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1));
                         uobs_id = unique(obs_id_num);
@@ -1028,7 +1036,7 @@ classdef Residuals < Exportable
                 for sys_c = sys_c_list(:)'
                     ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
                     if ~any(ids)
-                        log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
+                        log.addWarning(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
                     else
                         obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1));
                         uobs_id = unique(obs_id_num);
@@ -1129,7 +1137,7 @@ classdef Residuals < Exportable
                 for sys_c = sys_c_list(:)'
                     ids = find(this.obs_code(:,1) == sys_c & any((this.obs_code(:,2:3:end-1)) == search_obs, 2));
                     if ~any(ids)
-                        log.addError(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
+                        log.addWarning(sprintf('No %s found in %s for constellation %s', name, marker_name, cc.getSysName(sys_c)));
                     else
                         obs_id_num = cc.obsCode2num(this.obs_code(ids,:), zeros(size(ids, 1), 1));
                         uobs_id = unique(obs_id_num);
@@ -1172,7 +1180,7 @@ classdef Residuals < Exportable
                             if ~data_found
                                 close(fh)
                                 log = Core.getLogger;
-                                log.addError(sprintf('No %s %s found in %s for constellation %s', name, trk_code, marker_name, cc.getSysName(sys_c)));
+                                log.addWarning(sprintf('No %s %s found in %s for constellation %s', name, trk_code, marker_name, cc.getSysName(sys_c)));
                             else
                                 cax = caxis(ax1); caxis(ax1, [-1 1] * max(abs(cax)));
                                 colormap(Cmap.get('PuOr', 2^11));

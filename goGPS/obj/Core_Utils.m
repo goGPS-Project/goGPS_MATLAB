@@ -480,7 +480,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function [data_map, n_map, az_grid_out, el_grid_out] = polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
+        function [data_map, n_map, az_grid_out, el_grid_out] = polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells, n_min)
             % Grid points on a regularly gridded semi sphere
             %
             % INPUT 
@@ -495,7 +495,9 @@ classdef Core_Utils < handle
             % el 0 : 90
             el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
             flag_congurent_cells = nargin >= 6 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
-            
+            if nargin < 7
+                n_min = 0; % by default grid all the data
+            end            
             if flag_congurent_cells
                 step_az = 360 ./ round((360 / step_deg(1)) * cos(el_grid));
                 az_grid = {};
@@ -519,13 +521,17 @@ classdef Core_Utils < handle
             
             % init maps
             [n_map, data_map] = deal(zeros(n_el, max(n_az)));
-            
+                        
             % fill maps
             for i = 1 : numel(data)
                 n_map(row(i), col(i)) = n_map(row(i), col(i)) + 1;
                 data_map(row(i), col(i)) = data_map(row(i), col(i)) + data(i);
             end
             data_map(n_map > 0) = data_map(n_map > 0) ./ (n_map(n_map > 0));
+            
+            % zeros cells with a minimum number of data < n_min
+            n_map = nan2zero(n_map);
+            data_map(n_map <= n_min) = 0;
 
             flag_debug = false;
             if flag_congurent_cells && flag_debug
@@ -548,7 +554,6 @@ classdef Core_Utils < handle
                 n_el_out = numel(el_grid_out);
                 data_map = zeros(n_el_out, n_az_out);
                 
-                n_map = nan2zero(n_map);
                 if flag_congurent_cells
                     % Interpolate elevation by elevation
                     [az, el] = deal(zeros(n_el, max(n_az)));
