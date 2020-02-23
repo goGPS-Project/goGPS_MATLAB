@@ -61,6 +61,7 @@ classdef Command_Interpreter < handle
     properties (GetAccess = public, SetAccess = private)
         % List of the supported commands
         
+        CMD_SET         % Allow the modification of a setting parameter
         CMD_LOAD        % Load data from the linked RINEX file into the receiver
         CMD_RENAME      % Rename a receiver        
         CMD_EMPTY       % Reset the receiver content
@@ -95,6 +96,8 @@ classdef Command_Interpreter < handle
         KEY_PAR         % For each target (parallel) keyword
         KEY_END         % For/Par marker end
         
+        PAR_NEWSET      % Parameter new setting
+        
         PAR_NAME        % Parameter marker name
         
         PAR_RATE        % Parameter select rate
@@ -116,7 +119,6 @@ classdef Command_Interpreter < handle
         
         PAR_M_UNCOMBINED  % Parameter to force the usage if the new uncombined engine
         
-        PAR_M_IONO        % Parameter to estimate ionosphere
         PAR_M_CLK         % Parameter to estimate clock
         PAR_M_FREE_NET    % Parameter to let the network free
         
@@ -190,7 +192,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'MPEST', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
+        CMD_LIST = {'SET', 'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'MPEST', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -238,9 +240,13 @@ classdef Command_Interpreter < handle
                 end
             end
             
+            this.PAR_NEWSET.name = 'Settings update';
+            this.PAR_NEWSET.descr = '"param = value"     update to the parameter';
+            this.PAR_NEWSET.par = '*string';
+
             this.PAR_NAME.name = 'Marker name';
             this.PAR_NAME.descr = 'NAME                Marker name';
-            this.PAR_NAME.par = '.';
+            this.PAR_NAME.par = 'string';
 
             this.PAR_RATE.name = 'rate';
             this.PAR_RATE.descr = '@<rate>            Processing rate in seconds (e.g. @30s, -r=30s)';
@@ -306,7 +312,7 @@ classdef Command_Interpreter < handle
             this.PAR_CLOSE.accepted_values = [];
 
             %  Method parameter
-                       
+                                   
             this.PAR_M_UNCOMBINED.name = 'Use the uncombined engine';
             this.PAR_M_UNCOMBINED.descr = '-u                 (flag) use the uncombined engine';
             this.PAR_M_UNCOMBINED.par = '(-u)|(-U)|(--uncombined)|(--UNCOMBINED)';
@@ -320,14 +326,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_FREE_NET.class = '';
             this.PAR_M_FREE_NET.limits = [];
             this.PAR_M_FREE_NET.accepted_values = [];
-        
-%             this.PAR_M_IONO.name = 'Reduce for ionosphere delay';
-%             this.PAR_M_IONO.descr = '--iono             Reduce for ionosphere delay';
-%             this.PAR_M_IONO.par = '(-i)|(-I)|(--iono)|(--IONO)|(-iono)|(-IONO)|(--i)|(--I)';
-%             this.PAR_M_IONO.class = '';
-%             this.PAR_M_IONO.limits = [];
-%             this.PAR_M_IONO.accepted_values = [];
-            
+                    
             this.PAR_M_CLK.name = 'Export clock';
             this.PAR_M_CLK.descr = '--clk              Export common Parameter in network';
             this.PAR_M_CLK.par = '(-c)|(-C)|(--clk)|(--Clk)|(--CLK)';
@@ -788,6 +787,11 @@ classdef Command_Interpreter < handle
             % definition of commands
             
             new_line = [char(10) '             ']; %#ok<CHARTEN>
+            this.CMD_SET.name = {'SET', 'set'};
+            this.CMD_SET.descr = 'Change the value of a parameter';
+            this.CMD_SET.rec = '';
+            this.CMD_SET.par = [this.PAR_NEWSET];
+
             this.CMD_LOAD.name = {'LOAD', 'load'};
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
@@ -846,7 +850,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS  this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED]; %this.PAR_M_IONO
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS  this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED];
                         
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SEID (Satellite specific Epoch differenced Ionospheric Delay model)'];
@@ -1312,6 +1316,8 @@ classdef Command_Interpreter < handle
                         else
                             try
                                 switch upper(tok{1})
+                                    case this.CMD_SET.name                  % SET a parameter
+                                        this.runSet(core.state, tok(2:end));
                                     case this.CMD_RENAME.name               % RENAME
                                         this.runRename(core.rec, tok(2:end));
                                     case this.CMD_PINIT.name                % PINIT
@@ -1344,8 +1350,6 @@ classdef Command_Interpreter < handle
                                         this.runLoad(core.rec, tok(2:end));
                                     case this.CMD_FIX_POS.name              % FIX POS
                                         this.runFixPos(core.rec, tok(2:end));
-                                end
-                                switch upper(tok{1})                                   
                                     case this.CMD_MPEST.name                % CMD_MPEST
                                         this.runMPEst(core.rec, tok(2:end));
                                 end
@@ -1408,6 +1412,43 @@ classdef Command_Interpreter < handle
     % methods to execute a set of goGPS Commands
     methods (Access = public)
         
+        function runSet(this, state, tok)
+            % Modify a parameter founnd in state
+            %
+            % SYNTAX
+            %   this.runSet(state, tok)
+            
+            % First of all merge the tokens separated by space 
+            % e.g. "flag_mp = 1" is splitted into 3 parts!
+            full_tok = {};
+            n_par = 0;
+            for t = 1 : numel(tok)
+                tok{t} = strrep(tok{t}, '''''', '^');
+                n_par = n_par + 0.5 * sum(tok{t} == '''');
+                p = max(1, floor(n_par));
+                
+                if p > numel(full_tok)
+                    full_tok{p} = tok{t};
+                else
+                    full_tok{p} = [full_tok{p} tok{t}];
+                end
+                full_tok{p} = strrep(full_tok{p}, '^', '''');                
+            end
+            for p = 1 : numel(full_tok)
+                par = regexp(full_tok{p}, '^(.*(?=\=))', 'match', 'once');
+                par = strrep(par, '''', '');
+                if ~isempty(par)                    
+                    % Try to modify par into state
+                    value = Ini_Manager.str2value(full_tok{p});
+                    err_code = state.set(par, value);
+                    if ~err_code
+                        Core.getLogger.addStatusOk(sprintf('Parameter %s changed correctly', par));
+                    end
+                end             
+            end
+                
+        end
+        
         function runParInit(this, tok)
             % Load the RINEX file into the object
             %
@@ -1433,7 +1474,7 @@ classdef Command_Interpreter < handle
             %   rec     list of rec objects
             %
             % SYNTAX
-            %   this.load(rec)
+            %   this.runLoad(rec, tok)
             
             log = Core.getLogger();
             
@@ -1480,7 +1521,7 @@ classdef Command_Interpreter < handle
             %   rec     list of rec objects
             %
             % SYNTAX
-            %   this.load(rec)
+            %   this.runRename(rec, tok)
             
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
@@ -1871,9 +1912,6 @@ classdef Command_Interpreter < handle
                     coo_rate = rate;
                 end
                 for t = 1 : numel(tok)
-%                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_IONO.par ')*$'], 'once'))
-%                         flag_iono_reduce = true;
-%                     end
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_CLK.par ')*$'], 'once'))
                         flag_clk_export = true;
                     end
@@ -3025,9 +3063,13 @@ classdef Command_Interpreter < handle
                     if ~isfield(cmd, 'key')
                         cmd.key = '';
                     end
+                    flag_multiple_par = false;
+                    for p = 1 : numel(cmd.par)
+                        flag_multiple_par = flag_multiple_par || cmd.par(p).par(1) == '*';
+                    end
                     if numel(tok) < (1 + numel(cmd.rec))
                         err = this.ERR_NEI; % not enough input parameters
-                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.key)) && ~strcmp(cmd.name{1}, 'RENAME')
+                    elseif ~flag_multiple_par && (numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.key)) && ~strcmp(cmd.name{1}, 'RENAME'))
                         err = this.WRN_TMI; % too many input parameters
                     end
                 end

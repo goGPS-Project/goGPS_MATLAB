@@ -5751,6 +5751,43 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     end
     
     % =========================================================================
+    
+    %%  SETTERS
+    % =========================================================================
+    methods   
+        function err_code = set(this, par_name, new_value)
+            % Generic set function to change a parameter of state
+            % Used mainly by the command SET
+            % No check is performed on the new value
+            %
+            % SYNTAX
+            %   this.set(par_name, new_value);
+            %
+            err_code = 0;
+            is_field = true;
+            try
+                this.(par_name);
+            catch
+                is_field = false;
+            end
+            if ~is_field
+                log = Core.getLogger();
+                log.addWarning(sprintf('Trying to set an unrecognized parameter "%s"', par_name));
+                err_code = -1;
+            else
+                try
+                    this.(par_name) = new_value;
+                catch ex
+                    err_code = 1;
+                    Core_Utils.printEx(ex);
+                    log = Core.getLogger();
+                    log.addWarning(sprintf('Setting of "%s" failed', par_name));
+                end
+            end
+        end
+    end
+    
+    % =========================================================================
     %%  TEST
     % =========================================================================
     methods (Static, Access = 'public')
