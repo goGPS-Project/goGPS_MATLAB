@@ -579,6 +579,7 @@ classdef LS_Manipulator < Exportable
                 order_tropo = 3;
             else
                 order_tropo = 0;
+                tropo_rate(1) = 0;
             end
                
             if this.state.tparam_grad_ppp == 2
@@ -587,6 +588,7 @@ classdef LS_Manipulator < Exportable
                 order_tropo_g = 3;
             else
                 order_tropo_g = 0;
+                tropo_rate(2) = 0;
             end
             tropo_v_g = false && obs_set.hasPhase(); 
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
@@ -754,7 +756,7 @@ classdef LS_Manipulator < Exportable
                         A(lines_stream, prog_p_col) = mfw_stream;
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
-                        spline_v = Core_Utils.spline(tropo_dt(id_ok_stream),order_tropo);
+                        spline_v = Core_Utils.spline(tropo_dt(id_ok_stream), order_tropo);
                         for o = 1 : (order_tropo + 1)
                             prog_p_col = prog_p_col + 1;
                             A(lines_stream, prog_p_col) = mfw_stream.*spline_v(:,o);
