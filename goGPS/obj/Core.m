@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0b6';
+        GO_GPS_VERSION = '1.0 RC1';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -1871,13 +1871,7 @@ classdef Core < handle
             % SYNTAX
             %   install_dir = Core.getInstallDir()
             [install_dir, name, ext] = fileparts(which('goGPS'));
-        end
-        
-        function playAlert()
-            % Warning at the end of a job! (Play a sound)
-            load handel;
-            sound(y(1:16000),Fs);
-        end
+        end        
     end
 
 end

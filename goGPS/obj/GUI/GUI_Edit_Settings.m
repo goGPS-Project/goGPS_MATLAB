@@ -735,8 +735,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_v = uix.VBox('Parent', out_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Receiver Clock Errors (Dt)',           'flag_out_dt', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV - Precippitable Water Vapour',     'flag_out_pwv', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD - Zennith Wet Delay',              'flag_out_zwd', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV - Precipitable Water Vapour',      'flag_out_pwv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD - Zenith Wet Delay',               'flag_out_zwd', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZTD - Zenith Total Delay',             'flag_out_ztd', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Tropospheric Gradients (East/Norht)',  'flag_out_tropo_g', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'A-priori troposphere',                 'flag_out_apr_tropo', @this.onCheckBoxChange);
@@ -1403,7 +1403,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'UserData', 'flag_rec_mp',...
                 'String', Core.getCurrentSettings.FLAG_REC_MP_LABEL,...
                 'Callback', @this.onPopUpChange);
-            box_handle.Widths = [170 150];
+            box_handle.Widths = [170 -1];
             Core_UI.insertEmpty(opt_vbox, color_bg);
             opt_vbox.Heights = [ones(1, 10) * Core_UI.LINE_HEIGHT -1];
         end

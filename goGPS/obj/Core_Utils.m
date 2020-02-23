@@ -3089,5 +3089,11 @@ classdef Core_Utils < handle
                 info = [];
             end
         end
+        
+        function playAlert()
+            % Warning at the end of a job! (Play a sound)
+            load handel;
+            sound(y(1:16000),Fs);
+        end
     end
 end
