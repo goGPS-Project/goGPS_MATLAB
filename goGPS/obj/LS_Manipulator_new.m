@@ -2109,14 +2109,14 @@ classdef LS_Manipulator_new < handle
         end
         
         
-        function simpleSnoop(this, ph_thr, pr_thr)
+        function simpleSnoop(this)
             % simple threshold on residual
             %
             % this.Snoop(this, ph_thr, pr_thr)
-            idx_out_ph = this.phase_obs & abs(this.res) > ph_thr;
-            this.outlier_obs(idx_out_ph) = true;
-            idx_out_pr = this.phase_obs == 0 & abs(this.res) > pr_thr;
-            this.outlier_obs(idx_out_pr) = true;
+            threshold = 2.5;
+            wfun = @(x)  1;
+            this.weightOnResidualPh(wfun, threshold);
+            this.weightOnResidualPr(wfun, threshold);
         end
         
         function reweightHuber(this)
@@ -2184,9 +2184,9 @@ classdef LS_Manipulator_new < handle
                 this.outlier_obs(this.reweight_obs < 1e-3) = true;
             end
         end
-    
         
-        function snoopGatt(this, ph_thr, pr_thr)
+        
+        function snoopGatt(this, ph_thr, pr_thr,trim_arc_lim)
             % simple threshold on residuals
             %
             % this.Snoop(this, ph_thr, pr_thr)
@@ -2194,19 +2194,32 @@ classdef LS_Manipulator_new < handle
             this.outlier_obs(idx_out_ph) = true;
             idx_out_pr = this.phase_obs == 0 & abs(this.res) > pr_thr;
             this.outlier_obs(idx_out_pr) = true;
+            thr_propagate_ph = ph_thr /3;
+            thr_propagate_pr = pr_thr /3;
+            
             for r = 1 : size(this.rec_xyz,1)
                 [res_ph] = getPhRes(this, r);
-                idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, ph_thr/3);
+                res_ph = Receiver_Commons.smoothSatData([],[],res_ph, [], 'spline', 30, 10);
+                
+                idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, thr_propagate_ph);
+                if nargin > 3 && trim_arc_lim
+                    [idx_ko] = idx_ko | Core_Utils.snoopArcLim(res_ph,thr_propagate_ph);
+                end
                 this.setPhFlag(r,idx_ko);
                 [res_pr] = getPrRes(this, r);
-                idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, pr_thr/3);
+                res_pr = Receiver_Commons.smoothSatData([],[],res_pr, [], 'spline', 30, 10);
+                
+                idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, thr_propagate_pr);
+                if nargin > 3 && trim_arc_lim
+                    [idx_ko] = idx_ko | Core_Utils.snoopArcLim(res_pr,thr_propagate_pr);
+                end
                 this.setPrFlag(r,idx_ko);
             end
             
         end
-       
         
-     
+        
+        
         
         function [res_ph, sat, obs_id, res_id] = getPhRes(this, rec_num)
             % Get phase residuals

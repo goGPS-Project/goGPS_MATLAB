@@ -3040,6 +3040,52 @@ classdef Core_Utils < handle
                 id_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
             end
         end
+        
+        function [idx_ko] = snoopArcLim(ssat_err,thr_propagate)
+             % Find begin and end of an arc, if it's out of thr flag it till comes down under threshold 
+            %
+            % SYNTAX:
+            %    [w] = Core_Utils.snoopArcLim(ssat_err,thr_propagate)
+            idx_ko = false(size(ssat_err));
+            ot = abs(ssat_err) > thr_propagate;
+            for s = 1 : size(ssat_err, 2)
+                
+                % Beginning of the arc
+                tmp = ot(:, s) + ~isnan(ssat_err(:, s));
+                
+                id_start_bad = find(diff([0; tmp]) == 2);
+                for i = 1 : numel(id_start_bad)
+                    id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
+                    
+                    % rem over threshold elements
+                    if isempty(id_stop_bad)
+                        idx_ko(id_start_bad(i) : end, s) = true;
+                    else
+                        idx_ko(id_start_bad(i) + (0 : (id_stop_bad - 1)), s) = true;
+                    end
+                end
+                
+                % End of the arc (flip method)
+                ot(:, s) = flipud(ot(:, s));
+                tmp = ot(:, s) + flipud(~isnan(ssat_err(:, s)));
+                
+                id_start_bad = find(diff([0; tmp]) == 2);
+                for i = 1 : numel(id_start_bad)
+                    id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
+                    
+                    % rem over threshold elements
+                    if isempty(id_stop_bad)
+                        idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) : size(idx_ko, 1)), s) = true;
+                    else
+                        try
+                        idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) + (0 : (id_stop_bad - 1))), s) = true;
+                        catch
+                            keyboard
+                        end
+                    end
+                end
+            end % ----------------
+        end
                 
         function [x,inv_diag] = fastInvDiag(N,B,mode)
             % solve the linear system and compute the diagonal entry of the inverse of N square matrix. This is

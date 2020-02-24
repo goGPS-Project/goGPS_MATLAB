@@ -3771,6 +3771,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        
         function go_id = getGoId(this, sys, prn)
             % return go_id for a given system and prn
             % SYNTAX go_id = this.getGoId(sys, prn)
@@ -10500,8 +10501,27 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % Solve the LS problem
                 ls.solve();
-                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
-                ls.solve();
+%                 ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+%                 ls.solve();
+                 % REWEIGHT ON RESIDUALS
+                    if state.getReweightPPP > 1
+                        flag_recompute = true;
+                        switch state.getReweightPPP()
+                            case 2, ls.reweightHuber;
+                            case 3, ls.reweightHubNoThr;
+                            case 4, ls.reweightDanish;
+                            case 5, ls.reweightDanishWM;
+                            case 6, ls.reweightTukey;
+                            case 7, ls.simpleSnoop();
+                            case 8, ls.snoopGatt(state.getMaxPhaseErrThr, state.getMaxCodeErrThr);
+                            case 9, ls.snoopGatt(state.getMaxPhaseErrThr, state.getMaxCodeErrThr,true); 
+                        end
+                        if flag_recompute
+                            ls.solve();
+                        end
+                    end
+                
+                
                 
                 % outlier detections
                 
