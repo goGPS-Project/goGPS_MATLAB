@@ -4948,11 +4948,11 @@ classdef GNSS_Station < handle
                                             str_out_type = 'C_';
                                             mp_map = double(ant_mp.(sys_c).(trk).c_map);
                                         case 5 % Simple Gridding of size [1x1]
-                                            str_type = 'regular smoothed ';
+                                            str_type = 'regular ';
                                             str_out_type = 'G1_';
                                             mp_map = double(ant_mp.(sys_c).(trk).g1_map);
                                         case 6 % c1_map Congruent cells gridding of size [1x1]
-                                            str_type = 'congruent smoothed ';
+                                            str_type = 'congruent ';
                                             str_out_type = 'C1_';
                                             mp_map = double(ant_mp.(sys_c).(trk).c1_map);
                                     end
