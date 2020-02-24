@@ -679,6 +679,28 @@ classdef Core_Utils < handle
             n = sqrt((1+(m~=0)).*(l+1)/pi);
         end
         
+        function [l , m] = getAllZdegree(l_max, m_max)
+            % Generate all the Zernike degree combinations
+            %
+            % INPUT
+            %   l_max       max degrees
+            %   m_max       max orders
+            
+            n_par = l_max * (l_max + 3) / 2 + 1;
+            
+            l = zeros(n_par, 1);
+            m = zeros(n_par, 1);
+            i = 0;
+            for degree = 0 : l_max
+                i = i(end) + (1 : degree + 1);
+                l(i) = degree;
+                m(i) = -degree : 2 : degree;
+            end
+            
+            l(abs(m) > m_max) = [];
+            m(abs(m) > m_max) = [];
+        end
+        
         function [z, l, m] = getAllZernikeNorm(l_max, m_max, az, r)
             % Generate all the Zernike parameters combinations
             %
@@ -1014,7 +1036,79 @@ classdef Core_Utils < handle
             end
             fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
         end
-        
+
+        function fh = showAllZernike(l, m, z_par, el_min, flag_hlist)
+            % Show 3D plot of Zernike polynomials 
+            %
+            % SINTAX
+            %   fh = showAllZernike(l, m, z_par)
+            %
+            % EXAMPLE
+            %   [l, m] = Core_Utils.getAllZdegree(3, 3);
+            %   Core_Utils.showAllZernike(l, m, 1, 0, @(el) el); 
+            %   colormap(Cmap.get('BuRd', 1024));
+
+                       
+            is_hold = true;
+            fh = figure();
+            
+            %%% INTERNAL PARAMETER
+            scale = 1;
+            %%%
+            
+            if nargin < 5
+                flag_hlist = false;
+            end
+            if numel(z_par) == 1
+                z_par = ones(size(l)) * z_par;
+            end
+            
+            x = -1 : 0.005 : 1;
+            y = x;
+            [X,Y] = meshgrid(x,y);
+            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
+            r_zern = r_prj;
+            if nargin >= 4 && ~isempty(el_min)
+                r_max = 1 - (2 * el_min / pi);
+                idx = r_prj <= r_max;
+            else
+                idx = r_prj <= 1;
+            end
+            
+            axis equal
+            if flag_hlist
+                dx = 2.2;
+                for i = 1 : numel(l)
+                    z = nan(size(X));
+                    z(idx) = zernfun(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
+                    
+                    h = imagesc(x + dx * i, y, z); hold on;
+                    h.AlphaData = ~isnan(z);
+                end
+                xlim([-1 (dx*i+1)]);                
+            else
+                dx = 1.4; dy = 2.4; % All attached
+                for i = 1 : numel(l)
+                    z = nan(size(X));
+                    z(idx) = zernfun(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
+                    
+                    h = imagesc(x + dx * m(i), y + dy * -l(i),z); hold on;
+                    h.AlphaData = ~isnan(z);
+                    ylim(dy*[-1 0] * max(abs(m)) + [-1 1]);
+                    xlim(dx*[-1 1] * max(abs(l)) + [-1 1]);                %dx = 1.2; dy = 1.6; % All attached
+                end                
+            end
+
+            ax = gca;
+            ax.YDir = 'normal';
+            axis equal
+            axis off
+            set(gcf,'color','w');
+            colormap(Cmap.get('PuOr', 1024));
+
+            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
+        end
+
         function fh = showZernike3(l, m, z_par, el_min)
             % Show 3D plot of Zernike polynomials 
             %
@@ -2915,7 +3009,7 @@ classdef Core_Utils < handle
             
         end
         
-        function [val] = spline(t,order)
+        function [val] = spline(t, order)
             % Compute matrix entry for spline
             %
             % INPUT
