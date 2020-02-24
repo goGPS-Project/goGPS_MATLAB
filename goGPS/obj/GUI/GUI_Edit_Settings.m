@@ -2761,7 +2761,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Get file name list
             state = Core.getCurrentSettings();
             state.updateObsFileName;
-            Core.getCurrentCore.plotRecList();
+            core = Core.getCurrentCore;
+            core.updateRinFileList;
+            core.plotRecList();
             
             Core.getLogger.addMessage('File availability plotted');
         end
