@@ -10500,7 +10500,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % Solve the LS problem
                 ls.solve();
-                    
+                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+                ls.solve();
                 
                 % outlier detections
                 
