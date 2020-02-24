@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0 RC1';
+        GO_GPS_VERSION = '1.0b6';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -1435,13 +1435,14 @@ classdef Core < handle
                 h = ylabel('STATION'); h.FontWeight = 'bold';
                 ax = gca(); ax.YTick = 1:n_rec;
                 ax.YTickLabel = sta_name;
-                set(ax,'XGrid','on')
-                title(sprintf('Rinex data avaliability %d',year));
-                if numel(months_time) > 1
-                ax.XTick = months_time;
-                end
-                datetick('x','dd/mm/yyyy HH','keepticks');
-                ax.XTickLabelRotation = 45;
+                setTimeTicks(ax);
+                % set(ax,'XGrid','on')
+                % title(sprintf('Rinex data avaliability %d',year));
+                % if numel(months_time) > 1
+                % ax.XTick = months_time;
+                % end
+                % datetick('x','dd/mm/yyyy HH','keepticks');
+                % ax.XTickLabelRotation = 45;
             end
         end
         
