@@ -4932,35 +4932,48 @@ classdef GNSS_Station < handle
                                 if isfield(ant_mp.(sys_c), trk)
                                     switch (mp_type)
                                         case 1 % Zernike map
+                                            str_type = 'Zernike ';
+                                            str_out_type = 'Z_';
                                             mp_map = double(ant_mp.(sys_c).(trk).z_map);
                                         case 2 % Zernike map + gridded residuals
+                                            str_type = 'Zernike + congruent ';
+                                            str_out_type = 'ZC_';
                                             mp_map = double(ant_mp.(sys_c).(trk).r_map);
                                         case 3 % Simple Gridding of size [stk_grid_step]
+                                            str_type = 'regular smoothed ';
+                                            str_out_type = 'R_';
                                             mp_map = double(ant_mp.(sys_c).(trk).g_map);
                                         case 4 % Congruent cells gridding of size [stk_grid_step]
+                                            str_type = 'congruent smoothed ';
+                                            str_out_type = 'C_';
                                             mp_map = double(ant_mp.(sys_c).(trk).c_map);
                                         case 5 % Simple Gridding of size [1x1]
+                                            str_type = 'regular smoothed ';
+                                            str_out_type = 'G1_';
                                             mp_map = double(ant_mp.(sys_c).(trk).g1_map);
                                         case 6 % c1_map Congruent cells gridding of size [1x1]
+                                            str_type = 'congruent smoothed ';
+                                            str_out_type = 'C1_';
                                             mp_map = double(ant_mp.(sys_c).(trk).c1_map);
                                     end
                                     [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
                                     az_grid = Core_Utils.deg2rad(az_grid);
                                     el_grid = Core_Utils.deg2rad(el_grid);
-                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk, iif(mp_type==2, 'RAW ', '')); fh.NumberTitle = 'off';
+                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk, str_type); fh.NumberTitle = 'off';
                                     polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); 
                                     fh_list = [fh_list; fh];
                                     caxis(max(abs(minMax(caxis))) * [-1 1]); 
                                     colormap((Cmap.get('PuOr', 2^11))); 
                                     colorbar;
                                     drawnow
-                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', iif(mp_type==2, '(raw) ', ''), rec.getMarkerName4Ch, sys_c, trk))); drawnow
-                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', iif(mp_type==2, 'raw_', ''), rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
+                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', str_type, rec.getMarkerName4Ch, sys_c, trk)), 'interpreter', 'none'); drawnow
+                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', str_out_type, rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
                                     fh.UserData = struct('fig_name', fig_name);
                                     Core_UI.beautifyFig(fh, 'light');
                                     Core_UI.addExportMenu(fh);
                                     Core_UI.addBeautifyMenu(fh);
                                     fh.Visible = 'on'; drawnow;
+                                    caxis([-15 15]);
                                 end
                             end
                         end
