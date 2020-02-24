@@ -627,21 +627,20 @@ classdef Residuals < Exportable
                                     az_reg = az_grid(n_data_map <= 0);
                                     el_reg = el_grid(n_data_map <= 0);
                                     
-                                    [~, z_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 0.5);
+                                    [~, z_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 1);
                                     az_all = [az_all; az_reg];
                                     el_all = [el_all; el_reg];
                                     res_all = [res_all; zeros(size(el_reg))];
                                     
                                     % Add additional points at the board
-                                    for i = 0 : 0.5 : (Core.getState.getCutOff - 3)
+                                    for i = 0 : 1 : (Core.getState.getCutOff - 3)
                                         az_all = [az_all; (-pi : 0.05 : pi)'];
                                         el_all = [el_all; i/180*pi + (-pi : 0.05 : pi)'*0];
                                         res_all = [res_all; (-pi : 0.05 : pi)'*0];
                                     end
-                                else
-                                    az_grid = ((-180 + (grid_step(1) / 2)) : grid_step(1) : (180 - grid_step(1) / 2)) .* (pi/180);
-                                    el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                                 end
+                                az_grid = ((-180 + (grid_step(1) / 2)) : grid_step(1) : (180 - grid_step(1) / 2)) .* (pi/180);
+                                el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                                 
                                 log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 2 + flag_reg*1, l_max(1)), 9));
                                 %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
@@ -735,31 +734,37 @@ classdef Residuals < Exportable
                                     el_grid = Core_Utils.deg2rad(el_grid);
                                     
                                     %figure; imagesc(1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis([-5 5]); colorbar;
-                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map1)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Zernike expansion (1) of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    if numel(z_map1) > 1
+                                        figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map1)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
+                                    end
+                                    title((sprintf('Zernike expansion (1) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
-                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Zernike expansion (2) of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    if numel(z_map2) > 1
+                                        figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map2)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
+                                    end
+                                    title((sprintf('Zernike expansion (2) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
-                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map3)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Zernike expansion (3) of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    if numel(z_map3) > 1
+                                        figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map3)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
+                                    end
+                                    title((sprintf('Zernike expansion (3) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(r_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridder residuals of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Gridder residuals of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Zernike expansion of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Zernike expansion of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + r_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Final map of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Final map of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     mp_map = c_map;
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridded map with congruent cells of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Gridded map with congruent cells of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
 
                                     mp_map = g_map;
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridded map of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Gridded map of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     mp_map = c1_map;
                                     [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
@@ -767,11 +772,11 @@ classdef Residuals < Exportable
                                     el_grid = Core_Utils.deg2rad(el_grid);
                                     
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridded map with congruent cells [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Gridded map with congruent cells [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
 
                                     mp_map = g1_map;
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridded map [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code))); drawnow
+                                    title((sprintf('Gridded map [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                 end
                                 
                                 if ~isfield(ant_mp, sys_c)
