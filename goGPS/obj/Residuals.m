@@ -512,7 +512,8 @@ classdef Residuals < Exportable
                 end
                 grid_step = 0.5;
                 if nargin < 3 || isempty(l_max)
-                    l_max = [43 43 43];
+                    l_max = [31 31 21];
+                    l_max = [43 43 31];
                 end
                 if numel(l_max) == 1
                     l_max = [l_max l_max l_max];
@@ -695,10 +696,10 @@ classdef Residuals < Exportable
                                     else
                                         res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
                                         if mode == 1
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, false, n_min);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, [1 1], grid_step, false, n_min);
                                         elseif mode == 0
                                             flag_congruent = true;
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent, n_min);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, [1 1], grid_step, flag_congruent, n_min);
                                         end
                                     end
                                 end
