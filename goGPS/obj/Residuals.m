@@ -574,7 +574,8 @@ classdef Residuals < Exportable
                             
                             
                             % Get all the data to interpolate
-                            [~, id_sat] = intersect(go_id, res_go_id);
+                            [~, id_sat] = ismember(res_go_id,go_id);
+
                             
                             az_all = [];
                             el_all = [];
@@ -969,7 +970,7 @@ classdef Residuals < Exportable
                             fig_name = sprintf('Res_polar_%s_%s_%s_%s', marker_name, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                             fh.UserData = struct('fig_name', fig_name);
                             
-                            [~, id_sat] = intersect(go_id, res_go_id);
+                            [~, id_sat] = ismember(res_go_id,go_id);
                             
                             figure(fh); % get focus;
                             go_id_list = [];
