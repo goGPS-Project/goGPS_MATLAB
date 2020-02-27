@@ -302,18 +302,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 if enable_rri
                     this.insertTabRemoteResource(tab_panel)
                 end
-
+               
                 % Main Panel > tab3 data sources
-                this.j_cmd = this.insertTabCommands(tab_panel);
-
-                % Main Panel > tab4 data sources
                 this.insertTabDataSources(tab_panel);            
 
-                % Main Panel > tab5 CRD of the stations
+                % Main Panel > tab4 CRD of the stations
                 this.insertTabRecSpecificParameters(tab_panel);
 
-                % Main Panel > tab6 regularization
+                % Main Panel > tab5 regularization
                 this.insertTabProcessing(tab_panel);
+
+                % Main Panel > tab6 data sources
+                this.j_cmd = this.insertTabCommands(tab_panel);
 
                 % Main Panel > tab7 processing options
                 this.insertTabOutput(tab_panel);
@@ -321,12 +321,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Tabs settings --------------------------------------------------------------------------------------------
 
                 if enable_rri
-                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Output'};
+                    tab_panel.TabTitles = {'Advanced', 'Resources', 'Data sources', 'Rec. Info', 'Processing', 'Commands', 'Output'};
+                    tab_panel.Selection = 6;
                 else
-                    tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Rec. Info', 'Processing', 'Output'};
+                    tab_panel.TabTitles = {'Settings', 'Data sources', 'Rec. Info', 'Processing', 'Commands', 'Output'};
+                    tab_panel.Selection = 5;
                 end
-                tab_panel.Selection = 3;            
-
+                
                 % Botton Panel ---------------------------------------------------------------------------------------------
                 
                 bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
@@ -1500,8 +1501,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 3, ...
                 'BackgroundColor', color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_ppp_v1, 'Estimate', 'flag_coo_ppp', @this.onCheckBoxChange,color_bg);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[],color_bg);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 70],color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_ppp_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_ppp', @this.onPopUpChange,[-1 150],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_ppp_v1, 'Rate', 'rate_coo_ppp', 's', @this.onEditChange, [-1 80 5 60],color_bg);
             coo_op_ppp_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             coo_op_ppp_v2 = uix.VBox('Parent', coo_opt_ppp_h,...
@@ -1556,7 +1557,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
             
             tab_rec_tropo.Heights = [21 25 25];            
-            tab_rec_tropo.Widths = [150 150 150 150 150 ];
+            tab_rec_tropo.Widths = [150 150 -1 -1 -1 ];
             
             %%% BIAS PARAMETERS
             bias_opt_ppp_h = uix.VBox('Parent', bias_opt_ppp,...
@@ -1627,7 +1628,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_ifbias_ppp', '', @this.onEditChange, [0 -1 0 0],color_inner_tab);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_bias, '', 'dreg_rec_trkbias_ppp', '', @this.onEditChange, [0 -1 0 0],color_inner_tab);
             
-            tab_rec_bias.Widths = [150 150 150 150 150];
+            tab_rec_bias.Widths = [150 150 -1 -1 -1];
             tab_rec_bias.Heights = [21 25 25 25];
             rec_bias_ppp_rec.Heights = [25 -1];
             
@@ -1657,8 +1658,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Spacing', 3, ...
                 'BackgroundColor', color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(coo_op_net_v1, 'Estimate', 'flag_coo_net', @this.onCheckBoxChange,color_bg);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_net', @this.onPopUpChange,[],color_bg);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_net_v1, 'Rate', 'rate_coo_net', 's', @this.onEditChange, [-1 80 5 70],color_bg);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(coo_op_net_v1, 'Time parametrization', state.TIME_PARAMETRIZATION_LABEL, 'tparam_coo_net', @this.onPopUpChange, [-1 150], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(coo_op_net_v1, 'Rate', 'rate_coo_net', 's', @this.onEditChange, [-1 80 5 60],color_bg);
             coo_op_net_v1.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1];
             
             coo_op_net_v2 = uix.VBox('Parent', coo_opt_net_h,...
@@ -1723,7 +1724,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             
             tab_rec_tropo.Heights = [21 25  25];
-            tab_rec_tropo.Widths = [200 150 140 140 140 ];
+            tab_rec_tropo.Widths = [190 150 -1 -1 -1];
             
             %%%% BIAS parameters
             bias_opt_net = Core_UI.insertPanelLight2(tab_net, 'NET Bias (U2)');
