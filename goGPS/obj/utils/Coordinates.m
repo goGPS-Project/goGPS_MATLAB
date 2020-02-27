@@ -322,7 +322,7 @@ classdef Coordinates < Exportable & handle
            
             xyz_ref = ref_pos.getXYZ;
             xyz_this = this.getXYZ;
-            baseline = repmat(xyz_ref,size(xyz_this,1),1) - xyz_this;
+            baseline = xyz_this - repmat(xyz_ref, size(xyz_this,1),1);
             loc = Coordinates.cart2loca(xyz_ref, baseline);
         end
         
