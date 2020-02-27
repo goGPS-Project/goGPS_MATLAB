@@ -902,8 +902,11 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         time = this(r).getTime.getNominalTime();
                         state = Core.getCurrentSettings;
 
-                        t_start = state.sss_date_start;
-                        t_end = state.sss_date_stop;
+                        [~, t_start] = state.getSessionLimits();
+                        t_start.toGps;
+                        t_end = t_start.last;
+                        t_start = t_start.first;
+                        
                         [year, doy] = t_start.getDOY();
                         t_start_str = t_start.toString('HHMM');
                         t_start.toUtc();
@@ -969,14 +972,9 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         this(r).updateCoordinates;
                         state = Core.getCurrentSettings;
                         time = this(r).getTime.getNominalTime;
-                        if isa(this, 'Receiver_Work_Space')
-                            [~, t_start] = state.getSessionLimits();
-                            t_end = t_start.last;
-                            t_start = t_start.first;
-                        else
-                            t_start = state.sss_date_start;
-                            t_end = state.sss_date_stop;
-                        end
+                        [~, t_start] = state.getSessionLimits();
+                        t_end = t_start.last;
+                        t_start = t_start.first;
                         [year, doy] = t_start.getDOY();
                         t_start_str = t_start.toString('HHMM');
                         t_start.toUtc();
