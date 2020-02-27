@@ -271,10 +271,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'Padding', 200, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
                 this.insertWaitBox(wait_box, 'Building interface...');
-                
-                
-               
-                drawnow; 
+                if isunix && not(ismac)
+                    % On linux I have to repeat this operation or the wait
+                    % box will not be centered
+                    wait_box.Padding = 190;
+                end
+                drawnow;
                 delete(wait_box)
                 tab_panel = uix.TabPanel('Parent', panel_g_border, ...
                     'TabWidth', 100, ...
