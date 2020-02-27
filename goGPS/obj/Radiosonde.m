@@ -853,7 +853,7 @@ classdef Radiosonde < handle
                     %t.Units = 'data';
                 end
             end
-            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f, 'light');
+            Core_UI.addExportMenu(f); Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f, 'light');
             f.Visible = 'on';
             title(sprintf('Radiosondes position\\fontsize{5} \n'), 'FontSize', 16);
             %xlabel('Longitude [deg]');
