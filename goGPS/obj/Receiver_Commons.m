@@ -826,8 +826,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 sess_str = 'abcdefghijklmnopqrstuvwx';
                                 sess_str = sess_str(datevec_start(4) + 1);
                             end
-                            fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.getMarkerName4Ch sprintf('%03d', doy) sess_str '.' yy 'zpd']);
-                            snx_wrt = SINEX_Writer(fname);
+                            file_name = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.getMarkerName4Ch sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                            snx_wrt = SINEX_Writer(file_name);
                             snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.getMarkerName4Ch)
                             snx_wrt.writeFileReference()
                             snx_wrt.writeAcknoledgments()
@@ -865,7 +865,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             snx_wrt.writeTropoSolutionEnd()
                             snx_wrt.writeTroSinexEnd();
                             snx_wrt.close()
-                            rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                            rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', file_name));
                         end
                     catch ex
                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));

@@ -989,8 +989,6 @@ classdef GNSS_Station < handle
 %                 end
 %                 min_time = min_time.minimum;
 %                 max_time = max_time.maximum;
-                min_time.toUtc();
-                max_time.toUtc();
                 [year,doy] = min_time.getDOY();
                 t_start = min_time.toString('HHMM');
                  
@@ -1006,6 +1004,10 @@ classdef GNSS_Station < handle
                 end
                 fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
                 fid = fopen(fname,'Wb');
+                
+                % Switch to UTC
+                min_time.toUtc();
+                max_time.toUtc();
                 
                 % write header
                 fprintf(fid,'[Variables]\n');
