@@ -543,7 +543,7 @@ classdef Receiver_Output < Receiver_Commons
                 if any(rate)
                     id_sync_bk = rec_work.getIdSync;
                     id_sync = rec_work.getIdSync;
-                    sync_time = round(rec_work.getTime.getRefTime(round(rec_work.time.getCentralTime.getMatlabTime * 2)/2) * (rec_work.getRate/2)) / (rec_work.getRate/2);
+                    sync_time = round(rec_work.getTime.getNominalTime.getMatlabTime*86400,3);
                     id_ss = mod(sync_time, rate) == 0;
                     rec_work.id_sync = id_sync(id_ss);
                 end
