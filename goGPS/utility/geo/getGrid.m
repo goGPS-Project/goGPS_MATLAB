@@ -19,7 +19,7 @@ function [phi_grid, lambda_grid] = getGrid(step, phi_min, phi_max, lambda_min, l
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b6
+%    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2011 Andrea Gatti

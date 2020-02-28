@@ -28,7 +28,7 @@ function [time, xyz, enu, std_enu, std_3d] = steCrdImporter (file_name)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b6
+%    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini

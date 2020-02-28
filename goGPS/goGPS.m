@@ -29,7 +29,7 @@ function goGPS(ini_settings, use_gui, flag_online)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0b6
+%    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
@@ -199,5 +199,6 @@ function goGPS(ini_settings, use_gui, flag_online)
     if use_gui
         goInspector;
     end
+    Core_Utils.playAlert();
 end
 
