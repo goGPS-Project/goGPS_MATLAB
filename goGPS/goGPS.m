@@ -199,6 +199,6 @@ function goGPS(ini_settings, use_gui, flag_online)
     if use_gui
         goInspector;
     end
-    Core_Utils.playAlert();
+    % Core_Utils.playAlert();
 end
 
