@@ -65,6 +65,7 @@ classdef GUI_Inspector < GUI_Unique_Win
         res_source  % Handle to pop up menu for residuals resources
         res_type    % Handle to pop up menu for residuals type
         coo_type    % Handle to pop up menu for coordinates type
+        mp_type     % Handle to pop up menu for multipath type
         
         bsl_ref_ids % Handle to edit box for defining reference receivers
         
@@ -947,21 +948,19 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'ButtonSize', [165 28] , ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'left', ...
-                'VerticalAlignment', 'top', ...
                 'BackgroundColor', cmd_bg);
             
             uicontrol( 'Parent', but_line, ...
-                'String', 'Multipath Zernike Map', ...
-                'TooltipString', 'Display the multipath maps derived by Zernike analysis of the residuals', ...
-                'UserData', {'SHOW T@ MP1'}, ...
+                'String', 'Multipath Map', ...
+                'TooltipString', 'Display the multipath maps obtained from the residuals', ...
+                'UserData', {'SHOW T@ MP(MPTYPE)'}, ...
                 'Callback', @this.onInsertCommand);                
                          
-            uicontrol( 'Parent', but_line, ...
-                'String', 'Multipath Stacking Map', ...
-                'TooltipString', 'Display the multipath maps derived by staking uncombined residuals', ...
-                'UserData', {'SHOW T@ MP2'}, ...
-                'Callback', @this.onInsertCommand);
-            
+            this.mp_type = uicontrol('Parent', but_line,...
+                'Style', 'popup',...
+                'UserData', 'flag_rec_mp',...
+                'String', Core.getCurrentSettings.FLAG_REC_MP_LABEL(2:end));
+
             % --------------------------------------------------------
             
             %scroller = uix.ScrollingPanel('Parent', eg_box);
@@ -1546,7 +1545,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             end
         end
         
-        function onUpdateRecList(this, caller, event)            
+        function onUpdateRecList(this, caller, event)
             % Update receiver list
             this.updateRecList();
         end
@@ -1579,7 +1578,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             this.stopWaiting();
         end
                 
-        function onInsertCommand(this, caller, event)            
+        function onInsertCommand(this, caller, event)
             cmd_list = {};
             txt = char(this.j_cmd.getText);
             if ~isempty(txt)
@@ -1598,6 +1597,9 @@ classdef GUI_Inspector < GUI_Unique_Win
             elseif this.coo_type.Value == 4 % PH
                 new_cmd = strrep(new_cmd, '(CTYPE)', '3');
             end
+
+            % Manage multipath type
+            new_cmd = strrep(new_cmd, '(MPTYPE)', num2str(this.mp_type.Value));
 
             % Manage Residuals pop-up menus
             if this.res_source.Value == 1 % WORK

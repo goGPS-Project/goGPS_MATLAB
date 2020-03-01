@@ -480,6 +480,8 @@ classdef Residuals < Exportable
             % SYNTAX
             %   this.computeMultiPath(marker_name, <l_max=[43,43,43]>, <flag_reg=true>, <is_ph=true>, <mode=[0 5 1]>)
             
+            state = Core.getCurrentSettings;
+            
             if nargin < 6 || isempty(mode)
                 mode = 0; % Z + stacking
             end
@@ -487,10 +489,10 @@ classdef Residuals < Exportable
                 stk_grid_step = mode(2,3);
                 mode = mode(1);
             else
-                stk_grid_step = [2, 1];
+                stk_grid_step = state.mp_zcongruent_up_nxm;
             end
             
-            n_min = 3; % minimum  number of points per cell
+            n_min = state.mp_n_min; % minimum  number of points per cell
             
             % z_map  Zernike
             % r_map  Zernike + (the methods specified on mode)
@@ -498,7 +500,13 @@ classdef Residuals < Exportable
             % c_map  Congruent cells gridding of size [stk_grid_step]
             % g1_map Simple Gridding of size [1x1]
             % c1_map Congruent cells gridding of size [1x1]
-            ltype_of_grids = logical([1 1 1 1 1 1]); % All enabled
+            ltype_of_grids = [...
+                sum(state.mp_l_max) > 0 ...
+                state.mp_zcongruent_up_nxm(1) > 0 ...
+                state.mp_regular_up_nxm(1) > 0 ...
+                state.mp_congruent_up_nxm(1) > 0 ...
+                state.mp_regular_nxm(1) > 0 ...
+                state.mp_congruent_nxm(1) > 0];
                         
             log = Core.getLogger();
             ant_mp = struct();
@@ -512,8 +520,7 @@ classdef Residuals < Exportable
                 end
                 grid_step = 0.5;
                 if nargin < 3 || isempty(l_max)
-                    l_max = [31 31 21];
-                    l_max = [43 43 31];
+                    l_max = state.mp_l_max;
                 end
                 if numel(l_max) == 1
                     l_max = [l_max l_max l_max];
@@ -696,38 +703,37 @@ classdef Residuals < Exportable
                                     else
                                         res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
                                         if mode == 1
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, [1 1], grid_step, false, n_min);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, false, n_min);
                                         elseif mode == 0
                                             flag_congruent = true;
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, [1 1], grid_step, flag_congruent, n_min);
+                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent, n_min);
                                         end
                                     end
                                 end
                                                                 
                                 % Compute normal and congruent maps as comparison (no regularization)
-                                if ltype_of_grids(3) % g_map  Simple Gridding of size [stk_grid_step]
-                                    g_map = Core_Utils.polarGridder(az_all, el_all, res_all, stk_grid_step, grid_step, false, n_min);
+                                if ltype_of_grids(3) % g_map  Simple Gridding of size
+                                    g_map = Core_Utils.polarGridder(az_all, el_all, res_all, state.mp_regular_up_nxm , grid_step, false, n_min);
                                 else
                                     g_map = 0;
                                 end
                                 if ltype_of_grids(4) % c_map  Congruent cells gridding of size [stk_grid_step]
-                                    c_map = Core_Utils.polarGridder(az_all, el_all, res_all, stk_grid_step, grid_step, true, n_min);
+                                    c_map = Core_Utils.polarGridder(az_all, el_all, res_all, state.mp_congruent_up_nxm, grid_step, true, n_min);
                                 else
                                     c_map = 0;
                                 end
                                 if ltype_of_grids(5) % g1_map Simple Gridding of size [1x1]
-                                    g1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1], false, n_min);
+                                    g1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_regular_nxm, state.mp_regular_nxm, false, n_min);
                                 else
                                     g1_map = 0;
                                 end
                                 if ltype_of_grids(6) % c1_map Congruent cells gridding of size [1x1]
-                                    c1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), [1 1], [1 1], true, n_min);
+                                    c1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_congruent_nxm, state.mp_congruent_nxm, true, n_min);
                                 else
                                     c1_map = 0;
                                 end
                                 
                                 if flag_debug
-                                    %%
                                     clim = [-1 1] * max(-perc(1e3*(z_map(:) + r_map(:)), 0.003),perc(1e3*(z_map(:) + r_map(:)), 0.997));
                                     mp_map = z_map1;
                                     [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));

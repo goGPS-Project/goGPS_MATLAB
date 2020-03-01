@@ -153,7 +153,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ANTENNA
         ATX_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
         ATX_NAME = 'I14.ATX';    % Name antex file
+        
+        % MULTIPATH
         MP_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'MP' filesep];  % Location of the Multipath mitigation files
+        MP_REGULAR_NXM = [1 1];
+        MP_REGULAR_UP_NXM = [1 1];
+        MP_CONGRUENT_NXM = [2 1];
+        MP_CONGRUENT_UP_NXM = [2 1];
+        MP_L_MAX = [43 43 31];
+        MP_ZCONGRUENT_UP_NXM = [2 1];
+        MP_N_MIN = 3;
 
         % OUT PATH
         OUT_DIR = Main_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
@@ -748,7 +757,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         atx_dir = Main_Settings.ATX_DIR;    % Location of the antex file
         atx_name = Main_Settings.ATX_NAME;  % Location of the antex file
         
-        mp_dir = Main_Settings.MP_DIR;      % Location of the Zernike multipath filess
+        mp_dir = Main_Settings.MP_DIR;      % Location of the Zernike multipath files
+        mp_regular_nxm = Main_Settings.MP_REGULAR_NXM;
+        mp_regular_up_nxm = Main_Settings.MP_REGULAR_UP_NXM;
+        mp_congruent_nxm = Main_Settings.MP_CONGRUENT_NXM;
+        mp_congruent_up_nxm = Main_Settings.MP_CONGRUENT_UP_NXM;
+        mp_l_max = Main_Settings.MP_L_MAX;
+        mp_zcongruent_up_nxm = Main_Settings.MP_ZCONGRUENT_UP_NXM;
+        mp_n_min = Main_Settings.MP_N_MIN;
 
         %------------------------------------------------------------------
         % REFERENCE
@@ -1213,8 +1229,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ANTENNAS
                 this.atx_dir    = fnp.getFullDirPath(state.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(state.getData('atx_name'), this.getHomeDir());
+                
+                % MULTIPATH
                 this.mp_dir     = fnp.getFullDirPath(state.getData('mp_dir'), this.prj_home, pwd);
 
+                this.mp_regular_nxm = state.getData('mp_regular_nxm');
+                this.mp_regular_up_nxm = state.getData('mp_regular_up_nxm');
+                this.mp_congruent_nxm = state.getData('mp_congruent_nxm');
+                this.mp_congruent_up_nxm = state.getData('mp_congruent_up_nxm');
+                this.mp_l_max = state.getData('mp_l_max');
+                this.mp_zcongruent_up_nxm = state.getData('mp_zcongruent_up_nxm');
+                this.mp_n_min = state.getData('mp_n_min');
+                
                 % OUTPUT
                 this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir')), this.prj_home));
                 if ~exist(this.out_dir, 'dir')
@@ -1584,8 +1610,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % ANTENNA
                 this.atx_dir     = state.atx_dir;
                 this.atx_name    = state.atx_name;
+                
+                % MULTIPATH
                 this.mp_dir      = state.mp_dir;
-
+                this.mp_regular_nxm = state.mp_regular_nxm;
+                this.mp_regular_up_nxm = state.mp_regular_up_nxm;
+                this.mp_congruent_nxm = state.mp_congruent_nxm;
+                this.mp_congruent_up_nxm = state.mp_congruent_up_nxm;
+                this.mp_l_max = state.mp_l_max;
+                this.mp_zcongruent_up_nxm = state.mp_zcongruent_up_nxm;
+                this.mp_n_min = state.mp_n_min;
+                
                 % OUTPUT
                 this.out_dir = state.out_dir;
                 this.out_prefix = state.out_prefix;
@@ -1888,7 +1923,20 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', fnp.getRelDirPath(this.atx_dir))];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
-            str = [str sprintf(' Directory of zernike multipath (MP) files         %s \n\n', fnp.getRelDirPath(this.mp_dir))];
+
+            str = [str '---- MULTIPATH ---------------------------------------- ---------------------' 10 10];
+            str = [str sprintf(' Directory of zernike multipath (MP) files         %s \n\n', fnp.getRelDirPath(this.mp_dir))];           
+            str = [str sprintf(' MP Regular grid size n x m:                       %g %g\n', this.mp_regular_nxm(1), this.mp_regular_nxm(end))];
+            str = [str sprintf(' MP Regular grid size n x m (upscaled):            %g %g\n', this.mp_regular_up_nxm(1), this.mp_regular_up_nxm(end))];
+            str = [str sprintf(' MP Congruent grid size n x m:                     %g %g\n', this.mp_congruent_nxm(1), this.mp_congruent_nxm(end))];
+            str = [str sprintf(' MP Congruent grid size n x m (upscaled):          %g %g\n', this.mp_congruent_up_nxm(1), this.mp_congruent_up_nxm(end))];
+            if length(this.mp_l_max) == 3
+                str = [str sprintf(' MP Zernike degrees:                               %d %d %d\n', this.mp_l_max(1), this.mp_l_max(2), this.mp_l_max(3))];
+            else
+                str = [str sprintf(' MP Zernike degrees:                               %d\n', this.mp_l_max)];
+            end
+            str = [str sprintf(' MP Zernike + Congruent grid size n x m:           %g %g\n', this.mp_zcongruent_up_nxm(1), this.mp_zcongruent_up_nxm(end))];
+            str = [str sprintf(' Minimum number of satellite per cell:             %d\n\n', this.mp_n_min)];
 
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
@@ -2232,11 +2280,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Every product is searched locally, when not found is downloaded', str_cell);
             str_cell = Ini_Manager.toIniStringComment('When the file is not found, the system fall back on the next available', str_cell);
             str_cell = Ini_Manager.toIniStringComment('The config file "remote_resource.ini" of the products is stored in:', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' => "%s"', fnp.getRelDirPath(this.remote_res_conf_dir, this.prj_home)), str_cell);
+            rri_path = fnp.getRelDirPath(this.remote_res_conf_dir, this.prj_home);
+            if isempty(rri_path)
+                rri_path = 'main goGPS folder';
+            end
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' => "%s"', rri_path), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Try to download missing resources from the net (0 / 1)', str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniString('flag_download', this.flag_download, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
@@ -2296,11 +2348,54 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_multipath(this, str_cell)
+            % Export IO antenna parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_multipath(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % MULTIPATH
+            str_cell = Ini_Manager.toIniStringSection('MULTIPATH', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Zernike multipath coefficients (MP) files', str_cell);
             str_cell = Ini_Manager.toIniString('mp_dir', fnp.getRelDirPath(this.mp_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('goGPS manages different kind of multipath maps', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('these are the parameters of the map to be generated by the command MPEST', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Resolution of the grids must be perfect divisor of 180', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('n and m are expressed in degree', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Regular grid size n x m, set [n m] to zero to avoid its computation', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_regular_nxm', this.mp_regular_nxm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Regular grid size n x m, upscaled at 0.5 x 0.5, set [n m] to zero to avoid its computation', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_regular_up_nxm', this.mp_regular_up_nxm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Congruent grid size n x m, set [n m] to zero to avoid its computation', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('This is the minimum dimension of the cell, increasing the elevation congruent cells have larger azimuth', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_congruent_nxm', this.mp_congruent_nxm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Congruent grid size n x m, upscaled at 0.5 x 0.5, set [n m] to zero to avoid its computation', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('This is the minimum dimension of the cell, increasing the elevation congruent cells have larger azimuth', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_congruent_up_nxm', this.mp_congruent_up_nxm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Max degree for the Zernike smoothed maps', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('the 3 values represent the map for: low elevation, mid elevation, high elevation', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('If the maximum degree is a small value e.g. 9 setting [9 0 0] will be sufficients', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Note the 3 zernike maps will be summed togeter to form one final smoothed map', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Set to 0 to avoid computation of the zernike smoothed map', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('see the wiki on gogps-project.github.io', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_l_max', this.mp_l_max, str_cell);
+            str_cell = Ini_Manager.toIniStringComment( 'Zernike plus congruent map. Congruent grid size n x m, upscaled at 0.5 x 0.5, set [n m] to zero to avoid its computation', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_zcongruent_up_nxm', this.mp_zcongruent_up_nxm, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringComment('Minimum number of point per cell to consider the cell valid', str_cell);
+            str_cell = Ini_Manager.toIniString('mp_n_min', this.mp_n_min, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
-
+        
         function str_cell = exportIO_output(this, str_cell)
             % Export IO output parameters as ini file syntax
             %
@@ -2314,7 +2409,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % OUTPUT
             str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Base dir that is going to store the ouput data files',str_cell);
             str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Prefix ("name") to add to the output (can contain special keywords / subfolders)',str_cell);
@@ -2323,6 +2417,46 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);
             %str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
             %str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            % OUT TO KEEP
+            str_cell = Ini_Manager.toIniStringSection('OUT TO KEEP', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Results to be keep in the "out" object stored in rec', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate of the exported tropospheric parameters, this should be a multiplier of the processing rate', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('0 uses the rate of the data', str_cell);
+            str_cell = Ini_Manager.toIniString('trp_out_rate', this.trp_out_rate, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep Dt', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_dt', this.flag_out_dt, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep PWV', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pwv', this.flag_out_pwv, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep ZWD', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_zwd', this.flag_out_zwd, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep ZTD', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_ztd', this.flag_out_ztd, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep tropospheric gradientents', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_tropo_g', this.flag_out_tropo_g, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep a-priori troposphere', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_apr_tropo', this.flag_out_apr_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep pressure / temperature / humidity', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pth', this.flag_out_pth, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite outlier flags and cycle slips', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_ocs', this.flag_out_ocs, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite quality (snr)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_quality', this.flag_out_quality, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep number of satellites per epoch', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_nspe', this.flag_out_nspe, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite azimuth and elevation', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_azel', this.flag_out_azel, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep combined residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_co', this.flag_out_res_co, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep uncombined code residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_pr', this.flag_out_res_pr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep uncombined phase residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res_ph', this.flag_out_res_ph, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite mapping functions (wet / hydrostatic)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_out_mf, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -2342,14 +2476,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str_cell = Ini_Manager.toIniString('com_dir', File_Name_Processor.getRelDirPath(this.com_dir, pwd), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             str_cell = this.exportIO_project(str_cell);
+
             str_cell = this.exportIO_session(str_cell);
             str_cell = this.exportIO_station(str_cell);
-            str_cell = this.exportIO_reference(str_cell);
             str_cell = this.exportIO_computation_center(str_cell);
+            str_cell = this.exportIO_reference(str_cell);
             str_cell = this.exportIO_satellite(str_cell);
             str_cell = this.exportIO_antenna(str_cell);
+            str_cell = this.exportIO_multipath(str_cell);            
             str_cell = this.exportIO_output(str_cell);
         end
         
@@ -2383,8 +2519,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('sigma0_clock', this.sigma0_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of receiver clock', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_r_clock', this.sigma0_r_clock, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Read master position from RINEX (0/1)', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % DATA SELECTION
@@ -2497,11 +2631,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
-
-            str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Rate of the exported tropospheric parameters, this should be a multiplier of the processing rate', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('0 uses the rate of the data', str_cell);
-            str_cell = Ini_Manager.toIniString('trp_out_rate', this.trp_out_rate, str_cell);
             
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
@@ -2556,41 +2685,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo gradient halving distance [m] (default = %.0f)', this.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE), str_cell);
             str_cell = Ini_Manager.toIniString('tropo_gradient_spatial_reg_d_distance', this.tropo_gradient_spatial_reg_d_distance, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
-            % OUT TO KEEP
-            str_cell = Ini_Manager.toIniStringSection('OUT TO KEEP', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Results to be keep in the "out" object stored in rec', str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep Dt', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_dt', this.flag_out_dt, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep PWV', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_pwv', this.flag_out_pwv, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep ZWD', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_zwd', this.flag_out_zwd, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep ZTD', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_ztd', this.flag_out_ztd, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep tropospheric gradientents', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_tropo_g', this.flag_out_tropo_g, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep a-priori troposphere', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_apr_tropo', this.flag_out_apr_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep pressure / temperature / humidity', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_pth', this.flag_out_pth, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep satellite outlier flags and cycle slips', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_ocs', this.flag_out_ocs, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep satellite quality (snr)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_quality', this.flag_out_quality, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep number of satellites per epoch', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_nspe', this.flag_out_nspe, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep satellite azimuth and elevation', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_azel', this.flag_out_azel, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep combined residuals', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_res_co', this.flag_out_res_co, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep uncombined code residuals', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_res_pr', this.flag_out_res_pr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep uncombined phase residuals', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_res_ph', this.flag_out_res_ph, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Keep satellite mapping functions (wet / hydrostatic)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_out_mf, str_cell);
             
             str_cell = Ini_Manager.toIniStringSection('---- U2 PARAMETRIZATION --------------------------------------------------', str_cell);
             str_cell = Ini_Manager.toIniStringComment(' Estimates coordinates in PPP', str_cell);
@@ -3138,6 +3232,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkStringField('atx_name', EMPTY_IS_NOT_VALID);
             
             this.checkPathField('mp_dir', EMPTY_IS_NOT_VALID);            
+            this.checkNumericField('mp_regular_nxm', [0 360]);
+            this.checkNumericField('mp_regular_up_nxm', [0 360]);
+            this.checkNumericField('mp_congruent_nxm', [0 360]);
+            this.checkNumericField('mp_congruent_up_nxm', [0 360]);
+            this.checkNumericField('mp_l_max', [0 100 ]);
+            this.checkNumericField('mp_zcongruent_up_nxm', [0 360]);
+            this.checkNumericField('mp_n_min', [0 100 ]);
 
             this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file

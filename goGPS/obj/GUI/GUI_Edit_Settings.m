@@ -1410,10 +1410,34 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.insertEmpty(opt_vbox, color_bg);
             opt_vbox.Heights = [ones(1, 10) * Core_UI.LINE_HEIGHT -1];
         end
-
+        
+        function range_corr_panel = insertMultipath(this, container, color_bg)
+            %%% processing options
+            range_corr_panel = Core_UI.insertPanel(container, 'MPEST Options', color_bg);
+            opt_vbox = uix.VBox('Parent', range_corr_panel,...
+                'BackgroundColor', color_bg);
+            
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular grid [n x m]', 'mp_regular_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_regular_nxm';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular smoothed grid [n x m]', 'mp_regular_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_regular_up_nxm';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent grid [n x m]', 'mp_congruent_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_congruent_nxm';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent smoothed grid [n x m]', 'mp_congruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_congruent_up_nxm';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 3, 'Zerike max degrees', 'mp_l_max', '', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_l_max';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Additional congruent grid [n x m]', 'mp_zcongruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_zcongruent_up_nxm';
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 1, 'Min obs per cell', 'mp_n_min', '', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            this.edit_texts_array{end}.Tag = 'mp_n_min';
+            
+            opt_vbox.Heights = [ones(1, 7) * Core_UI.LINE_HEIGHT];
+        end
+        
         function insertTabAtmosphere(this, container, color_bg)
             atm_vbox = uix.VBox('Parent', container, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+                'BackgroundColor', color_bg);
             state = Core.getCurrentSettings;
             
             %%% IONO
@@ -1456,7 +1480,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             this.insertInputManipulation(vpopt_l, color_bg);
             this.insertCorrections(vpopt_l, color_bg);
-            vpopt_l.Heights = 25 + [2 10] .* Core_UI.LINE_HEIGHT;
+            this.insertMultipath(vpopt_l, color_bg);            
+            vpopt_l.Heights = 25 + [2 10 7] .* Core_UI.LINE_HEIGHT;
             
             proc_opt = Core_UI.insertPanel(vpopt_r, 'Common Processing Options', color_bg);
             proc_opt_ppp = Core_UI.insertPanel(vpopt_r, 'PPP Options', color_bg);

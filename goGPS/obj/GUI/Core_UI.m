@@ -1425,7 +1425,7 @@ classdef Core_UI < Logos
             [box_handle, editable_handle] = Core_UI.insertEditBox(parent, text_left, property_name, text_right, callback, widths,Core_UI.DARK_GREY_BG, Core_UI.WHITE);
         end
         
-        function [box_handle] = insertEditBoxArray(parent,num_boxes, text_left, property_name, text_right, callback, widths,color_bg)
+        function [box_handle] = insertEditBoxArray(parent,num_boxes, text_left, property_name, text_right, callback, widths, color_bg)
             if nargin < 7 || isempty(widths)
                 if nargin < 4 || isempty(text_right)
                     widths  = [-1 -1];

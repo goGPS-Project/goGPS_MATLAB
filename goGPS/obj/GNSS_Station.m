@@ -495,11 +495,12 @@ classdef GNSS_Station < handle
                 
                 % rec.ant_mp = rec.ant_mp + ant_mp;
                 flag_update = false;
-                if isempty(rec.ant_mp)
+                if isempty(rec.work) || isempty(rec.work.ant_mp)
                     % Zerniche multipath is not yet in the receiver
                     rec.ant_mp = ant_mp;
                     flag_update = true;
                 else
+                    applied_ant = rec.work.ant_mp;
                     % Zerniche multipath is already in the receiver
                     ant_mp_bk = rec.ant_mp;
                     try
@@ -513,17 +514,17 @@ classdef GNSS_Station < handle
                                 rec.ant_mp.(sys_c) = ant_mp.(sys_c);
                             else
                                 for trk = trk_list
-                                    trk = strrep(trk, ' ', '_'); % Spaces are not supported in structures
-                                    if ~isfield(rec.ant_mp.(sys_c), trk{1})
+                                    trk = strrep(trk{1}, ' ', '_'); % Spaces are not supported in structures
+                                    if ~isfield(rec.ant_mp.(sys_c), trk) || trk(end) == 'I'
                                         % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
-                                        rec.ant_mp.(sys_c).(trk{1}) = ant_mp.(sys_c).(trk{1});
+                                        rec.ant_mp.(sys_c).(trk) = ant_mp.(sys_c).(trk);
                                     else
-                                        rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).z_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).r_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).c_map = rec.ant_mp.(sys_c).(trk{1}).c_map + ant_mp.(sys_c).(trk{1}).g_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).i_map = rec.ant_mp.(sys_c).(trk{1}).i_map + ant_mp.(sys_c).(trk{1}).c_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).z_map = rec.ant_mp.(sys_c).(trk{1}).z_map + ant_mp.(sys_c).(trk{1}).g1_map;
-                                        rec.ant_mp.(sys_c).(trk{1}).g_map = rec.ant_mp.(sys_c).(trk{1}).g_map + ant_mp.(sys_c).(trk{1}).r1_map;
+                                        rec.ant_mp.(sys_c).(trk).z_map = applied_ant.(sys_c).(trk).z_map + ant_mp.(sys_c).(trk).z_map;
+                                        rec.ant_mp.(sys_c).(trk).g_map = applied_ant.(sys_c).(trk).g_map + ant_mp.(sys_c).(trk).r_map;
+                                        rec.ant_mp.(sys_c).(trk).c_map = applied_ant.(sys_c).(trk).c_map + ant_mp.(sys_c).(trk).g_map;
+                                        rec.ant_mp.(sys_c).(trk).i_map = applied_ant.(sys_c).(trk).i_map + ant_mp.(sys_c).(trk).c_map;
+                                        rec.ant_mp.(sys_c).(trk).z_map = applied_ant.(sys_c).(trk).z_map + ant_mp.(sys_c).(trk).g1_map;
+                                        rec.ant_mp.(sys_c).(trk).g_map = applied_ant.(sys_c).(trk).g_map + ant_mp.(sys_c).(trk).r1_map;
                                     end
                                 end
                             end
@@ -4957,24 +4958,28 @@ classdef GNSS_Station < handle
                                             str_out_type = 'C1_';
                                             mp_map = double(ant_mp.(sys_c).(trk).c1_map);
                                     end
-                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
-                                    az_grid = Core_Utils.deg2rad(az_grid);
-                                    el_grid = Core_Utils.deg2rad(el_grid);
-                                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk, str_type); fh.NumberTitle = 'off';
-                                    polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); 
-                                    fh_list = [fh_list; fh];
-                                    caxis(max(abs(minMax(caxis))) * [-1 1]); 
-                                    colormap((Cmap.get('PuOr', 2^11))); 
-                                    colorbar;
-                                    drawnow
-                                    title((sprintf('Multipath %smitigation map of %s %s%s [mm]', str_type, rec.getMarkerName4Ch, sys_c, trk)), 'interpreter', 'none'); drawnow
-                                    fig_name = sprintf('MP_%sMap_%s_%s%s_%s', str_out_type, rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
-                                    fh.UserData = struct('fig_name', fig_name);
-                                    Core_UI.beautifyFig(fh, 'light');
-                                    Core_UI.addExportMenu(fh);
-                                    Core_UI.addBeautifyMenu(fh);
-                                    fh.Visible = 'on'; drawnow;
-                                    caxis([-15 15]);
+                                    if numel(mp_map) <= 1
+                                        log.addWarning(sprintf('The %c%s %s map is not available', sys_c, trk, str_type));
+                                    else
+                                        [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                        az_grid = Core_Utils.deg2rad(az_grid);
+                                        el_grid = Core_Utils.deg2rad(el_grid);
+                                        fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: MP %s %s%s %s', fh.Number, rec.getMarkerName4Ch, sys_c, trk, str_type); fh.NumberTitle = 'off';
+                                        polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map));
+                                        fh_list = [fh_list; fh];
+                                        caxis(max(abs(minMax(caxis))) * [-1 1]);
+                                        colormap((Cmap.get('PuOr', 2^11)));
+                                        colorbar;
+                                        drawnow
+                                        title((sprintf('Multipath %smitigation map of %s %s%s [mm]', str_type, rec.getMarkerName4Ch, sys_c, trk)), 'interpreter', 'none'); drawnow
+                                        fig_name = sprintf('MP_%sMap_%s_%s%s_%s', str_out_type, rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
+                                        fh.UserData = struct('fig_name', fig_name);
+                                        Core_UI.beautifyFig(fh, 'light');
+                                        Core_UI.addExportMenu(fh);
+                                        Core_UI.addBeautifyMenu(fh);
+                                        fh.Visible = 'on'; drawnow;
+                                        % caxis([-15 15]);
+                                    end
                                 end
                             end
                         end
