@@ -1500,8 +1500,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_list_net = uix.VBox('Parent', proc_opt_ppp,...
                 'BackgroundColor', color_bg);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUp(opt_list_net, 'PPP Snooping / Reweight', state.PPP_REWEIGHT_LABEL, 'ppp_reweight_mode', @this.onPopUpChange, [], color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'PPP Try to fix Ambiguity (Experimental)', 'flag_net_amb_fix', @this.onCheckBoxChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'Enable PPP for receivers containing only a single frequency', 'flag_net_force_single_freq', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'PPP Try to fix Ambiguity (Experimental)', 'flag_ppp_amb_fix', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(opt_list_net, 'Enable PPP for receivers containing only a single frequency', 'flag_ppp_force_single_freq', @this.onCheckBoxChange, color_bg);
             
             %%% NET OPTIONS
             opt_list_net = uix.VBox('Parent', proc_opt_net,...
