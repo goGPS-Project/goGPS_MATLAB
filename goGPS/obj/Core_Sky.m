@@ -67,6 +67,7 @@ classdef Core_Sky < handle
         % ALL Rinex 3 code observations flags + first letter indicationg the constellation
         
         group_delays = zeros(32,82); % group delay of code measurements (meters) referenced to their constellation reference:
+        phase_delays = zeros(32,82); % group delay of code measurements (meters) referenced to their constellation reference:
         %    GPS     -> Iono free linear combination C1P C2P
         %    GLONASS -> Iono free linear combination C1P C2P
         %    Galileo -> Iono free linear combination
@@ -134,6 +135,8 @@ classdef Core_Sky < handle
             else
                 this.cc = cc;
             end
+            this.group_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
+            this.phase_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
             
             flag_coo_loaded = ~isempty(this.getFirstEpochCoord) && this.getFirstEpochCoord <= start_date && this.getLastEpochCoord >= stop_date;
             flag_time_loaded = ~isempty(this.getFirstEpochClock) && this.getFirstEpochClock <= start_date && this.getLastEpochClock >= stop_date;
@@ -245,7 +248,7 @@ classdef Core_Sky < handle
                 
                 % load dcb
                 Core.getLogger.addMarkedMessage('Importing Differential code biases');
-                this.importDCB();
+                this.importDCB(Core.getState.getBiasFileName(start_date, stop_date));
             end
         end
         
@@ -1261,17 +1264,21 @@ classdef Core_Sky < handle
             erp.m2 = -(erp.Ypole*1e-6 - erp.meanYpole*1e-3);
         end
         
-        function importDCB(this)
-            dcb_name = Core.getState.getDcbFile();
-            if iscell(dcb_name)
-                dcb_name = dcb_name{1};
-            end
-            if ~isempty(dcb_name)
-                if instr(dcb_name,'CAS')
-                    this.importSinexDCB();
-                else
-                    this.importCODEDCB();
+        function importDCB(this,fname)
+            if nargin < 2
+                dcb_name = Core.getState.getDcbFile();
+                if iscell(dcb_name)
+                    dcb_name = dcb_name{1};
                 end
+                if ~isempty(dcb_name)
+                    if instr(dcb_name,'CAS')
+                        this.importSinexDCB();
+                    else
+                        this.importCODEDCB();
+                    end
+                end
+            else
+                this.importSinexBias(fname{1});
             end
         end
         
@@ -1302,6 +1309,101 @@ classdef Core_Sky < handle
             iono_free = this.cc.getGLONASS.getIonoFree();
             this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*Core_Utils.V_LIGHT*1e-9;
             this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*Core_Utils.V_LIGHT*1e-9;
+        end
+        
+        
+        function importSinexBias(this,file_name)
+             fid = fopen(file_name,'r');
+                if fid == -1
+                    Core.getLogger.addWarning(sprintf('Core_Sky: File %s not found', file_name));
+                    return
+                end
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', file_name)));
+                txt = fread(fid,'*char')';
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % get end of header
+                eoh = strfind(txt,'*BIAS SVN_ PRN ');
+                eoh = find(lim(:,1) > eoh);
+                
+                eoh = eoh(1) - 1;
+                head_line = txt(lim(eoh,1):lim(eoh,2));
+                svn_idx = strfind(head_line,'PRN') - 1;
+                c1_idx = strfind(head_line,'OBS1') -1 ;
+                val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
+                std_idx = strfind(head_line,'_STD_DEV___') - 1;
+                std_idx = std_idx(1);
+                % removing header lines from lim
+                lim(1:eoh, :) = [];
+                
+                % removing last two lines (check if it is a standard) from lim
+                lim((end-1):end, :) = [];
+                
+                % removing non satellites related lines from lim
+                sta_lin = txt(lim(:,1)+13) > 57 | txt(lim(:,1)+13) < 48; % Satellites have numeric PRNs
+                lim(sta_lin,:) = [];
+                
+                % TODO -> remove dcb of epoch different from the current one
+                % find dcb names presents
+                fl = lim(:,1);
+                
+                tmp = [txt(fl+svn_idx)' txt(fl+svn_idx+1)' txt(fl+svn_idx+2)' txt(fl+c1_idx)' txt(fl+c1_idx+1)' txt(fl+c1_idx+2)'];
+                idx = repmat(fl+val_idx,1,20) + repmat([0:19],length(fl),1);
+                dcb = sscanf(txt(idx)','%f');
+                idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
+                dcb_std = sscanf(txt(idx)','%f');
+                % between C2C C2W the std are 0 -> unestimated
+                % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
+                bad_ant_id = []; % list of missing antennas in the DCB file
+                dcb_std(dcb_std == 0) = mean(dcb_std(dcb_std ~= 0));
+                ref_dcb_name_old = '';
+                bad_sat_str = '';
+                for s = 1 : this.cc.getNumSat()
+                    sys = this.cc.system(s);
+                    prn = this.cc.prn(s);
+                    ant_id = this.cc.getAntennaId(s);
+                    sat_idx = this.prnName2Num(tmp(:,1:3)) == this.prnName2Num(ant_id);
+                    if sum(sat_idx) == 0
+                        bad_ant_id = [bad_ant_id; ant_id];
+                    else
+                        sat_dcb_name = tmp(sat_idx,4:end);
+                        sat_dcb = dcb(sat_idx);
+                        sat_dcb_std = dcb_std(sat_idx);
+                        %check if there is the reference dcb in the one
+                        %provided by the external source
+                        for b = 1 : size(sat_dcb_name,1)
+                            dcb_col   = strLineMatch(this.group_delays_flags,[sys 'C' sat_dcb_name(b,2:3)]);
+                            if sat_dcb_name(b,1) == 'C'
+                                this.group_delays(s, dcb_col) =  sat_dcb(b) * Core_Utils.V_LIGHT * 1e-9;
+                            else
+                                this.phase_delays(s, dcb_col) =  sat_dcb(b) * Core_Utils.V_LIGHT * 1e-9;
+                            end
+                        end
+                      
+                    end
+                end
+                if ~isempty(bad_sat_str)
+                    Core.getLogger.addWarning(sprintf('One or more DCB are missing in "%s":\n%s\nthe bias will be eliminated only using iono-free combination', File_Name_Processor.getFileName(file_name), bad_sat_str));
+                end
+                if ~isempty(bad_ant_id)
+                    str = sprintf(', %c%c%c', bad_ant_id');
+                    if size(bad_ant_id, 1) > 1
+                        Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    else
+                        Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    end
+                end
         end
         
         function importSinexDCB(this)

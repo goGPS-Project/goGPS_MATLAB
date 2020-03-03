@@ -4797,6 +4797,22 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
+        
+        function erp_full_name = getBiasFileName(this, date_start, date_stop)
+            % Get the full name of the DCB files (replacing special keywords)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.dcb_dir, filesep, this.dcb_name), this.getHomeDir());
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
 
         function iono_full_name = getIonoFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
@@ -4901,6 +4917,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
+             elseif strcmpi(ext,'.bia') || strcmpi(ext,'.BIA')
+                this.setDcbFile(filename);
             elseif instr(lower(ext),'.clk')
                 this.setNavClkFile(filename);
             elseif strcmpi(ext,'.CRX')

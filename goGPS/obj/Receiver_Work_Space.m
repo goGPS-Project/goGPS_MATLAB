@@ -7019,6 +7019,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             end
             
+            for i = 1 : size(cs.phase_delays, 2)
+                sys  = cs.group_delays_flags(i,1);
+                code = ['L' cs.group_delays_flags(i,3:4)];
+                f_num = str2double(code(2));
+                idx = this.findObservableByFlag(code, sys);
+                if sum(cs.phase_delays(:,i)) ~= 0
+                    if ~isempty(idx)
+                        for s = 1 : size(cs.phase_delays,1)
+                            sat_idx = idx((this.prn(idx) == s));
+                            full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
+                            if cs.group_delays(s,i) ~= 0
+                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * cs.phase_delays(s,i);
+                            end
+                        end
+                    end
+                end
+            end
+            
+            
             id_ko = find(~this.active_ids);
             if ~isempty(id_ko)
                 [prn_ko, id_sort] = sort(this.prn(id_ko));
@@ -10500,7 +10519,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 % Solve the LS problem
-                ls.solve();
+                ls.solve(state.getAmbFixPPP());
 %                 ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
 %                 ls.solve();
                  % REWEIGHT ON RESIDUALS
@@ -10517,7 +10536,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             case 9, ls.snoopGatt(state.getMaxPhaseErrThr, state.getMaxCodeErrThr,true); 
                         end
                         if flag_recompute
-                            ls.solve();
+                            ls.solve(state.getAmbFixPPP());
                         end
                     end
                 
@@ -10684,7 +10703,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum, state.rate_grad_ppp)/state.rate_grad_ppp;
                             tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpe).minimum)/state.rate_grad_ppp);
                             [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(ls.getTimePar(idx_trpe).minimum.getMatlabTime));
-                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropo_n)-3);
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropon)-3);
                             spline_base = Core_Utils.spline(tropo_dt,spline_order);
                             
                             getropo = sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);

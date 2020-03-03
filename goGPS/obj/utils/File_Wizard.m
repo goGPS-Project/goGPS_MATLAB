@@ -598,198 +598,203 @@ classdef File_Wizard < handle
             %
             % OUTPUT:
             
-            this.log.addMarkedMessage('Checking DCB files');
-            if date_start.getCalEpoch >= 2013 % use CAS DCB
-                dcb_ok = true;
-                % check if file are present
-                fnp = File_Name_Processor();
-                ss = 'mxd';
-                archive = 'ign';
-                provider = 'cas';
-                dcb_type = 'final';
-                dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
-                [~, dcb_file_name, ext] = fileparts(dcb_name);
-                this.state.setDcbFile([this.state.getDcbDir filesep dcb_file_name]);
-                tmp_date_start = date_start.getCopy;
-                tmp_date_stop = date_stop.getCopy;
-                file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
-                names = {};
-                dcb_ok = true(length(file_list),1);
-                for i = 1 : length(file_list)
-                    [~, name, ext] = fileparts(file_list{i});
-                    names{end+1} = name;
-                    if exist(fnp.checkPath([this.state.getDcbDir filesep name]), 'file') ~= 2
-                        dcb_ok(i) = false;
-                    end
-                end
-                
-                if any(~dcb_ok)
-                    aria_try = true;
-                    try % ARIA2C download
-                        aria_file_list = file_list;
-                        f_ext_lst = cell(size(file_list));
-                        for i = 1 : numel(file_list)
-                            aria_file_list{i} = [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path file_list{i}];
-                            [~, name, ext] = fileparts(file_list{i});
-                            if strcmpi(ext, '.gz') || strcmpi(ext, '.Z')
-                                f_ext_lst{i} = ext;
-                                aria_file_list{i} = aria_file_list{i}(1 : end - length(ext));
-                            end
-                        end                        
-                        dcb_ok = Core_Utils.aria2cDownloadUncompress(aria_file_list, f_ext_lst, dcb_ok, [], this.state.getDcbDir());
-                        if any(~dcb_ok)
-                            id_ko = find(dcb_ok == 0);
-                            for i = id_ko'
-                                this.log.addWarning(sprintf('download of %s from %s failed, file not found or not accessible', [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path], names{i}));
-                            end
+            legacy = false;
+            if ~legacy
+                status = this.conjureResource('bias', date_start, date_stop);
+            else
+                this.log.addMarkedMessage('Checking DCB files');
+                if date_start.getCalEpoch >= 2013 % use CAS DCB
+                    dcb_ok = true;
+                    % check if file are present
+                    fnp = File_Name_Processor();
+                    ss = 'mxd';
+                    archive = 'ign';
+                    provider = 'cas';
+                    dcb_type = 'final';
+                    dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
+                    [~, dcb_file_name, ext] = fileparts(dcb_name);
+                    this.state.setDcbFile([this.state.getDcbDir filesep dcb_file_name]);
+                    tmp_date_start = date_start.getCopy;
+                    tmp_date_stop = date_stop.getCopy;
+                    file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
+                    names = {};
+                    dcb_ok = true(length(file_list),1);
+                    for i = 1 : length(file_list)
+                        [~, name, ext] = fileparts(file_list{i});
+                        names{end+1} = name;
+                        if exist(fnp.checkPath([this.state.getDcbDir filesep name]), 'file') ~= 2
+                            dcb_ok(i) = false;
                         end
-                    catch ex
-                        this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
-                        for i = 1 : length(file_list)
-                            if not(dcb_ok(i))
+                    end
+                    
+                    if any(~dcb_ok)
+                        aria_try = true;
+                        try % ARIA2C download
+                            aria_file_list = file_list;
+                            f_ext_lst = cell(size(file_list));
+                            for i = 1 : numel(file_list)
+                                aria_file_list{i} = [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path file_list{i}];
                                 [~, name, ext] = fileparts(file_list{i});
-                                if (isunix())
-                                    system(['gzip -fd ' this.state.getDcbDir() filesep name ext]);
-                                else
-                                    try
-                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
-                                        delete([this.state.getDcbDir() filesep name ext]);
-                                    catch
-                                        this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.']));
-                                        compressed = 1;
-                                    end
+                                if strcmpi(ext, '.gz') || strcmpi(ext, '.Z')
+                                    f_ext_lst{i} = ext;
+                                    aria_file_list{i} = aria_file_list{i}(1 : end - length(ext));
                                 end
                             end
-                        end
-                    end
-                else
-                    this.log.addStatusOk('DCB files are present ^_^');
-                end
-            else % use DCB from CODE
-                gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
-                gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
-                
-                % Pointer to the global settings:
-                state = Core.getCurrentSettings();
-                
-                file_dcb = {};
-                compressed = 0;
-                
-                %AIUB FTP server IP address
-                % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch
-                aiub_ip = 'ftp.aiub.unibe.ch';
-                
-                %download directory
-                down_dir = state.dcb_dir;
-                
-                %convert GPS time to time-of-week
-                gps_tow = weektime2tow(gps_week, gps_time);
-                
-                % starting time
-                date_f = gps2date(gps_week(1), gps_tow(1));
-                
-                % ending time
-                date_l = gps2date(gps_week(end), gps_tow(end));
-                
-                % Check / create output folder
-                if not(exist(down_dir, 'dir'))
-                    mkdir(down_dir);
-                end
-                
-                this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
-                
-                year_orig  = date_f(1) : 1 : date_l(1);
-                if (length(year_orig) < 1)
-                    %fprintf('ERROR: Data range not valid.\n')
-                    return
-                elseif (length(year_orig) == 1)
-                    month = date_f(2) : 1 : date_l(2);
-                    year = year_orig;
-                else
-                    month = date_f(2) : 1 : 12;
-                    year  = date_f(1).*ones(size(month));
-                    for y = 2 : length(year_orig)-1
-                        month = [month 1 : 1 : 12];
-                        year = [year (year_orig(y)).*ones(1,12)];
-                    end
-                    month = [month 1 : 1 : date_l(2)];
-                    year  = [year date_l(1).*ones(1,date_l(2))];
-                end
-                
-                %connect to the DCB server
-                try
-                    ftp_server = ftp(aiub_ip);
-                catch
-                    this.log.addWarning('connection failed.\n');
-                    this.state.setDcbFile({''});
-                    return
-                end
-                                
-                m = 0;
-                
-                for y = 1 : length(year_orig)
-                    
-                    %target directory
-                    s = ['/CODE/', num2str(year_orig(y))];
-                    
-                    cd(ftp_server, '/');
-                    cd(ftp_server, s);
-                    
-                    while(m <= length(month)-1)
-                        
-                        m = m + 1;
-                        
-                        ff = {'P1C1','P1P2'};
-                        
-                        for p = 1 : length(ff)
-                            %target file
-                            s2 = [ff{p} num2str(two_digit_year(year(y)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
-                            if not(exist([down_dir '/' s2(1:end-2)]) == 2)
-                                try
-                                    mget(ftp_server,s2,down_dir);
+                            dcb_ok = Core_Utils.aria2cDownloadUncompress(aria_file_list, f_ext_lst, dcb_ok, [], this.state.getDcbDir());
+                            if any(~dcb_ok)
+                                id_ko = find(dcb_ok == 0);
+                                for i = id_ko'
+                                    this.log.addWarning(sprintf('download of %s from %s failed, file not found or not accessible', [this.source.(archive).ftpd.getFullAddress this.source.(archive).par.(ss).path], names{i}));
+                                end
+                            end
+                        catch ex
+                            this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
+                            for i = 1 : length(file_list)
+                                if not(dcb_ok(i))
+                                    [~, name, ext] = fileparts(file_list{i});
                                     if (isunix())
-                                        system(['uncompress -f ' down_dir '/' s2]);
+                                        system(['gzip -fd ' this.state.getDcbDir() filesep name ext]);
                                     else
                                         try
-                                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
-                                            delete([down_dir '/' s2]);
-                                            s2 = s2(1:end-2);
+                                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
+                                            delete([this.state.getDcbDir() filesep name ext]);
                                         catch
-                                            this.log.addWarning(sprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.']));
+                                            this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.']));
                                             compressed = 1;
                                         end
                                     end
-                                    this.log.addMessage(this.log.indent(['DCB file downloaded: ' s2 ]));
-                                catch
-                                    cd(ftp_server, '..');
-                                    s1 = [ff{p} '.DCB'];
-                                    mget(ftp_server,s1,down_dir);
-                                    cd(ftp_server, num2str(year_orig(y)));
-                                    s2 = [s2(1:end-2) '_TMP'];
-                                    [move_success, message] = movefile([down_dir '/' s1], [down_dir '/' s2], 'f');
-                                    if ~move_success
-                                        log.addError(message);
-                                    end
-                                    this.log.addWarning(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2]);
                                 end
-                            else
-                                this.log.addMessage(this.log.indent([s2(1:end-2) ' already present\n']));
                             end
-                            %cell array with the paths to the downloaded files
-                            entry = {[down_dir, '/', s2]};
-                            file_dcb = [file_dcb; entry]; %#ok<AGROW>
-                            this.state.setDcbFile(file_dcb);
                         end
+                    else
+                        this.log.addStatusOk('DCB files are present ^_^');
+                    end
+                else % use DCB from CODE
+                    gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+                    gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
+                    
+                    % Pointer to the global settings:
+                    state = Core.getCurrentSettings();
+                    
+                    file_dcb = {};
+                    compressed = 0;
+                    
+                    %AIUB FTP server IP address
+                    % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch
+                    aiub_ip = 'ftp.aiub.unibe.ch';
+                    
+                    %download directory
+                    down_dir = state.dcb_dir;
+                    
+                    %convert GPS time to time-of-week
+                    gps_tow = weektime2tow(gps_week, gps_time);
+                    
+                    % starting time
+                    date_f = gps2date(gps_week(1), gps_tow(1));
+                    
+                    % ending time
+                    date_l = gps2date(gps_week(end), gps_tow(end));
+                    
+                    % Check / create output folder
+                    if not(exist(down_dir, 'dir'))
+                        mkdir(down_dir);
+                    end
+                    
+                    this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                    
+                    year_orig  = date_f(1) : 1 : date_l(1);
+                    if (length(year_orig) < 1)
+                        %fprintf('ERROR: Data range not valid.\n')
+                        return
+                    elseif (length(year_orig) == 1)
+                        month = date_f(2) : 1 : date_l(2);
+                        year = year_orig;
+                    else
+                        month = date_f(2) : 1 : 12;
+                        year  = date_f(1).*ones(size(month));
+                        for y = 2 : length(year_orig)-1
+                            month = [month 1 : 1 : 12];
+                            year = [year (year_orig(y)).*ones(1,12)];
+                        end
+                        month = [month 1 : 1 : date_l(2)];
+                        year  = [year date_l(1).*ones(1,date_l(2))];
+                    end
+                    
+                    %connect to the DCB server
+                    try
+                        ftp_server = ftp(aiub_ip);
+                    catch
+                        this.log.addWarning('connection failed.\n');
+                        this.state.setDcbFile({''});
+                        return
+                    end
+                    
+                    m = 0;
+                    
+                    for y = 1 : length(year_orig)
                         
-                        if (month(m) == 12)
-                            break
+                        %target directory
+                        s = ['/CODE/', num2str(year_orig(y))];
+                        
+                        cd(ftp_server, '/');
+                        cd(ftp_server, s);
+                        
+                        while(m <= length(month)-1)
+                            
+                            m = m + 1;
+                            
+                            ff = {'P1C1','P1P2'};
+                            
+                            for p = 1 : length(ff)
+                                %target file
+                                s2 = [ff{p} num2str(two_digit_year(year(y)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
+                                if not(exist([down_dir '/' s2(1:end-2)]) == 2)
+                                    try
+                                        mget(ftp_server,s2,down_dir);
+                                        if (isunix())
+                                            system(['uncompress -f ' down_dir '/' s2]);
+                                        else
+                                            try
+                                                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                                delete([down_dir '/' s2]);
+                                                s2 = s2(1:end-2);
+                                            catch
+                                                this.log.addWarning(sprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.']));
+                                                compressed = 1;
+                                            end
+                                        end
+                                        this.log.addMessage(this.log.indent(['DCB file downloaded: ' s2 ]));
+                                    catch
+                                        cd(ftp_server, '..');
+                                        s1 = [ff{p} '.DCB'];
+                                        mget(ftp_server,s1,down_dir);
+                                        cd(ftp_server, num2str(year_orig(y)));
+                                        s2 = [s2(1:end-2) '_TMP'];
+                                        [move_success, message] = movefile([down_dir '/' s1], [down_dir '/' s2], 'f');
+                                        if ~move_success
+                                            log.addError(message);
+                                        end
+                                        this.log.addWarning(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2]);
+                                    end
+                                else
+                                    this.log.addMessage(this.log.indent([s2(1:end-2) ' already present\n']));
+                                end
+                                %cell array with the paths to the downloaded files
+                                entry = {[down_dir, '/', s2]};
+                                file_dcb = [file_dcb; entry]; %#ok<AGROW>
+                                this.state.setDcbFile(file_dcb);
+                            end
+                            
+                            if (month(m) == 12)
+                                break
+                            end
                         end
                     end
+                    
+                    close(ftp_server);
+                    
+                    this.log.addStatusOk('Dcb files have been downloded');
                 end
-                
-                close(ftp_server);
-                
-                this.log.addStatusOk('Dcb files have been downloded');
             end
         end
         
