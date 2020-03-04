@@ -46,11 +46,19 @@
 %--------------------------------------------------------------------------
         
 function lh = plotSep(t, data, varargin)
-    [t, data] = insertNan4Plots(t, data);
-    if nargin <= 2
-        lh = plot(t, data);
+    if isa(t, 'handle')
+        ax = t;
+        t = data;
+        data = varargin{1};
+        varargin = varargin{2:end};
     else
-        lh = plot(t, data, varargin{:});
+        ax = gca;
+    end
+    [t, data] = insertNan4Plots(t, data);
+    if nargin < 3
+        lh = plot(ax, t, data);
+    else
+        lh = plot(ax, t, data, varargin{:});
     end
 end
 
