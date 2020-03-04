@@ -959,29 +959,29 @@ classdef Receiver_Output < Receiver_Commons
                 color_order = handle(gca).ColorOrder;
                 t = this.getPositionTime().getMatlabTime();
                 
-                plot(ax(1), t, this.quality_info.n_epochs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                Core_Utils.plotSep(ax(1), t, this.quality_info.n_epochs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 h = ylabel(ax(1), sprintf('# epochs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(1), 'Number of valid epochs', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                plot(ax(2), t, this.quality_info.n_obs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:)); hold on;
+                Core_Utils.plotSep(ax(2), t, this.quality_info.n_obs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:)); hold on;
                 h = ylabel(ax(2), sprintf('# obs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(2), 'Total number of observations used', 'interpreter', 'none'); h.FontWeight = 'bold';
                                 
                 if isfield(this.quality_info, 'n_out')
-                    plot(ax(3), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
+                    Core_Utils.plotSep(ax(3), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
                     h = ylabel(ax(3), '# outliers'); h.FontWeight = 'bold';
                     h = title(ax(3), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
                 end
                 
-                plot(ax(4), t, this.quality_info.n_sat_max, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:)); hold on;
+                Core_Utils.plotSep(ax(4), t, this.quality_info.n_sat_max, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:)); hold on;
                 h = ylabel(ax(4), 'max # sat'); h.FontWeight = 'bold';
                 h = title(ax(4), 'Maximum number of satellites seen in one epoch', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                plot(ax(5), t, this.quality_info.s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(6,:)); hold on;
+                Core_Utils.plotSep(ax(5), t, this.quality_info.s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(6,:)); hold on;
                 h = ylabel(ax(5), 's0 pp [cm]'); h.FontWeight = 'bold';
                 h = title(ax(5), 'Sigma0 as estimated from the Least Square solution (on pre-processing)', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
-                plot(ax(6), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
+                Core_Utils.plotSep(ax(6), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
                 h = ylabel(ax(6), 's0 [cm]'); h.FontWeight = 'bold';
                 h = title(ax(6), 'Final sigma0 as estimated from the Least Square solution', 'interpreter', 'none'); h.FontWeight = 'bold';
                 
