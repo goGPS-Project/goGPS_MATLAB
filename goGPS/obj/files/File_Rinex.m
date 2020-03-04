@@ -349,15 +349,15 @@ classdef File_Rinex < Exportable
                                         lim(end,:) = [];
                                     end
                                 end
-                                epoch_line = buf(lim(l,1) : lim(l,2));
-                                % try to guess the time format
-                                [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
-                                try
-                                this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
-                                catch ex
-                                    keyboard
+                                if l <= size(lim,1)
+                                    epoch_line = buf(lim(l,1) : lim(l,2));
+                                    % try to guess the time format
+                                    [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
+                                    this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
+                                    this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
+                                else
+                                    error(sprintf('"%s" seems corrupted', full_path));
                                 end
-                                this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                             end
                             this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
                             this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
