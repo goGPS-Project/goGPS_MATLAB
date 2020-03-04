@@ -5479,6 +5479,26 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if nargin < 4
                     max_obs_type = length(preferences);
                 end
+                
+                % get the session limits
+                [l1, l2] = Core.getCurrentCore.getCurSessionLimits();
+                id_sss = this.time >= l2.first & this.time <= l2.last;
+                % find the dataset with more data
+                id_obs = find(sys_obs_code(:,1) == flag(1) & sys_obs_code(:,2) == flag(2));
+                uoc = unique(Core_Utils.code3Char2Num(sys_obs_code(id_obs,:))); % unique obs code
+                ocnum = Core_Utils.code3Char2Num(sys_obs_code);
+                n_obs = []; 
+                for i = 1 : numel(uoc)
+                    n_obs(i) = sum(serialize(not(isnan(zero2nan(this.obs(ocnum == uoc(i), id_sss))))));
+                end
+                n_obs = n_obs./max(n_obs);
+                % all the tracking with less than 60% of data goes to the back
+                id_back = find(n_obs < 0.6);
+                for i = id_back(:)'
+                    trk = char(mod(uoc(i), 256));
+                    preferences(preferences == trk) = [];
+                    preferences = [preferences trk];
+                end
                 % find the best flag present
                 for j = 1 : max_obs_type
                     for i = 1:length(preferences)
@@ -6678,10 +6698,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Utils.diffAndPred(this.dt(:,1),2)) < 1e-7);
-            % lim = [lim(1) lim(end)];
+            % fill missing data ----------------
             dt_w_border = [this.dt(1); zero2nan(this.dt(:,1)); this.dt(end,1)];
-            dt_pr = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
-            dt_pr([1 end] ) = [];
+            % fill a maximum gap of 5 epochs
+            id_fill = isnan(dt_w_border);
+            if any(id_fill)
+                dt_pr = simpleFill1D(dt_w_border, id_fill, 'pchip');
+            else
+                dt_pr = dt_w_border;
+            end
+            dt_pr([1 end]) = [];
+            % end of fill -----------------------
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if diff(this.time.getEpoch([lim(i,1) lim(i,2)]).getRefTime) > smoothing_win(1)
@@ -6693,7 +6720,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 dt_pr = splinerMat([], dt_pr, smoothing_win(2));
             end
             
-            this.dt = simpleFill1D(zero2nan(dt_pr), id_ko, 'pchip');
+            dt_pr(id_fill(2:end-1)) = 0; % restore to zero missing values
+            
+            % fill a maximum gap of 5 epochs
+            id_fill = (flagMerge(~id_ko, 5) & id_ko);
+            if any(id_fill)
+                this.dt = simpleFill1D(dt_pr, id_fill, 'pchip');
+            else
+                this.dt = dt_pr;
+            end
+            
             if (~are_ph_jumping)
                 id_jump = abs(diff(dt_pr)) > 1e-4; %find clock resets
                 ddt = simpleFill1D(diff(dt_pr), id_jump, 'linear');
