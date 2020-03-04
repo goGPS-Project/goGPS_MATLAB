@@ -8868,7 +8868,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % extract observations
             [ph, wl_ph, id_ph] = this.getPhases();
-            [dp, wl_dop, id_dp] = this.getDoppler();
+            %[dp, wl_dop, id_dp] = this.getDoppler();
             [pr, id_pr] = this.getPseudoRanges();
             
             dt_ph = zeros(this.time.length, 1);
@@ -9904,23 +9904,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.meteo_data = [];
                         this.importMeteoData(); % now with more precise coordinates
                         
-                        
 %                         this.updateAllTOT();
 %                         this.codeStaticPositioning();
 %                         this.updateAllTOT();
 %                         this.codeStaticPositioning();
 %                         this.updateAllTOT();
 %                         this.codeStaticPositioning();
-                        
-                        
-                        
+                                                
                         % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                         this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                         % smooth clock estimation
-                        if perc(abs(this.dt), 0.95) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
+                        if perc(abs(this.dt), 0.97) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
                             this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                         end
-                        
                         
                         % Add a model correction for time desync -> observations are now referred to nominal time  #14
                         this.shiftToNominal();
@@ -9966,7 +9962,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             
                             this.remUnderSnrThr([], this.state.getScaledSnrThr());
-                            this.detectOutlierMarkCycleSlip();
+                            %this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
                             this.codeStaticPositioning(sys_list); % <== to be substituted with U2
                             this.applyDtRec(this.dt);
