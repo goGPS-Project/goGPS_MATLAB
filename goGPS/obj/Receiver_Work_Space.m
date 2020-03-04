@@ -10068,6 +10068,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if isempty(id_obs)
                     log.addWarning('No processable epochs found, skipping PPP');
                 else
+                    ls.remShortArc();
                     ls.Astack2Nstack();
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
@@ -10106,6 +10107,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             case 9, flag_recompute = ls.snoopingGatt2(6); % <= sensible parameter THR => to be put in settings(?)
                         end
                         if flag_recompute
+                            ls.remShortArc();
                             ls.Astack2Nstack();
                             warning off; % Close to singular matrix are annoing
                             [x, res, s0, ~, l_fixed] = ls.solvePPP();
@@ -10121,6 +10123,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         ls_bk = ls.toStruct(true); % note that this is a limited save
                         flag_recompute = ls.remOverThr(Core.getState.getMaxPhaseErrThr());
                         if flag_recompute
+                            ls.remShortArc();
                             ls.Astack2Nstack();
                             warning off; % Close to singular matrix are annoing
                             [x_new, res_new, s0_new, ~, l_fixed_new] = ls.solvePPP();
@@ -10159,13 +10162,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     
                     this.id_sync = id_sync;
-                                       
-                    [sys, prn] = cc.getSysPrn(ls.sat_go_id);
-                    obs_code = ls.obs_code;
-                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
-                    this.sat.res = Residuals();
-                    this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
-                    
+                 
                     this.n_sat_ep = uint8(sum(res(id_sync, ls.sat_go_id) ~= 0,2));
                     
                     %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
@@ -10223,6 +10220,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                     end
                     if s0 < 0.5 % with over 50cm of error the results are not meaningfull
+                        [sys, prn] = cc.getSysPrn(ls.sat_go_id);
+                        obs_code = ls.obs_code;
+                        rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
+                        this.sat.res = Residuals();
+                        this.sat.res.import(2, this.time.getEpoch(id_sync), res(id_sync, ls.sat_go_id), prn, obs_code, rec_coo);
+                        
                         if isempty(pos_idx) || state.isSepCooAtBoundaries
                             this.xyz = this.xyz + coo;
                         else
@@ -10303,6 +10306,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     
                                     ls = LS_Manipulator(cc);
                                     id_obs = ls.setUpPPP(this, sys_list, id_sync_in, '',false, pos_idx, tropo_rate);
+                                    ls.remShortArc();
                                     ls.Astack2Nstack();
                                     
                                     time = this.time.getSubSet(id_sync_in);
@@ -10826,6 +10830,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                                 ls = LS_Manipulator(cc);
                                 id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx, [state.rate_ztd_ppp state.rate_grad_ppp]);
+                                ls.remShortArc();
                                 ls.Astack2Nstack();
                                 
                                 time = this.time.getSubSet(id_sync_in);
@@ -10972,6 +10977,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllTOT
                 ls = LS_Manipulator(Core.getConstellationCollector);
                 id_sync = ls.setUpPPP(this, sys_list, id_sync, state.getCutOff, true);
+                ls.remShortArc();
                 ls.Astack2Nstack();
                 
                 time = this.time.getSubSet(id_sync);

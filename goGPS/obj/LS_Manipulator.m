@@ -854,6 +854,23 @@ classdef LS_Manipulator < Exportable
             end
         end
         
+        function remShortArc(this)
+            % Remove ambiguities having too few observations for their
+            % estimation
+            %
+            % SYNTAX
+            %   this.remShortArc();
+            amb_id = this.A_idx(:,find(this.param_class == this.PAR_AMB));
+            n_amb_obs = hist(amb_id, min(amb_id):max(amb_id));
+            amb_out = find(n_amb_obs < Core.getCurrentSettings.getMinArc) + min(amb_id) - 1;
+            this.remObs(find(ismember(amb_id, amb_out)));
+            
+            % After removing short arcs check min obs per epoch
+            n_obs = hist(this.epoch, min(this.epoch) : max(this.epoch)) + min(this.epoch) - 1;
+            ep_out = find(n_obs < Core.getCurrentSettings.getMinNSat);
+            this.remObs(find(ismember(this.epoch, ep_out)));            
+        end
+        
         function Astack2Nstack(this)
             %DESCRIPTION: generate N stack A'*A
             n_obs = size(this.A_ep, 1);
@@ -927,6 +944,7 @@ classdef LS_Manipulator < Exportable
             s0 = mean(abs(this.res).*this.rw);
             res_n = this.res/s0;
             if nargin > 2
+                state = Core.getCurrentSettings;
                 % propagate outlier flag ( snooping gatt) -----------------------------------------------------------------------------------------------------
                 if nargin > 3 && (thr_propagate > 0)
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
@@ -983,6 +1001,11 @@ classdef LS_Manipulator < Exportable
                         end % ---------------------------------------------------------------------------------------------------------------------------------                     
                         idx_rw = idx_rw | idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
                     end
+                    
+                    % Listen to the settings remove epochs with not enough satellites
+                    idx_ko(sum(not(isnan(ssat_err)) & not(idx_ko),2) < state.getMinNSat, :) = true;
+                    idx_ko = idx_ko & not(isnan(ssat_err));
+                    idx_rw = idx_rw | idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
                 else
                     idx_rw = abs(res_n) > thr;
                 end
