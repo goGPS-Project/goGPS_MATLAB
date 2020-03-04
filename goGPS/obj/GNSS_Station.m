@@ -5543,6 +5543,7 @@ classdef GNSS_Station < handle
                     
                     drawnow;
                     e = 0;
+                    figure(f);
                     for r = 1 : numel(sta_list)
                         rec = sta_list(r);
                         data_tmp = tropo{r};
@@ -5552,7 +5553,6 @@ classdef GNSS_Station < handle
                             id_ko_tmp = false(size(data_tmp));
                         end
                         mode = '.-';
-                        figure(f);
                         if new_fig
                             if strcmp(par_name, 'nsat')
                                 Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(data_tmp'), '.-', 'LineWidth', 2, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
@@ -5614,16 +5614,12 @@ classdef GNSS_Station < handle
                     outm = [old_legend, outm];
                     n_entry = numel(outm);
 
-                    if ~sub_plot_nsat
+                    if n_entry > 50
                         loc = 'NorthEast';
-                        [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
                     else
-                        loc = 'SouthWest';
-                        if n_entry > 11
-                            loc = 'NorthWest';
-                        end
-                        [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
+                        loc = 'EastOutside';
                     end
+                    [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none');
                     icons = icons(n_entry + 2 : 2 : end);
                     
                     for i = 1 : numel(icons)
@@ -5666,7 +5662,6 @@ classdef GNSS_Station < handle
                             else
                                 Core_Utils.plotSep(t{r}.getMatlabTime(), zero2nan(rec.getNumSat'), '.-', 'LineWidth', 2); hold on;
                             end
-                            outm{r} = [rec(1).getMarkerName() ' n sat'];
                         end
                         childs = ax2.Children;
                         tlim = [inf -inf];
