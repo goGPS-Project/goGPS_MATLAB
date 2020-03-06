@@ -557,7 +557,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  this.injestReceiver(rec);
             
             % Remove duplicate epochs, epochs in the receiver that are read again
-            [~, id_ko_this,id_ko_rec] = intersect(round(this.time.getMatlabTime*86400 /this.time.getRate), round(rec.time.getMatlabTime * 86400/this.time.getRate));
+            [~, id_ko_this, id_ko_rec] = intersect(round(this.time.getMatlabTime*86400 /this.time.getRate), round(rec.time.getMatlabTime * 86400/this.time.getRate));
             rec.remEpochs(id_ko_rec);
             
             n_obs = size(rec.obs,1);
@@ -6421,7 +6421,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % considerig only epoch with code on the first frequency
             code_line = this.obs_code(:,1) == 'C' & this.f_id == 1;
-            this.n_spe = sum(this.obs(code_line, :) ~= 0);
+            this.n_spe = sum(this.obs(code_line, :) ~= 0, 1);
             % more generic approach but a lot slower
             %for e = 1 : this.length()
             %    this.n_spe(e) = numel(unique(this.go_id(this.obs(:,e) ~= 0)));
