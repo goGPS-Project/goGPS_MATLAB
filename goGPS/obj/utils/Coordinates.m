@@ -122,6 +122,17 @@ classdef Coordinates < Exportable & handle
             end
             this.time.remEpoch(idx);
         end
+        
+        function check(this)
+            % Raise an error and empty the coordinates if time and
+            % coordinates have different dimensions
+            if size(this.xyz) ~= this.time.length
+                fprintf('WARNING Coordinates with unconsistent dimension found\n');
+                this.time = GPS_Time;
+                this.xyz = [];
+                this.Cxx = [];
+            end
+        end
     end
         
     % =========================================================================
@@ -581,6 +592,12 @@ classdef Coordinates < Exportable & handle
                         setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         grid on;
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 1, t);
+                        if (t(end)-t(1) > 199)
+                            ttmp = t(~isnan(enu_diff(:,1)));
+                            [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 365/4, 1e-8, ttmp(1):ttmp(end));
+                            plot(ttmp(1):ttmp(end), splined, 'k');
+                            trend(~isnan(enu_diff(:,1))) = filtered;
+                        end
                         str_title{1} = sprintf('%s %s%.2f', str_title{1}, iif(i>1, '- ', ''), std((enu_diff(:,1) - trend(:)), 'omitnan'));
                         h = title(str_title{1}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         subplot(3,1,2);
@@ -596,6 +613,12 @@ classdef Coordinates < Exportable & handle
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 1, t);
+                        if (t(end)-t(1) > 199)
+                            ttmp = t(~isnan(enu_diff(:,2)));
+                            [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 365/4, 1e-8, ttmp(1):ttmp(end));
+                            plot(ttmp(1):ttmp(end), splined, 'k');
+                            trend(~isnan(enu_diff(:,1))) = filtered;
+                        end
                         str_title{2} = sprintf('%s %s%.2f', str_title{2}, iif(i>1, '- ', ''), std((enu_diff(:,2) - trend(:)), 'omitnan'));
                         h = title(str_title{2}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
@@ -612,6 +635,12 @@ classdef Coordinates < Exportable & handle
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
                         setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,3))), enu_diff(~isnan(enu_diff(:,3)),3), 1, t);
+                        if (t(end)-t(1) > 199)
+                            ttmp = t(~isnan(enu_diff(:,3)));
+                            [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,3))), enu_diff(~isnan(enu_diff(:,3)),3), 365/4, 1e-8, ttmp(1):ttmp(end));
+                            plot(ttmp(1):ttmp(end), splined, 'k');
+                            trend(~isnan(enu_diff(:,1))) = filtered;
+                        end
                         str_title{3} = sprintf('%s %s%.2f', str_title{3}, iif(i>1, '- ', ''), std((enu_diff(:,3) - trend(:)), 'omitnan'));
                         h = title(str_title{3}, 'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
