@@ -43,7 +43,8 @@
 
 classdef Core_UI < Logos
     
-    properties (Constant)        
+    properties (Constant)
+        DEFAULT_LOG = 1; % 0 text mode, 1 graphic mode
         DEFAULT_MODE = 'dark';
         DEFAULT_EXPORT_MODE = 'light';
         

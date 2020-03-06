@@ -80,7 +80,7 @@ function goGPS(ini_settings, use_gui, flag_online)
         
     log = Logger.getInstance();
     log.disableFileOut();
-    if use_gui
+    if use_gui && Core_UI.DEFAULT_LOG == 1
         log.enableGUIOut();
         log.disableScreenOut();
         Core.getMsgGUI(true);
