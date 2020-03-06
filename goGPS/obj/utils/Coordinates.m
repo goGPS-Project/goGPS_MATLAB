@@ -396,7 +396,7 @@ classdef Coordinates < Exportable & handle
             %   this.setTime(time)
             
             if time.length > 3
-                this.time = time.getNominalTime;
+                this.time = time.getNominalTime(time.getRate/2);
             else
                 this.time = time.getCopy;
             end

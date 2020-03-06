@@ -10297,6 +10297,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     time_1 = this.out_start_time.getCopy;
                                     time_2 = this.out_start_time.getCopy;
                                     time_2.addSeconds(min(state.coo_rates(i),this.out_stop_time - time_2));
+                                    % Check if a buffer have been used
+                                    if isempty(pos_idx)
+                                        buf_l = 0;
+                                    else
+                                        buf_l = 1;
+                                    end
                                     for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/state.coo_rates(i)) - 1)
                                         pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime(this.getRate) >= time_1 & this.time.getNominalTime(this.getRate) < time_2),1)];
                                         time_1.addSeconds(state.coo_rates(i));
@@ -10324,10 +10330,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     
                                     coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
                                     time_coo = this.out_start_time.getCopy;
-                                    time_coo.addSeconds([0 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
-                                    
+                                    time_coo.addSeconds(state.coo_rates(i)/2 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time));
                                     time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
-
+                                    coo = coo(buf_l + (1 : time_coo.length),:);
+                                    
                                     sub_coo = struct();
                                     sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1) + coo, time_coo);
                                     sub_coo.rate = state.coo_rates(i);
