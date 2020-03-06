@@ -789,7 +789,7 @@ classdef Receiver_Output < Receiver_Commons
                             coo_to_import = rec_work.add_coo(i).coo.getCopy();
                             coo_to_import.check();
                             if not(coo_to_import.isEmpty)
-                                if i > numel(this.add_coo) || isempty(this.add_coo(i))
+                                if i > numel(this.add_coo) || isempty(this.add_coo(i).coo)
                                     this.add_coo(i) = struct('rate',[],'coo',[]);
                                     this.add_coo(i).rate = rec_work.add_coo(i).rate;
                                     this.add_coo(i).coo = coo_to_import.getCopy();
@@ -808,7 +808,6 @@ classdef Receiver_Output < Receiver_Commons
                                         end
                                     catch ex
                                         Core_Utils.printEx(ex);
-                                        keyboard
                                     end
                                 end
                             end
