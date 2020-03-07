@@ -5586,12 +5586,12 @@ classdef GNSS_Station < handle
                         end
                         if strcmp(par_name, 'nsat') || ~any(id_ko_tmp)
                             e = e + 1;
-                            outm{e} = rec(1).getMarkerName();
+                            outm{e} = rec(1).getMarkerName4Ch();
                         else
                             e = e + 1;
-                            outm{e} = [rec(1).getMarkerName() ' outliers'];
+                            outm{e} = [rec(1).getMarkerName4Ch() ' outliers'];
                             e = e + 1;
-                            outm{e} = rec(1).getMarkerName();
+                            outm{e} = rec(1).getMarkerName4Ch();
                         end
                     end
                     dspan = dlim(2) - dlim(1);
