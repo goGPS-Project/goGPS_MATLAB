@@ -960,7 +960,30 @@ classdef LS_Manipulator < Exportable
                     %    tmp_ko = flagExpand(abs(sensor(:,f)) > 2 * movstd(sensor(:,f),13) + 0.005, 1);
                     %    idx_ko(tmp_ko, f) = true;
                     % end
-
+                    
+                    % Use derivate
+                    x = movmedian(Core_Utils.diffAndPred(sat_err),5, 'omitnan');
+                    y = sat_err;
+                    % remove already flagged data
+                    x(idx_ko) = nan; y(idx_ko) = nan; 
+                    % normalize values
+                    x = x(:) ./ std(x(x < thr_propagate),'omitnan');
+                    y = y(:) ./ std(y(x < thr_propagate),'omitnan');
+                    % remove angular rate
+                    if numel(x) > 10
+                        y_corr = Core_Utils.interp1LS(x,y,1);
+                        y = y - y_corr;
+                    end
+                    % DEBUG: figure; plot(x, y,'.'); axis equal
+                    % DEBUG: hold on; plot(mean(x, 'omitnan'), mean(y, 'omitnan'), 'oy');
+                    % threshold everything above 4.5
+                    id_ko = hypot(x, y) > 4.5;
+                    idx_ko(id_ko) = true;
+                    % DEBUG: hold on; plot(x(id_ko), y(id_ko), 'o'); xlim([-30 30]); ylim([-30 30]);
+                    % DEBUG: figure; plot(sat_err, '.');
+                    % DEBUG: x = repmat((1:size(idx_ko))', 1 ,size(idx_ko,2));
+                    % DEBUG: hold on; plot(x(idx_ko), sat_err(idx_ko), '.', 'MarkerSize', 10, 'Color', 0.1*[0.9 0.9 0.9]);
+                    
                     idx_rw = idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
                     
                     if nargin > 4 && flag_clean_margin
