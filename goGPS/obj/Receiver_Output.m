@@ -523,6 +523,15 @@ classdef Receiver_Output < Receiver_Commons
             if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && ~(rec_work.quality_info.s0 < 1e-5))))
                 % set the id_sync only to time in between out times
                 basic_export = false;
+                
+                if any(rate)
+                    id_sync_bk = rec_work.getIdSync;
+                    id_sync = rec_work.getIdSync;
+                    sync_time = round(rec_work.getTime.getNominalTime.getMatlabTime*86400,3);
+                    id_ss = mod(sync_time, rate) == 0;
+                    rec_work.id_sync = id_sync(id_ss);
+                end
+                
                 id_sync_old = rec_work.getIdSync();
                 
                 this.used_sys_c = unique([this.used_sys_c rec_work.getActiveSys]);
@@ -539,14 +548,6 @@ classdef Receiver_Output < Receiver_Commons
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                
-                if any(rate)
-                    id_sync_bk = rec_work.getIdSync;
-                    id_sync = rec_work.getIdSync;
-                    sync_time = round(rec_work.getTime.getNominalTime.getMatlabTime*86400,3);
-                    id_ss = mod(sync_time, rate) == 0;
-                    rec_work.id_sync = id_sync(id_ss);
-                end
                 
                 rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
                 work_time = rec_work.getTime();
