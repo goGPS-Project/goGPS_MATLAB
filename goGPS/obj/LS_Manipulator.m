@@ -977,11 +977,11 @@ classdef LS_Manipulator < Exportable
                     % DEBUG: figure; plot(x, y,'.'); axis equal
                     % DEBUG: hold on; plot(mean(x, 'omitnan'), mean(y, 'omitnan'), 'oy');
                     % threshold everything above 4.5
-                    id_ko = hypot(x, y) > 4.5;
+                    id_ko = hypot(nan2zero(x), y) > 4.5;
                     idx_ko(id_ko) = true;
                     % DEBUG: hold on; plot(x(id_ko), y(id_ko), 'o'); xlim([-30 30]); ylim([-30 30]);
                     % DEBUG: figure; plot(sat_err, '.');
-                    % DEBUG: x = repmat((1:size(idx_ko))', 1 ,size(idx_ko,2));
+                    % DEBUG: x = repmat((1:size(idx_ko,1))', 1 ,size(idx_ko,2));
                     % DEBUG: hold on; plot(x(idx_ko), sat_err(idx_ko), '.', 'MarkerSize', 10, 'Color', 0.1*[0.9 0.9 0.9]);
                     
                     idx_rw = idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
