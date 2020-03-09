@@ -791,7 +791,185 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
     end
     
+    % ==================================================================================================================================================
+    %% TESTER
+    % ==================================================================================================================================================
+    methods (Access = public, Static)
+        function id_ko = checkTropo_mr(data, flag_reduce, thr_lev)
+            % Check ZWD for possible outliers (works on the mr ZWD getter)
+            %
+            % INPUT
+            %   tropo         matrix of delays [ n_obs x n_rec ]
+            %   flag_reduce   reduce the entries using their correlated signal
+            %   thr_lev       level of threshold (usually 5.5 - conservative)
+            %
+            % SYNTAX
+            %   id_ko = Receiver_Commons.checkTropo_mr(tropo, flag_reduce)
+            %
+            % EXAMPLE
+            %   % Prepare the data
+            %   [zwd, p_time, id_sync] = sta_list.getZwd_mr;
+            %   % Get outliers
+            %   id_ko = Receiver_Commons.checkTropo_mr(zwd, true, thr_lev)
+            
+            % state = Core.getCurrentSettings; 
+            if nargin < 2 || isempty(flag_reduce)
+                flag_reduce = true;
+            end
+            if nargin < 3 || isempty(thr_lev)
+                thr_lev = 5.5;
+            end
+            
+            % Use moving median to remove outliers
+            x = movmedian(Core_Utils.diffAndPred(data),5, 'omitnan');
+            y = data;
+            
+            % I can reduce the input only if I  have enough data
+            if size(y, 2) >= 2
+                y = bsxfun(@minus, y, [0 cumsum(nan2zero(median(diff(y, 1, 2), 'omitnan')))]);
+            end
+            if size(y, 2) >= 2 && flag_reduce
+                reduction = median(y, 2, 'omitnan');
+                if size(y, 2) < 3
+                    % Try to remove stronger spikes before it's too late
+                    reduction = movmedian(reduction, 3);
+                end
+                id_ko = sum(not(isnan(y)), 2) <= 1;
+                t = (1 : numel(reduction))';
+                reduction(id_ko) = interp1q(t(not(id_ko)), reduction(not(id_ko)), t(id_ko));
+                y = bsxfun(@minus, y, reduction);
+            end
+            id_ok = y < (6 * std(y(:), 'omitnan'));
+            
+            % Normalize y and its derivate x
+            x = x(:) ./ std(x(id_ok),'omitnan');
+            y = y(:) ./ std(y(id_ok),'omitnan');
+            
+            x = x ./ 1.5; % use a stronger treshold on the derivate
+            
+            % Recenter the outlier sensors
+            x = x - median(x, 'omitnan');
+            y = y - median(y, 'omitnan');
+            
+            y(y < 0) = y(y < 0) ./ 1.3; % use a stronger treshold on negative outliers
+            
+            % Test sensors against the treshold
+            id_ko = reshape(hypot(nan2zero(x), y) > thr_lev, size(data, 1), size(data, 2));
+            % expand flag to remove short arcs
+            min_arc = 2; % max(1, round(state.getMinArc / 2))
+            id_ko = ~isnan(data) & flagMerge(isnan(data) | id_ko, min_arc);
+            
+            % DEBUG: figure; hist(hypot(x,y), 1000);
+            
+            % DEBUG: figure; plot(x, y,'.'); axis equal
+            % DEBUG: hold on; plot(0, 0, '*g');
+            % DEBUG: hold on; plot(x(id_ko), y(id_ko), '.y');
+            % DEBUG: ylim([-10 10]);
+            % DEBUG: xlim([-10 10]);
+            
+            % DEBUG: figure; plotSep(data, '.-');
+            % DEBUG: x = repmat((1:size(data, 1))', 1 ,size(data,2));
+            % DEBUG: hold on; plot(x(id_ko), data(id_ko), '.', 'MarkerSize', 10, 'Color', 0.1*[0.9 0.9 0.9]);
+            
+            % DEBUG: data(id_ko) = nan;
+            % DEBUG: figure; plotSep(data, '.-');
+            % DEBUG: figure; imagesc(data)
+        end
+    end
     
+    methods (Access = public)
+        
+        function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
+            % Get synced data of zwd
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [zwd, p_time, id_sync] = this.getZwd_mr()
+            %  [zwd, p_time, id_sync, tge, tgn] = this.getZwd_mr()
+
+            [p_time, id_sync] = Receiver_Commons.getSyncTimeExpanded(sta_list);
+
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
+            n_rec = numel(sta_list);
+            zwd = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).zwd)) = nan;
+                zwd(~isnan(id_rec), r) = sta_list(r).zwd(id_rec(~isnan(id_rec)));
+            end
+
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec(id_rec > length(sta_list(r).zwd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).tgn(id_rec(~isnan(id_rec)));
+                end
+            end
+        end
+        
+        function err_status = cleanTropo(sta_list, thr_lev, flag_verbose) 
+            % Check ZWD for possible outliers (works on the mr ZWD getter)
+            % And remove all the outliers from the tropo parameters 
+            %
+            % INPUT
+            %   thr_lev       level of threshold (usually 5.5 - conservative)
+            %   flag_verbose  print cleaning stats
+            %
+            % SYNTAX
+            %   id_ko = sta_list.cleanTropo(thr_lev, flag_reduce)
+            
+            if nargin < 2 || isempty(thr_lev)
+                thr_lev = [];
+            end
+            
+            if nargin < 3 || isempty(flag_verbose)
+                flag_verbose = true;
+            end
+            
+            err_status = 0; 
+            if flag_verbose
+                log = Core.getLogger;
+            end
+            
+            % Prepare the data
+            [tropo, p_time, id_sync] = sta_list.getZwd_mr;
+            if any(tropo(:))
+                % Get outliers
+                id_ko = Receiver_Commons.checkTropo_mr(tropo, true, thr_lev);
+                % Clean data Receiver by receiver
+                if any(id_ko(:))
+                    log.addMonoMessage(sprintf('\n--------------------------------------'));
+                    log.addMonoMessage(sprintf(' Tropo cleaning (Based on ZWD values)'));
+                    log.addMonoMessage(sprintf('\n--------------------------------------'));
+                    log.addMonoMessage(sprintf('    GNSS    Valid   Outlier   Outlier'));
+                    log.addMonoMessage(sprintf(' Station   epochs       num      perc'));
+                    log.addMonoMessage(sprintf('--------------------------------------'));
+                    for r = 1 : size(id_ko, 2)
+                        log.addMonoMessage(sprintf('    %s %8d   %7d   %5.2f %%', sta_list(r).parent.getMarkerName4Ch, sum(not(isnan(tropo(:, r)))), sum(id_ko(:, r)), 100 * sum(id_ko(:, r)) / sum(not(isnan(tropo(:, r))))));  
+                        % Get the id of the outlier for the current receiver
+                        id_out = id_sync(id_ko(:,r),r);
+                        if not(isempty(id_out))
+                            sta_list(r).remEpoch(id_out);
+                        end
+                    end
+                end
+            else
+                % No data available
+                err_status = 1;
+                if flag_verbose
+                    log.addWarning('No valid ZWD found, cleaning tropo inactive')
+                end
+            end
+            
+        end
+    end
+
     % ==================================================================================================================================================
     %% METHODS IMPORT / EXPORT
     % ==================================================================================================================================================

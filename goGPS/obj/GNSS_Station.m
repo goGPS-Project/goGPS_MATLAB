@@ -2767,35 +2767,40 @@ classdef GNSS_Station < handle
     %% TESTER
     % ==================================================================================================================================================
     methods (Access = public)
-        function id_ko = checkZtd_mr(sta_list, flag_verbose)
-            % Check ZTD for possible outliers (works on the mr ZTD getter)
+        function checkTropo_mr(sta_list, thr_lev)
+            % Check ZWD for possible outliers (works on the mr ZWD getter)
+            % And remove all the outliers from the receiver tropo parameters 
+            %
+            % INPUT
+            %   thr_lev       level of threshold (usually 5.5 - conservative)
             %
             % SYNTAX
-            %   id_ko = sta_list.checkZtd_mr(flag_verbose)
-            if nargin < 2
-                flag_verbose = true;
+            %   id_ko = sta_list.cleanTropo(thr_lev, flag_reduce)
+            
+            % state = Core.getCurrentSettings; 
+            if nargin < 2 || isempty(thr_lev)
+                thr_lev = [];
             end
-
-            ztd = sta_list.getZtd_mr();
-            med_ztd = median(ztd * 1e2, 'omitnan')';
-            [lat, lon, h_e, h_o] = sta_list.getMedianPosGeodetic();
-
+            
             log = Core.getLogger();
-
-            degree = 2;
-            h_component = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
-            ztd_diff = abs(med_ztd - h_component);
-            id_ko = find(ztd_diff > 8);
-
-            if not(isempty(id_ko)) && flag_verbose
-                log.addMessage('Strange stations detected');
-                for s = 1 : numel(id_ko)
-                    log.addMessage(sprintf(' - %s out for: %.2f cm wrt global behaviour', sta_list(id_ko(s)).getMarkerName, ztd_diff(id_ko(s))));
+            if (isempty(sta_list))
+                log.addWarning('No valid receiver found');
+            else
+                log.addMarkedMessage('Cleaning tropospheric parameters');
+                out_list = [sta_list.out];
+                out_list = out_list(~sta_list.isEmptyOut_mr);
+                if isempty(out_list)
+                    work_list = [sta_list.work];
+                    work_list = work_list(~sta_list.isEmptyWork_mr);
+                    work_list.cleanTropo(thr_lev)
+                else
+                    out_list.cleanTropo(thr_lev);
                 end
+                log.addStatusOk('Cleaning done');
             end
         end
     end
-
+    
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
