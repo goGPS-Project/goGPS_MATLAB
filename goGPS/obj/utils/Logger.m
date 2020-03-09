@@ -551,7 +551,11 @@ classdef Logger < handle
                     gui_text = strrep(gui_text, ' ', '&nbsp;');
                     
                     msg = Core.getMsgGUI();
-                    msg.addHTML(['<font face="Menlo,Monospaced,Courier" style="font-size:10px">' gui_text '</font>']);
+                    if not(ismac)
+                        msg.addHTML(['<font face="Monospaced,Courier" style="font-size:10px">' gui_text '</font>']);
+                    else
+                        msg.addHTML(['<font face="Menlo,Monospaced,Courier" style="font-size:10px">' gui_text '</font>']);
+                    end
                 end
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
