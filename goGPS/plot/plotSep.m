@@ -54,11 +54,30 @@ function lh = plotSep(t, data, varargin)
     else
         ax = gca;
     end
-    [t, data] = insertNan4Plots(t, data);
-    if nargin < 3
-        lh = plot(ax, t, data);
-    else
-        lh = plot(ax, t, data, varargin{:});
+    try
+        if numel(t) ~= numel(data) && numel(t) ~= size(data, 1)
+            % this means that there is only one data parameter and no time
+            varargin = [{data} varargin];
+            data = t;
+            t = 1 : size(data, 1);
+        end
+    catch
+        % probably data is undefined
+        data = t;
+        t = (1 : size(data, 1))';
+    end
+    for c = 1 : size(data, 2)
+        if numel(data) == numel(t)
+            [t_col, data_col] = insertNan4Plots(t(:,c), data(:,c));
+        else
+            [t_col, data_col] = insertNan4Plots(t, data(:,c));
+        end
+        if isempty(varargin)
+            lh = plot(ax, t_col, data_col);
+        else
+            lh = plot(ax, t_col, data_col, varargin{:});
+        end
+        hold on;
     end
 end
 
