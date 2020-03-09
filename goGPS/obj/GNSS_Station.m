@@ -6678,23 +6678,23 @@ classdef GNSS_Station < handle
                     log.addMonoMessage(sprintf('---------------------------------------------------------------------------------------'));
                     % Plot comparisons
                     for s = 1 : numel(rds)
-                        f = figure('Visible', 'off');
-                        Core_UI.beautifyFig(f);
-                        f.Name = sprintf('%03d: Rds %s', f.Number, rds(s).sta_num); f.NumberTitle = 'off';                        
-                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        [s_ztd, s_time] = sta_list(id_rec(s)).getZtd_mr();
+                        % radiosondes
+                        [ztd_rds, time_rds] = rds(s).getZtd();
+                        
+                        fh = figure('Visible', 'off');
+                        Core_UI.beautifyFig(fh);
+                        fh.Name = sprintf('%03d: Rds %s', fh.Number, rds(s).sta_num); fh.NumberTitle = 'off';
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
                         fig_name = sprintf('Raob_ZTD_%s_validation', rds(s).sta_num);
-                        f.UserData = struct('fig_name', fig_name);
+                        fh.UserData = struct('fig_name', fig_name);
                         
                         % interpolated ZTD
                         Core_Utils.plotSep(time.getMatlabTime, ztd(:,s) + ztd_height_correction(s), '.-', 'LineWidth', 2);
                         hold on;
                         
                         % closer ZTD
-                        [s_ztd, s_time] = sta_list(id_rec(s)).getZtd_mr();
                         Core_Utils.plotSep(s_time.getMatlabTime, s_ztd * 1e2, '.-', 'LineWidth', 2);
-                        
-                        % radiosondes
-                        [ztd_rds, time_rds] = rds(s).getZtd();
                         
                         % get Radiosonde coordinates and pressure
                         coo1 = Coordinates.fromGeodetic(rds(s).lat / 180 * pi, rds(s).lon / 180 * pi, [] ,rds(s).elevation);
@@ -6734,7 +6734,7 @@ classdef GNSS_Station < handle
                             % Use the data of the GNSS only -> radiosonde ppressure is not valid
                             zhd_corr = -Atmosphere.getZenithDelayCorrection(coo2, pr2(idt_gnss), coo1);
                         end
-                        
+                        figure(fh);
                         Core_Utils.plotSep(s_time.getMatlabTime, (s_ztd - interp1q(time_corr, zhd_corr, s_time.getMatlabTime)) * 1e2, '.-', 'LineWidth', 2);
 
                         [ztd_diff_sta, ztd_diff_sta_hcorr, id_mean] = deal(nan(time_rds.length, 1));
@@ -6752,6 +6752,7 @@ classdef GNSS_Station < handle
                         s_diff_sta_hcorr(s) = std(ztd_diff_sta_hcorr, 1, 'omitnan');
                         log.addMonoMessage(sprintf('%2d)  %6.2f cm    %6.2f cm      %4s  %9.1f   %9.1f   "%s"', s, m_diff_sta_hcorr(s), s_diff_sta_hcorr(s), sta_list(id_rec(s)).getMarkerName4Ch, round(d3d(s) / 1e3), dup(s), rds(s).getName()));
 
+                        figure(fh);
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
                         plot(time_rds.getMatlabTime, ztd_rds, '.w', 'MarkerSize', 40, 'LineWidth', 2);
                         plot(time_rds.getMatlabTime, ztd_rds, '.k', 'MarkerSize', 30, 'LineWidth', 2);
@@ -6776,25 +6777,25 @@ classdef GNSS_Station < handle
                         setTimeTicks; grid minor;
                         drawnow;
                         ax = gca; ax.FontSize = 16;
-                        Core_UI.beautifyFig(f);
-                        Core_UI.addExportMenu(f);             
-                        Core_UI.addBeautifyMenu(f);             
-                        f.Visible = 'on'; drawnow;
+                        Core_UI.beautifyFig(fh);
+                        Core_UI.addExportMenu(fh);             
+                        Core_UI.addBeautifyMenu(fh);             
+                        fh.Visible = 'on'; drawnow;
                         
                         % Histogram
-                        f = figure('Visible', 'off');
-                        Core_UI.beautifyFig(f);
-                        f.Name = sprintf('%03d: Rds Hist %s', f.Number, rds(s).sta_num); f.NumberTitle = 'off';                        
-                        fh_list = [fh_list; f]; %#ok<AGROW>
+                        fh = figure('Visible', 'off');
+                        Core_UI.beautifyFig(fh);
+                        fh.Name = sprintf('%03d: Rds Hist %s', fh.Number, rds(s).sta_num); fh.NumberTitle = 'off';                        
+                        fh_list = [fh_list; fh]; %#ok<AGROW>
                         fig_name = sprintf('Raob_ZTD_%s_validation_hist', rds(s).sta_num);
-                        f.UserData = struct('fig_name', fig_name);
+                        fh.UserData = struct('fig_name', fig_name);
                         hist(ztd_diff_sta_hcorr,25);
                         title('Histogram of ZTD RAOB - GNSS (ZHD corrected)');
                         xlabel('dZTD [cm]');
-                        Core_UI.beautifyFig(f);
-                        Core_UI.addExportMenu(f);             
-                        Core_UI.addBeautifyMenu(f);             
-                        f.Visible = 'on'; drawnow;                        
+                        Core_UI.beautifyFig(fh);
+                        Core_UI.addExportMenu(fh);             
+                        Core_UI.addBeautifyMenu(fh);             
+                        fh.Visible = 'on'; drawnow;                        
                     end                     
                 end
                 
@@ -6839,7 +6840,7 @@ classdef GNSS_Station < handle
                     end
                                         
                     [x, y] = m_ll2xy(data_lon, data_lat);
-                    
+                    figure(fh);
                     plot(x(:), y(:),'.k', 'MarkerSize', 5);
                     % Label BG (in background w.r.t. the point)
                     for r = 1 : numel(rds)
@@ -6861,6 +6862,7 @@ classdef GNSS_Station < handle
                             'HorizontalAlignment','left');
                     end
                                         
+                    figure(fh);
                     %col_data = Cmap.getColor(round(data_mean * 10) + n_col, 2 * n_col, 'RdBu');
                     col_data = Cmap.getColor(max(1, round(abs(data_mean) * 10) + 1), n_col + 1, 'linspaced');
                     plot(x, y, 's', ...
