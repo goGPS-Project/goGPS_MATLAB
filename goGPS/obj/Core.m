@@ -1849,7 +1849,28 @@ classdef Core < handle
             this.log.addMarkedMessage(sprintf('Core object created at %s\n', this.creation_time.toString));
             fprintf('----------------------------------------------------------------------------------\n')
             this.log.newLine();
-        end        
+        end
+        
+        function printStationCoordinates(this)
+            % Display on screen information about the station location
+            %
+            % SYNTAX
+            %   this.printStationCoordinates();
+            [lat, lon, h_ellips, h_ortho] = this.rec.getMedianPosGeodetic();
+            [xyz] = this.rec.getMedianPosXYZ;
+            log = Core.getLogger();
+            
+            log.addMonoMessage(sprintf('\n-------------------------------------------------------------------------------------------------------'));
+            log.addMonoMessage(sprintf(' Station position'));
+            log.addMonoMessage(sprintf('-------------------------------------------------------------------------------------------------------'));
+            log.addMonoMessage(sprintf('    GNSS    Latitude   Longitude   Ellipsoidal   Orthometric        ECEF-X        ECEF-Y        ECEF-Z'));
+            log.addMonoMessage(sprintf(' Station       [deg]       [deg]    height [m]    height [m]           [m]           [m]           [m]'));
+            log.addMonoMessage(sprintf('-------------------------------------------------------------------------------------------------------'));
+            for r = 1 : numel(this.rec)
+                log.addMonoMessage(sprintf('    %s   %9.5f  %9.5f       %8.3f      %8.3f%14.4f%14.4f%14.4f', this.rec(r).getMarkerName4Ch, lat(r), lon(r), h_ellips(r), h_ortho(r), xyz(r,1), xyz(r,2), xyz(r,3)));
+            end
+            log.addMonoMessage(sprintf('-------------------------------------------------------------------------------------------------------'));
+        end
     end
 
     methods (Static) % Public Access        
