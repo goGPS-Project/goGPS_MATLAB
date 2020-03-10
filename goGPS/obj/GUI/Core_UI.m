@@ -574,22 +574,22 @@ classdef Core_UI < Logos
                 
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
-                    cb.Color = [0.9 0.9 0.9];
+                    cb.Color = [0.8 0.8 0.8];
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
-                        cbt.Color = [0.9 0.9 0.9];
+                        cbt.Color = [0.8 0.8 0.8];
                     end
                 end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
                     ax.Color = [0.2 0.2 0.2];
                     ax.Title.Color = [1 1 1];
-                    ax.XLabel.Color = [0.9 0.9 0.9];
-                    ax.YLabel.Color = [0.9 0.9 0.9];
-                    ax.ZLabel.Color = [0.9 0.9 0.9];
-                    ax.XColor = [0.9 0.9 0.9];
-                    ax.YColor = [0.9 0.9 0.9];
-                    ax.ZColor = [0.9 0.9 0.9];
+                    ax.XLabel.Color = [0.8 0.8 0.8];
+                    ax.YLabel.Color = [0.8 0.8 0.8];
+                    ax.ZLabel.Color = [0.8 0.8 0.8];
+                    ax.XColor = [0.8 0.8 0.8];
+                    ax.YColor = [0.8 0.8 0.8];
+                    ax.ZColor = [0.8 0.8 0.8];
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         % If the text have the same color of the background change it accordingly
@@ -610,21 +610,21 @@ classdef Core_UI < Logos
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
-                    txt.Color = [0.9 0.9 0.9];
+                    txt.Color = [0.8 0.8 0.8];
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
-                    txt.Color = [0.9 0.9 0.9];
+                    txt.Color = [0.8 0.8 0.8];
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
-                    txt.Color = [0.9 0.9 0.9];
+                    txt.Color = [0.8 0.8 0.8];
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
-                    lg.TextColor = 1-[0.9 0.9 0.9];
+                    lg.TextColor = 1-[0.8 0.8 0.8];
                     lg.EdgeColor = [0.5 0.5 0.5];
                 end
                 
@@ -646,22 +646,22 @@ classdef Core_UI < Logos
                 
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
-                    cb.Color = 1-[0.9 0.9 0.9];
+                    cb.Color = 1-[0.8 0.8 0.8];
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
-                        cbt.Color = 1-[0.9 0.9 0.9];
+                        cbt.Color = 1-[0.8 0.8 0.8];
                     end
                 end
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
                     ax.Color = [1 1 1];
                     ax.Title.Color = 1-[1 1 1];
-                    ax.XLabel.Color = 1-[0.9 0.9 0.9];
-                    ax.YLabel.Color = 1-[0.9 0.9 0.9];
-                    ax.ZLabel.Color = 1-[0.9 0.9 0.9];
-                    ax.XColor = 1-[0.9 0.9 0.9];
-                    ax.YColor = 1-[0.9 0.9 0.9];
-                    ax.ZColor = 1-[0.9 0.9 0.9];
+                    ax.XLabel.Color = 1-[0.8 0.8 0.8];
+                    ax.YLabel.Color = 1-[0.8 0.8 0.8];
+                    ax.ZLabel.Color = 1-[0.8 0.8 0.8];
+                    ax.XColor = 1-[0.8 0.8 0.8];
+                    ax.YColor = 1-[0.8 0.8 0.8];
+                    ax.ZColor = 1-[0.8 0.8 0.8];
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         % If the text have the same color of the background change it accordingly
@@ -682,21 +682,21 @@ classdef Core_UI < Logos
                 end                
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.Color = 1-[0.8 0.8 0.8];
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.Color = 1-[0.8 0.8 0.8];
                 end
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.9 0.9 0.9];
+                    txt.Color = 1-[0.8 0.8 0.8];
                 end
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
                     lg.Color = [1 1 1];
                     lg.Title.Color = [0 0 0];
-                    lg.TextColor = 1-[0.9 0.9 0.9];
+                    lg.TextColor = 1-[0.8 0.8 0.8];
                     lg.EdgeColor = [0.5 0.5 0.5];
                 end                
             end

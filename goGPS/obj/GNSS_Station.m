@@ -5704,6 +5704,36 @@ classdef GNSS_Station < handle
             end
         end
 
+        function fh_list = showZwdSync(sta_list)
+            % Show A matrix of all the ZWD
+            % (If stations are more than 40 the names will be overposed)
+            %
+            % SYNTAX
+            %   fh_list = sta_list.showZwdSync()
+            
+            [zwd, time] = sta_list.getZwdRes_mr;
+            
+            f = figure('Visible', 'off');
+           
+            fh_list = f;
+            fig_name = sprintf('RecZwdSync');
+            f.UserData = struct('fig_name', fig_name);
+            
+            imagesc(time.getMatlabTime, 1:size(zwd,2), zwd' * 1e2);
+            colormap(Cmap.get('RdBu'));
+            colorbar;
+            yticks(1:size(zwd,2));
+            yticklabels([sta_list.getMarkerName4Ch]);
+            setTimeTicks();
+            title(sprintf('ZWD [cm]\\fontsize{5} \n'));
+            xlabel('Epochs');
+            Core_UI.beautifyFig(f,'light');
+                        
+            Core_UI.addExportMenu(f);
+            Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on'; drawnow;
+        end
+        
         function fh_list = showNSat(sta_list, new_fig)
             % Show total number of satellites in view (epoch by epoch) for each satellite
             %
