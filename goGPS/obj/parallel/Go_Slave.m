@@ -226,173 +226,212 @@ classdef Go_Slave < Com_Interface
             % Handshake
             stay_alive = true;
             while stay_alive
-                this.revive();
-                this.sendMsg(this.MSG_BORN, sprintf('Helo! My name is "%s"', this.id));
-                this.checkMsg([this.id, '_' Parallel_Manager.MSG_ASKACK Parallel_Manager.ID], true, false); % WAIT ACK MESSAGE
-                this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
-                msg = this.checkMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true, true); % WAIT WORK MESSAGE
-                this.deleteMsg();
-                if ~(isnumeric(msg))
-                    
-                    % Creating worker
-                    core = Core.getCurrentCore(); % Init Core
-                    core.initPreloadSession();
-                    core.clearSingletons();
-                    core.initSimpleHandlers();
-                    core.initLocalPath();
-                    this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
-                    tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'atx', 'cur_session', 'rin_list', 'met_list', 'slave_type');
-                    this.slave_type = tmp.slave_type;
-                    core.state = tmp.state; % load the state
-                    core.atx = tmp.atx;   % load the antenna manager
-                    core.setCurrentSettings(tmp.state); % load the state
-                    core.initGeoid(tmp.geoid); % load the geoid
-                    core.state.setCurSession(tmp.cur_session); % load the current session number
-                    core.rin_list = tmp.rin_list; % load the rinex list of files
-                    core.met_list = tmp.met_list; % load the meteorological list of files
-                    
-                    % No colormode for slaves (faster execution)
-                    core.log.setColorMode(0);
-                    Logger.getInstance.setColorMode(0);
-                    
-                    this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX iif(this.slave_type == 1, this.SLAVE_TARGET_PREFIX, this.SLAVE_SESSION_PREFIX) '[0-9]*'], 'match', 'once');
-                    
-                    this.log.addMarkedMessage('State updated');
-                    clear tmp;
-                    if this.isTargetWorker()
-                        this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
-                        tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
-                        core.sky  = tmp.sky;  % load the state
-                        core.atmo = tmp.atmo; % load the atmosphere
-                        core.mn = tmp.mn; % load the meteorological network
-                        clear tmp;                        
-                        this.log.addMarkedMessage('Sky updated');
-                    else
-                        core.atmo = Atmosphere();
-                    end
-                    
-                    % Check for receiver to load
-                    msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
-                    rec_pass = [];
-                    if ~isempty(msg) && ~isnumeric(msg)
-                        % I received a rec_list to load
-                        rec_pass = load(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
-                        this.log.addMarkedMessage('Passed receiver have been read');
-                    end
-                    this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
-                    this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
-                    
-                    % Waiting work
-                    this.checkMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
-                    
-                    active_ps = true;
-                    while active_ps
-                        try
-                            msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
-                            if isnumeric(msg)
-                                active_ps = false;
-                            else
-                                cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
-                                % get request id
-                                req_id = str2double(regexp(msg, '[0-9]*(?=_MASTER)', 'match', 'once'));
-                                
-                                % prepare receivers
-                                state = core.getState();
-                                clear rec
-                                n_rec = core.state.getRecCount;
-                                for r = 1 : n_rec
-                                    rec(r) = GNSS_Station(state.getDynMode() == 0); %#ok<AGROW>
-                                end
-                                core.rec = rec;
-                                if ~isempty(rec_pass)
-                                    for r = 1 : numel(rec_pass.rec_num)
-                                        core.rec(rec_pass.rec_num(r)).work = rec_pass.rec_work(r);
-                                        core.rec(rec_pass.rec_num(r)).work.parent = core.rec(rec_pass.rec_num(r));
-                                        core.rec(rec_pass.rec_num(r)).work.initHandles();
-                                    end
-                                end
-                                
-                                % Substitute key "$" into command list with the one from PAR target
-                                if this.isTargetWorker()
-                                    for c = 1 : numel(cmd_file.cmd_list)
-                                        cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(req_id));
-                                    end
-                                end
-                                
-                                if this.isSessionWorker()
-                                    core.state.setCurSession(req_id);
-                                    core.prepareSession(req_id);
-                                    %cmd_file.cmd_list = [{sprintf('FOR S%d', req_id);} cmd_file.cmd_list(:) {'ENDPAR'}];
-                                end
-                                
-                                core.exec(cmd_file.cmd_list);
-                                
-                                if this.isTargetWorker()
-                                    % Save the output ar rec
-                                    % store command list in the rec as it was executed
-                                    rec(req_id).work.state.cmd_list = cmd_file.cmd_list;
+                try
+                    this.revive();
+                    this.sendMsg(this.MSG_BORN, sprintf('Helo! My name is "%s"', this.id));
+                    this.checkMsg([this.id, '_' Parallel_Manager.MSG_ASKACK Parallel_Manager.ID], true, false); % WAIT ACK MESSAGE
+                    this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
+                    msg = this.checkMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true, true); % WAIT WORK MESSAGE
+                    this.deleteMsg();
+                    if ~(isnumeric(msg))
+                        % Creating worker
+                        core = Core.getCurrentCore(); % Init Core
+                        core.initPreloadSession();
+                        core.clearSingletons();
+                        core.initSimpleHandlers();
+                        core.initLocalPath();
+                        this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
+                        tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'atx', 'cur_session', 'rin_list', 'met_list', 'slave_type');
+                        this.slave_type = tmp.slave_type;
+                        core.state = tmp.state; % load the state
+                        core.atx = tmp.atx;   % load the antenna manager
+                        core.setCurrentSettings(tmp.state); % load the state
+                        core.initGeoid(tmp.geoid); % load the geoid
+                        core.state.setCurSession(tmp.cur_session); % load the current session number
+                        core.rin_list = tmp.rin_list; % load the rinex list of files
+                        core.met_list = tmp.met_list; % load the meteorological list of files
+                        
+                        % No colormode for slaves (faster execution)
+                        core.log.setColorMode(0);
+                        Logger.getInstance.setColorMode(0);
+                        
+                        this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX iif(this.slave_type == 1, this.SLAVE_TARGET_PREFIX, this.SLAVE_SESSION_PREFIX) '[0-9]*'], 'match', 'once');
+                        
+                        this.log.addMarkedMessage('State updated');
+                        clear tmp;
+                        if this.isTargetWorker()
+                            this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
+                            tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
+                            core.sky  = tmp.sky;  % load the state
+                            core.atmo = tmp.atmo; % load the atmosphere
+                            core.mn = tmp.mn; % load the meteorological network
+                            clear tmp;
+                            this.log.addMarkedMessage('Sky updated');
+                        else
+                            core.atmo = Atmosphere();
+                        end
+                        
+                        % Check for receiver to load
+                        msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
+                        rec_pass = [];
+                        if ~isempty(msg) && ~isnumeric(msg)
+                            % I received a rec_list to load
+                            rec_pass = load(fullfile(this.getComDir, 'rec_list.mat'), 'rec_info', 'rec_work', 'rec_out', 'id_target', 'id_work', 'id_out');
+                            this.log.addMarkedMessage('Passed receiver have been read');
+                        end
+                        this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
+                        this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
+                        
+                        % Waiting work
+                        this.checkMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
+                        
+                        active_ps = true;
+                        while active_ps
+                            try
+                                msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
+                                if isnumeric(msg)
+                                    active_ps = false;
+                                else
+                                    cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
+                                    % get request id
+                                    req_id = str2double(regexp(msg, '[0-9]*(?=_MASTER)', 'match', 'once'));
                                     
-                                    % Export work
-                                    rec = core.rec(req_id);
-                                    rec.out = []; % do not want to save out
-                                    save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
-                                elseif this.isSessionWorker()
-                                    % Export all the rec work spaces of the session
-                                    rec = core.rec;
-                                    % Make the receiver lighter to save
-                                    for r = 1 : numel(rec)
-                                        rec(r).out = []; % do not want to save out
-                                        rec(r).clearHandles(); % do not want to save handles
-                                        rec(r).work.clearHandles(); % do not want to save handles
+                                    % prepare receivers
+                                    state = core.getState();
+                                    clear rec
+                                    n_rec = core.state.getRecCount;
+                                    for r = 1 : n_rec
+                                        rec(r) = GNSS_Station(state.getDynMode() == 0); %#ok<AGROW>
                                     end
-                                    atmo = Core.getAtmosphere;
-                                    save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec', 'atmo');
+                                    core.rec = rec;
+                                    
+                                    % Import pass receivers
+                                    if ~isempty(rec_pass)
+                                        for r = 1 : numel(rec_pass.rec_info)
+                                            filed_names = fieldnames(rec_pass.rec_info(r));
+                                            for f = 1 : numel(filed_names)
+                                                core.rec(r).(filed_names{f}) = rec_pass.rec_info(r).(filed_names{f});
+                                            end
+                                        end
+                                        
+                                        for r = 1 : numel(rec_pass.id_work)
+                                            core.rec(rec_pass.id_work(r)).work = rec_pass.rec_work(r);
+                                            core.rec(rec_pass.id_work(r)).work.parent = core.rec(rec_pass.id_work(r));
+                                            core.rec(rec_pass.id_work(r)).work.initHandles();
+                                        end
+                                        for r = 1 : numel(rec_pass.id_out)
+                                            core.rec(rec_pass.id_out(r)).out = rec_pass.rec_out(r);
+                                            core.rec(rec_pass.id_out(r)).out.parent = core.rec(rec_pass.id_out(r));
+                                            core.rec(rec_pass.id_out(r)).out.initHandles();
+                                        end
+                                    end
+                                    % Import slave specific receivers
+                                    % I received a rec_list to load
+                                    file_name = fullfile(this.getComDir, sprintf('rec_work_%04d.mat', req_id));
+                                    if exist(file_name, 'file') == 2
+                                        this.log.addMarkedMessage(sprintf('Reading target receiver workspace %d', req_id));
+                                        rec_work = load(file_name, 'rec_work');
+                                        delete(file_name);
+                                        core.rec(req_id).work = rec_work.rec_work;
+                                        core.rec(req_id).work.parent = core.rec(req_id);
+                                        core.rec(req_id).work.initHandles();
+                                    end
+                                    
+                                    file_name = fullfile(this.getComDir, sprintf('rec_out_%04d.mat', req_id));
+                                    if exist(file_name, 'file') == 2
+                                        this.log.addMarkedMessage(sprintf('Reading target receiver output %d', req_id));
+                                        rec_out = load(file_name, 'rec_out');
+                                        delete(file_name);
+                                        core.rec(req_id).out = rec_out.rec_out;
+                                        core.rec(req_id).out.parent = core.rec(req_id);
+                                        core.rec(req_id).out.initHandles();
+                                    end
+                                    
+                                    % Substitute key "$" into command list with the one from PAR target
+                                    if this.isTargetWorker()
+                                        for c = 1 : numel(cmd_file.cmd_list)
+                                            cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(req_id));
+                                        end
+                                    end
+                                    
+                                    if this.isSessionWorker()
+                                        core.state.setCurSession(req_id);
+                                        core.prepareSession(req_id);
+                                        %cmd_file.cmd_list = [{sprintf('FOR S%d', req_id);} cmd_file.cmd_list(:) {'ENDPAR'}];
+                                    end
+                                    
+                                    core.exec(cmd_file.cmd_list);
+                                    
+                                    if this.isTargetWorker()
+                                        % Save the output ar rec
+                                        % store command list in the rec as it was executed
+                                        rec(req_id).work.state.cmd_list = cmd_file.cmd_list;
+                                        
+                                        % Export work
+                                        rec = core.rec(req_id);
+                                        rec.out = []; % do not want to save out
+                                        save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
+                                    elseif this.isSessionWorker()
+                                        % Export all the rec work spaces of the session
+                                        rec = core.rec;
+                                        % Make the receiver lighter to save
+                                        for r = 1 : numel(rec)
+                                            rec(r).out = []; % do not want to save out
+                                            rec(r).clearHandles(); % do not want to save handles
+                                            rec(r).work.clearHandles(); % do not want to save handles
+                                        end
+                                        atmo = Core.getAtmosphere;
+                                        save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec', 'atmo');
+                                    end
+                                    pause(0.1); % be sure that the file is saved correctly
+                                    core.rec = []; % empty space
+                                    clear rec;
+                                    this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                                 end
-                                pause(0.1); % be sure that the file is saved correctly
+                            catch ex
+                                % Export work
+                                try
+                                    rec = core.rec(req_id);
+                                catch
+                                    % I'm going to create an empty rec if something
+                                    % goes wrong
+                                end
+                                try
+                                    if isempty(rec)
+                                        rec = GNSS_Station(state.getDynMode() == 0);
+                                    end
+                                    rec.out = []; % do not want to save out
+                                    rec.work.flag_currupted = true;
+                                    save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
+                                    pause(0.1); % be sure that the file is saved correctly
+                                catch
+                                    % try to send the receiver, if something goes bad,
+                                    % the master with deal with it
+                                end
                                 core.rec = []; % empty space
                                 clear rec;
+                                
+                                % If something bad happen during work restart
                                 this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
+                                Core_Utils.printEx(ex);
+                                this.log.addError(sprintf('Something bad happened: %s\n', ex.message));
                             end
-                        catch ex
-                            % Export work
-                            try
-                                rec = core.rec(req_id);
-                            catch
-                                % I'm going to create an empty rec if something
-                                % goes wrong
-                            end
-                            try
-                                if isempty(rec)
-                                    rec = GNSS_Station(state.getDynMode() == 0);
-                                end
-                                rec.out = []; % do not want to save out
-                                rec.work.flag_currupted = true;
-                                save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
-                                pause(0.1); % be sure that the file is saved correctly
-                            catch
-                                % try to send the receiver, if something goes bad,
-                                % the master with deal with it
-                            end
-                            core.rec = []; % empty space
-                            clear rec;
-                            
-                            % If something bad happen during work restart
-                            this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
-                            this.log.addError(sprintf('Something bad happened: %s\n', ex.message));
                         end
+                        clear cmd_file rec_pass;
                     end
-                    clear cmd_file rec_pass;
-                end
-                if isnumeric(msg)
-                    switch msg
-                        case this.EXIT
-                            % It means that my services are no more needed
-                            stay_alive = false;
-                            this.log.addMarkedMessage('Thank you Master!\n Have been a pleasure living for you');
-                        otherwise % RESTART
-                            this.log.addMarkedMessage('Thank you Master!');
+                    if isnumeric(msg)
+                        switch msg
+                            case this.EXIT
+                                % It means that my services are no more needed
+                                stay_alive = false;
+                                this.log.addMarkedMessage('Thank you Master!\n Have been a pleasure living for you');
+                            otherwise % RESTART
+                                this.log.addMarkedMessage('Thank you Master!');
+                        end
+                        clear core state rec_id r msg
                     end
-                    clear core state rec_id r msg
+                catch ex
+                    Core_Utils.printEx(ex);
                 end
             end
             

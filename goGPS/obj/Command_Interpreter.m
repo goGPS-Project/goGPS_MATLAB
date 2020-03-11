@@ -1181,14 +1181,22 @@ classdef Command_Interpreter < handle
                         % Parallel execution ---------------------------------------------------------------------------------------------------
                         case this.KEY_PAR.name
                             [id_pass, found] = this.getMatchingRec(core.rec, tok, 'P');
-                            [~, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
+                            [id_pass_work, found_work] = this.getMatchingRec(core.rec, tok, 'W');
+                            [id_pass_out, found_out] = this.getMatchingRec(core.rec, tok, 'O');
+                            [id_trg, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
                             [id_sss, flag_par_session] = this.getMatchingSession(tok);
                             
                             if flag_par_target || flag_par_session
                                 if ~found
                                     id_pass = [];
                                 end
-                                this.core.activateParallelWorkers(flag_par_target, id_pass);
+                                if ~found_work
+                                    id_pass_work = [];
+                                end
+                                if ~found_out
+                                    id_pass_out = [];
+                                end
+                                this.core.activateParallelWorkers(flag_par_target, {id_trg, id_pass, id_pass_work, id_pass_out});
                             else
                                 log.addWarning('A parallel section have been requested\n but no targets or sessions are specified');
                             end
@@ -2933,6 +2941,9 @@ classdef Command_Interpreter < handle
                     str_rec = strrep(str_rec, 'end', num2str(n_key));
                     str_rec = strrep(str_rec, 'END', num2str(n_key));
                     str_rec = strrep(str_rec, 'E', num2str(n_key));
+                    
+                    % Zero means the current receiver
+                    str_rec = strrep(str_rec, '$', '0');
                     if (type == 'S')
                         str_rec = strrep(str_rec, 'CUR', sprintf('%d', Core.getCurrentSession));
                     end

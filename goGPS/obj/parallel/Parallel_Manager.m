@@ -395,7 +395,8 @@ classdef Parallel_Manager < Com_Interface
                 n_workers = this.waitForWorkerAck(n_workers);
                 this.deleteMsg('*');
                 this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX, slave_type '*'], true);
-                delete(fullfile(this.getComDir, '*.mat'));
+                delete(fullfile(this.getComDir, 's*.mat'));
+                delete(fullfile(this.getComDir, 'rec_list.mat'));
             end
             this.log.addMarkedMessage(sprintf('Parallel init took %.3f seconds', toc(t0)));
         end
@@ -684,11 +685,62 @@ classdef Parallel_Manager < Com_Interface
             %   this.sendReceiver(rec_num)
             %
             
-            % Save state on file
+            % Note:
+            %   rec_num{1} - target loop
+            %   rec_num{2} - pass receivers (they actually pass only the work obj)
+            %   rec_num{3} - work receivers
+            %   rec_num{4} - out receivers
+            
+            % Save work receivers to pass to all the slaves            
             rec_list = Core.getRecList();
-            rec_work = [rec_list(rec_num).work]; %#ok<NASGU>
-            save(fullfile(this.getComDir, 'rec_list.mat'), 'rec_work', 'rec_num');
+            log = Core.getLogger();
+            
+            id_work = min(numel(rec_list), max(1, unique(setdiff([rec_num{2} rec_num{3}], 0))));
+            id_out = min(numel(rec_list), max(1, unique(setdiff(rec_num{4}, 0))));
+            id_target = min(numel(rec_list), max(1, unique(setdiff(rec_num{4}, 0))));
+            
+            % Pass receivers basic informations
+            clear rec_info
+            for r = 1 : numel(rec_list)
+                rec_info(r) = struct('marker_name', rec_list(r).marker_name, ...
+                    'marker_type', rec_list(r).marker_type, ...
+                    'number', rec_list(r).number, ...
+                    'type', rec_list(r).type, ...
+                    'version', rec_list(r).version, ...
+                    'observer', rec_list(r).observer, ...
+                    'agency', rec_list(r).agency, ...
+                    'ant_serial', rec_list(r).ant_serial, ...
+                    'ant_type', rec_list(r).ant_type, ...
+                    'ant_delta_h', rec_list(r).ant_delta_h, ...
+                    'ant_delta_en', rec_list(r).ant_delta_en, ...
+                    ... % 'ant_mp', rec_list(r).ant_mp, ...
+                    'static', rec_list(r).static);
+            end
+            
+            rec_work = [rec_list(id_work).work]; %#ok<NASGU>
+            rec_out = [rec_list(id_out).out]; %#ok<NASGU>
+            log.addMessage(log.indent(' - Saving receivers to pass as broadcast'));
+            save(fullfile(this.getComDir, 'rec_list.mat'), 'rec_info', 'rec_work', 'rec_out', 'id_target', 'id_work', 'id_out');
             this.sendMsg(this.BRD_REC, 'Broadcast receiver');
+
+            % These other files are needed only after the activation of the workers
+            % Save work receivers to pass to the respective slave slaves
+            if ismember(0, [rec_num{2} rec_num{3}])
+                for r = unique(rec_num{1})
+                    log.addMessage(log.indent(sprintf(' - Saving receiver %d workspace for my slaves', r)));
+                    rec_work = rec_list(r).work;
+                    save(fullfile(this.getComDir, sprintf('rec_work_%04d.mat', r)), 'rec_work');
+                end
+            end
+            
+            % Save work receivers to pass to the respective slave slaves
+            if ismember(0, rec_num{4})
+                for r = unique(rec_num{1})
+                    log.addMessage(log.indent(sprintf(' - Saving receiver %d output for my slaves', r)));
+                    rec_out = rec_list(r).out;
+                    save(fullfile(this.getComDir, sprintf('rec_out_%04d.mat', r)), 'rec_out');
+                end
+            end
         end
         
         function n_workers = waitForWorkerAck(this, n_slaves)

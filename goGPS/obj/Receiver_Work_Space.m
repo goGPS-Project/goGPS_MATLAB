@@ -1344,7 +1344,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(this.sat.el)
                     this.sat.el(bad_epochs, :) = [];
                 end
-                if ~isempty(this.sat.res) && (this.sat.res.type == 1 || this.sat.res.type == 2)
+                if ~isempty(this.sat.res) && isa(this.sat.res, 'Residuals') && (this.sat.res.type == 1 || this.sat.res.type == 2)
                     if ~isempty(this.sat.res.value)
                         n_ep_res = size(this.sat.res.value,1);
                         bad_res = bad_epochs;
