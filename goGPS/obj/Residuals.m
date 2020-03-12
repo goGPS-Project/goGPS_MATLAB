@@ -579,11 +579,9 @@ classdef Residuals < Exportable
                             res = zero2nan(this.value(:, id));
                             res_go_id = cc.getIndex(obs_code(id, 1), this.prn(id));
                             
-                            
                             % Get all the data to interpolate
                             [~, id_sat] = ismember(res_go_id,go_id);
 
-                            
                             az_all = [];
                             el_all = [];
                             
@@ -641,7 +639,7 @@ classdef Residuals < Exportable
                                     res_all = [res_all; zeros(size(el_reg))];
                                     
                                     % Add additional points at the board
-                                    for i = 0 : 1 : (Core.getState.getCutOff - 3)
+                                    for i = 0 : 0.5 : (Core.getState.getCutOff - 2.5)
                                         az_all = [az_all; (-pi : 0.05 : pi)'];
                                         el_all = [el_all; i/180*pi + (-pi : 0.05 : pi)'*0];
                                         res_all = [res_all; (-pi : 0.05 : pi)'*0];
