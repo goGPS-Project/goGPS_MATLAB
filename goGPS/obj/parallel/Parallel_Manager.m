@@ -716,9 +716,20 @@ classdef Parallel_Manager < Com_Interface
                     ... % 'ant_mp', rec_list(r).ant_mp, ...
                     'static', rec_list(r).static);
             end
+            if numel(rec_list) == 0
+                rec_info = struct();
+            end
             
-            rec_work = [rec_list(id_work).work]; %#ok<NASGU>
-            rec_out = [rec_list(id_out).out]; %#ok<NASGU>
+            if isempty(id_work)
+                rec_work = [];
+            else
+                rec_work = [rec_list(id_work).work]; %#ok<NASGU>
+            end
+            if isempty(id_out)
+                rec_out = [];
+            else
+                rec_out = [rec_list(id_out).out]; %#ok<NASGU>
+            end
             log.addMessage(log.indent(' - Saving receivers to pass as broadcast'));
             save(fullfile(this.getComDir, 'rec_list.mat'), 'rec_info', 'rec_work', 'rec_out', 'id_target', 'id_work', 'id_out');
             this.sendMsg(this.BRD_REC, 'Broadcast receiver');
