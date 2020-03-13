@@ -250,7 +250,7 @@ classdef LS_Manipulator < Exportable
                             end
                         end
                         if this.state.isIonoFree
-                            obs_set.applyIFMultiPath(rec.parent.ant_mp);
+                            obs_set.applyIFMultiPath(rec.parent.getAntennaMultiPath);
                         end
 
                         if flag_amb_fix && phase_present
