@@ -59,7 +59,7 @@ end
 status = 0;
 for file_blq = 1 : size(filename,1)
     if (~isempty(filename))
-        fid = fopen(char(filename(file_blq,:)),'r');
+        fid = fopen(char(filename(file_blq,:)),'rt');
         if (fid ~= -1)
             if (file_blq == 1)
                 log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...']));

@@ -3238,7 +3238,7 @@ classdef GNSS_Station < handle
                 Core.getLogger.addError(sprintf('"%s" not found', file_name));
                 crd_list = [];
             else
-                fid = fopen(file_name,'r');
+                fid = fopen(file_name,'rt');
                 if fid <= 0
                     Core.getLogger.addError(sprintf('"%s" cannot be read', file_name));
                     crd_list = [];

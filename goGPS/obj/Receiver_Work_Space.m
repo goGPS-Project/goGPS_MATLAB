@@ -2671,7 +2671,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.log.addMessage(this.log.indent(sprintf(' - last  epoch found at: %s', this.file.last_epoch.last.toString())));
                 end
                 % open RINEX observation file
-                fid = fopen(file_name,'r');
+                fid = fopen(file_name,'rt');
                 txt = fread(fid,'*char')';
                 % try to see if carriage return is present in the file (Windows stupid standard)
                 % On Windows file lines ends with char(13) char(10)

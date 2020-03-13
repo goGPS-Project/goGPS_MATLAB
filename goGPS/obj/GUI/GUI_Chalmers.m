@@ -354,7 +354,7 @@ classdef GUI_Chalmers < handle
             %ocean_file = '/Users/Andrea/Repositories/goGPS_MATLAB/data/project/Japan/station/ocean/ocean_loading.blq';
             
             % open RINEX observation file
-            fid = fopen(ocean_file,'r');
+            fid = fopen(ocean_file,'rt');
             if fid > 0
                 txt = fread(fid,'*char')';
                 % try to see if carriage return is present in the file (Windows stupid standard)

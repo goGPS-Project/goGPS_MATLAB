@@ -185,12 +185,12 @@ classdef File_Rinex < Exportable
                 try
                     %%
                     this.is_valid_list(f) = true;
-                    fid = fopen(full_path);
+                    fid = fopen(full_path, 'rt');
                     if fid < 0
                         this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing'], this.verbosity_lev);
                         this.is_valid_list(f) = false;
                     else
-                        fseek(fid, 0, 'bof'); buf = fread(fid, 80, '*char')';
+                        buf = fread(fid, 1e4, '*char')';
                         if length(buf) > 65 && strcmp(buf(61:64), 'CRIN')
                             this.log.addError(sprintf('Check the following file, it seems to be hatanaka compressed\nDecompress "%s"', full_path));
                             this.is_valid_list(f) = false;
@@ -198,7 +198,7 @@ classdef File_Rinex < Exportable
                         else
                             l = 1;
                             % read by buffer 10k char at a time
-                            fseek(fid, 0, 'bof'); buf = fread(fid, 1e4, '*char')';
+                            % fseek(fid, 0, 'bof'); buf = fread(fid, 1e4, '*char')';
                             
                             % detect windows carriage return
                             if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))

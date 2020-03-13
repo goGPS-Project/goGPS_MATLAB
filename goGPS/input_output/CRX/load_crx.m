@@ -102,7 +102,7 @@ for j = 1 : n_max
         crx_file_target  = strcat(data_dir_crx, '/', crx_file_name);
 
         % open .crx file
-        fid_fd = fopen(crx_file_target,'r');
+        fid_fd = fopen(crx_file_target,'rt');
 
         % warnings
         if (fid_fd ~= -1)

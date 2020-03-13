@@ -196,7 +196,7 @@ classdef Radiosonde < handle
                 flag_download = false;
                 if exist(sta_path, 'file')                    
                     try
-                        fid = fopen(sta_path, 'rb');
+                        fid = fopen(sta_path, 'rt');
                         char_array = fread(fid, '*char')';
                         fclose(fid);
                         flag_retry = 0;

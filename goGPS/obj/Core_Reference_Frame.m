@@ -90,7 +90,7 @@ classdef Core_Reference_Frame < handle
             this.clear();
             this.is_valid = true;
             if ~isempty(crd_file)
-                fid = fopen([crd_file],'r');
+                fid = fopen([crd_file],'rt');
                 if fid == -1
                     Core.getLogger.addWarning(sprintf('Core RF: File %s not found', crd_file));
                     return

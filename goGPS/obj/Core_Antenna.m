@@ -119,7 +119,7 @@ classdef Core_Antenna < handle
             log = Core.getLogger();
             
             % open RINEX observation file
-            fid = fopen(file_name,'r');
+            fid = fopen(file_name,'rt');
             if fid > 0
                 txt = fread(fid,'*char')';
                 % try to see if carriage return is present in the file (Windows stupid standard)
@@ -195,7 +195,7 @@ classdef Core_Antenna < handle
             
             for f = 1 : numel(file_name)
                 % open RINEX observation file
-                fid = fopen(file_name{f},'r');
+                fid = fopen(file_name{f},'rt');
                 if fid > 0
                     txt = fread(fid, '*char')';
                     % try to see if carriage return is present in the file (Windows stupid standard)
@@ -350,7 +350,7 @@ classdef Core_Antenna < handle
             %log = Core.getLogger();
             
             % open RINEX observation file
-            fid = fopen(file_name,'r');
+            fid = fopen(file_name,'rt');
             if fid > 0
                 txt = fread(fid,'*char')';
                 % try to see if carriage return is present in the file (Windows stupid standard)

@@ -349,7 +349,7 @@ classdef Receiver_Output < Receiver_Commons
                     
                     % Multiplatform
                     if exist(filename, 'file') == 2
-                        fid = fopen(filename, 'rb');
+                        fid = fopen(filename, 'rt');
                         txt = fread(fid, '*char')';
                         fclose(fid);
                         cmdout = regexp(txt, sprintf('STAX   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');

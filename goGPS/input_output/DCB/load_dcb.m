@@ -133,7 +133,7 @@ for j = 1 : nmax
         dcb_file_target  = strcat(data_dir_dcb, '/', dcb_file_name);
 
         %open .dcb file
-        fid_fd = fopen(dcb_file_target,'r');
+        fid_fd = fopen(dcb_file_target,'rt');
 
         %warnings
         if (fid_fd ~= -1)

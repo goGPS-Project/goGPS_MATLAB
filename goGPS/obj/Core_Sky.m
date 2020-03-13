@@ -135,12 +135,15 @@ classdef Core_Sky < handle
             else
                 this.cc = cc;
             end
-            this.group_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
-            this.phase_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
             
             flag_coo_loaded = ~isempty(this.getFirstEpochCoord) && this.getFirstEpochCoord <= start_date && this.getLastEpochCoord >= stop_date;
             flag_time_loaded = ~isempty(this.getFirstEpochClock) && this.getFirstEpochClock <= start_date && this.getLastEpochClock >= stop_date;
+            %flag_update_sky = start_date < this.getCoordTime.first || stop_date > this.getCoordTime.last || ...
+            %    start_date < this.getClockTime.first || stop_date > this.getClockTime.last;
             if ~isempty(start_date) && (~flag_coo_loaded || ~flag_time_loaded)
+                this.group_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
+                this.phase_delays = zeros(this.cc.getNumSat(),82); % group delay of code measurements (meters) referenced to their constellation reference:
+                
                 eph_f_name   = Core.getState.getEphFileName(start_date, stop_date);
                 clock_f_name = Core.getState.getClkFileName(start_date, stop_date);
                 clock_is_present = true;
@@ -698,7 +701,7 @@ classdef Core_Sky < handle
             end
             
             % SP3 file
-            f_sp3 = fopen(filename_SP3,'r');
+            f_sp3 = fopen(filename_SP3,'rt');
             
             if (f_sp3 == -1)
                 Core.getLogger.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
@@ -946,7 +949,7 @@ classdef Core_Sky < handle
             % the object if values are contiguos with the ones already in
             % the object add them, otherwise clear the object and add them
             % data that are alrady present are going to be overwritten
-            f_clk = fopen(filename_clk,'r');
+            f_clk = fopen(filename_clk,'rt');
             [~, fname, ~] = fileparts(filename_clk);
             if (f_clk == -1)
                 Core.getLogger.addWarning(sprintf('No clk files have been found at %s', filename_clk));
@@ -1313,7 +1316,7 @@ classdef Core_Sky < handle
         
         
         function importSinexBias(this,file_name)
-             fid = fopen(file_name,'r');
+             fid = fopen(file_name,'rt');
                 if fid == -1
                     Core.getLogger.addWarning(sprintf('Core_Sky: File %s not found', file_name));
                     return
@@ -1430,7 +1433,7 @@ classdef Core_Sky < handle
                     Core.getLogger.addWarning('No dcb file found');
                     return
                 end
-                fid = fopen(file_name,'r');
+                fid = fopen(file_name,'rt');
                 if fid == -1
                     Core.getLogger.addWarning(sprintf('Core_Sky: File %s not found', file_name));
                     return
@@ -2606,7 +2609,7 @@ classdef Core_Sky < handle
             
             %%
             % open RINEX observation file
-            fid = fopen(file_nav,'r');
+            fid = fopen(file_nav,'rt');
             if fid < 0
                 Core.getLogger.addWarning(sprintf('File not found "%s", unable to import navigation parameters', file_nav))
             else

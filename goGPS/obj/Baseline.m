@@ -78,7 +78,7 @@ classdef Baseline < handle
                 [cur_dir, cur_name, cur_ext] = fileparts(cur_file);
                 this.name = cur_name(1:9); % 'It is generated as <marker_name_1>_<marker_name_2>'
                 
-                fid = fopen(cur_file, 'r');
+                fid = fopen(cur_file, 'rt');
                 if fid <= 0
                    log.addError(sprintf('"%s" not found!!!', cur_file)); 
                 else
