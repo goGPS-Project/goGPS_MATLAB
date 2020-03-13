@@ -227,6 +227,23 @@ classdef Core_Utils < handle
             end
         end
         
+        function data_out = resize2(data, size_out)
+            % Simple resize of a 2D dataset
+            %
+            % SYNTAX 
+            %   data_out = resize2(data, size_out)
+            
+            size_in = size(data);
+            y_grid = linspace(0 + 0.5/size_in(1), 1 - 0.5/size_in(1), size_in(1));
+            x_grid = linspace(0 + 0.5/size_in(2), 1 - 0.5/size_in(2), size_in(2));
+            [X, Y] = ndgrid(y_grid, x_grid);
+            y_grid_out = linspace(0 + 0.5/size_out(1), 1 - 0.5/size_out(1), size_out(1));
+            x_grid_out = linspace(0 + 0.5/size_out(2), 1 - 0.5/size_out(2), size_out(2));
+            fInterp = griddedInterpolant(X, Y, data, 'spline');
+            [X, Y] = ndgrid(y_grid_out, x_grid_out);
+            data_out = fInterp(X, Y);            
+        end
+        
         function [y_out] = interp22nLS(x_in, y_in, degree, x_out)
             % Least squares interpolant of a 3D dataset
             % Estimate a plane on x, y + polynomial on z
