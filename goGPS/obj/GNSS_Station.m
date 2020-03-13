@@ -515,16 +515,26 @@ classdef GNSS_Station < handle
                             else
                                 for trk = trk_list
                                     trk = strrep(trk{1}, ' ', '_'); % Spaces are not supported in structures
-                                    if ~isfield(rec.ant_mp.(sys_c), trk) || trk(end) == 'I'
+                                    if ~isfield(rec.ant_mp.(sys_c), trk) || ((trk(end) == 'I') && Core.getCurrentSettings.flag_rec_mp == 0)
                                         % This tracking frequency is not present into the old Zernike MultiPath set of coefficients
                                         rec.ant_mp.(sys_c).(trk) = ant_mp.(sys_c).(trk);
                                     else
-                                        rec.ant_mp.(sys_c).(trk).z_map = applied_ant.(sys_c).(trk).z_map + ant_mp.(sys_c).(trk).z_map;
-                                        rec.ant_mp.(sys_c).(trk).g_map = applied_ant.(sys_c).(trk).g_map + ant_mp.(sys_c).(trk).r_map;
-                                        rec.ant_mp.(sys_c).(trk).c_map = applied_ant.(sys_c).(trk).c_map + ant_mp.(sys_c).(trk).g_map;
-                                        rec.ant_mp.(sys_c).(trk).i_map = applied_ant.(sys_c).(trk).i_map + ant_mp.(sys_c).(trk).c_map;
-                                        rec.ant_mp.(sys_c).(trk).z_map = applied_ant.(sys_c).(trk).z_map + ant_mp.(sys_c).(trk).g1_map;
-                                        rec.ant_mp.(sys_c).(trk).g_map = applied_ant.(sys_c).(trk).g_map + ant_mp.(sys_c).(trk).r1_map;
+                                        % Get the old map that was applied
+                                        switch Core.getCurrentSettings.flag_rec_mp
+                                            case 0, applied_map = 0;
+                                            case 1, applied_map = applied_ant.(sys_c).(trk).z_map;
+                                            case 2, applied_map = applied_ant.(sys_c).(trk).r_map;
+                                            case 3, applied_map = applied_ant.(sys_c).(trk).g_map;
+                                            case 4, applied_map = applied_ant.(sys_c).(trk).c_map;
+                                            case 5, applied_map = applied_ant.(sys_c).(trk).g1_map;
+                                            case 6, applied_map = applied_ant.(sys_c).(trk).c1_map;                                                
+                                        end
+                                        rec.ant_mp.(sys_c).(trk).z_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).z_map)) + ant_mp.(sys_c).(trk).z_map;
+                                        rec.ant_mp.(sys_c).(trk).r_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).r_map)) + ant_mp.(sys_c).(trk).r_map;
+                                        rec.ant_mp.(sys_c).(trk).g_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).g_map)) + ant_mp.(sys_c).(trk).g_map;
+                                        rec.ant_mp.(sys_c).(trk).c_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).c_map)) + ant_mp.(sys_c).(trk).c_map;
+                                        rec.ant_mp.(sys_c).(trk).g1_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).g1_map)) + ant_mp.(sys_c).(trk).g1_map;
+                                        rec.ant_mp.(sys_c).(trk).c1_map = Core_Utils.resize2(applied_map, size(ant_mp.(sys_c).(trk).c1_map)) + ant_mp.(sys_c).(trk).c1_map;
                                     end
                                 end
                             end
