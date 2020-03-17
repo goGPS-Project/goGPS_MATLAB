@@ -481,6 +481,7 @@ classdef Residuals < Exportable
             %   this.computeMultiPath(marker_name, <l_max=[43,43,43]>, <flag_reg=true>, <is_ph=true>, <mode=[0 5 1]>)
             
             state = Core.getCurrentSettings;
+            flag_discard_co = false;
             
             if nargin < 6 || isempty(mode)
                 mode = 0; % Z + stacking
@@ -638,11 +639,24 @@ classdef Residuals < Exportable
                                     el_all = [el_all; el_reg];
                                     res_all = [res_all; zeros(size(el_reg))];
                                     
-                                    % Add additional points at the board
-                                    for i = 0 : 0.5 : (Core.getState.getCutOff - 2.5)
-                                        az_all = [az_all; (-pi : 0.05 : pi)'];
-                                        el_all = [el_all; i/180*pi + (-pi : 0.05 : pi)'*0];
-                                        res_all = [res_all; (-pi : 0.05 : pi)'*0];
+                                    if flag_discard_co
+                                        % First approach
+                                        % Do not consider observations under
+                                        % cut-off => map the radius starting from cut-off
+                                        id_ko = (el_all * 180/pi) < Core.getState.getCutOff;
+                                        az_all(id_ko) = [];
+                                        el_all(id_ko) = [];
+                                        res_all(id_ko) = [];
+                                    else
+                                        % Second approach
+                                        % Add additional points at the border close to radius 1
+                                        % This regularization is needed if the mapping of the radius
+                                        % have a cut-off
+                                        for i = 0 : 0.5 : (Core.getState.getCutOff - 2.5)
+                                            az_all = [az_all; (-pi : 0.05 : pi)'];
+                                            el_all = [el_all; i/180*pi + (-pi : 0.05 : pi)'*0];
+                                            res_all = [res_all; (-pi : 0.05 : pi)'*0];
+                                        end
                                     end
                                 end
                                 az_grid = ((-180 + (grid_step(1) / 2)) : grid_step(1) : (180 - grid_step(1) / 2)) .* (pi/180);
@@ -651,10 +665,19 @@ classdef Residuals < Exportable
                                 log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 2 + flag_reg*1, l_max(1)), 9));
                                 %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
                                 
-                                % Use two
-                                el2radius1 = @(el) cos(el).^2;
-                                el2radius2 = @(el) sin(pi/2*cos(el).^2);
-                                el2radius3 = @(el) sin(pi/2*cos(el));
+                                % Ignore data under cut-off -0.5 degrees
+                                co = max(0, (Core.getState.getCutOff - 0.5)) / 180 * pi;
+                                if flag_discard_co
+                                    % First approach:
+                                    remCutOff = @(el) (el - co) / (pi/2 - co) * (pi / 2);
+                                else
+                                    % Second approach
+                                    remCutOff = @(el) el;
+                                end
+                                % 3 mapping functions
+                                el2radius1 = @(el) cos(remCutOff(el)).^2;
+                                el2radius2 = @(el) sin(pi/2*cos(remCutOff(el)).^2);
+                                el2radius3 = @(el) sin(pi/2*cos(remCutOff(el)));
                                 %omf = @(el) 1 - sin(el);
                                 %el2radius3 = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
                                 res_work = res_all;
@@ -682,17 +705,34 @@ classdef Residuals < Exportable
                                     
                                     % Generate maps
                                     log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 4 + flag_reg*1), 9));
-                                    [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid);
+                                    id_ok = (el_grid >= co);
+                                    [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid(id_ok));
                                     [z_map1] = Core_Utils.zSinthesys(l1, m1, az_mgrid, el2radius1(el_mgrid), z_par1);
+                                    if flag_discard_co
+                                        z_map1 = [z_map1; zeros(size(id_ok,1) - sum(id_ok), size(z_map1,2))];
+                                    else
+                                        z_map1(~id_ok, :) = 0;
+                                    end
+                                    
                                     if l_max(2) <= 0
                                         z_map2 = 0;
                                     else
                                         [z_map2] = Core_Utils.zSinthesys(l2, m2, az_mgrid, el2radius2(el_mgrid), z_par2);
+                                        if flag_discard_co
+                                            z_map2 = [z_map2; zeros(size(id_ok,1) - sum(id_ok), size(z_map2,2))];
+                                        else
+                                            z_map2(~id_ok, :) = 0;
+                                        end
                                     end
                                     if l_max(3) <= 0
                                         z_map3 = 0;
                                     else
                                         [z_map3] = Core_Utils.zSinthesys(l3, m3, az_mgrid, el2radius3(el_mgrid), z_par3);
+                                        if flag_discard_co
+                                            z_map3 = [z_map3; zeros(size(id_ok,1) - sum(id_ok), size(z_map3,2))];
+                                        else
+                                            z_map3(~id_ok, :) = 0;
+                                        end
                                     end
                                     z_map = z_map1 + z_map2 + z_map3; % z_map  Zernike only
                                     

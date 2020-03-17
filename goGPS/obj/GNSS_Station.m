@@ -548,7 +548,7 @@ classdef GNSS_Station < handle
                         rec.ant_mp = ant_mp_bk;
                     end
                 end
-                if flag_update
+                if flag_update && Core.getCurrentSettings.flag_rec_mp > 0
                     % If I add the zerniche polynomials to the receiver
                     % I also correct the observations with the new set
                     if isempty(rec(1).out.sat.res_ph_by_ph) % if I work on out do not apply MP
@@ -1151,7 +1151,7 @@ classdef GNSS_Station < handle
                         else
                             sss_center = this.work.getTime.getCentralTime.getMatlabTime;
                         end
-                        [~, id_min] = min(abs(date - sss_center));
+                        [~, id_min] = min(abs(date - sss_center)); 
                         closer_fid = idf(id_sort(id_min));
                         file_name = fullfile(out_dir, file_info(closer_fid).name);
                         log.addMarkedMessage(sprintf('%s - Importing Multipath mitigation model from "%s"',  this.getMarkerName4Ch, file_name));
