@@ -1708,7 +1708,7 @@ classdef LS_Manipulator_new < handle
                         n_iono = sum(idx_reduce_cycle_iono);
                         diagonal = 1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono));
                         diagonal(diagonal == Inf) = 0;
-                        iIono = spdiags(diagonal,0,n_iono,n_iono);
+                        iIono = spdiags(diagonal,0,n_iono,n_iono); %spinv(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono),[],'qr');
                         Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
                         Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
                         Nt = Nx_iono' * iIono;
@@ -1761,46 +1761,8 @@ classdef LS_Manipulator_new < handle
                     if rec_clk
                         i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
                         n_rec_clk = sum(i_rec_clk_tmp);
-                        if n_rec > 1
-                            if sat_clk
-                                rp = rp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
-                                cp = cp_cycle( ~idx_reduce_cycle_sat_clk &  ~idx_reduce_cycle_iono);
-                                
-                                indices = {};
-                                for r = 2 : n_rec
-                                    indices{(r-2)*2+1} = rp(i_rec_clk_tmp) == r & (cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR);
-                                    indices{(r-1)*2}   = rp(i_rec_clk_tmp) == r & cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
-                                end
-                                n_i = length(indices);
-                                jj = 1;
-                                while  jj <= n_i
-                                    if sum(indices{jj}) == 0
-                                        indices(jj) = [];
-                                        jj = jj - 1;
-                                        n_i = n_i - 1;
-                                    end
-                                    jj = jj +1;
-                                end
-                                if length(indices) > 1
-                                    iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
-                                else
-                                    iRecClk = spdiags(1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp)),0,n_rec_clk,n_rec_clk);
-                                end
-                            else
-                                cp = cp_cycle( ~idx_reduce_cycle_iono);
-                                idx_1 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK | cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PR;
-                                idx_2 = cp(i_rec_clk_tmp) == this.PAR_REC_CLK_PH;
-                                if sum(idx_2) > 0
-                                    iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr')
-                                else
-                                    diagonal = 1./diag(Nr_t(i_rec_clk_tmp, i_rec_clk_tmp));
-                                    diagonal(diagonal == Inf) = 0;
-                                    iRecClk = spdiags(diagonal,0,n_rec_clk,n_rec_clk);
-                                end
-                            end
-                        else
-                            iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
-                        end
+                       
+                        iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
                         
                         Nx_recclk = Ner_t(i_rec_clk_tmp, :);
                         idx_full = sum(Nx_recclk~=0,1) >0;
@@ -1824,182 +1786,68 @@ classdef LS_Manipulator_new < handle
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
             ldl_strategy = false;
             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
-                if ldl_strategy
-                    
-                    % reducing for everything else except ambiguities
-                    idx_b = find(~idx_amb);
-                    
-                    [L,D,p] = ldl(N(~idx_amb, ~idx_amb),'vector');
-                    tol = 1e-3;
-                    rm_id_b = (diag(D) < tol); % find amb to be removed
-                    iL = inv(L(~rm_id_b, ~rm_id_b));
-                    iD = spdiags(1./diag(D(~rm_id_b, ~rm_id_b)),0,sum(~rm_id_b),sum(~rm_id_b));
-                    C_bb = zeros(sum(~idx_amb),sum(~idx_amb));
-                    C_bb(p(~rm_id_b),p(~rm_id_b)) = full(iL'*iD)*full(iL);
-                    %                     Nbb = N(~idx_amb, ~idx_amb);
-                    %                     C_bb(p(~rm_id_b),p(~rm_id_b)) = inv(Nbb(p(~rm_id_b),p(~rm_id_b)));
-                    %                         %Bbb =  B(~idx_amb);
-                    BB = full(N(idx_amb,idx_b ))*C_bb;
-                    N_amb_amb = N(idx_amb, idx_amb) - sparse(BB*full(N(idx_b, idx_amb)));
-                    B_amb_amb = B(idx_amb) -  BB* B(~idx_amb);
-                    
-                    
-                    % LDL decompisition
-                    [L,D,P] = ldl(N_amb_amb);
-                    % permute
-                    Baa = P'*B_amb_amb;
-                    
-                    % compute threshold
-                    tol = 10; %1e7*eps(max(abs(diag(D))));
-                    
-                    % find the hard rank deficency
-                    rm_id = (diag(D) < tol); % find amb to be removed
-                    
-                    
-                    % compute the VCV for the ambiguoties an their
-                    % flost solution
-                    iL = inv(L(~rm_id,~rm_id));
-                    iD = inv(D(~rm_id,~rm_id));
-                    C_amb_amb = full(iL'*iD)*full(iL);
-                    Baa = Baa(~rm_id);
-                    amb_float = C_amb_amb * Baa;
-                    
-                    
-                    C_amb_amb_r = C_amb_amb;
-                    
-                    % try to fix
-                    
-                    % fix by receiver
-                    ra = rec_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
-                    ra = int16(P'*double(ra(idx_amb)));
-                    ra(rm_id) = [];
-                    not_rm_id = ~Core_Utils.ordinal2logical(rm_id,size(N_amb_amb,1));
-                    ambs = zeros(size(N_amb_amb,1),1);
-                    is_fixed_amb = false(size(ambs));
-                    is_fixed_amb((P*rm_id) > 0) = true;
-                    for r = n_rec : -4 : 1            
-                        rec_amb_id = ra == r | ra == max(1,(r-1)) | ra == max(1,(r-2)) | ra == max(1,(r-3));
-                        if sum(rec_amb_id) > 0
-                            amb_rec = amb_float(rec_amb_id);
-                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_rec, C_amb_amb_r(rec_amb_id,rec_amb_id), 'lambda_partial' );
-                            rec_amb_id_fix = rec_amb_id;
-                            rec_amb_id_fix(rec_amb_id_fix) = l_fixed(:,1);
-                            if is_fixed 
-                                amb_rec(l_fixed(:,1)) = amb_fixed(l_fixed(:,1),1);
-                                iaa = inv(C_amb_amb_r(rec_amb_id_fix,rec_amb_id_fix));
-                                 C_amb_amb_r(~rec_amb_id,~rec_amb_id) = C_amb_amb_r(~rec_amb_id,~rec_amb_id) - C_amb_amb_r(~rec_amb_id,rec_amb_id_fix)*iaa*C_amb_amb_r(rec_amb_id_fix,~rec_amb_id);
-                                 amb_float(~rec_amb_id) = amb_float(~rec_amb_id) - C_amb_amb_r(~rec_amb_id,rec_amb_id_fix)*iaa*(amb_float(rec_amb_id_fix) - amb_rec(l_fixed(:,1)));
-                            end
-                            rec_amb_id_fix = not_rm_id;
-                            rec_amb_id_fix(not_rm_id) = rec_amb_id;
-                            ambs(rec_amb_id_fix) = amb_rec;
-                            is_fixed_amb(rec_amb_id_fix) = l_fixed(:,1);
-                        end
+                
+                % svd startegy
+                cod_avail =  false & exist('spqr') ;
+                % reduce all other paramter than ambiguoties
+                
+                idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
+                c_p2 = c_p(~idx_bias);
+                [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
+                d = diag(D);
+                tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
+                [~,idx_min] = min(diff(log10(d(d<tol))));
+                last_valid = find(d < tol,1,'first') + idx_min -1;
+                keep_id = 1:sum(idx_bias) <= last_valid;
+                real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
+                
+                pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                BB = full(N(~idx_bias ,idx_bias))*pinvB;
+                N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*full(N(idx_bias, ~idx_bias)));
+                B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                
+                idx_amb = c_p2 == this.PAR_AMB;
+                if any(~idx_amb)
+                    [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
+                    d = diag(D);
+                    tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(d,inf))*10;%
+                    miscl = abs(sum(U.*V)-1);
+                    last_valid = find(miscl > 1e-4 | d' < tol ,1,'first');
+                    if isempty(last_valid)
+                        last_valid = sum(~idx_amb);
                     end
-                    
-                    ambs = P*ambs;
-                    
-                    cp_red = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
-                    idx_x = find(cp_red  == this.PAR_REC_X);
-                    idx_y = find(cp_red  == this.PAR_REC_Y);
-                    idx_z = find(cp_red  == this.PAR_REC_Z);
-                    if sum(cp_red  == this.PAR_REC_X)> 0 & (length(idx_x) == length(idx_y))& (length(idx_x) == length(idx_z)) & this.ls_parametrization.rec_x(1) == LS_Parametrization.CONST
-                        C_amb_amb = P(~rm_id,~rm_id)*C_amb_amb*P(~rm_id,~rm_id)';
-                        is_fixed_amb = P*is_fixed_amb;
-                        coo_vcv_B = sparse(zeros(size(N,1),length(idx_x)*3));
-                        for c = 1 : length(idx_x)
-                            coo_vcv_B( idx_x(c),(c-1)*3 + 1) = 1;
-                            coo_vcv_B( idx_y(c),(c-1)*3 + 2) = 1;
-                            coo_vcv_B( idx_z(c),(c)*3) = 1;
-                        end
-                        C_amb_amb = C_amb_amb(~is_fixed_amb,~is_fixed_amb);
-                        nn = N(idx_b,idx_amb);
-                        nn = nn(:,~is_fixed_amb);
-                        N(idx_b,idx_b) = N(idx_b,idx_b) -  nn*C_amb_amb*nn';
-                        results = N \ coo_vcv_B;
-                        cp_red = cp_red(idx_b);
-                        idx_coo = cp_red == this.PAR_REC_X | cp_red == this.PAR_REC_Y | cp_red == this.PAR_REC_Z;
-                        this.coo_vcv = results(idx_coo,:);
-                    end
-                    B(idx_b) = B(idx_b) - N(idx_b,idx_amb)*ambs;
-                    not_ambs = C_bb*B(idx_b);
-                    x_reduced = zeros(size(N,1),1);
-                    x_reduced(~idx_amb) = not_ambs;
-                    x_reduced(idx_amb) = ambs;
+                    keep_id = 1:sum(~idx_amb) <= last_valid;
+                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
+                    C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                    BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
+                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*full(N_ap_ap(~idx_amb, idx_amb)));
+                    B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
                 else
-                    % svd startegy
-                    cod_avail =  false & exist('spqr') ;
-                    % reduce all other paramter than ambiguoties
-                    if cod_avail
-                        cod_fact = factorization_cod_sparse(N(~idx_amb, ~idx_amb));
-                        BB = cod_fact\[N(~idx_amb, idx_amb) B(~idx_amb)];
-                        N_amb_amb = N(idx_amb, idx_amb) - N(idx_amb,~idx_amb )*BB(:,1:(end-1));
-                        B_amb_amb = B(idx_amb) - N(idx_amb,~idx_amb )*BB(:,end);
-                    else
-                        idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
-                        c_p2 = c_p(~idx_bias);
-                        [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
-                        d = diag(D);
-                        tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
-                        [~,idx_min] = min(diff(log10(d(d<tol))));
-                        last_valid = find(d < tol,1,'first') + idx_min -1;
-                        keep_id = 1:sum(idx_bias) <= last_valid;
-                        real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
-                        
-                        pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
-                        BB = full(N(~idx_bias ,idx_bias))*pinvB;
-                        N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*full(N(idx_bias, ~idx_bias)));
-                        B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
-                        
-                        idx_amb = c_p2 == this.PAR_AMB;
-                        if any(~idx_amb)
-                            [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
-                            d = diag(D);
-                            tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(d,inf))*10;%
-                            miscl = abs(sum(U.*V)-1);
-                            last_valid = find(miscl > 1e-4 | d' < tol ,1,'first');
-                            if isempty(last_valid)
-                                last_valid = sum(~idx_amb);
-                            end
-                            keep_id = 1:sum(~idx_amb) <= last_valid;
-                            real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
-                            C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
-                            BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
-                            N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*full(N_ap_ap(~idx_amb, idx_amb)));
-                            B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
-                        else
-                            N_amb_amb = N_ap_ap(idx_amb, idx_amb);
-                            B_amb_amb = B_ap_ap(idx_amb);
-                        end
-                    end
-                    
-                    
-                    [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                    N_amb_amb = N_ap_ap(idx_amb, idx_amb);
+                    B_amb_amb = B_ap_ap(idx_amb);
+                end
+                
+                
+                [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                if length(this.unique_rec_name) > 20 % fix by recievr matrix tto large
                     rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
                     rec_idx = rec_idx(idx_amb_est);
                     [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
-                    ambs = zeros(sum(idx_amb),1);
-                    ambs(idx_amb_est) = amb_fixed(:,1);
-                    ambs(idx_amb_est) = amb_float;
-                    B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
-                    
-                    x_reduced = zeros(size(N,1),1);
-                    if cod_avail
-                        BB = cod_fact\[N(~idx_amb, idx_amb) B(~idx_amb)];
-                    else
-                        phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
-                        phys_par_amb(idx_amb) = ambs;
-                        x_reduced(~idx_bias) = phys_par_amb;
-                        B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
-                        x_reduced(idx_bias) = pinvB*B(idx_bias);
-                        
-                    end
-                    
-                    %                         idx_amb_tot = c_p ~= this.PAR_AMB;
-                    %                         x_reduced(c_p ~= this.PAR_AMB) = not_ambs;
-                    %                         x_reduced(~idx_amb_tot) = ambs;
-                    
+                else
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
                 end
+                ambs = zeros(sum(idx_amb),1);
+                ambs(idx_amb_est) = amb_fixed(:,1);
+                ambs(idx_amb_est) = amb_float;
+                B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
+                
+                x_reduced = zeros(size(N,1),1);
+                
+                phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
+                phys_par_amb(idx_amb) = ambs;
+                x_reduced(~idx_bias) = phys_par_amb;
+                B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
+                x_reduced(idx_bias) = pinvB*B(idx_bias);
             else
                 cp_red = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
                 idx_x = find(cp_red  == this.PAR_REC_X);
