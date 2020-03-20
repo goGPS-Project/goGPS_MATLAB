@@ -173,7 +173,7 @@ classdef Fixer < handle
     
     methods (Access = public, Static)
         
-        function [amb_fixed, is_fixed, l_fixed] = fix(amb_float, C_amb_amb, approach)
+        function [amb_fixed, is_fixed, l_fixed] = fix(amb_float, C_amb_amb,approach ,rec_id)
             % Fix ambiguities using the selected approach 
             %
             % INPUT
@@ -199,7 +199,19 @@ classdef Fixer < handle
             if nargin < 3 || isempty(approach)
                 approach = 'lambda_ILS';
             end
-            [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach);
+            if nargin > 3  % solver per receiver
+                amb_fixed = nan(size(amb_float));
+                l_fixed = nan(size(amb_float));
+                u_rec = unique(rec_id);
+                 
+                for r = u_rec'
+                    rec_idx = rec_id == r;
+                     [amb_fixed(rec_idx), is_fixed, l_fixed(rec_idx)] = this.fixAmbiguities(amb_float(rec_idx), C_amb_amb(rec_idx,rec_idx), approach);
+                end
+                is_fixed = true;
+            else
+                [amb_fixed, is_fixed, l_fixed] = this.fixAmbiguities(amb_float, C_amb_amb, approach);
+            end
         end
         
         function [bie, sols, p_sols] = BIE(a,Q,n_cand)
