@@ -11291,7 +11291,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % DATA ---------------------------------------------------------------------------------------------------------------------------------------------
             
-            date6col = this.time.get6ColDate();
+            date6col = this.time.getNominalTime(1e-7).get6ColDate();
             flag_ok = 0;
             clock_offset = 0;
             

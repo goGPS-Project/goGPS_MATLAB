@@ -778,6 +778,9 @@ classdef GPS_Time < Exportable & handle
                     this.mat_time = [];
                 case 1 % I'm already in UNIX TIME
                     % do nothing
+                    tmp = uint32(round(this.unix_time_f));
+                    this.unix_time = this.unix_time + tmp;
+                    this.unix_time_f = this.unix_time_f - double(tmp);
                 case 2 % I'm in REF TIME
                     this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
@@ -1121,7 +1124,7 @@ classdef GPS_Time < Exportable & handle
             date6col(:,6) = floor(date6col(:,6));
             tmp = GPS_Time(date6col);
             tmp.toUnixTime; % to be safe
-            fractional_part = round((tmp - this) * 1e10) * 1e-10;
+            fractional_part = round(tmp - this, 10);
             date6col(:,6) = date6col(:,6) - fractional_part ;
         end
         
