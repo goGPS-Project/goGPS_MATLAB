@@ -1902,7 +1902,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             try
                 r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
-                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange);                
+                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange, [180 -1]);                
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
             end
@@ -2005,7 +2005,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Inject edit box with the Java Scroll Pane into the main_window
             javacomponent(j_scroll_rri, [1 1 1 1], rr_box);
             rr_box. Heights = [18 -1];
-            tab_bv.Heights = [15 5 20 18 18 18 1 -1];
+            tab_bv.Heights = [15 5 20 22 18 18 1 -1];
             this.uip.tab_rr = tab;            
         end
         
@@ -2720,7 +2720,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             end
             
             % Update constellation Available for the center
-            this.rpop_up.Parent.Children(2).String = sprintf('Center supporting constellations: "%s"', center_ss{value}); 
+            this.rpop_up.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value}); 
             
             % Update Orbit Preferences
             available_orbit = r_man.getOrbitType(cur_center{1});

@@ -4088,9 +4088,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             [~, name,ext] = fileparts(filename);
             % CGIM is iono breadcast
-            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+            if strcmpi(ext,'.sp3') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
                 dir_path = this.getNavEphDir();
-            elseif strcmpi(ext,'.erp')
+            elseif ~isempty(regexpi(ext,'.erp*'))
                 dir_path = this.getErpDir();
             elseif instr(lower(ext),'.clk')
                 dir_path = this.getNavClkDir();
@@ -4913,11 +4913,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
-            if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono')) %#ok<STREMP>
+            if strcmpi(ext,'.sp3') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+                %if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono')) %#ok<STREMP>
                 this.setNavEphFile(filename);
-            elseif strcmpi(ext,'.erp')
+            elseif ~isempty(regexpi(ext,'.erp*'))
                 this.setErpFile(filename);
-             elseif strcmpi(ext,'.bia') || strcmpi(ext,'.BIA')
+            elseif strcmpi(ext,'.bia') || strcmpi(ext,'.BIA')
                 this.setDcbFile(filename);
             elseif instr(lower(ext),'.clk')
                 this.setNavClkFile(filename);
