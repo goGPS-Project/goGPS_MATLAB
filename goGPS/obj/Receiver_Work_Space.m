@@ -8561,87 +8561,89 @@ classdef Receiver_Work_Space < Receiver_Commons
                 mp_type = this.mp_delay_status * 1;
             end
             
-            % Get the satellite systems available in the zerniche multipath struct
-            sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
-
-            log = Core.getLogger;
-            
-            if isempty(this.obs)
-                log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
-            else
-                if sgn > 0
-                    log.addMarkedMessage(sprintf('Applying multipath mitigation on "%s"', this.parent.getMarkerName));
+            if not(isempty(ant_mp))
+                % Get the satellite systems available in the zerniche multipath struct
+                sys_c_list = intersect(cell2mat(fields(ant_mp)'), 'GRECJI');
+                
+                log = Core.getLogger;
+                
+                if isempty(this.obs)
+                    log.addError(sprintf('No observations found in %s', this.parent.getMarkerName4Ch));
                 else
-                    log.addMarkedMessage(sprintf('Removing multipath mitigation on "%s"', this.parent.getMarkerName));
-                end
-                for sys_c = sys_c_list
-                    trk_list = fields(ant_mp.(sys_c));
-                    
-                    for t = 1 : numel(trk_list)
-                        if trk_list{t}(end) ~= 'U' && numel(trk_list{t}) > 3 % uncombined mp mat are the only maps that can be applied here
-                            %log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
-                            %log.addMessage(log.indent('This is a combination map, skipped here', 9));
-                        else
-                            log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
-                            if trk_list{t}(1) == 'L'
-                                %[obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2), trk_list{t}(3));
-                                [obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2));
-                            elseif  trk_list{t}(1) == 'C'
-                                %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
-                                [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
-                            end
-                            trk_list{t} = strrep(trk_list{t}, ' ', '_'); % Spaces are not supported in structures
-
-                            % DEBUG obs_tmp = obs;
-                            go_id = this.go_id(id_obs);
-                            
-                            % DEBUG obs = obs_tmp;
-                            % DEBUG figure;
-                            for s = 1 : numel(go_id)
-                                el = this.sat.el(:,go_id(s)) / 180 * pi;
-                                id_ko = el < 0 | isnan(obs(:,s));
-                                el(id_ko) = [];
-                                az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
-                                
-                                if mp_type > 0
-                                    switch (mp_type)
-                                        case 1 % Zernike map
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
-                                        case 2 % Zernike map + gridded residuals
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).r_map);
-                                        case 3 % Simple Gridding of size [stk_grid_step]
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
-                                        case 4 % Congruent cells gridding of size [stk_grid_step]
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).c_map);
-                                        case 5 % Simple Gridding of size [1x1]
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).g1_map);
-                                        case 6 % c1_map Congruent cells gridding of size [1x1]
-                                            mp_map = double(ant_mp.(sys_c).(trk_list{t}).c1_map);
-                                    end
-                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
-                                    [az_mgrid, el_mgrid] = meshgrid(Core_Utils.deg2rad(az_grid), Core_Utils.deg2rad(el_grid));
-                                    map2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
-                                    mp_corr = map2scatter(az, el);                                
-                                elseif (mp_type == -1)
-                                    l = ant_mp.(sys_c).(trk_list{t}).l;
-                                    m = ant_mp.(sys_c).(trk_list{t}).m;
-                                    z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
-                                    mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par(:,1));
+                    if sgn > 0
+                        log.addMarkedMessage(sprintf('Applying multipath mitigation on "%s"', this.parent.getMarkerName));
+                    else
+                        log.addMarkedMessage(sprintf('Removing multipath mitigation on "%s"', this.parent.getMarkerName));
+                    end
+                    for sys_c = sys_c_list
+                        trk_list = fields(ant_mp.(sys_c));
+                        
+                        for t = 1 : numel(trk_list)
+                            if trk_list{t}(end) ~= 'U' && numel(trk_list{t}) > 3 % uncombined mp mat are the only maps that can be applied here
+                                %log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                                %log.addMessage(log.indent('This is a combination map, skipped here', 9));
+                            else
+                                log.addMessage(log.indent(sprintf(' - Processing %s%s', sys_c, trk_list{t})));
+                                if trk_list{t}(1) == 'L'
+                                    %[obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2), trk_list{t}(3));
+                                    [obs, wl, id_obs] = this.getPhases(sys_c, trk_list{t}(2));
+                                elseif  trk_list{t}(1) == 'C'
+                                    %[obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2), trk_list{t}(3));
+                                    [obs, id_obs] = this.getPseudoRanges(sys_c, trk_list{t}(2));
                                 end
-                                % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
-                                obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);
-                            end
-                            % DEBUG caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
-                            
-                            if trk_list{t}(1) == 'L'
-                                this.setPhases(obs, wl, id_obs);
-                            elseif  trk_list{t}(1) == 'C'
-                                this.setPseudoRanges(obs, id_obs);
+                                trk_list{t} = strrep(trk_list{t}, ' ', '_'); % Spaces are not supported in structures
+                                
+                                % DEBUG obs_tmp = obs;
+                                go_id = this.go_id(id_obs);
+                                
+                                % DEBUG obs = obs_tmp;
+                                % DEBUG figure;
+                                for s = 1 : numel(go_id)
+                                    el = this.sat.el(:,go_id(s)) / 180 * pi;
+                                    id_ko = el < 0 | isnan(obs(:,s));
+                                    el(id_ko) = [];
+                                    az = this.sat.az(~id_ko, go_id(s)) / 180 * pi;
+                                    
+                                    if mp_type > 0
+                                        switch (mp_type)
+                                            case 1 % Zernike map
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).z_map);
+                                            case 2 % Zernike map + gridded residuals
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).r_map);
+                                            case 3 % Simple Gridding of size [stk_grid_step]
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).g_map);
+                                            case 4 % Congruent cells gridding of size [stk_grid_step]
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).c_map);
+                                            case 5 % Simple Gridding of size [1x1]
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).g1_map);
+                                            case 6 % c1_map Congruent cells gridding of size [1x1]
+                                                mp_map = double(ant_mp.(sys_c).(trk_list{t}).c1_map);
+                                        end
+                                        [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                        [az_mgrid, el_mgrid] = meshgrid(Core_Utils.deg2rad(az_grid), Core_Utils.deg2rad(el_grid));
+                                        map2scatter = griddedInterpolant(flipud([az_mgrid(:,end) - 2*pi, az_mgrid, az_mgrid(:,1) + 2*pi])', flipud([el_mgrid(:,end) el_mgrid el_mgrid(:,1)])', flipud([mp_map(:,end) mp_map mp_map(:,1)])', 'linear');
+                                        mp_corr = map2scatter(az, el);
+                                    elseif (mp_type == -1)
+                                        l = ant_mp.(sys_c).(trk_list{t}).l;
+                                        m = ant_mp.(sys_c).(trk_list{t}).m;
+                                        z_par = ant_mp.(sys_c).(trk_list{t}).z_par;
+                                        mp_corr = Core_Utils.zSinthesys(l, m, az, el, z_par(:,1));
+                                    end
+                                    % DEBUG polarScatter(az, pi/2 - el, 50, mp_corr*1e3, 'filled'); hold on;
+                                    obs(~id_ko, s) = obs(~id_ko, s) - sgn .* double(mp_corr);
+                                end
+                                % DEBUG caxis([-5 5]); colormap((Cmap.get('PuOr', 2^11))); colorbar;
+                                
+                                if trk_list{t}(1) == 'L'
+                                    this.setPhases(obs, wl, id_obs);
+                                elseif  trk_list{t}(1) == 'C'
+                                    this.setPseudoRanges(obs, id_obs);
+                                end
                             end
                         end
                     end
+                    log.addStatusOk('Multipath mitigation completed');
                 end
-                log.addStatusOk('Multipath mitigation completed');
             end
         end
         
