@@ -156,7 +156,7 @@ classdef Network < handle
             else
                 % if iono reduction is requested take off single frequency
                 % receiver
-                if reduce_iono
+                if this.state.flag_iono_net
                     r = 1;
                     while (r <= length(this.rec_list))
                         if ~this.rec_list(r).work.isMultiFreq
@@ -224,10 +224,10 @@ classdef Network < handle
                     parametrization.rec_y(4) = state.fparam_coo_net;
                     parametrization.rec_z(4) = state.fparam_coo_net;
                 end
-                
+                if this.state.flag_iono_net
                 param_selection = [param_selection;
                     ls.PAR_IONO;];
-                
+                end
                 if this.state.flag_ztd_net
                     param_selection = [param_selection;
                         ls.PAR_TROPO;];
