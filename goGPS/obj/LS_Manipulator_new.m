@@ -1578,6 +1578,7 @@ classdef LS_Manipulator_new < handle
             % Creating A' instead of A
             % A = sparse(rows, columns, values, n_obs, n_par); % <- this is A
             A = sparse(columns, rows, values, n_par, n_obs); % <- stupid trick for speed-up MATLAB traspose the sparse matrix!!!
+            clearvars columns rows values
             this.A_full = A'; % save it for use in other methods
             n_out = sum(this.outlier_obs);
             A_out = A(:, this.outlier_obs > 0)'; % <- this is 1000 time slower with not trasposed A
@@ -1615,7 +1616,7 @@ classdef LS_Manipulator_new < handle
             
             Aw = A'*Cyy;
             
-            %clearvars Aw
+            clearvars Cyy
             % ------ reduce for sat clock, rec clock and iono
             idx_reduce_sat_clk = class_par == this.PAR_SAT_CLK | class_par == this.PAR_SAT_CLK_PH | class_par == this.PAR_SAT_CLK_PR;
             prm = this.ls_parametrization.getParametrization(this.PAR_SAT_EB);
@@ -1780,7 +1781,12 @@ classdef LS_Manipulator_new < handle
                     ii = ii +1;
                 end
             end
-            
+            clearvars Aw Ae_t Ar_t Awr_t Nt Nt_cycle
+            clearvars cross_terms_t idx_red_cycle
+            clearvars iRecClk B_recclk Nx_recclk idx_reduce_cycle_rec_clk
+            clearvars iSatClk B_satclk Nx_satclk Nx_satclk_cyle idx_reduce_cycle_sat_clk
+            clearvars iIono B_iono Nx_iono Nx_iono_cycle idx_reduce_cycle_iono diagonal
+            clearvars Awr_t  Ar_t Ae_t y_t Nr_t Br_t Ner_t
             % ------- fix the ambiguities
             c_p = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
@@ -1800,10 +1806,11 @@ classdef LS_Manipulator_new < handle
                 last_valid = find(d < tol,1,'first') + idx_min -1;
                 keep_id = 1:sum(idx_bias) <= last_valid;
                 real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
-                
+                clearvars U V D 
                 pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                clearvars real_space d
                 BB = full(N(~idx_bias ,idx_bias))*pinvB;
-                N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*full(N(idx_bias, ~idx_bias)));
+                N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*N(idx_bias, ~idx_bias));
                 B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
                 
                 idx_amb = c_p2 == this.PAR_AMB;
@@ -1818,9 +1825,11 @@ classdef LS_Manipulator_new < handle
                     end
                     keep_id = 1:sum(~idx_amb) <= last_valid;
                     real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
+                    clearvars U V D
                     C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                    clearvars real_space d
                     BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
-                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*full(N_ap_ap(~idx_amb, idx_amb)));
+                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*N_ap_ap(~idx_amb, idx_amb));
                     B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
                 else
                     N_amb_amb = N_ap_ap(idx_amb, idx_amb);
@@ -1829,6 +1838,7 @@ classdef LS_Manipulator_new < handle
                 
                 
                 [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                clearvars N_amb_amb B_amb_amb
                 if length(this.unique_rec_name) > 20 % fix by recievr matrix tto large
                     rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
                     rec_idx = rec_idx(idx_amb_est);
@@ -1840,7 +1850,7 @@ classdef LS_Manipulator_new < handle
                 ambs(idx_amb_est) = amb_fixed(:,1);
                 ambs(idx_amb_est) = amb_float;
                 B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
-                
+                clearvars N_ap_ap
                 x_reduced = zeros(size(N,1),1);
                 
                 phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);

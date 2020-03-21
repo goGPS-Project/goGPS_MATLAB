@@ -154,9 +154,9 @@ classdef LS_Parametrization < handle
         tropo_s_opt= struct('spline_rate',900);
         tropo_z_opt= struct('spline_rate',1800);
 
-        sat_x_opt = struct('rule',1,'spline_rate',900);
-        sat_y_opt = struct('rule',1,'spline_rate',900);
-        sat_z_opt = struct('rule',1,'spline_rate',900);
+        sat_x_opt = struct('rule',1,'spline_rate',450);
+        sat_y_opt = struct('rule',1,'spline_rate',450);
+        sat_z_opt = struct('rule',1,'spline_rate',450);
     end
     
     methods
