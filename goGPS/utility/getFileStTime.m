@@ -32,22 +32,73 @@
 function time = getFileStTime(filename)
 % Return the start time of the file using the standard naming convention
 
-% xGiulio: This function must be changed in such a way that the epoch is read from the file
-
-    [~,name, ext] = fileparts(filename);
-    if strcmpi(ext,'.sp3') ||strcmpi(ext,'.clk') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
-        %if strcmpi(ext,'.eph') || strcmpi(ext,'.sp3') || strcmpi(ext,'.pre') || strcmpi(ext,'.clk') || strcmpi(ext,'.clk_30s') || strcmpi(ext,'.clk_05s')
-        % name should be : cccwwwwd
-        if length(name) == 8
-            week = str2double(name(4:7));
-            dow = str2double(name(8));
-            if ~isnan(week) && ~isnan(dow)
-                time = GPS_Time.fromWeekDow(week, dow);
-            else
-                time = [];
-            end
+[~,name, ext] = fileparts(filename);
+if strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+    % name should be : cccwwwwd
+    % note: nav file rinex does not have first epoch at the beginning
+    % it is too expesivo to look all the file
+    if length(name) >= 8
+        week = str2double(name(4:7));
+        dow = str2double(name(8));
+        if ~isnan(week) && ~isnan(dow)
+            time = GPS_Time.fromWeekDow(week, dow);
         else
             time = [];
         end
+    else
+        time = [];
     end
+    
+elseif isempty(strfind(lower(ext),lower('eph'))) || isempty(strfind(lower(ext),lower('sp3')))
+    % read first 50 lines SP3 headers is 24 (allowing some space for more line comment)
+    fid = fopen(filename);
+    if fid > 0
+        txt = fread(fid,61*50,'*char')';
+        fclose(fid);
+        % get new line separators
+        nl = regexp(txt, '\n')';
+        if nl(end) <  numel(txt)
+            nl = [nl; numel(txt)];
+        end
+        lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+        lim = [lim lim(:,2) - lim(:,1)];
+        if lim(end,3) < 3
+            lim(end,:) = [];
+        end
+        % find time line
+        idx_epoch = find(txt(lim(:,1)) == '*');
+        txt = txt(lim(idx_epoch):end);
+        if ~isempty(idx_epoch)
+            time = GPS_Time([str2num(txt(4:7)) str2num(txt(9:10)) str2num(txt(12:13)) str2num(txt(15:16)) str2num(txt(18:19)) str2num(txt(21:31))]);
+        else
+            time = [];
+        end
+    else
+        time = [];
+    end
+elseif isempty(strfind(lower(ext),lower('clk')))
+    fid = fopen(filename);
+    tline = fgetl(fid);
+    i = 0;
+    eoh_found = false;
+    while ischar(tline) && i < 300 && eoh_found
+        eoh_found = strfind(tline,'END OF HEADER');
+        tline = fgetl(fid);
+        i = i + 1;
+    end
+    fclose(fid);
+    if eoh_found
+        tline = fgetl(fid);
+        if ischar(tline) && length(tline) >  36
+            time = GPS_Time([str2num(tline(9:12)) str2num(tline(14:15)) str2num(tline(17:18)) str2num(tline(20:21)) str2num(tline(24:25)) str2num(tline(26:34))]);
+        else
+            time = [];
+        end
+    else
+        time = [];
+    end
+    
+else
+    time = [];
+end
 end
