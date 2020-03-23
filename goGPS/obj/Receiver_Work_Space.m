@@ -1389,6 +1389,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 id_ok = ismember(this.system(id_pr), sys_list);
             end
             
+            pr = zero2nan(pr);
             inan = isnan(pr);
             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
             
@@ -9252,6 +9253,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             last_ep_coarse = min(100, this.time.length);
             ep_coarse = 1 : last_ep_coarse;
+            % alternative keep the epochs with more satellites
+            [~, id_best] = sort(sum(~isnan(zero2nan(obs_set.obs)),2), 'descend');
+            ep_coarse = sort(id_best(ep_coarse));
             while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) && sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
                 ep_coarse = [ep_coarse ep_coarse(end)+1];
                 ep_coarse = min(ep_coarse,this.time.length);

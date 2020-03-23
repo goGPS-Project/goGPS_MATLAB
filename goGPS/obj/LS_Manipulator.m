@@ -342,7 +342,7 @@ classdef LS_Manipulator < Exportable
                 
                 % Compute the number of ambiguities that must be estimated
                 cycle_slip = obs_set.cycle_slip;
-                min_arc = this.state.getMinArc;
+                min_arc = iif(phase_present, this.state.getMinArc, 0);
                 if phase_present && min_arc > 1
                     amb_idx = obs_set.getAmbIdx();
                     % amb_idx = n_coo + n_iob + amb_idx;
