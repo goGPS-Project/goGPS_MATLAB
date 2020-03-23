@@ -51,7 +51,7 @@ if strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ex
     
 elseif isempty(strfind(lower(ext),lower('eph'))) || isempty(strfind(lower(ext),lower('sp3')))
     % read first 50 lines SP3 headers is 24 (allowing some space for more line comment)
-    fid = fopen(filename);
+    fid = fopen(filename,'rt');
     if fid > 0
         txt = fread(fid,61*50,'*char')';
         fclose(fid);
@@ -77,7 +77,7 @@ elseif isempty(strfind(lower(ext),lower('eph'))) || isempty(strfind(lower(ext),l
         time = [];
     end
 elseif isempty(strfind(lower(ext),lower('clk')))
-    fid = fopen(filename);
+    fid = fopen(filename,'rt');
     tline = fgetl(fid);
     i = 0;
     eoh_found = false;
