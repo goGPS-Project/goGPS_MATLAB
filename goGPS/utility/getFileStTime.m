@@ -35,7 +35,7 @@ function time = getFileStTime(filename)
 % xGiulio: This function must be changed in such a way that the epoch is read from the file
 
     [~,name, ext] = fileparts(filename);
-    if strcmpi(ext,'.sp3') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+    if strcmpi(ext,'.sp3') ||strcmpi(ext,'.clk') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
         %if strcmpi(ext,'.eph') || strcmpi(ext,'.sp3') || strcmpi(ext,'.pre') || strcmpi(ext,'.clk') || strcmpi(ext,'.clk_30s') || strcmpi(ext,'.clk_05s')
         % name should be : cccwwwwd
         if length(name) == 8
