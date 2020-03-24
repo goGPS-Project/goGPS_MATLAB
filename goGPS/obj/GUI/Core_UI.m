@@ -1677,7 +1677,11 @@ classdef Core_UI < Logos
             msg_txt = ['<font color=', color, ' face="Helvetica, Arial, sans-serif">', text, '</font>'];
             
             %icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
-            icon = fullfile(Core.getInstallDir, '../icons', icon);
+            if isdeployed
+                icon = fullfile(Core.getInstallDir, '../icons', icon);
+            else
+                icon = fullfile(Core.getInstallDir, './icons', icon);
+            end
             icon_txt =['<img src="file:///', icon, '" height=20 width=16 style="height: 20px; width: 16px;"/>'];
             new_text = ['<table style="width:100%;"><tr><td style="width:16px;vertical-align:top">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];
             

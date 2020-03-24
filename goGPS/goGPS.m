@@ -21,7 +21,7 @@ function goGPS(ini_settings, use_gui, flag_online)
 %   goGPS('../data/project/default_PPP/config/settings.ini');
 %
 % COMPILATION STRING:
-%   tic; mcc -v -d ./bin/ -m goGPS -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv; toc;
+%   tic; mcc -v -d ./bin/ -m goGPS -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv -a remote_resource.ini -a ../icons/*.png -a utility/thirdParty/guiLayoutToolbox/layout/+uix/Resources/*.png; toc;
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
