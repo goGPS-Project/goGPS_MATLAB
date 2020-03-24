@@ -1,6 +1,6 @@
 function goGPS(ini_settings, use_gui, flag_online)
 % SYNTAX:
-%   goGPS(<ini_settings_file>, <use_gui =false>);
+%   goGPS(<ini_settings_file>, <use_gui = 1 >);
 %
 % INPUT:
 %   ini_settings_file       path to the settings file
@@ -68,15 +68,19 @@ function goGPS(ini_settings, use_gui, flag_online)
     if (~isdeployed)
         % add all the subdirectories to the search path
         addPathGoGPS;
-    end
+    end    
     
     if nargin < 2 || isempty(use_gui)
         if isdeployed
-            use_gui = true;
+            use_gui = 1;
         else
-            use_gui = true;
+            use_gui = 1;
         end
     end
+    
+    if ischar(use_gui)
+        use_gui = str2num(use_gui); %#ok<ST2NM>
+    end    
         
     log = Logger.getInstance();
     log.disableFileOut();
@@ -101,9 +105,13 @@ function goGPS(ini_settings, use_gui, flag_online)
         core = Core.getInstance(true); % Init Core
     end        
     core.setModeGUI(use_gui);
-    
+    disp(core.getModeGUI);
     if nargin < 3 || isempty(flag_online)
         flag_online = true;
+    end
+    
+    if ischar(flag_online)
+        flag_online = iif(lower(flag_online(1)) == 'f' || lower(flag_online(1)) == '0', false, true);
     end
     
     % Every parameters when the application is deployed are strings
