@@ -1000,7 +1000,10 @@ classdef Core_UI < Logos
             % Display a DateChooserPanel
             date = com.jidesoft.combobox.DateSpinnerComboBox;
             
+            %% DEPRECATE!!!
+            warning off
             [h_panel, h_container] = javacomponent(date,[10,10,140,20], container);
+            warning on
             
             set(h_panel, 'ItemStateChangedCallback', callback);
             
@@ -1474,7 +1477,10 @@ classdef Core_UI < Logos
             %   [j_edit_box, h_log_panel] = Core_UI.insertLog(parent)
             h_log_panel = uicontrol('style','edit', 'max', 5, 'Parent', parent, 'Units','norm', 'Position', [0,0.2,1,0.8], 'Background', 'w');
             % Get the underlying Java editbox, which is contained within a scroll-panel
+            %% DEPRECATE!!!
+            warning off
             jScrollPanel = findjobj(h_log_panel);
+            warning on
             try
                 jScrollPanel.setVerticalScrollBarPolicy(jScrollPanel.java.VERTICAL_SCROLLBAR_AS_NEEDED);
                 jScrollPanel = jScrollPanel.getViewport;
@@ -1678,7 +1684,13 @@ classdef Core_UI < Logos
             
             %icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
             if isdeployed
-                icon = fullfile(Core.getInstallDir, '../icons', icon);
+                if exist(fullfile(Core.getInstallDir, '../icons', icon), 'file')
+                    % this is needed for older versions of MATLAB (e.g. 2018a)
+                    icon = fullfile(Core.getInstallDir, '../icons', icon);
+                else
+                    % This happen with 2020a
+                    icon = fullfile(Core.getInstallDir, './icons', icon);
+                end
             else
                 icon = fullfile(Core.getInstallDir, './icons', icon);
             end

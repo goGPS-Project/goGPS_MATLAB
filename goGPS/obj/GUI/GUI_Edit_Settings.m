@@ -426,7 +426,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             j_spinner.setPaintsWhenStopped(true);  % default = false
             j_spinner.useWhiteDots(false);         % default = false (true is good for dark backgrounds)
+            % DEPRECATE!!!
+            warning off
             tmp = javacomponent(j_spinner.getComponent, [0,0,80,150], container);
+            warning on
             tmp.setBackground(java.awt.Color(Core_UI.LIGHT_GREY_BG(1),Core_UI.LIGHT_GREY_BG(2),Core_UI.LIGHT_GREY_BG(3)));
             
             j_spinner.start;
@@ -491,7 +494,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
             % Inject edit box with the Java Scroll Pane into the main_window
+            % DEPRECATE!!!
+            warning off
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_box);
+            warning on
             
             set(j_cmd, 'FocusLostCallback', @this.refreshCmdList);
             set(j_cmd, 'FocusGainedCallback', @this.refreshCmdList);
@@ -526,7 +532,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_eg);
             % Inject edit box with the Java Scroll Pane into the main_window
+            % DEPRECATE!!!
+            warning off
             javacomponent(j_scroll_rri, [1 1 1 1], eg_box);
+            warning on
 
             eg_box.Heights = [Core_UI.LINE_HEIGHT, -1];
 
@@ -2003,7 +2012,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_rri = com.mathworks.mwswing.MJScrollPane(this.j_rrini);
             % Inject edit box with the Java Scroll Pane into the main_window
+            % DEPRECATE!!!
+            warning off
             javacomponent(j_scroll_rri, [1 1 1 1], rr_box);
+            warning on
             rr_box. Heights = [18 -1];
             tab_bv.Heights = [15 5 20 22 18 18 1 -1];
             this.uip.tab_rr = tab;            
@@ -2051,7 +2063,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_rrini);
             % Inject edit box with the Java Scroll Pane into the main_window
+            % DEPRECATE!!!
+            warning off
             javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
+            warning on
             
             tab_bv.Heights = [20 15 -1];
             this.uip.tab_rr = tab;
@@ -2222,7 +2237,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_ini);
             % Inject edit box with the Java Scroll Pane into the main_window
+            %% DEPRECATE!!!
+            warning off
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], setting_grid);
+            warning on
             
             set(j_ini, 'FocusLostCallback', @this.refreshIni);
             set(j_ini, 'FocusGainedCallback', @this.refreshIni);

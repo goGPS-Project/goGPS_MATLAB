@@ -32,42 +32,57 @@ function addPathGoGPS()
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    p = genpath(pwd);
+    if ~isdeployed
+        p = genpath(pwd);
 
-    % bin folder
-    [l1, l2] = regexp(p,'(?<=:)[^:]*bin[\/|\\]maps[^:]*:');
+        % bin folder
+        [l1, l2] = regexp(p,'(?<=:)[^:]*bin[\/|\\][^:]*:');
 
-    for l = size(l1, 2) : -1 : 1
-        p(l1(l) : l2(l)) = [];
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        [l1, l2] = regexp(p,'(?<=:)[^:]*bin[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        % GACOS folder
+        [l1, l2] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        % GACOS folder
+        [l1, l2] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        % SINERGY folder
+        [l1, l2] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        % GIT folders
+        [l1, l2] = regexp(p,'(?<=:)[^:]*\.git[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        % SVN folders
+        [l1, l2] = regexp(p,'(?<=:)[^:]*\.svn[^:]*:');
+
+        for l = size(l1, 2) : -1 : 1
+            p(l1(l) : l2(l)) = [];
+        end
+
+        addpath(p);
     end
-    
-    % GACOS folder
-    [l1, l2] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
-
-    for l = size(l1, 2) : -1 : 1
-        p(l1(l) : l2(l)) = [];
-    end
-
-    % GACOS folder
-    [l1, l2] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
-
-    for l = size(l1, 2) : -1 : 1
-        p(l1(l) : l2(l)) = [];
-    end
-
-    % SINERGY folder
-    [l1, l2] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
-
-    for l = size(l1, 2) : -1 : 1
-        p(l1(l) : l2(l)) = [];
-    end
-
-    % GIT folders
-    [l1, l2] = regexp(p,'(?<=:)[^:]*\.git[^:]*:');
-
-    for l = size(l1, 2) : -1 : 1
-        p(l1(l) : l2(l)) = [];
-    end
-
-    addpath(p);
 end

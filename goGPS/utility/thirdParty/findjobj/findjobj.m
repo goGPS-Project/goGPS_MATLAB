@@ -187,7 +187,10 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
                 container = container(1);  % another current limitation...
                 hFig = ancestor(container,'figure');
                 oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');  % R2008b compatibility
+                %% DEPRECATE!!!
+                warning off
                 try hJavaFrame = get(hFig,'JavaFrame'); catch, hJavaFrame = []; end
+                warning on
                 warning(oldWarn);
                 if isempty(hJavaFrame)  % alert if trying to use with web-based (not Java-based) uifigure
                     error('YMA:findjobj:NonJavaFigure', 'Findjobj only works with Java-based figures, not web-based (App Designer) uifigures');
@@ -1538,7 +1541,10 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
         globalPanel = JPanel(BorderLayout);
         globalPanel.add(hsplitPane, BorderLayout.CENTER);
         globalPanel.add(lowerPanel, BorderLayout.SOUTH);
+        %% DEPRECATE!!!
+        warning off
         [obj, hcontainer] = javacomponent(globalPanel, [0,0,pos(3:4)], hTreeFig);
+        warning on
         set(hcontainer,'units','normalized');
         drawnow;
         hsplitPane.setDividerLocation(hsplitPaneLocation);  % this only works after the JSplitPane is displayed...
@@ -3391,7 +3397,10 @@ function jControl = findjobj_fast(hControl, jContainer)
             jControl = [];
             return
         end
+        %% DEPRECATE!!!
+        warning off
         try jContainer = hParent.JavaFrame.getGUIDEView; catch, jContainer = []; end
+        warning on
     end
     if isempty(jContainer)
         hFig = ancestor(hControl,'figure');

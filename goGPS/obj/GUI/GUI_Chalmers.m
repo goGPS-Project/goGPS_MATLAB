@@ -319,7 +319,10 @@ classdef GUI_Chalmers < handle
             j_label = javaObjectEDT('javax.swing.JLabel', label_str);
             bg_color = num2cell(GUI_Chalmers.BG_COLOR);
             j_label.setBackground(java.awt.Color(bg_color{:}));
+            %% DEPRECATE!!!
+            warning on
             [hj_label, h_container] = javacomponent(j_label, [10,10,250,20], parent);
+            warnin off
             
             % Modify the mouse cursor when hovering on the label
             hj_label.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
@@ -340,7 +343,10 @@ classdef GUI_Chalmers < handle
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_chalmers);
             % Inject edit box with the Java Scroll Pane into the main_window
+            %% DEPRECATE!!!
+            warning off
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], container);
+            warning on
             j_chalmers.setEditable(0);
         end
         

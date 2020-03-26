@@ -368,7 +368,10 @@ classdef GUI_Inspector < GUI_Unique_Win
             
             j_obj.setPaintsWhenStopped(true);  % default = false
             j_obj.useWhiteDots(true);         % default = false (true is good for dark backgrounds)
+            % DEPRECATE!!!
+            warning off
             tmp = javacomponent(j_obj.getComponent, [0,0,80,100], container);
+            warning on
             tmp.setBackground(java.awt.Color(Core_UI.DARKER_GREY_BG(1),Core_UI.DARKER_GREY_BG(2),Core_UI.DARKER_GREY_BG(3)));
         end
     end
@@ -1277,8 +1280,10 @@ classdef GUI_Inspector < GUI_Unique_Win
             % Create the ScrollPanel containing the widget
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
             % Inject edit box with the Java Scroll Pane into the main_window
+            %% DEPRECATE!!!
+            warning off
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_tab);
-                    
+            warning on        
             % HELP
             Core_UI.insertEmpty(cmd_tab, cmd_bg);
             
