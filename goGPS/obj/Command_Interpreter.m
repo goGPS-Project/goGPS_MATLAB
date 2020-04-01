@@ -1851,7 +1851,7 @@ classdef Command_Interpreter < handle
                             if ~Core.getState.isPPPOnSF() && ~rec(r).work.isMultiFreq()
                                 log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                             else
-%                                 try
+                                try
                                     if flag_uncombined
                                         log.addWarning('Uncombined engine enabled');
                                         if sys_found
@@ -1866,10 +1866,10 @@ classdef Command_Interpreter < handle
                                             rec(r).work.staticPPP();
                                         end
                                     end
-%                                 catch ex
-%                                     log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
-%                                     Core_Utils.printEx(ex);
-%                                 end
+                                catch ex
+                                    log.addError(['Command_Interpreter - PPP solution failed:' ex.message]);
+                                    Core_Utils.printEx(ex);
+                                end
                             end
                         else
                             log.addError('PPP for moving receiver not yet implemented :-(');
@@ -1935,17 +1935,17 @@ classdef Command_Interpreter < handle
                         fr_id = str2num(tok{t}(fr_id+1));
                     end
                 end
-%                 try
+                try
                     %if flag_uncombined
                     log.addMarkedMessage('Uncombined engine enabled');
                     net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
                     %else % the old network is deprecate
                     %    net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
                     %end
-%                 catch ex
-%                     log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
-%                     Core_Utils.printEx(ex);
-%                 end
+                catch ex
+                    log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+                    Core_Utils.printEx(ex);
+                end
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
                         net.exportCrd();
