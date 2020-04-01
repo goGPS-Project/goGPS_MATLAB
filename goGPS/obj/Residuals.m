@@ -309,6 +309,14 @@ classdef Residuals < Exportable
             end
         end
         
+        function [is_ph] = isPhase(this)
+            % get an index thta tell which resiual are phase
+            %
+            % SYNTAX:
+            %    [is_ph] = this.isPhase()
+            is_ph = this.obs_code(:,2) == 'L';
+        end
+        
         function [res, obs_code, prn] = getPhU2(this, sys_c, freq_c)
             % Get residual matrix of the combined processing
             % Carrier-phase residuals
