@@ -639,13 +639,28 @@ classdef Receiver_Output < Receiver_Commons
                                 this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
                                 this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
                             end
-                            if this.state.isResOut
+                            if this.state.isResPhOut
                                 if isempty(this.sat.res)
                                     this.sat.res = Residuals();
                                 end
                                 
                                 % Get the residual only in the time span relative to the session (no buffers)
                                 res = rec_work.sat.res.getCopy();
+                                [is_ph] = rec_work.sat.res.isPhase();
+                                res.remEntry(~is_ph);
+                                [~, lim] = this.state.getSessionLimits;
+                                res.cutEpochs(lim);
+                                this.sat.res.injest(res);
+                            end
+                            if this.state.isResPrOut
+                                if isempty(this.sat.res)
+                                    this.sat.res = Residuals();
+                                end
+                                
+                                % Get the residual only in the time span relative to the session (no buffers)
+                                res = rec_work.sat.res.getCopy();
+                                [is_ph] = rec_work.sat.res.isPhase();
+                                res.remEntry(is_ph);
                                 [~, lim] = this.state.getSessionLimits;                                
                                 res.cutEpochs(lim);
                                 this.sat.res.injest(res);
