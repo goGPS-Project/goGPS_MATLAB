@@ -1839,7 +1839,7 @@ classdef LS_Manipulator_new < handle
                 
                 [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
                 clearvars N_amb_amb B_amb_amb
-                if length(this.unique_rec_name) > 20 % fix by recievr matrix tto large
+                if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
                     rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
                     rec_idx = rec_idx(idx_amb_est);
                     [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
@@ -1847,8 +1847,9 @@ classdef LS_Manipulator_new < handle
                     [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
                 end
                 ambs = zeros(sum(idx_amb),1);
-                ambs(idx_amb_est) = amb_fixed(:,1);
                 ambs(idx_amb_est) = amb_float;
+                idx_amb_est = find(idx_amb_est);
+            %    ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
                 B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
                 clearvars N_ap_ap
                 x_reduced = zeros(size(N,1),1);
@@ -1874,10 +1875,17 @@ classdef LS_Manipulator_new < handle
                     x_reduced = result(:,1);
                     this.coo_vcv = result([idx_x; idx_y; idx_z] ,2 : end);
                 else
-                    F = factorization_svd(N);
-                    x_reduced = F \ B;
-                    
-                    %                      x_reduced = N\B;
+                    [U,D,V] = svds(N,sum(size(N,1)));
+                    d = diag(D);
+                    tol = max(size(N)) * sqrt(eps(norm(diag(D),inf)))*1e4;
+                    [~,idx_min] = min(diff(log10(d(d<tol))));
+                    last_valid = find(d < tol,1,'first') + idx_min -1;
+                    keep_id = 1:sum(size(N,1)) <= last_valid;
+                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
+                    clearvars U V D
+                    pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                    x_reduced = pinvB * B;
+                    clearvars pinvB
                 end
             end
             % ------- substitute back
@@ -2115,7 +2123,7 @@ classdef LS_Manipulator_new < handle
                 end
                 this.setPhFlag(r,idx_ko);
                 [res_pr] = getPrRes(this, r);
-                res_pr = Receiver_Commons.smoothSatData([],[],res_pr, [], 'spline', 30, 10);
+                res_pr = Receiver_Commons.smoothSatData([],[],res_pr, [], 'spline', 30, 1000);
                 
                 idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, thr_propagate_pr);
                 if nargin > 3 && trim_arc_lim
@@ -2148,7 +2156,7 @@ classdef LS_Manipulator_new < handle
             idx_rec = this.receiver_obs == rec_num;
             u_stream = unique(1000 * uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
-            min_time_res = min(this.ref_time_obs(idx_rec));
+            min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
             time_res = (0:this.obs_rate:duration);
             res_ph = nan(max(length(time_res), this.unique_time.length),n_stream);
@@ -2186,9 +2194,9 @@ classdef LS_Manipulator_new < handle
             u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs(idx_rec));
-            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_ph = nan(max(length(time_res), this.unique_time.length), n_stream);
+            res_pr = nan(max(length(time_res), this.unique_time.length), n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             sat_c = 9999;
@@ -2651,7 +2659,7 @@ classdef LS_Manipulator_new < handle
             
             %N = N -(N -N')/2;  %force sysmmetry
             
-            [L,D,P] = ldl(N);
+            [L,D,P] = ldl(full(N));
             if nargin < 3
                 tol = max(size(N)) * sqrt(eps(norm(diag(D),inf)));
             end
@@ -2663,7 +2671,7 @@ classdef LS_Manipulator_new < handle
             id_est_amb = (P*keep_id)>0;
             P_red = P(id_est_amb,keep_id);
             N_red =  P_red*L_red*D_red* (L_red')*(P_red');
-            Caa = (P_red)*iL_red'*inv(D_red)*(iL_red)*P_red';
+            Caa = (P_red)*iL_red'*diag(1./diag(D_red))*(iL_red)*P_red';
             B_red = B(id_est_amb);
             a_hat = Caa*B_red;
         end
