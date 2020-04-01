@@ -1567,6 +1567,38 @@ classdef Core_Utils < handle
             end
         end
 
+        %--------------------------------------------------------------------------
+        % SHOW FUNCTIONS
+        %--------------------------------------------------------------------------
+        
+        function fh_list = showMultiPathModel(mp_file, mp_type)
+            % Show MultiPath Maps for each receiver workspace
+            % (polar plot Zernike interpolated)
+            %
+            % INPUT:
+            %   mp_file     file containing the ant_mp struct
+            %   mp_type     type of MP to display
+            %                 case 1 % Zernike map
+            %                 case 2 % Zernike map + gridded residuals
+            %                 case 3 % Simple Gridding of size [stk_grid_step]
+            %                 case 4 % Congruent cells gridding of size [stk_grid_step]
+            %                 case 5 % Simple Gridding of size [1x1]
+            %                 case 6 % c1_map Congruent cells gridding of size [1x1]
+            %
+            % SYNTAX 
+            %   fh_list = Core_Utils.showMultiPathModelFromFile(mp_file, mp_type)
+            
+            tmp_rec = GNSS_Station;
+            try
+                load(mp_file, 'ant_mp');
+                ant_mp;
+            catch
+                Core.getLogger.addError('MP file not found, or corrupted');
+                return
+                fh_list = [];
+            end
+            fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
+        end
         
         %--------------------------------------------------------------------------
         % OTHER FUNCTIONS

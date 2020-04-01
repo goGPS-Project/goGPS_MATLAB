@@ -3390,7 +3390,19 @@ classdef GNSS_Station < handle
                 coo = coo.getElement(id_ok);
                 flag = flag(id_ok);                
             end            
-        end        
+        end
+        
+        function fh_list = showMultiPathModelFromFile(mp_file, mp_type)
+            tmp_rec = GNSS_Station;
+            try
+                load(mp_file, 'ant_mp');
+                ant_msp;
+            catch
+                Core.getLogger.addError('MP file not found, or corrupted');
+            end
+            fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
+        end
+
     end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
@@ -4921,7 +4933,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function fh_list = showMultiPathModel(sta_list, mp_type)
+        function fh_list = showMultiPathModel(sta_list, mp_type, ant_mp)
             % Show MultiPath Maps for each receiver workspace
             % (polar plot Zernike interpolated)
             %
@@ -4936,7 +4948,9 @@ classdef GNSS_Station < handle
             fh_list = [];
             for r = 1 : numel(sta_list)
                 rec = sta_list(r);
-                ant_mp = rec.getAntennaMultiPath();
+                if nargin < 3 || isempty(ant_mp)
+                    ant_mp = rec.getAntennaMultiPath();
+                end
                 if ~isempty(ant_mp)
                     % Get the satellite systems available in the zerniche multipath struct
                     sys_c_list = cell2mat(fields(ant_mp)');
@@ -7508,4 +7522,5 @@ classdef GNSS_Station < handle
             end
         end        
     end
+          
 end
