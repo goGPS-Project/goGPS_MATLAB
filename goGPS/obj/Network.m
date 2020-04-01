@@ -737,7 +737,7 @@ classdef Network < handle
                 l_fixed = 0;
             end
             n_rec = length(this.rec_list);
-            
+            cc = Core.getConstellationCollector();
             % --- push back the results in the receivers
             for i = 1 : n_rec
                 this.rec_list(i).work.xyz = this.coo(i,:);
@@ -828,6 +828,15 @@ classdef Network < handle
                     end
                     this.rec_list(i).work.setPhases(ph,wl,id_ph );
                 end
+                % push back residuals
+                [res_ph, sat, obs_id] = ls.getPhRes(i);
+                obs_code_ph = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                prn_ph = cc.prn(sat);
+                [res_pr, sat, obs_id] = ls.getPrRes(i);
+                obs_code_pr = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                prn_pr = cc.prn(sat);
+
+                this.rec_list(i).work.sat.res.import(3, this.common_time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], Coordinates.fromXYZ(this.coo(i,:), this.common_time.getCentralTime));
             end
             if sum(ls.param_class == LS_Manipulator_new.PAR_SAT_EB) > 0 && false
                 cs = Core.getCoreSky();
