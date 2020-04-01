@@ -123,7 +123,7 @@ classdef Residuals < Exportable
             res = Residuals();
             res.init(type, time, value, prn, obs_code, rec_coo);
             
-            this.appendRes(res);
+            this.injest(res);
         end
         
         function injest(this, res)
