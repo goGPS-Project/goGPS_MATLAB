@@ -313,7 +313,7 @@ classdef File_Wizard < handle
                         f_status_lst = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
                         
                         for i = 1 : length(file_name_lst)
-                            if ~f_status_lst(i)
+                            if isempty(f_status_lst) || ~f_status_lst(i)
                                 file_name = file_name_lst{i};
                                 server = regexp(file_name,'(?<=\?{)\w*(?=})','match','once'); % search for ?{server_name} in paths
                                 file_name = strrep(file_name,['?{' server '}'],'');

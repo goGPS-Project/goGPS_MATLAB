@@ -3391,18 +3391,6 @@ classdef GNSS_Station < handle
                 flag = flag(id_ok);                
             end            
         end
-        
-        function fh_list = showMultiPathModelFromFile(mp_file, mp_type)
-            tmp_rec = GNSS_Station;
-            try
-                load(mp_file, 'ant_mp');
-                ant_msp;
-            catch
-                Core.getLogger.addError('MP file not found, or corrupted');
-            end
-            fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
-        end
-
     end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
