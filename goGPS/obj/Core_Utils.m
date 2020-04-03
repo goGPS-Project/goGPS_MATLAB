@@ -1522,7 +1522,7 @@ classdef Core_Utils < handle
                 ax = t;
                 t = data;
                 data = varargin{1};
-                varargin = varargin{2:end};
+                varargin = varargin(2:end);
             else
                 ax = gca;
             end
@@ -1561,7 +1561,11 @@ classdef Core_Utils < handle
                 if isempty(varargin)
                     lh = plot(ax, t_col, data_col);
                 else
-                    lh = plot(ax, t_col, data_col, varargin{:});
+                    if iscell(varargin)
+                        lh = plot(ax, t_col, data_col, varargin{:});
+                    else
+                        lh = plot(ax, t_col, data_col, varargin);
+                    end
                 end
                 hold on;
             end
