@@ -1601,6 +1601,55 @@ classdef Core_Utils < handle
         end
         
         %--------------------------------------------------------------------------
+        % MEMORY
+        %--------------------------------------------------------------------------
+        
+        function total_mem = getMem(obj, indent_lev)
+            % Get all properties
+            props = properties(obj);
+            if nargin == 1
+                indent_lev = 0;
+            end
+            if isempty(props)
+                cur_prop = obj;
+                s = whos('cur_prop');
+                total_mem = s.bytes;
+            else
+                total_mem = 0;
+                % Loop properties
+                for p = 1 : length(props)
+                    % Make shallow copy
+                    cur_prop = obj.(props{p});  %#ok<*NASGU>
+                    % Get info struct for current property
+                    if isobject(cur_prop)
+                        cur_mem = Core_Utils.getMem(cur_prop, indent_lev + 1);
+                        fprintf('%s  ^ %s %s\n', char(32 * ones(1, indent_lev * 1, 'uint8')), byte2human(cur_mem), props{p});
+                    else
+                        s = whos('cur_prop');
+                        % Add to total memory consumption
+                        cur_mem = s.bytes;
+                        % fprintf('%s |- %g bytes %s\n', char(32 * ones(1, indent_lev * 1, 'uint8')), cur_mem, props{p});
+                    end
+                    total_mem = total_mem + cur_mem;
+                end
+            end
+            if indent_lev == 0
+                fprintf('TOTAL occupation: %s\n', byte2human(total_mem));
+            end
+
+            function str = byte2human(n_bytes)
+                if n_bytes > 1e9
+                    str = sprintf('%g GB', n_bytes / 1e9);
+                elseif n_bytes > 1e6
+                    str = sprintf('%g MB', n_bytes / 1e6);
+                elseif n_bytes > 1e3
+                    str = sprintf('%g KB', n_bytes / 1e3);
+                else
+                    str = sprintf('%g bytes', n_bytes);
+                end
+            end
+        end
+        %--------------------------------------------------------------------------
         % OTHER FUNCTIONS
         %--------------------------------------------------------------------------
         
