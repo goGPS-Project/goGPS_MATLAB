@@ -166,8 +166,7 @@ classdef Core_Sky < handle
                     this.clearSunMoon();
                     Core.getLogger.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
-                        [~,name,ext] = fileparts(eph_f_name{i});
-                        gps_time = getFileStTime([name ext]);
+                        gps_time = getFileStTime(eph_f_name{i});
                         end_time = this.getLastEpochCoord();
                         if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
                             this.addSp3(eph_f_name{i}, clock_in_eph);
@@ -213,7 +212,7 @@ classdef Core_Sky < handle
                     Core.getLogger.addMarkedMessage('Importing satellite clock files...');
                     for i = 1:length(clock_f_name)
                         [~,name,ext] = fileparts(clock_f_name{i});
-                        gps_time = getFileStTime([name ext]);
+                        gps_time = getFileStTime(eph_f_name{i});
                         end_time = this.getLastEpochClock();
                         if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
                             this.addClk(clock_f_name{i});
@@ -2031,6 +2030,57 @@ classdef Core_Sky < handle
             end
         end        
         
+        function coordFit(this, gps_time, coord, go_ids)
+            % Fit coordinates of satellites and add them to current
+            % estimates
+            %
+            % INPUT:
+            %    gps_time = time of the coordinates
+            %    coord = value of the coordinates
+            %    go_ids = go id of the satellites
+            %
+            % SYNTAX:
+            %   this.coordFit(gps_time, coord, go_ids)
+            
+            %number of seconds in a quarter of an hour
+            interval = this.coord_rate;
+            n_obs = gps_time.length;
+            %find the SP3 epoch closest to the interpolation time
+            %[~, p] = min(abs(SP3_time - time));
+            % speed improvement of the above line
+            % supposing SP3_time regularly sampled
+            t_diff = gps_time.getRefTime(this.time_ref_coord.getMatlabTime);
+
+            p = round(t_diff / interval) + 1;
+            
+            b = (p-1)*interval - t_diff;
+                        
+            %Lagrange interpolation
+            %degree of interpolation polynomial (Lagrange)
+
+            u = 6 + (- b )/interval;    % using 6 since n = 10;
+            A = Core_Sky.fastLI(u)';
+            A_idx = repmat(p,1,11) + repmat((-5:5),n_obs,1);
+            idx = A_idx > 0;
+            rows = repmat((1:n_obs)',1,11);
+            n_par = max(max(A_idx));
+            A = sparse(rows(idx),A_idx(idx),A(idx),n_obs,n_par);
+            idx_empty = sum(A~=0,1) == 0;
+            A(:,idx_empty) = [];
+            N = A'*A + eye(n_par)*0.001;
+            n_coord = size(this.coord,1);
+            for s = 1 : length(go_ids)
+                for c = 1 : 3
+                    B = A'*coord(:,go_ids(s),c);
+                    coord_cord = zeros(n_coord,1);
+                    coord_cord(~idx_empty) = N \ B;
+                    this.coord(:,go_ids(s),c) = this.coord(:,go_ids(s),c) + coord_cord;
+                end
+            end
+            
+        end
+        
+        
         function [X_sat, V_sat] = coordInterpolate(this, gps_time, go_id)
             % Interpolate coordinates of satellites
             %
@@ -3446,6 +3496,43 @@ classdef Core_Sky < handle
             
             az(~zero_idx) = atan2d(e(~zero_idx), n(~zero_idx));
             el(~zero_idx) = atan2d(u(~zero_idx), hor_dist(~zero_idx));
+        end
+        function coeff = fastLI(x_pred)
+            % SYNTAX:
+            %   coeff = fastLI(y_obs, x_pred);
+            %
+            % INPUT:
+            %   y_obs  = row-vector of [1 x p_deg + 1] data values
+            %   y_pred = row-vector of [1 x numel(x_pred)], where interpolation is to be found (could be a single value)
+            %
+            % OUTPUT:
+            %   y_pred = a row-vector of interpolated y-values
+            %
+            % DESCRIPTION:
+            %   Lagrange interpolation algorithm supposing y_obs regularly sampled
+            %   The degree of the polinomial (p_deg) is equivalent to the number of
+            %   element of y_obs - 1
+            %
+            % ORIGINAL CODE:
+            %   Author: Dmitry Pelinovsky
+            %   Available online at: http://dmpeli.mcmaster.ca/Matlab/Math4Q3/Lecture2-1/LagrangeInter.m
+            
+            n_obs = 11;
+            n_pred = numel(x_pred);
+            
+            %y_pred = zeros(size(x_pred));
+            coeff = ones(n_obs, n_pred);
+            for i = 1 : n_pred
+                for k = 1 : n_obs
+                    for kk = 1 : (k-1) % start the inner loop through the data values for x (if k = 0 this loop is not executed)
+                        coeff(kk, i) = coeff(kk, i) .* ((x_pred(i) - k) / (kk - k)); % see the Lagrange interpolating polynomials
+                    end % end of the inner loop
+                    
+                    for kk = k+1 : n_obs % start the inner loop through the data values (if k = n this loop is not executed)
+                        coeff(kk, i) = coeff(kk, i) .* ((x_pred(i) - k) / (kk - k));
+                    end % end of the inner loop
+                end
+            end
         end
     end
 end
