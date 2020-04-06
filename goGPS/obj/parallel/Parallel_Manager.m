@@ -497,8 +497,14 @@ classdef Parallel_Manager < Com_Interface
                     if ~isempty(w_id)
                         w_id = str2double(w_id);
                     end
-                    
+                    not_corrupted = true;
+                    try
                     tmp = load(fullfile(this.getComDir, sss_file(s).name));
+                    catch
+                          log.addWarning(sprintf('Fils %s seems corrupted', sss_file(s).name));
+                          not_corrupted = false;
+                    end
+                    if not_corrupted
                     core.state.setCurSession(sss_id); % load the current session number
                     % Check that all the results are present in the session file
                     if isfield(tmp, 'rec') && (numel(tmp.rec) == n_rec) && isfield(tmp, 'atmo')
@@ -520,6 +526,8 @@ classdef Parallel_Manager < Com_Interface
                     else
                         log.addWarning(sprintf('Session %d have been computed by worker %d but seems empty or corrupted', sss_id, w_id));
                     end
+                    end
+                    
                 end
             end
             log.addMarkedMessage('All the parallel session present in the com folder have been imported');
