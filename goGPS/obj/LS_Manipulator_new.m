@@ -1222,7 +1222,16 @@ classdef LS_Manipulator_new < handle
                 end
             end
             
-            
+            if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC && false
+                idx_sat_ebfr = find(this.class_par == this.PAR_IONO);
+                for s = this.unique_sat_goid
+                    idx_par = idx_sat_ebfr(this.sat_par(idx_sat_ebfr) == s);
+                    u_wl_par = unique(this.wl_id_obs(this.satellite_obs == s & ~this.outlier_obs));
+                    if length(u_wl_par) == 1
+                        idx_rm = [idx_rm; idx_par];
+                    end
+                end
+            end
             
             
             
@@ -1709,7 +1718,7 @@ classdef LS_Manipulator_new < handle
                         n_iono = sum(idx_reduce_cycle_iono);
                         diagonal = 1./diag(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono));
                         diagonal(diagonal == Inf) = 0;
-                        iIono = spdiags(diagonal,0,n_iono,n_iono); %spinv(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono),[],'qr');
+                        iIono = spinv(Nr_t(idx_reduce_cycle_iono, idx_reduce_cycle_iono),[],'qr');
                         Nx_iono = Ner_t(idx_reduce_cycle_iono, :); % cross term reduce iono
                         Nx_iono_cycle = Nr_t(~idx_reduce_cycle_iono, idx_reduce_cycle_iono); % cross term reduce iono
                         Nt = Nx_iono' * iIono;
@@ -1731,7 +1740,7 @@ classdef LS_Manipulator_new < handle
                         cp = cp_cycle( ~idx_reduce_cycle_iono);
                         idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                         idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                        if sum(idx_2) > 0 & iono
+                        if true; %sum(idx_2) > 0 & iono 
                             iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                         else
                             n_sat_clk = sum(i_sat_clk_tmp);
