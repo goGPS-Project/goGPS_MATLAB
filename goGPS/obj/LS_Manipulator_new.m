@@ -2123,7 +2123,7 @@ classdef LS_Manipulator_new < handle
             thr_propagate_pr = pr_thr /3;
             
             for r = 1 : size(this.rec_xyz,1)
-                [res_ph] = getPhRes(this, r);
+                [res_ph] = getPhRes(this, r, false);
                 res_ph = Receiver_Commons.smoothSatData([],[],res_ph, [], 'spline', 30, 10);
                 
                 idx_ko = Core_Utils.snoopGatt(res_ph, ph_thr, thr_propagate_ph);
@@ -2131,7 +2131,7 @@ classdef LS_Manipulator_new < handle
                     [idx_ko] = idx_ko | Core_Utils.snoopArcLim(res_ph,thr_propagate_ph);
                 end
                 this.setPhFlag(r,idx_ko);
-                [res_pr] = getPrRes(this, r);
+                [res_pr] = getPrRes(this, r,false);
                 res_pr = Receiver_Commons.smoothSatData([],[],res_pr, [], 'spline', 30, 1000);
                 
                 idx_ko = Core_Utils.snoopGatt(res_pr, pr_thr, thr_propagate_pr);
@@ -2146,7 +2146,7 @@ classdef LS_Manipulator_new < handle
         
         
         
-        function [res_ph, sat, obs_id, res_id] = getPhRes(this, rec_num)
+        function [res_ph, sat, obs_id, res_id,res_time] = getPhRes(this, rec_num, exclude_outlier)
             % Get phase residuals
             %
             % OUPUT
@@ -2159,14 +2159,21 @@ classdef LS_Manipulator_new < handle
             %   [res_ph, sat, obs_id, res_id] = this.getPhRes(rec_num)
             [res_ph, sat, obs_id, res_id] = deal([]);
             
-            if nargin <2
+            if nargin <2 && isempty(rec_num)
                 rec_num = 1;
             end
-            idx_rec = this.receiver_obs == rec_num;
+            if nargin < 3
+                exclude_outlier = true;
+            end
+            if exclude_outlier
+                idx_rec = this.receiver_obs == rec_num & this.outlier_obs == 0;
+            else
+                idx_rec = this.receiver_obs == rec_num;
+            end
             u_stream = unique(1000 * uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs);
-            duration = max(this.ref_time_obs(idx_rec)) - min_time_res;
+            duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
             res_ph = nan(max(length(time_res), this.unique_time.length),n_stream);
             res_id = zeros(length(time_res),n_stream,'uint32');
@@ -2188,21 +2195,29 @@ classdef LS_Manipulator_new < handle
                     res_id(idx_time, i) = find(idx_res);
                 end
             end
-            
+            res_time = this.time_min.getCopy();
+            res_time.addSeconds( time_res);
         end
         
-        function [res_pr, sat, obs_id] = getPrRes(this, rec)
+        function [res_pr, sat, obs_id,res_time] = getPrRes(this, rec ,exclude_outlier)
             % get phase residuals
             %
             % SYNTAX:  [res_pr, sat, obs_id] = getPrRes(this)
             [res_pr, sat, obs_id] = deal([]);
-            if nargin <2
+            if nargin <2  && isempty(rec_num)
                 rec = 1;
             end
-            idx_rec = this.receiver_obs == rec;
+            if nargin < 3
+                exclude_outlier = true;
+            end
+            if exclude_outlier
+                idx_rec = this.receiver_obs == rec & this.outlier_obs == 0;
+            else
+                idx_rec = this.receiver_obs == rec;
+            end
             u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
-            min_time_res = min(this.ref_time_obs(idx_rec));
+            min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
             res_pr = nan(max(length(time_res), this.unique_time.length), n_stream);
@@ -2224,6 +2239,8 @@ classdef LS_Manipulator_new < handle
                     res_pr(idx_time,i) = this.res(idx_res);
                 end
             end
+            res_time = this.time_min.getCopy();
+            res_time.addSeconds( time_res);
         end
         
         function setPhFlag(this,rec,flag)

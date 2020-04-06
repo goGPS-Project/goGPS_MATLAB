@@ -10785,50 +10785,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.generateNumSatPerEpochU2(ls)
                     
                     % save phase residuals
-                    idx_ph = find(this.obs_code(:,1) == 'L');
-                    res_ph = nan(this.time.length, length(idx_ph));
-                    obs_code_ph = char(32 * ones(length(idx_ph), size(ls.unique_obs_codes{1},2), 'uint8'));
-                    prn_ph = nan(length(idx_ph), 1);
-                    for i = 1 : length(idx_ph)
-                        ip = idx_ph(i);
-                        id_code = Core_Utils.findAinB({[this.system(ip) this.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.go_id(ip);
-                        if any(idx_res)
-                            [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                            res_ph(idx_time, i) = ls.res(idx_res);
-                        end
-                        id_first = find(idx_res, 1, 'first');
-                        if ~isempty(id_first)
-                            % if there are residuals
-                            obs_code_ph(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(id_first)};
-                            [~, prn_ph(i)] = cc.getSysPrn(ls.satellite_obs(id_first));
-                        end
-                    end
-                                                            
-                    % save pseudorange residuals
-                    idx_pr = find(this.obs_code(:,1) == 'C');
-                    res_pr = nan(this.time.length, length(idx_pr));
-                    obs_code_pr = char(32 * ones(length(idx_pr), size(ls.unique_obs_codes{1},2), 'uint8'));
-                    prn_pr = nan(length(idx_pr), 1);
-                    for i = 1 : length(idx_pr)
-                        ip = idx_pr(i);
-                        id_code = Core_Utils.findAinB({[this.system(ip) this.obs_code(ip,:)]}, ls.unique_obs_codes);
-                        idx_res = ls.obs_codes_id_obs == id_code & ls.satellite_obs == this.go_id(ip);
-                        if any(idx_res)
-                            [~,idx_time] = ismember(ls.time_obs.getEpoch(idx_res).getNominalTime(this.getRate).getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
-                            res_pr(idx_time,i) = ls.res(idx_res);
-                            id_first = find(idx_res, 1, 'first');
-                            if ~isempty(id_first)
-                                % if there are residuals
-                                obs_code_pr(i, :) = ls.unique_obs_codes{ls.obs_codes_id_obs(id_first)};
-                                [~, prn_pr(i)] = cc.getSysPrn(ls.satellite_obs(id_first));
-                            end
-                        end
-                    end
-                                        
+                    [res_ph, sat, obs_id,~, res_time] = ls.getPhRes(1);
+                    obs_code_ph = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    prn_ph = cc.prn(sat);
+                    [res_pr, sat, obs_id] = ls.getPrRes(1);
+                    obs_code_pr = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    prn_pr = cc.prn(sat);
                     rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
-                    this.sat.res = Residuals();
-                    this.sat.res.import(3, this.time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
+
+                    this.sat.res.import(3, res_time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
+                                                        
 
                     % -------------------- estimate additional coordinate set
                     if state.flag_coo_rate
