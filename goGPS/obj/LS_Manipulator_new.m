@@ -1975,7 +1975,11 @@ classdef LS_Manipulator_new < handle
             res(~this.outlier_obs) = this.obs(~this.outlier_obs) - A(1:sum(~this.outlier_obs),:)*x_est;
             this.res = res;
             this.x = x;
-            
+            state = Core.getCurrentSettings;
+            if state.isResOut
+                exclude_res = this.simpleRedundancyCheck(A, class_par, vars);
+                this.outlier_obs(this.outlier_obs == 0) = exclude_res(1: (size(this.A,1) - n_out));
+            end
         end
         
         function applyWeightingStrategy()
@@ -2516,6 +2520,43 @@ classdef LS_Manipulator_new < handle
             
             s0 = mean(abs(this.res(id_ph).*ww));
         end
+        
+        function [exclude_res] = simpleRedundancyCheck(this,A,class_par,vars)
+            % the purpouse of this function is to get a rough estimate of
+            % the formal variance of observation in order to exclude
+            % observation with no redundacndy from the residual
+            tic;
+            keep_par = [];
+            % get only the paramter with single epoch paramterization
+            % otherwise it will atke too much
+            u_cp = unique(class_par);
+            for i = 1:length(u_cp)
+                prmz = this.ls_parametrization.getParametrization(u_cp(i));
+                if prmz(1) == LS_Parametrization.EP_WISE
+                    keep_par =  [keep_par; u_cp(i)];
+                end
+            end
+            discard_column = true(size(class_par));
+            for i = 1: length(keep_par)
+                discard_column = discard_column & ~(class_par == keep_par(i));
+            end
+         
+            A(:,discard_column) = [];
+            n_par = size(A,2);
+            n_obs = size(A,1);
+            Cyy =  spdiags(1./vars,0,n_obs,n_obs);
+            Aw = A'*Cyy;
+            N = Aw*A;
+            [L,D,P] = ldl(N);
+            iL = inv(L);
+            iD = spdiags(1./diag(D),0,n_par,n_par);
+            Cxx = P * iL' * iD * iL * P';
+            part1 = A*Cxx;
+            diag_prj = sum(part1'.*Aw);
+            toc
+            exclude_res = (1 - diag_prj) < 1e-5;
+        end
+        
         
         function computeAmbJmps(this)
             % determine if a loss of lock tracking happened simultaneusly
