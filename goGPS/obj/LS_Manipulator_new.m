@@ -88,7 +88,7 @@ classdef LS_Manipulator_new < handle
         %%% entry
         A % observations
         A_idx
-        A_full 
+        A_full
         obs
         res
         param_class % class id of the column of A
@@ -294,7 +294,7 @@ classdef LS_Manipulator_new < handle
             if mfw_on
                 id_sync_out = obs_set.getTimeIdx(rec.time); %obs_set.getTimeIdx(rec.time.first, rec.getRate);
                 [~, mfw] = rec.getSlantMF(id_sync_out);
-               % mfw(mfw  > 60 ) = nan;
+                % mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
@@ -512,7 +512,7 @@ classdef LS_Manipulator_new < handle
             n_obs = size(this.A,1);
             this.A_idx = zeros(size(this.A),'uint32');
             
-          
+            
             time_obs = round(this.ref_time_obs/this.obs_rate);
             obs_rate = this.obs_rate;
             time_min = this.time_min.getMatlabTime;
@@ -1034,8 +1034,8 @@ classdef LS_Manipulator_new < handle
                     idx_valid_rec_ph = idx_valid_ph(this.receiver_obs(idx_valid_ph) == r);
                     idx_valid_rec_pr = idx_valid_pr(this.receiver_obs(idx_valid_pr) == r);
                     idx_valid_rec_obs = idx_valid_obs(this.receiver_obs(idx_valid_obs) == r);
-
-
+                    
+                    
                     
                     u_go_id_r = unique(this.satellite_obs(idx_valid_rec_obs));
                     n_sat = length(u_go_id_r);
@@ -1102,7 +1102,7 @@ classdef LS_Manipulator_new < handle
                     end
                     idx_out_pr = sum(pr_pres,3) == 1;
                     idx_out_ph = find((sum(pr_pres,3) < 2 & sum(ph_pres,3) > 1) | sum(ph_pres,3) == 1);
-
+                    
                     idx_out_pr = find(idx_out_pr);
                     
                     for c = 1 : n_ch_pr
@@ -1243,45 +1243,45 @@ classdef LS_Manipulator_new < handle
                     end
                     if length(u_wl_par) > 1
                         if sum(this.param_class == this.PAR_IONO) > 0
-                           idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                            idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                         end
                     end
                 end
             end
-
-%             if sum(this.param_class == this.PAR_REC_EB) > 0
-%                 idx_sat_eb = find(this.class_par == this.PAR_REC_EB);
-%                 for r = 1 : length(this.unique_rec_name)
-%                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 1);
-%                     wl_par = this.wl_id_par(idx_par);
-%                     oi_apr = this.obs_codes_id_par(idx_par);
-%                     u_wl_par = unique(wl_par);
-%                     for w = u_wl_par(1:2)'
-%                         idx_par_wl = idx_par(wl_par == w);
-%                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
-%                     end
-%                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 2);
-%                     wl_par = this.wl_id_par(idx_par);
-%                     oi_apr = this.obs_codes_id_par(idx_par);
-%                     u_wl_par = unique(wl_par);
-%                     for w = u_wl_par(1)
-%                         idx_par_wl = idx_par(wl_par == w);
-%                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
-%                     end
-%                 end
-%                 idx_rm_rec_eb = idx_rm(this.class_par(idx_rm) ==  this.PAR_REC_EB);
-%                 for c = 1 : length(this.unique_obs_codes)
-%                     idx_par = idx_sat_eb(this.obs_codes_id_par(idx_sat_eb) == c);
-%                     if sum(this.obs_codes_id_par(idx_rm_rec_eb) == c) == 0
-%                     idx_rm = [idx_rm; idx_par(1)];
-%                     end
-% 
-%                 end
-%             end
-%             if sum(this.param_class == this.PAR_REC_PPB) > 0 &  sum(this.param_class == this.PAR_SAT_PPB) > 0
-%                 idx_rec_ppb = find(this.class_par == this.PAR_REC_PPB);
-%                 idx_rm = [idx_rm; idx_rec_ppb(1)];
-%             end
+            
+            %             if sum(this.param_class == this.PAR_REC_EB) > 0
+            %                 idx_sat_eb = find(this.class_par == this.PAR_REC_EB);
+            %                 for r = 1 : length(this.unique_rec_name)
+            %                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 1);
+            %                     wl_par = this.wl_id_par(idx_par);
+            %                     oi_apr = this.obs_codes_id_par(idx_par);
+            %                     u_wl_par = unique(wl_par);
+            %                     for w = u_wl_par(1:2)'
+            %                         idx_par_wl = idx_par(wl_par == w);
+            %                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+            %                     end
+            %                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 2);
+            %                     wl_par = this.wl_id_par(idx_par);
+            %                     oi_apr = this.obs_codes_id_par(idx_par);
+            %                     u_wl_par = unique(wl_par);
+            %                     for w = u_wl_par(1)
+            %                         idx_par_wl = idx_par(wl_par == w);
+            %                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+            %                     end
+            %                 end
+            %                 idx_rm_rec_eb = idx_rm(this.class_par(idx_rm) ==  this.PAR_REC_EB);
+            %                 for c = 1 : length(this.unique_obs_codes)
+            %                     idx_par = idx_sat_eb(this.obs_codes_id_par(idx_sat_eb) == c);
+            %                     if sum(this.obs_codes_id_par(idx_rm_rec_eb) == c) == 0
+            %                     idx_rm = [idx_rm; idx_par(1)];
+            %                     end
+            %
+            %                 end
+            %             end
+            %             if sum(this.param_class == this.PAR_REC_PPB) > 0 &  sum(this.param_class == this.PAR_SAT_PPB) > 0
+            %                 idx_rec_ppb = find(this.class_par == this.PAR_REC_PPB);
+            %                 idx_rm = [idx_rm; idx_rec_ppb(1)];
+            %             end
             
             if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC && false
                 idx_sat_ebfr = find(this.class_par == this.PAR_IONO);
@@ -1800,7 +1800,7 @@ classdef LS_Manipulator_new < handle
                         cp = cp_cycle( ~idx_reduce_cycle_iono);
                         idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                         idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                        if true; %sum(idx_2) > 0 & iono 
+                        if true; %sum(idx_2) > 0 & iono
                             iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                         else
                             diagonal = 1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp));
@@ -1830,7 +1830,7 @@ classdef LS_Manipulator_new < handle
                     if rec_clk
                         i_rec_clk_tmp = idx_reduce_cycle_rec_clk(~idx_reduce_cycle_iono & ~idx_reduce_cycle_sat_clk);
                         n_rec_clk = sum(i_rec_clk_tmp);
-                       
+                        
                         iRecClk = spinv(Nr_t(i_rec_clk_tmp,i_rec_clk_tmp),[],'qr');
                         
                         Nx_recclk = Ner_t(i_rec_clk_tmp, :);
@@ -1858,76 +1858,74 @@ classdef LS_Manipulator_new < handle
             % ------- fix the ambiguities
             c_p = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
-            ldl_strategy = false;
             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
                 svd_strat = true;
                 if svd_strat
-                % svd startegy
-                cod_avail =  false & exist('spqr') ;
-                % reduce all other paramter than ambiguoties
-                
-                idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
-                c_p2 = c_p(~idx_bias);
-                [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
-                d = diag(D);
-                tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
-                [~,idx_min] = min(diff(log10(d(d<tol))));
-                last_valid = find(d < tol,1,'first') + idx_min -1;
-                keep_id = 1:sum(idx_bias) <= last_valid;
-                real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
-                clearvars U V D 
-                pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
-                clearvars real_space d
-                BB = N(~idx_bias ,idx_bias)*pinvB;
-                N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
-                B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
-                
-                idx_amb = c_p2 == this.PAR_AMB;
-                if any(~idx_amb)
-                    [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
+                    % svd startegy
+                    % reduce all other paramter than ambiguoties
+                    
+                    idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
+                    c_p2 = c_p(~idx_bias);
+                    [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                     d = diag(D);
-                    tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(d,inf))*10;%
-                    miscl = abs(sum(U.*V)-1);
-                    last_valid = find(miscl > 1e-4 | d' < tol ,1,'first');
-                    if isempty(last_valid)
-                        last_valid = sum(~idx_amb);
-                    end
-                    keep_id = 1:sum(~idx_amb) <= last_valid;
-                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
+                    tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
+                    [~,idx_min] = min(diff(log10(d(d<tol))));
+                    last_valid = find(d < tol,1,'first') + idx_min -1;
+                    keep_id = 1:sum(idx_bias) <= last_valid;
+                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
                     clearvars U V D
-                    C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                    pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
                     clearvars real_space d
-                    BB = N_ap_ap(idx_amb, ~idx_amb)*C_bb;
-                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - BB*N_ap_ap(~idx_amb, idx_amb);
-                    B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
-                else
-                    N_amb_amb = N_ap_ap(idx_amb, idx_amb);
-                    B_amb_amb = B_ap_ap(idx_amb);
-                end
-                
-                
-                [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
-                clearvars N_amb_amb B_amb_amb
-                if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
-                    rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
-                    rec_idx = rec_idx(idx_amb_est);
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
-                else
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
-                end
-                ambs = zeros(sum(idx_amb),1);
-                ambs(idx_amb_est) = amb_float;
-                idx_amb_est = find(idx_amb_est);
-            %    ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
-                B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
-                clearvars N_ap_ap
-                x_reduced = zeros(size(N,1),1);
-                
-                phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
-                phys_par_amb(idx_amb) = ambs;
-                x_reduced(~idx_bias) = phys_par_amb;
-                B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
-                x_reduced(idx_bias) = pinvB*B(idx_bias);
+                    BB = N(~idx_bias ,idx_bias)*pinvB;
+                    N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
+                    B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                    
+                    idx_amb = c_p2 == this.PAR_AMB;
+                    if any(~idx_amb)
+                        [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
+                        d = diag(D);
+                        tol = max(size(N(~idx_amb, ~idx_amb))) * eps(norm(d,inf))*10;%
+                        miscl = abs(sum(U.*V)-1);
+                        last_valid = find(miscl > 1e-4 | d' < tol ,1,'first');
+                        if isempty(last_valid)
+                            last_valid = sum(~idx_amb);
+                        end
+                        keep_id = 1:sum(~idx_amb) <= last_valid;
+                        real_space = (U(:, keep_id) + V(:, keep_id)) / 2;  % prevent asimmetryin reducing
+                        clearvars U V D
+                        C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                        clearvars real_space d
+                        BB = N_ap_ap(idx_amb, ~idx_amb)*C_bb;
+                        N_amb_amb = N_ap_ap(idx_amb, idx_amb) - BB*N_ap_ap(~idx_amb, idx_amb);
+                        B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
+                    else
+                        N_amb_amb = N_ap_ap(idx_amb, idx_amb);
+                        B_amb_amb = B_ap_ap(idx_amb);
+                    end
+                    
+                    
+                    [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                    clearvars N_amb_amb B_amb_amb
+                    if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
+                        rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
+                        rec_idx = rec_idx(idx_amb_est);
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
+                    else
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
+                    end
+                    ambs = zeros(sum(idx_amb),1);
+                    ambs(idx_amb_est) = amb_float;
+                    idx_amb_est = find(idx_amb_est);
+                    %    ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
+                    B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
+                    clearvars N_ap_ap
+                    x_reduced = zeros(size(N,1),1);
+                    
+                    phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
+                    phys_par_amb(idx_amb) = ambs;
+                    x_reduced(~idx_bias) = phys_par_amb;
+                    B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
+                    x_reduced(idx_bias) = pinvB*B(idx_bias);
                 else
                     idx_bias = c_p ~= this.PAR_AMB; %| c_p == this.PAR_SAT_EBFR
                     disp('factorize')
@@ -2615,7 +2613,7 @@ classdef LS_Manipulator_new < handle
             % the purpouse of this function is to get a rough estimate of
             % the formal variance of observation in order to exclude
             % observation with no redundacndy from the residual
-            tic;
+            %$tic;
             keep_par = [];
             % get only the paramter with single epoch paramterization
             % otherwise it will atke too much
@@ -2630,7 +2628,7 @@ classdef LS_Manipulator_new < handle
             for i = 1: length(keep_par)
                 discard_column = discard_column & ~(class_par == keep_par(i));
             end
-         
+            
             A(:,discard_column) = [];
             n_par = size(A,2);
             n_obs = size(A,1);
@@ -2643,7 +2641,7 @@ classdef LS_Manipulator_new < handle
             Cxx = P * iL' * iD * iL * P';
             part1 = A*Cxx;
             diag_prj = sum(part1'.*Aw);
-            toc
+            %toc
             exclude_res = (1 - diag_prj) < 1e-5;
         end
         
