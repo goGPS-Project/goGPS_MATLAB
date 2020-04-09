@@ -497,7 +497,7 @@ classdef Network < handle
                 idx_rec = ls.rec_par == i;
                 [~, int_lim] = this.state.getSessionLimits();
                 
-                if i > 0 % coordiantes are always zero on first receiver
+                if i > 0 & sum(ls.class_par == ls.PAR_REC_X ) >0% coordiantes are always zero on first receiver
                     coo_vcv = [];
                     if this.state.isSepCooAtBoundaries
                         % Push coordinates from LS object to rec
@@ -540,7 +540,7 @@ classdef Network < handle
                                 coo_vcv = zeros(1,6);
                             end
                         end
-                        coo = [mean(ls.x( ls.class_par == ls.PAR_REC_X & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Y & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Z & idx_rec))];
+                        coo = nan2zero([mean(ls.x( ls.class_par == ls.PAR_REC_X & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Y & idx_rec)) mean(ls.x(ls.class_par == ls.PAR_REC_Z & idx_rec))]);
                     end
                     
                     if isempty(coo)
@@ -875,6 +875,7 @@ classdef Network < handle
                     end
                 end
             end
+            %this.pushBackEphemeris(ls);
         end
         
         function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs,rec_time_indexes)
@@ -939,6 +940,68 @@ classdef Network < handle
             end
         end
         
+        
+        function pushBackEphemeris(this,ls)
+            % push backe estimated epehemeris corrections
+            %
+            % SYNTAX:
+            %      this.pushBackEphemeris(ls)
+            cs = Core.getCoreSky();
+            %%% subs clk
+            clk = zeros(this.common_time.length,length(ls.ls.unique_sat_goid));
+            comm_time_ref = this.common_time.getNominalTime(ls.obs_rate).getRefTime(this.common_time.minimum.getMatlabTime);
+            for s = 1 : length(ls.unique_sat_goid)
+                idx_clk = ls.class_PAR == ls.PAR_SAT_CLK & ls.sat_par == ls.unique_sat_goid(s);
+                time_sat = ls.getTimePar(idx_clk).getNominalTime(ls.obs_rate);
+                [~,idx] = ismember(time_sat.getRefTime(this.common_time.first.getMatlabTime), this.common_time.getRefTime(this.common_time.first.getMatlabTime));
+                clk(idx,s) = ls.x(idx_clk);
+            end
+            
+            GReD_Utlity.substituteClK(clk, this.common_epoch)
+            %%% sub epehem
+            idx_sat_x = ls.class_par == LS_Manipulator_new.PAR_SAT_X;
+            idx_sat_y = ls.class_par == LS_Manipulator_new.PAR_SAT_Y;
+            idx_sat_z = ls.class_par == LS_Manipulator_new.PAR_SAT_Z;
+            coord = zeros(this.common_time.length,length(ls.unique_sat_goid),3);
+            spline_rate = ls.ls_parametrization.sat_x_opt.spline_rate;
+            spline_order = 3;
+            for s = 1 : length(ls.unique_sat_goid)
+                idx_sat_x_s = idx_sat_x & ls.sat_par == ls.unique_sat_goid(s);
+                idx_sat_y_s = idx_sat_y & ls.sat_par == ls.unique_sat_goid(s);
+                idx_sat_z_s = idx_sat_z & ls.sat_par == ls.unique_sat_goid(s);
+                if sum(idx_sat_x_s) > 0
+                    xs = ls.x(idx_sat_x_s);
+                    tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum, spline_rate)/ spline_rate;
+                    tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum)/spline_rate);
+                    [~,tropo_idx] = ismember(tropo_idx*spline_rate, ls.getTimePar(idx_sat_x_s).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_sat_x_s).minimum.getMatlabTime));
+                    valid_ep = tropo_idx ~=0 & tropo_idx <= (length(xs)-3);
+                    spline_base = Core_Utils.spline(tropo_dt(valid_ep),3);
+                    xcoord =sum(spline_base .* xs(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                    
+                    xs = ls.x(idx_sat_y_s);
+                    tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum, spline_rate)/ spline_rate;
+                    tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum)/spline_rate);
+                    [~,tropo_idx] = ismember(tropo_idx*spline_rate, ls.getTimePar(idx_sat_x_s).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_sat_x_s).minimum.getMatlabTime));
+                    valid_ep = tropo_idx ~=0 & tropo_idx <= (length(xs)-3);
+                    spline_base = Core_Utils.spline(tropo_dt(valid_ep),3);
+                    ycoord =sum(spline_base .* xs(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                    
+                    xs = ls.x(idx_sat_z_s);
+                    tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum, spline_rate)/ spline_rate;
+                    tropo_idx = floor((this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_sat_x_s).minimum)/spline_rate);
+                    [~,tropo_idx] = ismember(tropo_idx*spline_rate, ls.getTimePar(idx_sat_x_s).getNominalTime(ls.obs_rate).getRefTime(ls.getTimePar(idx_sat_x_s).minimum.getMatlabTime));
+                    valid_ep = tropo_idx ~=0 & tropo_idx <= (length(xs)-3);
+                    spline_base = Core_Utils.spline(tropo_dt(valid_ep),3);
+                    zcoord =sum(spline_base .* xs(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                    
+                    coord(valid_ep,s,1) = coord(valid_ep,s,1) + xcoord;
+                    coord(valid_ep,s,2) = coord(valid_ep,s,2) + ycoord;
+                    coord(valid_ep,s,3) = coord(valid_ep,s,3) + zcoord;
+
+                end
+            end
+            cs.coordFit(this.common_time, coord, ls.unique_sat_goid);           
+        end
         
         function pushBackSubCooInReceiver(this, time, rate)
             n_rec = length(this.rec_list);
