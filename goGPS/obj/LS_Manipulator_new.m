@@ -1353,8 +1353,6 @@ classdef LS_Manipulator_new < handle
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for s = 1 : n_sat
                     idx_rcr = idx_rc(this.sat_par(idx_rc) == s);
-                    
-                    
                     idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
                     if ~isempty(idx_o_r)
                         idx_po = unique(this.A_idx(idx_o_r,this.param_class == this.PAR_SAT_CLK));
@@ -1729,8 +1727,8 @@ classdef LS_Manipulator_new < handle
             ii  = 1;
             for i = 0 : step : floor(max_ep / step) * step % sparse matrix library became very slow in case of big/huge matrix the reduction can be applyed dividing the matrices in parts
                 idx_time_obs = ref_time_obs > (i-this.obs_rate/10) &  ref_time_obs < (i + step -this.obs_rate/10 );
-                if any(idx_time_obs)
-                    idx_time_par_red = time_par_red > (i-this.obs_rate/10)  &  time_par_red < (i + step -this.obs_rate/10 );
+                idx_time_par_red = time_par_red > (i-this.obs_rate/10)  &  time_par_red < (i + step -this.obs_rate/10 );
+                if any(idx_time_par_red)
                     idx_red_cycle = idx_reduce;
                     idx_red_cycle(idx_red_cycle) = idx_time_par_red;
                     
@@ -1798,13 +1796,13 @@ classdef LS_Manipulator_new < handle
                     
                     if sat_clk
                         i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
+                        n_sat_clk = sum(i_sat_clk_tmp);
                         cp = cp_cycle( ~idx_reduce_cycle_iono);
                         idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
                         idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
                         if true; %sum(idx_2) > 0 & iono 
                             iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                         else
-                            n_sat_clk = sum(i_sat_clk_tmp);
                             diagonal = 1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp));
                             diagonal(diagonal == Inf) = 0;
                             iSatClk = spdiags(diagonal,0,n_sat_clk,n_sat_clk);
@@ -1862,7 +1860,8 @@ classdef LS_Manipulator_new < handle
             idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
             ldl_strategy = false;
             if sum(this.param_class == this.PAR_AMB) > 0 && fix && any(idx_amb)
-                
+                svd_strat = true;
+                if svd_strat
                 % svd startegy
                 cod_avail =  false & exist('spqr') ;
                 % reduce all other paramter than ambiguoties
@@ -1879,8 +1878,8 @@ classdef LS_Manipulator_new < handle
                 clearvars U V D 
                 pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
                 clearvars real_space d
-                BB = full(N(~idx_bias ,idx_bias))*pinvB;
-                N_ap_ap = N(~idx_bias, ~idx_bias) - sparse(BB*N(idx_bias, ~idx_bias));
+                BB = N(~idx_bias ,idx_bias)*pinvB;
+                N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
                 B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
                 
                 idx_amb = c_p2 == this.PAR_AMB;
@@ -1898,8 +1897,8 @@ classdef LS_Manipulator_new < handle
                     clearvars U V D
                     C_bb = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
                     clearvars real_space d
-                    BB = full(N_ap_ap(idx_amb, ~idx_amb))*C_bb;
-                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - sparse(BB*N_ap_ap(~idx_amb, idx_amb));
+                    BB = N_ap_ap(idx_amb, ~idx_amb)*C_bb;
+                    N_amb_amb = N_ap_ap(idx_amb, idx_amb) - BB*N_ap_ap(~idx_amb, idx_amb);
                     B_amb_amb = B_ap_ap(idx_amb) -  BB*B_ap_ap(~idx_amb);
                 else
                     N_amb_amb = N_ap_ap(idx_amb, idx_amb);
@@ -1929,6 +1928,36 @@ classdef LS_Manipulator_new < handle
                 x_reduced(~idx_bias) = phys_par_amb;
                 B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
                 x_reduced(idx_bias) = pinvB*B(idx_bias);
+                else
+                    idx_bias = c_p ~= this.PAR_AMB; %| c_p == this.PAR_SAT_EBFR
+                    disp('factorize')
+                    F = factorization_lu_sparse(N(idx_bias, idx_bias),false);
+                    disp('solving')
+                    tic
+                    red_par = F \ ([N(idx_bias, ~idx_bias) B(idx_bias)]);
+                    toc
+                    N_amb_amb = N(~idx_bias, ~idx_bias) - N(~idx_bias, idx_bias)*red_par(:,1:sum(~idx_bias));
+                    B_amb_amb = B(~idx_bias)  - N(~idx_bias, idx_bias)*red_par(:,end);
+                    tic
+                    [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
+                    toc
+                    clearvars N_amb_amb B_amb_amb
+                    if length(this.unique_rec_name) > 20 % fix by recievr matrix tto large
+                        rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
+                        rec_idx = rec_idx(idx_amb_est);
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
+                    else
+                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
+                    end
+                    ambs = zeros(sum(idx_amb),1);
+                    ambs(idx_amb_est) = amb_fixed(:,1);
+                    ambs(idx_amb_est) = amb_float;
+                    x_reduced = zeros(size(N,1),1);
+                    x_reduced(~idx_bias) = ambs;
+                    B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*ambs;
+                    x_reduced(idx_bias) = F \ B(idx_bias);
+                    clearvars F
+                end
             else
                 cp_red = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
                 idx_x = find(cp_red  == this.PAR_REC_X);
