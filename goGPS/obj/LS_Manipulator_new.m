@@ -1207,20 +1207,81 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                 end
-                if sum(this.param_class == this.PAR_SAT_EB) > 0
-                    idx_sat_eb = find(this.class_par == this.PAR_SAT_EB);
-                    for s = this.unique_sat_goid
-                        idx_par = idx_sat_eb(this.sat_par(idx_sat_eb) == s & this.phase_par(idx_sat_eb) == 0);
-                        wl_par = this.wl_id_par(idx_par);
-                        oi_apr = this.obs_codes_id_par(idx_par);
-                        u_wl_par = unique(wl_par);
-                        for w = u_wl_par'
-                            idx_par_wl = idx_par(wl_apr == w);
-                            idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                
+            end
+            
+            if sum(this.param_class == this.PAR_SAT_EB) > 0
+                idx_sat_eb = find(this.class_par == this.PAR_SAT_EB);
+                for s = this.unique_sat_goid
+                    idx_par = idx_sat_eb(this.sat_par(idx_sat_eb) == s & this.phase_par(idx_sat_eb) == 1);
+                    wl_par = this.wl_id_par(idx_par);
+                    oi_apr = this.obs_codes_id_par(idx_par);
+                    u_wl_par = unique(wl_par);
+                    for w = u_wl_par'
+                        idx_par_wl = idx_par(wl_par == w);
+                        idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                    end
+                    idx_par = idx_sat_eb(this.sat_par(idx_sat_eb) == s & this.phase_par(idx_sat_eb) == 2);
+                    wl_par = this.wl_id_par(idx_par);
+                    oi_apr = this.obs_codes_id_par(idx_par);
+                    u_wl_par = unique(wl_par);
+                    for w = u_wl_par(1)
+                        idx_par_wl = idx_par(wl_par == w);
+                        idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                    end
+                end
+            end
+            
+            if sum(this.param_class == this.PAR_REC_EBFR) > 0
+                idx_sat_ebfr = find(this.class_par == this.PAR_REC_EBFR);
+                for s = 1 : length(this.unique_rec_name)
+                    idx_par = idx_sat_ebfr(this.rec_par(idx_sat_ebfr) == s);
+                    wl_par = this.wl_id_par(idx_par);
+                    u_wl_par = unique(wl_par);
+                    if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0  || sum(this.param_class == this.PAR_REC_CLK_PR) > 0
+                        idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
+                    end
+                    if length(u_wl_par) > 1
+                        if sum(this.param_class == this.PAR_IONO) > 0
+                           idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                         end
                     end
                 end
             end
+
+%             if sum(this.param_class == this.PAR_REC_EB) > 0
+%                 idx_sat_eb = find(this.class_par == this.PAR_REC_EB);
+%                 for r = 1 : length(this.unique_rec_name)
+%                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 1);
+%                     wl_par = this.wl_id_par(idx_par);
+%                     oi_apr = this.obs_codes_id_par(idx_par);
+%                     u_wl_par = unique(wl_par);
+%                     for w = u_wl_par(1:2)'
+%                         idx_par_wl = idx_par(wl_par == w);
+%                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+%                     end
+%                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 2);
+%                     wl_par = this.wl_id_par(idx_par);
+%                     oi_apr = this.obs_codes_id_par(idx_par);
+%                     u_wl_par = unique(wl_par);
+%                     for w = u_wl_par(1)
+%                         idx_par_wl = idx_par(wl_par == w);
+%                         idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+%                     end
+%                 end
+%                 idx_rm_rec_eb = idx_rm(this.class_par(idx_rm) ==  this.PAR_REC_EB);
+%                 for c = 1 : length(this.unique_obs_codes)
+%                     idx_par = idx_sat_eb(this.obs_codes_id_par(idx_sat_eb) == c);
+%                     if sum(this.obs_codes_id_par(idx_rm_rec_eb) == c) == 0
+%                     idx_rm = [idx_rm; idx_par(1)];
+%                     end
+% 
+%                 end
+%             end
+%             if sum(this.param_class == this.PAR_REC_PPB) > 0 &  sum(this.param_class == this.PAR_SAT_PPB) > 0
+%                 idx_rec_ppb = find(this.class_par == this.PAR_REC_PPB);
+%                 idx_rm = [idx_rm; idx_rec_ppb(1)];
+%             end
             
             if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC && false
                 idx_sat_ebfr = find(this.class_par == this.PAR_IONO);
