@@ -2047,6 +2047,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % mark all as outlier and interpolate
             % get observed values
+                        
+            this.sat.outliers_ph_by_ph = [];
             [ph, wl, lid_ph] = this.getPhases;
             this.sat.outliers_ph_by_ph = false(size(ph));
             % inititalize cycle slips with the beginning of the arcs
@@ -9968,7 +9970,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             
                             this.remUnderSnrThr([], this.state.getScaledSnrThr());
-                            %this.detectOutlierMarkCycleSlip();
+                            this.detectOutlierMarkCycleSlip();
                             this.remShortArc(this.state.getMinArc);
                             this.codeStaticPositioning(sys_list); % <== to be substituted with U2
                             this.applyDtRec(this.dt);
