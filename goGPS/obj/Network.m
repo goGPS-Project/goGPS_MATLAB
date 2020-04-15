@@ -875,7 +875,7 @@ classdef Network < handle
                     end
                 end
             end
-            %this.pushBackEphemeris(ls);
+            this.pushBackEphemeris(ls);
         end
         
         function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs,rec_time_indexes)
@@ -948,16 +948,16 @@ classdef Network < handle
             %      this.pushBackEphemeris(ls)
             cs = Core.getCoreSky();
             %%% subs clk
-            clk = zeros(this.common_time.length,length(ls.ls.unique_sat_goid));
+            clk = zeros(this.common_time.length,size(cs.clock,2));
             comm_time_ref = this.common_time.getNominalTime(ls.obs_rate).getRefTime(this.common_time.minimum.getMatlabTime);
             for s = 1 : length(ls.unique_sat_goid)
-                idx_clk = ls.class_PAR == ls.PAR_SAT_CLK & ls.sat_par == ls.unique_sat_goid(s);
+                idx_clk = ls.class_par == ls.PAR_SAT_CLK & ls.sat_par == ls.unique_sat_goid(s);
                 time_sat = ls.getTimePar(idx_clk).getNominalTime(ls.obs_rate);
                 [~,idx] = ismember(time_sat.getRefTime(this.common_time.first.getMatlabTime), this.common_time.getRefTime(this.common_time.first.getMatlabTime));
-                clk(idx,s) = ls.x(idx_clk);
+                clk(idx,ls.unique_sat_goid(s)) = ls.x(idx_clk);
             end
             
-            GReD_Utlity.substituteClK(clk, this.common_epoch)
+            GReD_Utility.substituteClK(clk, time_sat);
             %%% sub epehem
             idx_sat_x = ls.class_par == LS_Manipulator_new.PAR_SAT_X;
             idx_sat_y = ls.class_par == LS_Manipulator_new.PAR_SAT_Y;

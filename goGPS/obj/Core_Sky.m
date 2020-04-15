@@ -168,7 +168,7 @@ classdef Core_Sky < handle
                     for i = 1:length(eph_f_name)
                         gps_time = getFileStTime(eph_f_name{i});
                         end_time = this.getLastEpochCoord();
-                        if isempty(end_time) || isempty(gps_time) || (end_time - gps_time) > -1e-3
+                        if true; %isempty(end_time) || isempty(gps_time) || (end_time - gps_time) > -1e-3
                             this.addSp3(eph_f_name{i}, clock_in_eph);
                             this.coord = this.coord(1 : find(any(this.coord(:,:,1),2), 1, 'last'),:,:);
                             this.clock = this.clock(1 : find(any(this.clock(:,:),2), 1, 'last'),:,:);
@@ -2071,10 +2071,10 @@ classdef Core_Sky < handle
             n_coord = size(this.coord,1);
             for s = 1 : length(go_ids)
                 for c = 1 : 3
-                    B = A'*coord(:,go_ids(s),c);
+                    B = A'*coord(:,s,c);
                     coord_cord = zeros(n_coord,1);
                     coord_cord(~idx_empty) = N \ B;
-                    this.coord(:,go_ids(s),c) = this.coord(:,go_ids(s),c) + coord_cord;
+                    this.coord(:,go_ids(s),c) = this.coord(:,go_ids(s),c) + coord_cord(1:min(n_coord,length(coord_cord)));
                 end
             end
             
