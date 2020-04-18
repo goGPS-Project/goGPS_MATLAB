@@ -2634,7 +2634,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 % Extract non NaN serialized data
                 data = zero2nan(data);
                 id_ok = (~isnan(data));
-                %[map, n_data_map] = Core_Utils.polarGridder(az(id_ok)./180*pi, el(id_ok)./180*pi, data(id_ok), [4 1], 0.5);
+                %[map, n_data_map] = Core_Utils.hemiGridder(az(id_ok)./180*pi, el(id_ok)./180*pi, data(id_ok), [4 1], 0.5);
                 
                 % Eliminate empty epochs
                 az = az(:, sum(id_ok) > 1);

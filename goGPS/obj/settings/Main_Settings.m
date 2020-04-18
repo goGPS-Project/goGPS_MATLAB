@@ -160,9 +160,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         MP_REGULAR_UP_NXM = [1 1];
         MP_CONGRUENT_NXM = [2 1];
         MP_CONGRUENT_UP_NXM = [2 1];
-        MP_L_MAX = [43 43 31];
-        MP_ZCONGRUENT_UP_NXM = [2 1];
-        MP_N_MIN = 3;
+        MP_L_MAX = [45 41 31];
+        MP_ZCONGRUENT_UP_NXM = [1 0.5];
+        MP_N_MIN = 11;
 
         % OUT PATH
         OUT_DIR = Main_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project

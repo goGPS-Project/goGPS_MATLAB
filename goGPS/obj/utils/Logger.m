@@ -406,7 +406,8 @@ classdef Logger < handle
                     fprintf('\n');
                 end
                 if this.isFileOut % File
-                    fprintf(this.getOutFId, '\n');
+                    fid = this.getOutFId;                   
+                    fprintf(fid, '\n');
                 end
             end
         end

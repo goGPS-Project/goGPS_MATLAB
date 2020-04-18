@@ -79,40 +79,31 @@ function z = zernfun(n,m,r,theta,nflag)
 %       end
 %
 %   See also ZERNPOL, ZERNFUN2.
-
-%   Paul Fricker  2/28/2012
-%   Gatti Andrea 30/11/2019
-
+%   Paul Fricker 2/28/2012
 % Check and prepare the inputs:
 % -----------------------------
 if ( ~any(size(n)==1) ) || ( ~any(size(m)==1) )
     error('zernfun:NMvectors','N and M must be vectors.')
 end
-
 if length(n)~=length(m)
     error('zernfun:NMlength','N and M must be the same length.')
 end
-
 n = n(:);
 m = m(:);
 if any(mod(n-m,2))
     error('zernfun:NMmultiplesof2', ...
           'All N and M must differ by multiples of 2 (including 0).')
 end
-
 if any(m>n)
     error('zernfun:MlessthanN', ...
           'Each M must be less than or equal to its corresponding N.')
 end
-
 if any( r>1 | r<0 )
     error('zernfun:Rlessthan1','All R must be between 0 and 1.')
 end
-
 if ( ~any(size(r)==1) ) || ( ~any(size(theta)==1) )
     error('zernfun:RTHvector','R and THETA must be vectors.')
 end
-
 r = r(:);
 theta = theta(:);
 length_r = length(r);
@@ -120,7 +111,6 @@ if length_r~=length(theta)
     error('zernfun:RTHlength', ...
           'The number of R- and THETA-values must be equal.')
 end
-
 % Check normalization:
 % --------------------
 if nargin==5 && ischar(nflag)
@@ -131,11 +121,9 @@ if nargin==5 && ischar(nflag)
 else
     isnorm = false;
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute the Zernike Polynomials
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % Determine the required powers of r:
 % -----------------------------------
 m_abs = abs(m);
@@ -144,104 +132,47 @@ for j = 1:length(n)
     rpowers = [rpowers m_abs(j):2:n(j)];
 end
 rpowers = unique(rpowers);
-
-% original implementation
 % Pre-compute the values of r raised to the required powers,
 % and compile them in a matrix:
 % -----------------------------
-if (rpowers(end)) ~= (numel(rpowers) - 1)
-    if rpowers(1)==0
-        rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
-        rpowern = cat(2,rpowern{:});
-        rpowern = [ones(length_r,1) rpowern];
-    else
-        rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
-        rpowern = cat(2,rpowern{:});
-    end
-else %faster approach
-    % new lines
-    rpowern = ones(size(r, 1), rpowers(end) + 1);
-    if rpowers(end) > 1
-        rpowern(:, 2) = r;
-        for p = 3 : rpowers(end) + 1
-            rpowern(:, p) = rpowern(:, p - 1) .* r;
-        end
-    end
-    % end of new lines
+if rpowers(1)==0
+    rpowern = arrayfun(@(p)r.^p,rpowers(2:end),'UniformOutput',false);
+    rpowern = cat(2,rpowern{:});
+    rpowern = [ones(length_r,1) rpowern];
+else
+    rpowern = arrayfun(@(p)r.^p,rpowers,'UniformOutput',false);
+    rpowern = cat(2,rpowern{:});
 end
-
-
 % Compute the values of the polynomials:
 % --------------------------------------
-if length_r > 1e5                 % <= original implementation
-    z = zeros(length_r,length(n));
-    for j = 1:length(n)
-        s = 0:(n(j)-m_abs(j))/2;
-        pows = n(j):-2:m_abs(j);
-        for k = length(s):-1:1
-            p = (1-2*mod(s(k),2))* ...
-                prod(2:(n(j)-s(k)))/              ...
-                prod(2:s(k))/                     ...
-                prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
-                prod(2:((n(j)+m_abs(j))/2-s(k)));
-            idx = (pows(k)==rpowers);
-            z(:,j) = z(:,j) + p * rpowern(:,idx);
-        end
-        
-        if isnorm
-            z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
-        end
+z = zeros(length_r,length(n));
+for j = 1:length(n)
+    s = 0:(n(j)-m_abs(j))/2;
+    pows = n(j):-2:m_abs(j);
+    for k = length(s):-1:1
+        p = (1-2*mod(s(k),2))* ...
+                   prod(2:(n(j)-s(k)))/              ...
+                   prod(2:s(k))/                     ...
+                   prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
+                   prod(2:((n(j)+m_abs(j))/2-s(k)));
+        idx = (pows(k)==rpowers);
+        z(:,j) = z(:,j) + p*rpowern(:,idx);
     end
-else
-    % for small number of points this is faster
-    z = zeros(length_r,length(n));
-    for j = 1:length(n)
-        s = 0:(n(j)-m_abs(j))/2;
-        pows = n(j):-2:m_abs(j);
-        p_sum = zeros(size(rpowers))';
-        for k = length(s):-1:1
-            p = (1-2*mod(s(k),2))* ...
-                prod(2:(n(j)-s(k)))/              ...
-                prod(2:s(k))/                     ...
-                prod(2:((n(j)-m_abs(j))/2-s(k)))/ ...
-                prod(2:((n(j)+m_abs(j))/2-s(k)));
-            idx = (pows(k)==rpowers);
-            p_sum(idx) = p_sum(idx) + p;
-        end
-        z(:,j) = sum(rpowern * p_sum, 2);
-        
-        if isnorm
-            z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
-        end
+    
+    if isnorm
+        z(:,j) = z(:,j)*sqrt((1+(m(j)~=0))*(n(j)+1)/pi);
     end
 end
-
 % END: Compute the Zernike Polynomials
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % Compute the Zernike functions:
 % ------------------------------
-idx_pos = m > 0;
-idx_neg = m < 0;
-
-m_abs = abs(m);
-m_list = 0 : max(m_abs); 
-if any(idx_pos) || any(idx_neg)
-    tt = [cos(theta * m_list) sin(theta * m_list)];
-    m_abs(idx_neg) = m_abs(idx_neg) + max(m_abs) + 1;
-    z = z .* tt(:, m_abs + 1);
+idx_pos = m>0;
+idx_neg = m<0;
+if any(idx_pos)
+    z(:,idx_pos) = z(:,idx_pos).*cos(theta*m_abs(idx_pos)');
 end
-
-% m_list = 1 : max(m_abs); 
-% if any(idx_pos)
-%     ct = cos(theta * m_list);                                % <= new line
-%     z(:,idx_pos) = z(:,idx_pos) .* ct(:, m_abs(idx_pos));    % <= new line
-%     % z(:,idx_pos) = z(:,idx_pos).*cos(theta*m_abs(idx_pos)'); <= original implementation
-% end
-% if any(idx_neg)
-%     st = sin(theta * m_list);                                % <= new line
-%     z(:,idx_neg) = z(:,idx_neg) .* st(:, m_abs(idx_neg));    % <= new line
-%     % z(:,idx_neg) = z(:,idx_neg).*sin(theta*m_abs(idx_neg)'); <= original implementation    
-% end
-
+if any(idx_neg)
+    z(:,idx_neg) = z(:,idx_neg).*sin(theta*m_abs(idx_neg)');
+end
 % EOF zernfun

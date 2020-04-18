@@ -53,7 +53,7 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
     %scatter(x(data~=0),y(data~=0),20,data(data~=0),'filled')
     
     dataInterp = scatteredInterpolant(x(:), y(:), data(:), 'linear' );
-    x = -1 : 0.005 : 1;
+    x = -1 : 0.0025 : 1;
     y = x;
     [x_mg, y_mg] = meshgrid(x, y);
     polar_data = nan(numel(x), numel(y));

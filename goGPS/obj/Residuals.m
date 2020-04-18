@@ -507,13 +507,14 @@ classdef Residuals < Exportable
                 mode = 0; % Z + stacking
             end
             if numel(mode) == 3
-                stk_grid_step = mode(2,3);
+                r_grid_step = mode(2,3);
                 mode = mode(1);
             else
-                stk_grid_step = state.mp_zcongruent_up_nxm;
-            end
+                r_grid_step = state.mp_zcongruent_up_nxm;
+            end            
             
             n_min = state.mp_n_min; % minimum  number of points per cell
+            n_min = 15; %  <== DEBUG
             
             % z_map  Zernike
             % r_map  Zernike + (the methods specified on mode)
@@ -539,13 +540,22 @@ classdef Residuals < Exportable
                     % Enable all the grid types
                     ltype_of_grids = logical([1 1 1 1 1 1]); % All enabled
                 end
-                grid_step = 0.5;
+                
                 if nargin < 3 || isempty(l_max)
                     l_max = state.mp_l_max;
                 end
                 if numel(l_max) == 1
                     l_max = [l_max l_max l_max];
                 end
+                
+                % Depending on the maximum zernike degree change the map resolution
+                if l_max > 180
+                    grid_step = 0.1;
+                elseif l_max > 90                    
+                    grid_step = 0.25;
+                else
+                    grid_step = 0.5;
+                end            
                 
                 if nargin < 2
                     marker_name = 'UNKN';
@@ -572,7 +582,6 @@ classdef Residuals < Exportable
                 cc = Core.getConstellationCollector();
                 [az, el, ~, ~, go_id] = this.getAzimuthElevation();
                 sys_c_list = cc.getAvailableSys;
-                
                 
                 log = Core.getLogger;
                 log.addMarkedMessage(sprintf('Computing multipath mitigation coefficients for "%s"', marker_name));
@@ -613,7 +622,7 @@ classdef Residuals < Exportable
                             end
                             
                             res_all = res(~isnan(res(:)));
-                            res_smt = Receiver_Commons.smoothMat(res, 'spline', 300/this.time.getRate);
+                            res_smt = Receiver_Commons.smoothMat(res, 'spline', 120/this.time.getRate);
                             res_smt = res_smt(~isnan(res(:)));
                             
                             go_id_list = [];
@@ -628,6 +637,7 @@ classdef Residuals < Exportable
                                 end
                             end
                             
+                            clear az el;
                             if data_found
                                 m_max = l_max;                                
                                 % Remove outliers
@@ -649,12 +659,12 @@ classdef Residuals < Exportable
                                 if flag_reg
                                     log.addMessage(log.indent('2. Preparing regularization', 9));
                                     % Get regularization points based on empty sky areas
-                                    [data_map, n_data_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, [1 1]);
+                                    [data_map, n_data_map, az_grid, el_grid] = Core_Utils.hemiGridder(az_all, el_all, res_all, [1 1]);
                                     [az_grid, el_grid] = meshgrid(az_grid, el_grid);
-                                    az_reg = az_grid(n_data_map <= 0);
-                                    el_reg = el_grid(n_data_map <= 0);
+                                    az_reg = az_grid(n_data_map <= n_min);
+                                    el_reg = el_grid(n_data_map <= n_min);
                                     
-                                    [~, z_map, az_grid, el_grid] = Core_Utils.polarGridder(az_all, el_all, res_all, 1);
+                                    % In the knots with few data add zero
                                     az_all = [az_all; az_reg];
                                     el_all = [el_all; el_reg];
                                     res_all = [res_all; zeros(size(el_reg))];
@@ -679,27 +689,11 @@ classdef Residuals < Exportable
                                         end
                                     end
                                 end
-                                az_grid = ((-180 + (grid_step(1) / 2)) : grid_step(1) : (180 - grid_step(1) / 2)) .* (pi/180);
-                                el_grid = flipud(((grid_step(end) / 2) : grid_step(end) : 90 - (grid_step(end) / 2))' .* (pi/180));
                                 
-                                log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 2 + flag_reg*1, l_max(1)), 9));
-                                %log.addMessage(log.indent('mapping r with m1 = pi/2 * (1-cos(el))', 12));
-                                
-                                % Ignore data under cut-off -0.5 degrees
-                                co = max(0, (Core.getState.getCutOff - 0.5)) / 180 * pi;
+                                % Ignore data under cut-off
                                 if flag_discard_co
-                                    % First approach:
-                                    remCutOff = @(el) (el - co) / (pi/2 - co) * (pi / 2);
-                                else
-                                    % Second approach
-                                    remCutOff = @(el) el;
+                                    Zernike.setCutOff(max(0, (Core.getState.getCutOff - 0.5)));
                                 end
-                                % 3 mapping functions
-                                el2radius1 = @(el) cos(remCutOff(el)).^2;
-                                el2radius2 = @(el) sin(pi/2*cos(remCutOff(el)).^2);
-                                el2radius3 = @(el) sin(pi/2*cos(remCutOff(el)));
-                                %omf = @(el) 1 - sin(el);
-                                %el2radius3 = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
                                 res_work = res_all;
                                 
                                 if ~any(ltype_of_grids(1:2))
@@ -707,92 +701,121 @@ classdef Residuals < Exportable
                                     z_map = 0;
                                     r_map = 0;
                                 else
-                                    [res_filt, z_par1, l1, m1] = Core_Utils.zFilter(l_max(1), m_max(1), az_all, el2radius1(el_all), res_work, 1e-5);
-                                    res_work = res_work - res_filt;
                                     
-                                    if l_max(2) > 0
-                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 2 + flag_reg*1, l_max(2)), 9));
-                                        %log.addMessage(log.indent('mapping r with m2 = pi/2 * (1-cos(m1))', 12));
-                                        [res_filt, z_par2, l2, m2] = Core_Utils.zFilter(l_max(2), m_max(2), az_all, el2radius2(el_all), res_work, 1e-5);
-                                        res_work = res_work - res_filt;
+                                    % Perform the first of 3 Zernike steps
+                                    Zernike.setMode(0); % Set Zernike engine to recursive
+                                    if l_max(1) > 0
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 2 + flag_reg*1, l_max(1)), 9));
+                                        Zernike.setModeMF(1);
+                                        el2radius = Zernike.getElFun;
+                                        [z_par, l, m] = Zernike.analysisAllBlock(l_max(1), m_max(1), az_all, el2radius(el_all), res_work, 1e-5);
+                                        [z_map1, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
+                                        z_map1((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map1);
+                                    else
+                                        z_map1 = 0;
                                     end
                                     
+                                    % Perform the second of 3 Zernike steps
+                                    if l_max(2) > 0
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 2 + flag_reg*1, l_max(2)), 9));
+                                        Zernike.setModeMF(2);
+                                        Zernike.setCutOff(0); % This mapping function is more unstable at low elevations => use polar regularization
+                                                                               
+                                        el2radius = Zernike.getElFun;
+                                        [z_par, l, m] = Zernike.analysisAllBlock(l_max(2), m_max(2), az_all, el2radius(el_all), res_work, 1e-5);
+                                        [z_map2, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
+                                        z_map2((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map2);
+                                    else
+                                        z_map2 = 0;
+                                    end
+                                    
+                                    % Perform the third of 3 Zernike steps
                                     if l_max(3) > 0
                                         log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/3)', 2 + flag_reg*1, l_max(3)), 9));
-                                        [res_filt, z_par3, l3, m3] = Core_Utils.zFilter(l_max(3), m_max(3), az_all, el2radius3(el_all), res_work, 1e-5);
-                                        res_work = res_work - res_filt;
+                                        Zernike.setModeMF(3);
+                                        Zernike.setCutOff(0); % This mapping function is more unstable at low elevations => use polar regularization
+                                        [z_par, l, m] = Zernike.analysisAllBlock(l_max(3), m_max(3), az_all, el2radius(el_all), res_work, 1e-5);
+                                        [z_map3, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
+                                        z_map3((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map3);
+                                    else
+                                        z_map3 = 0;
                                     end
                                     
                                     % Generate maps
                                     log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 4 + flag_reg*1), 9));
-                                    id_ok = (el_grid >= co);
-                                    [az_mgrid, el_mgrid] = meshgrid(az_grid, el_grid(id_ok));
-                                    [z_map1] = Core_Utils.zSinthesys(l1, m1, az_mgrid, el2radius1(el_mgrid), z_par1);
-                                    if flag_discard_co
-                                        z_map1 = [z_map1; zeros(size(id_ok,1) - sum(id_ok), size(z_map1,2))];
-                                    else
-                                        z_map1(~id_ok, :) = 0;
-                                    end
-                                    
-                                    if l_max(2) <= 0
-                                        z_map2 = 0;
-                                    else
-                                        [z_map2] = Core_Utils.zSinthesys(l2, m2, az_mgrid, el2radius2(el_mgrid), z_par2);
-                                        if flag_discard_co
-                                            z_map2 = [z_map2; zeros(size(id_ok,1) - sum(id_ok), size(z_map2,2))];
-                                        else
-                                            z_map2(~id_ok, :) = 0;
-                                        end
-                                    end
-                                    if l_max(3) <= 0
-                                        z_map3 = 0;
-                                    else
-                                        [z_map3] = Core_Utils.zSinthesys(l3, m3, az_mgrid, el2radius3(el_mgrid), z_par3);
-                                        if flag_discard_co
-                                            z_map3 = [z_map3; zeros(size(id_ok,1) - sum(id_ok), size(z_map3,2))];
-                                        else
-                                            z_map3(~id_ok, :) = 0;
-                                        end
-                                    end
                                     z_map = z_map1 + z_map2 + z_map3; % z_map  Zernike only
                                     
                                     if ~ltype_of_grids(2) % r_map  Zernike + (the methods specified on mode)
                                         r_map = 0;
                                     else
-                                        res_work((n_obs + 1) : end) = 0; % Restore regularization to zero
-                                        if mode == 1
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, false, n_min);
-                                        elseif mode == 0
+                                        % In this mode a gridding on the residuals is performed
+                                        % to retrieve the high frequency multipath a double step procedure is performed, 
+                                        % first low-res than high-res
+                                        
+                                         if mode == 1
+                                            flag_congruent = false;
+                                        else % if mode == 0
                                             flag_congruent = true;
-                                            [r_map] = Core_Utils.polarGridder(az_all, el_all, res_work, stk_grid_step, grid_step, flag_congruent, n_min);
                                         end
+                                        
+                                        
+                                        % low-res step
+                                        grid_step1 = [max(r_grid_step(1), 1.5) max(r_grid_step(end), 0.5)];
+                                        out_step1 = [min([grid_step1(1), grid_step(1), 0.5]) min([grid_step1(end), grid_step(end) 0.5])];
+                                        
+                                        % high-res step
+                                        grid_step2 = r_grid_step;
+                                        out_step2 = [min([r_grid_step(1), grid_step(1)]) min([r_grid_step(end), grid_step(end)])];
+
+                                        % Set the final size of the r_grid (it is generally [0.25 x 0.1] deg
+                                        out_size = [90 360] ./ fliplr(out_step2);
+                                        
+                                        % Restore data with no regularization
+                                        res_work = res_all(1 : n_obs);
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all(1 : n_obs), el_all(1 : n_obs), Core_Utils.resize2(z_map, out_size));
+                                       
+                                        % Compute low-res grid - STEP 1
+                                        [r_map1, n_data_map, az_grid, el_grid] = Core_Utils.hemiGridder(az_all(1 : n_obs), el_all(1 : n_obs), res_work, grid_step1, out_step1, flag_congruent, n_min);
+                                                                                
+                                        % Resize it to the final grid size
+                                        r_map = Core_Utils.resize2(r_map1, out_size);
+   
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all(1 : n_obs), el_all(1 : n_obs), r_map);
+
+                                        % Compute high-res grid - STEP 2 -- this is not CONGRUENT! 
+                                        % note that high latitude cells are usually under n_min thr
+                                        [r_map2, n_data_map, az_grid, el_grid] = Core_Utils.hemiGridder(az_all(1 : n_obs), el_all(1 : n_obs), res_work, grid_step2, grid_step2, false, 7);
+                                        r_map = Core_Utils.resize2(z_map, out_size) + r_map + Core_Utils.resize2(r_map2, out_size);
                                     end
                                 end
                                                                 
                                 % Compute normal and congruent maps as comparison (no regularization)
                                 if ltype_of_grids(3) % g_map  Simple Gridding of size
-                                    g_map = Core_Utils.polarGridder(az_all, el_all, res_all, state.mp_regular_up_nxm , grid_step, false, n_min);
+                                    g_map = Core_Utils.hemiGridder(az_all, el_all, res_all, state.mp_regular_up_nxm , grid_step, false, n_min);
                                 else
                                     g_map = 0;
                                 end
                                 if ltype_of_grids(4) % c_map  Congruent cells gridding of size [stk_grid_step]
-                                    c_map = Core_Utils.polarGridder(az_all, el_all, res_all, state.mp_congruent_up_nxm, grid_step, true, n_min);
+                                    c_map = Core_Utils.hemiGridder(az_all, el_all, res_all, state.mp_congruent_up_nxm, grid_step, true, n_min);
                                 else
                                     c_map = 0;
                                 end
                                 if ltype_of_grids(5) % g1_map Simple Gridding of size [1x1]
-                                    g1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_regular_nxm, state.mp_regular_nxm, false, n_min);
+                                    g1_map = Core_Utils.hemiGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_regular_nxm, [], false, n_min);
                                 else
                                     g1_map = 0;
                                 end
                                 if ltype_of_grids(6) % c1_map Congruent cells gridding of size [1x1]
-                                    c1_map = Core_Utils.polarGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_congruent_nxm, state.mp_congruent_nxm, true, n_min);
+                                    c1_map = Core_Utils.hemiGridder(az_all(res_all ~= 0), el_all(res_all ~= 0), res_all(res_all ~= 0), state.mp_congruent_nxm, state.mp_congruent_nxm, true, n_min);
                                 else
                                     c1_map = 0;
                                 end
                                 
                                 if flag_debug
-                                    clim = [-1 1] * max(-perc(1e3*(z_map(:) + r_map(:)), 0.003),perc(1e3*(z_map(:) + r_map(:)), 0.997));
+                                    clim = [-1 1] * max(-perc(1e3*(r_map(:)), 0.003),perc(1e3*(r_map(:)), 0.997));
                                     mp_map = z_map1;
                                     [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
                                     az_grid = Core_Utils.deg2rad(az_grid)';
@@ -814,20 +837,28 @@ classdef Residuals < Exportable
                                     end
                                     title((sprintf('Zernike expansion (3) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
-                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(r_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
-                                    title((sprintf('Gridder residuals of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
-                                    
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Zernike expansion of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
-                                    
-                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map + r_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
+
+                                    mp_map = r_map;
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid)';
+                                    el_grid = Core_Utils.deg2rad(el_grid);
+                                                                        
+                                    figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*r_map); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Final map of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
                                     mp_map = c_map;
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid)';
+                                    el_grid = Core_Utils.deg2rad(el_grid);
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Gridded map with congruent cells of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
 
                                     mp_map = g_map;
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid)';
+                                    el_grid = Core_Utils.deg2rad(el_grid);
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Gridded map of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
@@ -840,6 +871,9 @@ classdef Residuals < Exportable
                                     title((sprintf('Gridded map with congruent cells [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
 
                                     mp_map = g1_map;
+                                    [az_grid, el_grid] = Core_Utils.getPolarGrid(360 / size(mp_map, 2), 90 / size(mp_map, 1));
+                                    az_grid = Core_Utils.deg2rad(az_grid)';
+                                    el_grid = Core_Utils.deg2rad(el_grid);
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(mp_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Gridded map [1 x 1] of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                 end
@@ -856,7 +890,7 @@ classdef Residuals < Exportable
                                 
                                 % Save grids of multi-path
                                 ant_mp.(sys_c).(trk_code).z_map = single(z_map);             % Zernike map
-                                ant_mp.(sys_c).(trk_code).r_map = single(z_map + r_map);     % Zernike map + gridded residuals
+                                ant_mp.(sys_c).(trk_code).r_map = single(r_map);             % Zernike map + gridded residuals
                                 ant_mp.(sys_c).(trk_code).g_map = single(g_map);             % Simple Gridding of size [stk_grid_step]
                                 ant_mp.(sys_c).(trk_code).c_map = single(c_map);             % Congruent cells gridding of size [stk_grid_step]
                                 ant_mp.(sys_c).(trk_code).g1_map = single(g1_map);           % Simple Gridding of size [1x1]

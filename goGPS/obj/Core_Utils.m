@@ -449,8 +449,8 @@ classdef Core_Utils < handle
             
             val = [val_az.*repmat(val_el(:,1),1,4) val_az.*repmat(val_el(:,2),1,4) val_az.*repmat(val_el(:,3),1,4) val_az.*repmat(val_el(:,4),1,4)];
         end
-        
-        function x = despline(x,spline_base)
+                
+        function x = despline(x, spline_base)
             % despline signal x
             %
             % SYNTAX:
@@ -462,6 +462,7 @@ classdef Core_Utils < handle
                 x(:,2) = x(:,2) - splinerMat(1:length(x(:,2)),x(:,2),spline_base);
             end
         end
+        
         
         function [az_grid, el_grid] = getPolarGrid(step_az, step_el)
             % Get a regularly spaced lnots coordinates for a polar grid
@@ -506,7 +507,8 @@ classdef Core_Utils < handle
             end
         end
         
-        function [data_map, n_map, az_grid_out, el_grid_out] = polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells, n_min)
+               
+        function [data_map, n_map, az_grid_out, el_grid_out] = hemiGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells, n_min)
             % Grid points on a regularly gridded semi sphere
             %
             % INPUT 
@@ -514,7 +516,7 @@ classdef Core_Utils < handle
             %   el      elevation
             %
             % SYNTAX
-            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.polarGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
+            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.hemiGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
             
             % Define grid
             % az -180 : 180
@@ -619,7 +621,7 @@ classdef Core_Utils < handle
                     n_map(n_map == 0) = 0.1; % this is to cheat the next scatteredInterpolant
                     
                     funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
-                    x = -1 : 0.005 : 1;
+                    x = linspace(-1, 1, 180/min(step_deg_out));
                     y = x;
                     [x_mg, y_mg] = meshgrid(x, y);
                     polar_data = nan(numel(x), numel(y));
@@ -650,42 +652,57 @@ classdef Core_Utils < handle
             end
         end
         
-        
-        function [z, l, m] = getAllZernike(l_max, m_max, az, r)
-            % Generate all the Zernike parameters combinations
+        function [data, row, col] = hgrid2scatter(az, el, hmap, flag_congurent_cells)
+            % Grid points on a regularly gridded semi sphere
             %
             % INPUT 
-            %   l_max   maximum degree
-            %   m_max   maximum order
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
+            %   az      azimuth list   [n x 1]
+            %   el      elevation list [n x 1]
             %
-            % SINTAX
-            %   [z, l, m] = getAllZernike(l_max, az, r)
-            %   [z, l, m] = getAllZernike(l_max, m_max, az, r)
-            if nargin == 3
-                r = az;
-                az = m_max;
-                m_max = l_max;
+            % SYNTAX
+            %   [data, row, col] = Core_Utils.hgrid2scatter(az, el, hmap)
+            
+            % Define grid
+            % az -180 : 180
+            % el 0 : 90
+            
+            step_deg = fliplr([90 360] ./ size(hmap));
+            el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
+            flag_congurent_cells = nargin >= 4 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
+            if nargin < 7
+                n_min = 0; % by default grid all the data
+            end            
+            if flag_congurent_cells
+                step_az = 360 ./ round((360 / step_deg(1)) * cos(el_grid));
+                az_grid = {};
+                for i = 1 : numel(step_az)
+                   az_grid{i} = ((-180 + (step_az(i) / 2)) : step_az(i) : (180 - step_az(i) / 2)) .* (pi/180);
+                   n_az(i) = numel(az_grid{i});
+                end                
+            else
+                az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+                n_az = numel(az_grid);
+            end
+            n_el = numel(el_grid);
+            
+            % Find map indexes
+            row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+            if flag_congurent_cells
+                col = max(1, min(floor((az + pi) ./ (step_az(row) / 180 * pi) ) + 1, n_az(i)));
+            else
+                col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
             end
             
-            n_par = l_max * (l_max + 3) / 2 + 1;
-            
-            l = zeros(n_par, 1);
-            m = zeros(n_par, 1);
-            i = 0;
-            for degree = 0 : l_max
-                i = i(end) + (1 : degree + 1);
-                l(i) = degree;
-                m(i) = -degree : 2 : degree;
+            % init data
+            data = nan(size(az));
+                        
+            % fill maps
+            for i = 1 : numel(data)
+                data(i) = hmap(row(i), col(i));                
             end
-            
-            l(abs(m) > m_max) = [];
-            m(abs(m) > m_max) = [];
-            
-            z = Core_Utils.getZernike(l, m, az, r);
         end
-        
+                
+                
         function [n] = getAllNormCoeffZernike(l_max, m_max)
             % Generate all the Zernike normalization coefficient
             %
@@ -737,8 +754,8 @@ classdef Core_Utils < handle
             %   r       disc radius              [0 1]
             %
             % SINTAX
-            %   [z, l, m] = getAllZernike(l_max, az, el)
-            %   [z, l, m] = getAllZernike(l_max, m_max, az, el)
+            %   [z, l, m] = getAllZernikeNorm(l_max, az, el)
+            %   [z, l, m] = getAllZernikeNorm(l_max, m_max, az, el)
             if nargin == 3
                 r = az;
                 az = m_max;
@@ -776,22 +793,7 @@ classdef Core_Utils < handle
             
             z = zernfun(l, m, r(:), az(:), 'norm');
         end
-        
-        function z = getZernike(l, m, az, r)
-            % Get Zernike values for the polynomials
-            %
-            % INPUT 
-            %   l       list of degrees
-            %   m       list of orders
-            %   az      list of azimuth angles   [rad]
-            %   r       radius [0..1]
-            %
-            % SINTAX
-            %   z = getZernike(l, m, az, r)
-                                    
-            z = zernfun(l, m, r(:), az(:));
-        end
-                
+                        
         function [S] = reorthZernikeMask(lat, lon, el_thrsh, n_sample)
             % get an orthogonal basis of zernike function that maximize the
             % power in the area of interest
@@ -827,7 +829,7 @@ classdef Core_Utils < handle
             theta = atan2(xy(:,2),xy(:,1));
             el = pi/2 - r*pi/2;
             
-            [z1] = Core_Utils.getAllZernike(10, 10, theta, r);
+            [z1] = Zernike.getAll(10, 10, theta, r);
             %z1 = [zernfun(1,1,r,theta,'norm')      zernfun(1,-1,r,theta,'norm') zernfun(5,5,r,theta,'norm')];%           2/sqrt(pi)
             %z1 = [r .* sin(theta)      r .* cos(theta)];
             %       1   -1    r * sin(theta)                 2/sqrt(pi)
@@ -849,134 +851,7 @@ classdef Core_Utils < handle
             S = U(:,1:stop);
         end
         
-        function [z_interp, l, m] = zSinthesysAll(l_max, m_max, az, r, z_par)
-            % Get Zernike interpolation given the coefficients
-            % of their polynomials
-            %
-            % INPUT
-            %   l_max   maximum degree
-            %   m_max   maximum order
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
-            %   z_par   Zernike coefficients
-            %
-            % SINTAX
-            %   [z_interp] = zSinthesysAll(l_max, m_max, az, el, z_par)
-            z_interp = nan(size(az));
-            
-            id_ok = ~isnan(az);
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az, r);
-            z_interp(id_ok) = A * z_par;
-        end
         
-        function [z_interp, l, m] = zSinthesys(l, m, az, r, z_par)
-            % Get Zernike interpolation given the coefficients
-            % of their polynomials
-            %
-            % INPUT 
-            %   l       list of degrees
-            %   m       list of orders
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
-            %   z_par   Zernike coefficients
-            %
-            % SINTAX
-            %   [z_interp] = zSinthesys(l, m, az, el, z_par)
-            z_interp = nan(size(az));
-            
-            id_ok = ~isnan(az);
-            A = Core_Utils.getZernike(l, m, az, r);
-            z_interp(id_ok) = A * z_par;
-        end
-        
-        function [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, r, data, max_reg)
-            % Get Zernike polynomials parameters 
-            %
-            % INPUT
-            %   l_max   maximum degree
-            %   m_max   maximum order
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
-            %   data    list of data to be analized
-            %   max_reg maximum regularization
-            %
-            % SINTAX
-            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
-            
-            id_ok = ~isnan(data(:));
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), r(id_ok));
-            if nargin == 6 && ~isempty(max_reg) && max_reg
-                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
-            else
-                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
-            end
-            z_par = (A'*A + diag(reg_fun .* ones(size(A, 2), 1))) \ (A' * data(id_ok));    
-        end
-        
-         
-        function [z_par, l, m, A] = zroAnalisysAll(l_max, m_max, az, r, data, S)
-            % Get Zernike polynomials parameters form reothonormalize
-            % function
-            %
-            % SINTAX
-            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, S)
-            
-            id_ok = ~isnan(data(:));
-            [A, l, m] = Core_Utils.getAllZernike(l_max, m_max, az(id_ok), r(id_ok));
-            N = A'*A;
-            B = A'*data;
-            N = S'*N*S;
-            B = S'*B;
-            z_par = N\B;
-            z_par = S*z_par;
-        end
-        
-        function [z_par, l, m, A] = zAnalisys(l, m, az, r, data, max_reg)
-            % Get Zernike polynomials parameters 
-            %
-            % INPUT 
-            %   l       list of degrees
-            %   m       list of orders
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
-            %   data    list of data to be analized
-            %   max_reg maximum regularization
-            %
-            % SINTAX
-            %   [z_par, l, m, A] = zAnalisysAll(l_max, m_max, az, el, data, <max_reg = 1>)
-            
-            id_ok = ~isnan(data(:));
-            A = Core_Utils.getZernike(l, m, az(id_ok), r(id_ok));
-            if nargin == 6 && ~isempty(flag_reg) && flag_reg
-                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5) * max_reg;
-            else
-                reg_fun = 2 * ((1./(1 + exp(-l))) - 0.5);
-            end
-            z_par = (A' * A + reg_fun .* diag(ones(size(A, 2), 1))) \ (A' * data(id_ok));
-        end
-                
-        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, r, data, max_reg)
-            % Get Zernike polynomials parameters 
-            %
-            % INPUT
-            %   l_max   maximum degree
-            %   m_max   maximum order
-            %   az      list of azimuth angles   [rad]
-            %   r       disc radius              [0 1]
-            %   data    list of data to be analized
-            %   max_reg maximum regularization
-            %
-            % SINTAX
-            %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
-            
-            if nargin == 6
-                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data, max_reg);
-            else
-                [z_par, l, m, A] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data);
-            end
-            filtered_data = A * z_par;
-        end
-
         function flag_is_hold = isHold()
             % Return if there is an open figure on hold
             %
@@ -1003,7 +878,7 @@ classdef Core_Utils < handle
             scale = 1;
             %%%
 
-            x = -1 : 0.005 : 1;
+            x = -1 : 0.0025 : 1;
             y = x;
             [X,Y] = meshgrid(x,y);
             [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
@@ -1018,8 +893,15 @@ classdef Core_Utils < handle
                 idx = r_prj <= 1;
             end
             z = nan(size(X));      
-            z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
-            
+            %z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
+            max_ram = 1 * 1024^3; % 1GB
+            idx = find(idx);
+            nobs_max = (max_ram / (numel(z_par) * 8));
+            lim = [unique(floor([1 : nobs_max : numel(idx)-1]))' unique(floor([(nobs_max + 1) : nobs_max : numel(idx) numel(idx)]))'];
+            for i = 1 : (size(lim, 1))
+                i
+                z(idx(lim(i,1):lim(i,2))) = Zernike.get(l, m, 2 * pi - theta(idx(lim(i,1):lim(i,2))) + pi/2, r_zern(idx(lim(i,1):lim(i,2)))) * z_par;
+            end
             %h = scatter(X(~isnan(z)),Y(~isnan(z)),160,z(~isnan(z)),'filled');
             h = imagesc(x,y,z);
             h.AlphaData = ~isnan(z);
