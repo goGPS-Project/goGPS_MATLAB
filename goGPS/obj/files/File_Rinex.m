@@ -269,9 +269,11 @@ classdef File_Rinex < Exportable
                                                     date_stop = strtrim(line(1:48));
                                                     par_to_find = par_to_find - 1;
                                                 end
-                                            elseif line(76) == 'Y' %  SYS / # / OBS TYPES
+                                            elseif line(76) == 'Y' || (numel(line) >= 79 && line(79) == 'V') %  SYS / # / OBS TYPES || # / TYPES OF OBSERV
                                                 if line(1) ~= ' '
                                                     cur_trck_sys = line(1);
+                                                else
+                                                    cur_trck_sys = ' ';
                                                 end
                                                 trcks = strsplit(line(8:60),' ');
                                                 for t = trcks
@@ -280,10 +282,19 @@ classdef File_Rinex < Exportable
                                                         t = [t repmat(' ',1,3-length(t))];
                                                         idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
                                                         trck_availability(idx) = true;
+                                                        if strcmp(t,'P1 ')% rinex 2 codes does not specify contellation, assuming GPS
+                                                            trck_availability(strLineMatch(trck_name,'GC1W')) = true;
+                                                        elseif strcmp(t,'P2 ')
+                                                            trck_availability(strLineMatch(trck_name,'GC2W')) = true;
+                                                        elseif strcmp(t,'C1 ')
+                                                            trck_availability(strLineMatch(trck_name,'GC1C')) = true;
+                                                        elseif strcmp(t,'C2 ')
+                                                            trck_availability(strLineMatch(trck_name,'GC2C')) = true;
+                                                        end
                                                     end
                                                 end
                                             elseif line(66) == 'Y' % "# / TYPES OF OBSERV"
-                                                % temporary solution for RINEX 2 
+                                                % temporary solution for RINEX 2
                                                 % to be improved
                                                 trcks = strsplit(line(8:60),' ');
                                                 for cur_trck_sys = Core.getConstellationCollector.getActiveSysChar
