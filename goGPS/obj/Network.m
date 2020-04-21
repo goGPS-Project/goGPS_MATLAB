@@ -435,11 +435,7 @@ classdef Network < handle
                     this.addAdjValuesNew(ls);
                     this.changeReferenceFrame(id_ref);
                     this.addAprValues();
-                    this.pushBackInReceiverNew(ls);
-                    %%% from widelane l1 to l1 l2
-                    if this.state.getAmbFixNET > 1 && false
-                        this.pushBackAmbiguities(x(x(:,2) == ls.PAR_AMB,1),wl_struct,ls.amb_idx,ls.go_id_amb,ls.rec_time_idxes);
-                    end
+                    this.pushBackInReceiver(ls);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
@@ -721,7 +717,7 @@ classdef Network < handle
             end
         end
                         
-        function pushBackInReceiverNew(this,ls)
+        function pushBackInReceiver(this,ls)
             % Save in work the results computed by the network object
             %
             % INPUT
@@ -875,71 +871,24 @@ classdef Network < handle
                     end
                 end
             end
-            this.pushBackEphemeris(ls);
+            %this.pushBackEphemeris(ls);
+            %this.pushBackIono(ls);
         end
+
         
-        function pushBackAmbiguities(this, x_l1, wl_struct, amb_idx, go_id_ambs,rec_time_indexes)
-            % push back in the reciever the reconstructed ambiguites
-            n_a_prec = 0;
-            for i = 1:length(amb_idx)
-                % create a mat containing the l1 and the l2 amniguty
-                amb_idx_rec = nan(size(wl_struct.amb_mats{i}));
-                amb_idx_rec(rec_time_indexes(:,i),go_id_ambs{i}) = amb_idx{i};
-                l1_amb_mat =nan(size(amb_idx_rec));
-                n_a_r = max(max(noNaN(amb_idx{i})));
-                for a = 1:n_a_r
-                    l1_amb_mat(amb_idx_rec == a) = x_l1(a + n_a_prec);
-                end
-                n_a_prec = n_a_r;
-                l2_amb_mat = l1_amb_mat - wl_struct.amb_mats{i};
-                % get the measuremnts
-                [ph, wl,lid_ph] = this.rec_list(i).work.getPhases();
-                id_ph = find(lid_ph);
-                cs_slip = this.rec_list(i).work.sat.cycle_slip_ph_by_ph;
-                for j = 1 %: size(this.wl_comb_codes,1) %for now onluy single constellatio
-                    sys_c = this.wl_comb_codes(j,1);
-                    freq_used = this.wl_comb_codes(j,[2 4]);
-                    ff= 1;
-                    % for each frequency
-                    for f = freq_used
-                        % get the index of the frquency in the phases
-                        lid_f = strLineMatch(this.rec_list(i).work.obs_code(lid_ph,2:3),this.wl_comb_codes(j,1 +(ff-1)*2+(1:2)));
-                        id_f = find(lid_f);
-                        c_wl = wl(id_f(1));
-                        % get the Abx index for the phase measuremetn if
-                        % the selected frequency
-                        amb_idx_f = Core_Utils.getAmbIdx(cs_slip(:,lid_f),nan2zero(ph(:,lid_f)));
-                        for a = unique(noNaN(amb_idx_rec))'
-                            sat = find(sum(amb_idx_rec == a)>0); % sta
-                            ep_net = find(amb_idx_rec(:,sat) == a); % ep of the network
-                            ep = this.rec_time_indexes(ep_net,i); % epoch of the recievrr
-                            col_cur_f = this.rec_list(i).work.go_id(id_ph(lid_f)) == sat; % col of the cuurent frequency pahses
-                            a_f = noNaN(amb_idx_f(ep,col_cur_f));
-                            if length(a_f) > 0
-                                a_f = a_f(1);
-                                if ff == 1
-                                    amb_term = l1_amb_mat(amb_idx_rec == a);
-                                    amb_term = amb_term(1);
-                                else
-                                    amb_term = l2_amb_mat(amb_idx_rec == a);
-                                    amb_term = amb_term(1);
-                                end
-                                ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) = ph(amb_idx_f(:,col_cur_f) == a_f,id_f(col_cur_f)) - amb_term*c_wl;
-                                amb_idx_f(amb_idx_f == a_f) = nan;
-                            end
-                        end
-                        ph_temp = ph(:,lid_f);
-                        ph_temp(~isnan(amb_idx_f)) = 0; % if not fixed take off
-                        ph(:,lid_f) = ph_temp;
-                        this.rec_list(i).work.sat.cycle_slip_ph_by_ph(:,lid_f) = false; % remove cycle slips
-                        ff = ff +1;
-                        
-                    end
-                end
-                this.rec_list(i).work.setPhases(ph,wl,id_ph);
+        function pushBackIono(this,ls)
+            % push back iono estimates in receiver
+            [iono, iono_time] = ls.getIono();
+            ref_time = iono_time.first.getMatlabTime();
+            iono_time_ref = round(iono_time.getRefTime(ref_time));
+            for r = 1 : length(this.rec_list)
+                this.rec_list(r).work.sat.err_iono(:) = nan;
+                rec_time_ref = round(this.rec_list(r).work.time.getRefTime(ref_time));
+                [is_member,idx_time] = ismember(iono_time_ref,rec_time_ref );
+                max_sat = min(size(this.rec_list(r).work.sat.err_iono,2),size(iono,3));
+                this.rec_list(r).work.sat.err_iono(idx_time(idx_time ~= 0),:) = permute(iono(is_member,r,1:max_sat),[ 1 3 2]);
             end
         end
-        
         
         function pushBackEphemeris(this,ls)
             % push backe estimated epehemeris corrections
