@@ -9943,11 +9943,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 % there are other systems to update!!!
                                 this.updateErrTropo();
                                 this.updateErrIono();
-                                if this.state.isAprIono || this.state.getIonoManagement >= 2
+                                if this.state.isAprIono 
                                     this.applyIonoModel();
                                 end
                             else
-                                if this.state.isAprIono || this.state.getIonoManagement >= 2
+                                if this.state.isAprIono 
                                     this.updateErrIono();
                                     this.applyIonoModel();
                                 end
