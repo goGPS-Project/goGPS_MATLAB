@@ -1871,6 +1871,7 @@ classdef LS_Manipulator_new < handle
                     
                     idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
                     c_p2 = c_p(~idx_bias);
+                    if any(idx_bias)
                     [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                     d = diag(D);
                     tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
@@ -1884,7 +1885,10 @@ classdef LS_Manipulator_new < handle
                     BB = N(~idx_bias ,idx_bias)*pinvB;
                     N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
                     B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
-                    
+                    else
+                        N_ap_ap = N;
+                        B_ap_ap = B;
+                    end
                     idx_amb = c_p2 == this.PAR_AMB;
                     if any(~idx_amb)
                         [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
@@ -1929,8 +1933,10 @@ classdef LS_Manipulator_new < handle
                     phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
                     phys_par_amb(idx_amb) = ambs;
                     x_reduced(~idx_bias) = phys_par_amb;
-                    B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
-                    x_reduced(idx_bias) = pinvB*B(idx_bias);
+                    if any(idx_bias)
+                        B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
+                        x_reduced(idx_bias) = pinvB*B(idx_bias);
+                    end
                 else
                     idx_bias = c_p ~= this.PAR_AMB; %| c_p == this.PAR_SAT_EBFR
                     disp('factorize')
@@ -1945,7 +1951,7 @@ classdef LS_Manipulator_new < handle
                     [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
                     toc
                     clearvars N_amb_amb B_amb_amb
-                    if length(this.unique_rec_name) > 20 % fix by recievr matrix tto large
+                    if length(this.unique_rec_name) > 7 % fix by recievr matrix tto large
                         rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
                         rec_idx = rec_idx(idx_amb_est);
                         [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
@@ -1954,7 +1960,6 @@ classdef LS_Manipulator_new < handle
                     end
                     ambs = zeros(sum(idx_amb),1);
                     ambs(idx_amb_est) = amb_fixed(:,1);
-                    ambs(idx_amb_est) = amb_float;
                     x_reduced = zeros(size(N,1),1);
                     x_reduced(~idx_bias) = ambs;
                     B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*ambs;
@@ -2294,6 +2299,32 @@ classdef LS_Manipulator_new < handle
             end
             res_time = this.time_min.getCopy();
             res_time.addSeconds( time_res);
+        end
+        
+        function [iono, iono_time] = getIono(this)
+            % get phase residuals
+            %
+            % SYNTAX:  [res_pr, sat, obs_id] = getPrRes(this)
+            [iono, sat, obs_id] = deal([]);
+            min_time_res = min(this.time_par(:,1));
+            duration = max(this.time_par(:,1)) - min_time_res;
+            iono_time_ref = (0:this.obs_rate:duration);
+            n_rec = length(this.unique_rec_name);
+            n_sat = length(this.unique_sat_goid);
+            iono = nan(length(iono_time_ref),n_rec,n_sat);
+                        
+            for r = 1 : n_rec
+               for s = 1 : n_sat
+                  go_id = this.unique_sat_goid(s);
+                  idx = this.class_par == this.PAR_IONO & this.rec_par == r & this.sat_par == go_id;
+                  ionos = this.x(idx);
+                  ionos_time = this.time_par(idx,1);
+                  [~,idx_time] = ismember(ionos_time, iono_time_ref);
+                  iono(idx_time,r,go_id) = ionos;
+               end
+            end
+            iono_time = this.time_min.getCopy();
+            iono_time.addSeconds(double(iono_time_ref'));
         end
         
         function [res_pr, sat, obs_id,res_time] = getPrRes(this, rec ,exclude_outlier)
