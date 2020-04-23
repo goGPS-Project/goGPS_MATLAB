@@ -514,14 +514,13 @@ classdef Coordinates < Exportable & handle
                 time = GPS_Time();
             end
             
-            N = this.ELL_A ./ sqrt(1 - this.E2 * sin(lat).^2);
+            N = GPS_SS.ELL_A ./ sqrt(1 - GPS_SS.ELL_E.^2 * sin(lat).^2);
             
             x = (N + h_ellips) .* cos(lon) .* cos(lat);
             y = (N + h_ellips) .* sin(lon) .* cos(lat);
-            z = (N * (1 - this.E2) + h_ellips) .* sin(lat);
+            z = (N * (1 - GPS_SS.ELL_E.^2) + h_ellips) .* sin(lat);
 
-            this.setPosXYZ(x, y, z);
-            this.setTime(time);            
+            this = Coordinates.fromXYZ(x, y, z, time);
         end                    
     end
     
