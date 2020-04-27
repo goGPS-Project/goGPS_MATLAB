@@ -1426,19 +1426,19 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             opt_vbox = uix.VBox('Parent', range_corr_panel,...
                 'BackgroundColor', color_bg);
             
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular grid [n x m]', 'mp_regular_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular grid [n x m]', 'mp_regular_nxm', 'deg', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_regular_nxm';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular smoothed grid [n x m]', 'mp_regular_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Regular smoothed grid [n x m]', 'mp_regular_up_nxm', 'deg', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_regular_up_nxm';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent grid [n x m]', 'mp_congruent_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent grid [n x m]', 'mp_congruent_nxm', 'deg', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_congruent_nxm';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent smoothed grid [n x m]', 'mp_congruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Congruent smoothed grid [n x m]', 'mp_congruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_congruent_up_nxm';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 3, 'Zerike max degrees', 'mp_l_max', '', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 4, 'Zerike max degrees', 'mp_l_max', '', @this.onEditArrayChange, [-1 39 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_l_max';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Additional congruent grid [n x m]', 'mp_zcongruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 2, 'Additional congruent grid [n x m]', 'mp_zcongruent_up_nxm', 'deg', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_zcongruent_up_nxm';
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 1, 'Min obs per cell', 'mp_n_min', '', @this.onEditArrayChange, [-1 60 5 35], color_bg);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_vbox, 1, 'Min obs per cell', 'mp_n_min', '', @this.onEditArrayChange, [-1 61 5 35], color_bg);
             this.edit_texts_array{end}.Tag = 'mp_n_min';
             
             opt_vbox.Heights = [ones(1, 7) * Core_UI.LINE_HEIGHT];

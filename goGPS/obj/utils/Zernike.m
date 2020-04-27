@@ -51,7 +51,7 @@ classdef Zernike < handle
         
         cut_off = 0; % cut_off level
         
-        el_mf = 1; %  0 cos(el)
+        el_mf = 0; %  0 cos(el)
                    %  1 cos(el).^2
                    %  2 sin(pi/2 * cos(el).^2)
                    %  3 sin(pi/2 * cos(el))
@@ -186,6 +186,7 @@ classdef Zernike < handle
             
             % mapping functions (Default 1)
             switch type
+                case -1, el2radius = @(el) (pi/2 - remCutOff(el)) / (pi/2);
                 case 0, el2radius = @(el) cos(remCutOff(el));
                 case 1, el2radius = @(el) cos(remCutOff(el)).^2;
                 case 2, el2radius = @(el) sin(pi/2*cos(remCutOff(el)).^2);
@@ -211,7 +212,7 @@ classdef Zernike < handle
             %   z_par   Zernike coefficients
             %
             % SINTAX
-            %   [z_interp] = synthesisAll(l_max, m_max, az, el, z_par)
+            %   [z_interp] = synthesisAll(l_max, m_max, az, r, z_par)
             z_interp = nan(size(az));
             
             id_ok = ~isnan(az);
@@ -438,7 +439,7 @@ classdef Zernike < handle
             % Get alll the valid degrees till l_max, m_max
             % 
             % SYNTAX
-            %   Zernike.getAllDegrees(l_max, m_max)
+            %   [l, m] = Zernike.getAllDegrees(l_max, m_max)
             
             n_par = l_max * (l_max + 3) / 2 + 1;
             
@@ -924,6 +925,140 @@ classdef Zernike < handle
                 R{n+1,n+1} = rho .*R {n-1+1 , n-1+1};                                          % R^n_n
             end
         end        
+    end
+    
+    methods (Static)
+        function fh = showAllZernike(l, m, z_par, el_min, flag_hlist)
+            % Show 3D plot of Zernike polynomials 
+            %
+            % INPUT 
+            %   l, m        array of degrees to display
+            %   z_par       value of the scaling factor to use
+            %   el_min      cut_off
+            %   flag_hlist  set to true to display expansion in horizontal
+            %
+            % SINTAX
+            %   fh = showAllZernike(l, m, z_par)
+            %
+            % EXAMPLE
+            %   [l, m] = Zernike.getAllDegrees(3, 3);
+            %   Zernike.showAllZernike(l, m, ones(size(l)), 0); 
+
+                       
+            fh = figure(); Core_UI.beautifyFig(fh, 'light');
+            
+            %%% INTERNAL PARAMETER
+            scale = 1;
+            %%%
+            
+            if nargin < 5
+                flag_hlist = false;
+            end
+            if numel(z_par) == 1
+                z_par = ones(size(l)) * z_par;
+            end
+            
+            x = -1 : 0.005 : 1;
+            y = x;
+            [X,Y] = meshgrid(x,y);
+            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
+            r_zern = r_prj;
+            if nargin >= 4 && ~isempty(el_min)
+                r_max = 1 - (2 * el_min / pi);
+                idx = r_prj <= r_max;
+            else
+                idx = r_prj <= 1;
+            end
+            
+            if flag_hlist
+                dx = 2.2;
+                for i = 1 : numel(l)
+                    z = nan(size(X));
+                    z(idx) = Zernike.get(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
+                    
+                    h = imagesc(x + dx * i, y, z); hold on;
+                    h.AlphaData = ~isnan(z);
+                end
+                xlim([-1 (dx*i+1)]);                
+            else
+                dx = 1.4; dy = 2.4; % All attached
+                for i = 1 : numel(l)
+                    z = nan(size(X));
+                    z(idx) = zernfun(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
+                    
+                    h = imagesc(x + dx * m(i), y + dy * -l(i),z); hold on;
+                    h.AlphaData = ~isnan(z);
+                    ylim(dy*[-1 0] * max(abs(m)) + [-1 1]);
+                    xlim(dx*[-1 1] * max(abs(l)) + [-1 1]);                %dx = 1.2; dy = 1.6; % All attached
+                    if i == 1
+                        axis equal
+                        ax = gca;
+                        ax.YDir = 'normal';
+                    end
+                    lbl = text(dx * m(i) - 0.2, - dy * l(i) - 1.4, 0, sprintf('Z^{%d}_{%d}', m(i), l(i)), 'FontName', 'Serif', 'FontWeight', 'normal');
+                end                
+            end
+
+            ax = gca;
+            ax.YDir = 'normal';
+            axis equal
+            axis off
+            set(gcf,'color','w');
+            colormap(flipud(Cmap.get('RdBu', 1024)));
+            cb = colorbar('FontName', 'Open Sans', 'FontWeight', 'normal', 'FontSize', 16);
+
+            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh);
+        end
+
+        function fh = showMappingFunction(n, m)
+            % Show the available elevation mapping functions
+            % And the relative Zernike polynomial for az = 0
+            %
+            % SYNTAX
+            %   fh = Zernike.showMappingFunction(n, m)
+            if nargin == 0
+                m = 0;
+                n = 100;
+            end
+            
+            el = 0:0.1:90;
+            
+            fh = figure;
+            hold on;
+            for f = -1:3
+                fun = Zernike.getElFun(f);
+                rho = fun(el/180*pi);
+                subplot(1,2,1);
+                plot(el, rho, 'LineWidth', 2); hold on;
+                subplot(1,2,2);
+                plot(el, f+Zernike.get(n, m, rho * 0, rho), 'LineWidth', 2); hold on;
+            end
+            %title(sprintf('Z_{%d}^{%d} \\fontsize{5} \n', m, n), 'FontName', 'Serif', 'FontSize', 14);
+            subplot(1,2,1);
+            title(sprintf('Mapping function \\fontsize{5} \n'), 'FontName', 'Serif', 'FontSize', 14);
+            subplot(1,2,1);
+            xlabel('Elevation [deg]');
+            ylabel('Radius');
+            legend({...
+                'mp\_mode -1) (90 - el) / 90', ...
+                'mp\_mode  0)  cos(el)', ...
+                'mp\_mode  1)  cos(el)^2', ...
+                'mp\_mode  2)  sin(90 * cos(el)^2)', ...
+                'mp\_mode  3)  sin(90 * cos(el))'}, 'FontName', 'Serif', 'FontSize', 12, 'location', 'NorthEast');
+            grid on;
+            xlim([0 90]);
+            subplot(1,2,2);
+            title(sprintf('Zernike polynomial \\fontsize{5} \n'), 'FontName', 'Serif', 'FontSize', 14);
+            xlabel('Elevation [deg]');
+            
+            Core_UI.beautifyFig(fh, 'light');
+            
+            ylabel(sprintf('Z_{%d}^{%d} \\fontsize{5} \n', m, n), 'FontName', 'Serif', 'FontSize', 16);
+            grid on;
+            xlim([0 90]);
+            
+            Core_UI.addExportMenu
+        end
     end
     
     % Copy of methods from Core_Utils to make Zernike Class independent

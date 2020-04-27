@@ -545,13 +545,13 @@ classdef Residuals < Exportable
                     l_max = state.mp_l_max;
                 end
                 if numel(l_max) == 1
-                    l_max = [l_max l_max l_max];
+                    l_max = [l_max 0 0 0];
                 end
                 
                 % Depending on the maximum zernike degree change the map resolution
-                if l_max > 180
+                if max(l_max) > 180
                     grid_step = 0.1;
-                elseif l_max > 90                    
+                elseif max(l_max) > 90                    
                     grid_step = 0.25;
                 else
                     grid_step = 0.5;
@@ -705,48 +705,61 @@ classdef Residuals < Exportable
                                     % Perform the first of 3 Zernike steps
                                     Zernike.setMode(0); % Set Zernike engine to recursive
                                     if l_max(1) > 0
-                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/3)', 2 + flag_reg*1, l_max(1)), 9));
-                                        Zernike.setModeMF(1);
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/4)', 2 + flag_reg*1, l_max(1)), 9));
+                                        Zernike.setModeMF(0);
                                         el2radius = Zernike.getElFun;
                                         [z_par, l, m] = Zernike.analysisAllBlock(l_max(1), m_max(1), az_all, el2radius(el_all), res_work, 1e-5);
                                         [z_map1, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
                                         z_map1((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
-                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map1);
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map1, false, 'spline');
                                     else
                                         z_map1 = 0;
                                     end
                                     
-                                    % Perform the second of 3 Zernike steps
+                                    Zernike.setMode(0); % Set Zernike engine to recursive
                                     if l_max(2) > 0
-                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/3)', 2 + flag_reg*1, l_max(2)), 9));
-                                        Zernike.setModeMF(2);
-                                        Zernike.setCutOff(0); % This mapping function is more unstable at low elevations => use polar regularization
-                                                                               
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (1/4)', 2 + flag_reg*1, l_max(1)), 9));
+                                        Zernike.setModeMF(1);
                                         el2radius = Zernike.getElFun;
                                         [z_par, l, m] = Zernike.analysisAllBlock(l_max(2), m_max(2), az_all, el2radius(el_all), res_work, 1e-5);
                                         [z_map2, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
                                         z_map2((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
-                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map2);
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map2, false, 'spline');
                                     else
                                         z_map2 = 0;
                                     end
                                     
-                                    % Perform the third of 3 Zernike steps
+                                    % Perform the second of 3 Zernike steps
                                     if l_max(3) > 0
-                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/3)', 2 + flag_reg*1, l_max(3)), 9));
-                                        Zernike.setModeMF(3);
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (2/4)', 2 + flag_reg*1, l_max(2)), 9));
+                                        Zernike.setModeMF(2);
                                         Zernike.setCutOff(0); % This mapping function is more unstable at low elevations => use polar regularization
+                                                                               
+                                        el2radius = Zernike.getElFun;
                                         [z_par, l, m] = Zernike.analysisAllBlock(l_max(3), m_max(3), az_all, el2radius(el_all), res_work, 1e-5);
                                         [z_map3, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
                                         z_map3((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
-                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map3);
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map3, false, 'spline');
                                     else
                                         z_map3 = 0;
                                     end
                                     
+                                    % Perform the third of 3 Zernike steps
+                                    if l_max(4) > 0
+                                        log.addMessage(log.indent(sprintf('%d. Zernike coef. estimation (l_max = %d) (3/4)', 2 + flag_reg*1, l_max(3)), 9));
+                                        Zernike.setModeMF(3);
+                                        Zernike.setCutOff(0); % This mapping function is more unstable at low elevations => use polar regularization
+                                        [z_par, l, m] = Zernike.analysisAllBlock(l_max(4), m_max(4), az_all, el2radius(el_all), res_work, 1e-5);
+                                        [z_map4, az_grid, el_grid] = Zernike.synthesisGrid(l, m, z_par, grid_step);
+                                        z_map4((el_grid * 180/pi) < Core.getState.getCutOff, :) = 0; % remove cutoff;
+                                        res_work = res_work - Core_Utils.hgrid2scatter(az_all, el_all, z_map4, false, 'spline');
+                                    else
+                                        z_map4 = 0;
+                                    end
+                                    
                                     % Generate maps
                                     log.addMessage(log.indent(sprintf('%d. Compute mitigation grids', 4 + flag_reg*1), 9));
-                                    z_map = z_map1 + z_map2 + z_map3; % z_map  Zernike only
+                                    z_map = z_map1 + z_map2 + z_map3 + z_map4; % z_map  Zernike only
                                     
                                     if ~ltype_of_grids(2) % r_map  Zernike + (the methods specified on mode)
                                         r_map = 0;
@@ -837,6 +850,11 @@ classdef Residuals < Exportable
                                     end
                                     title((sprintf('Zernike expansion (3) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
                                     
+                                    if numel(z_map4) > 1
+                                        figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map4)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
+                                    end
+                                    title((sprintf('Zernike expansion (4) of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
+
                                     figure; polarImagesc(az_grid, (pi/2 - el_grid), 1e3*(z_map)); colormap((Cmap.get('PuOr', 2^11))); caxis(clim); colorbar;
                                     title((sprintf('Zernike expansion of %s %s%s [mm]', marker_name, sys_c, trk_code)), 'interpreter', 'none'); drawnow
 

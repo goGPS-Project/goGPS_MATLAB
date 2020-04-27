@@ -160,7 +160,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         MP_REGULAR_UP_NXM = [1 1];
         MP_CONGRUENT_NXM = [2 1];
         MP_CONGRUENT_UP_NXM = [2 1];
-        MP_L_MAX = [45 41 31];
+        MP_L_MAX = [45 0 0 0];
         MP_ZCONGRUENT_UP_NXM = [1 0.5];
         MP_N_MIN = 11;
 
@@ -1930,8 +1930,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' MP Regular grid size n x m (upscaled):            %g %g\n', this.mp_regular_up_nxm(1), this.mp_regular_up_nxm(end))];
             str = [str sprintf(' MP Congruent grid size n x m:                     %g %g\n', this.mp_congruent_nxm(1), this.mp_congruent_nxm(end))];
             str = [str sprintf(' MP Congruent grid size n x m (upscaled):          %g %g\n', this.mp_congruent_up_nxm(1), this.mp_congruent_up_nxm(end))];
-            if length(this.mp_l_max) == 3
-                str = [str sprintf(' MP Zernike degrees:                               %d %d %d\n', this.mp_l_max(1), this.mp_l_max(2), this.mp_l_max(3))];
+            if length(this.mp_l_max) == 4
+                str = [str sprintf(' MP Zernike degrees:                               %d %d %d %d\n', this.mp_l_max(1), this.mp_l_max(2), this.mp_l_max(3), this.mp_l_max(4))];
             else
                 str = [str sprintf(' MP Zernike degrees:                               %d\n', this.mp_l_max)];
             end
@@ -3236,9 +3236,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('mp_regular_up_nxm', [0 360]);
             this.checkNumericField('mp_congruent_nxm', [0 360]);
             this.checkNumericField('mp_congruent_up_nxm', [0 360]);
-            this.checkNumericField('mp_l_max', [0 100 ]);
+            this.checkNumericField('mp_l_max', [0 200 ]);
             this.checkNumericField('mp_zcongruent_up_nxm', [0 360]);
-            this.checkNumericField('mp_n_min', [0 100 ]);
+            this.checkNumericField('mp_n_min', [0 1e6 ]);
 
             this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
