@@ -878,90 +878,6 @@ classdef Core_Utils < handle
             flag_is_hold = ~isempty(findobj('Type', 'figure')) && ishold;
         end
         
-        function fh = showZernike(l, m, z_par, el_min, funMapElevation)
-            % Show 3D plot of Zernike polynomials 
-            %
-            % SINTAX
-            %   fh = showZernike(l, m, z_par)
-            
-            %if ~Core_Utils.isHold()
-                is_hold = false;
-                fh = figure();
-            %else
-            %    is_hold = true;
-            %    fh = gcf;
-            %end
-            %%% INTERNAL PARAMETER
-            scale = 1;
-            %%%
-
-            x = -1 : 0.0025 : 1;
-            y = x;
-            [X,Y] = meshgrid(x,y);
-            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
-            if nargin == 5
-                r_prj = funMapElevation(r_prj * (pi/2)) / (pi/2);
-            end
-            r_zern = r_prj;
-            if nargin >= 4 && ~isempty(el_min)
-                r_max = 1 - (2 * el_min / pi);
-                idx = r_prj <= r_max;
-            else
-                idx = r_prj <= 1;
-            end
-            z = nan(size(X));      
-            %z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
-            max_ram = 1 * 1024^3; % 1GB
-            idx = find(idx);
-            nobs_max = (max_ram / (numel(z_par) * 8));
-            lim = [unique(floor([1 : nobs_max : numel(idx)-1]))' unique(floor([(nobs_max + 1) : nobs_max : numel(idx) numel(idx)]))'];
-            for i = 1 : (size(lim, 1))
-                i
-                z(idx(lim(i,1):lim(i,2))) = Zernike.get(l, m, 2 * pi - theta(idx(lim(i,1):lim(i,2))) + pi/2, r_zern(idx(lim(i,1):lim(i,2)))) * z_par;
-            end
-            %h = scatter(X(~isnan(z)),Y(~isnan(z)),160,z(~isnan(z)),'filled');
-            h = imagesc(x,y,z);
-            h.AlphaData = ~isnan(z);
-            ax = gca;
-            ax.YDir = 'normal';
-            plot_bg = ~is_hold;
-            if plot_bg
-                hold on
-                %plot parallel
-                az_l = [0:pi/200:2*pi];
-                d_step = 15/180*pi;
-                decl_s = ([0:d_step:pi/2]/(pi/2))*scale;
-                for d = decl_s
-                    x = cos(az_l).*d;
-                    y = sin(az_l).*d;
-                    plot(x,y,'color',[0.6 0.6 0.6]);                    
-                    text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');
-                end
-                %plot meridian
-                az_step = 30/180 *pi;
-                az_s = [0:az_step:2*pi];
-                decl_l = ([0 1])*scale;
-                for a = az_s
-                    x = cos(a).*decl_l;
-                    y = sin(a).*decl_l;
-                    plot(x,y,'color',[0.6 0.6 0.6]);
-                    if abs(a-2*pi) > 0.0001
-                        text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
-                    end
-                end
-                axis equal
-                axis off
-                set(gcf,'color','w');
-                if ~is_hold
-                    hold off
-                end
-                xlim([-1.15 1.15]); ylim([-1.15 1.15]);
-                colormap(jet);
-                colorbar;
-            end
-            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
-        end
-
         function fh = showZernike3(l, m, z_par, el_min)
             % Show 3D plot of Zernike polynomials 
             %
@@ -1067,8 +983,8 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   fh = polarZerMap(l_max, m_max, az, r, data)
-            [z_par, l, m] = Core_Utils.zAnalisysAll(l_max, m_max, az, r, data, 1);
-            fh = Core_Utils.showZernike(l, m, z_par);
+            [z_par, l, m] = Zernike.analysisAll(l_max, m_max, az, r, data, 1);
+            fh = Zernike.showZernike(l, m, z_par);
         end
         
         function fh = polarZerMapDual(l_max, m_max, az, r, data)
@@ -1124,6 +1040,7 @@ classdef Core_Utils < handle
             end
             
             subplot(2,2,1); hold on;
+            
             Core_Utils.polarZerMap(l_max, m_max, az, r, data);
             cax = caxis();
             
@@ -1137,7 +1054,7 @@ classdef Core_Utils < handle
             caxis(cax);
             
             subplot(2,2,3); 
-            data_smooth = Core_Utils.zFilter(l_max, m_max, az, r, data); hold on;       
+            data_smooth = Zernike.filter(l_max, m_max, az, r, data); hold on;       
             plot((r * pi/2) / pi * 180, data_smooth, '.', 'Color', Core_UI.getColor(1));
             
             el_grid = 0 : 90;

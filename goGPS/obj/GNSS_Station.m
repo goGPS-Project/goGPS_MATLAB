@@ -4987,14 +4987,13 @@ classdef GNSS_Station < handle
                                         caxis(max(abs(minMax(caxis))) * [-1 1]);
                                         colormap((Cmap.get('PuOr', 2^11)));
                                         colorbar;
-                                        drawnow
-                                        title((sprintf('Multipath %smitigation map of %s %s%s [mm]', str_type, rec.getMarkerName4Ch, sys_c, trk)), 'interpreter', 'none'); drawnow
                                         fig_name = sprintf('MP_%sMap_%s_%s%s_%s', str_out_type, rec.getMarkerName4Ch, sys_c, trk, rec.getTime.last.toString('yyyymmdd_HHMM'));
                                         fh.UserData = struct('fig_name', fig_name);
                                         Core_UI.beautifyFig(fh, 'light');
                                         Core_UI.addExportMenu(fh);
                                         Core_UI.addBeautifyMenu(fh);
                                         fh.Visible = 'on'; drawnow;
+                                        title((sprintf('Multipath %smitigation map of %s %s%s [mm]', str_type, rec.getMarkerName4Ch, sys_c, trk)), 'interpreter', 'none'); drawnow
                                         % caxis([-15 15]);
                                     end
                                 end

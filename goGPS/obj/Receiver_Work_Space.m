@@ -1693,7 +1693,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if flag_debug
                                         figure(106); clf; plot(snr(pr_ok & snr_ok), noise_pr(pr_ok & snr_ok), '.'); hold on;
                                         plot(snr_grid, snr2res{1}, '--', 'LineWidth', 2 , 'Color', [0 0 0]);
-                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, el(snr_ok)/180*pi, (snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
+                                        rfun = Zernike.getElFun;
+                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, rfun(el(snr_ok)/180*pi), (snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
                                     end
                                     max_snr = max(snr(:));
                                 elseif id > 1
@@ -1711,8 +1712,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         hold on; plot(scaleSnr(snr(pr_ok & snr_ok)), noise_pr(pr_ok & snr_ok), '.');
                                         snr2res{id} = Core_Utils.interp1LS(scaleSnr(snr(pr_ok & snr_ok)), noise_pr(pr_ok & snr_ok), ls_degree, snr_grid);
                                         plot(snr_grid, snr2res{id}, '--', 'LineWidth', 2 , 'Color', [0 0 0]);
-                                    
-                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, el(snr_ok)/180*pi, scaleSnr(snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
+                                        rfun = Zernike.getElFun;
+                                        fh = Core_Utils.polarZerMapQuad(11, 11, az(snr_ok)/180*pi, rfun(el(snr_ok)/180*pi), scaleSnr(snr(snr_ok))); colormap([[1 1 1]; flipud(Cmap.get('plasma'))]);
                                     end
                                 end
                                 
@@ -8427,11 +8428,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 if isfield(this.ant_mp.(sys_c), trk{1})
                                     % This tracking frequency is already present into the old Zernike MultiPath                              
                                     ant_mp.(sys_c).(trk{1}).z_map = double(ant_mp.(sys_c).(trk{1}).z_map) - this.ant_mp.(sys_c).(trk{1}).z_map;
-                                    ant_mp.(sys_c).(trk{1}).r_map = double(ant_mp.(sys_c).(trk{1}).r_map) - this.ant_mp.(sys_c).(trk{1}).r_map;
                                     ant_mp.(sys_c).(trk{1}).g_map = double(ant_mp.(sys_c).(trk{1}).g_map) - this.ant_mp.(sys_c).(trk{1}).g_map;
                                     ant_mp.(sys_c).(trk{1}).c_map = double(ant_mp.(sys_c).(trk{1}).c_map) - this.ant_mp.(sys_c).(trk{1}).c_map;
                                     ant_mp.(sys_c).(trk{1}).g1_map = double(ant_mp.(sys_c).(trk{1}).g1_map) - this.ant_mp.(sys_c).(trk{1}).g1_map;
                                     ant_mp.(sys_c).(trk{1}).c1_map = double(ant_mp.(sys_c).(trk{1}).c1_map) - this.ant_mp.(sys_c).(trk{1}).c1_map;
+                                    ant_mp.(sys_c).(trk{1}).r_map = double(ant_mp.(sys_c).(trk{1}).r_map) - this.ant_mp.(sys_c).(trk{1}).r_map;
                                 end
                             end
                         end
@@ -8439,7 +8440,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 catch ex % Managing exception                    
                     % If the set of coefficients are incompatible they need to be removed and applied separately
                     %Core_Utils.printEx(ex);
-                    log.addError(sprintf('The new multipath maps for "%s" are not compatible with the previous ones :-(\n"%s"', this.parent.getMarkerName4Ch, ex.message));
+                    Core.getLogger.addError(sprintf('The new multipath maps for "%s" are not compatible with the previous ones :-(\n"%s"', this.parent.getMarkerName4Ch, ex.message));
                     % if any error arises this set is not compatible with the previous one
                     % e.g. it could have different maximum degree, or different frequencies
                     flag_ok = false;                    

@@ -59,19 +59,20 @@ classdef Zernike < handle
        z_cache; % cache for mode 2
     end
     
-     methods (Access = private)
+    methods (Access = private)
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
         function this = Zernike(mode)
-            % Initialisation of the variables     
+            % Initialisation of the variables
             if (nargin == 1) && ~isempty(mode)
                 this.mode = mode;
             end
         end
-     end
+    end
     
-    methods (Static)       
+    % Getters and setters
+    methods (Static)
         function this = getInstance()
             % Concrete implementation.  See Singleton superclass.
             persistent unique_instance_zernike__
@@ -192,14 +193,14 @@ classdef Zernike < handle
                 case 2, el2radius = @(el) sin(pi/2*cos(remCutOff(el)).^2);
                 case 3, el2radius = @(el) sin(pi/2*cos(remCutOff(el)));
                 case 4, omf = @(el) 1 - sin(el);
-                        el2radius = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
+                    el2radius = @(el) omf(pi/2 * (1-cos(pi/2*(1-cos(el)))));
             end
         end
-
+        
     end
     
-    methods (Static)    
-        
+    % Methods exposed utilities
+    methods (Static)
         function [z_interp, l, m] = synthesisAll(l_max, m_max, az, r, z_par)
             % Get Zernike interpolation given the coefficients
             % of their polynomials
@@ -285,7 +286,7 @@ classdef Zernike < handle
             z_grid(id_ok) = Zernike.synthesis(l, m, az_mgrid(id_ok), el2radius(el_mgrid(id_ok)), z_par);            
         end
                         
-        function [filtered_data, z_par, l, m,  A] = zFilter(l_max, m_max, az, r, data, max_reg)
+        function [filtered_data, z_par, l, m,  A] = filter(l_max, m_max, az, r, data, max_reg)
             % Get Zernike polynomials parameters 
             %
             % INPUT
@@ -297,7 +298,7 @@ classdef Zernike < handle
             %   max_reg maximum regularization
             %
             % SINTAX
-            %   [z_par, A] = zFilter(az, el, data, <max_reg = 1>)
+            %   [z_par, A] = filter(az, el, data, <max_reg = 1>)
             
             if nargin == 6
                 [z_par, l, m, A] = Zernike.analysisAll(l_max, m_max, az, r, data, max_reg);
@@ -505,10 +506,94 @@ classdef Zernike < handle
                 otherwise, z = Zernike.getDiscr2(l, m, r(:), az(:));
             end
         end
+        
+        function fh = showZernike(l, m, z_par, el_min, funMapElevation)
+            % Show 3D plot of Zernike polynomials
+            %
+            % SINTAX
+            %   fh = showZernike(l, m, z_par)
+            
+            %if ~Core_Utils.isHold()
+            is_hold = false;
+            fh = figure();
+            %else
+            %    is_hold = true;
+            %    fh = gcf;
+            %end
+            %%% INTERNAL PARAMETER
+            scale = 1;
+            %%%
+            
+            x = -1 : 0.0025 : 1;
+            y = x;
+            [X,Y] = meshgrid(x,y);
+            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection
+            if nargin == 5
+                r_prj = funMapElevation(r_prj * (pi/2)) / (pi/2);
+            end
+            r_zern = r_prj;
+            if nargin >= 4 && ~isempty(el_min)
+                r_max = 1 - (2 * el_min / pi);
+                idx = r_prj <= r_max;
+            else
+                idx = r_prj <= 1;
+            end
+            z = nan(size(X));
+            %z(idx) = zernfun(l, m, r_zern(idx), 2 * pi - theta(idx) + pi/2) * z_par;
+            max_ram = 1 * 1024^3; % 1GB
+            idx = find(idx);
+            nobs_max = (max_ram / (numel(z_par) * 8));
+            lim = [unique(floor([1 : nobs_max : numel(idx)-1]))' unique(floor([(nobs_max + 1) : nobs_max : numel(idx) numel(idx)]))'];
+            for i = 1 : (size(lim, 1))
+                i
+                z(idx(lim(i,1):lim(i,2))) = Zernike.get(l, m, 2 * pi - theta(idx(lim(i,1):lim(i,2))) + pi/2, r_zern(idx(lim(i,1):lim(i,2)))) * z_par;
+            end
+            %h = scatter(X(~isnan(z)),Y(~isnan(z)),160,z(~isnan(z)),'filled');
+            h = imagesc(x,y,z);
+            h.AlphaData = ~isnan(z);
+            ax = gca;
+            ax.YDir = 'normal';
+            plot_bg = ~is_hold;
+            if plot_bg
+                hold on
+                %plot parallel
+                az_l = [0:pi/200:2*pi];
+                d_step = 15/180*pi;
+                decl_s = ([0:d_step:pi/2]/(pi/2))*scale;
+                for d = decl_s
+                    x = cos(az_l).*d;
+                    y = sin(az_l).*d;
+                    plot(x,y,'color',[0.6 0.6 0.6]);
+                    text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');
+                end
+                %plot meridian
+                az_step = 30/180 *pi;
+                az_s = [0:az_step:2*pi];
+                decl_l = ([0 1])*scale;
+                for a = az_s
+                    x = cos(a).*decl_l;
+                    y = sin(a).*decl_l;
+                    plot(x,y,'color',[0.6 0.6 0.6]);
+                    if abs(a-2*pi) > 0.0001
+                        text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
+                    end
+                end
+                axis equal
+                axis off
+                set(gcf,'color','w');
+                if ~is_hold
+                    hold off
+                end
+                xlim([-1.15 1.15]); ylim([-1.15 1.15]);
+                colormap(jet);
+                colorbar;
+            end
+            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
+               end
     end
     
     % Actual Zernike polynomials implementation
-    methods (Static)       
+    methods (Static)
         function z = zernfun(n,m,r,theta,nflag)
             %ZERNFUN Zernike functions of order N and frequency M on the unit circle.
             %   Z = ZERNFUN(N,M,R,THETA) returns the Zernike functions of order N

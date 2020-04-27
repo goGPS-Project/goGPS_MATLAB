@@ -544,6 +544,10 @@ classdef Residuals < Exportable
                 if nargin < 3 || isempty(l_max)
                     l_max = state.mp_l_max;
                 end
+                % Legacy support
+                if numel(l_max) == 3
+                    l_max = [l_max(1) l_max];
+                end
                 if numel(l_max) == 1
                     l_max = [l_max 0 0 0];
                 end
@@ -637,7 +641,6 @@ classdef Residuals < Exportable
                                 end
                             end
                             
-                            clear az el;
                             if data_found
                                 m_max = l_max;                                
                                 % Remove outliers
