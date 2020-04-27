@@ -1893,7 +1893,67 @@ classdef Core < handle
             % SYNTAX
             %   install_dir = Core.getInstallDir()
             [install_dir, name, ext] = fileparts(which('goGPS'));
-        end        
+        end
+        
+        function core = load(file_name)
+            % Micro function to load the core and set it as default
+            %
+            % INPUT 
+            %   file_name   if missing or empty ask with a dialogbox the
+            %               location of the core
+            %
+            % OUTPUT
+            %   At the end of execution the variables core and rec should
+            %   be visible in the workspace
+            %
+            % SYNTAX
+            %   core = Core.load(file_name);
+            
+            if ~isdeployed
+                addPathGoGPS; % This is necessary for loading the Core
+            end
+            
+            if nargin == 0 || isempty(file_name)
+                core_dir = Core.getState.getOutDir();
+                [file_name, path_name] = uigetfile({'*.mat;','goGPS core from previous session (*.mat)';}, 'Choose file with saved core', core_dir);
+                
+                if path_name ~= 0 % if the user pressed cancelled, then we exit this callback
+                    % get the extension (mat/ini):
+                    [~, ~, ext] = fileparts(file_name);
+                    
+                    % build the path name of the file to be loaded
+                    core_file = fullfile(path_name, file_name);
+                    if strcmp(ext, '.mat')
+                        Core.getLogger.addMarkedMessage(sprintf('Start loading core from "%s"', core_file));
+                        file_name = core_file;
+                    end
+                end
+            end
+            
+            if (~isempty(file_name)) && ischar(file_name)
+                try
+                    log = Logger.getInstance();
+                    log.addMarkedMessage(sprintf('Trying to load "%s"', file_name));
+                    log.addMessage(log.indent('...please wait...'));
+                    load(file_name, 'core');
+                    log.addMarkedMessage('Core loaded!');
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+                
+                try
+                    Core.setCurrentCore(core);
+                    core.initGeoid
+                    if ~isdeployed
+                        % Export into workspace
+                        rec = core.rec;
+                        assignin('base', 'core', core);
+                        assignin('base', 'rec', rec);
+                    end
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+            end
+        end
     end
-
 end
