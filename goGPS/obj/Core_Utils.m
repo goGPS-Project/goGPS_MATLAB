@@ -652,12 +652,14 @@ classdef Core_Utils < handle
             end
         end
         
-        function [data, row, col] = hgrid2scatter(az, el, hmap, flag_congurent_cells)
+        function [data, row, col] = hgrid2scatter(az, el, hmap, flag_congurent_cells, method)
             % Grid points on a regularly gridded semi sphere
             %
             % INPUT 
             %   az      azimuth list   [n x 1]
             %   el      elevation list [n x 1]
+            %   hmap    gridded hemispherical map
+            %   
             %
             % SYNTAX
             %   [data, row, col] = Core_Utils.hgrid2scatter(az, el, hmap)
@@ -669,9 +671,13 @@ classdef Core_Utils < handle
             step_deg = fliplr([90 360] ./ size(hmap));
             el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
             flag_congurent_cells = nargin >= 4 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
-            if nargin < 7
-                n_min = 0; % by default grid all the data
+            
+            if nargin < 5 || isempty(method)
+                method = 'spline';
             end            
+            if flag_congurent_cells
+                method = 'nearest';
+            end
             if flag_congurent_cells
                 step_az = 360 ./ round((360 / step_deg(1)) * cos(el_grid));
                 az_grid = {};
@@ -685,20 +691,31 @@ classdef Core_Utils < handle
             end
             n_el = numel(el_grid);
             
-            % Find map indexes
-            row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
-            if flag_congurent_cells
-                col = max(1, min(floor((az + pi) ./ (step_az(row) / 180 * pi) ) + 1, n_az(i)));
+            if strcmp(method, 'nearest')
+                % Find map indexes
+                row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+                if flag_congurent_cells
+                    col = max(1, min(floor((az + pi) ./ (step_az(row) / 180 * pi) ) + 1, n_az(i)));
+                else
+                    col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
+                end
+                
+                % init data
+                data = nan(size(az));
+                
+                % fill maps
+                for i = 1 : numel(data)
+                    data(i) = hmap(row(i), col(i));
+                end
             else
-                col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
-            end
-            
-            % init data
-            data = nan(size(az));
-                        
-            % fill maps
-            for i = 1 : numel(data)
-                data(i) = hmap(row(i), col(i));                
+                % Add padding
+                n_col = 3;
+                az_grid = [(az_grid(end-n_col+1:end) - 2*pi) az_grid (az_grid(1:n_col) + 2*pi)];
+                hmap = [hmap(:, end-n_col+1:end) hmap hmap(:, 1:n_col)];
+                % Interp
+                [a, e] = ndgrid(az_grid', flipud(el_grid));
+                finterp = griddedInterpolant(a,e,flipud(hmap)', method);
+                data = finterp(az, el);
             end
         end
                 
@@ -942,78 +959,6 @@ classdef Core_Utils < handle
                 colormap(jet);
                 colorbar;
             end
-            fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
-        end
-
-        function fh = showAllZernike(l, m, z_par, el_min, flag_hlist)
-            % Show 3D plot of Zernike polynomials 
-            %
-            % SINTAX
-            %   fh = showAllZernike(l, m, z_par)
-            %
-            % EXAMPLE
-            %   [l, m] = Core_Utils.getAllZdegree(3, 3);
-            %   Core_Utils.showAllZernike(l, m, 1, 0, @(el) el); 
-            %   colormap(Cmap.get('BuRd', 1024));
-
-                       
-            is_hold = true;
-            fh = figure();
-            
-            %%% INTERNAL PARAMETER
-            scale = 1;
-            %%%
-            
-            if nargin < 5
-                flag_hlist = false;
-            end
-            if numel(z_par) == 1
-                z_par = ones(size(l)) * z_par;
-            end
-            
-            x = -1 : 0.005 : 1;
-            y = x;
-            [X,Y] = meshgrid(x,y);
-            [theta, r_prj] = cart2pol(X,Y); % This radius is the correct one for my polar projection             
-            r_zern = r_prj;
-            if nargin >= 4 && ~isempty(el_min)
-                r_max = 1 - (2 * el_min / pi);
-                idx = r_prj <= r_max;
-            else
-                idx = r_prj <= 1;
-            end
-            
-            axis equal
-            if flag_hlist
-                dx = 2.2;
-                for i = 1 : numel(l)
-                    z = nan(size(X));
-                    z(idx) = zernfun(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
-                    
-                    h = imagesc(x + dx * i, y, z); hold on;
-                    h.AlphaData = ~isnan(z);
-                end
-                xlim([-1 (dx*i+1)]);                
-            else
-                dx = 1.4; dy = 2.4; % All attached
-                for i = 1 : numel(l)
-                    z = nan(size(X));
-                    z(idx) = zernfun(l(i), m(i), r_zern(idx), theta(idx)) * z_par(i);
-                    
-                    h = imagesc(x + dx * m(i), y + dy * -l(i),z); hold on;
-                    h.AlphaData = ~isnan(z);
-                    ylim(dy*[-1 0] * max(abs(m)) + [-1 1]);
-                    xlim(dx*[-1 1] * max(abs(l)) + [-1 1]);                %dx = 1.2; dy = 1.6; % All attached
-                end                
-            end
-
-            ax = gca;
-            ax.YDir = 'normal';
-            axis equal
-            axis off
-            set(gcf,'color','w');
-            colormap(Cmap.get('PuOr', 1024));
-
             fh = gcf; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');            
         end
 
@@ -1476,7 +1421,11 @@ classdef Core_Utils < handle
             
             tmp_rec = GNSS_Station;
             try
-                load(mp_file, 'ant_mp');
+                if isstruct(mp_file)
+                    ant_mp = mp_file;
+                else
+                    load(mp_file, 'ant_mp');
+                end
                 ant_mp;
             catch
                 Core.getLogger.addError('MP file not found, or corrupted');
@@ -1568,7 +1517,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function exportFig(fh, out_path, mode)
+        function exportFig(fh, out_path, mode, flag_transparent)
             % Export Figure
             %
             % SYNTAX
@@ -1580,18 +1529,25 @@ classdef Core_Utils < handle
             if nargin <= 1 
                 out_path = fh;
                 fh = gcf;
-            end
+            end            
             %fh.WindowStyle = 'normal'; export_fig(fh, out_path, '-transparent', '-r150'); fh.WindowStyle = 'docked';
             ws_bk = fh.WindowStyle;
             fh.WindowStyle = 'normal';
-            if nargin == 3 && ~isempty(mode)
+            if nargin >= 3 && ~isempty(mode)
                 Core_UI.beautifyFig(fh, mode);
+            end
+            if (nargin < 4) || isempty(flag_transparent)
+                flag_transparent = true;
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
             box = findall(fh, 'type', 'uicontainer');
             if isempty(box)
-                export_fig(fh, out_path, '-transparent', '-r150');
+                if flag_transparent
+                    export_fig(fh, out_path, '-transparent', '-r150');
+                else
+                    export_fig(fh, out_path, '-r150');
+                end
             else
                 % Special tricks in case of figure containing boxes
                 
@@ -1620,7 +1576,7 @@ classdef Core_Utils < handle
                 end
                 
                 % saveas does not have transparency management
-                if strcmp(ext, '.png')
+                if strcmp(ext, '.png') && flag_transparent
                     % Tricks are just for PNG file type
 
                     % read the just saved image 

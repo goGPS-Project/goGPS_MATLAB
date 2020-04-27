@@ -772,7 +772,7 @@ classdef Core_SEID < handle
                              data_q(i) = [1 (lon_q(i) .* cos(lat_q(i))) lat_q(i)] * ((A'*A)\A' * data_in(i, id_ok)');
                              % Test diffent reference frame for interpolation
                              %data_q(i) = [1 (lon_q(i)) lat_q(i)] * ((A'*A)\A' * data_in(i, id_ok)');
-                             % mybe a 3D Kriging is better
+                             % maybe a 3D Kriging is better
                         end
                     end
                 case  {'distance'}
