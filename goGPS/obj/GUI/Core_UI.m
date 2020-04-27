@@ -226,13 +226,22 @@ classdef Core_UI < Logos
                 m = uimenu(fig_handle, 'Label', 'Export');
             end
             
-            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ... (light)');
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ...');
             if ~isempty(mitem)
                 % Item already present
                 %    mitem = mitem(1);
             else
-                mitem = uimenu(m,'Label', 'as ... (light)');
+                mitem = uimenu(m,'Label', 'as ...');
                 mitem.Callback = @exportAsAsk;
+            end
+            
+            mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ... (transparent bg)');
+            if ~isempty(mitem)
+                % Item already present
+                %    mitem = mitem(1);
+            else
+                mitem = uimenu(m,'Label', 'as ... (transparent bg)');
+                mitem.Callback = @exportAsAskTransparent;
             end
             
             % If exist a filename and the out dir is a valid path
@@ -265,8 +274,8 @@ classdef Core_UI < Logos
                 end
             end
             
-            function exportAs(fh, type)
-                if nargin == 1
+            function exportAs(fh, type, beautify_mode, flag_transparent)
+                if (nargin == 1) || isempty(type)
                     [file_name, path_name] = uiputfile({'*.png','PNG (*.png)'; ...
                         '*.pdf','PDF (*.pdf)'; ...
                         '*.gif','GIF (*.gif)'; ...
@@ -274,44 +283,62 @@ classdef Core_UI < Logos
                         '*.*',  'All Files (*.*)'}, ...
                         'Save the figure as', fullfile(Core.getState.getOutDir, 'Images', 'file_name.png'));
                     file_name = fullfile(path_name, file_name);
-                else                
+                    if path_name == 0
+                        file_name = '';
+                    end
+                else
                     file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
                 end
+                
                 if ~isempty(file_name)
-                    [file_dir, file_name, file_ext] = fileparts(file_name);
-                    dir_ok = true;
-                    if ~isempty(file_dir)
-                        if ~exist(file_dir, 'file')
-                            try
-                                mkdir(file_dir);
-                            catch ex
-                                dir_ok = false;
-                                Core.getLogger.addError(sprintf('%s - folder: "%s"', ex.message, file_dir));
+                    if nargin < 3
+                        beautify_mode = Core_UI.DEFAULT_EXPORT_MODE;
+                    end
+                    
+                    if nargin < 4 || isempty(flag_transparent)
+                        flag_transparent = true;
+                    end
+                    
+                    if ~isempty(file_name)
+                        [file_dir, file_name, file_ext] = fileparts(file_name);
+                        dir_ok = true;
+                        if ~isempty(file_dir)
+                            if ~exist(file_dir, 'file')
+                                try
+                                    mkdir(file_dir);
+                                catch ex
+                                    dir_ok = false;
+                                    Core.getLogger.addError(sprintf('%s - folder: "%s"', ex.message, file_dir));
+                                end
                             end
                         end
-                    end
-                    if dir_ok
-                        if isempty(file_ext)
-                            file_ext = type;
-                        end
-                        if isempty(file_name)
-                            Core.getLogger.addWarning('No filename found for the figure export');
-                        end
-                        if isempty(file_name)
-                            file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
-                        end
-                        file_name = fullfile(file_dir, [file_name file_ext]);
-                        
-                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
-                        if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
-                            Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                        if dir_ok
+                            if isempty(file_ext)
+                                file_ext = type;
+                            end
+                            if isempty(file_name)
+                                Core.getLogger.addWarning('No filename found for the figure export');
+                            end
+                            if isempty(file_name)
+                                file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
+                            end
+                            file_name = fullfile(file_dir, [file_name file_ext]);
+                            
+                            Core_Utils.exportFig(fh, file_name, beautify_mode, flag_transparent);
+                            if ~isempty(beautify_mode) && ~strcmp(beautify_mode, Core_UI.DEFAULT_MODE)
+                                Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                            end
                         end
                     end
                 end
             end
             
             function exportAsAsk(src, event)
-                exportAs(src.Parent.Parent);
+                exportAs(src.Parent.Parent, [], [], false);
+            end
+            
+            function exportAsAskTransparent(src, event)
+                exportAs(src.Parent.Parent, [], []);
             end
             
             function exportFIG(src, event)
