@@ -322,7 +322,7 @@ classdef GUI_Chalmers < handle
             %% DEPRECATE!!!
             warning on
             [hj_label, h_container] = javacomponent(j_label, [10,10,250,20], parent);
-            warnin off
+            warning off
             
             % Modify the mouse cursor when hovering on the label
             hj_label.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
