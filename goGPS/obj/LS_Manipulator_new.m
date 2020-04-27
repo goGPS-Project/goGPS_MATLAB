@@ -2301,6 +2301,55 @@ classdef LS_Manipulator_new < handle
             res_time.addSeconds( time_res);
         end
         
+        
+        function [out_ph, sat, obs_id, res_id,out_time] = getPhOut(this, rec_num)
+            % Get phase outliers
+            %
+            % OUPUT
+            %   res_ph          matrix of phase residuals
+            %   sat             go_id of the satellite
+            %   obs_id          id of the array ls.unique_obs_codes indicating the constallation and tracking of the column
+            %   id_res          indix of the value in the res array
+            %
+            % SYNTAX
+            %   [res_ph, sat, obs_id, res_id] = this.getPhRes(rec_num)
+            [out_ph, sat, obs_id, res_id] = deal([]);
+            
+            if nargin <2 && isempty(rec_num)
+                rec_num = 1;
+            end
+            
+            idx_rec = this.receiver_obs == rec_num;
+            
+            u_stream = unique(1000 * uint32(this.satellite_obs(idx_rec  & this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & this.phase_obs )));
+            n_stream = length(u_stream);
+            min_time_res = min(this.ref_time_obs);
+            duration = max(this.ref_time_obs) - min_time_res;
+            time_res = (0:this.obs_rate:duration);
+            out_ph = false(max(length(time_res), this.unique_time.length),n_stream);
+            res_id = zeros(length(time_res),n_stream,'uint32');
+            sat = nan(1, n_stream);
+            obs_id = nan(1,n_stream);
+            sat_c = 9999;
+            idx_rec = find(idx_rec);
+            for i = 1 : n_stream
+                obs_id(i) = rem(u_stream(i), 1000);
+                sat(i) = floor(u_stream(i) / 1000);
+                if sat_c ~=  sat(i)
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat(i));
+                    sat_c = sat(i);
+                end
+                idx_out = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
+                if any(idx_out)
+                    [~,idx_time] = ismember(this.ref_time_obs(idx_out) - min_time_res, time_res);
+                    out_ph(idx_time, i) = this.outlier_obs(idx_out);
+                    res_id(idx_time, i) = find(idx_out);
+                end
+            end
+            out_time = this.time_min.getCopy();
+            out_time.addSeconds( time_res);
+        end
+        
         function [iono, iono_time] = getIono(this)
             % get phase residuals
             %
@@ -2369,6 +2418,44 @@ classdef LS_Manipulator_new < handle
             end
             res_time = this.time_min.getCopy();
             res_time.addSeconds( time_res);
+        end
+        
+        function [out_pr, sat, obs_id,out_time] = getPrOut(this, rec)
+            % get phase residuals
+            %
+            % SYNTAX:  [res_pr, sat, obs_id] = getPrRes(this)
+            [out_pr, sat, obs_id] = deal([]);
+            if nargin <2  && isempty(rec_num)
+                rec = 1;
+            end
+
+                idx_rec = this.receiver_obs == rec;
+            u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
+            n_stream = length(u_stream);
+            min_time_res = min(this.ref_time_obs);
+            duration = max(this.ref_time_obs) - min_time_res;
+            time_res = (0:this.obs_rate:duration);
+            out_pr = false(max(length(time_res), this.unique_time.length), n_stream);
+            sat = nan(1,n_stream);
+            obs_id = nan(1,n_stream);
+            sat_c = 9999;
+            idx_rec = find(idx_rec);
+            
+            for i = 1 : n_stream
+                obs_id(i) = rem(u_stream(i) ,1000);
+                sat(i) = floor(u_stream(i)/1000);
+                if sat_c ~=  sat(i)
+                    idx_sat = idx_rec(this.satellite_obs(idx_rec) == sat(i));
+                    sat_c = sat(i);
+                end
+                idx_out = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
+                if any(idx_out)
+                    [~,idx_time] =  ismember(this.ref_time_obs(idx_out) - min_time_res, time_res);
+                    out_pr(idx_time,i) = this.outlier_obs(idx_out);
+                end
+            end
+            out_time = this.time_min.getCopy();
+            out_time.addSeconds( time_res);
         end
         
         function setPhFlag(this,rec,flag)

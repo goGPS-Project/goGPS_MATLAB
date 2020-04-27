@@ -2050,7 +2050,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
             this.sat.outliers_ph_by_ph = [];
             [ph, wl, lid_ph] = this.getPhases;
+             [pr] = this.getPhases;
             this.sat.outliers_ph_by_ph = false(size(ph));
+            this.sat.outliers_pr_by_pr = false(size(pr));
             % inititalize cycle slips with the beginning of the arcs
             this.sat.cycle_slip_ph_by_ph = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
             
@@ -10796,7 +10798,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                     rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
 
                     this.sat.res.import(3, res_time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
-                                                        
+                    % save pr and ph outlier
+                    [out_ph, sat, obs_id,~, out_time] = ls.getPhOut(1);
+                    obs_code_ph = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    [~,idx_time] = ismember(round(out_time.getRefTime(this.time.first.getMatlabTime))  , round(this.time.getRefTime(this.time.first.getMatlabTime)));
+                    [~, ~, id_ph] = this.getPhases();
+                    for s = 1 : length(sat)
+                        idx_o = this.go_id(id_ph) == sat(s) & strLineMatch([this.system(id_ph)' this.obs_code(id_ph,:)], obs_code_ph(s,:));
+                        this.sat.outliers_ph_by_ph(idx_time,idx_o) = out_ph(:,s);
+                    end
+                    [out_pr, sat, obs_id, out_time] = ls.getPrOut(1);
+                    obs_code_pr = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    [~,idx_time] = ismember(round(out_time.getRefTime(this.time.first.getMatlabTime))  , round(this.time.getRefTime(this.time.first.getMatlabTime)));
+                    [~,  id_pr] = this.getPseudoRanges();
+                    for s = 1 : length(sat)
+                        idx_o = this.go_id(id_pr) == sat(s) & strLineMatch([this.system(id_pr)' this.obs_code(id_pr,:)], obs_code_pr(s,:));
+                        this.sat.outliers_pr_by_pr(idx_time,idx_o) = out_pr(:,s);
+                    end
 
                     % -------------------- estimate additional coordinate set
                     if state.flag_coo_rate
