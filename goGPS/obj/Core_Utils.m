@@ -45,6 +45,7 @@
 classdef Core_Utils < handle
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
+        FLAG_EXPORT_TRANSPARENT = true;
     end
     
     methods (Static)
@@ -1454,7 +1455,7 @@ classdef Core_Utils < handle
                 Core_UI.beautifyFig(fh, mode);
             end
             if (nargin < 4) || isempty(flag_transparent)
-                flag_transparent = true;
+                flag_transparent = Core_Utils.FLAG_EXPORT_TRANSPARENT;
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
