@@ -2026,10 +2026,10 @@ classdef Command_Interpreter < handle
                 for r = id_trg
                     if ~isempty(rec(r)) && ~(rec(r).isEmptyWork_mr)
                         if rec(r).state.flag_out_quality
-                            id_rem = rec(1).work.obs_code(:,1) ~= 'S';
+                            id_rem = rec(r).work.obs_code(:,1) ~= 'S';
                             rec(r).work.obs(id_rem, :) = [];
-                            rec(r).work.obs_code = [rec(1).work.obs_code(rec(1).work.obs_code(:,1) == 'S', :); ...
-                                rec(1).work.obs_code(rec(1).work.obs_code(:,1) ~= 'S', :)];
+                            rec(r).work.obs_code = [rec(r).work.obs_code(rec(r).work.obs_code(:,1) == 'S', :); ...
+                                rec(r).work.obs_code(rec(r).work.obs_code(:,1) ~= 'S', :)];
                         else
                             rec(r).work.obs = [];
                         end
