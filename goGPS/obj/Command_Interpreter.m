@@ -1159,7 +1159,7 @@ classdef Command_Interpreter < handle
             end
             
             t0 = tic();
-            %try
+            try
                 [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = this.fastCheck(cmd_list);
                 sss_level = session_lev + sss_level_add;
                 level = execution_block + loop_level_add;
@@ -1322,7 +1322,7 @@ classdef Command_Interpreter < handle
                             end
                             cur_line_id = par_cmd_id(end);
                         else
-                            %try
+                            try
                                 switch upper(tok{1})
                                     case this.CMD_SET.name                  % SET a parameter
                                         this.runSet(core.state, tok(2:end));
@@ -1387,21 +1387,21 @@ classdef Command_Interpreter < handle
                                             this.runOutDet(core.rec, tok);
                                     end
                                 end
-%                             catch ex
-%                                 log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
-%                                 Core_Utils.printEx(ex);
-%                                 ex_number = ex_number + 1;
-%                                 ex_list{end + 1} = ex;
-%                             end
+                            catch ex
+                                log.addError(sprintf('Command "%s" failed with error message: %s\nDebug starting from Command_Interpreter.exec()', tok{1}, ex.message));
+                                Core_Utils.printEx(ex);
+                                ex_number = ex_number + 1;
+                                ex_list{end + 1} = ex;
+                            end
                         end
                     end
                 end
-%             catch ex
-%                 log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
-%                 Core_Utils.printEx(ex);
-%                 ex_number = ex_number + 1;
-%                 ex_list{end + 1} = ex;
-%             end
+            catch ex
+                log.addError(sprintf('Command core.exec() failed to execute\n%s', ex.message));
+                Core_Utils.printEx(ex);
+                ex_number = ex_number + 1;
+                ex_list{end + 1} = ex;
+            end
             if (toc(t0) > 1) && (numel(cmd_list) > 1)
                 log.smallSeparator()
                 log.addMessage(log.indent(sprintf(' Command block execution done in %.3f seconds', toc(t0))));
