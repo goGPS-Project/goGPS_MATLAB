@@ -5745,6 +5745,52 @@ classdef GNSS_Station < handle
             f.Visible = 'on'; drawnow;
         end
         
+        function fh_list = showZwdProcStatus(sta_list)
+            % Show A matrix of all the ZWD
+            % (If stations are more than 40 the names will be overposed)
+            %
+            % SYNTAX
+            %   fh_list = sta_list.showZwdSync()
+            
+            [zwd, time] = sta_list.getZwdRes_mr;
+            
+            f = figure('Visible', 'off');
+            av_res = ~isnan(zwd);
+            av_data = false(size(av_res));
+           
+            fr = Core.getRinLists();
+            time_matlab = time.getMatlabTime;
+            rate = time.getRate /86400; %rate in days
+            for r = 1 : length(sta_list)
+                for fl = 1 : fr(r).first_epoch.length
+                    idx_epoch = time_matlab > (fr(r).first_epoch.getEpoch(fl).getMatlabTime -rate +eps) & time_matlab < (fr(r).last_epoch.getEpoch(fl).getMatlabTime +rate -eps);
+                    av_data(idx_epoch,r) = true;
+                end
+                r
+            end
+                
+            plot_data = zeros(size(av_data));
+            plot_data(av_data) = 1;
+            plot_data(av_res) = 2;
+            fh_list = f;
+            fig_name = sprintf('Availability stat');
+            f.UserData = struct('fig_name', fig_name);
+            
+            imagesc(time.getMatlabTime, 1:size(zwd,2), plot_data');
+            colormap(Cmap.get('RdBu'));
+            colorbar;
+            yticks(1:size(zwd,2));
+            yticklabels([sta_list.getMarkerName4Ch]);
+            setTimeTicks();
+            title(sprintf('1 data available, 2 result available\\fontsize{5} \n'));
+            xlabel('Epochs');
+            Core_UI.beautifyFig(f,'light');
+                        
+            Core_UI.addExportMenu(f);
+            Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on'; drawnow;
+        end
+        
         function fh_list = showNSat(sta_list, new_fig)
             % Show total number of satellites in view (epoch by epoch) for each satellite
             %
