@@ -217,8 +217,12 @@ classdef Core_SEID < handle
                             ph_gf(id_ok, ph_ref_gf(r).go_id, r) = zero2nan(ph_ref_gf(r).obs(id_ok_ref, :));
                             % Import CS and outliers from receivers
                             for s = 1 : numel(ref(r).ph_idx)
-                                ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                                ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                if not(isempty(ref(r).sat.outliers_ph_by_ph))
+                                    ph_gf(id_ok(find(ref(r).sat.outliers_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                end
+                                if not(isempty(ref(r).sat.outliers_ph_by_ph))
+                                    ph_gf(id_ok(find(ref(r).sat.cycle_slip_ph_by_ph(id_ok_ref,s))), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+                                end
                                 %
                                 %                         % fill small gaps
                                 %                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
