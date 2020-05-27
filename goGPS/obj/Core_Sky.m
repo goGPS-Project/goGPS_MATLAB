@@ -205,7 +205,9 @@ classdef Core_Sky < handle
                 
                 if Core.getState.isIonoKlobuchar
                     f_name = Core.getState.getIonoFileName(start_date, stop_date);
-                    this.importIono(f_name{1});
+                    central_time = start_date.getCopy;
+                    central_time.addSeconds((stop_date-start_date) / 2);
+                    this.importIono(f_name{1}, central_time);
                 end
                 
                 if not(clock_in_eph)
@@ -1597,8 +1599,8 @@ classdef Core_Sky < handle
             idx = find(sum(this.group_delays_flags == repmat(flag,size(this.group_delays_flags,1),1),2)==4);
         end
         
-        function importIono(this,f_name)
-            [~, this.iono, flag_return ] = this.loadRinexNav(f_name,this.cc, 1, Core.getCurrentSettings.getIonoModel);
+        function importIono(this, f_name, central_time)
+            [~, this.iono, flag_return ] = this.loadRinexNav(f_name,this.cc, 1, Core.getCurrentSettings.getIonoModel, central_time);
             if (flag_return)
                 return
             end
@@ -2763,7 +2765,7 @@ classdef Core_Sky < handle
                 end
                 
                 if this.rin_type < 3 % at the moment the new reader support only RINEX 3 broadcast ephemeris
-                    [eph, iono] = RINEX_get_nav(file_nav, cc);
+                    [eph, iono] = RINEX_get_nav(file_nav, cc); % Old implementation slower but support RINEX 2
                 else
                     eph = [];
                     for sys_c = cc.getActiveSysChar()
@@ -2969,12 +2971,11 @@ classdef Core_Sky < handle
             % Broadcast corrections in DD are currently causing problems (offset in UP) => not using them
             %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
             if ((iono_model == 2 && ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
-                [week, sow] = time2weektow(time(1));
-                [date, DOY] = gps2date(week, sow);
+                [year, DOY] = time.getDOY();
                 
-                filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'p'];
-                filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
-                filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
+                filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(mod(year, 100),'%02d') 'p'];
+                filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(mod(year, 100),'%02d') 'n'];
+                filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(mod(year, 100),'%02d') 'N'];
                 
                 pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end
                 nav_path = filename(1:pos(end));
