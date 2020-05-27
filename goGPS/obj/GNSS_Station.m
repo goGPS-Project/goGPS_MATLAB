@@ -5777,7 +5777,8 @@ classdef GNSS_Station < handle
             f.UserData = struct('fig_name', fig_name);
             
             imagesc(time.getMatlabTime, 1:size(zwd,2), plot_data');
-            colormap(Cmap.get('RdBu'));
+            %colormap(Cmap.get('RdBu'));
+            colormap(Cmap.getColor(1:3,3, 'Pastel1'))
             colorbar;
             yticks(1:size(zwd,2));
             yticklabels([sta_list.getMarkerName4Ch]);
