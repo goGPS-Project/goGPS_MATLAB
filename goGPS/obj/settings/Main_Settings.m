@@ -4527,6 +4527,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor;
             out_prefix = fnp.checkPath(this.out_prefix, this.getHomeDir());
         end
+        
+        function max_time = getMaxExecutionTimePar(this)
+            % Get the max execution time for parallel workers
+            %
+            % SYNTAX
+            %    max_time = getMaxExecutionTimePar(this)
+            max_time = 7200;
+        end
 
         function updateOutPath(this, date, session)
             % Update the full prefix of the putput files (replacing special keywords)
