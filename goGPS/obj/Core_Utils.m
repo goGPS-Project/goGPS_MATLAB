@@ -1414,12 +1414,14 @@ classdef Core_Utils < handle
             
             msg = sprintf(['goGPS encountered a problem, please open an issue on GitHub posting\n' ...
                     ' the following lines together with a copy of the full log' ]);
-            fprintf('\n---------------------------------------------------------------------\n %s', msg);
-            fprintf('\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', ex.message);
+            str = sprintf('\n---------------------------------------------------------------------\n %s', msg);
+            str = sprintf('%s\n---------------------------------------------------------------------\n MESSAGE: %s\n---------------------------------------------------------------------\n\n', str, ex.message);
             
             for i=1:numel(ex.stack)
-                fprintf('  file: "%s"\n  line: %d\n  fun: %s\n\n', ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
+                str = fprintf('%s  file: "%s"\n  line: %d\n  fun: %s\n\n', str, ex.stack(i).file, ex.stack(i).line, ex.stack(i).name);
             end
+            fprintf(str);
+            Core.getLogger.addMonoMessage(str);
             % keyboard
         end
         
