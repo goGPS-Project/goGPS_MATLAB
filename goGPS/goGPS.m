@@ -102,7 +102,8 @@ function goGPS(ini_settings, use_gui, flag_online)
     if nargin >= 1 && ~isempty(ini_settings)
         core = Core.getInstance(true, false, ini_settings);    
     else
-        core = Core.getInstance(true); % Init Core
+        state = Core.getCurrentSettings();
+        core = Core.getInstance(true, false, state); % Init Core
     end        
     core.setModeGUI(use_gui);
     if nargin < 3 || isempty(flag_online)
