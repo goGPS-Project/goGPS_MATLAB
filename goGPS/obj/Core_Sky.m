@@ -2496,7 +2496,7 @@ classdef Core_Sky < handle
                 Core.getLogger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
                 return
             end
-            %%% check if sun and moon positions ahve been computed
+            %%% check if sun and moon positions have been computed
             if isempty(this.X_sun) || this.X_sun(1,1)==0
                 this.sun_moon_pos();
             end

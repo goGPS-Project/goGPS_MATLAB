@@ -709,7 +709,7 @@ classdef Core_Utils < handle
                     data(i) = hmap(row(i), col(i));
                 end
             else
-                % Add padding
+                % Add repeating padding
                 n_col = 3;
                 az_grid = [(az_grid(end-n_col+1:end) - 2*pi) az_grid (az_grid(1:n_col) + 2*pi)];
                 hmap = [hmap(:, end-n_col+1:end) hmap hmap(:, 1:n_col)];
