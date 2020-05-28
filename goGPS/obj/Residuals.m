@@ -187,7 +187,17 @@ classdef Residuals < Exportable
                 
                 % add new data
                 this.value(id_start + (0 : n_obs_new - 1) , [id_old; ((end - numel(code_add) + 1) : end)']) = res.value(:, [id_new; id_add]);
-                this.obs_code = [this.obs_code; res.obs_code(id_add, :)];
+                
+                
+                nch_old = size(this.obs_code,2);
+                nch_new = size(res.obs_code,2);
+                if nch_old == nch_new % length of obs code might not be compatible
+                    this.obs_code = [this.obs_code; res.obs_code(id_add, :)];
+                elseif nch_old > nch_new
+                    this.obs_code = [this.obs_code ; [res.obs_code(id_add, :) char(32*ones(size(res.obs_code,1),nch_old-nch_new,'uint8'))]];
+                else
+                    this.obs_code = [[this.obs_code char(32*ones(size(this.obs_code,1),nch_new-nch_old,'uint8'))]; res.obs_code(id_add, :)];
+                end
                 this.prn = [this.prn; res.prn(id_add)];
                 
                 this.time = time;
