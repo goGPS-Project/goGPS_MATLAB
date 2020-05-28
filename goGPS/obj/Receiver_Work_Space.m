@@ -10083,8 +10083,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if isempty(id_obs)
                     log.addWarning('No processable epochs found, skipping PPP');
                 else
-                    ls.remShortArc();
                     ls.Astack2Nstack();
+                    ls.remShortArc();
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
                     if state.flag_ztd_ppp
@@ -10201,14 +10201,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     clock = x(x(:,2) == 6,1);
                     tropo = x(x(:,2) == 7,1);
                     amb = x(x(:,2) == 5,1);
-                    
-                    % saving matrix of float ambiguities
-                    amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
-                    id_ok = ls.amb_idx > 0;
-                    amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
-                    this.sat.amb_mat = nan(this.length, cc.getMaxNumSat);
-                    this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
-                    
+                                        
                     gntropo = x(x(:,2) == 8,1);
                     getropo = x(x(:,2) == 9,1);
                     log.addMessage(log.indent(sprintf('DEBUG: sigma0 = %f', s0)));

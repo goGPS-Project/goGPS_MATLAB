@@ -2230,13 +2230,17 @@ classdef LS_Manipulator < Exportable
             % remove lines from the design matrix
             this.A_idx(idx_obs,:) = [];
             this.A_ep(idx_obs,:) = [];
+            if ~isempty(this.N_ep)
             this.N_ep(:,:,idx_obs) = [];
+            end
             this.variance(idx_obs) = [];
             this.epoch(idx_obs) = [];
             this.sat(idx_obs) = [];
             this.receiver_id(idx_obs) = [];
             this.rw(idx_obs) = [];
+            if ~isempty(this.res)
             this.res(idx_obs) = [];
+            end
             this.y(idx_obs) = [];
                         
             param_actual = unique(this.A_idx);
