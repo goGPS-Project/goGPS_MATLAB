@@ -257,7 +257,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         function dt = getTotalDt(this)
-            dt = this.getDt + this.getDtPrePro;
+            dt = this.getDt + this.getDtPh +  this.getDtPrePro;
         end
         
         function coo = getPos(this)
