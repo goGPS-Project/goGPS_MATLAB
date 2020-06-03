@@ -2800,7 +2800,7 @@ classdef Core_Utils < handle
             % SYNTAX:
             % this.getAmbIdx()
             
-            amb_idx = ones(size(cycle_slip), 'uint16');
+            amb_idx = ones(size(cycle_slip), 'uint32');
             n_epochs = size(amb_idx,1);
             n_stream = size(amb_idx,2);
             for s = 1:n_stream
@@ -2812,7 +2812,7 @@ classdef Core_Utils < handle
                     amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
                 end
             end
-            amb_idx = amb_idx .* uint16(obs ~= 0);
+            amb_idx = amb_idx .* uint32(obs ~= 0);
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
