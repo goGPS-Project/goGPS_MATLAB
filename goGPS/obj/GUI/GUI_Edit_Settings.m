@@ -2626,6 +2626,15 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     if ~strcmp(str, char(this.j_cmd.getText()))
                         this.j_cmd.setText(str);
                     end
+                elseif strcmp(this.w_main.Visible, 'off')
+                    this.w_main.Visible = 'on'; drawnow
+                    if this.j_cmd.isValid
+                        str = strrep(strCell2Str(Core.getCurrentSettings.exportCmdList(), 10),'#','%');
+                        if ~strcmp(str, char(this.j_cmd.getText()))
+                            this.j_cmd.setText(str);
+                        end
+                    end
+                    this.w_main.Visible = 'off'; drawnow
                 end
             end
         end
