@@ -2319,6 +2319,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % if majority of satellites jump set cycle slip on all
             n_obs_ep = sum(~isnan(ph2),2);
             all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
+            % 2020/06/01: too many cycle slips, mark only when a cycle slips appens:
+            all_but_one = all_but_one & any(poss_slip_idx,2);
             for c = find(all_but_one')
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
