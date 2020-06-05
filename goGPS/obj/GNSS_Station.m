@@ -990,107 +990,115 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.exportHydroNET
             try
-                state = Core.getCurrentSettings;
-                min_time = state.sss_date_start;
-                max_time = state.sss_date_stop;
-%                 for r = 1 : numel(sta_list)
-%                     min_time.append(sta_list(r).out.time.minimum);
-%                     max_time.append(sta_list(r).out.time.maximum);
-%                 end
-%                 min_time = min_time.minimum;
-%                 max_time = max_time.maximum;
-                [year,doy] = min_time.getDOY();
-                t_start = min_time.toString('HHMM');
-                 
-                out_dir = fullfile( Core.getState.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
-                if ~exist(out_dir, 'file')
-                    mkdir(out_dir);
-                end
-                 
-                if length(sta_list) == 1
-                    prefix = sta_list(1).getMarkerName4Ch;
-                else
-                    prefix = 'HNTD';
-                end
-                fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
-                fid = fopen(fname,'Wb');
-                
-                % Switch to UTC
-                min_time.toUtc();
-                max_time.toUtc();
-                
-                % write header
-                fprintf(fid,'[Variables]\n');
-                fprintf(fid,'Code,Name,Unit\n');
-                fprintf(fid,'ZTD,Zenith Total Delay,m\n');
-                fprintf(fid,'ZWD,Zenith Wet Delay,m\n');
-                fprintf(fid,'GE,East Gradient,m\n');
-                fprintf(fid,'GN,North Gradient,m\n');
-                fprintf(fid,'\n');
-                fprintf(fid,'[Locations]\n');
-                fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
-                for r = 1 : numel(sta_list)
-                    coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:), sta_list(r).out.time_pos);
-                    [x,y,h_ellipse,zone] = coo.getENU();
-                    %                     ondu = coo.getOrthometricCorrection();
-                    %                     h_ortho = h_ellipse - ondu;
-                    if zone(4) < 'N'
-                        hemi = '7';
-                    else
-                        hemi = '6';
+                sta_list = sta_list(~sta_list.isEmptyOut_mr);
+                if ~isempty(sta_list)
+                    state = Core.getCurrentSettings;
+                    min_time = state.sss_date_start.getCopy();
+                    max_time = state.sss_date_stop.getCopy();
+                    %                 for r = 1 : numel(sta_list)
+                    %                     min_time.append(sta_list(r).out.time.minimum);
+                    %                     max_time.append(sta_list(r).out.time.maximum);
+                    %                 end
+                    %                 min_time = min_time.minimum;
+                    %                 max_time = max_time.maximum;
+                    [year,doy] = min_time.getDOY();
+                    t_start = min_time.toString('HHMM');
+                    
+                    out_dir = fullfile( Core.getState.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                    if ~exist(out_dir, 'file')
+                        mkdir(out_dir);
                     end
-                    fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
-                end
-                fprintf(fid,'\n');
-                 
-                fprintf(fid,'[Time]\n');
-                fprintf(fid,'UTC time zone offset,Model date,Start date,End date\n');
-                fprintf(fid,'|+0000,,%s,%s\n',min_time.toString('yyyy-mm-dd HH:MM:SS'),max_time.toString('yyyy-mm-dd HH:MM:SS'));
-                fprintf(fid,'\n');
-                
-                fprintf(fid,'[Data]\n');
-                fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
-                for r = 1 : numel(sta_list)
-                    if ~sta_list(r).isEmpty && ~sta_list(r).isEmptyOut_mr && ~isempty(sta_list(r).out.quality_info.s0) && max(sta_list(r).out.quality_info.s0) < 0.10
-                        time = sta_list(r).out.getTime();
-                        time.toUtc();
-                        
-                        ztd = sta_list(r).out.getZtd();
-                        zwd = sta_list(r).out.getZwd();
-                        [gn,ge ] =  sta_list(r).out.getGradient();
-                        mk_code = sta_list(r).getMarkerName4Ch;
-                        for t = 1 : time.length
-                            time_str = time.getEpoch(t).toString('yyyy-mm-dd HH:MM:SS');
-                            fprintf(fid,'%s,%s,ZTD,%0.4f,,1\n',time_str,mk_code,ztd(t));
-                            fprintf(fid,'%s,%s,ZWD,%0.4f,,1\n',time_str,mk_code,zwd(t));
-                            fprintf(fid,'%s,%s,GN,%0.5f,,1\n',time_str,mk_code,gn(t));
-                            fprintf(fid,'%s,%s,GE,%0.5f,,1\n',time_str,mk_code,ge(t));
-                        end
+                    
+                    if length(sta_list) == 1
+                        prefix = sta_list(1).getMarkerName4Ch;
                     else
-                        if isempty(max(sta_list(r).out.quality_info.s0))
-                            Core.getLogger().addWarning(sprintf('no solution have been found, station skipped'));
+                        prefix = 'HNTD';
+                    end
+                    fname = sprintf('%s',[out_dir filesep prefix sprintf('%04d%03d_%4s_%d', year, doy, t_start, round(max_time.last()-min_time.first())) 'HN.csv']);
+                    fid = fopen(fname,'Wb');
+                    
+                    % Switch to UTC
+                    min_time.toUtc();
+                    max_time.toUtc();
+                    
+                    % write header
+                    fprintf(fid,'[Variables]\n');
+                    fprintf(fid,'Code,Name,Unit\n');
+                    fprintf(fid,'ZTD,Zenith Total Delay,m\n');
+                    fprintf(fid,'ZWD,Zenith Wet Delay,m\n');
+                    fprintf(fid,'GE,East Gradient,m\n');
+                    fprintf(fid,'GN,North Gradient,m\n');
+                    fprintf(fid,'\n');
+                    fprintf(fid,'[Locations]\n');
+                    fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
+                    for r = 1 : numel(sta_list)
+                        coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:), sta_list(r).out.time_pos);
+                        [x,y,h_ellipse,zone] = coo.getENU();
+                        %                     ondu = coo.getOrthometricCorrection();
+                        %                     h_ortho = h_ellipse - ondu;
+                        if zone(4) < 'N'
+                            hemi = '7';
                         else
-                            Core.getLogger().addWarning(sprintf('s02 (%f m) too bad, station skipped', max(sta_out(r).out.quality_info.s0)));
+                            hemi = '6';
+                        end
+                        fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
+                    end
+                    fprintf(fid,'\n');
+                    
+                    fprintf(fid,'[Time]\n');
+                    fprintf(fid,'UTC time zone offset,Model date,Start date,End date\n');
+                    fprintf(fid,'|+0000,,%s,%s\n',min_time.toString('yyyy-mm-dd HH:MM:SS'),max_time.toString('yyyy-mm-dd HH:MM:SS'));
+                    fprintf(fid,'\n');
+                    
+                    fprintf(fid,'[Data]\n');
+                    fprintf(fid,'Date time,Location code,Variable code,Value,Quality,Availability\n');
+                    for r = 1 : numel(sta_list)
+                        if ~sta_list(r).isEmpty && ~sta_list(r).isEmptyOut_mr && ~isempty(sta_list(r).out.quality_info.s0) && max(sta_list(r).out.quality_info.s0) < 0.10
+                            time = sta_list(r).out.getTime();
+                            time.toUtc();
+                            
+                            ztd = sta_list(r).out.getZtd();
+                            zwd = sta_list(r).out.getZwd();
+                            [gn,ge ] =  sta_list(r).out.getGradient();
+                            mk_code = sta_list(r).getMarkerName4Ch;
+                            for t = 1 : time.length
+                                time_str = time.getEpoch(t).toString('yyyy-mm-dd HH:MM:SS');
+                                fprintf(fid,'%s,%s,ZTD,%0.4f,,1\n',time_str,mk_code,ztd(t));
+                                fprintf(fid,'%s,%s,ZWD,%0.4f,,1\n',time_str,mk_code,zwd(t));
+                                fprintf(fid,'%s,%s,GN,%0.5f,,1\n',time_str,mk_code,gn(t));
+                                fprintf(fid,'%s,%s,GE,%0.5f,,1\n',time_str,mk_code,ge(t));
+                            end
+                        else
+                            if isempty(max(sta_list(r).out.quality_info.s0))
+                                Core.getLogger().addWarning(sprintf('no solution have been found, station skipped'));
+                            else
+                                Core.getLogger().addWarning(sprintf('s02 (%f m) too bad, station skipped', max(sta_out(r).out.quality_info.s0)));
+                            end
                         end
                     end
+                    fclose(fid);
+                    log = Core.getLogger;
+                    log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
+                    log.addStatusOk('Export completed successfully');
+                else
+                    log = Core.getLogger;
+                    log.addWarning(sprintf('no solution have been found, station skipped'));
                 end
-                fclose(fid);
-                log = Core.getLogger;
-                log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
-                log.addStatusOk('Export completed successfully');
             catch ex
                 if all(sta_list.isEmptyOut_mr)
-                    sta_list(1).log.addWarning(sprintf('no solution have been found, station skipped'));
+                    log = Core.getLogger;
+                    log.addWarning(sprintf('no solution have been found, station skipped'));
                 else
                     Core_Utils.printEx(ex);
-                    sta_list(1).log.addError(sprintf('saving Tropo in CSV (HydroNet) format failed: "%s"', ex.message));
+                    log = Core.getLogger;
+                    log.addError(sprintf('saving Tropo in CSV (HydroNet) format failed: "%s"', ex.message));
                 end
             end
         end
     end
     %% METHODS GETTER
     % ==================================================================================================================================================
-
+    
     methods
         % standard utility
         function toString(sta_list)

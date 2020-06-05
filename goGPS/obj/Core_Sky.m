@@ -1014,7 +1014,7 @@ classdef Core_Sky < handle
                 for i = 1 : length(ant_ids)
                     ant_id = Core_Utils.code3Char2Num(ant_ids{i});
                     sat_line = sats_line(ant_id_list == ant_id);
-                    if not(isempty(sat_line))
+                    if not(isempty(sat_line)) && length(sat_line) > 1
                         n_ep_sat = length(sat_line);
                         string_time = txt(repmat(lim(sat_line,1),1,27) + repmat(8:34, n_ep_sat, 1))';
                         % convert the times into a 6 col time
