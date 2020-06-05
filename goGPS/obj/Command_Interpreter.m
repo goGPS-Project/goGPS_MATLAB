@@ -68,6 +68,7 @@ classdef Command_Interpreter < handle
         CMD_EMPTYWORK   % Reset the receiver work space
         CMD_EMPTYOUT    % Reset the receiver output container
         CMD_AZEL        % Compute (or update) Azimuth and Elevation
+        CMD_MASK        % Apply a mask to a set of observations
         CMD_BASICPP     % Basic Point positioning with no correction (useful to compute azimuth and elevation)
         CMD_FIX_POS     % Fix (position) of a receiver
         CMD_PREPRO      % Pre-processing command
@@ -192,7 +193,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'END'};
-        CMD_LIST = {'SET', 'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'MPEST', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
+        CMD_LIST = {'SET', 'PINIT', 'PKILL', 'LOAD', 'RENAME', 'EMPTY', 'EMPTYWORK', 'EMPTYOUT', 'AZEL', 'MASK', 'BASICPP', 'PREPRO', 'OUTDET', 'FIX_POS', 'CODEPP', 'PPP', 'NET', 'SEID', 'SID', 'REMIONO', 'MPEST', 'KEEP', 'SYNC', 'SHOW', 'VALIDATE', 'EXPORT', 'PUSHOUT', 'REMSAT', 'REMOBS', 'REMTMP'};
         PUSH_LIST = {'PPP','NET','CODEPP','AZEL'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -822,6 +823,11 @@ classdef Command_Interpreter < handle
             this.CMD_AZEL.rec = 'T';
             this.CMD_AZEL.par = [];
 
+            this.CMD_MASK.name = {'MASK', 'APPLY_MASK', 'apply_mask', 'mask'};
+            this.CMD_MASK.descr = 'Apply Masking (Requires GReD_Utility Class';
+            this.CMD_MASK.rec = 'T';
+            this.CMD_MASK.par = [];
+
             this.CMD_BASICPP.name = {'BASICPP', 'PP', 'basic_pp', 'pp'};
             this.CMD_BASICPP.descr = 'Basic Point positioning with no correction';
             this.CMD_BASICPP.rec = 'T';
@@ -1365,6 +1371,8 @@ classdef Command_Interpreter < handle
                                     switch upper(tok{1})
                                         case this.CMD_AZEL.name                 % AZEL
                                             this.runUpdateAzEl(core.rec, tok(2:end));
+                                        case this.CMD_MASK.name                 % AZEL
+                                            this.runApply(core.rec, tok(2:end));
                                         case this.CMD_BASICPP.name              % BASICPP
                                             this.runBasicPP(core.rec, tok(2:end));
                                         case this.CMD_PREPRO.name               % PREP
@@ -1743,6 +1751,72 @@ classdef Command_Interpreter < handle
                     rec(r).work.updateAzimuthElevation();
                     %rec(r).work.pushResult();
                 end
+            end
+        end
+        
+        function runCreateMask(this, rec, tok)
+            % Execute masking creation
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runApplyMask(rec, tok)
+            
+            if Core.isGReD()
+                step = 0.5;
+                size_conv = 21;
+                snr_thr = 35;
+                sys_c_list = 'G';
+            
+                log = Core.getLogger;
+                [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+                if ~found
+                    log.addWarning('No target found -> nothing to do');
+                else
+                    rec(id_trg) = GReD_Utility.exportMeanMapSNR(core.rec, step, size_conv, snr_thr, sys_c_list);
+                end
+            else
+                log = Core.getLogger();
+                log.AddError('You don''t have GReD Utilities. Masking cannot be performed.');
+            end
+        end
+        
+        function runApplyMask(this, rec, tok)
+            % Execute masking application
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runApplyMask(rec, tok)
+            
+            if Core.isGReD()
+                log = Core.getLogger;
+                [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+                if ~found
+                    log.addWarning('No target found -> nothing to do');
+                else
+                    [sys_list, sys_found] = this.getConstellation(tok);
+                    for r = id_trg
+                        log.newLine();
+                        log.addMarkedMessage(sprintf('Masking receiver %d: %s', r, rec(r).getMarkerName()));
+                        log.smallSeparator();
+                        log.newLine();
+                        if rec(r).isEmpty
+                            if sys_found
+                                state = Core.getCurrentSettings();
+                                state.cc.setActive(sys_list);
+                            end
+                            GReD_Utility.applyMask(rec(r), fullfile(state.getHomeDir, 'Antenna', 'mask'));
+                        end
+                    end
+                end
+            else
+                log = Core.getLogger();
+                log.AddError('You don''t have GReD Utilities. Masking cannot be performed.');
             end
         end
         

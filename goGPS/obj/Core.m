@@ -153,7 +153,7 @@ classdef Core < handle
             if (nargin == 1) && isa(force_clean, 'Core')
                 unique_instance_core__ = force_clean;
                 this = force_clean;
-                this.is_gred = exist('GReD_Utility', 'class');
+                this.is_gred = exist('GReD_Utility', 'class') == 8;
             else                
                 if nargin < 1 || isempty(force_clean)
                     force_clean = false;
@@ -174,7 +174,7 @@ classdef Core < handle
                             this.init(force_clean);
                         end
                     end
-                    this.is_gred = exist('GReD_Utility', 'class');
+                    this.is_gred = exist('GReD_Utility', 'class') == 8;
 
                 else
                     this = unique_instance_core__;
@@ -724,7 +724,7 @@ classdef Core < handle
             % Renew local path properties
             
             % Knows if GReD utilities are available
-            this.is_gred = exist('GReD_Utility', 'class');
+            this.is_gred = exist('GReD_Utility', 'class') == 8;
             
             if ispc()
                 home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
