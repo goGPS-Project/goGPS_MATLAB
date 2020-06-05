@@ -824,7 +824,7 @@ classdef Command_Interpreter < handle
             this.CMD_AZEL.par = [];
 
             this.CMD_MASK.name = {'MASK', 'APPLY_MASK', 'apply_mask', 'mask'};
-            this.CMD_MASK.descr = 'Apply Masking (Requires GReD_Utility Class';
+            this.CMD_MASK.descr = 'Apply Masking (Requires GReD_Utility Class)';
             this.CMD_MASK.rec = 'T';
             this.CMD_MASK.par = [];
 
