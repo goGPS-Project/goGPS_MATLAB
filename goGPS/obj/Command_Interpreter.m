@@ -1372,7 +1372,7 @@ classdef Command_Interpreter < handle
                                         case this.CMD_AZEL.name                 % AZEL
                                             this.runUpdateAzEl(core.rec, tok(2:end));
                                         case this.CMD_MASK.name                 % AZEL
-                                            this.runApply(core.rec, tok(2:end));
+                                            this.runApplyMask(core.rec, tok(2:end));
                                         case this.CMD_BASICPP.name              % BASICPP
                                             this.runBasicPP(core.rec, tok(2:end));
                                         case this.CMD_PREPRO.name               % PREP
@@ -1805,9 +1805,9 @@ classdef Command_Interpreter < handle
                         log.addMarkedMessage(sprintf('Masking receiver %d: %s', r, rec(r).getMarkerName()));
                         log.smallSeparator();
                         log.newLine();
-                        if rec(r).isEmpty
+                        if ~rec(r).isEmpty
+                            state = Core.getCurrentSettings();
                             if sys_found
-                                state = Core.getCurrentSettings();
                                 state.cc.setActive(sys_list);
                             end
                             GReD_Utility.applyMask(rec(r), fullfile(state.getHomeDir, 'Antenna', 'mask'));
