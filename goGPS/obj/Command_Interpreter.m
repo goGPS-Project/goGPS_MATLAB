@@ -105,6 +105,7 @@ classdef Command_Interpreter < handle
         PAR_CUTOFF      % Parameter select cutoff
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
+        PAR_OTYPE       % Parameter select observation type (i.e. CPLSD)
         PAR_BAND        % Parameter of the band to be used in the adjustment
         PAR_CTYPE       % Parameter coordinate type
 
@@ -276,6 +277,13 @@ classdef Command_Interpreter < handle
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
+            
+            this.PAR_OTYPE.name = 'Observation type';
+            this.PAR_OTYPE.descr = '-t=<obs_type_list> Type of observation (e.g. -s=CPLSD)';
+            this.PAR_OTYPE.par = '(\-t\=)|(\-\-obs_type\=)'; % (regexp) parameter prefix: -t --obs_type
+            this.PAR_OTYPE.class = 'char';
+            this.PAR_OTYPE.limits = [];
+            this.PAR_OTYPE.accepted_values = [];
             
             this.PAR_CTYPE.name = 'coordinates type';
             this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (0 coordinates of the sessions, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
@@ -796,7 +804,7 @@ classdef Command_Interpreter < handle
             this.CMD_LOAD.name = {'LOAD', 'load'};
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
-            this.CMD_LOAD.par = [this.PAR_SS, this.PAR_RATE];
+            this.CMD_LOAD.par = [this.PAR_SS, this.PAR_RATE this.PAR_OTYPE];
 
             this.CMD_RENAME.name = {'RENAME', 'rename', 'ren'};
             this.CMD_RENAME.descr = ['Rename a receiver (change marker name)' new_line 'WARNING: Every load will reset this name' new_line 'Useful for final plots'];
@@ -1499,6 +1507,7 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
+                [otype_list, ot_found] = this.getObsType(tok);                
                 state = Core.getState();
                 if ~sys_found
                     sys_list = state.cc.getActiveSysChar;
@@ -1514,14 +1523,14 @@ classdef Command_Interpreter < handle
                     end
                     cur_session = Core.getCurrentSession();
                     if state.isRinexSession()
-                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, cur_session), rate, sys_list);
+                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, cur_session), rate, sys_list, otype_list);
                         rec(r).work.loaded_session = this.core.getCurSession();
                     else
                         [session_limits, out_limits] = state.getSessionLimits(cur_session);
                         if out_limits.length < 2 || ~this.core.rin_list(r).hasObsInSession(out_limits.first, out_limits.last) && false
                             log.addWarning(sprintf('No observations are available for receiver %s in the interval of the session %d\n - %s\n - %s', rec(r).getMarkerName4Ch, cur_session, out_limits.first.toString, out_limits.last.toString));
                         else
-                            rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate, sys_list);
+                            rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate, sys_list, otype_list);
                             rec(r).work.loaded_session = cur_session;
                             rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                         end
@@ -3117,6 +3126,22 @@ classdef Command_Interpreter < handle
                 found = true;
                 cc = Core.getConstellationCollector;
                 sys_list = intersect(sys_list, cc.getActiveSysChar);
+            end
+        end
+        
+        function [otype_list, found] = getObsType(this, tok)
+            % Extract from a set of tokens the observation type parameter
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [otype_list, found] = this.getObsType(tok)
+            found = false;            
+            otype_list = regexp([tok{:}], ['(?<=' this.PAR_OTYPE.par ')[CPLSD]*'], 'match', 'once');
+            if ~isempty(otype_list)
+                found = true;
+                otype_list = intersect(otype_list, 'CPLSD');
             end
         end
         

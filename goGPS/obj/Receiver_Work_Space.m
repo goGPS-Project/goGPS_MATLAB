@@ -415,7 +415,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.add_coo               = [];
         end
         
-        function load(this, t_start, t_stop, rate, ss_list)
+        function load(this, t_start, t_stop, rate, ss_list, otype_list)
             % Load the rinex file linked to this receiver
             %
             % INPUT
@@ -423,6 +423,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   t_stop      last epoch to load [GPS_Time]
             %   rate        rate of load in seconds [double]
             %   ss_list     satellite system list ([char array])
+            %   otype_list  observation type list (e.g. CPLSD)
             %
             % SYNTAX
             %   this.load(<t_start>, <t_stop>, <rate>, <ss_list>)
@@ -462,6 +463,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.setActiveSys(ss_list);
                         ss_list = intersect(ss_list, cc.getActiveSysChar);
                         this.importRinex(this.rinex_file_name, t_start, t_stop, rate, ss_list);
+                    case 6
+                        this.setActiveSys(ss_list);
+                        ss_list = intersect(ss_list, cc.getActiveSysChar);
+                        this.importRinex(this.rinex_file_name, t_start, t_stop, rate, ss_list, otype_list);
                 end
                 this.importAntModel();
             end
@@ -495,7 +500,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.remObs(id_obs);
         end
         
-        function importRinexFileList(this, rin_list, time_start, time_stop, rate, sys_c_list)
+        function importRinexFileList(this, rin_list, time_start, time_stop, rate, sys_c_list, otype_list)
             % imprt a list of rinex files
             %
             % SYNTAX:
@@ -518,15 +523,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 rin = File_Rinex();
                 rin.copyFrom(rin_list, i);
-                this.appendRinex(rin, time_start, time_stop, rate, sys_c_list)
+                this.appendRinex(rin, time_start, time_stop, rate, sys_c_list, otype_list)
             end
         end
         
-        function appendRinex(this, rinex_file_name, time_start, time_stop, rate, sys_c_list)
+        function appendRinex(this, rinex_file_name, time_start, time_stop, rate, sys_c_list, otype_list)
             % append a rinex files
             %
             % SYNTAX:
-            %  this.appendRinex(rinex_file_name, time_start, time_stop)
+            %  this.appendRinex(rinex_file_name, time_start, time_stop, rate, sys_c_list, otype_list)
             
             rec = Receiver_Work_Space(this.parent);
             rec.ant = this.ant; % set the same antenna
@@ -536,7 +541,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 rec.rinex_file_name = rinex_file_name;
             end
-            rec.load(time_start, time_stop, rate, sys_c_list);
+            rec.load(time_start, time_stop, rate, sys_c_list, otype_list);
             
             if this.state.flag_amb_pass && ~isempty(this.parent.old_work) && ~this.parent.old_work.isEmpty
                 [ph, wl, id_ph] = rec.getPhases();
@@ -2620,11 +2625,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function importRinex(this, file_name, t_start, t_stop, rate, sys_c_list)
+        function importRinex(this, file_name, t_start, t_stop, rate, sys_c_list, otype_list)
             % Parses RINEX observation files.
             %
             % SYNTAX
-            %   this.importRinex(file_name, <t_start>, <t_stop>, <rate>, <ss_list>)
+            %   this.importRinex(file_name, <t_start>, <t_stop>, <rate>, <ss_list>, <otype_list>)
             %
             % INPUT
             %   filename = RINEX observation file(s)
@@ -2665,6 +2670,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             cc = Core.getState.getConstellationCollector;
             if nargin < 6 || isempty(sys_c_list)
                 sys_c_list = cc.getActiveSysChar;
+            end
+            
+            if nargin < 7 || isempty(otype_list)
+                otype_list = 'CPLS'; % Not reading doppler by default
             end
             
             t0 = tic;
@@ -2718,10 +2727,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 if (this.rin_type < 3)
                     % considering rinex 2
-                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c_list);
+                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
                 else
                     % considering rinex 3
-                    this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate, sys_c_list);
+                    this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
                 end
                 
                 % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
@@ -3162,7 +3171,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function parseRin2Data(this, txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c)
+        function parseRin2Data(this, txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c, otype_list)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
             % SYNTAX this.parseRin2Data(txt, lim, eoh, <t_start>, <t_stop>, <rate>, <sys_c>)
             % remove comment line from lim
@@ -3172,6 +3181,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             if nargin < 7
                 rate = [];
+            end
+            
+            if nargin < 10 || isempty(otype_list)
+                otype_list = 'CPLS'; % Not reading doppler by default
             end
             cc = Core.getState.getConstellationCollector;
             
@@ -3243,16 +3256,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Get logical list of active constellations
                 [~, id] = intersect(cc.SYS_C, sys_c);
                 ss_lid = false(1, numel(cc.SYS_C)); ss_lid(id) = 1;
-                
-                % update the maximum number of rows to store
-                n_obs = ss_lid(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                    ss_lid(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                    ss_lid(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                    ss_lid(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                    ss_lid(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                    ss_lid(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                    ss_lid(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
-                
+                                
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
                 % order of storage
@@ -3265,6 +3269,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system = [];
                 this.f_id = [];
                 this.wl = [];
+                n_obs = 0; % number of rows to store
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
@@ -3272,6 +3277,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
                     % transform in n_code x 3
                     obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                    % select only the observations with observation code in otype_list
+                    ot_id = find(ismember(obs_code(:,1), otype_list));
+                    obs_code = obs_code(ot_id, :);
+                    n_code = numel(ot_id);
+                    n_obs = n_obs + n_code * n_sat;
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
@@ -3359,7 +3369,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                                 % try with sscanf
                                 line = line(data_pos(1 : numel(line)));
-                                data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                                line = reshape(line, 14, numel(line) / 14);
+                                data = sscanf(line(:,ot_id), '%f');
                                 obs(obs_line, e) = data;
                                 % alternative approach with textscan
                                 %data = textscan(line, '%14.3f%1d%1d');
@@ -3378,13 +3389,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.obs = obs;
         end
         
-        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop, rate, sys_c)
+        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop, rate, sys_c, otype_list)
             if nargin < 6
                 t_start = GPS_Time(0);
                 t_stop = GPS_Time(800000); % 2190/04/28 an epoch very far away
             end
             if nargin < 7
                 rate = [];
+            end
+            
+            if nargin < 9 || isempty(otype_list)
+                otype_list = 'CPLS'; % Not reading doppler by default
             end
             
             cc = Core.getState.getConstellationCollector;
@@ -3465,25 +3480,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % Get logical list of active constellations
                 [~, id] = intersect(cc.SYS_C, sys_c);
                 ss_id = zeros(1, numel(cc.SYS_C)); ss_id(id) = 1;
-                
-                % update the maximum number of rows to store
-                n_obs = ss_id(1) * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                    ss_id(2) * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                    ss_id(3) * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                    ss_id(4) * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                    ss_id(5) * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                    ss_id(6) * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                    ss_id(7) * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
-                
+                                
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
                 % order of storage
                 % sat_system / obs_code / satellite
                 n_ss = numel(sys_c); % number of satellite system
                 
-                % init datasets
-                obs = zeros(n_obs, n_true_epo);
-                
+                % init datasets                
                 this.obs_code = [];
                 this.aligned = [];
                 this.prn = [];
@@ -3491,6 +3495,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.f_id = [];
                 this.wl = [];
                 this.n_sat = 0;
+                n_obs = 0; % number of rows to store
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
@@ -3498,6 +3503,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
                     % transform in n_code x 3
                     obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                    % select only the observations with observation code in otype_list
+                    ot_id.(sys) = find(ismember(obs_code(:,1), otype_list));
+                    obs_code = obs_code(ot_id.(sys), :);
+                    n_code = numel(ot_id.(sys));
+                    n_obs = n_obs + n_code * n_sat;
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
@@ -3539,6 +3549,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.w_bar.setBarLen(n_epo);
                 end
                 
+                % init datasets
+                obs = zeros(n_obs, n_true_epo);
+                
                 mask = repmat('         0.00000',1 ,60);
                 data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,60);
                 for e = 1 : n_epo % for each epoch
@@ -3546,7 +3559,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                     for s = 1 : size(sat, 1)
                         % line to fill with the current observation line
-                        obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                        sys = sat(s, 1);
+                        obs_line = find((this.prn == prn_e(s)) & this.system' == sys);
                         if ~isempty(obs_line)
                             line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
                             ck = line == ' ';
@@ -3559,7 +3573,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 line = [line repmat(' ',1, 14 - n_m_ch)];
                                 n_o = n_o+1;
                             end
-                            data = sscanf(reshape(line, 14, n_o), '%f');
+                            line = reshape(line, 14, n_o);
+                            id_ok = ot_id.(sys)(ot_id.(sys) <= n_o);                            
+                            data = sscanf(line(:, id_ok), '%f');
                             obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:min(length(obs_line),size(data,1)));
                             % end
                         end
@@ -4041,7 +4057,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if isempty(this.sat.tot)
                 this.updateAllTOT();
             end
-            time_tx.addSeconds( - this.sat.tot(idx, sat));
+            if ~isempty(this.sat.tot)
+                time_tx.addSeconds( - this.sat.tot(idx, sat));                
+            end
         end
         
         function time_of_travel = getTOT(this)
@@ -6534,7 +6552,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 cc = Core.getState.getConstellationCollector;
                 this.sat.avail_index = false(this.time.length, cc.getMaxNumSat);
             end
-            data_row = (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+            data_row = (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L'  | this.obs_code(:,1) == 'S');
             go_id = this.go_id(data_row);
             datachk = (this.obs(data_row, :))'~=0 & ~isnan((this.obs(data_row, :))');
             for s = unique(go_id)'
@@ -7131,7 +7149,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             XS_r = zeros(size(XS));
             
             idx = this.sat.avail_index(:,go_id) > 0;
-            travel_time = this.sat.tot(idx,go_id);
+            if ~isempty(this.sat.tot)
+                travel_time = this.sat.tot(idx,go_id);
+            else
+                travel_time = 0;
+            end
+                
             sys = this.getSysPrn(go_id);
             switch char(sys)
                 case 'G'

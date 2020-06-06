@@ -100,7 +100,7 @@ classdef GNSS_Station < handle
             this.resetInfo();
         end
 
-        function importRinexLegacy(this, rinex_file_name, rate, sys_c_list)
+        function importRinexLegacy(this, rinex_file_name, rate, sys_c_list, otype_list)
             % Select the files to be imported
             %
             % INPUT
@@ -115,12 +115,12 @@ classdef GNSS_Station < handle
             else
                 this.work.rinex_file_name = '';
             end
-            this.work.load(rate, sys_c_list);
+            this.work.load(rate, sys_c_list, otype_list);
             this.work.out_start_time = this.work.time.first;
             this.work.out_stop_time = this.work.time.last;
         end
 
-        function importRinexes(this, rin_list, time_start, time_stop, rate, sys_c_list)
+        function importRinexes(this, rin_list, time_start, time_stop, rate, sys_c_list, otype_list)
             % Select the files to be imported
             %
             % INPUT
@@ -132,7 +132,7 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   this.importRinexes(rin_list, time_start, time_stop, rate)
-            this.work.importRinexFileList(rin_list, time_start, time_stop, rate, sys_c_list);
+            this.work.importRinexFileList(rin_list, time_start, time_stop, rate, sys_c_list, otype_list);
         end
         
         function synthetizeWork(this, xyz, time, system)
