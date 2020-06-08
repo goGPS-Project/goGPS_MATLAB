@@ -3030,7 +3030,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % dir list, otherwise use existent cache
             persistent unique_dir dir_list 
             
-            if (tot_rec < 10000) || flag_force
+            if (tot_rec < 1100) || flag_force
                 % If last check is older than 30 minutes ago force_check                
                 % if flag_force is passed to the function it means that a check is not requested because cache hould exist
                 % but if the cache does not exist it is better to force its creation
@@ -3052,7 +3052,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 % Check if the cache is for the same set of folders
                 cur_unique_dir = unique(dir_path);
                 % If the number of files to check is > 370  and the number of folder to scan is less than 150 (scanning folders might be slow)
-                if (max_sss * n_rec > 370) && numel(cur_unique_dir) <= 100
+                if (max_sss * n_rec > 370)  && (max_sss * n_rec / numel(cur_unique_dir)) > 20
                     % back-up cache
                     old_unique_dir = iif(flag_force, cell(0), unique_dir);
                     old_dir_list = iif(flag_force, cell(0), dir_list);
@@ -3072,11 +3072,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     clear cur_unique_dir old_dir_list old_unique_dir;
                     
                     for d = 1 : numel(unique_dir)
-                        available_files = [available_files {dir_list{d}.name}];
+                        available_files = [available_files {dir_list{d}(3:end).name}];
                     end
-                    starting_letter = char(32*ones(numel(available_files),1, 'uint8'));
-                    for i = 1 : numel(available_files); starting_letter(i) = available_files{i}(1); end
-                    % available_files = [available_files{:}];
                 end
                 
                 % Update rec table
@@ -3085,7 +3082,19 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     log.addMessage(log.indent(sprintf('Checking receiver %d of %d', r, n_rec)));
                     if ~isempty(available_files)
                         [~, file_name] = fileparts(rec_path{r}{1});
-                        tmp_files = available_files(starting_letter == file_name(1));
+                        tmp_files = available_files;
+                        
+                        % Filter for the same marker name
+                        id_ko = true(numel(tmp_files), 1);
+                        for i = 1 : numel(tmp_files)
+                            try
+                                id_ko(i) = not(strcmpi(tmp_files{i}(1:4), file_name(1:4)));
+                            catch
+                                % this may happen for index out of bound
+                            end
+                        end
+                        tmp_files(id_ko) = [];
+                        
                     end
                     
                     if ~isempty(rec_path{r})
@@ -3093,6 +3102,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     else
                         name = '    ';
                     end
+                    
+
                     
                     n_ok = 0; n_ko = 0;
                     if ~isempty(available_files) && (~isempty(tmp_files) || (max_sss * n_rec > 366))
@@ -3120,12 +3131,28 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
                     this.rec_tbl.Data{r,3} = n_ok;
                     this.rec_tbl.Data{r,4} = n_ko;
+                    % If many files have been checked update now
+                    if n_ok + n_ko > 10
+                        drawnow
+                    end
                 end
                 
                 if toc(t0) > 1
                     log.addMessage(log.indent('Receiver files checked'));
                 end
             else
+                this.rec_tbl.Data = cell(1, 4);
+                for r = 1 : n_rec
+                    if ~isempty(rec_path{r})
+                        name = File_Name_Processor.getFileName(rec_path{r}{1});
+                    else
+                        name = '    ';
+                    end
+                    this.rec_tbl.Data{r,1} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%d', '<html><tr><td width=9999 align=center ', r);
+                    this.rec_tbl.Data{r,2} = sprintf('%s style="font-weight: bold; font-size: 9px; color: #6666FF; ">%s', '<html><tr><td width=9999 align=center ', upper(name(1:4)));
+                    this.rec_tbl.Data{r,3} = '???';
+                    this.rec_tbl.Data{r,4} = '???';
+                end
                 log.addWarning('There are a lot of files to check, press check to force the execution of the routine');
             end
         end
