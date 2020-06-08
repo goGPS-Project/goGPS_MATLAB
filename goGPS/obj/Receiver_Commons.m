@@ -690,13 +690,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             time = this.time.getEpoch(this.getIdSync);
         end
         
-        function [az, el] = getAzEl(this)
+        function [az, el] = getAzEl(this, go_id)
             % Get the azimuth and elevation (on valid id_sync)
             %
             % SYNTAX
             %   [az, el] = this.getAzEl();
-            az = this.getAz();
-            el = this.getEl();
+            if nargin == 2
+                az = this.getAz(go_id);
+                el = this.getEl(go_id);
+            else
+                az = this.getAz();
+                el = this.getEl();
+            end
         end
         
         function [az] = getAz(this, go_id)
@@ -712,7 +717,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 go_id = 1 : size(this.sat.az, 2);
             end
             
-            az = this.sat.az(this.getIdSync, go_id);
+            id_sync = this.getIdSync;
+            if isempty(id_sync)
+                az = this.sat.az(:, go_id);
+            else
+                az = this.sat.az(this.getIdSync, go_id);
+            end
         end
         
         function [el] = getEl(this, go_id)
@@ -728,7 +738,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 go_id = 1 : size(this.sat.el, 2);
             end
             
-            el = this.sat.el(this.getIdSync, go_id);
+            id_sync = this.getIdSync;
+            if isempty(id_sync)
+                el = this.sat.el(:, go_id);
+            else
+                el = this.sat.el(this.getIdSync, go_id);
+            end
         end
         
         function [res, obs_code, prn] = getU1(this)

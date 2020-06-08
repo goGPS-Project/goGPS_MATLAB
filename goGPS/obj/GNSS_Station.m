@@ -1710,12 +1710,27 @@ classdef GNSS_Station < handle
             lon = nan(numel(sta_list), 1);
             h_ellips = nan(numel(sta_list), 1);
             h_ortho = nan(numel(sta_list), 1);
-            for r = 1 : numel(sta_list)
-                if sta_list(1).static
-                    [lat(r), lon(r), h_ellips(r), h_ortho(r)] = sta_list(r).out.getMedianPosGeodetic;
+            for r = 1 : numel(sta_list)                
+                if ~sta_list(r).isEmptyOut_mr
+                    [lat_tmp, lon_tmp, h_ellips_tmp, h_ortho_tmp] = sta_list(r).out.getMedianPosGeodetic;
                 else
-                    [lat{r}, lon{r}, h_ellips{r}, h_ortho{r}] = sta_list(r).out.getMedianPosGeodetic;
+                    [lat_tmp, lon_tmp, h_ellips_tmp, h_ortho_tmp] = sta_list(r).work.getMedianPosGeodetic;
                 end
+                if isnan(lat_tmp)
+                    [lat_tmp, lon_tmp, h_ellips_tmp, h_ortho_tmp] = sta_list(r).work.getMedianPosGeodetic;
+                end
+                if sta_list(1).static
+                    lat(r) = lat_tmp;
+                    lon(r) = lon_tmp;
+                    h_ellips(r) = h_ellips_tmp;
+                    h_ortho(r) = h_ortho_tmp;
+                else
+                    lat{r} = lat_tmp;
+                    lon{r} = lon_tmp;
+                    h_ellips{r} = h_ellips_tmp;
+                    h_ortho{r} = h_ortho_tmp;
+                end
+                
             end
         end
 
