@@ -1390,7 +1390,7 @@ classdef Core < handle
                 fr = this.getRinLists();
                 sta_name = {};
                 for r = 1 : n_rec
-                    sta_name{end+1} = fr(r).marker_name{find(fr(1).is_valid_list, 1, 'first')}(1:4);
+                    sta_name{end+1} = fr(r).marker_name{find(fr(r).is_valid_list, 1, 'first')}(1:4);
                 end
             else
                 fr = File_Rinex(); fr(1) = [];
@@ -1424,7 +1424,10 @@ classdef Core < handle
                         line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
                         plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 20, 'Color', Core_UI.getColor(r, n_rec));
                         if ~isempty(fr(r).first_epoch) && ~isempty(fr(r).last_epoch)
-                            plot([fr(r).first_epoch.getMatlabTime  fr(r).last_epoch.getMatlabTime], r * [1 1], '-', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 4);
+                            % Build a unique line
+                            t = [fr(r).first_epoch.getMatlabTime  fr(r).last_epoch.getMatlabTime];
+                            t = [t t(:, 2)];
+                            plot(serialize(t'), serialize(r * [ones(size(t,1),2) nan(size(t,1),1)]'), '-', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 4);
                         end
                     end
                 end
