@@ -2814,10 +2814,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %   this.updateAndPlotRecList
             
             % Get file name list
+            Core.getLogger.addMarkedMessage('Updating all the files limits (it may requires a lot of time....')
             state = Core.getCurrentSettings();
             state.updateObsFileName;
             core = Core.getCurrentCore;
-            core.updateRinFileList;
+            core.updateRinFileList(true, true);
             core.plotRecList();
             
             Core.getLogger.addMessage('File availability plotted');
