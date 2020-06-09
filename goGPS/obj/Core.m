@@ -1415,7 +1415,7 @@ classdef Core < handle
                 
                 y_strt = y_strt.getMatlabTime();
                 y_stop = y_stop.getMatlabTime();
-                f = figure; f.Name = sprintf('%03d: Daily RINEX File Availability %d', f.Number, year); f.NumberTitle = 'off'; hold on;
+                fh = figure; fh.Name = sprintf('%03d: Daily RINEX File Availability %d', fh.Number, year); fh.NumberTitle = 'off'; hold on;
                 line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
                 for r = 1 : n_rec
                     if sum(fr(r).is_valid_list) > 0
@@ -1431,6 +1431,7 @@ classdef Core < handle
                         end
                     end
                 end
+                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
                 x_lims = [max(sss_strt.getMatlabTime - 1, y_strt) min(sss_stop.getMatlabTime +1, y_stop)];
                 months_time = months_time(months_time > x_lims(1) & months_time < x_lims(2));
                 xlim(x_lims);
