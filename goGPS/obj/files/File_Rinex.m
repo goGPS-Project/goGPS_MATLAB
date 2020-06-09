@@ -451,7 +451,7 @@ classdef File_Rinex < Exportable
                     end
                 catch ex
                     this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file or missing'], this.verbosity_lev);
-                    Core_Utils.printEx(ex);
+                    %Core_Utils.printEx(ex);
                     this.is_valid_list(f) = false;
                     fclose(fid);
                 end
