@@ -581,6 +581,9 @@ classdef Logger < handle
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\\n', '<br>');
                     
+                    % Backspacess are not acceptable here :-(
+                    gui_text = strrep(gui_text, char(8), '');
+                    
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text);
                 end
