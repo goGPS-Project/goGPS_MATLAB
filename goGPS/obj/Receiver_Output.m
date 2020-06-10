@@ -527,7 +527,7 @@ classdef Receiver_Output < Receiver_Commons
                 if any(rate)
                     id_sync_bk = rec_work.getIdSync;
                     id_sync = rec_work.getIdSync;
-                    sync_time = round(rec_work.getTime.getNominalTime.getMatlabTime*86400,3);
+                    sync_time = round(rec_work.getTime.getNominalTime(min(1, rec_work.getTime.getRate)).getMatlabTime*86400,3);
                     id_ss = mod(sync_time, rate) == 0;
                     rec_work.id_sync = id_sync(id_ss);
                 end
@@ -561,14 +561,14 @@ classdef Receiver_Output < Receiver_Commons
                     else
                         if this.state.isSmoothTropoOut()
                             time_old = this.time.getCopy();
-                            re_time_bf = time_old.getNominalTime ;
+                            re_time_bf = time_old.getNominalTime(min(1, time_old.getRate));
                             smt_buf_rgt = re_time_bf.last;
                         end
                         [this.time, idx1, idx2] = this.time.injectBatch(work_time); % WARNING for tropo smoothing: the epoch before the end of the previous window will keep the their own epochs, the one after will keep the epoch of the work time
                         if this.state.isSmoothTropoOut()
-                            smt_buf_lft = rec_work.time.getNominalTime().first();
+                            smt_buf_lft = rec_work.time.getNominalTime(min(1, rec_work.time.getRate)).first();
                             idx_smt1 = re_time_bf >= smt_buf_lft;
-                            idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime <= smt_buf_rgt;
+                            idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime(min(1, rec_work.time.getRate)) <= smt_buf_rgt;
                             time_1 = time_old.getEpoch(idx_smt1);
                             time_2 = rec_work.time.getEpoch(id_sync_old(idx_smt2));
                         end
@@ -729,12 +729,12 @@ classdef Receiver_Output < Receiver_Commons
                         % the session. This is done beacause might be that
                         % the first epoch are marked as outlier and thus
                         % not computed.
-                        new_time = rec_work.getTime().getNominalTime;
+                        new_time = rec_work.getTime().getNominalTime(min(1, rec_work.getTime.getRate()));
                         first_new_time = new_time.getEpoch(find(new_time >= rec_work.out_start_time.getNominalTime, 1, 'first'));
                         clear new_time;
                         if ~isempty(time_1) && ~isempty(time_2)
-                        id_stop     = find(time_1.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
-                        id_start    = find(time_2.getNominalTime >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_stop     = find(time_1.getNominalTime(min(1, time_1.getRate)) >= first_new_time, 1, 'first'); % The first id of the new session
+                        id_start    = find(time_2.getNominalTime(min(1, time_2.getRate)) >= first_new_time, 1, 'first'); % The first id of the new session
                         no_smooth = false;
                         else
                             id_stop = [];
