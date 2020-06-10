@@ -158,7 +158,7 @@ classdef File_Rinex < Exportable
             this.last_epoch     = file_rinex.last_epoch.getEpoch(valid_id);
             this.verbosity_lev  = file_rinex.verbosity_lev;
             this.eoh            = file_rinex.eoh(id);
-            this.coo            = Coordinates.fromXYZ(file_rinex.coo.xyz(valid_id,:));            
+            this.coo            = file_rinex.coo.getCopy();            
         end
     end
 
@@ -331,13 +331,6 @@ classdef File_Rinex < Exportable
                                 this.trck_availability = trck_availability;
                             end
                             
-                            if ~isempty(coo)
-                                this.coo.append(Coordinates.fromStringXYZ(coo));
-                            else
-                                this.coo.append(Coordinates.fromXYZ([0 0 0]));
-                            end
-                            this.eoh(f) = l;
-                            
                             % If I did not found date of start and date of end in the file header
                             % Try to read them
                             if ~isempty(date_start)
@@ -446,6 +439,16 @@ classdef File_Rinex < Exportable
                                     end
                                 end
                             end
+                            
+                            if this.is_valid_list(f)
+                                if ~isempty(coo)
+                                    this.coo.append(Coordinates.fromStringXYZ(coo));
+                                else
+                                    this.coo.append(Coordinates.fromXYZ([0 0 0]));
+                                end
+                                this.eoh(f) = l;
+                            end
+                            
                             fclose(fid);
                         end
                     end
@@ -623,6 +626,47 @@ classdef File_Rinex < Exportable
                 this.log.addWarning('Some or all the RINEX files are corrupted or missing!!!', this.verbosity_lev);
             end
         end
+        
+        function checkCoordinates(rin_list, force_delete)
+            flag_show = true;
+            dist_lim = 1; % [m]
+            for r = 1 : numel(rin_list)
+                xyz = rin_list(r).coo.xyz;
+                id_ko = (all(xyz == 0,2));
+                xyz(id_ko,:) = [];
+                if not(isempty(xyz))
+                    xyz = bsxfun(@minus, xyz, median(xyz, 1, 'omitnan'));
+                    dist = 1e-3 * (sqrt(xyz(:,1).^2 + xyz(:,2).^2 + xyz(:,3).^2)); % [km]
+                    if any(dist > dist_lim)
+                        % This set of file RINEX are from a receiver that have been moved
+                        % for more than 100 meters
+                        
+                        marker_name = rin_list(r).marker_name{find(rin_list(r).is_valid_list, 1, 'first')};
+                        if flag_show
+                            rin_list(r).coo.showPositionENU
+                            title(marker_name);
+                        end
+                        
+                        log = Core.getLogger;
+                        log.addWarning(sprintf('The RINEX of the station %s are anomalous. The antenna could have been moved or the files are from different omonimous receivers\n > MAX detected distance: %.3g [km]\n\nThe following files will be ignored:', marker_name, max(dist)));
+                        id_coo = find(not(id_ko));
+                        id_valid = find(rin_list(r).is_valid_list);
+                        id_ko = find(dist > dist_lim)';
+                        for i = id_ko
+                            file_name = fullfile(rin_list(r).base_dir{id_valid(id_coo(i))}, [rin_list(r).file_name_list{id_valid(id_coo(i))}, rin_list(r).ext{id_valid(id_coo(i))}]);
+                            if nargin == 2 && force_delete
+                                delete(file_name);
+                            end
+                            log.addMonoMessage(log.indent(sprintf('- %s', file_name)));
+                        end
+                        rin_list(r).first_epoch.remEpoch(id_coo(id_ko));
+                        rin_list(r).last_epoch.remEpoch(id_coo(id_ko));
+                        rin_list(r).is_valid_list(id_valid(id_coo(id_ko))) = false;
+                        rin_list(r).coo.rem(id_coo(id_ko));
+                    end
+                end
+            end
+        end
 
         function file_name = getFileName(this, file_number)
             % Get the full path of a file (if the object contains a list of files, the id can be specified)
@@ -747,6 +791,37 @@ classdef File_Rinex < Exportable
             this.first_epoch = this.first_epoch.getEpoch(id(this.is_valid_list));
             this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
             this.is_valid_list = this.is_valid_list(id);
+        end
+       
+        function printMissingFiles(rin_list, flag_download)
+            % Show all the files that seems to be missing for the
+            % processing
+            if nargin == 1
+                flag_download = false;
+            end
+            clc
+            fprintf('These files are missing or currupted\n')
+            for r = 1: numel(rin_list)
+                id_ko = find(not(rin_list(r).is_valid_list));
+                for i = id_ko
+                    file_name = [rin_list(r).file_name_list{i}, rin_list(r).ext{i}];
+                    if not(flag_download)
+                        fprintf('%s\n', file_name);
+                    end
+                    if numel(file_name) == 12 % it is a RINEX2 file name
+                        % Extracting year and doy
+                        year = 2000 + str2double(file_name(end-2:end-1));
+                        doy = str2double(file_name(5:7));
+                        if flag_download
+                            str_cmd = sprintf('/usr/bin/python3 /home/gred/Repositories/goget/goGet.py download -m %s --year-doy %04d %03d -o %s --no-wait', rin_list(r).marker_name{i}, year, doy, [rin_list(r).base_dir{i} filesep]);
+                            fprintf('%s\n', str_cmd);
+                        end
+                    end
+                end
+                
+                
+            end
+            
         end
         
     end
