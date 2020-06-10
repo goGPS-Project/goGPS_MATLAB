@@ -575,7 +575,7 @@ classdef Coordinates < Exportable & handle
                                 t = t(1:size(enu_diff,1),:);
                             end
                         else
-                            t = 1 : size(enu_diff, 1);
+                            t = (1 : size(enu_diff, 1))';
                         end
                         
                         subplot(3,1,1);                       
@@ -588,7 +588,9 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(e);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        if isa(t, 'GPS_Time')
+                            setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        end
                         grid on;
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 1, t);
                         if (t(end)-t(1) > 199)
@@ -610,8 +612,10 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(n);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
-                        trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 1, t);
+                        if isa(t, 'GPS_Time') 
+                            setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                        end
+                            trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 1, t);
                         if (t(end)-t(1) > 199)
                             ttmp = t(~isnan(enu_diff(:,2)));
                             [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 365/4, 1e-8, ttmp(1):ttmp(end));
@@ -632,7 +636,9 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(up);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        if isa(t, 'GPS_Time')
+                            setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        end
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,3))), enu_diff(~isnan(enu_diff(:,3)),3), 1, t);
                         if (t(end)-t(1) > 199)
                             ttmp = t(~isnan(enu_diff(:,3)));
