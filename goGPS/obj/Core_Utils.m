@@ -1280,7 +1280,7 @@ classdef Core_Utils < handle
                         % I want the data to be columnwise
                         data = data';
                     end
-                    t = 1 : size(data, 1);
+                    t = (1 : size(data, 1))';
                 else
                     if size(data, 1) == 1
                         % I want the data to be columnwise
