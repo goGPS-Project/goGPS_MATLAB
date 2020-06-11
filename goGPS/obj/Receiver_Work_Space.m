@@ -516,14 +516,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
             this.setActiveSys(sys_c_list);
-            for i = 1 : n_files
-                tmp = time_stop.getCopy;
-                if tmp > rin_list.last_epoch.getEpoch(i)
-                    tmp = rin_list.last_epoch.getEpoch(i).getCopy;
+            if n_files == 0
+                Core.getLogger.addWarning('No RINEX files to import are available');
+            else
+                for i = 1 : n_files
+                    tmp = time_stop.getCopy;
+                    if tmp > rin_list.last_epoch.getEpoch(i)
+                        tmp = rin_list.last_epoch.getEpoch(i).getCopy;
+                    end
+                    rin = File_Rinex();
+                    rin.copyFrom(rin_list, i);
+                    this.appendRinex(rin, time_start, time_stop, rate, sys_c_list, otype_list)
                 end
-                rin = File_Rinex();
-                rin.copyFrom(rin_list, i);
-                this.appendRinex(rin, time_start, time_stop, rate, sys_c_list, otype_list)
             end
         end
         
@@ -2723,96 +2727,108 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % importing header informations
                 eoh = this.file.eoh;
-                this.parseRinHead(txt, lim, eoh);
-                
-                if (this.rin_type < 3)
-                    % considering rinex 2
-                    this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
-                else
-                    % considering rinex 3
-                    this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
+                flag_corrupt = false;
+                try
+                    this.parseRinHead(txt, lim, eoh);
+                catch
+                    % The header is corrupt
+                    Core.getLogger.addError('The header is corrupt! Loading of the RINEX is not possible');
+                    flag_corrupt = true;
                 end
                 
-                % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
-                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag C2D) receiver not supporter (in rinex 2) convert them
-                % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
-                
-                % GPS C1 -> C1C
-                idx = this.findObservableByFlag('C1 ','G');
-                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
-                % GPS C2 -> C2C
-                idx = this.findObservableByFlag('C2 ','G');
-                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
-                % GPS L1 -> L1C
-                idx = this.findObservableByFlag('L1 ','G');
-                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
-                % GPS L2 -> L2W
-                idx = this.findObservableByFlag('L2 ','G');
-                this.obs_code(idx,:) = repmat('L2W',length(idx),1);
-                % GPS C5 -> C5I
-                idx = this.findObservableByFlag('C5 ','G');
-                this.obs_code(idx,:) = repmat('C5I',length(idx),1);
-                % GPS L5 -> L5I
-                idx = this.findObservableByFlag('L5 ','G');
-                this.obs_code(idx,:) = repmat('L5I',length(idx),1);
-                % GPS P1 -> C1W
-                idx = this.findObservableByFlag('P1 ','G');
-                this.obs_code(idx,:) = repmat('C1W',length(idx),1);
-                % GPS P2 -> C2W
-                idx = this.findObservableByFlag('P2 ','G');
-                this.obs_code(idx,:) = repmat('C2W',length(idx),1);
-                % GLONASS C1 -> C1C
-                idx = this.findObservableByFlag('C1 ','R');
-                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
-                % GLONASS C2 -> C2C
-                idx = this.findObservableByFlag('C2 ','R');
-                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
-                % GLONASS C1 -> C1C
-                idx = this.findObservableByFlag('L1 ','R');
-                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
-                % GLONASS C2 -> C2C
-                idx = this.findObservableByFlag('L2 ','R');
-                this.obs_code(idx,:) = repmat('L2C',length(idx),1);
-                % GLONASS P1 -> C1P
-                idx = this.findObservableByFlag('P1 ','R');
-                this.obs_code(idx,:) = repmat('C1P',length(idx),1);
-                % GLONASS P2 -> C2P
-                idx = this.findObservableByFlag('P2 ','R');
-                this.obs_code(idx,:) = repmat('C2P',length(idx),1);
-                % GALILEO C1 -> C1A
-                idx = this.findObservableByFlag('C1 ','E');
-                this.obs_code(idx,:) = repmat('C1A',length(idx),1);
-                % GALILEO L1 -> L1A
-                idx = this.findObservableByFlag('L1 ','E');
-                this.obs_code(idx,:) = repmat('L1A',length(idx),1);
-                % BEIDOU 1 -> 2
-                idx = this.findObservableByFlag('?1?','C'); %some times band 2 rinex 3 is incorrectly written as band 1
-                this.obs_code(idx,2) = '2';
-                % other flags to be investiagated
-                
-                this.log.addMessage(this.log.indent(sprintf('Parsing completed in %.2f seconds', toc(t0))));
-                this.log.newLine();
-                
-                % Compute the other useful status array of the receiver object
-                if ~isempty(this.obs)
-                    this.updateStatus();
-                end
-                
-                % remove empty observables
-                this.remObs(~this.active_ids);
-                % remove empty sets very useful when reading RINEX 2
-                % multi-constellations files
-                if ~isempty(this.obs)
-                    this.remObs(~(any(this.obs')));
-                    % remove unselected observations
-                    u_sys_c = unique(this.system);
-                    for i = 1 : length(u_sys_c)
-                        sys_c = u_sys_c(i);
-                        ss = cc.getSys(sys_c);
-                        active_band = ss.CODE_RIN3_2BAND(~ss.flag_f);
-                        for j = 1 : length(active_band)
-                            idx = this.findObservableByFlag(['?' active_band(j) '?'] ,sys_c);
-                            this.remObs(idx);
+                if not(flag_corrupt)
+                    if (this.rin_type < 3)
+                        % considering rinex 2
+                        this.parseRin2Data(txt, has_cr, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
+                    else
+                        % considering rinex 3
+                        while lim(end,3) < 32
+                            lim(end,:) = [];
+                        end
+                        this.parseRin3Data(txt, lim, eoh, t_start, t_stop, rate, sys_c_list, otype_list);
+                    end
+                    
+                    % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
+                    % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag C2D) receiver not supporter (in rinex 2) convert them
+                    % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
+                    
+                    % GPS C1 -> C1C
+                    idx = this.findObservableByFlag('C1 ','G');
+                    this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                    % GPS C2 -> C2C
+                    idx = this.findObservableByFlag('C2 ','G');
+                    this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                    % GPS L1 -> L1C
+                    idx = this.findObservableByFlag('L1 ','G');
+                    this.obs_code(idx,:) = repmat('L1C',length(idx),1);
+                    % GPS L2 -> L2W
+                    idx = this.findObservableByFlag('L2 ','G');
+                    this.obs_code(idx,:) = repmat('L2W',length(idx),1);
+                    % GPS C5 -> C5I
+                    idx = this.findObservableByFlag('C5 ','G');
+                    this.obs_code(idx,:) = repmat('C5I',length(idx),1);
+                    % GPS L5 -> L5I
+                    idx = this.findObservableByFlag('L5 ','G');
+                    this.obs_code(idx,:) = repmat('L5I',length(idx),1);
+                    % GPS P1 -> C1W
+                    idx = this.findObservableByFlag('P1 ','G');
+                    this.obs_code(idx,:) = repmat('C1W',length(idx),1);
+                    % GPS P2 -> C2W
+                    idx = this.findObservableByFlag('P2 ','G');
+                    this.obs_code(idx,:) = repmat('C2W',length(idx),1);
+                    % GLONASS C1 -> C1C
+                    idx = this.findObservableByFlag('C1 ','R');
+                    this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                    % GLONASS C2 -> C2C
+                    idx = this.findObservableByFlag('C2 ','R');
+                    this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                    % GLONASS C1 -> C1C
+                    idx = this.findObservableByFlag('L1 ','R');
+                    this.obs_code(idx,:) = repmat('L1C',length(idx),1);
+                    % GLONASS C2 -> C2C
+                    idx = this.findObservableByFlag('L2 ','R');
+                    this.obs_code(idx,:) = repmat('L2C',length(idx),1);
+                    % GLONASS P1 -> C1P
+                    idx = this.findObservableByFlag('P1 ','R');
+                    this.obs_code(idx,:) = repmat('C1P',length(idx),1);
+                    % GLONASS P2 -> C2P
+                    idx = this.findObservableByFlag('P2 ','R');
+                    this.obs_code(idx,:) = repmat('C2P',length(idx),1);
+                    % GALILEO C1 -> C1A
+                    idx = this.findObservableByFlag('C1 ','E');
+                    this.obs_code(idx,:) = repmat('C1A',length(idx),1);
+                    % GALILEO L1 -> L1A
+                    idx = this.findObservableByFlag('L1 ','E');
+                    this.obs_code(idx,:) = repmat('L1A',length(idx),1);
+                    % BEIDOU 1 -> 2
+                    idx = this.findObservableByFlag('?1?','C'); %some times band 2 rinex 3 is incorrectly written as band 1
+                    this.obs_code(idx,2) = '2';
+                    % other flags to be investiagated
+                    
+                    this.log.addMessage(this.log.indent(sprintf('Parsing completed in %.2f seconds', toc(t0))));
+                    this.log.newLine();
+                    
+                    % Compute the other useful status array of the receiver object
+                    if ~isempty(this.obs)
+                        this.updateStatus();
+                    end
+                    
+                    % remove empty observables
+                    this.remObs(~this.active_ids);
+                    % remove empty sets very useful when reading RINEX 2
+                    % multi-constellations files
+                    if ~isempty(this.obs)
+                        this.remObs(~(any(this.obs')));
+                        % remove unselected observations
+                        u_sys_c = unique(this.system);
+                        for i = 1 : length(u_sys_c)
+                            sys_c = u_sys_c(i);
+                            ss = cc.getSys(sys_c);
+                            active_band = ss.CODE_RIN3_2BAND(~ss.flag_f);
+                            for j = 1 : length(active_band)
+                                idx = this.findObservableByFlag(['?' active_band(j) '?'] ,sys_c);
+                                this.remObs(idx);
+                            end
                         end
                     end
                 end
@@ -2924,6 +2940,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % read RINEX type 3 or 2 ---------------------------------------------------------------------------------------------------------------------------
             l = 0;
             type_found = false;
+            dataset = [];
             while ~type_found && l < eoh
                 l = l + 1;
                 if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
@@ -3344,39 +3361,45 @@ classdef Receiver_Work_Space < Receiver_Commons
                     sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                     if numel(prn_e) < this.n_spe(e)
-                        bad_epochs = [bad_epochs; e];
-                        cm = this.log.getColorMode();
-                        this.log.setColorMode(false); % disable color mode for speed up
-                        this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
-                        this.log.setColorMode(cm);
+                        flag_bad_epoch = true;
                     else
+                        flag_bad_epoch = false;
                         for s = 1 : size(sat, 1)
                             % line to fill with the current observation line
                             obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
                             % if is empty I'm reading a constellation that is not active in the constellation collector
                             %   -> discard the unwanted satellite
-                            if ~isempty(obs_line)
-                                line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
-                                line = mask(1 : n_ops * 16);
-                                for i = 0 : n_lps - 1
-                                    try
+                            if ~isempty(obs_line) && ~flag_bad_epoch
+                                try
+                                    line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
+                                    line = mask(1 : n_ops * 16);
+                                    for i = 0 : n_lps - 1
                                         line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
-                                    catch
-                                        % empty last lines
                                     end
+                                    % remove return characters
+                                    ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                                    % try with sscanf
+                                    line = line(data_pos(1 : numel(line)));
+                                    line = reshape(line, 14, numel(line) / 14);
+                                    
+                                    data = sscanf(line(:,ot_id), '%f');
+                                    obs(obs_line, e) = data;
+                                    % alternative approach with textscan
+                                    %data = textscan(line, '%14.3f%1d%1d');
+                                    %obs(obs_line(1:numel(data{1})), e) = data{1};
+                                catch
+                                    flag_bad_epoch = true;
                                 end
-                                % remove return characters
-                                ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                                % try with sscanf
-                                line = line(data_pos(1 : numel(line)));
-                                line = reshape(line, 14, numel(line) / 14);
-                                data = sscanf(line(:,ot_id), '%f');
-                                obs(obs_line, e) = data;
-                                % alternative approach with textscan
-                                %data = textscan(line, '%14.3f%1d%1d');
-                                %obs(obs_line(1:numel(data{1})), e) = data{1};
                             end
                         end
+                    end
+                    if flag_bad_epoch
+                        bad_epochs = [bad_epochs; e];
+                        cm = this.log.getColorMode();
+                        this.log.setColorMode(false); % disable color mode for speed up
+                        this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
+                        this.log.setColorMode(cm);
+                        
                     end
                     this.w_bar.go(e);
                 end
@@ -3405,10 +3428,21 @@ classdef Receiver_Work_Space < Receiver_Commons
             cc = Core.getState.getConstellationCollector;
             
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+31) ~= '3' )']);
+            try
+                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+31) ~= '3' )']);
+            catch
+                keyboard
+            end
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
+            % find bad epochs (epochs with strange characters):
+            bad_ep = ceil(regexp(string_time(:)', '[^\s\.0-9]*') / size(string_time, 1));
+            if not(isempty(bad_ep))
+                t_line(bad_ep) = [];
+                n_epo = numel(t_line);
+                string_time(:, bad_ep) = [];
+            end
             % convert the times into a 6 col time
             date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
             % import it as a GPS_Time obj
@@ -3555,33 +3589,49 @@ classdef Receiver_Work_Space < Receiver_Commons
                 mask = repmat('         0.00000',1 ,60);
                 data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,60);
                 for e = 1 : n_epo % for each epoch
-                    sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_spe(e),1),1,3) + repmat(0:2, this.n_spe(e), 1));
-                    prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
-                    for s = 1 : size(sat, 1)
-                        % line to fill with the current observation line
-                        sys = sat(s, 1);
-                        obs_line = find((this.prn == prn_e(s)) & this.system' == sys);
-                        if ~isempty(obs_line)
-                            line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
-                            ck = line == ' ';
-                            line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                            % try with sscanf
-                            line = line(data_pos(1 : numel(line)));
-                            n_o = floor(numel(line)/14 + eps);
-                            n_m_ch = rem(numel(line),14);
-                            if n_m_ch > 0
-                                line = [line repmat(' ',1, 14 - n_m_ch)];
-                                n_o = n_o+1;
+                    bad_epoch = false;
+                    try
+                        sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_spe(e),1),1,3) + repmat(0:2, this.n_spe(e), 1));
+                    catch
+                        % the epoch is corrupt!!!
+                        bad_epoch = true;
+                    end
+                    if not(bad_epoch)
+                        prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
+                        for s = 1 : size(sat, 1)
+                            % line to fill with the current observation line
+                            sys = sat(s, 1);
+                            try
+                                obs_line = find((this.prn == prn_e(s)) & this.system' == sys);
+                            catch
+                                bad_epoch = true;
                             end
-                            line = reshape(line, 14, n_o);
-                            id_ok = ot_id.(sys)(ot_id.(sys) <= n_o);                            
-                            data = sscanf(line(:, id_ok), '%f');
-                            obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:min(length(obs_line),size(data,1)));
-                            % end
+                            if ~bad_epoch && ~isempty(obs_line)
+                                line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
+                                ck = line == ' ';
+                                line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                                % try with sscanf
+                                line = line(data_pos(1 : numel(line)));
+                                n_o = floor(numel(line)/14 + eps);
+                                n_m_ch = rem(numel(line),14);
+                                if n_m_ch > 0
+                                    line = [line repmat(' ',1, 14 - n_m_ch)];
+                                    n_o = n_o+1;
+                                end
+                                line = reshape(line, 14, n_o);
+                                id_ok = ot_id.(sys)(ot_id.(sys) <= n_o);
+                                data = sscanf(line(:, id_ok), '%f');
+                                try
+                                    obs(obs_line(1:min(length(obs_line),size(data,1))), tid(e)) = data(1:min(length(obs_line),size(data,1)));
+                                catch
+                                    bad_epoch = true;
+                                end
+                                % end
+                            end
+                            % alternative approach with textscan
+                            %data = textscan(line, '%14.3f%1d%1d');
+                            %obs(obs_line(1:numel(data{1})), e) = data{1};
                         end
-                        % alternative approach with textscan
-                        %data = textscan(line, '%14.3f%1d%1d');
-                        %obs(obs_line(1:numel(data{1})), e) = data{1};
                     end
                     if n_epo > 3600
                         this.w_bar.go(e);
