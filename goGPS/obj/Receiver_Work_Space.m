@@ -9952,6 +9952,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     cc = Core.getState.getConstellationCollector;
                     sys_list = cc.sys_c;
                 end
+                if this.checkMinAvailEpoch()
                 this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                 this.remBad();
                 
@@ -10067,7 +10068,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
+                else
+                    log = Core.getLogger; 
+                    log.addWarning('Num of avalible epoch less than miminum treshold, skipping preprocessing');
+                end
             end
+        end
+        
+        function pass = checkMinAvailEpoch(this)
+            % check if minimum percenatge of epoch is available, otherwise
+            % stop porcessing
+            %
+            % SYNTAX:
+            %    this.checkMinAvailEpoch()
+            state = Core.getCurrentSettings();
+            
+            idx_out = this.time > this.out_start_time & this.time < this.out_stop_time;
+            num_valid_epoch = sum(sum(this.obs(this.obs_code(:,1) == 'L' | this.obs_code(:,1) == 'C',idx_out) ~= 0)~=0);
+            num_tot_epoch = (this.out_stop_time- this.out_start_time) / this.getRate();
+            pass = (num_valid_epoch/num_tot_epoch) > state.getMinAvailEpochs;
         end
         
         function staticPPP(this, sys_list, id_sync)
