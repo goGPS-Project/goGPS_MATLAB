@@ -10411,11 +10411,28 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     log.addMessage(log.indent('Solving the system'));
                                     [x, res, s0]  = ls.solve();
                                     
+                                    % Get the additional coordinates
                                     coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
-                                    time_coo = this.out_start_time.getCopy;
-                                    time_coo.addSeconds(state.coo_rates(i)/2 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time));
-                                    time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
-                                    coo = coo(buf_l + (1 : time_coo.length),:);
+                                    % Get the length of each block of obs used for computing an epoch
+                                    pos_len = diff(find(diff([0; pos_idx; (max(pos_idx) + 1)])));
+                                    % Compute the center of each block
+                                    id_center = [1; cumsum(pos_len(1:end-1))+1] + round(pos_len/2);
+                                    % get the central time of each block
+                                    time_coo = this.time.getEpoch(id_center);
+                                    % get the blocks not in the buffer area
+                                    id_ok = find(time_coo >= this.out_start_time & time_coo <= this.out_stop_time);
+                                    % Get the id of the computed coordinates that fall into the block
+                                    id_c_avail = unique(pos_idx(ls.true_epoch));
+                                    id_t_avail = intersect( id_ok, id_c_avail);
+                                    lid_c_avail = ismember(id_c_avail, id_ok);
+                                    % Get the central time of the available coordinates 
+                                    time_coo = this.time.getEpoch(id_center(id_t_avail));
+                                    % Get only the coordinates not in the buffers
+                                    try
+                                        coo = coo(lid_c_avail, :);
+                                    catch
+                                        keyboard
+                                    end
                                     
                                     sub_coo = struct();
                                     sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1) + coo, time_coo);
