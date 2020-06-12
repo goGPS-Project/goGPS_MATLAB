@@ -897,7 +897,9 @@ classdef Core_SEID < handle
             N = [N; sparse([ones(1, n_ref) zeros(1, size(N, 2) - n_ref)])];
             b = [b; 0];
             
+            warning off;
             x = N\b;
+            warning on;
             
             % gettin the result
             data_q = nan(size(data_pr,1), 1);
