@@ -594,11 +594,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     else
                         % expand all the fields
                         this.obs = [this.obs; zeros(1,new_length)];
-                        try
-                            this.obs(end,(old_length+1):end) = rec.obs(i,:);
-                        catch
-                            keyboard
-                        end
+                        this.obs(end,(old_length+1):end) = rec.obs(i,:);
+                        
                         this.active_ids = [this.active_ids; true];
                         this.wl       = [this.wl      ; rec.wl(i)];
                         this.f_id     = [this.f_id    ; rec.f_id(i)];
@@ -3411,7 +3408,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.log.setColorMode(false); % disable color mode for speed up
                         this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
                         this.log.setColorMode(cm);
-                        
                     end
                     this.w_bar.go(e);
                 end
@@ -3440,17 +3436,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             cc = Core.getState.getConstellationCollector;
             
             % find all the observation lines
-            try
-                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+31) ~= '3' )']);
-            catch
-                keyboard
-            end
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+31) ~= '3' )']);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
             % find bad epochs (epochs with strange characters):
             bad_ep = ceil(regexp(string_time(:)', '[^\s\.0-9]*') / size(string_time, 1));
             if not(isempty(bad_ep))
+                log = Core.getLogger;
+                corrupted_lines = serialize([repmat((' - ')', 1, numel(bad_ep)); string_time(:, bad_ep); char(10 * ones(1, numel(bad_ep), 'uint8'))])';
+                log.addWarning(sprintf('These epoch lines are apparently corrupted:\n%s', corrupted_lines));
                 t_line(bad_ep) = [];
                 n_epo = numel(t_line);
                 string_time(:, bad_ep) = [];
@@ -10460,11 +10455,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     % Get the central time of the available coordinates 
                                     time_coo = this.time.getEpoch(id_center(id_t_avail));
                                     % Get only the coordinates not in the buffers
-                                    try
-                                        coo = coo(lid_c_avail, :);
-                                    catch
-                                        keyboard
-                                    end
+                                    coo = coo(lid_c_avail, :);
                                     
                                     sub_coo = struct();
                                     sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1) + coo, time_coo);
