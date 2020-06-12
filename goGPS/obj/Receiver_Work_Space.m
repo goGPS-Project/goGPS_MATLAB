@@ -594,7 +594,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     else
                         % expand all the fields
                         this.obs = [this.obs; zeros(1,new_length)];
-                        this.obs(end,(old_length+1):end) = rec.obs(i,:);
+                        try
+                            this.obs(end,(old_length+1):end) = rec.obs(i,:);
+                        catch
+                            keyboard
+                        end
                         this.active_ids = [this.active_ids; true];
                         this.wl       = [this.wl      ; rec.wl(i)];
                         this.f_id     = [this.f_id    ; rec.f_id(i)];
@@ -3224,6 +3228,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, n_epo, 1))';
+            % quality check on RINEX time, if the dot is not in the right position the epoch is corrupted
+            id_ko = (string_time(18,:) ~= '.');
+            if any(id_ko)
+                corrupted_lines = serialize([repmat((' - ')', 1, sum(id_ko)); string_time(:, id_ko); char(10 * ones(1, sum(id_ko), 'uint8'))])';
+                this.log.addWarning(sprintf('These epoch lines are apparently corrupted:\n%s', corrupted_lines));
+                string_time(:, id_ko) = [];
+                t_line(id_ko) = [];
+            end
             % convert the times into a 6 col time
             date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %10.7f'));
             after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
@@ -9952,125 +9964,126 @@ classdef Receiver_Work_Space < Receiver_Commons
                     cc = Core.getState.getConstellationCollector;
                     sys_list = cc.sys_c;
                 end
-                if this.checkMinAvailEpoch()
-                this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
-                this.remBad();
-                
-                this.remUnderSnrThr(this.state.getAbsSnrThr());
-                % correct for raw estimate of clock error based on the phase measure
-                if this.hasGoodApriori
-                    [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(false);
-                else
-                    [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(true);
-                end
-                % this.TEST_smoothCodeWithDoppler(51);
-                % code only solution
-                this.importMeteoData();
-                this.initTropo();
-                
-                if (this.state.isOutlierRejectionOn())
-                    this.remBadPrObs(150);
-                end
-                this.remShortArc(this.state.getMinArc);
-                this.remEmptyObs();
-                
-                if this.getNumPrEpochs == 0
-                    log.addError('Pre-Processing failed: the receiver object is empty');
-                else
-                    enable_sat_pco = true;
-                    if enable_sat_pco
-                        % Switch satellite coordinates to Antenna phase center apply basic PCO)
-                        Core.getCoreSky.toAPC();
-                    end
-                    s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
-                    if (s02 == 0)
-                        log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
-                    elseif (min(s02) > this.S02_IP_THR)
-                        log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                % Check that there are enough epoch to compute a solution
+                if true || this.checkMinAvailEpoch()
+                    this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
+                    this.remBad();
+                    
+                    this.remUnderSnrThr(this.state.getAbsSnrThr());
+                    % correct for raw estimate of clock error based on the phase measure
+                    if this.hasGoodApriori
+                        [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(false);
                     else
-                        % update azimuth elevation
-                        this.updateAzimuthElevation();
-                        this.remUnderCutOff();
-                        this.setAvIdx2Visibility();
-                        this.meteo_data = [];
-                        this.importMeteoData(); % now with more precise coordinates
-                        
-%                         this.updateAllTOT();
-%                         this.codeStaticPositioning();
-%                         this.updateAllTOT();
-%                         this.codeStaticPositioning();
-%                         this.updateAllTOT();
-%                         this.codeStaticPositioning();
-                                                
-                        % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-                        this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
-                        % smooth clock estimation
-                        if perc(abs(this.dt), 0.97) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
-                            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                        [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(true);
+                    end
+                    % this.TEST_smoothCodeWithDoppler(51);
+                    % code only solution
+                    this.importMeteoData();
+                    this.initTropo();
+                    
+                    if (this.state.isOutlierRejectionOn())
+                        this.remBadPrObs(150);
+                    end
+                    this.remShortArc(this.state.getMinArc);
+                    this.remEmptyObs();
+                    
+                    if this.getNumPrEpochs == 0
+                        log.addError('Pre-Processing failed: the receiver object is empty');
+                    else
+                        enable_sat_pco = true;
+                        if enable_sat_pco
+                            % Switch satellite coordinates to Antenna phase center apply basic PCO)
+                            Core.getCoreSky.toAPC();
                         end
-                        
-                        % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                        this.shiftToNominal();
-                        
-                        this.updateAllTOT();
-                        this.correctPhJump();
-                        
-                        if flag_apply_corrections
-                            % apply various corrections
-                            if enable_sat_pco
-                                Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-                            end
-
+                        s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
+                        if (s02 == 0)
+                            log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
+                        elseif (min(s02) > this.S02_IP_THR)
+                            log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                        else
+                            % update azimuth elevation
                             this.updateAzimuthElevation();
-                            if numel(sys_list) ~= numel(unique(this.system))
-                                % there are other systems to update!!!
-                                this.updateErrTropo();
-                                this.updateErrIono();
-                                if this.state.isAprIono 
-                                    this.applyIonoModel();
+                            this.remUnderCutOff();
+                            this.setAvIdx2Visibility();
+                            this.meteo_data = [];
+                            this.importMeteoData(); % now with more precise coordinates
+                            
+                            %                         this.updateAllTOT();
+                            %                         this.codeStaticPositioning();
+                            %                         this.updateAllTOT();
+                            %                         this.codeStaticPositioning();
+                            %                         this.updateAllTOT();
+                            %                         this.codeStaticPositioning();
+                            
+                            % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
+                            this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
+                            % smooth clock estimation
+                            if perc(abs(this.dt), 0.97) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
+                                this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                            end
+                            
+                            % Add a model correction for time desync -> observations are now referred to nominal time  #14
+                            this.shiftToNominal();
+                            
+                            this.updateAllTOT();
+                            this.correctPhJump();
+                            
+                            if flag_apply_corrections
+                                % apply various corrections
+                                if enable_sat_pco
+                                    Core.getCoreSky.toCOM(); % interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                                 end
-                            else
-                                if this.state.isAprIono 
+                                
+                                this.updateAzimuthElevation();
+                                if numel(sys_list) ~= numel(unique(this.system))
+                                    % there are other systems to update!!!
+                                    this.updateErrTropo();
                                     this.updateErrIono();
-                                    this.applyIonoModel();
+                                    if this.state.isAprIono
+                                        this.applyIonoModel();
+                                    end
+                                else
+                                    if this.state.isAprIono
+                                        this.updateErrIono();
+                                        this.applyIonoModel();
+                                    end
                                 end
+                                
+                                % ph0 = this.getPhases();
+                                this.applyPCV();
+                                % ph1 = this.getPhases();
+                                this.applyMP();
+                                this.applyPoleTide();
+                                this.applyPhaseWindUpCorr();
+                                this.applySolidEarthTide();
+                                this.applyShDelay();
+                                this.applyOceanLoading();
+                                this.applyAtmLoad();
+                                this.applyHOI();
+                                
+                                if this.state.isRepairOn()
+                                    this.repairPhases();
+                                end
+                                
+                                this.remUnderSnrThr([], this.state.getScaledSnrThr());
+                                this.detectOutlierMarkCycleSlip();
+                                this.remShortArc(this.state.getMinArc);
+                                this.codeStaticPositioning(sys_list); % <== to be substituted with U2
+                                this.applyDtRec(this.dt);
+                                this.shiftToNominal;
+                                this.getSatCache([], true);
+                                if this.state.isCombineTrk
+                                    this.combinePhTrackings();
+                                end
+                                this.detectOutlierMarkCycleSlip();
+                                %this.coarseAmbEstimation();
+                                this.pp_status = true;
                             end
-                            
-                            % ph0 = this.getPhases();
-                            this.applyPCV();
-                            % ph1 = this.getPhases();
-                            this.applyMP();
-                            this.applyPoleTide();
-                            this.applyPhaseWindUpCorr();
-                            this.applySolidEarthTide();
-                            this.applyShDelay();
-                            this.applyOceanLoading();
-                            this.applyAtmLoad();
-                            this.applyHOI();
-                            
-                            if this.state.isRepairOn()
-                                this.repairPhases();
-                            end
-                            
-                            this.remUnderSnrThr([], this.state.getScaledSnrThr());
-                            this.detectOutlierMarkCycleSlip();
-                            this.remShortArc(this.state.getMinArc);
-                            this.codeStaticPositioning(sys_list); % <== to be substituted with U2
-                            this.applyDtRec(this.dt);
-                            this.shiftToNominal;
-                            this.getSatCache([], true);
-                            if this.state.isCombineTrk
-                                this.combinePhTrackings();
-                            end
-                            this.detectOutlierMarkCycleSlip();
-                            %this.coarseAmbEstimation();
-                            this.pp_status = true;
                         end
                     end
-                end
                 else
-                    log = Core.getLogger; 
-                    log.addWarning('Num of avalible epoch less than miminum treshold, skipping preprocessing');
+                    log = Core.getLogger;
+                    log.addWarning(sprintf('The number of avalible epochs is less than the miminum treshold (%.1f%%), skipping preprocessing!', Core.getState.getMinAvailEpochs * 100));
                 end
             end
         end
