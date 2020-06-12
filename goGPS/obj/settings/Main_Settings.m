@@ -5386,6 +5386,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             min_n_sat = this.min_n_sat;
         end
         
+        function min_perc = getMinAvailEpochs(this)
+            % Get the minimum PERCENTAGE of epochs to be present to
+            % consider the RINEX ok
+            %
+            % SYNTAX
+            %   min_n_sat = this.getMinAvailEpochs()
+            min_perc = 0.6;
+        end
+        
         function min_arc = getMinArc(this)
             % Get the minimum arc legnth to be kept
             %
