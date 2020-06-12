@@ -2237,9 +2237,11 @@ classdef LS_Manipulator < Exportable
             this.epoch(idx_obs) = [];
             this.sat(idx_obs) = [];
             this.receiver_id(idx_obs) = [];
-            this.rw(idx_obs) = [];
+            if not(isempty(this.rw))
+                this.rw(idx_obs) = [];
+            end
             if ~isempty(this.res)
-            this.res(idx_obs) = [];
+                this.res(idx_obs) = [];
             end
             this.y(idx_obs) = [];
                         
