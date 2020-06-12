@@ -1240,7 +1240,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             dopt_vbox.Heights = [18 10 168 10 -1];
 
-            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [200 40 5 50], color_bg);
+            field_dim = [280 40 5 50];
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, field_dim, color_bg);
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min percentage of required epochs [0-100]', 'min_p_epoch', '%', @this.onEditChange, field_dim, color_bg);
             ttip = 'This is not kept in case of snooping';
             if verLessThan('matlab','9.5')
                 grd.Children(end).TooltipString = ttip;
@@ -1248,18 +1250,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 grd.Children(end).Tooltip = ttip;
             end
 
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [200 40 5 50], color_bg);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolute threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50], color_bg);
-            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, [200 40 5 50], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, field_dim, color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR absolute threshold', 'abs_snr_thr', 'dBHz', @this.onEditChange, field_dim, color_bg);
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR scaled threshold', 'scaled_snr_thr', 'dBHz', @this.onEditChange, field_dim, color_bg);
             ttip = 'Different trackings have different scaling factor, rescale them w.r.t. the code error level of the first frequency/tracking';
             if verLessThan('matlab','9.5')
                 grd.Children(end).TooltipString = ttip;
             else
                 grd.Children(end).Tooltip = ttip;
             end
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [200 40 5 50], color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, field_dim, color_bg);
             Core_UI.insertEmpty(err_box_g, color_bg);            
-            err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(5,1); -1];            
+            err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(6,1); -1];            
         end
         
         function ss_panel = insertSatSelector(this, container, color_bg)

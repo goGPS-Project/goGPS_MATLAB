@@ -183,6 +183,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % DATA SELECTION
         CC = Constellation_Collector('G');              % object containing info on the activated constellations
+        MIN_P_EPOCH = 60;                               % Minimum percentage of epochs to consider a receiver valid
         MIN_N_SAT = 2;                                  % Minimum number of satellites needed to process a valid epoch
         CUT_OFF = 10;                                   % Cut-off [degrees]
         ABS_SNR_THR = 0;                                % Signal-to-noise ratio absolute threshold [dB]
@@ -831,8 +832,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % object containing info on the activated constellations
         cc =  Main_Settings.CC;
+        % Minimum percentage of epochs to consider a receiver valid
+        min_p_epoch = Main_Settings.MIN_P_EPOCH;                              
         % Minimum number of satellites needed to process a valid epoch
         min_n_sat = Main_Settings.MIN_N_SAT;
+       
         % Cut-off [degrees]
         cut_off = Main_Settings.CUT_OFF;
         % Signal-to-noise ratio threshold [dB]
@@ -1260,6 +1264,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % DATA SELECTION
                 this.cc.import(state);
+                this.min_p_epoch  = state.getData('min_p_epoch');
                 this.min_n_sat  = state.getData('min_n_sat');
                 this.cut_off = state.getData('cut_off');
                 this.abs_snr_thr = state.getData('abs_snr_thr');
@@ -1637,7 +1642,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % DATA SELECTION
                 this.cc.import(state.cc);
-                this.min_n_sat  = state.min_n_sat;
+                this.min_p_epoch = state.min_p_epoch;
+                this.min_n_sat = state.min_n_sat;
                 this.cut_off = state.cut_off;
                 this.scaled_snr_thr = state.scaled_snr_thr;
                 this.min_arc = state.min_arc;
@@ -1957,6 +1963,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str = [str '---- DATA SELECTION ------------------------------------------------------' 10 10];
             str = this.cc.toString(str);
+            str = [str sprintf(' Minimum percentage of epoch to process:           %g\n', this.min_p_epoch)];
             str = [str sprintf(' Minimum number of satellite per epoch:            %d\n', this.min_n_sat)];
             str = [str sprintf(' Cut-off [degrees]:                                %d\n', this.cut_off)];
             str = [str sprintf(' Signal-to-noise ratio absolute threshold [dB]:    %d\n', this.abs_snr_thr)];
@@ -2524,6 +2531,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % DATA SELECTION
             str_cell = Ini_Manager.toIniStringSection('DATA_SELECTION', str_cell);
             str_cell = this.cc.export(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum percentage of required epochs for processing [0-100]', str_cell);
+            str_cell = Ini_Manager.toIniString('min_p_epoch', this.min_p_epoch, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Minimum number of satellite per epoch', str_cell);
             str_cell = Ini_Manager.toIniString('min_n_sat', this.min_n_sat, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Cut-off [degrees]', str_cell);
@@ -3466,6 +3475,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
             
             % Data filtering
+            this.min_p_epoch = 60;
             this.min_n_sat = 2;
             this.cut_off = 7;
             this.abs_snr_thr = 0;
@@ -3561,6 +3571,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
             
             % Data filtering
+            this.min_p_epoch = 60;
             this.min_n_sat = 2;
             this.cut_off = 7;
             this.abs_snr_thr = 6;
@@ -3675,6 +3686,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('sigma0_r_clock',[0 1e50]);
 
             % DATA SELECTION
+            this.checkNumericField('min_p_epoch',[0 100]);
             this.checkNumericField('min_n_sat',[1 300]);
             this.checkNumericField('cut_off',[0 90]);
             this.checkNumericField('abs_snr_thr',[0 70]);
@@ -5378,21 +5390,21 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             scaled_snr_thr = this.scaled_snr_thr;
         end
 
-        function min_n_sat = getMinNSat(this)
-            % Get the minimum number of sat to keep in one epoch
-            %
-            % SYNTAX
-            %   min_n_sat = this.getMinNSat()
-            min_n_sat = this.min_n_sat;
-        end
-        
         function min_perc = getMinAvailEpochs(this)
             % Get the minimum PERCENTAGE of epochs to be present to
             % consider the RINEX ok
             %
             % SYNTAX
             %   min_n_sat = this.getMinAvailEpochs()
-            min_perc = 0.6;
+            min_perc = this.min_p_epoch / 100;
+        end
+        
+        function min_n_sat = getMinNSat(this)
+            % Get the minimum number of sat to keep in one epoch
+            %
+            % SYNTAX
+            %   min_n_sat = this.getMinNSat()
+            min_n_sat = this.min_n_sat;
         end
         
         function min_arc = getMinArc(this)
