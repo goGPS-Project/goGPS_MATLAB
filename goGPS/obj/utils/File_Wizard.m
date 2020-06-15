@@ -453,6 +453,9 @@ classdef File_Wizard < handle
                 end
                 if this.state.needIonoMap() || this.state.isIonoKlobuchar()
                     this.conjureIonoFiles(dsa, dso, this.state.isIonoKlobuchar());
+                    if false
+                        this.conjureResource('hoic', dsa, dso);
+                    end
                 end
                 if this.state.isAtmLoading()
                     this.conjureAtmLoadFiles(dsa, dso);

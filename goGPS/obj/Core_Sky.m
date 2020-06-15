@@ -514,6 +514,21 @@ classdef Core_Sky < handle
             
         end
         
+        function [sun_el, sun_az] = sunElevation(this, XYZ, time)
+            % compute weather the selected point is shadowed or not
+            % considering earth as an ellipsoid
+            %
+            % SYNATX:
+            % [is_shadowed] = isShadowed(this, XYZ, time)
+            
+            X_sun = this.sunMoonInterpolate(time, true);
+            [sun_az, sun_el] = deal(nan(size(XYZ,1),1));
+            for i = 1 : size(XYZ,1)
+                [sun_az(i), sun_el(i)] = this.computeAzimuthElevationXS(X_sun(i,:), XYZ(i,:));
+            end
+        end
+        
+        
         function importEph(this, eph, t_st, t_end, step, clock)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)

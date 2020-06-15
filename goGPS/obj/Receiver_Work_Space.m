@@ -7992,26 +7992,70 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function HOI(this,sgn)
             %  add or subtract ocean loading from observations
-            [hoi2, hoi3, bending] = this.computeHOI();
-            
-            cc = Core.getState.getConstellationCollector;
-            for s = 1 : cc.getMaxNumSat()
-                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
-                obs_idx = obs_idx & this.go_id == s;
-                if sum(obs_idx) > 0
-                    for o = find(obs_idx)'
-                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        wl = this.wl(o);
-                        wl3 = wl^3;
-                        wl4 = wl^4;
-                        if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( -1/2 *hoi2(o_idx,s)'*wl3  - 1/3* hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
-                        else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 + hoi3(o_idx,s)'*wl4 + bending(o_idx,s)'*wl4);
+            if true
+                [hoi2, hoi3, bending] = this.computeHOI();
+                
+                cc = Core.getState.getConstellationCollector;
+                for s = 1 : cc.getMaxNumSat()
+                    obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                    obs_idx = obs_idx & this.go_id == s;
+                    if sum(obs_idx) > 0
+                        for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            wl = this.wl(o);
+                            wl3 = wl^3;
+                            wl4 = wl^4;
+                            if  this.obs_code(o,1) == 'L'
+                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( -1/2 *hoi2(o_idx,s)'*wl3  - 1/3* hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
+                            else
+                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 + hoi3(o_idx,s)'*wl4 + bending(o_idx,s)'*wl4);
+                            end
                         end
                     end
                 end
+            else % use gfz zernike map %
+                atmo = Core.getAtmosphere;
+                [hoi_if12] = atmo.getZHOICdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.time);
+                cc = Core.getState.getConstellationCollector;
+                for s = 1 : cc.getMaxNumSat()
+                    if cc.system(s) == 'G' % for now only gps -> testing purpouse
+                    obs_idx = this.obs_code(:,1) == 'L';
+                    obs_idx = obs_idx & this.go_id == s;
+                    if sum(obs_idx) > 0
+                        for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            wl = this.wl(o);
+                            if (wl - GPS_SS.L_VEC(1)) < 1e-3 || (wl - GPS_SS.L_VEC(2)) < 1e-3
+                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*hoi_if12(o_idx,s)' ./ this.wl(o);
+                            end
+                            if  this.obs_code(o,1) == 'L'
+                            end
+                        end
+                    end
+                    end
+                end
+                
             end
+        end
+        
+        function compareHOI(this)
+            atmo = Core.getAtmosphere();
+            [hoi_if12] = atmo.getZHOICdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.time);
+            [hoi2, hoi3, bending] = this.computeHOI();
+            wl1 = GPS_SS.L_VEC(1);
+            wl2 = GPS_SS.L_VEC(2);
+            r1 =  -1/2 *hoi2*wl1^3  - 1/3*hoi3*wl1^4 +  bending*wl1^4;
+            r2 =  -1/2 *hoi2*wl2^3  - 1/3* hoi3*wl2^4 +  bending*wl2^4;
+            if_hoiold = (r1 *wl2^2 -r2*wl1^2)/(wl2^2-wl1^2);
+            hoi_if12(if_hoiold == 0) = nan;
+            if_hoiold(if_hoiold == 0) = nan;
+            for i = 1: size(hoi_if12,2)
+                figure; plot(hoi_if12(:,i)); hold on; plot(if_hoiold(:,i))
+                title(['G' num2str(i)])
+            end
+            keyboard
+
+
         end
         
         function applyHOI(this)

@@ -111,6 +111,22 @@ classdef Atmosphere < handle
             )
         
         emf     % current Earth geomagnetic field object
+        zhoic = struct(...
+            'data', [],... % [lat x lon x zernike x time]
+            'first_lat',  -87.5, ...    % first latitude
+            'first_lon',  0, ...    % first longitude
+            'radial_order', [], ...   % radial order 
+            'azimuthal_order',[], ...  % azimuthal order
+            'd_lat',      2.5, ...    % lat spacing
+            'd_lon',      5, ...    % lon_spacing
+            'n_lat',      71, ...    % num lat
+            'n_lon',      72, ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         3600, ...    % time spacing
+            'n_t',        [] ...   % num of epocvhs
+            )
+        
     end
     
     properties  (SetAccess = private, GetAccess = private)
@@ -267,6 +283,40 @@ classdef Atmosphere < handle
             fname = this.state.getIonoFileName( dsa, dso);
             for i = 1 : length(fname)
                 this.importIonex(fname{i});
+            end
+        end
+        
+        function importZHOIC(this,fname)
+                      
+            PP=load(fname,'-ascii');
+            data_tmp = reshape(PP,71,72,16);
+            [~,NAME,EXT] = fileparts(fname);
+            time = GPS_Time([str2num(NAME(5:8)) str2num(NAME(9:10)) 1 str2num(EXT(3:4)) 0 0]);
+            if isempty(this.zhoic.data)
+                this.zhoic.data = data_tmp;
+                this.zhoic.first_time = time;
+                this.zhoic.first_time_double = time.getMatlabTime;
+                this.zhoic.nt = 1; 
+            else
+                this.zhoic.data = cat(4,this.zhoic.data,data_tmp);
+                this.zhoic.nt = this.zhoic.nt + 1; 
+            end
+
+        end
+        
+        function initZHOIC(this,dsa,dso)
+            % initialise zhoic map importing all the necessary files
+            %
+            % SYNTAX
+            %   initZHOIC(this, dsa, dso)
+            dso = dso.getCopy();
+            dsa = dsa.getCopy();
+            dso.addSeconds(6*3600);
+            fnp = File_Name_Processor();
+            state = Core.getCurrentSettings();
+            fname = fnp.dateKeyRepBatch([state.iono_dir '/IFCz${YYYY}${MM}.H${HH}'], dsa, dso);
+            for i = 1 : length(fname)
+                this.importZHOIC(fname{i});
             end
         end
         
@@ -966,6 +1016,43 @@ classdef Atmosphere < handle
                     hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax1 .* ni .* stec.^2;% Eq (1g) (15) (14) in [1]
                     bending_coeff(t,idx_sat)    =  A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax2 .* stec;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
+                end
+            end
+        end
+        function [hoi_if12] = getZHOICdelayCoeff(this,lat,lon, az,el,time)
+            hoi_if12 = nan(size(az));
+            lon(lon<0) = lon(lon<0)+360;
+            time_d = rem(time - this.zhoic.first_time,86400);
+            for i = 1 : time.length
+                idx_t = round(time_d(i)/this.zhoic.dt)+1;
+                idx_lat = round((lat - this.zhoic.first_lat)/this.zhoic.d_lat)+1;
+                idx_lon = round((lon - this.zhoic.first_lon)/this.zhoic.d_lon)+1;
+                z_coeff = squeeze(this.zhoic.data(idx_lat,idx_lon,:,idx_t));
+                hoi_if12(i,:) = ifczevalX(el(i,:),az(i,:),z_coeff)/1e3;
+            end
+            function re = ifczevalX(ele,azi,x)
+                m=length(ele);
+                r    =1-sin(ele/180*pi);
+                theta=      azi/180*pi;
+                Z(1:m,1 )=ones(1,m);
+                Z(1:m,2 )=r.*cos(theta);
+                Z(1:m,3 )=r.*sin(theta);
+                Z(1:m,4 )=(2*r.^2 - 1);
+                Z(1:m,5 )=r.^2 .* cos(2*theta);
+                Z(1:m,6 )=r.^2 .* sin(2*theta);
+                Z(1:m,7 )=(3*r.^3 - 2*r) .* cos(theta);
+                Z(1:m,8 )=(3*r.^3 - 2*r) .* sin(theta);
+                Z(1:m,9 )= 6*r.^4 - 6*r.^2 + 1;
+                Z(1:m,10)=r.^3 .* cos(3*theta);
+                Z(1:m,11)=r.^3 .* sin(3*theta);
+                Z(1:m,12)=(4*r.^4 - 3*r.^2) .* cos(2*theta);
+                Z(1:m,13)=(4*r.^4 - 3*r.^2) .* sin(2*theta);
+                Z(1:m,14)=(3*r-12*r.^3+10*r.^5).* cos(theta);
+                Z(1:m,15)=(3*r-12*r.^3+10*r.^5).* sin(theta);
+                Z(1:m,16)=20*r.^6 - 30*r.^4 + 12*r.^2 - 1;
+                re=zeros(m,1);
+                for g=1:16
+                    re(1:m)=re(1:m)+Z(1:m,g)*x(g);
                 end
             end
         end

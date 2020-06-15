@@ -1006,6 +1006,7 @@ classdef Core < handle
                         end
                         if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
                             this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                            %this.atmo.initZHOIC(time_lim_large.first,time_lim_large.last);
                         end
                         this.preloaded_session = session;
                     end

@@ -1716,7 +1716,25 @@ classdef Core_Utils < handle
             end
             
         end
-        
+        function [s,n] = getSemivariogram1DMFMV(x,mf,lat,lon);
+          % compute 1 d semivariogram
+            %
+            % SYNTAX:
+            %     s = Core_Utils.getSemivariogram1D(x)
+            
+            max_lag = length(x)-1;
+            s = nan(max_lag,1);
+            n = zeros(max_lag,1);
+            ang_dist = @(lat1,lat2,lon1,lon2)  acos(sin(lat1).*sin(lat2)+cos(lat1).*cos(lat2).*cos(lon1-lon2));
+            for l = 1 : max_lag
+                ads = ang_dist(lat((l+1):end),lat(1:(end-l)) ,lon((l+1):end),lon(1:(end-l)));
+                ads = (ads/min(ads)).^(5/3);
+                diffs = ((x((l+1):end) - x(1:(end-l))) ./((mf((l+1):end) + mf(1:(end-l))))*2./ads).^2;
+                s(l) = mean(diffs,'omitnan')/2;
+                n(l) = sum(~isnan(diffs));
+            end
+            
+        end
         function [s,n] = getSemivariogram1DCS(x,cs_lid)
             % compute 1 d semivariogram accoutnign for cycle slips
             %
