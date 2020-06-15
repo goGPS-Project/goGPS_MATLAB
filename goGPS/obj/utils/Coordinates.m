@@ -565,6 +565,7 @@ classdef Coordinates < Exportable & handle
                             color_order = Core_UI.getColor(i * [1 1 1], numel(coo_list));
                         end                                                
                         
+                        flag_time = true;
                         if isa(pos.time, 'GPS_Time') && ~pos.time.isEmpty
                             t = pos.time.getMatlabTime;
                             if numel(t) < size(enu_diff,1)
@@ -575,6 +576,7 @@ classdef Coordinates < Exportable & handle
                                 t = t(1:size(enu_diff,1),:);
                             end
                         else
+                            flag_time = false;
                             t = (1 : size(enu_diff, 1))';
                         end
                         
@@ -588,12 +590,12 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(e);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        if isa(t, 'GPS_Time')
+                        if flag_time
                             setTimeTicks(4); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         end
                         grid on;
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 1, t);
-                        if (t(end)-t(1) > 199)
+                        if (t(end)-t(1) > 199) && flag_time
                             ttmp = t(~isnan(enu_diff(:,1)));
                             [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,1))), enu_diff(~isnan(enu_diff(:,1)),1), 365/4, 1e-8, ttmp(1):ttmp(end));
                             plot(ttmp(1):ttmp(end), splined, 'k');
@@ -612,11 +614,11 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(n);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        if isa(t, 'GPS_Time') 
+                        if flag_time 
                             setTimeTicks(4); h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         end
-                            trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 1, t);
-                        if (t(end)-t(1) > 199)
+                        trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 1, t);
+                        if (t(end)-t(1) > 199) && flag_time
                             ttmp = t(~isnan(enu_diff(:,2)));
                             [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,2))), enu_diff(~isnan(enu_diff(:,2)),2), 365/4, 1e-8, ttmp(1):ttmp(end));
                             plot(ttmp(1):ttmp(end), splined, 'k');
@@ -636,11 +638,11 @@ classdef Coordinates < Exportable & handle
                         end
                         yl = minMax(up);
                         ylim([min(-20, yl(1)) max(20, yl(2))]);
-                        if isa(t, 'GPS_Time')
+                        if flag_time
                             setTimeTicks(4); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         end
                         trend = Core_Utils.interp1LS(t(~isnan(enu_diff(:,3))), enu_diff(~isnan(enu_diff(:,3)),3), 1, t);
-                        if (t(end)-t(1) > 199)
+                        if (t(end)-t(1) > 199) && flag_time
                             ttmp = t(~isnan(enu_diff(:,3)));
                             [filtered, ~, ~, splined] = splinerMat(t(~isnan(enu_diff(:,3))), enu_diff(~isnan(enu_diff(:,3)),3), 365/4, 1e-8, ttmp(1):ttmp(end));
                             plot(ttmp(1):ttmp(end), splined, 'k');
