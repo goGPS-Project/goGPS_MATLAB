@@ -1440,6 +1440,7 @@ classdef Core < handle
                 ax = gca(); ax.YTick = 1:n_rec;
                 ax.YTickLabel = sta_name;
                 setTimeTicks(ax);
+                drawnow
                 % set(ax,'XGrid','on')
                 % title(sprintf('Rinex data avaliability %d',year));
                 % if numel(months_time) > 1
@@ -1481,6 +1482,7 @@ classdef Core < handle
                 end
                 if force_update
                     fr(r) = File_Rinex(rec_path{r}, 100);
+                    fr(r).checkCoordinates();
                 end
                 n_ok(r) = sum(fr(r).is_valid_list);
                 n_ko(r) = sum(~fr(r).is_valid_list);
