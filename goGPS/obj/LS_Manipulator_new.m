@@ -1925,7 +1925,7 @@ classdef LS_Manipulator_new < handle
                         end
                         
                         idx_amb_est = find(idx_amb_est);
-                        ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
+                        ambs(idx_amb_est(:)) = amb_fixed(:,1);
                     
                     B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
                     clearvars N_ap_ap
