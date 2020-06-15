@@ -4108,7 +4108,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir_path = this.getNavClkDir();
             elseif strcmpi(ext,'.CRX')
                 
-            elseif ~isempty(regexp(ext,'\.\d\d[i|I]', 'once')) || ~isempty(regexp(ext,'\.\d\d[n|N]', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}n')
+            elseif ~isempty(regexp(ext,'\.\d\d[i|I]', 'once')) || ~isempty(regexp(ext,'\.\d\d[n|N]', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}n') || strcmpi(name(1:4),'IFCz') || strcmpi(name(1:4),'SFCz')
                 dir_path = this.getIonoDir();
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.BSX')) || (strcmpi(ext,'.BIA'))
                 dir_path = this.getDcbDir();

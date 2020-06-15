@@ -10817,7 +10817,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             elseif state.tparam_ztd_ppp == 3
                                 spline_order = 3;
                             end
-                            spline_base = Core_Utils.spline(tropo_dt(idx_valid_trop),spline_order );
+                            spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order );
                             tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
                         end
                         if zernike_temp
@@ -10875,7 +10875,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             tropo_idx = floor((this.time.getNominalTime - time_min)/state.rate_grad_ppp);
                             [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(time_min.getMatlabTime));
                             valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropon)-3);
-                            spline_base = Core_Utils.spline(tropo_dt(idx_valid_trop),spline_order);
+                            spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order);
                             
                             getropo= sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
                             gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);

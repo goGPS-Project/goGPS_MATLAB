@@ -1242,7 +1242,7 @@ classdef LS_Manipulator_new < handle
                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
                     end
                     if length(u_wl_par) > 1
-                        if sum(this.param_class == this.PAR_IONO) > 0 
+                        if sum(this.param_class == this.PAR_IONO) > 0
                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                         end
                     end
@@ -1256,7 +1256,7 @@ classdef LS_Manipulator_new < handle
                     wl_par = this.wl_id_par(idx_par);
                     oi_apr = this.obs_codes_id_par(idx_par);
                     u_wl_par = unique(wl_par);
-                    if sum(this.param_class == this.PAR_IONO) > 0& this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC
+                    if sum(this.param_class == this.PAR_IONO) > 0& this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                         idx = 1:2;
                     else
                         idx = 1;
@@ -1872,19 +1872,19 @@ classdef LS_Manipulator_new < handle
                     idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB ; %| c_p == this.PAR_SAT_EBFR
                     c_p2 = c_p(~idx_bias);
                     if any(idx_bias)
-                    [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
-                    d = diag(D);
-                    tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
-                    [~,idx_min] = min(diff(log10(d(d<tol))));
-                    last_valid = find(d < tol,1,'first') + idx_min -1;
-                    keep_id = 1:sum(idx_bias) <= last_valid;
-                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
-                    clearvars U V D
-                    pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
-                    clearvars real_space d
-                    BB = N(~idx_bias ,idx_bias)*pinvB;
-                    N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
-                    B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                        [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
+                        d = diag(D);
+                        tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
+                        [~,idx_min] = min(diff(log10(d(d<tol))));
+                        last_valid = find(d < tol,1,'first') + idx_min -1;
+                        keep_id = 1:sum(idx_bias) <= last_valid;
+                        real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
+                        clearvars U V D
+                        pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                        clearvars real_space d
+                        BB = N(~idx_bias ,idx_bias)*pinvB;
+                        N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
+                        B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
                     else
                         N_ap_ap = N;
                         B_ap_ap = B;
@@ -1912,20 +1912,21 @@ classdef LS_Manipulator_new < handle
                         B_amb_amb = B_ap_ap(idx_amb);
                     end
                     
-                    
                     [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
-                    clearvars N_amb_amb B_amb_amb
-                    if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
-                        rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
-                        rec_idx = rec_idx(idx_amb_est);
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
-                    else
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
-                    end
                     ambs = zeros(sum(idx_amb),1);
                     ambs(idx_amb_est) = amb_float;
-                    idx_amb_est = find(idx_amb_est);
-                    %    ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
+                    clearvars N_amb_amb B_amb_amb
+                        if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
+                            rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
+                            rec_idx = rec_idx(idx_amb_est);
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
+                        else
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
+                        end
+                        
+                        idx_amb_est = find(idx_amb_est);
+                        ambs(idx_amb_est(l_fixed)) = amb_fixed(:,1);
+                    
                     B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
                     clearvars N_ap_ap
                     x_reduced = zeros(size(N,1),1);
@@ -1950,16 +1951,26 @@ classdef LS_Manipulator_new < handle
                     tic
                     [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
                     toc
-                    clearvars N_amb_amb B_amb_amb
-                    if length(this.unique_rec_name) > 7 % fix by recievr matrix tto large
-                        rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
-                        rec_idx = rec_idx(idx_amb_est);
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
-                    else
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
-                    end
                     ambs = zeros(sum(idx_amb),1);
-                    ambs(idx_amb_est) = amb_fixed(:,1);
+                    ambs(idx_amb_est) = amb_float;
+                    
+                        clearvars N_amb_amb B_amb_amb
+                        if length(this.unique_rec_name) > 7 ||  size(C_amb_amb,1) > 2000;% fix by recievr matrix tto large
+                            rec_idx = this.rec_par(this.class_par == this.PAR_AMB);
+                            rec_idx_tmp = rec_idx(idx_amb_est);
+                            rec_idx = rec_idx_tmp;
+                            a = 1;
+                            group = 2;
+                            for rr = 1:group:max(rec_idx_tmp)
+                                rec_idx(rec_idx_tmp>= rr) = a;
+                                a = a + 1;
+                            end
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial',rec_idx);
+                        else
+                            [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb_float, C_amb_amb, 'lambda_partial');
+                        end
+                        ambs(idx_amb_est) = amb_fixed(:,1);
+                    
                     x_reduced = zeros(size(N,1),1);
                     x_reduced(~idx_bias) = ambs;
                     B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*ambs;
@@ -2277,7 +2288,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_ph = nan(max(length(time_res), this.unique_time.length),n_stream);
+            res_ph = nan(length(time_res),n_stream);
             res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1, n_stream);
             obs_id = nan(1,n_stream);
@@ -2326,7 +2337,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            out_ph = false(max(length(time_res), this.unique_time.length),n_stream);
+            out_ph = false(length(time_res),n_stream);
             res_id = zeros(length(time_res),n_stream,'uint32');
             sat = nan(1, n_stream);
             obs_id = nan(1,n_stream);
@@ -2361,16 +2372,16 @@ classdef LS_Manipulator_new < handle
             n_rec = length(this.unique_rec_name);
             n_sat = length(this.unique_sat_goid);
             iono = nan(length(iono_time_ref),n_rec,n_sat);
-                        
+            
             for r = 1 : n_rec
-               for s = 1 : n_sat
-                  go_id = this.unique_sat_goid(s);
-                  idx = this.class_par == this.PAR_IONO & this.rec_par == r & this.sat_par == go_id;
-                  ionos = this.x(idx);
-                  ionos_time = this.time_par(idx,1);
-                  [~,idx_time] = ismember(ionos_time, iono_time_ref);
-                  iono(idx_time,r,go_id) = ionos;
-               end
+                for s = 1 : n_sat
+                    go_id = this.unique_sat_goid(s);
+                    idx = this.class_par == this.PAR_IONO & this.rec_par == r & this.sat_par == go_id;
+                    ionos = this.x(idx);
+                    ionos_time = this.time_par(idx,1);
+                    [~,idx_time] = ismember(ionos_time, iono_time_ref);
+                    iono(idx_time,r,go_id) = ionos;
+                end
             end
             iono_time = this.time_min.getCopy();
             iono_time.addSeconds(double(iono_time_ref'));
@@ -2397,7 +2408,7 @@ classdef LS_Manipulator_new < handle
             min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            res_pr = nan(max(length(time_res), this.unique_time.length), n_stream);
+            res_pr = nan(length(time_res), n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             sat_c = 9999;
@@ -2428,14 +2439,14 @@ classdef LS_Manipulator_new < handle
             if nargin <2  && isempty(rec_num)
                 rec = 1;
             end
-
-                idx_rec = this.receiver_obs == rec;
+            
+            idx_rec = this.receiver_obs == rec;
             u_stream = unique(1000*uint32(this.satellite_obs(idx_rec  & ~this.phase_obs )) + uint32(this.obs_codes_id_obs(idx_rec  & ~this.phase_obs )));
             n_stream = length(u_stream);
             min_time_res = min(this.ref_time_obs);
             duration = max(this.ref_time_obs) - min_time_res;
             time_res = (0:this.obs_rate:duration);
-            out_pr = false(max(length(time_res), this.unique_time.length), n_stream);
+            out_pr = false(length(time_res), n_stream);
             sat = nan(1,n_stream);
             obs_id = nan(1,n_stream);
             sat_c = 9999;
