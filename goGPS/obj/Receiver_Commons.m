@@ -256,10 +256,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             rate = this.time.getRate;
         end
         
-        function dt = getTotalDt(this)
-            dt = this.getDt + this.getDtPh +  this.getDtPrePro;
-        end
-        
         function coo = getPos(this)
             % return the positions computed for the receiver
             % as Coordinates object

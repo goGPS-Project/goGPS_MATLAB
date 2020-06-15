@@ -206,6 +206,10 @@ classdef Receiver_Output < Receiver_Commons
             dt_pp = this.dt_ip;
         end
         
+        function dt = getTotalDt(this)
+            dt = this.getDt +  this.getDtPrePro;
+        end
+        
         function n_sat = getMaxSat(sta_list, sys_c)
             % get the number of satellites stored in the object
             %
@@ -577,7 +581,7 @@ classdef Receiver_Output < Receiver_Commons
                     if ~basic_export
                         % Inject times
                         if this.state.flag_out_dt
-                            this.dt       = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+                            this.dt       = Core_Utils.injectData(this.dt, rec_work.getDt() + rec_work.getDtPh(), idx1, idx2);
                             this.desync   = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
                             this.dt_ip    = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
                             %this.n_sat_ep = Core_Utils.injectData(this.n_sat_ep, rec_work.getNSat(), idx1, idx2);

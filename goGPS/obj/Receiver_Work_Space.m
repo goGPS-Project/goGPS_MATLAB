@@ -2065,7 +2065,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
             this.sat.outliers_ph_by_ph = [];
             [ph, wl, lid_ph] = this.getPhases;
-             [pr] = this.getPhases;
+            [pr] = this.getPseudoRanges;
             this.sat.outliers_ph_by_ph = false(size(ph));
             this.sat.outliers_pr_by_pr = false(size(pr));
             % inititalize cycle slips with the beginning of the arcs
@@ -3889,6 +3889,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 dt =  this.dt(this.id_sync);
             end
+        end
+        
+        function dt = getTotalDt(this)
+            dt = this.getDt + this.getDtPh +  this.getDtPrePro;
         end
         
         function res = getU1(this)
