@@ -2196,16 +2196,16 @@ classdef Core_Utils < handle
                 end
                 
                 [resp, txt] = system([rem_check_cmd filename]);
-                if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
+                if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
                     status = true;
                 else
                     [resp, txt] = system([rem_check_cmd filename '.gz']);
-                    if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
+                    if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
                         ext = '.gz';
                         status = true;
                     else
                         [resp, txt] = system([rem_check_cmd filename '.Z']);
-                        if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) %#ok<STREMP>
+                        if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
                             ext = '.Z';
                             status = true;
                         else

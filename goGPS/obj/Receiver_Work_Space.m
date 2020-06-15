@@ -458,7 +458,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                             Core.getLogger.addError('Expected rec.load check input parameters\n');
                         end
                     case 4
-                        this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
+                        if isa(t_start, 'GPS_Time')
+                            this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
+                        else
+                            otype_list = rate;
+                            rate = t_start;
+                            ss_list = t_stop;
+                            this.setActiveSys(ss_list);
+                            ss_list = intersect(ss_list, cc.getActiveSysChar);
+                            this.importRinex(this.rinex_file_name, [], [], rate, ss_list, otype_list);
+                        end
                     case 5
                         this.setActiveSys(ss_list);
                         ss_list = intersect(ss_list, cc.getActiveSysChar);
