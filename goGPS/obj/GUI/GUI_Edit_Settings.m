@@ -852,11 +852,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             but_box.Heights = [25 25 25 25 -1  25 25 25 15 25 25];
             this.coo_tbl.Position = [25 40 250 100];
             
-            this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
-            colTypes = {'char', 'long g', 'long g', 'long g', Core_Reference_Frame.FLAG_STRING, 'char', 'char', 'short g', 'short g', 'short g'};
+            this.coo_tbl.ColumnName = {'Marker Name'; 'X [m]'; 'Y [m]'; 'Z [m]'; 'type'; 'std Planar [m]'; 'std Up [m]'; 'start'; 'stop'; 'dX/dt [m/y]'; 'dY/dt [m/y]'; 'dZ/dt [m/y]'};
+            colTypes = {'char', 'long g', 'long g', 'long g', Core_Reference_Frame.FLAG_STRING, 'long g', 'long g', 'char', 'char', 'short g', 'short g', 'short g'};
             this.coo_tbl.ColumnFormat = colTypes;
-            this.coo_tbl.ColumnEditable = [true true true true true true true true true true];
-            this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 'auto', 'auto', 'auto'};            
+            this.coo_tbl.ColumnEditable = [true true true true true true true true true true true true];
+            this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 100, 100, 'auto', 'auto', 'auto'};            
             this.updateCooTable();
             this.coo_tbl.addlistener('Data','PostSet', @(src,event)this.dataCrdChange(this.coo_tbl,src,event));
             
@@ -905,6 +905,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     rf.export(crd_path);
                     Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
                 catch ex
+                    Core_Utils.printEx(ex);
                     Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
                 end
             else
@@ -934,6 +935,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 rf.export(crd_path);
                 Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
             catch ex
+                Core_Utils.printEx(ex);
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
@@ -954,6 +956,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 rf.export(crd_path);
                 Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', crd_path));
             catch ex
+                Core_Utils.printEx(ex);
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
@@ -2913,6 +2916,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.updateUI();
                 Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', state.getFilePath));
             catch ex
+                Core_Utils.printEx(ex);
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
@@ -2938,6 +2942,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.updateUI();
                 Core.getLogger.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
             catch ex
+                Core_Utils.printEx(ex);
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end

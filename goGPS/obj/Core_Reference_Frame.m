@@ -40,8 +40,9 @@ classdef Core_Reference_Frame < handle
     
     properties        
         station_code
-        xyz
-        vxvyvz
+        xyz     % XYZ coordinates
+        vxvyvz  % XYZ velocities
+        std_pup % std planar up
         
         end_validity_epoch
         start_validity_epoch
@@ -117,8 +118,8 @@ classdef Core_Reference_Frame < handle
                 this.station_code = {};
                 this.xyz = zeros(n_sta,3);
                 this.vxvyvz = zeros(n_sta,3);
+                this.std_pup = zeros(n_sta,2);
                 this.flag = zeros(n_sta,1);
-                re_date = zeros(n_sta,1);
                 st_date = zeros(n_sta,1);
                 en_date = zeros(n_sta,1);
                 for i = 1:n_sta
@@ -127,15 +128,26 @@ classdef Core_Reference_Frame < handle
                     l = length(parts);
                     this.station_code(i) = parts(1);
                     this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
+                    flag_std = l >= 10 && ~isnan(str2double(parts{9}));
                     if l > 4
                         this.flag(i) = str2double(parts{5});
                         if l > 7
                             this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
-                            if l > 9
-                                st_date(i) = datenum([parts{9} ' ' parts{10}]);
-                                if l > 11
-                                    en_date(i) = datenum([parts{11} ' ' parts{12}]);
+                            if flag_std
+                                if l > 9
+                                    this.std_pup(i,:) = [str2double(parts{9}) str2double(parts{10})];
+                                    if l > 11
+                                        st_date(i) = datenum([parts{11} ' ' parts{12}]);
+                                        if l > 13
+                                            en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                                        end
+                                    end
                                 end
+                            end
+                        elseif l > 9
+                            st_date(i) = datenum([parts{9} ' ' parts{10}]);
+                            if l > 11
+                                en_date(i) = datenum([parts{11} ' ' parts{12}]);
                             end
                         end
                     end
@@ -160,7 +172,7 @@ classdef Core_Reference_Frame < handle
             this.end_validity_epoch = [];
         end
         
-        function [xyz, is_valid] = getCoo(this, sta_name, epoch)
+        function [xyz, is_valid, std_pup] = getCoo(this, sta_name, epoch)
             % get the coordinates of the station defined by marker name at the desidered epoch
             %
             % SYNTAX:
@@ -189,12 +201,13 @@ classdef Core_Reference_Frame < handle
                         dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
                         xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
                         is_valid = true;
+                        std_pup = this.std_pup(idx_sta,:);
                     end
                 end
             end
         end
         
-        function setCoo(this, sta_name, xyz, flag, vxvyvz, start_validity_epoch, end_validity_epoch, flag_overwrite)
+        function setCoo(this, sta_name, xyz, flag, vxvyvz, std_pup, start_validity_epoch, end_validity_epoch, flag_overwrite)
             % set the coordiates at the reference epoch
             %
             % SYNTAX:
@@ -217,10 +230,13 @@ classdef Core_Reference_Frame < handle
                         this.vxvyvz(idx_sta,:) = vxvyvz;
                     end
                     
-                    if nargin > 5 && ~isempty(start_validity_epoch)
+                    if nargin > 5 && ~isempty(std_pup)
+                        this.std_pup(idx_sta,:) = std_pup;
+                    end
+                    if nargin > 6 && ~isempty(start_validity_epoch)
                         this.start_validity_epoch.setEpoch(idx_sta,start_validity_epoch);
                     end
-                    if nargin > 6 && ~isempty(end_validity_epoch)
+                    if nargin > 7 && ~isempty(end_validity_epoch)
                         this.end_validity_epoch.setEpoch(idx_sta,end_validity_epoch);
                     end
                 else
@@ -228,6 +244,7 @@ classdef Core_Reference_Frame < handle
                     this.station_code{end+1} = sta_name;
                     this.flag = [this.flag; flag];
                     this.vxvyvz = [this.vxvyvz; vxvyvz];
+                    this.std_pup = [this.std_pup; std_pup];
                     if isempty(this.start_validity_epoch)
                         this.start_validity_epoch = start_validity_epoch;
                     else
@@ -246,12 +263,11 @@ classdef Core_Reference_Frame < handle
         
         function crx_list = getEntryCell(this)
             % Get the list of CORD entries in the format:
-            % 'Marker Name'; 'X'; 'Y'; 'Z'; 'type'; 'start', 'stop'
+            % 'Marker Name'; 'X'; 'Y'; 'Z'; 'type'; 'std Planar'; 'std Up'; 'start'; 'stop'
             %
             % SYNTAX:
             %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
             % load RF if not loaded
-            is_valid = false;
             if ~this.isValid()
                 if exist(Core.getState.getCrdFile, 'file') == 2
                     this.init();
@@ -267,11 +283,13 @@ classdef Core_Reference_Frame < handle
                     crx_list{i, 3} = this.xyz(i, 2);
                     crx_list{i, 4} = this.xyz(i, 3);
                     crx_list{i, 5} = this.FLAG_STRING{nan2zero(this.flag(i)) + 1};
-                    crx_list{i, 6} = this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
-                    crx_list{i, 7} = this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
-                    crx_list{i, 8} = this.vxvyvz(i,1);
-                    crx_list{i, 9} = this.vxvyvz(i,2);
-                    crx_list{i, 10} = this.vxvyvz(i,3);
+                    crx_list{i, 6} = this.std_pup(i, 1);
+                    crx_list{i, 7} = this.std_pup(i, 2);
+                    crx_list{i, 8} = this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
+                    crx_list{i, 9} = this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
+                    crx_list{i, 10} = this.vxvyvz(i,1);
+                    crx_list{i, 11} = this.vxvyvz(i,2);
+                    crx_list{i, 12} = this.vxvyvz(i,3);
                 end
             end
         end
@@ -374,15 +392,19 @@ classdef Core_Reference_Frame < handle
                 this.xyz = [[data{:,2}]' [data{:,3}]' [data{:,4}]'];
                 
                 % get speed
-                this.vxvyvz = [[data{:,8}]' [data{:,9}]' [data{:,10}]'];
+                this.vxvyvz = [[data{:,10}]' [data{:,11}]' [data{:,12}]'];
+                
+                % get speed
+                this.std_pup = [[data{:,6}]' [data{:,7}]'];
                 
                 % epochs
                 date = [];
                 for i = 1 : size(data,1)
                     try
-                        date(i) = datenum(iif(isempty(data{i,6}), '1980/01/01 00:00:00', data{i,6}), 'yyyy/mm/dd HH:MM:SS');
+                        date(i) = datenum(strrep(iif(isempty(data{i,8}), '2099/01/01 00:00:00', data{i,8}), '-', '/'), 'yyyy/mm/dd HH:MM:SS');
                     catch ex
                         % not valid epoch
+                        Core_Utils.printEx(ex);
                         date(i) = datenum('1980/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS');
                     end
                 end
@@ -391,9 +413,10 @@ classdef Core_Reference_Frame < handle
                 date = [];
                 for i = 1 : size(data,1)
                     try
-                        date(i) = datenum(iif(isempty(data{i,7}), '2099/01/01 00:00:00', data{i,7}), 'yyyy/mm/dd HH:MM:SS');
+                        date(i) = datenum(strrep(iif(isempty(data{i,9}), '2099/01/01 00:00:00', data{i,9}), '-', '/'), 'yyyy/mm/dd HH:MM:SS');
                     catch ex
                         % not valid epoch
+                        Core_Utils.printEx(ex);
                         date(i) = datenum('2099/01/01 00:00:00', 'yyyy/mm/dd HH:MM:SS');
                     end
                 end
@@ -415,11 +438,12 @@ classdef Core_Reference_Frame < handle
             str = sprintf('#goGPS Coordinate file\n');
             str = sprintf('%s#This file contains position and velocity for multiple stations\n', str);
             str = sprintf('%s#F = FLAG: %s\n', str, sprintf('%s    ', Core_Reference_Frame.FLAG_STRING{:}));
-            str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
-            str = sprintf('%s#STA       X [m]          Y [m]          Z [m]    F   dx [m/y]   dy [m/y]   dz [m/y]   date validity start    date validity stop\n', str);
-            str = sprintf('%s#-------------------------------------------------------------------------------------------------------------------------------\n', str);
+            str = sprintf('%s#--------------------------------------------------------------------------------------------------------------------------------------------------\n', str);
+            str = sprintf('%s#STA             X             Y              Z  F       dX       dY        dZ   std Planar    std Up   date validity start   date validity stop\n', str);
+            str = sprintf('%s#               [m]           [m]            [m]       [m/y]    [m/y]     [m/y]         [m]       [m]  yyyy-mm-dd HH:MM:SS.s yyyy-mm-dd HH:MM:SS.s\n', str);
+            str = sprintf('%s#--------------------------------------------------------------------------------------------------------------------------------------------------\n', str);
             for i = 1 : size(this.xyz, 1)
-                str = sprintf('%s%4s %+14.5f %+14.5f %+14.5f %1d %+10.5f %+10.5f %+10.5f %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3), this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
+                str = sprintf('%s%4s %+13.5f %+13.5f %+13.5f %1d %+9.5f %+9.5f %+9.5f  %+9.5f %+9.5f  %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3),  this.std_pup(i, 1),  this.std_pup(i, 2),  this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
             end
         end
         
@@ -433,6 +457,7 @@ classdef Core_Reference_Frame < handle
             if ~(exist(path, 'file') == 7)
                 mkdir(path);
             end
+            Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for writing', file_path)));
             fid = fopen(file_path, 'Wb');
             if fid > 0
                 fwrite(fid, this.toCrdString, 'char');
@@ -440,6 +465,15 @@ classdef Core_Reference_Frame < handle
             else
                 Core.getLogger.addError(sprintf('"%s" cannot be saved', file_path));
             end
+        end
+        
+    end
+    
+    methods (Static)
+        function test()
+            rf = Core_Reference_Frame;      
+            rf.load('../data/project/default_PPP/station/CRD/stations.crd');
+            rf.export('../data/project/default_PPP/station/CRD/stations_test.crd')
         end
     end
     

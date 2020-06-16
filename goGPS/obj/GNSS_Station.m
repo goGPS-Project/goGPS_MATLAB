@@ -605,10 +605,10 @@ classdef GNSS_Station < handle
                 if strcmpi(mode,'out') || isempty(sta_list(s).out) || (sta_list(s).out.isEmpty)
                     xyz = sta_list(s).out.getPosXYZ();
                     xyz = xyz(end,:);
-                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 else %if strcmpi(mode,'work') % get from work
                     xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
-                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                    rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 end
             end
             
@@ -2775,11 +2775,11 @@ classdef GNSS_Station < handle
             for s = 1 : length(sta_list)
                 if strcmpi(mode,'work') % get from work
                     xyz = sta_list(s).work.getMedianPosXYZ();
-                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 elseif strcmpi(mode,'out')
                     xyz = sta_list(s).out.getPosXYZ();
                     xyz = xyz(end,:);
-                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
+                    Core.getReferenceFrame.setCoo(sta_list(s).getMarkerName4Ch, xyz, 2, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 end
             end
         end

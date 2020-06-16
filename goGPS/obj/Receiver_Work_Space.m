@@ -132,7 +132,8 @@ classdef Receiver_Work_Space < Receiver_Commons
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
-        xyz_approx     % approximate position of the receiver (XYZ geocentric)
+        xyz_approx     % approximate position of the receiver (XYZ geocentric) as read from RINEX
+        std_pup        % approximate position standar deviations (Planar Up)
     end
     % ==================================================================================================================================================
     %% PROPERTIES CELESTIAL INFORMATIONS
@@ -482,11 +483,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             rf = Core.getReferenceFrame(true);
             if (this.getTime.isEmpty)
                 coo = [];
+                std_pup = [];
             else
-                coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
+                [coo, status, std_pup] = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
             end
             if ~isempty(coo)
                 this.xyz = coo;
+                this.std_pup = std_pup;
             end
         end
         
@@ -629,6 +632,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.n_spe      = rec.n_spe;
                 this.xyz        = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
+                this.std_pup    = rec.std_pup;
                 this.ph_shift   = rec.ph_shift;
                 this.rate       = rec.rate;
                 this.file            = rec.file;
@@ -3037,10 +3041,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             fln = find(line2head == 7, 1, 'first'); % get field line
             if isempty(fln)
                 this.xyz_approx = [0 0 0];
+                this.std_pup = [0 0];
                 this.xyz = [0 0 0];
             else
                 tmp = sscanf(txt(lim(fln, 1) + (0:41)),'%f')';                                               % read value
                 this.xyz_approx = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 3), [0 0 0], tmp);          % check value integrity
+                this.std_pup = [50 50];
                 this.xyz = this.xyz_approx;
             end
             % 8) 'ANTENNA: DELTA H/E/N'
@@ -4016,7 +4022,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX:
             %   xyz = this.getAPrioriPos()
-            xyz = this.xyz_approx;
+            
+            % The approx coordinates are from
+            % xyz = this.xyz_approx;
             xyz = median(xyz, 1);
             if ~any(xyz) && ~isempty(this.xyz)
                 xyz = median(this.getPosXYZ, 1);
@@ -9435,7 +9443,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.codeStaticPositioning(sys_list, ep_coarse, 15, 0);
             end
             this.id_sync = [];
-             this.updateErrTropo(all_go_id);
+            this.updateErrTropo(all_go_id);
         end
         
         function remBadTracking(this, sys_list) %%% important check!! if ph obervation with no code are deleted elsewhere
