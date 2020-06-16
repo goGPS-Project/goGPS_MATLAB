@@ -10,7 +10,7 @@
 %
 % SEE ALSO
 %   - Least_Square
-% FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc LS_Manipulator_new
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -2578,9 +2578,9 @@ classdef LS_Manipulator_new < handle
                         this.PAR_TROPO_N;
                         this.PAR_TROPO_E;];
                 end
-                if Main_Settings.getNumZerTropoCoef > 0
+                if Prj_Settings.getNumZerTropoCoef > 0
                     param_selction = [param_selction;
-                        repmat(this.PAR_TROPO_Z,Main_Settings.getNumZerTropoCoef-3,1);];
+                        repmat(this.PAR_TROPO_Z,Prj_Settings.getNumZerTropoCoef-3,1);];
                 end
             end
             if nargin < 5

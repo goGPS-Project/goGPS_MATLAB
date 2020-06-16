@@ -10,7 +10,7 @@
 %
 % SEE ALSO
 %   - Least_Square
-% FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc LS_Parametrization
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___

@@ -1,7 +1,7 @@
 tic;
 CENTERS = {'igs_gps'; 'emr'; 'esoc'; 'code'; 'code1d'; 'code5s'; 'gfz'; 'cnes'; 'wuhan'};
 
-state = Main_Settings('last_settings.ini');
+state = Prj_Settings('last_settings.ini');
 sta_co = GNSS_Station(); sta_co(1) = [];
 sta_u2 = GNSS_Station(); sta_u2(1) = [];
 for i = 1 : numel(CENTERS)

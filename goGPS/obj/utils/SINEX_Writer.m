@@ -9,7 +9,7 @@
 %
 % SEE ALSO
 %  
-% FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc SINEX_Writer
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___

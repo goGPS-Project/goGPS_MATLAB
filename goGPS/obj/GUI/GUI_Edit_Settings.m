@@ -19,7 +19,7 @@
 %    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2020 Andrea Gatti, Giulio Tagliaferro
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -2968,7 +2968,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.crd2RefFrame;
                 core.log.addMarkedMessage('Starting computation!');
                 
-                core.state.save(Main_Settings.LAST_SETTINGS);
+                core.state.save(Prj_Settings.LAST_SETTINGS);
                 this.ok_go = true;
                 close(this.w_main);
             end

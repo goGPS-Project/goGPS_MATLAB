@@ -9,7 +9,7 @@
 %
 % SEE ALSO
 %   - Least_Square
-% FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc LS_Manipulator
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -1801,7 +1801,7 @@ classdef LS_Manipulator < Exportable
                     
                     
                     % ILS shrinking, method 1
-                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Main_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET});
+                    [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Prj_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET});
                     
                     if is_fixed
                         % FIXED!!!!

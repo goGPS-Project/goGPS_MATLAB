@@ -521,18 +521,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
                 % If Zernike have been used rebuild delays in this way:
                 if ~isempty(this.tzer)
-                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Main_Settings.getNumZerTropoCoef  -1)));
+                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Prj_Settings.getNumZerTropoCoef  -1)));
                     el = this.sat.el(id_sync,:);
                     
                     rho = (90 - el)/(90);
-                    zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Main_Settings.getNumZerTropoCoef);
+                    zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Prj_Settings.getNumZerTropoCoef);
                     
                     az = this.sat.az(id_sync,:);
                     idx = el>0;
                     for  g = go_id
                         zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
                     end
-                    for i = 4 : Main_Settings.getNumZerTropoCoef
+                    for i = 4 : Prj_Settings.getNumZerTropoCoef
                         slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
                     end
                 end

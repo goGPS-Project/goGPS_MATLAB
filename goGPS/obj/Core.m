@@ -78,6 +78,8 @@ classdef Core < handle
         log_gui     % Message window
         w_bar       % Wait_Bar handler
         
+        gocfg       % goGPS config ini
+        
         state       % state
         sky         % Core_Sky handler
         atx         % antenna manager (stores all the antennas available)
@@ -180,7 +182,7 @@ classdef Core < handle
                     this = unique_instance_core__;
                     if ~skip_init
                         if nargin == 3 && ~isempty(ini) && ...
-                            (isa(ini,'Main_Settings') || exist(ini, 'file'))
+                            (isa(ini,'Prj_Settings') || exist(ini, 'file'))
                             this.init(force_clean, ini);
                         else
                             this.init(force_clean);
@@ -510,6 +512,23 @@ classdef Core < handle
             met_list = core.met_list;
         end              
         
+        function gocfg = getGoConfig(ini_settings_file)
+            % Get the persistent goGPS config
+            %
+            % SYNTAX
+            %   gocfg = Core.getCurrentSettings(<ini_settings_file>)
+            
+            core = Core.getInstance(false, true);
+            if isempty(core.state)
+                core.gocfg = Go_Settings.getInstance();
+            end
+            if nargin == 1 && ~isempty(ini_settings_file)
+                core.gocfg = Go_Settings.getInstance(ini_settings_file);
+            end
+            % Return the handler to the object containing the current settings
+            gocfg = handle(core.gocfg);
+        end
+        
         function state = getState()
             % Return the pointer to the State pointed by Core
             %
@@ -527,7 +546,7 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             if isempty(core.state)
-                core.state = Main_Settings();
+                core.state = Prj_Settings();
             end
             if nargin == 1 && ~isempty(ini_settings_file)
                 core.state.importIniFile(ini_settings_file);
@@ -536,6 +555,7 @@ classdef Core < handle
             state = handle(core.state);
         end
         
+       
         function cmd = getCommandInterpreter()
             % Return the pointer to the Command Interpreter
             %
@@ -693,13 +713,13 @@ classdef Core < handle
             this.log.setColorMode(true);   
             
             if nargin == 3 && ~isempty(ini)
-                if isa(ini,'Main_Settings')
-                    this.state  = Main_Settings(ini);
+                if isa(ini,'Prj_Settings')
+                    this.state  = Prj_Settings(ini);
                 else
-                    this.state = Main_Settings(ini);
+                    this.state = Prj_Settings(ini);
                 end
             else
-                this.state = Main_Settings();
+                this.state = Prj_Settings();
             end
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky(force_clean);
@@ -1950,7 +1970,8 @@ classdef Core < handle
                 
                 try
                     Core.setCurrentCore(core);
-                    core.initGeoid
+                    core.initGeoid();
+                    core.gocfg = Go_Settings.getInstance();
                     if ~isdeployed
                         % Export into workspace
                         rec = core.rec;

@@ -83,8 +83,9 @@ function goGPS(ini_settings, use_gui, flag_online)
     end    
         
     log = Logger.getInstance();
+    log.setColorMode(Go_Settings.getInstance.isLogColorMode);
     log.disableFileOut();
-    if use_gui && Core_UI.DEFAULT_LOG == 1
+    if use_gui && Go_Settings.getInstance.getLogMode() == 1
         log.enableGUIOut();
         log.disableScreenOut();
         Core.getMsgGUI(true);

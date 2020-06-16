@@ -44,10 +44,6 @@
 classdef Core_UI < Logos
     
     properties (Constant)
-        DEFAULT_LOG = 1; % 0 text mode, 1 graphic mode
-        DEFAULT_MODE = 'dark';
-        DEFAULT_EXPORT_MODE = 'light';
-        
         FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
@@ -292,7 +288,7 @@ classdef Core_UI < Logos
                 
                 if ~isempty(file_name)
                     if nargin < 3
-                        beautify_mode = Core_UI.DEFAULT_EXPORT_MODE;
+                        beautify_mode = Go_Settings.getInstance.getGUIModeExport;
                     end
                     
                     if nargin < 4 || isempty(flag_transparent)
@@ -325,8 +321,8 @@ classdef Core_UI < Logos
                             file_name = fullfile(file_dir, [file_name file_ext]);
                             
                             Core_Utils.exportFig(fh, file_name, beautify_mode, flag_transparent);
-                            if ~isempty(beautify_mode) && ~strcmp(beautify_mode, Core_UI.DEFAULT_MODE)
-                                Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                            if ~isempty(beautify_mode) && ~strcmp(beautify_mode, Go_Settings.getInstance.getGUIMode)
+                                Core_UI.beautifyFig(fh, Go_Settings.getInstance.getGUIMode);
                             end
                         end
                     end
@@ -505,7 +501,7 @@ classdef Core_UI < Logos
                 fig_handle = gcf;
             end
             if nargin < 2 || isempty(color_mode)
-                color_mode = Core_UI.DEFAULT_MODE;
+                color_mode = Go_Settings.getInstance.getGUIMode;
             end
             ax_list = findall(fig_handle,'type','axes');
             for ax = ax_list(:)'

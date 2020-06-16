@@ -18,7 +18,7 @@
 %    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2020 Andrea Gatti, Giulio Tagliaferro, Eugenio Realini
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -2718,12 +2718,12 @@ classdef Command_Interpreter < handle
                         end
                         file_name = fullfile(file_dir, [file_name file_ext]);
                         
-                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                        Core_Utils.exportFig(fh, file_name, Go_Settings.getInstance.getGUIModeExport);
                         if flag_close
                             delete(fh);
                         else
-                            if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
-                                Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
+                            if ~strcmp(Go_Settings.getInstance.getGUIModeExport, Go_Settings.getInstance.getGUIMode)
+                                Core_UI.beautifyFig(fh, Go_Settings.getInstance.getGUIMode);
                             end
                         end
                     end
@@ -2802,11 +2802,11 @@ classdef Command_Interpreter < handle
                         end
                         file_name = fullfile(file_dir, [file_name file_ext]);
                         
-                        Core_Utils.exportFig(fh, file_name, Core_UI.DEFAULT_EXPORT_MODE);
+                        Core_Utils.exportFig(fh, file_name, Go_Settings.getInstance.getGUIModeExport);
                         if flag_close
                             delete(fh);
                         else
-                            if ~strcmp(Core_UI.DEFAULT_EXPORT_MODE, Core_UI.DEFAULT_MODE)
+                            if ~strcmp(Go_Settings.getInstance.getGUIModeExport, Go_Settings.getInstance.getGUIMode)
                                 Core_UI.beautifyFig(fh, Core_UI.DEFAULT_MODE);
                             end
                         end

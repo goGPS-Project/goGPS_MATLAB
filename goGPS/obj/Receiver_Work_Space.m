@@ -10828,11 +10828,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
                     this.dt(ep_pr) = this.dt(ep_pr) + ls.x(idx_clk)/ Core_Utils.V_LIGHT;
                     
-                    zernike_temp = Main_Settings.getNumZerTropoCoef > 0;
+                    zernike_temp = Prj_Settings.getNumZerTropoCoef > 0;
                     if zernike_temp
                         idx_trpz = find(ls.class_par == ls.PAR_TROPO_Z);
                         tropoz =  ls.x(idx_trpz);
-                        n_pol = Main_Settings.getNumZerTropoCoef-3;
+                        n_pol = Prj_Settings.getNumZerTropoCoef-3;
                         tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, state.rate_grad_ppp)/state.rate_grad_ppp;
                         spline_base = Core_Utils.spline(tropo_dt,3);
                         zer_tropo = zeros(size(spline_base,1),n_pol);

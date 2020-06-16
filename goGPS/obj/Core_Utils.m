@@ -19,7 +19,7 @@
 %    |___/                    v 1.0b7
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2020 Andrea Gatti, Giulio Tagliaferro, Eugenio Realini
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -45,7 +45,6 @@
 classdef Core_Utils < handle
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
-        FLAG_EXPORT_TRANSPARENT = true;
     end
     
     methods (Static)
@@ -1457,7 +1456,7 @@ classdef Core_Utils < handle
                 Core_UI.beautifyFig(fh, mode);
             end
             if (nargin < 4) || isempty(flag_transparent)
-                flag_transparent = Core_Utils.FLAG_EXPORT_TRANSPARENT;
+                flag_transparent = Go_Settings.getInstance.isExportTransparent();
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
@@ -2844,9 +2843,9 @@ classdef Core_Utils < handle
             fnp = File_Name_Processor();
             
             if nargin == 3
-                state = Main_Settings('', fnp.checkPath([base_dir filesep prj_name]));
+                state = Prj_Settings('', fnp.checkPath([base_dir filesep prj_name]));
             else
-                state = Main_Settings('');
+                state = Prj_Settings('');
             end
             
             if nargin == 1
