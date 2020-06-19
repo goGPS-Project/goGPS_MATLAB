@@ -994,9 +994,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
                         if ~isempty(xyz)
                             if ~isempty(data)
-                                data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0}];
+                                data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50, time_start, time_stop, 0, 0, 0}];
                             else
-                                data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, time_start, time_stop, 0, 0, 0};
+                                data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50,  time_start, time_stop, 0, 0, 0};
                             end
                         end
                     end
