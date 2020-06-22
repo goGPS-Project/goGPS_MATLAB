@@ -2870,8 +2870,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 ref_t{r} = sta_list(r).time.getRefTime(p_time_zero);
                 if obs_type(r) > 0 % if it's not a target
                     if ~sta_list(r).isEmpty
-                        p_time_start = max(p_time_start,  round(sta_list(r).time.first.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
-                        p_time_stop = min(p_time_stop,  round(sta_list(r).time.last.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                        % p_time_start = max(p_time_start,  round(sta_list(r).time.first.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                        % p_time_stop = min(p_time_stop,  round(sta_list(r).time.last.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
                         p_rate = lcm(round(p_rate * 1e6), round(sta_list(r).time.getRate * 1e6)) * 1e-6;
                     end
                 else
