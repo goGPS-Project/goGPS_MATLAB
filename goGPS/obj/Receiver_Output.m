@@ -526,6 +526,7 @@ classdef Receiver_Output < Receiver_Commons
                 
             if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && ~(rec_work.quality_info.s0 < 1e-5))))
                 % set the id_sync only to time in between out times
+                %[this.time.length length(this.zwd) rec_work.time.length length(rec_work.zwd)]
                 basic_export = false;
                 
                 if any(rate)
@@ -829,6 +830,8 @@ classdef Receiver_Output < Receiver_Commons
                             end
                         end
                     end
+                    log = Core.getLogger();
+                    log.addMarkedMessage(sprintf('Computed results for receiver "%s" have been imported into out object', this.parent.getMarkerName4Ch()));
                 else
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end
@@ -838,8 +841,7 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
             
-            log = Core.getLogger();
-            log.addMarkedMessage(sprintf('Computed results for receiver "%s" have been imported into out object', this.parent.getMarkerName4Ch()));
+            
         end        
     end
     %% METHODS PLOTTING FUNCTIONS
