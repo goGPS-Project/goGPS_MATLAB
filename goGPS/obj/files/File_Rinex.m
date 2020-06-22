@@ -628,7 +628,7 @@ classdef File_Rinex < Exportable
         end
         
         function checkCoordinates(rin_list, force_delete)
-            flag_show = true;
+            flag_show = false;
             dist_lim = 1; % [m]
             for r = 1 : numel(rin_list)
                 xyz = rin_list(r).coo.xyz;
