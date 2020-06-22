@@ -2344,7 +2344,7 @@ classdef Core_Utils < handle
             time1 = time1.getMatlabTime();
             time2 = time2.getMatlabTime();
             
-            [idx1, idx2, time_tot] = Core_Utils.intersectOrderedDouble(time1, time2, median([diff(time1); diff(time2)])/4); % 1/4 the rate tolerance
+            [idx1, idx2, time_tot] = Core_Utils.unionOrderedDouble(time1, time2, median([diff(time1); diff(time2)])/4); % 1/4 the rate tolerance
             
             mix_len = min(0.007, abs((time2(1) - time1(end)))/20); % <= empirically found
             w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot)) / mix_len))); % todo: scale to ensure [0 1]
@@ -2404,11 +2404,11 @@ classdef Core_Utils < handle
             data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];
         end
         
-        function [idx1, idx2, double_tot] = intersectOrderedDouble(double_1, double_2, threshold)
+        function [idx1, idx2, double_tot] = unionOrderedDouble(double_1, double_2, threshold)
             % given two ordered double give the index of the two vector in the joint vector considering the threshold
             %
             % SYNTAX
-            % [idx1, idx2] = Core_Utils.intersectOrderedDouble(double_1, double_2, threshold)
+            % [idx1, idx2] = Core_Utils.unionOrderedDouble(double_1, double_2, threshold)
             l1 = length(double_1);
             l2 = length(double_2);
             idx1 = zeros(l1,1);
@@ -2434,10 +2434,12 @@ classdef Core_Utils < handle
                 end
             end
             if j > l2 && i <= l1
-                idx_end = (i : l1) -l1 + tot;
+                % idx_end = (i : l1) -l1 + tot; % WRONG
+                idx_end = (i : l1) -i + tot;
                 idx1(i : l1) = idx_end;
             elseif i > l1 && j <= l2
-                idx_end = (j : l2) -l2 + tot;
+                % idx_end = (j : l2) -l2 + tot; % WRONG
+                idx_end = (j : l2) -j + tot;
                 idx2(j : l2) = idx_end;
             end
             double_tot = zeros(max(max(idx1), max(idx2)), 1);
