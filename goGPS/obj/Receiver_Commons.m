@@ -682,8 +682,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %  [apr_zwd, time] = this.getAprZwd()
             
-            apr_zwd = this.apr_zwd(this.getIdSync);
-            time = this.time.getEpoch(this.getIdSync);
+            if isempty(this.apr_zwd)
+                apr_zwd = [];
+                time = GPS_Time();
+            else
+                apr_zwd = this.apr_zwd(this.getIdSync);
+                time = this.time.getEpoch(this.getIdSync);
+            end
         end
         
         function [az, el] = getAzEl(this, go_id)
