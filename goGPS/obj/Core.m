@@ -1411,7 +1411,21 @@ classdef Core < handle
                 fr = this.getRinLists();
                 sta_name = {};
                 for r = 1 : n_rec
-                    sta_name{end+1} = fr(r).marker_name{find(fr(r).is_valid_list, 1, 'first')}(1:4);
+                    id_first_ok = find(fr(r).is_valid_list, 1, 'first');
+                    if isempty(id_first_ok)
+                        id_first_ok = 1;
+                    end
+                    % Try to retrieve a corret marker
+                    try
+                        sta_name{end+1} = fr(r).marker_name{id_first_ok}(1:4);
+                    catch
+                        try
+                            name = File_Name_Processor.getFileName(rec_path{r}{1});
+                            sta_name{end+1} = name(1:4);
+                        catch
+                            sta_name{end+1} = 'NONE';
+                        end
+                    end
                 end
             else
                 fr = File_Rinex(); fr(1) = [];
