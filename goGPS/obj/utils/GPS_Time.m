@@ -1726,11 +1726,11 @@ classdef GPS_Time < Exportable & handle
         
         function [time, idx1, idx2] = injectBatch(this, time_in)
             % inject a number of time , deleted overlapping
-            idx1 = find(this.getNominalTime >= time_in.getNominalTime.first, 1, 'first'); % first to erase
+            idx1 = find(this.getNominalTime(min(this.getRate, 1)) >= time_in.getNominalTime(min(time_in.getRate, 1)).first, 1, 'first'); % first to erase
             if isempty(idx1)
                 idx1 = this.length + 1;
             end
-            idx2 = find(this.getNominalTime <= time_in.getNominalTime.last, 1, 'last'); % last to erase 
+            idx2 = find(this.getNominalTime(min(this.getRate, 1)) <= time_in.getNominalTime(min(time_in.getRate, 1)).last, 1, 'last'); % last to erase 
             if isempty(idx2)
                 idx2 = 0;
             end
