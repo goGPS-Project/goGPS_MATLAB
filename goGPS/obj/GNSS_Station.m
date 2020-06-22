@@ -3450,6 +3450,7 @@ classdef GNSS_Station < handle
             % SYNTAX
             %   this.showDataAvailability(sys_list)
             
+            sta_list = sta_list(not(sta_list.isEmpty_mr));
             fh_list = [];
             if nargin < 2
                 sys_list = Core.getConstellationCollector.getAvailableSys();
@@ -6294,8 +6295,26 @@ classdef GNSS_Station < handle
                 end
             end
         end
+        
+        function fh_list = showBaselineENU(sta_list, baseline_ids, flag_add_coo)
+            % Function to plot baseline between 2 or more stations
+            %
+            % INPUT:
+            %   sta_list                 list of GNSS_Station objects
+            %   baseline_ids/ref_id      n_baseline x 2 - couple of id in sta_list to be used
+            
+            % SYNTAX
+            %   showBaselineENU(sta_list, <baseline_ids = []>)
+            sta_list = sta_list(~sta_list.isEmptyOut_mr);
+            out_list = [sta_list.out];
+            if nargin < 3
+                flag_add_coo = 0;
+            end
+            fh_list = out_list.showBaselineENU(baseline_ids, flag_add_coo);
+        end
 
-        function fh_list = showBaselineENU(sta_list, baseline_ids, plot_relative_variation, one_plot)
+
+        function fh_list = showBaselineENU_Legacy(sta_list, baseline_ids, plot_relative_variation, one_plot)
             % Function to plot baseline between 2 or more stations
             %
             % INPUT:

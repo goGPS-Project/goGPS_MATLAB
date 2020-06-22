@@ -537,7 +537,7 @@ classdef Coordinates < Exportable & handle
             fh = showCoordinatesENU(coo_list);
         end
         
-        function fh = showCoordinatesENU(coo_list)
+        function fh = showCoordinatesENU(coo_list, coo_ref)
             % Plot East North Up coordinates
             %
             % SYNTAX 
@@ -551,20 +551,9 @@ classdef Coordinates < Exportable & handle
             for i = 1 : numel(coo_list)
                 pos = coo_list(i);
                 if ~pos.isEmpty
-                    enu_diff = pos.getLocal(pos.getMedianPos) * 1e3;                    
-                    if size(enu_diff, 1) > 1
-                        if numel(coo_list) > 1
-                            fh.Name = sprintf('%03d: dENU MR', fh.Number); fh.NumberTitle = 'off';
-                        else
-                            fh.Name = sprintf('%03d: dENU', fh.Number); fh.NumberTitle = 'off';
-                        end
-                        
-                        if numel(coo_list) == 1
-                            color_order = Core_UI.getColor(1:3,3);
-                        else
-                            color_order = Core_UI.getColor(i * [1 1 1], numel(coo_list));
-                        end                                                
-                        
+                    
+                    if nargin == 1
+                        enu_diff = pos.getLocal(pos.getMedianPos) * 1e3;
                         flag_time = true;
                         if isa(pos.time, 'GPS_Time') && ~pos.time.isEmpty
                             t = pos.time.getMatlabTime;
@@ -579,7 +568,39 @@ classdef Coordinates < Exportable & handle
                             flag_time = false;
                             t = (1 : size(enu_diff, 1))';
                         end
+                    elseif nargin > 1 % plot baseline
+                        enu_diff = [];
+                        if isa(pos.time, 'GPS_Time') && ~pos.time.isEmpty
+                            [t_comm, idx_1, idx2] = intersect(round(coo_ref.time.getRefTime(pos.time.first.getMatlabTime)),round(pos.time.getRefTime(pos.time.first.getMatlabTime)));
+                            t = pos.time.first.getMatlabTime + t_comm/86400;
+                            enu_diff = Coordinates.cart2local(median(coo_ref.xyz,1,'omitnan'),pos.xyz(idx2,:) - coo_ref.xyz(idx_1,:) )*1e3;
+                            flag_time = true;
+                            
+                        else
+                            if numel(coo_ref.xyz) == numel(pos.xyz)
+                                enu_diff = Coordinates.cart2local(median(coo_ref.xyz,1,'omitnan'),pos.xyz - coo_ref.xyz)*1e3;
+                                t = t(1:size(enu_diff,1),:);
+                                flag_time = false;
+                            else
+                                log.addError(sprintf('No time in coordinates and number off coordinates in ref different from coordinate in the second receiver'))
+                            end
+                        end
+                        enu_diff = bsxfun(@minus, enu_diff,median(enu_diff,1,'omitnan'));
+
+                    end
+                    if size(enu_diff, 1) > 1
+                        if numel(coo_list) > 1
+                            fh.Name = sprintf('%03d: dENU MR', fh.Number); fh.NumberTitle = 'off';
+                        else
+                            fh.Name = sprintf('%03d: dENU', fh.Number); fh.NumberTitle = 'off';
+                        end
                         
+                        if numel(coo_list) == 1
+                            color_order = Core_UI.getColor(1:3,3);
+                        else
+                            color_order = Core_UI.getColor(i * [1 1 1], numel(coo_list));
+                        end                                                
+                                                
                         subplot(3,1,1);                       
                         e = enu_diff(1:numel(t),1);
                         figure(fh);

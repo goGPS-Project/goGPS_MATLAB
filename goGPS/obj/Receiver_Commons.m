@@ -1532,6 +1532,70 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
+        
+        function  fh_list = showBaselineENU(recs, baseline_ids, flag_add_coo)
+            % Function to plot baseline between 2 or more stations
+            %
+            % INPUT:
+            %   sta_list                 list of receiver commons objects
+            %   baseline_ids/ref_id      n_baseline x 2 - couple of id in sta_list to be used
+            
+            % SYNTAX
+            %   showBaselineENU(sta_list, <baseline_ids = []>)
+            if nargin < 2 || isempty(baseline_ids)
+                % remove empty receivers
+                recs = recs(~recs.isEmpty_mr);
+                
+                n_rec = numel(recs);
+                baseline_ids = GNSS_Station.getBaselineId(n_rec);
+            end
+
+            if numel(baseline_ids) == 1
+                n_rec = numel(recs);
+                ref_rec = setdiff((1 : n_rec)', baseline_ids);
+                baseline_ids = [baseline_ids * ones(n_rec - 1, 1), ref_rec];
+            end
+            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo > 0)
+                flag_add_coo = 0;
+            end
+            
+            recs = recs(~recs.isEmpty_mr);
+            log = Core.getLogger();
+            
+            fh_list =  [];
+            for b = 1 : size(baseline_ids, 1)
+                
+                if flag_add_coo == 0
+                    coo_ref = recs(baseline_ids(1)).getPos();
+                    if coo_ref.time.isEmpty
+                        coo_ref.setTime(recs(baseline_ids(1)).getPositionTime());
+                    end
+                    coo_trg = recs(baseline_ids(2)).getPos();
+                    if coo_trg.time.isEmpty
+                        coo_trg.setTime(recs(baseline_ids(2)).getPositionTime());
+                    end
+                    fh_list(end+1) = coo_trg.showCoordinatesENU(coo_ref);
+                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(1)).parent.getMarkerName4Ch,recs(baseline_ids(2)).parent.getMarkerName4Ch, recs(baseline_ids(1)).getTime.first.toString('yyyymmdd_HHMM'));
+                    fh = fh_list(end);
+                    fh = figure(fh);
+                    fh.UserData = struct('fig_name', fig_name);
+                    
+                else
+                    if ~isempty(recsbaseline_ids(1).add_coo) &&  ~isempty(recsbaseline_ids(2).add_coo)
+                        coo_ref = recs(baseline_ids(1)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                        coo_trg = recs(baseline_ids(2)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                        fh_list(end+1) = coo_trg.showCoordinatesENU(coo_ref);
+                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(1)).parent.getMarkerName4Ch,recs(baseline_ids(2)).parent.getMarkerName4Ch, recs(baseline_ids(1)).getTime.first.toString('yyyymmdd_HHMM'));
+                        fh = fh_list(end);
+                        fh = figure(fh);
+                        fh.UserData = struct('fig_name', fig_name);
+                    else
+                        log.addWarning(sprintf('No additional coordinates are present into %s', recs.parent.getMarkerName4Ch));
+                    end
+                end
+            end
+        end
+        
         function fh_list = showPositionENU(this, flag_add_coo)
             % Plot East North Up coordinates of the receiver
             %
