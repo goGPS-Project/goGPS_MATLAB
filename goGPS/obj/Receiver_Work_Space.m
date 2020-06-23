@@ -38,9 +38,6 @@
 %--------------------------------------------------------------------------
 classdef Receiver_Work_Space < Receiver_Commons
     %% CONSTANTS
-    properties (Constant)
-        S02_IP_THR = 1e3;
-    end
     
     % ==================================================================================================================================================
     %% PROPERTIES RECEIVER
@@ -10058,8 +10055,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
                         if (s02 == 0)
                             log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
-                        elseif (min(s02) > this.S02_IP_THR)
-                            log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                        elseif (min(s02) > Core.getState.getMaxErrPP)
+                            log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f, worse than %.1f m threshold )', s02, Core.getState.getMaxErrPP));
                         else
                             % update azimuth elevation
                             this.updateAzimuthElevation();
