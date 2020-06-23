@@ -9281,66 +9281,19 @@ classdef Receiver_Work_Space < Receiver_Commons
                    
 
                     if ~this.hasGoodApriori()
-                        this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
+                        [corr, s0tmp] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
                         %                 %----- NEXUS DEBUG
                         %                 this.adjustPrAmbiguity();
                         %                 this.codeStaticPositioning(this.id_sync, 15);
                         %------
-                    else
-                       % Outlier detection on code , the purtpose of this
-                       % block of code is to verify wether the position
-                       % provided is really a good one
-                       if Core.getState.isOutlierRejectionOn
-                           %% This happens when bad orbits are provided (e.g. interpolated missing data)
-                           n_out = false;
-                           [pr , id_pr] = this.getPseudoRanges;
-                           pr_res = pr - this.getSyntPrObs;
-                           median_res = median(pr_res, 2, 'omitnan');
-                           id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters
-                           too_many_flags = sum(id_ko | isnan(median_res)) / numel(id_ko) > 0.8;
-                           thr_multiplier = 1;
-                           if sum(id_ko(~isnan(median_res))) / sum(~isnan(median_res)) > 0.95
-                               log.addWarning(sprintf('Ephemeris seems bad :-(', sum(id_ko(:))));
-                               thr_multiplier = 2; % It's ok even if the data seems bad
-                               id_ko = false(size(pr));                               
-                           else
-                               if any(id_ko(:))
-                                   log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
-                               end
-                               %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
-                               id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
-                               n_out = sum(id_ko(:)) ;
-                               pr_res(id_ko) = nan;
-                           end
-                           
-                           % sensor = Core_Utils.diffAndPred(pr_res);
-                           sensor = pr_res;
-                           sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-                           id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10*thr_multiplier, 5*thr_multiplier); % flag above 6 meters
-                           if any(id_ko(:))
-                               n_out = sum(id_ko(:)) ;
-                           end
-                           pr(id_ko) = nan;
-                           if (sum(id_ko(:)) / sum(~isnan(pr(:)))) < 0.5 % I've flagged less than 50% of data                              
-                               this.setPseudoRanges(pr, id_pr);
-                               log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
-                           end
-                           if too_many_flags && n_out > 0
-                               % No data are present                               
-                               % The good position was not so good
-                               log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
-                               
-                               rf_changed = true;
-                               rf = Core.getReferenceFrame;
-                               rf.setFlag(this.parent.getMarkerName4Ch, 1);
-                               [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
-                           end
-                       end
-                       rw_loops = 0; % number of re-weight loops                       
-                    end
-                    this.remBadTracking(sys_list);
-                    
-                    if ~this.hasGoodApriori
+                        
+                        % This sensor works using the first LS adjustment
+                        thr_multiplier = 2;
+                        [pr , id_pr] = this.getPseudoRanges;
+                        sensor = pr - this.getSyntPrObs;
+                        
+                        % Perform LS on all the data
+                        this.remBadTracking(sys_list);
                         this.updateAllTOT();
                         log.addMessage(log.indent('Final estimation'))
                         i = 1;
@@ -9353,8 +9306,82 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.updateAllTOT(true);
                             i = i+1;
                         end
+                        
+                        % If the final estimation is worse than then the
+                        % previous one perform outlier rejection using the old sensor
+                        if s0tmp < (s0 -1)
+                            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                            id_ko = Core_Utils.snoopGatt(sensor, 10*thr_multiplier, 5*thr_multiplier); % flag above 6 meters
+                            if any(id_ko(:))
+                                n_out = sum(id_ko(:)) ;
+                            end
+                            pr(id_ko) = nan;
+                            if (sum(id_ko(:)) / sum(~isnan(pr(:)))) < 0.5 % I've flagged less than 50% of data
+                                this.setPseudoRanges(pr, id_pr);
+                                log.addWarning(sprintf('%d pseudo-ranges have been removed to stabilize the solution', sum(id_ko(:))));
+                                % Redo the estimation
+                                rw_loops = 0;
+                                [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, rw_loops); % no reweight
+                                % final estimation of time of flight
+                                this.updateAllAvailIndex()
+                                this.updateAllTOT(true);
+                            end
+                        end
+                    else
+                        % Outlier detection on code , the purtpose of this
+                        % block of code is to verify wether the position
+                        % provided is really a good one
+                        if Core.getState.isOutlierRejectionOn
+                            %% This happens when bad orbits are provided (e.g. interpolated missing data)
+                            n_out = false;
+                            [pr , id_pr] = this.getPseudoRanges;
+                            pr_res = pr - this.getSyntPrObs;
+                            median_res = median(pr_res, 2, 'omitnan');
+                            id_ko = Core_Utils.snoopGatt(median_res, 10, 5); % flag above 10 meters
+                            too_many_flags = sum(id_ko | isnan(median_res)) / numel(id_ko) > 0.8;
+                            thr_multiplier = 1;
+                            if sum(id_ko(~isnan(median_res))) / sum(~isnan(median_res)) > 0.95
+                                log.addWarning(sprintf('Ephemeris seems bad :-(', sum(id_ko(:))));
+                                thr_multiplier = 2; % It's ok even if the data seems bad
+                                id_ko = false(size(pr));
+                            else
+                                if any(id_ko(:))
+                                    log.addWarning(sprintf('Removing %d epochs from all the pseudo-ranges\nwith anomalous values in data or ephemeris', sum(id_ko(:))));
+                                end
+                                %figure; plot(median_res); hold on; plot(find(id_ko), (median_res(id_ko)), 'o');
+                                id_ko = repmat(id_ko, 1, size(pr_res, 2)) & ~isnan(pr_res);
+                                n_out = sum(id_ko(:)) ;
+                                pr_res(id_ko) = nan;
+                            end
+                            
+                            % sensor = Core_Utils.diffAndPred(pr_res);
+                            sensor = pr_res;
+                            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                            id_ko = id_ko | Core_Utils.snoopGatt(sensor, 10*thr_multiplier, 5*thr_multiplier); % flag above 6 meters
+                            if any(id_ko(:))
+                                n_out = sum(id_ko(:)) ;
+                            end
+                            pr(id_ko) = nan;
+                            if (sum(id_ko(:)) / sum(~isnan(pr(:)))) < 0.5 % I've flagged less than 50% of data
+                                this.setPseudoRanges(pr, id_pr);
+                                log.addWarning(sprintf('A total of %d observations have been removed from pseudo-ranges', sum(id_ko(:))));
+                            end
+                            if too_many_flags && n_out > 0
+                                % No data are present
+                                % The good position was not so good
+                                log.addWarning(sprintf('Apparently the a-priori position was not good\n-> consider it as approximate'));
+                                
+                                rf_changed = true;
+                                rf = Core.getReferenceFrame;
+                                rf.setFlag(this.parent.getMarkerName4Ch, 1);
+                                [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off);
+                            end
+                        end
+                        rw_loops = 0; % number of re-weight loops
+                        this.remBadTracking(sys_list);
                     end
-                    % A bit of outlier detection does not hurt nobody
+                    
+                    % A bit of outlier detection does not hurt anybody
                     sensor = this.sat.res.getU1();
                     for s = 1 : size(sensor,2)
                         sensor(:,s)  = zero2nan(sensor(:,s)) - median(sensor(:,s));
@@ -9365,10 +9392,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for i = 1 : size(id_ko,2)
                         pr(id_ko(:,i),this.go_id(id_pr) == i) = 0;
                     end
-                    this.setPseudoRanges(pr, id_pr);
-                    this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
+                    if sum(id_ko) > 1
+                        this.setPseudoRanges(pr, id_pr);
+                        this.getSatCache(all_go_id, true); % force cache update of satellite orbits here I'm computing it for all the id_sync
+                    end
                     [corr, s0] = this.codeStaticPositioning(sys_list, this.id_sync, this.state.cut_off, 0); % no reweight
-                    
                     if rf_changed
                         % restore flag in reference frame object
                         rf.setFlag(this.parent.getMarkerName4Ch, 3);
@@ -10029,6 +10057,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.remUnderSnrThr(this.state.getAbsSnrThr());
                     % correct for raw estimate of clock error based on the phase measure
                     if this.hasGoodApriori
+                        % In this case I have to remove the clock to be
+                        % able to perform outlier rejection
                         [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(false);
                     else
                         [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(true);
