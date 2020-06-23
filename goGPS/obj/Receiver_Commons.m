@@ -1569,34 +1569,37 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             fh_list =  [];
             for b = 1 : size(baseline_ids, 1)
-                
+                flag_ready = false;
                 if flag_add_coo == 0
-                    coo_ref = recs(baseline_ids(1)).getPos();
+                    coo_ref = recs(baseline_ids(b, 1)).getPos();
                     if coo_ref.time.isEmpty
-                        coo_ref.setTime(recs(baseline_ids(1)).getPositionTime());
+                        coo_ref.setTime(recs(baseline_ids(b, 1)).getPositionTime());
                     end
-                    coo_trg = recs(baseline_ids(2)).getPos();
+                    coo_trg = recs(baseline_ids(b, 2)).getPos();
                     if coo_trg.time.isEmpty
-                        coo_trg.setTime(recs(baseline_ids(2)).getPositionTime());
+                        coo_trg.setTime(recs(baseline_ids(b, 2)).getPositionTime());
                     end
-                    fh_list(end+1) = coo_trg.showCoordinatesENU(coo_ref);
-                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(1)).parent.getMarkerName4Ch,recs(baseline_ids(2)).parent.getMarkerName4Ch, recs(baseline_ids(1)).getTime.first.toString('yyyymmdd_HHMM'));
-                    fh = fh_list(end);
-                    fh = figure(fh);
-                    fh.UserData = struct('fig_name', fig_name);
-                    
+                    flag_ready = true;
                 else
                     if ~isempty(recsbaseline_ids(1).add_coo) &&  ~isempty(recsbaseline_ids(2).add_coo)
-                        coo_ref = recs(baseline_ids(1)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
-                        coo_trg = recs(baseline_ids(2)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
-                        fh_list(end+1) = coo_trg.showCoordinatesENU(coo_ref);
-                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(1)).parent.getMarkerName4Ch,recs(baseline_ids(2)).parent.getMarkerName4Ch, recs(baseline_ids(1)).getTime.first.toString('yyyymmdd_HHMM'));
-                        fh = fh_list(end);
-                        fh = figure(fh);
-                        fh.UserData = struct('fig_name', fig_name);
+                        coo_ref = recs(baseline_ids(b, 1)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                        coo_trg = recs(baseline_ids(b, 2)).add_coo(min(numel(rec.add_coo), flag_add_coo)).coo;
+                        flag_ready = true;
                     else
                         log.addWarning(sprintf('No additional coordinates are present into %s', recs.parent.getMarkerName4Ch));
                     end
+                end
+                if flag_ready
+                    fh = coo_trg.showCoordinatesENU(coo_ref);
+                    figure(fh);
+                    ax = subplot(3,1,1);
+                    bsl_str = [recs(baseline_ids(b, 2)).parent.getMarkerName4Ch ' - ' recs(baseline_ids(b, 1)).parent.getMarkerName4Ch];
+                    ax.Title.String{1} = [bsl_str  ax.Title.String{1}(9:end)];
+                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch,recs(baseline_ids(b, 2)).parent.getMarkerName4Ch, recs(baseline_ids(b, 1)).getTime.first.toString('yyyymmdd_HHMM'));
+                    fh.UserData = struct('fig_name', fig_name);
+                    fh.Name = ['dENU ' bsl_str];
+                    Core_UI.addExportMenu(fh);
+                    fh_list = [fh_list; fh];
                 end
             end
         end

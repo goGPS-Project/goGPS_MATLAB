@@ -523,8 +523,28 @@ classdef Receiver_Output < Receiver_Commons
                     rate = state.getTropoOutRate();
                 end
             end
-                
-            if ~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && ~(rec_work.quality_info.s0 < 1e-5))))
+            
+            log = Core.getLogger();
+            try
+                % If it is empty go on without warning, otherwise check the
+                % number of valid results
+                n_epochs = (state.getSessionDuration + 2*state.getBuffer) / rec_work.time.getRate;
+                if isnan(n_epochs)
+                    n_epochs = rec_work.time.length;
+                end
+                flag_ok = rec_work.isEmpty || (numel(rec_work.id_sync) / n_epochs) >= state.getMinAvailEpochs;
+                if not(flag_ok)
+                    log.addWarning(sprintf('Receiver "%s" will not be imported in this session.\nIt does not have enough valid epochs %.1f%% below %.1f%% thr', ...
+                        this.parent.getMarkerName4Ch(), ...
+                        (numel(rec_work.id_sync) / n_epochs) * 100, ...
+                         state.getMinAvailEpochs * 100));
+                end
+            catch ex
+                % Something was wrong, maybe the receiver is empty.
+                flag_ok = true;
+            end
+            
+            if flag_ok && (~(rec_work.isEmpty || rec_work.flag_currupted || not((rec_work.isPreProcessed && rec_work.quality_info.s0_ip < 2*1e2 && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && ~(rec_work.quality_info.s0 < 1e-5)))))
                 % set the id_sync only to time in between out times
                 %[this.time.length length(this.zwd) rec_work.time.length length(rec_work.zwd)]
                 basic_export = false;
@@ -830,7 +850,6 @@ classdef Receiver_Output < Receiver_Commons
                             end
                         end
                     end
-                    log = Core.getLogger();
                     log.addMarkedMessage(sprintf('Computed results for receiver "%s" have been imported into out object', this.parent.getMarkerName4Ch()));
                 else
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
