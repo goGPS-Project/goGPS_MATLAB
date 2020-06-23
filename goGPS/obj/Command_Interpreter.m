@@ -164,6 +164,7 @@ classdef Command_Interpreter < handle
         PAR_S_ZWD       % ZWD
         PAR_S_ZTD_VSH   % ZTD vs Height
         PAR_S_ZWD_VSH   % ZWD vs Height
+        PAR_S_ZWD_STAT   % ZWD vs Height
         PAR_S_PWV       % PWV
         PAR_S_PTH       % PTH
         PAR_S_STD       % ZTD Slant
@@ -639,6 +640,13 @@ classdef Command_Interpreter < handle
             this.PAR_S_ZWD_VSH.limits = [];
             this.PAR_S_ZWD_VSH.accepted_values = [];
 
+            this.PAR_S_ZWD_STAT.name = 'ZWD_STAT';
+            this.PAR_S_ZWD_STAT.descr = 'ZWD_STAT           Zenith Wet Delay processing statust';
+            this.PAR_S_ZWD_STAT.par = '(zwd_stat)|(ZWD_STAT)';
+            this.PAR_S_ZWD_STAT.class = '';
+            this.PAR_S_ZWD_STAT.limits = [];
+            this.PAR_S_ZWD_STAT.accepted_values = [];
+
             this.PAR_S_PWV.name = 'PWV';
             this.PAR_S_PWV.descr = 'PWV                Precipitable Water Vapour';
             this.PAR_S_PWV.par = '(pwv)|(PWV)';
@@ -910,7 +918,7 @@ classdef Command_Interpreter < handle
                 this.PAR_S_MPN this.PAR_S_SNR this.PAR_S_SNRI ...
                 this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_PR this.PAR_S_RES_PH this.PAR_S_RES_PR_STAT this.PAR_S_RES_PH_STAT this.PAR_S_RES_PR_SKY this.PAR_S_RES_PH_SKY ...
                 this.PAR_S_RES_PR_SKYP this.PAR_S_RES_PH_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD ...
-                this.PAR_S_ZWD_VSH this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD this.PAR_S_TGRAD];
+                this.PAR_S_ZWD_VSH this.PAR_S_ZWD_STAT this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD this.PAR_S_TGRAD];
 
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
@@ -2454,6 +2462,9 @@ classdef Command_Interpreter < handle
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD_VSH.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showZwdVsHeight()]; %#ok<AGROW>
+                            show_ok  = show_ok + 1;
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZWD_STAT.par ')*$'], 'once'))
+                            fh_list = [fh_list; trg.showZwdProcStatus()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showPwv()]; %#ok<AGROW>
