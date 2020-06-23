@@ -327,6 +327,7 @@ classdef File_Rinex < Exportable
                                 end
                             end
                             
+                            eoh = l; %end of header
                             if ~isempty(trck_availability)
                                 this.trck_availability = trck_availability;
                             end
@@ -446,7 +447,7 @@ classdef File_Rinex < Exportable
                                 else
                                     this.coo.append(Coordinates.fromXYZ([0 0 0]));
                                 end
-                                this.eoh(f) = l;
+                                this.eoh(f) = eoh;
                             end
                             
                             fclose(fid);
