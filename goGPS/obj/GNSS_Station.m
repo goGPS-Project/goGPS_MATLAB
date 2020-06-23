@@ -5803,11 +5803,12 @@ classdef GNSS_Station < handle
             imagesc(time.getMatlabTime, 1:size(zwd,2), plot_data');
             %colormap(Cmap.get('RdBu'));
             colormap(Cmap.getColor(1:3,3, 'Pastel1'))
-            colorbar;
+            caxis([0 3]); cb = colorbar;
+            cb.Ticks = [0.5 1.5 2.5]; cb.TickLabels = {'No data', 'No solution', 'ZWD Ok'}
             yticks(1:size(zwd,2));
             yticklabels([sta_list.getMarkerName4Ch]);
             setTimeTicks();
-            title(sprintf('1 data available, 2 result available\\fontsize{5} \n'));
+            title(sprintf('ZWD processing status\\fontsize{5} \n'));
             xlabel('Epochs');
             Core_UI.beautifyFig(f,'light');
                         
