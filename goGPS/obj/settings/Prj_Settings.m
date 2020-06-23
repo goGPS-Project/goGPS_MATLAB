@@ -192,7 +192,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
-        PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
+        PP_SPP_THR = 10;                                % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 20;                       % Threshold on the maximum residual of code observations [m] (pre-processing)
         MAX_CODE_ERR_THR = 10;                          % Threshold on the maximum residual of code observations [m]
         MAX_PHASE_ERR_THR = 0.10;                       % Threshold on the maximum residual of phase observations [m]
@@ -5414,7 +5414,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   min_arc = this.getMinArc()
             min_arc = this.min_arc;
         end
-
+        
+        function err_thr = getMaxErrPP(this)
+            % Get the maximum error acceptable on LS pre-processing solution
+            %
+            % SYNTAX
+            %   err_thr = this.getMaxCodeErrThrPP()
+            err_thr = this.pp_spp_thr;
+        end
+        
         function err_thr = getMaxCodeErrThrPP(this)
             % Get the maximum error acceptable on code observations for pre-processing
             %
