@@ -54,7 +54,8 @@ classdef GUI_Msg < GUI_Unique_Win
     % ==================================================================================================================================================
     properties
         w_main         % Handle to this window
-        jedt        % j edit handle (java logger element)
+        j_win          % Java handle to this window
+        jedt           % j edit handle (java logger element)
     end    
         
     %% METHOD CREATOR
@@ -113,6 +114,10 @@ classdef GUI_Msg < GUI_Unique_Win
             win.UserData.name = this.WIN_NAME;
             
             this.w_main = win;
+            warning off
+            % Ignore :-( JavaFrame property will be obsoleted in a future release
+            this.j_win = get(handle(win),'JavaFrame');
+            warning on
             
             if isunix && not(ismac())
                 % top right
@@ -240,6 +245,18 @@ classdef GUI_Msg < GUI_Unique_Win
     %% METHODS setters
     % ==================================================================================================================================================
     methods
+        function bringOnTop(this)
+            this.w_main.Visible = 'on';
+            if isHG2
+                j_frame = this.j_win.fHG2Client;
+            else
+                j_frame = this.j_win.fHG1Client;
+            end
+            drawnow
+            j_frame.getWindow.setAlwaysOnTop(1);
+            j_frame.getWindow.setAlwaysOnTop(0);
+        end
+        
         function addMessage(this, text, type)
             % Add a message to the logger
             % 
@@ -253,9 +270,11 @@ classdef GUI_Msg < GUI_Unique_Win
             % SYNTAX
             %   this.addHTML(text, type)
             
+            this.bringOnTop();
             if nargin < 3 || isempty(type)
                 type = 'n';
             end
+            
             Core_UI.guiAddMessage(this.jedt, text, type);
         end
         
@@ -268,7 +287,7 @@ classdef GUI_Msg < GUI_Unique_Win
             % SYNTAX
             %   this.addHTML(html_txt)
 
-            
+            this.bringOnTop();
             Core_UI.guiAddHTML(this.jedt, html_txt);
         end
         
@@ -278,6 +297,7 @@ classdef GUI_Msg < GUI_Unique_Win
             % SYNTAX
             %   this.clear()
             
+            this.bringOnTop();
             Core_UI.guiClearLog(this.jedt);
             Core_UI.guiAddMessage(this.jedt, ['<p>' GPS_Time.now.toString('yyyy/mm/dd HH:MM:SS') '</p>']);
             Core_UI.guiAddMessage(this.jedt, ['<p><b>Welcome to goGPS!</b></p>for any problem contact us at <a color="' rgb2hex(Core_UI.LBLUE) '" source="http://bit.ly/goGPS">http://bit.ly/goGPS</a>'], 'm');            
