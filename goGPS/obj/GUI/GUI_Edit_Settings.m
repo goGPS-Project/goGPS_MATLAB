@@ -2639,7 +2639,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                             this.j_cmd.setText(str);
                         end
                     end
-                    this.w_main.Visible = 'off'; drawnow
                 end
             end
         end
