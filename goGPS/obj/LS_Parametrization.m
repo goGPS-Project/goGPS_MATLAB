@@ -92,7 +92,7 @@ classdef LS_Parametrization < handle
         rec_eb =     [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_TRACK];
         rec_ppb =    [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
         rec_eb_lin = [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
-        rec_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
+        rec_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_BAND];
 
 
         
