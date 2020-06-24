@@ -1624,13 +1624,13 @@ classdef Core_UI < Logos
             % SYNTAX
             %   COre_UI.setFlagGreen(flag_handle)
             save_properties = flag_handle.UserData;
-            clf(flag_handle);
+            hold(flag_handle, 'off')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREEN - 0.5)); 
             hold(flag_handle, 'on')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.GREEN + 0.3));
             flag_handle.XTickLabel = [];
             flag_handle.YTickLabel = [];                    
-            %axis(flag_handle, 'off');
+            axis(flag_handle, 'off');
             flag_handle.UserData = save_properties;            
         end
         

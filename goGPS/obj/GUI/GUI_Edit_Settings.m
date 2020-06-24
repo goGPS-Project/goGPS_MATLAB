@@ -397,7 +397,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.updateUI();
             this.updateRecList();
                         
-            drawnow
             this.w_main.Visible = 'on';
             % the update of the command list is repeated here because at
             % least on linux the handle to the java container is not valid
@@ -848,7 +847,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'TooltipString', 'Show stations on a map', ...
                 'Callback', @this.showCrdMap); %#ok<NASGU>
        
-
             but_box.Heights = [25 25 25 25 -1  25 25 25 15 25 25];
             this.coo_tbl.Position = [25 40 250 100];
             
@@ -857,7 +855,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.coo_tbl.ColumnFormat = colTypes;
             this.coo_tbl.ColumnEditable = [true true true true true true true true true true true true];
             this.coo_tbl.ColumnWidth = {'auto', 100, 100, 100, 130, 120, 120, 100, 100, 'auto', 'auto', 'auto'};            
-            this.updateCooTable();
+            % This is already done after the preparation of all the tabs
+            % this.updateCooTable();
             this.coo_tbl.addlistener('Data','PostSet', @(src,event)this.dataCrdChange(this.coo_tbl,src,event));
             
             
@@ -2981,7 +2980,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function updateUI(this)
             if isvalid(this.w_main)
                 this.updateINI();
-                this.updateCooTable();
                 this.updateCmdList();
                 this.ini_path.String = Core.getCurrentSettings.getIniPath();
                 this.updateSessionGUI();
@@ -2994,6 +2992,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.updatePopUpsState();
                 this.updateResourcePopUpsState();
                 this.checkFlag();
+                this.updateCooTable();
             end
         end
         
