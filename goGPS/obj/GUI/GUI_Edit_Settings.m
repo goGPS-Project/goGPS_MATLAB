@@ -1261,7 +1261,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             else
                 grd.Children(end).Tooltip = ttip;
             end
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, field_dim, color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 's', @this.onEditChange, field_dim, color_bg);
             Core_UI.insertEmpty(err_box_g, color_bg);            
             err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(6,1); -1];            
         end

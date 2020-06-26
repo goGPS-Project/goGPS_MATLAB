@@ -1827,7 +1827,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             this.sat.outliers_ph_by_ph(:,:) = (this.sat.outliers_ph_by_ph(:,:) | id_ko) & ~isnan(ph);
             if remove_short_arcs
-                this.sat.outliers_ph_by_ph = flagMergeArcs(this.sat.outliers_ph_by_ph | isnan(ph), this.state.getMinArc) & ~isnan(ph); % mark short arcs
+                this.sat.outliers_ph_by_ph = flagMergeArcs(this.sat.outliers_ph_by_ph | isnan(ph), this.state.getMinArc(this.time.getRate)) & ~isnan(ph); % mark short arcs
             end
             % Move cycle slips
             tmp = this.sat.outliers_ph_by_ph | isnan(ph);
@@ -2064,7 +2064,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.7 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
-            sa_thr = this.state.getMinArc();  % short arc threshold
             
             %----------------------------
             % Outlier Detection
@@ -2079,7 +2078,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.outliers_ph_by_ph = false(size(ph));
             this.sat.outliers_pr_by_pr = false(size(pr));
             % inititalize cycle slips with the beginning of the arcs
-            this.sat.cycle_slip_ph_by_ph = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
+            min_ep_cs = round(300/this.getRate);
+            cs_temp = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
+            for s = 1 : size(cs_temp,2)
+                cs = find(cs_temp(:,s))';
+                cs_len = diff(find(~isnan(ph(:,s))));
+                cs_len = cs_len(cs_len > 1);
+                cs_remove = [false; cs_len < min_ep_cs];
+                cs_temp(cs(cs_remove),s) = false;
+            end
+            this.sat.cycle_slip_ph_by_ph = cs_temp;
             
             log.addMessage(log.indent('Detect outlier candidates from residual phase time derivative'));
             % first time derivative
@@ -2160,65 +2168,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 sensor_ph = sensor_ph0;
             end
-            if false
-                %% --------------------------------------------------------------------------------------------
-                % detection on arc edges
-                % flag out for more than 4 cm are bad phases,
-                % expand them but consider outliers only what is out for more than 2 cm
-                tmp_out = flagExpand(abs(sensor_ph) > 0.02, 8) & (abs(sensor_ph) > 0.01); % expand for a max of 8 epochs
-                % keep only flags at the beginnig (10 epochs) of arcs (do not split arcs)
-                tmp_out = tmp_out & flagExpand(isnan(sensor_ph), 10);
-                
-                % mark short arcs as outliers
-                tmp_out = tmp_out | flagShrink(flagExpand(tmp_out, this.state.getMinArc), this.state.getMinArc);
-                
-                % save the outliers
-                this.sat.outliers_ph_by_ph(tmp_out) = true;
-                sensor_ph0(tmp_out) = nan;
-                
-                % recompute dt and sensor_ph
-                sensor_ph = bsxfun(@minus, sensor_ph0, median(sensor_ph0, 2, 'omitnan'));
-                for s = 1 : size(sensor_ph,2)
-                    lim = getOutliers(~isnan(sensor_ph(:,s)));
-                    for l = 1 : size(lim, 1)
-                        if lim(l,2) - lim(l,1) > 1
-                            sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
-                        end
-                    end
-                end
-                
-                % --------------------------------------------------------------------------------------------
-                
-                % test sensor variance
-                tmp = sensor_ph(~isnan(sensor_ph));
-                tmp(abs(tmp) > 4) = [];
-                std_sensor = mean(movstd(tmp(:),900));
-                %
-                % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
-                % use as a sensor the time second derivative
-                if std_sensor > ol_thr
-                    log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
-                    der = 2; % use second
-                    % try with second time derivative
-                    sensor_ph = Core_Utils.diffAndPred(ph - phs, der);
-                    sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                    for s = 1 : size(sensor_ph,2)
-                        lim = getOutliers(~isnan(sensor_ph(:,s)));
-                        for l = 1 : size(lim, 1)
-                            if lim(l,2) - lim(l,1) > 1
-                                sensor_ph(lim(l, 1), s) = sensor_ph(lim(l, 1)+1, s);
-                            end
-                        end
-                    end
-                else
-                    der = 1; % use first
-                end
-                
-                sensor_ph = bsxfun(@minus, sensor_ph, nan2zero(movmean(median(movmedian(sensor_ph, 5, 'omitnan'), 2,'omitnan'), 5, 'omitnan')));
-                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph,'omitnan'));                
-            else
-                der = 1;
-            end
+
+            der = 1;
             
             % divide for wavelength (make it in cycles)
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -2257,15 +2208,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph2 = bsxfun(@minus, ph2, cumsum(nan2zero(median(sensor_ph0, 2, 'omitnan'))));
             % join the nan
             sensor_ph_cs = nan(size(sensor_ph));
+
             for o = 1 : size(ph2, 2)
                 tmp_ph = ph2(:, o);
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
                 if ~isempty(tmp_ph)
                     sensor_ph_cs(ph_idx, o) = Core_Utils.diffAndPred(tmp_ph - phs(ph_idx,o), der);
+                    %ppp(ph_idx, o) = tmp_ph - phs(ph_idx,o);
                 end
             end
-            
             % subtract median
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, nan2zero(movmean(median(movmedian(sensor_ph_cs, 5, 'omitnan'), 2, 'omitnan'), 5, 'omitnan')));
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs2, median(sensor_ph_cs2,'omitnan'));
@@ -5058,7 +5010,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if level == 1
                     % mark outliers out of thr level
                     flagged_data = id_ko | this.flagArcOutliers(sensor, this.state.getMaxPhaseErrThr * 1e3, this.state.getMaxPhaseErrThr * 1e3 * 0.8);
-                    flagged_data = flagMergeArcs(flagged_data | isnan(sensor), this.state.getMinArc) & ~isnan(sensor); % mark short arcs close to bad observations
+                    flagged_data = flagMergeArcs(flagged_data | isnan(sensor), this.state.getMinArc(this.time.getRate)) & ~isnan(sensor); % mark short arcs close to bad observations
                 end
                 % remove drifting
                 tmp_ko = find(tmp_ko);
@@ -5659,7 +5611,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 if sum(ph_idx) > 0
                                     obs((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
                                     snr((s-1)*n_opt+i,this.sat.outliers_ph_by_ph(:,ph_idx)) = 0;
-                                    cycle_slips((s-1)*n_opt+i,this.sat.cycle_slip_ph_by_ph(:,ph_idx)') = true;
+                                    if any(this.sat.cycle_slip_ph_by_ph(:,ph_idx)')
+                                    cycle_slips((s-1)*n_opt+i,this.sat.cycle_slip_ph_by_ph(:,ph_idx)' > 0) = true;
+                                    end
                                 end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
@@ -10071,7 +10025,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     if (this.state.isOutlierRejectionOn())
                         this.remBadPrObs(150);
                     end
-                    this.remShortArc(this.state.getMinArc);
+                    this.remShortArc(this.state.getMinArc(this.time.getRate));
                     this.remEmptyObs();
                     
                     if this.getNumPrEpochs == 0
@@ -10154,7 +10108,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 
                                 this.remUnderSnrThr([], this.state.getScaledSnrThr());
                                 this.detectOutlierMarkCycleSlip();
-                                this.remShortArc(this.state.getMinArc);
+                                this.remShortArc(this.state.getMinArc(this.time.getRate));
                                 this.codeStaticPositioning(sys_list); % <== to be substituted with U2
                                 this.applyDtRec(this.dt);
                                 this.shiftToNominal;

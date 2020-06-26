@@ -188,7 +188,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         CUT_OFF = 10;                                   % Cut-off [degrees]
         ABS_SNR_THR = 0;                                % Signal-to-noise ratio absolute threshold [dB]
         SCALED_SNR_THR = 0;                             % Signal-to-noise ratio scaled threshold [dB]
-        MIN_ARC = 10;                                   % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
+        MIN_ARC = 300;                                  % Minimum length of an arc (a satellite to be used must be seen for a number of seconds greater than this value)
         
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
@@ -1968,7 +1968,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Cut-off [degrees]:                                %d\n', this.cut_off)];
             str = [str sprintf(' Signal-to-noise ratio absolute threshold [dB]:    %d\n', this.abs_snr_thr)];
             str = [str sprintf(' Signal-to-noise ratio scaled threshold [dB]:      %d\n', this.scaled_snr_thr)];
-            str = [str sprintf(' Minimum number of epoch in an arc of observations %d\n\n', this.min_arc)];
+            str = [str sprintf(' Minimum lenght of arc in seconds:                 %d\n\n', this.min_arc)];
 
             str = [str '---- ADV DATA SELECTION --------------------------------------------------' 10 10];
             str = [str sprintf(' Enable Outlier detection                          %d\n', this.flag_outlier)];
@@ -2542,8 +2542,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio scaled threshold [dB]', str_cell);
             str_cell = Ini_Manager.toIniStringComment('scaling is performet with respect to the code error level of the first frequency/tracking (usually 1C)', str_cell);
             str_cell = Ini_Manager.toIniString('scaled_snr_thr', this.scaled_snr_thr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('consecutive epochs equal or greater than this value)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc in seconds', str_cell);
             str_cell = Ini_Manager.toIniString('min_arc', this.min_arc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
@@ -3480,7 +3479,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.cut_off = 7;
             this.abs_snr_thr = 0;
             this.scaled_snr_thr = 0;
-            this.min_arc = 10;
+            this.min_arc = 300;
             this.pp_max_code_err_thr = 10;
             this.max_code_err_thr = 10;
             this.max_phase_err_thr = 0.10;
@@ -3576,7 +3575,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.cut_off = 7;
             this.abs_snr_thr = 6;
             this.scaled_snr_thr = 28;
-            this.min_arc = 10;
+            this.min_arc = 300;
             this.pp_max_code_err_thr = 10;
             this.max_code_err_thr = 10;
             this.max_phase_err_thr = 0.10;
@@ -5407,12 +5406,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             min_n_sat = this.min_n_sat;
         end
         
-        function min_arc = getMinArc(this)
+        function min_arc = getMinArc(this,rate)
             % Get the minimum arc legnth to be kept
             %
             % SYNTAX
             %   min_arc = this.getMinArc()
-            min_arc = this.min_arc;
+            if nargin < 2
+                rate = 1;
+            end
+            min_arc = max(2,floor(this.min_arc/rate));
         end
         
         function err_thr = getMaxErrPP(this)

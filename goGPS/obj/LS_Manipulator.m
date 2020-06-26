@@ -342,7 +342,7 @@ classdef LS_Manipulator < Exportable
                 
                 % Compute the number of ambiguities that must be estimated
                 cycle_slip = obs_set.cycle_slip;
-                min_arc = iif(phase_present, this.state.getMinArc, 0);
+                min_arc = iif(phase_present, this.state.getMinArc(obs_set.time.getRate), 0);
                 if phase_present && min_arc > 1
                     amb_idx = obs_set.getAmbIdx();
                     % amb_idx = n_coo + n_iob + amb_idx;
@@ -862,7 +862,7 @@ classdef LS_Manipulator < Exportable
             %   this.remShortArc();
             amb_id = this.A_idx(:,find(this.param_class == this.PAR_AMB));
             n_amb_obs = hist(amb_id, min(amb_id):max(amb_id));
-            amb_out = find(n_amb_obs < Core.getCurrentSettings.getMinArc) + min(amb_id) - 1;
+            amb_out = find(n_amb_obs <= Core.getCurrentSettings.getMinArc(this.rate)) + min(amb_id) - 1;
             this.remObs(find(ismember(amb_id, amb_out)));
             
             % After removing short arcs check min obs per epoch

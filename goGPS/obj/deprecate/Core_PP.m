@@ -96,14 +96,14 @@ classdef Core_PP < handle
                     for l = 1 : size(lim, 1) - 1
                         id = lim(1, 1) : lim(l, 2);
                         id = id(~isnan(arc(id)));
-                        id = id((max(1, numel(id) - this.state.getMinArc+1) : end));
+                        id = id((max(1, numel(id) - this.state.getMinArc(this.time.getRate)+1) : end));
                         
                         p = polyfit(x_arc(id), arc(id), 3);
                         if l < size(lim, 1)
                             arc_fit1 = polyval(p, x_arc([lim(l, 2) lim(l + 1, 1)]));
                             
                             id2 = lim(l + 1, 1) : lim(l + 1, 2);
-                            id2 = id2(1 : min(numel(id), this.state.getMinArc));
+                            id2 = id2(1 : min(numel(id), this.state.getMinArc (this.time.getRate)));
                             p2 = polyfit(x_arc(id2), arc(id2), 3);
                             arc_fit2 = polyval(p2, x_arc([lim(l, 2) lim(l + 1, 1)]));
                             
