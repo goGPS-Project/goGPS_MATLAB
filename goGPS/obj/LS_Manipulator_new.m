@@ -859,9 +859,9 @@ classdef LS_Manipulator_new < handle
                                                     lid_maj = ep_id >= st;
                                                     if any(lid_maj)
                                                         ep_pgr_id(lid_maj) = p_s;
-                                                        time_par_tmp = [time_par_tmp; [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]]; %start of the arc
+                                                        time_par_tmp = [time_par_tmp; [min(ep_id(lid_maj))*obs_rate max(ep_id)*obs_rate]]; %start of the arc
                                                         if p_s > 1
-                                                            time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
+                                                            time_par_tmp(p_s-1,2) = max(ep_id(~lid_maj))*obs_rate; % end of the arc
                                                         end
                                                         p_s = p_s +1;
                                                     end
@@ -873,9 +873,9 @@ classdef LS_Manipulator_new < handle
                                                     lid_maj = ep_id >= st;
                                                     if any(lid_maj)
                                                         ep_pgr_id(lid_maj) = p_s;
-                                                        time_par_tmp = [time_par_tmp; [ep_id(find(lid_maj,1,'first'))*obs_rate ep_id(end)*obs_rate]]; %start of the arc
+                                                        time_par_tmp = [time_par_tmp; [min(ep_id(lid_maj))*obs_rate max(ep_id)*obs_rate]]; %start of the arc
                                                         if p_s > 1
-                                                            time_par_tmp(p_s-1,2) = ep_id(find(~lid_maj,1,'last'))*obs_rate; % end of the arc
+                                                            time_par_tmp(p_s-1,2) = max(ep_id(~lid_maj))*obs_rate; % end of the arc
                                                         end
                                                         p_s = p_s +1;
                                                     end
@@ -1376,21 +1376,27 @@ classdef LS_Manipulator_new < handle
             % ---- (multi receiver) for each epoche remove one coordinate --------
             if (sum(this.param_class == this.PAR_REC_X) > 0 || sum(this.param_class == this.PAR_REC_Y) > 0  ||  sum(this.param_class == this.PAR_REC_Z) > 0 || sum(this.param_class == this.PAR_TROPO) > 0  || sum(this.param_class == this.PAR_TROPO_E) > 0  || sum(this.param_class == this.PAR_TROPO_N) > 0) && (sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0)
                 idx_time_x = find(this.class_par == this.PAR_REC_X & ~this.out_par);
+                prm_tmp = this.ls_parametrization.getParametrization(this.PAR_REC_X); is_x_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                 time_tmp_x = this.time_par(idx_time_x,:);
                 idx_time_y = find(this.class_par == this.PAR_REC_Y & ~this.out_par);
+                prm_tmp = this.ls_parametrization.getParametrization(this.PAR_REC_Y); is_y_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                 time_tmp_y = this.time_par(idx_time_y,:);
                 idx_time_z = find(this.class_par == this.PAR_REC_Z & ~this.out_par);
+                prm_tmp = this.ls_parametrization.getParametrization(this.PAR_REC_Z); is_z_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                 time_tmp_z = this.time_par(idx_time_z,:);
                 if ~this.free_tropo
                     idx_time_t = find(this.class_par == this.PAR_TROPO & ~this.out_par);
+                    prm_tmp = this.ls_parametrization.getParametrization(this.PAR_TROPO); is_t_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                     time_tmp_t = this.time_par(idx_time_t,:);
                     idx_time_e = find(this.class_par == this.PAR_TROPO_E & ~this.out_par);
+                    prm_tmp = this.ls_parametrization.getParametrization(this.PAR_TROPO_E); is_e_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                     time_tmp_e = this.time_par(idx_time_e,:);
                     idx_time_n = find(this.class_par == this.PAR_TROPO_N & ~this.out_par);
+                    prm_tmp = this.ls_parametrization.getParametrization(this.PAR_TROPO_N); is_n_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                     time_tmp_n = this.time_par(idx_time_n,:);
                 end
                 for e = u_ep'
-                    idx_par = idx_time_x(time_tmp_x(:,1) >= e & ( time_tmp_x(:,1)==0 | time_tmp_x(:,2) < e));
+                    idx_par = idx_time_x(time_tmp_x(:,1) <= e & ( is_x_ep_wise | time_tmp_x(:,2) > e));
                     if any(any(idx_par))
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
@@ -1398,7 +1404,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     
-                    idx_par = idx_time_y(time_tmp_y(:,1) >= e & ( time_tmp_y(:,1)==0 | time_tmp_y(:,2) < e));
+                    idx_par = idx_time_y(time_tmp_y(:,1) <= e & ( is_y_ep_wise| time_tmp_y(:,2) > e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
@@ -1406,7 +1412,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     
-                    idx_par = idx_time_z(time_tmp_z(:,1) >= e & ( time_tmp_z(:,1)==0 | time_tmp_z(:,2) < e));
+                    idx_par = idx_time_z(time_tmp_z(:,1) <= e & ( is_z_ep_wise| time_tmp_z(:,2) > e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
                         if sum(idx_par(idx_rm_rm) == idx_rm) == 0
@@ -1414,7 +1420,7 @@ classdef LS_Manipulator_new < handle
                         end
                     end
                     if ~this.free_tropo
-                        idx_par = idx_time_t(time_tmp_t(:,1) >= e & ( time_tmp_t(:,1)==0 | time_tmp_t(:,2) < e));
+                        idx_par = idx_time_t(time_tmp_t(:,1) <= e & ( is_t_ep_wise| time_tmp_t(:,2) > e));
                         if any(idx_par)
                             [~,idx_rm_rm] = min(this.rec_par(idx_par));
                             if sum(idx_par(idx_rm_rm) == idx_rm) == 0
@@ -1422,7 +1428,7 @@ classdef LS_Manipulator_new < handle
                             end
                         end
                         
-                        idx_par = idx_time_e(time_tmp_e(:,1) >= e & ( time_tmp_e(:,1)==0 | time_tmp_e(:,2) < e));
+                        idx_par = idx_time_e(time_tmp_e(:,1) <= e & ( is_e_ep_wise | time_tmp_e(:,2) > e));
                         if any(idx_par)
                             [~,idx_rm_rm] = min(this.rec_par(idx_par));
                             if sum(idx_par(idx_rm_rm) == idx_rm) == 0
@@ -1430,7 +1436,7 @@ classdef LS_Manipulator_new < handle
                             end
                         end
                         
-                        idx_par = idx_time_n(time_tmp_n(:,1) >= e & ( time_tmp_n(:,1)==0 | time_tmp_n(:,2) < e));
+                        idx_par = idx_time_n(time_tmp_n(:,1) <= e & ( is_n_ep_wise | time_tmp_n(:,2) > e));
                         if any(idx_par)
                             [~,idx_rm_rm] = min(this.rec_par(idx_par));
                             if sum(idx_par(idx_rm_rm) == idx_rm) == 0

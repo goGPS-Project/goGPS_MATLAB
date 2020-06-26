@@ -2721,6 +2721,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % GPS C2 -> C2C
                     idx = this.findObservableByFlag('C2 ','G');
                     this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                     % GPS S1 -> S1C
+                    idx = this.findObservableByFlag('S1 ','G');
+                    this.obs_code(idx,:) = repmat('S1C',length(idx),1);
+                    % GPS S2 -> S2C
+                    idx = this.findObservableByFlag('S2 ','G');
+                    this.obs_code(idx,:) = repmat('S2C',length(idx),1);
                     % GPS L1 -> L1C
                     idx = this.findObservableByFlag('L1 ','G');
                     this.obs_code(idx,:) = repmat('L1C',length(idx),1);
@@ -9263,9 +9269,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
                         % If the final estimation is worse than then the
                         % previous one perform outlier rejection using the old sensor
-                        if s0tmp < (s0 -1)
+                        if s0tmp < (s0 -2) && s0 > 6
                             sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-                            id_ko = Core_Utils.snoopGatt(sensor, 10*thr_multiplier, 5*thr_multiplier); % flag above 6 meters
+                            id_ko = Core_Utils.snoopGatt(sensor, 20*thr_multiplier, 10*thr_multiplier); % flag above 20 meters
                             if any(id_ko(:))
                                 n_out = sum(id_ko(:)) ;
                             end

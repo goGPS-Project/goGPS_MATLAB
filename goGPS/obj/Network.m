@@ -347,6 +347,30 @@ classdef Network < handle
                     parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
                     parametrization.tropo_e_opt.spline_rate = state.rate_grad_net;
                 end
+                  [buf_left, buf_right] = state.getBuffer();
+                if state.isSepCooAtBoundaries && (buf_right ~= 0 || buf_left ~=0)% separete coordinate of the buffers
+                    parametrization.rec_x(1) = parametrization.STEP_CONST;
+                    parametrization.rec_y(1) = parametrization.STEP_CONST;
+                    parametrization.rec_z(1) = parametrization.STEP_CONST;
+                    [sss_ext_lim, sss_lim] = state.getSessionLimits();
+                    steps = GPS_Time();
+                    if buf_left ~= 0
+                        steps.append(sss_ext_lim.getEpoch(1));
+                        steps.append(sss_lim.getEpoch(1));
+                    else
+                        steps.append(sss_lim.getEpoch(1));
+                    end
+                    if buf_right ~= 0
+                        steps.append(sss_lim.getEpoch(2));
+                    end
+                    for r = 1 : length(this.rec_list)
+                        parametrization.rec_x_opt.steps_set{r} = steps.getCopy();
+                        parametrization.rec_y_opt.steps_set{r} = steps.getCopy();
+                        parametrization.rec_z_opt.steps_set{r} = steps.getCopy();
+                    end
+                end
+                
+                
                 ls.setUpNET(this.rec_list, coo_rate, '???', param_selection, parametrization);
                
                 if this.state.flag_free_net_tropo
