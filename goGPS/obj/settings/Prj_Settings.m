@@ -5411,7 +5411,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   min_arc = this.getMinArc()
-            if nargin < 2
+            if nargin < 2 || isempty(rate)
                 rate = 1;
             end
             min_arc = max(2,floor(this.min_arc/rate));

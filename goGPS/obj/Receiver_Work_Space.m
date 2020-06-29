@@ -10238,6 +10238,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     log.addWarning('No processable epochs found, skipping PPP');
                 else
                     ls.Astack2Nstack();
+                    if isempty(ls.rate)
+                        ls.rate = this.time.getRate;
+                    end
                     ls.remShortArc();
                     time = this.time.getSubSet(id_obs);
                     rate = time.getRate();
