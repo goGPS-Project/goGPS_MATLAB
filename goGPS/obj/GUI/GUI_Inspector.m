@@ -56,7 +56,7 @@ classdef GUI_Inspector < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle to this window
+        win         % Handle to this window
         rec_tbl     % Handle to the table with all the receivers
         j_cmd       % Handle to the j_cmd java component
         top_bh      % Handle to the top box (useful to hide the loading spinner)
@@ -98,7 +98,7 @@ classdef GUI_Inspector < GUI_Unique_Win
             % Get the persistent instance of the class
             persistent unique_instance_GUI_Inspector__
             
-            if isempty(unique_instance_GUI_Inspector__) || ~ishandle(unique_instance_GUI_Inspector__.w_main)
+            if isempty(unique_instance_GUI_Inspector__) || ~ishandle(unique_instance_GUI_Inspector__.win)
                 this = GUI_Inspector();
                 unique_instance_GUI_Inspector__ = this;
             else
@@ -126,198 +126,216 @@ classdef GUI_Inspector < GUI_Unique_Win
                 delete(old_win); 
             end
             
-            win = figure( 'Name', 'goGPS inspector', ...
-                'Visible', 'off', ...
-                'DockControls', 'off', ...
-                'MenuBar', 'none', ...
-                'ToolBar', 'none', ...
-                'NumberTitle', 'off', ...
-                'Position', [0 0 1040, 640], ...
-                'Resize', 'on');
-            win.UserData.name = this.WIN_NAME;
-            
-            this.w_main = win;
-            
-            if isunix && not(ismac())
-                 % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
-                % win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
-                % centered
-                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
-                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+            old_win = this.getUniqueWinHandle();
+            if ~isempty(old_win)
+                log = Core.getLogger();
+                log.addMarkedMessage('Resetting the old Inspector window');
+                win = old_win;
+                
+                if strcmp(this.win.Visible, 'off')
+                    if isunix && not(ismac())
+                        win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                        win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                    else
+                        win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                        win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                    end
+                end
+                this.win = win;               
             else
-                % top right
-                % win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
-                % win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
-                % centered
-                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
-            end
-            
-            try
-                main_vb = uix.VBox('Parent', win, ...
+                
+                win = figure( 'Name', 'goGPS inspector', ...
+                    'Visible', 'off', ...
+                    'DockControls', 'off', ...
+                    'MenuBar', 'none', ...
+                    'ToolBar', 'none', ...
+                    'NumberTitle', 'off', ...
+                    'Position', [0 0 1040, 640], ...
+                    'Resize', 'on');
+                win.UserData.name = this.WIN_NAME;
+                
+                this.win = win;
+                
+                if isunix && not(ismac())
+                    % win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)));
+                    % win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)));
+                    % centered
+                    win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                    win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+                else
+                    % top right
+                    % win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)));
+                    % win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)));
+                    % centered
+                    win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                    win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+                end
+                
+                try
+                    main_vb = uix.VBox('Parent', win, ...
+                        'Padding', 5, ...
+                        'BackgroundColor', Core_UI.DARKER_GREY_BG);
+                catch
+                    log = Core.getLogger;
+                    log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                    open('GUI Layout Toolbox 2.3.4.mltbx');
+                    log.newLine();
+                    log.addWarning('After installation re-run goGPS');
+                    close(win);
+                    return;
+                end
+                top_bh = uix.HBox('Parent', main_vb);
+                
+                logo_GUI_Inspector.BG_COLOR = Core_UI.DARK_GREY_BG;
+                left_tbv = uix.VBox('Parent', top_bh, ...
+                    'BackgroundColor', logo_GUI_Inspector.BG_COLOR, ...
+                    'Padding', 5);
+                
+                % Logo/title box ------------------------------------------------------------------------------------------
+                
+                logo_g = uix.Grid('Parent', left_tbv, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GREY_BG);                
-            catch
-                log = Core.getLogger;
-                log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                open('GUI Layout Toolbox 2.3.4.mltbx');
-                log.newLine();
-                log.addWarning('After installation re-run goGPS');
-                close(win);
-                return;
+                    'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
+                
+                logo_ax = axes( 'Parent', logo_g);
+                logo_g.Widths = 64;
+                logo_g.Heights = 64;
+                [logo, transparency] = Core_UI.getLogo();
+                logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
+                logo = logo - 20;
+                image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
+                logo_ax.XTickLabel = [];
+                logo_ax.YTickLabel = [];
+                axis off;
+                
+                Core_UI.insertEmpty(left_tbv, logo_GUI_Inspector.BG_COLOR);
+                left_tbv.Heights = [82 -1];
+                
+                right_tvb = uix.VBox('Parent', top_bh, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
+                
+                % Spinner Panel -------------------------------------------------------------------------------------------
+                
+                spinner_box = uix.VBox('Parent', top_bh, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
+                spinner_container = uix.VBox('Parent', spinner_box, ...
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
+                this.j_spinner = this.insertWaitSpinner(spinner_container);
+                Core_UI.insertEmpty(spinner_box, Core_UI.DARKER_GREY_BG)
+                spinner_box.Heights = [-1 20];
+                
+                % Useful Buttons ------------------------------------------------------------------------------------------
+                
+                list_but = uix.VButtonBox( 'Parent', top_bh, ...
+                    'ButtonSize', [100 28] , ...
+                    'VerticalAlignment', 'top', ...
+                    'HorizontalAlignment', 'right', ...
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
+                
+                load_core_but = uicontrol( 'Parent', list_but, ...
+                    'String', 'Load Core', ...
+                    'Callback', @this.onLoadCore); %#ok<NASGU>
+                
+                goGPS_but = uicontrol( 'Parent', list_but, ...
+                    'String', 'Show Settings', ...
+                    'Callback', @this.onEditSettings); %#ok<NASGU>
+                
+                goGPS_but = uicontrol( 'Parent', list_but, ...
+                    'String', 'Reopen goGPS', ...
+                    'Callback', @this.onRunGoGPS); %#ok<NASGU>
+                
+                top_bh.Widths = [106 -1 0 120];
+                this.top_bh = top_bh;
+                
+                title = uix.HBox('Parent', right_tvb, ...
+                    'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
+                
+                % Title Panel ---------------------------------------------------------------------------------------------
+                txt = this.insertBoldText(title, 'goGPS', 12, Core_UI.LBLUE, 'left');
+                txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
+                title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Inspector.BG_COLOR);
+                title.Widths = [60 -1];
+                Core_UI.insertEmpty(title_l, logo_GUI_Inspector.BG_COLOR)
+                txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 9, [], 'left');
+                txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
+                title_l.Heights = [2, -1];
+                
+                % Top Panel -----------------------------------------------------------------------------------------------
+                
+                Core_UI.insertEmpty(right_tvb, logo_GUI_Inspector.BG_COLOR)
+                txt = this.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, [], 'left');
+                txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
+                txt = this.insertText(right_tvb, {'Remark: Some plots or exports might be unavailable if the data they require is not computed'}, 9, [], 'left');
+                txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
+                txt.FontSize = txt.FontSize * 0.9;
+                txt.ForegroundColor = Core_UI.ORANGE;
+                right_tvb.Heights = [25 3 28 -1];
+                
+                Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
+                
+                % Main Panel ----------------------------------------------------------------------------------------------
+                
+                main_hb = uix.HBox('Parent', main_vb, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
+                
+                % Bottom Panel --------------------------------------------------------------------------------------------
+                
+                Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
+                bottom = uix.HBox('Parent', main_vb, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.DARK_GREY_BG);
+                [grp, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(bottom, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
+                grp.BackgroundColor = Core_UI.DARK_GREY_BG;
+                grp.Children(3).BackgroundColor = Core_UI.DARK_GREY_BG;
+                grp.Children(3).ForegroundColor = [1 1 1];
+                
+                main_vb.Heights = [84 5 -1 5 35];
+                
+                % Middle Tab Panel ----------------------------------------------------------------------------------------
+                
+                this.insertRecList(main_hb);
+                Core_UI.insertEmpty(main_hb, Core_UI.DARK_GREY_BG)
+                tab_pnl_left = uix.TabPanel('Parent', main_hb, ...
+                    'TabWidth', 60, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'SelectionChangedFcn', @this.onTabChange);
+                
+                this.insertTabPlots1(tab_pnl_left);
+                this.insertTabPlots2(tab_pnl_left);
+                this.insertTabPlots3(tab_pnl_left);
+                this.insertTabMaps(tab_pnl_left);
+                this.insertTabExport(tab_pnl_left);
+                
+                tab_pnl_left.TabTitles = {'Plots 1', 'Plots 2', 'Plots 3', 'Maps', 'Export'};
+                
+                % Right Panel ---------------------------------------------------------------------------------------------
+                
+                Core_UI.insertEmpty(main_hb, Core_UI.DARK_GREY_BG);
+                
+                tab_pnl_right = uix.TabPanel('Parent', main_hb, ...
+                    'TabWidth', 90, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
+                    'SelectionChangedFcn', @this.onTabChange);
+                
+                this.j_cmd = this.insertCommandEditor(tab_pnl_right);
+                
+                tab_pnl_right.TabTitles = {'Commands'};
+                
+                main_hb.Widths = [190 5 360 5 -1];
+                
+                % Manage dimension ----------------------------------------------------------------------------------------
             end
-            top_bh = uix.HBox('Parent', main_vb);
-            
-            logo_GUI_Inspector.BG_COLOR = Core_UI.DARK_GREY_BG;
-            left_tbv = uix.VBox('Parent', top_bh, ...
-                'BackgroundColor', logo_GUI_Inspector.BG_COLOR, ...
-                'Padding', 5);
-            
-            % Logo/title box ------------------------------------------------------------------------------------------
-            
-            logo_g = uix.Grid('Parent', left_tbv, ...
-                'Padding', 5, ...
-                'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
-            
-            logo_ax = axes( 'Parent', logo_g);
-            logo_g.Widths = 64;
-            logo_g.Heights = 64;
-            [logo, transparency] = Core_UI.getLogo();
-            logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
-            logo = logo - 20;
-            image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
-            logo_ax.XTickLabel = [];
-            logo_ax.YTickLabel = [];
-            axis off;
-                        
-            Core_UI.insertEmpty(left_tbv, logo_GUI_Inspector.BG_COLOR);
-            left_tbv.Heights = [82 -1];
-            
-            right_tvb = uix.VBox('Parent', top_bh, ...
-                'Padding', 5, ...
-                'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
-
-            % Spinner Panel -------------------------------------------------------------------------------------------
-
-            spinner_box = uix.VBox('Parent', top_bh, ...
-                'Padding', 5, ...
-                'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
-            spinner_container = uix.VBox('Parent', spinner_box, ...
-                'BackgroundColor', Core_UI.DARKER_GREY_BG);
-            this.j_spinner = this.insertWaitSpinner(spinner_container);
-            Core_UI.insertEmpty(spinner_box, Core_UI.DARKER_GREY_BG)
-            spinner_box.Heights = [-1 20];                        
-            
-            % Useful Buttons ------------------------------------------------------------------------------------------
-            
-            list_but = uix.VButtonBox( 'Parent', top_bh, ...
-                'ButtonSize', [100 28] , ...
-                'VerticalAlignment', 'top', ...
-                'HorizontalAlignment', 'right', ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            
-            load_core_but = uicontrol( 'Parent', list_but, ...
-                'String', 'Load Core', ...
-                'Callback', @this.onLoadCore); %#ok<NASGU>
-                        
-            goGPS_but = uicontrol( 'Parent', list_but, ...
-                'String', 'Show Settings', ...
-                'Callback', @this.onEditSettings); %#ok<NASGU>
-
-            goGPS_but = uicontrol( 'Parent', list_but, ...
-                'String', 'Reopen goGPS', ...
-                'Callback', @this.onRunGoGPS); %#ok<NASGU>
-
-            top_bh.Widths = [106 -1 0 120];
-            this.top_bh = top_bh;
-            
-            title = uix.HBox('Parent', right_tvb, ...
-                'BackgroundColor', logo_GUI_Inspector.BG_COLOR);
-            
-            % Title Panel ---------------------------------------------------------------------------------------------
-            txt = this.insertBoldText(title, 'goGPS', 12, Core_UI.LBLUE, 'left');
-            txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
-            title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Inspector.BG_COLOR);
-            title.Widths = [60 -1];
-            Core_UI.insertEmpty(title_l, logo_GUI_Inspector.BG_COLOR)
-            txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 9, [], 'left');
-            txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
-            title_l.Heights = [2, -1];
-            
-            % Top Panel -----------------------------------------------------------------------------------------------
-            
-            Core_UI.insertEmpty(right_tvb, logo_GUI_Inspector.BG_COLOR)
-            txt = this.insertText(right_tvb, {'A GNSS processing software powered by GReD'}, 9, [], 'left');
-            txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
-            txt = this.insertText(right_tvb, {'Remark: Some plots or exports might be unavailable if the data they require is not computed'}, 9, [], 'left');
-            txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
-            txt.FontSize = txt.FontSize * 0.9;
-            txt.ForegroundColor = Core_UI.ORANGE;
-            right_tvb.Heights = [25 3 28 -1];
-            
-            Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
-            
-            % Main Panel ----------------------------------------------------------------------------------------------
-            
-            main_hb = uix.HBox('Parent', main_vb, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-
-            % Bottom Panel --------------------------------------------------------------------------------------------
-                        
-            Core_UI.insertEmpty(main_vb, Core_UI.DARKER_GREY_BG)
-            bottom = uix.HBox('Parent', main_vb, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.DARK_GREY_BG);
-            [grp, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(bottom, 'Out directory', 'out_dir', @this.onEditChange, [25 100 -1 25]);
-            grp.BackgroundColor = Core_UI.DARK_GREY_BG;
-            grp.Children(3).BackgroundColor = Core_UI.DARK_GREY_BG;
-            grp.Children(3).ForegroundColor = [1 1 1];            
-            
-            main_vb.Heights = [84 5 -1 5 35];
-            
-            % Middle Tab Panel ----------------------------------------------------------------------------------------
-            
-            this.insertRecList(main_hb);
-            Core_UI.insertEmpty(main_hb, Core_UI.DARK_GREY_BG)
-            tab_pnl_left = uix.TabPanel('Parent', main_hb, ...
-                'TabWidth', 60, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'SelectionChangedFcn', @this.onTabChange);            
-            
-            this.insertTabPlots1(tab_pnl_left);
-            this.insertTabPlots2(tab_pnl_left);
-            this.insertTabPlots3(tab_pnl_left);
-            this.insertTabMaps(tab_pnl_left);
-            this.insertTabExport(tab_pnl_left);
-            
-            tab_pnl_left.TabTitles = {'Plots 1', 'Plots 2', 'Plots 3', 'Maps', 'Export'};
-
-            % Right Panel ---------------------------------------------------------------------------------------------
-            
-            Core_UI.insertEmpty(main_hb, Core_UI.DARK_GREY_BG);
-            
-            tab_pnl_right = uix.TabPanel('Parent', main_hb, ...
-                'TabWidth', 90, ...
-                'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'SelectionChangedFcn', @this.onTabChange);
-                        
-            this.j_cmd = this.insertCommandEditor(tab_pnl_right);
-            
-            tab_pnl_right.TabTitles = {'Commands'};
-            
-            main_hb.Widths = [190 5 360 5 -1];
-            
-            % Manage dimension ----------------------------------------------------------------------------------------
-            
-            this.w_main.Visible = 'on';    
+            this.win.Visible = 'on';    
         end
         
         function close(this)
-            if ~isempty(this.w_main) && ishandle(this.w_main)
-                close(this.w_main);
+            if ~isempty(this.win) && ishandle(this.win)
+                close(this.win);
             end
         end
     end

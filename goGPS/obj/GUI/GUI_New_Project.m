@@ -56,7 +56,7 @@ classdef GUI_New_Project < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window
+        w_edt      % Handle of the main window
         win         % Handle to this window
         
         dir_base    % handle to dir EditBox
@@ -75,11 +75,11 @@ classdef GUI_New_Project < GUI_Unique_Win
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static)
-        function this = GUI_New_Project(w_main)
+        function this = GUI_New_Project(w_edt)
             % GUI_MAIN object creator
             this.init();
             this.openGUI();
-            this.w_main = w_main;
+            this.w_edt = w_edt;
         end
     end
     %% METHODS INIT
@@ -336,8 +336,8 @@ classdef GUI_New_Project < GUI_Unique_Win
             
             % Update main goGPS settings interface
             try
-                this.w_main.init();
-                this.w_main.updateUI();
+                this.w_edt.init();
+                this.w_edt.updateUI();
                 rf = Core.getReferenceFrame;
                 rf.init(state.getCrdFile);
                 this.updateCooTable();

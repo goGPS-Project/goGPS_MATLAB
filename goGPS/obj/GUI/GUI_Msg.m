@@ -53,8 +53,7 @@ classdef GUI_Msg < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main         % Handle to this window
-        j_win          % Java handle to this window
+        win            % Handle to this window
         jedt           % j edit handle (java logger element)
     end    
         
@@ -74,7 +73,7 @@ classdef GUI_Msg < GUI_Unique_Win
             
             persistent unique_instance_gui_msg__
             
-            if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.w_main)
+            if isempty(unique_instance_gui_msg__) || ~ishandle(unique_instance_gui_msg__.win)
                 this = GUI_Msg();
                 unique_instance_gui_msg__ = this;
             else
@@ -113,11 +112,7 @@ classdef GUI_Msg < GUI_Unique_Win
             win.Position([3,4]) = [500 640]; % Set dimensions
             win.UserData.name = this.WIN_NAME;
             
-            this.w_main = win;
-            warning off
-            % Ignore :-( JavaFrame property will be obsoleted in a future release
-            this.j_win = get(handle(win),'JavaFrame');
-            warning on
+            this.win = win;            
             
             if isunix && not(ismac())
                 % top right
@@ -204,7 +199,7 @@ classdef GUI_Msg < GUI_Unique_Win
             % Logging Panel --------------------------------------------------------------------------------------------------
             log_container = uix.VBox('Parent', main_vb, 'Padding', 5, 'BackgroundColor', GUI_Msg.BG_COLOR);
             [j_edit_box, h_log_panel] = Core_UI.insertLog(log_container);
-            this.w_main.UserData.jedt = j_edit_box;
+            this.win.UserData.jedt = j_edit_box;
             this.jedt = j_edit_box;
             
             this.clear();
@@ -213,12 +208,12 @@ classdef GUI_Msg < GUI_Unique_Win
             
             main_vb.Heights = [84 -1];
                         
-            this.w_main.Visible = 'on';    
+            this.win.Visible = 'on';    
         end
         
         function close(this)
-            if ~isempty(this.w_main) && ishandle(this.w_main)
-                close(this.w_main);
+            if ~isempty(this.win) && ishandle(this.win)
+                close(this.win);
             end
         end
     end
@@ -245,18 +240,6 @@ classdef GUI_Msg < GUI_Unique_Win
     %% METHODS setters
     % ==================================================================================================================================================
     methods
-        function bringOnTop(this)
-            this.w_main.Visible = 'on';
-            if isHG2
-                j_frame = this.j_win.fHG2Client;
-            else
-                j_frame = this.j_win.fHG1Client;
-            end
-            drawnow
-            j_frame.getWindow.setAlwaysOnTop(1);
-            j_frame.getWindow.setAlwaysOnTop(0);
-        end
-        
         function addMessage(this, text, type)
             % Add a message to the logger
             % 

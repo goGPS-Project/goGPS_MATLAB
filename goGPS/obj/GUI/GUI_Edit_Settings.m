@@ -50,7 +50,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window
+        win         % Handle of the main window
         menu        % Handle of the menu
         go_but      % Handle to goButton
         
@@ -107,15 +107,15 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             if isempty(unique_instance_gui_main__)
                 this = GUI_Edit_Settings(flag_wait);
                 unique_instance_gui_main__ = this;
-                if isvalid(this.w_main) && flag_wait
-                    uiwait(this.w_main);
+                if isvalid(this.win) && flag_wait
+                    uiwait(this.win);
                 end
             else
                 this = unique_instance_gui_main__;
                 this.init();
                 this.openGUI(flag_wait);
-                if isvalid(this.w_main) && flag_wait
-                    uiwait(this.w_main);
+                if isvalid(this.win) && flag_wait
+                    uiwait(this.win);
                 end
             end
         end
@@ -184,7 +184,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 win = old_win;
                 this.go_but.Enable = iif(flag_wait, 'on', 'off');
                 
-                if strcmp(this.w_main.Visible, 'off')
+                if strcmp(this.win.Visible, 'off')
                     if isunix && not(ismac())
                         win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
                         win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
@@ -216,7 +216,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
                 end
                 
-                this.w_main = win;            
+                this.win = win;            
 
                 % empty check boxes
                 this.check_boxes = {};
@@ -397,7 +397,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.updateUI();
             this.updateRecList();
                         
-            this.w_main.Visible = 'on';
+            this.win.Visible = 'on';
             % the update of the command list is repeated here because at
             % least on linux the handle to the java container is not valid
             % till visibility is on
@@ -408,6 +408,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             log.setColorMode(false);
             log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
             log.setColorMode(cm);
+            this.bringOnTop();            
         end
         
 
@@ -1904,7 +1905,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uicontrol('Parent', tab_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'left', ...
-                'String', ['File path: ' state.getRemoteSourceFile], ...
+                'String', ['Remote resources INI path: ' state.getRemoteSourceFile], ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontSize', Core_UI.getFontSize(7.5));
@@ -1915,7 +1916,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             try
                 r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
-                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange, [180 -1]);                
+                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange, [200 -1]);                
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
             end
@@ -1966,14 +1967,20 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             rr_box = uix.VBox( 'Parent', bottom_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
 
-            uicontrol('Parent', rr_box, ...
-                'Style', 'Text', ...
+            but_line = uix.HButtonBox('Parent', rr_box, ...
+                'ButtonSize', [165 28] , ...
+                'Spacing', 5, ...
                 'HorizontalAlignment', 'left', ...
-                'String', 'Resource tree inspector:', ... %  when a center have missing resources (e.g. iono, vmf, ...) default values are used
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'ForegroundColor', Core_UI.BLACK, ...
-                'FontSize', Core_UI.getFontSize(8));
-             
+                'VerticalAlignment', 'top', ...
+                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
+            
+            uicontrol( 'Parent', but_line, ...
+                'String', 'Open resource tree', ...
+                'TooltipString', 'Open the inspector of the resources locations', ...
+                'Callback', @this.openRRI);
+            
+            rr_box.Heights = [30];
+            
             Core_UI.insertEmpty(bottom_box);
             
             dir_but_box = uix.VBox( 'Parent', bottom_box, ...
@@ -1987,96 +1994,25 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             dir_box = uix.VBox( 'Parent', bottom_box, ...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            bottom_box.Heights = [-1 5 25 275];
+            bottom_box.Heights = [-1 5 28 28*11];
                          
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [25 130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [25 130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [25 130 -3 5 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [25 130 -1 25]);
-            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [25 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [28 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'Geoid local path', 'geoid_dir', 'geoid_name', @this.onEditChange, [28 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.edit_texts{end + 2}, this.flag_list{end + 1}] = Core_UI.insertDirFileBox(dir_box, 'CRX path', 'crx_dir', 'crx_name', @this.onEditChange, [28 130 -3 5 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Eph local dir', 'eph_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'Clk local dir', 'clk_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ERP local dir', 'erp_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IONO local dir', 'iono_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'IGRF local dir', 'igrf_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'DCB local dir', 'dcb_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'VMF local dir', 'vmf_dir', @this.onEditChange, [28 130 -1 25]);
+            [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [28 130 -1 25]);
 
-            this.j_rrini = com.mathworks.widgets.SyntaxTextPane;
-            codeType = this.j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
-            this.j_rrini.setContentType(codeType);
-            try
-                str = r_man.centerToString(state.getRemoteCenter);
-                str = strrep(['% ' str], char(10), [char(10) '% ']);
-            catch
-                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
-            end
             
-            this.j_rrini.setText(str);
-            this.j_rrini.setEditable(0)
-            % Create the ScrollPanel containing the widget
-            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(this.j_rrini);
-            % Inject edit box with the Java Scroll Pane into the main_window
-            % DEPRECATE!!!
-            warning off
-            javacomponent(j_scroll_rri, [1 1 1 1], rr_box);
-            warning on
-            rr_box. Heights = [18 -1];
             tab_bv.Heights = [15 5 20 22 18 18 1 -1];
             this.uip.tab_rr = tab;            
         end
-        
-        function insertOldRemoteResource(this, container)
-            tab = uix.VBox('Parent', container);
-            
-            tab_bv = uix.VBox( 'Parent', tab, ...
-                'Spacing', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
-            uicontrol('Parent', tab_bv, ...
-                'Style', 'Text', ...
-                'String', 'Remote Resources ini file - not editable from GUI', ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'ForegroundColor', 0 * ones(3, 1), ...
-                'FontName', 'arial', ...
-                'FontSize', Core_UI.getFontSize(10), ...
-                'FontWeight', 'bold');
-            
-            uicontrol('Parent', tab_bv, ...
-                'Style', 'Text', ...
-                'String', Core.getCurrentSettings.getRemoteSourceFile, ...
-                'BackgroundColor', Core_UI.LIGHT_GREY_BG, ...
-                'ForegroundColor', 0.3 * ones(3, 1), ...
-                'FontName', 'arial', ...
-                'FontSize', Core_UI.getFontSize(8));
-            
-            j_rrini = com.mathworks.widgets.SyntaxTextPane;
-            codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
-            j_rrini.setContentType(codeType);
-            try
-                file_name = Core.getCurrentSettings.getRemoteSourceFile;
-                fid = fopen(file_name);
-                str = fread(fid, '*char')';
-                str = strrep(str,'#','%');
-                fclose(fid);
-            catch
-                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', Core.getCurrentSettings.getRemoteSourceFile);
-            end
-            
-            j_rrini.setText(str);
-            j_rrini.setEditable(0)
-            % Create the ScrollPanel containing the widget
-            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_rrini);
-            % Inject edit box with the Java Scroll Pane into the main_window
-            % DEPRECATE!!!
-            warning off
-            javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
-            warning on
-            
-            tab_bv.Heights = [20 15 -1];
-            this.uip.tab_rr = tab;
-            
-        end
-        
+                
         function insertSessionInfo(this, container)
             session_bg = Core_UI.DARK_GREY_BG;
             %session_p = uix.Panel('Parent', container, ...
@@ -2541,6 +2477,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.updateINI();
         end
         
+        function openRRI(this, caller, event)
+            GUI_Remote_Resources.getInstance(this.win);
+        end
+        
         function resetResDir(this, caller, event)
             state = Core.getCurrentSettings;
             state.atx_dir = '';
@@ -2603,9 +2543,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function updateINI(this)
-            if ~isempty(this.w_main) && isvalid(this.w_main)
+            if ~isempty(this.win) && isvalid(this.win)
                 state = Core.getCurrentSettings;
-                this.w_main.Name = sprintf('%s @ %s', state.getPrjName, state.getHomeDir);                
+                this.win.Name = sprintf('%s @ %s', state.getPrjName, state.getHomeDir);                
                 try
                     str = strrep(strCell2Str(state.export(), 10),'#','%');
                     if ~strcmp(str, char(this.j_settings.getText()))
@@ -2624,14 +2564,14 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end
         
         function updateCmdList(this)
-            if ~isempty(this.w_main) && isvalid(this.w_main)
+            if ~isempty(this.win) && isvalid(this.win)
                 if this.j_cmd.isValid
                     str = strrep(strCell2Str(Core.getCurrentSettings.exportCmdList(), 10),'#','%');
                     if ~strcmp(str, char(this.j_cmd.getText()))
                         this.j_cmd.setText(str);
                     end
-                elseif strcmp(this.w_main.Visible, 'off')
-                    this.w_main.Visible = 'on'; drawnow
+                elseif strcmp(this.win.Visible, 'off')
+                    this.win.Visible = 'on'; drawnow
                     if this.j_cmd.isValid
                         str = strrep(strCell2Str(Core.getCurrentSettings.exportCmdList(), 10),'#','%');
                         if ~strcmp(str, char(this.j_cmd.getText()))
@@ -2728,7 +2668,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             state = Core.getCurrentSettings;
             % read current center
             [center_list, center_ss] = r_man.getCenterList();
-            cur_center = state.getProperty(this.rpop_up.UserData);
+            cur_center = state.getCurCenter;
             if isempty(cur_center)
                 cur_center = {'default'};
             end
@@ -2739,18 +2679,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             % display resources tree of the current center
             if ~isempty(value)
-                this.rpop_up.Value = value;                
-                try
-                    str = r_man.centerToString(state.getRemoteCenter());
-                    str = strrep(['% ' str], char(10), [char(10) '% ']);
-                catch
-                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
-                end
-                this.j_rrini.setText(str);
+                this.rpop_up.Value = value;
             end
             
             % Update constellation Available for the center
-            this.rpop_up.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value}); 
+            this.rpop_up.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value});
             
             % Update Orbit Preferences
             available_orbit = r_man.getOrbitType(cur_center{1});
@@ -2948,24 +2881,24 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function close(this, caller, event)
             
             % This is closing definitively, I prefer to hide this interface, it takes a while to restore it
-            %delete(this.w_main);
-            if isvalid(this.w_main)
-                this.w_main.Visible = 'off';
-                uiresume(this.w_main);
+            %delete(this.win);
+            if isvalid(this.win)
+                this.win.Visible = 'off';
+                uiresume(this.win);
             end            
         end
         
         function go(this, caller, event)
             
-            if isvalid(this.w_main)
-                this.w_main.Visible = 'off';
+            if isvalid(this.win)
+                this.win.Visible = 'off';
             end
             core = Core.getCurrentCore();
             err_code = core.checkValidity();
             if err_code.go
                 uiwait(warndlg('Adjust the settings before running goGPS', 'Config check failed'));
-                if isvalid(this.w_main)
-                    this.w_main.Visible = 'on';
+                if isvalid(this.win)
+                    this.win.Visible = 'on';
                 end
             else
                 this.crd2RefFrame;
@@ -2973,12 +2906,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 
                 core.state.save(Prj_Settings.LAST_SETTINGS);
                 this.ok_go = true;
-                close(this.w_main);
+                close(this.win);
             end
         end
         
         function updateUI(this)
-            if isvalid(this.w_main)
+            if isvalid(this.win)
                 this.updateINI();
                 this.updateCmdList();
                 this.ini_path.String = Core.getCurrentSettings.getIniPath();
@@ -3195,9 +3128,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function updateSessionGUI(this)
             % enable disable fields
-            ui_tspan = findobj(this.w_main, 'Tag', 'sss_duration');
-            ui_buffer = findobj(this.w_main, 'Tag', 'sss_buffer');
-            ui_smooth_tropo = findobj(this.w_main, 'Tag', 'sss_smooth');
+            ui_tspan = findobj(this.win, 'Tag', 'sss_duration');
+            ui_buffer = findobj(this.win, 'Tag', 'sss_buffer');
+            ui_smooth_tropo = findobj(this.win, 'Tag', 'sss_smooth');
             if Core.getCurrentSettings.isRinexSession()
                 Core_UI.disableElement(ui_tspan);
                 Core_UI.disableElement(ui_buffer);
@@ -3220,14 +3153,14 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
     
     methods
         function addGoMenu(this)
-            this.menu.goGPS = uimenu(this.w_main, 'Label', 'goGPS');
+            this.menu.goGPS = uimenu(this.win, 'Label', 'goGPS');
             uimenu(this.menu.goGPS, ...
                 'Label', 'About', ...
                 'Callback', @this.about);
             uimenu(this.menu.goGPS, ...
                 'Label', 'Open Inspector', ...
                 'Callback', @this.openInspector);
-            this.menu.options = uimenu(this.w_main, 'Label', 'Options');
+            this.menu.options = uimenu(this.win, 'Label', 'Options');
             uimenu(this.menu.options, ...
                 'Label', 'Set for PPP troposphere estimation', ...
                 'Callback', @this.setToPPP);
@@ -3240,7 +3173,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uimenu(this.menu.options, ...
                 'Label', 'Set for NET solution (long baselines - iono-free)', ...
                 'Callback', @this.setToIonoFreeNET);
-            this.menu.project = uimenu(this.w_main, 'Label', 'Project');
+            this.menu.project = uimenu(this.win, 'Label', 'Project');
             uimenu(this.menu.project, ...
                 'Label', 'New', ...
                 'Callback', @this.createNewProject);

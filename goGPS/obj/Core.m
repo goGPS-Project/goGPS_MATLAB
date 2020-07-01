@@ -117,8 +117,8 @@ classdef Core < handle
     methods (Access = private)
         function delete(this)
             if ~isempty(this.log_gui)
-                if ishandle(this.log_gui.w_main)
-                    close(this.log_gui.w_main);
+                if ishandle(this.log_gui.win)
+                    close(this.log_gui.win);
                 end
             end
         end
@@ -342,10 +342,10 @@ classdef Core < handle
             end
             core = Core.getInstance(false, true);
             msg_gui = core.log_gui;
-            if isempty(msg_gui) || ~ishandle(msg_gui.w_main)
+            if isempty(msg_gui) || ~ishandle(msg_gui.win)
                 msg_gui = GUI_Msg.getInstance();
                 core.log_gui = msg_gui;
-            elseif flag_reset && ishandle(msg_gui.w_main)
+            elseif flag_reset && ishandle(msg_gui.win)
                 msg_gui.clear();
             end
         end

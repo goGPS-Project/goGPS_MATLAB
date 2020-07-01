@@ -50,7 +50,7 @@ classdef GUI_Unique_Win < handle
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties (Abstract)
-        w_main      % Handle of the main window       
+        win       % Handle of the this window       
     end    
    
     %% METHOD CREATOR
@@ -60,15 +60,15 @@ classdef GUI_Unique_Win < handle
             % GUI_Unique_Win object creator
         end
     end
-    %% METHODS INIT
+    %% METHODS UTILITY
     % ==================================================================================================================================================
     methods                                
         function fig_handle = getUniqueWinHandle(this)
             
             fig_handle = [];
-            if ~isempty(this.w_main) && isvalid(this.w_main)
+            if ~isempty(this.win) && isvalid(this.win)
                 % if the win is open and stored in this singleton object
-                fig_handle = this.w_main;
+                fig_handle = this.win;
             end
             % clean way of doing this:
             % fig_handle = findobj(get(groot, 'Children'), 'UserData', this.WIN_NAME);
@@ -88,6 +88,23 @@ classdef GUI_Unique_Win < handle
                     Core_Utils.printEx(ex);
                 end
             end
-        end        
+        end         
+        
+        function bringOnTop(this)
+            % Bring the window on top of all the others
+            this.win.Visible = 'on';
+            warning off
+            % Ignore :-( JavaFrame property will be obsoleted in a future release
+            j_win = get(handle(this.win),'JavaFrame');
+            warning on
+            if isHG2
+                j_frame = j_win.fHG2Client;
+            else
+                j_frame = j_win.fHG1Client;
+            end
+            drawnow
+            j_frame.getWindow.setAlwaysOnTop(1);
+            j_frame.getWindow.setAlwaysOnTop(0);
+        end
     end       
 end

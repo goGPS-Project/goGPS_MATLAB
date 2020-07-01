@@ -60,7 +60,7 @@ classdef GUI_Command_Help < GUI_Unique_Win
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window
+        w_edt       % Handle of the edt window
         win         % Handle to this window
     end
     
@@ -72,12 +72,12 @@ classdef GUI_Command_Help < GUI_Unique_Win
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static)
-        function this = GUI_Command_Help(w_main)
+        function this = GUI_Command_Help(w_edt)
             % GUI_MAIN object creator
             this.init();
             this.openGUI();
             if nargin == 1
-                this.w_main = w_main;
+                this.w_edt = w_edt;
             end
         end
     end
