@@ -133,7 +133,7 @@ classdef File_Rinex < Exportable
             end
         end
         
-        function copyFrom(this, file_rinex, id)            
+        function copyFrom(this, file_rinex, id)
             % Copy from an object of the same type
             %
             % SYNTAX

@@ -87,7 +87,6 @@ classdef Remote_Resource_Manager < Ini_Manager
             this.readFile();
             this.log = Core.getLogger();
         end
-                
     end
 
     % =========================================================================
@@ -198,27 +197,49 @@ classdef Remote_Resource_Manager < Ini_Manager
             %                         resource is not there
             %                   h2 -> hours after which we are sure we will
             %                         found the resource
-            %           
-            str = this.getData(['c_' center_name], resource_name);
+            %          
+            
+            % Check if the requested resource is iono            
+            if numel(resource_name > 5) && strcmp(resource_name(1:5), 'iono_')
+                % Search for the iono center for the current orbit provider
+                iono_center = this.getData(['oc_' center_name], 'iono_center'); % this can be substituted by getIonoCenter from state (to be done)
+                if isempty(iono_center)
+                    iono_center = 'default';
+                end                
+                str = this.getData(['ic_' iono_center], resource_name);
+            else
+                str = this.getData(['oc_' center_name], resource_name);
+            end
             if isempty(str)
                 this.log.addWarning(sprintf('No resource %s for center %s',resource_name, center_name))
                 file_structure = [];
                 latency = [];
             else
                 file_structure = this.parseLogicTree(str);
-                latency = this.getData(['c_' center_name], [resource_name '_latency']);
+                latency = this.getData(['oc_' center_name], [resource_name '_latency']);
             end
         end
     end
     
     % Specific file query methods
     methods 
-        function [center, center_ss] = getCenterList(this)
+        function [center, center_ss] = getCenterList(this, type)
             % Get the list of available centers and the supported constellations
             %
+            % INPUT
+            %   type    0: ORBIT (default)
+            %           1: IONO 
+            %
             % SYNTAX
-            %   [center, center_ss] = this.getCenterList()
-            tmp = this.getData('CENTER', 'available');
+            %   [center, center_ss] = this.getCenterList(type)
+            if nargin == 1 || isempty(type)
+                type = 0;
+            end
+            if type == 1
+                tmp = this.getData('IONO_CENTER', 'available');
+            else
+                tmp = this.getData('ORBIT_CENTER', 'available');
+            end
             n_center = numel(tmp);
             center = cell(n_center, 1);
             center_ss = cell(n_center, 1);
@@ -227,39 +248,69 @@ classdef Remote_Resource_Manager < Ini_Manager
                 if isempty(center{c})
                     center{c} = tmp{c};
                 end
-                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');;
+                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
             end            
         end
         
-        function [center, center_ss] = getCenterListExtended(this)
-            % Get the list of available centers and the supported constellations
+        function [center, center_ss] = getCenterListExtended(this, type)
+            % Get the list of available centers with their description and the supported constellations
+            %
+            % INPUT
+            %   type    0: ORBIT (default)
+            %           1: IONO 
             %
             % SYNTAX
-            %   [center, center_ss] = this.getCenterList()
-            tmp = this.getData('CENTER', 'available');
+            %   [center, center_ss] = this.getCenterList(type)
+            if nargin == 1 || isempty(type)
+                type = 0;
+            end
+            if type == 1
+                tmp = this.getData('IONO_CENTER', 'available');
+            else
+                tmp = this.getData('ORBIT_CENTER', 'available');
+            end
             n_center = numel(tmp);
             center = cell(n_center, 1);
             center_ss = cell(n_center, 1);
             for c = 1 : n_center
-                center{c} = regexp(tmp{c}, '(?<=@).*', 'match', 'once');
+                if type == 1
+                    center{c} = tmp{c};
+                else
+                    center{c} = regexp(tmp{c}, '(?<=@).*', 'match', 'once');
+                end
                 if isempty(center{c})
                     center{c} = tmp{c};
                 else
-                    center{c} = [upper(center{c}) ' - ' this.getData(['c_' center{c}], 'description')];
+                    if type == 1
+                        center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                    else
+                        center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
+                    end
                 end
-                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');;
+                center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
             end            
         end        
-        
+               
         function [descr] = centerToString(this, center)
             % Get the center description
             %
             % SYNTAX
             %   descr = this.centerToString(center)
-            descr = sprintf('Center: "%s" - %s\n\nAvailable resources:\n', center, this.getData(['c_' center], 'description'));
+            descr = sprintf('Current active center: "%s" - %s\n\nAvailable resources:\n', center, this.getData(['oc_' center], 'description'));
             
             % get resource_list
-            key = this.getKeys(['c_' center]);
+            key = this.getKeys(['oc_' center]);
+            for k = 1 : numel(key)
+                if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
+                    descr = sprintf('%s%s', descr, this.resourceTreeToString(center, key{k}));
+                end                
+            end
+            
+            center = 'default';
+            descr = sprintf('%s\n\n\nResources fallback: "%s" - %s\n\nAvailable resources:\n', descr, center, this.getData(['oc_' center], 'description'));
+            
+            % get resource_list
+            key = this.getKeys(['oc_' center]);
             for k = 1 : numel(key)
                 if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
                     descr = sprintf('%s%s', descr, this.resourceTreeToString(center, key{k}));
@@ -272,10 +323,10 @@ classdef Remote_Resource_Manager < Ini_Manager
             %
             % SYNTAX
             %   [flag_frub] = this.getOrbitType(center)            
-            flag_frub(1) = ~isempty(this.getData(['c_' center], 'final'));
-            flag_frub(2) = ~isempty(this.getData(['c_' center], 'rapid'));
-            flag_frub(3) = ~isempty(this.getData(['c_' center], 'ultra'));
-            flag_frub(4) = ~isempty(this.getData(['c_' center], 'broadcast'));
+            flag_frub(1) = ~isempty(this.getData(['oc_' center], 'final'));
+            flag_frub(2) = ~isempty(this.getData(['oc_' center], 'rapid'));
+            flag_frub(3) = ~isempty(this.getData(['oc_' center], 'ultra'));
+            flag_frub(4) = ~isempty(this.getData(['oc_' center], 'broadcast'));
         end
         
         function [flag_fp1p2b] = getIonoType(this, center)
@@ -283,17 +334,25 @@ classdef Remote_Resource_Manager < Ini_Manager
             %
             % SYNTAX
             %   [flag_frub] = this.getIonoType(center)            
-            flag_fp1p2b(1) = ~isempty(this.getData(['c_' center], 'iono_final'));
-            flag_fp1p2b(2) = ~isempty(this.getData(['c_' center], 'iono_predicted1'));
-            flag_fp1p2b(3) = ~isempty(this.getData(['c_' center], 'iono_predicted2'));
-            flag_fp1p2b(4) = ~isempty(this.getData(['c_' center], 'iono_broadcast'));
+            iono_center = this.getData(['oc_' center], 'iono_center');
+
+            if isempty(iono_center)
+                iono_center = 'default';
+            end
+            
+            flag_fp1p2b = false(4, 1);
+            
+            flag_fp1p2b(1) = ~isempty(this.getData(['ic_' iono_center], 'iono_final'));
+            flag_fp1p2b(2) = ~isempty(this.getData(['ic_' iono_center], 'iono_predicted1'));
+            flag_fp1p2b(3) = ~isempty(this.getData(['ic_' iono_center], 'iono_predicted2'));
+            flag_fp1p2b(4) = ~isempty(this.getData(['ic_' iono_center], 'iono_broadcast'));
             
             if ~any(flag_fp1p2b)
                 % Switch to default center
-                flag_fp1p2b(1) = ~isempty(this.getData(['c_default'], 'iono_final'));
-                flag_fp1p2b(2) = ~isempty(this.getData(['c_default'], 'iono_predicted1'));
-                flag_fp1p2b(3) = ~isempty(this.getData(['c_default'], 'iono_predicted2'));
-                flag_fp1p2b(4) = ~isempty(this.getData(['c_default'], 'iono_broadcast'));
+                flag_fp1p2b(1) = ~isempty(this.getData(['ic_default'], 'iono_final'));
+                flag_fp1p2b(2) = ~isempty(this.getData(['ic_default'], 'iono_predicted1'));
+                flag_fp1p2b(3) = ~isempty(this.getData(['ic_default'], 'iono_predicted2'));
+                flag_fp1p2b(4) = ~isempty(this.getData(['ic_default'], 'iono_broadcast'));
             end
         end
         
@@ -302,7 +361,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             %
             % SYNTAX
             %   [tree_str] = this.resourceTreeToString(center, resource_type)
-            tmp = this.getData(['c_' center], resource_type);
+            tmp = this.getData(['oc_' center], resource_type);
             tree = this.parseLogicTree(tmp);
             if iscell(tree)
                 clear tmp

@@ -153,7 +153,7 @@ classdef File_Wizard < handle
                         this.log.addMessage(this.log.indent('Downloading Resources ...'));
                         [status, ~] = this.navigateTree(file_tree, 'download');
                         if not(status)
-                            this.log.addWarning('Not all file have been found or unconpressed');
+                            this.log.addWarning('Not all file have been found or uncompressed');
                         end
                     end
                 end

@@ -4747,6 +4747,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             iono_management = this.iono_management;
         end
 
+        function center_name = getCurCenter(this)
+            % Get the current orbit center
+            %
+            % SYNTAX
+            %   center_name = this.getCurCenter();
+            center_name = this.selected_center;
+        end
+        
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             %
