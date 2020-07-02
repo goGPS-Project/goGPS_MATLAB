@@ -1225,9 +1225,11 @@ classdef LS_Manipulator_new < handle
                     wl_par = this.wl_id_par(idx_par);
                     oi_apr = this.obs_codes_id_par(idx_par);
                     u_wl_par = unique(wl_par);
-                    for w = u_wl_par(1)
-                        idx_par_wl = idx_par(wl_par == w);
-                        idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                    if numel(u_wl_par) > 0
+                        for w = u_wl_par(1)
+                            idx_par_wl = idx_par(wl_par == w);
+                            idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                        end
                     end
                 end
             end
@@ -1261,9 +1263,11 @@ classdef LS_Manipulator_new < handle
                     else
                         idx = 1;
                     end
-                    for w = u_wl_par(idx)'
-                        idx_par_wl = idx_par(wl_par == w);
-                        idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                    if ~isempty(u_wl_par)
+                        for w = u_wl_par(idx)'
+                            idx_par_wl = idx_par(wl_par == w);
+                            idx_rm = [idx_rm; uint32(idx_par_wl(1))];
+                        end
                     end
                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 2);
                     wl_par = this.wl_id_par(idx_par);
