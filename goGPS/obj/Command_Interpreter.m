@@ -1520,7 +1520,7 @@ classdef Command_Interpreter < handle
                 if ~sys_found
                     sys_list = state.cc.getActiveSysChar;
                 end
-                for r = id_trg
+                for r = setdiff(id_trg, 0);
                     log.newLine();
                     log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
                     log.smallSeparator();
