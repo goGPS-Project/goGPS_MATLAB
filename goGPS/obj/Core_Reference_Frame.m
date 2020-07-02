@@ -197,11 +197,13 @@ classdef Core_Reference_Frame < handle
                         epoch_gps = epoch.getGpsTime();
                         idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
                         idx_sta = idx_sta(idx_sta2);
-                        idx_sta = idx_sta(1);
-                        dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
-                        xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
-                        is_valid = true;
-                        std_pup = this.std_pup(idx_sta,:);
+                        if not(isempty(idx_sta))
+                            idx_sta = idx_sta(1);
+                            dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
+                            xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
+                            is_valid = true;
+                            std_pup = this.std_pup(idx_sta,:);
+                        end
                     end
                 end
             end
