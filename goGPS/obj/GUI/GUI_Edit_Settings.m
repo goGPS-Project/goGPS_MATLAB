@@ -1916,7 +1916,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
             try
                 r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
-                [tmp, this.rpop_up] = Core_UI.insertPopUpLight(tab_bv, 'Center', r_man.getCenterListExtended, 'selected_center', @this.onResourcesPopUpChange, [200 -1]);                
+                [tmp, this.rpop_up{end+1}] = Core_UI.insertPopUpLight(tab_bv, 'Orbit Center', r_man.getCenterListExtended, 'selected_orbit_center', @this.onResourcesPopUpChange, [200 -1]);                
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
             end
@@ -1939,6 +1939,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.ropref{3} = Core_UI.insertCheckBoxLight(box_opref, 'Ultra rapid', 'orbit3', @this.onResourcesPrefChange);
             this.ropref{4} = Core_UI.insertCheckBoxLight(box_opref, 'Broadcast', 'orbit4', @this.onResourcesPrefChange);
             box_opref.Widths = [250 -1 -1 -1 -1];
+            
+            try
+                r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
+                [tmp, this.rpop_up{end+1}] = Core_UI.insertPopUpLight(tab_bv, 'Iono Center', r_man.getCenterListExtended(1), 'selected_iono_center', @this.onResourcesPopUpChange, [200 -1]);                
+            catch
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
+            end
             
             box_ipref = uix.HBox( 'Parent', tab_bv, ...
                 'Spacing', 5, ...
@@ -2009,7 +2016,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             [~, this.edit_texts{end + 1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(dir_box, 'ATM local dir', 'atm_load_dir', @this.onEditChange, [28 130 -1 25]);
 
             
-            tab_bv.Heights = [15 5 20 22 18 18 1 -1];
+            tab_bv.Heights = [15 20 15 20 22 18 18 1 -1];
             this.uip.tab_rr = tab;            
         end
                 
@@ -2369,13 +2376,21 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function onResourcesPopUpChange(this, caller, event)
             
             state = Core.getCurrentSettings;
-            if strcmp(caller.UserData, 'selected_center')
+            if strcmp(caller.UserData, 'selected_orbit_center')
                 % Particular case selected_center is in GUI with full description of the center
                 % Use caller.Value and r_man.getCenterList();
                 r_man = Remote_Resource_Manager.getInstance();
                 
                 % read current center
                 [center_list, center_ss] = r_man.getCenterList();
+                state.setProperty(caller.UserData, center_list{caller.Value});
+            elseif strcmp(caller.UserData, 'selected_iono_center')
+                % Particular case selected_center is in GUI with full description of the center
+                % Use caller.Value and r_man.getCenterList();
+                r_man = Remote_Resource_Manager.getInstance();
+                
+                % read current center
+                [center_list, center_ss] = r_man.getCenterList(1);
                 state.setProperty(caller.UserData, center_list{caller.Value});
             else
                 state.setProperty(caller.UserData, caller.String(caller.Value));
@@ -2666,7 +2681,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             r_man = Remote_Resource_Manager.getInstance();
             
             state = Core.getCurrentSettings;
-            % read current center
+            % read current orbit center
             [center_list, center_ss] = r_man.getCenterList();
             cur_center = state.getCurCenter;
             if isempty(cur_center)
@@ -2679,11 +2694,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             % display resources tree of the current center
             if ~isempty(value)
-                this.rpop_up.Value = value;
+                this.rpop_up{1}.Value = value;
             end
             
             % Update constellation Available for the center
-            this.rpop_up.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value});
+            this.rpop_up{1}.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value});
             
             % Update Orbit Preferences
             available_orbit = r_man.getOrbitType(cur_center{1});
@@ -2696,6 +2711,26 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     this.ropref{i}.Value = this.ropref{i}.Value | flag_preferred_orbit(i);
                 end
             end
+            
+             % read current iono center
+            [center_list, center_ss] = r_man.getCenterList(1);
+            cur_center = state.getCurIonoCenter;
+            if isempty(cur_center)
+                cur_center = {'default'};
+            end
+            value = 1;
+            while (value < numel(center_list)) && ~strcmp(center_list{value}, cur_center)
+                value = value + 1;
+            end
+            
+            % display resources tree of the current center
+            if ~isempty(value)
+                this.rpop_up{2}.Value = value;
+            end
+%             
+%             % Update constellation Available for the center
+%             this.rpop_up{2}.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value});
+%             
             
             % Update Iono Preferences
             available_iono = r_man.getIonoType(cur_center{1});

@@ -57,7 +57,7 @@
 %--------------------------------------------------------------------------
 
 classdef GLONASS_SS < Satellite_System
-    properties (Constant, Access = 'private')
+    properties (Constant, Access = 'public')
         % System frequencies as struct [MHz]
         f0 = struct('BASE', struct('G1', 1602.000, 'G2', 1246.000, 'G3', 1202.025), ...
                     'DELTA',struct('G1', 0.5625, 'G2', 0.4375, 'G3', 0), ...

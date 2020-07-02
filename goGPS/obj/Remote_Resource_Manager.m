@@ -200,12 +200,13 @@ classdef Remote_Resource_Manager < Ini_Manager
             %          
             
             % Check if the requested resource is iono            
-            if numel(resource_name > 5) && strcmp(resource_name(1:5), 'iono_')
+            if numel(resource_name) > 5 && strcmp(resource_name(1:5), 'iono_')
                 % Search for the iono center for the current orbit provider
-                iono_center = this.getData(['oc_' center_name], 'iono_center'); % this can be substituted by getIonoCenter from state (to be done)
+                state = Core.getCurrentSettings();
+                iono_center = state.getRemoteIonoCenter();
                 if isempty(iono_center)
                     iono_center = 'default';
-                end                
+                end
                 str = this.getData(['ic_' iono_center], resource_name);
             else
                 str = this.getData(['oc_' center_name], resource_name);
@@ -348,7 +349,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             % Get the orbit type availability
             %
             % SYNTAX
-            %   [flag_frub] = this.getOrbitType(center)
+            %   [flag_frub] = this.getOrbitType(center)            
             flag_frub(1) = ~isempty(this.getData(['oc_' center], 'final'));
             flag_frub(2) = ~isempty(this.getData(['oc_' center], 'rapid'));
             flag_frub(3) = ~isempty(this.getData(['oc_' center], 'ultra'));
@@ -359,9 +360,10 @@ classdef Remote_Resource_Manager < Ini_Manager
             % Get the iono type availability
             %
             % SYNTAX
-            %   [flag_frub] = this.getIonoType(center)
-            iono_center = this.getData(['oc_' center], 'iono_center');
-            
+
+            %   [flag_frub] = this.getIonoType(center)  
+            state = Core.getCurrentSettings();
+            iono_center = state.getRemoteIonoCenter();
             if isempty(iono_center)
                 iono_center = 'default';
             end

@@ -84,7 +84,7 @@ classdef File_Wizard < handle
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile());
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
-            this.center_name = this.state.selected_center{1};
+            this.center_name = this.state.getRemoteCenter;
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
@@ -409,7 +409,7 @@ classdef File_Wizard < handle
             end
             % check if selected center os compatible with selected
             % constellation
-            centers = this.rm.getData('CENTER','available');
+            centers = this.rm.getData('ORBIT_CENTER','available');
             is_ok = false;
             for i = 1 : length(centers)
                 if ~is_ok
@@ -737,13 +737,14 @@ classdef File_Wizard < handle
             %
             this.log.addMarkedMessage('Checking ionospheric resources files');
             list_preferred = this.state.preferred_iono;
+            iono_center = this.state.getRemoteIonoCenter();
             for i = 1 : length(list_preferred)
                 if strcmp(list_preferred{i}, 'broadcast')
-                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
+                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
                 else
-                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
+                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
                     if flag_brdc
-                        status = this.conjureResource('iono_broadcast', date_start, date_stop);
+                        status = this.conjureResource('iono_broadcast', date_start, date_stop, iono_center);
                     end
                 end
                 if status
@@ -751,7 +752,7 @@ classdef File_Wizard < handle
                 end
             end
             if (this.state.iono_model == 2) && (this.state.iono_management == 3 || this.state.flag_apr_iono)
-                status = this.conjureResource(['iono_broadcast'], date_start, date_stop);
+                status = this.conjureResource(['iono_broadcast'], date_start, date_stop, iono_center);
             end
             if status
                 this.log.addStatusOk('Ionosphere resource files are present ^_^')

@@ -137,7 +137,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         FLAG_NO_RESOURCES = false; % one true no resources are used => no orbits are computed -> useful in limited scenarios
         
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
-        SELECTED_CENTER = {'default'}
+        SELECTED_ORBIT_CENTER= {'default'}
+        SELECTED_IONO_CENTER= {'default'}
         PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
 
         % SATELLITES
@@ -728,7 +729,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         
         preferred_eph = Prj_Settings.PREFERRED_EPH;         % kind of orbits to prefer
         preferred_iono = Prj_Settings.PREFERRED_IONO;
-        selected_center = Prj_Settings.SELECTED_CENTER;
+        selected_orbit_center = Prj_Settings.SELECTED_ORBIT_CENTER;
+        selected_iono_center = Prj_Settings.SELECTED_IONO_CENTER;
 
         %------------------------------------------------------------------
         % SATELLITES
@@ -1217,12 +1219,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 
                 this.preferred_eph = state.getData('preferred_eph');
                 this.preferred_iono = state.getData('preferred_iono');
-                this.selected_center = state.getData('selected_center');
-                if isempty(this.selected_center)
+                this.selected_orbit_center = state.getData('selected_orbit_center');
+                this.selected_iono_center = state.getData('selected_iono_center');
+                if isempty(this.selected_orbit_center)
                     %                                try                                                                the old name:
-                    this.selected_center = state.getData('preferred_center');
+                    this.selected_orbit_center = 'default';
                 end
-                
+                 if isempty(this.selected_iono_center)
+                    %                                try                                                                the old name:
+                    this.selected_iono_center = 'default';
+                end
                 % SATELLITES
                 this.eph_dir    = fnp.getFullDirPath(state.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir')), this.prj_home));
                 this.clk_dir    = fnp.getFullDirPath(state.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir')), this.prj_home));
@@ -1601,7 +1607,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 
                 this.preferred_eph = state.preferred_eph;
                 this.preferred_iono = state.preferred_iono;
-                this.selected_center = state.selected_center;
+                this.selected_orbit_center = state.selected_orbit_center;
+                this.selected_iono_center = state.selected_iono_center;
 
                 % SATELLITES
                 this.eph_dir     = state.eph_dir;
@@ -1915,7 +1922,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Try to download the missing resources:            %d\n\n', this.flag_download)];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
-            str = [str sprintf(' Selected center:                                  %s\n\n', strCell2Str(this.selected_center))];
+            str = [str sprintf(' Selected orbital center:                          %s\n\n', strCell2Str(this.selected_orbit_center))];
+            str = [str sprintf(' Selected ionosphere center:                          %s\n\n', strCell2Str(this.selected_iono_center))];
             
             str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
@@ -2303,7 +2311,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_IONO)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_iono', this.preferred_iono, str_cell);
             str_cell = Ini_Manager.toIniStringComment('SELECTED computational center (e.g. default, igs_glo, igs_gps, code, code_mgex, gfz, jaxa', str_cell);
-            str_cell = Ini_Manager.toIniString('selected_center', this.selected_center, str_cell);
+            str_cell = Ini_Manager.toIniString('selected_orbit_center', this.selected_orbit_center, str_cell);
+            str_cell = Ini_Manager.toIniString('selected_iono_center', this.selected_iono_center, str_cell);
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -3222,7 +3232,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             
             this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_iono', EMPTY_IS_NOT_VALID);
-            this.checkCellStringField('selected_center', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('selected_orbit_center', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('selected_iono_center', EMPTY_IS_NOT_VALID);
 
             this.checkStringField('sss_id_list', EMPTY_IS_NOT_VALID);
             this.checkStringField('sss_id_start', EMPTY_IS_NOT_VALID);
@@ -4071,7 +4082,18 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   remote_center = getRemoteCenter(this)
-            remote_center = this.selected_center;
+            remote_center = this.selected_orbit_center;
+            if iscell(remote_center)
+                remote_center = remote_center{1};
+            end
+        end
+        
+        function remote_center = getRemoteIonoCenter(this)
+            % Get selected remote ionosphere center
+            %
+            % SYNTAX
+            %   remote_center = getRemoteCenter(this)
+            remote_center = this.selected_iono_center;
             if iscell(remote_center)
                 remote_center = remote_center{1};
             end
@@ -4752,7 +4774,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   center_name = this.getCurCenter();
-            center_name = this.selected_center;
+            center_name = this.selected_orbit_center;
+        end
+        
+        function center_name = getCurIonoCenter(this)
+            % Get the current orbit center
+            %
+            % SYNTAX
+            %   center_name = this.getCurCenter();
+            center_name = this.selected_iono_center;
         end
         
         function eph_full_name = getEphFileName(this, date_start, date_stop)

@@ -240,7 +240,7 @@ classdef GUI_Remote_Resources < GUI_Unique_Win
                 %Core_UI.insertEmpty(string_bh);
 
                 this.j_rrini = this.insertRRBox(string_bh);
-                this.j_rrini.setText("RR");
+                this.j_rrini.setText('RR');
                 
 
                 % Manage dimension -------------------------------------------------------------------------------------------
