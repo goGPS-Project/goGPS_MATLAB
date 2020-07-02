@@ -6311,6 +6311,9 @@ classdef GNSS_Station < handle
             if nargin < 3
                 flag_add_coo = 0;
             end
+            if nargin < 2
+                baseline_ids = [ones(numel(out_list)-1,1) (2:numel(out_list))'];
+            end
             fh_list = out_list.showBaselineENU(baseline_ids, flag_add_coo);
         end
 
