@@ -302,19 +302,45 @@ classdef Remote_Resource_Manager < Ini_Manager
             key = this.getKeys(['oc_' center]);
             for k = 1 : numel(key)
                 if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
-                    descr = sprintf('%s%s', descr, this.resourceTreeToString(center, key{k}));
-                end                
+                    if strcmp(key{k}, 'iono_center')
+                        % get resource_list
+                        iono_center = this.getData(['oc_' center], 'iono_center');
+                        key_iono = this.getKeys(['ic_' iono_center]);
+                        for i = 1 : numel(key_iono)
+                            if isempty(regexp(key_iono{i}, '(description)|(.*_latency)', 'once'))
+                                resource = this.resourceTreeToString(['ic_' iono_center], key_iono{i});
+                                descr = sprintf('%s%s', descr, resource);
+                            end
+                        end
+                    else
+                        descr = sprintf('%s%s', descr, this.resourceTreeToString(['oc_' center], key{k}));
+                    end
+                end
             end
             
-            center = 'default';
-            descr = sprintf('%s\n\n\nResources fallback: "%s" - %s\n\nAvailable resources:\n', descr, center, this.getData(['oc_' center], 'description'));
-            
-            % get resource_list
-            key = this.getKeys(['oc_' center]);
-            for k = 1 : numel(key)
-                if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
-                    descr = sprintf('%s%s', descr, this.resourceTreeToString(center, key{k}));
-                end                
+            if not(strcmp(center, 'default'))
+                center = 'default';
+                descr = sprintf('%s\n\n\nResources fallback: "%s" - %s\n\nAvailable resources:\n', descr, center, this.getData(['oc_' center], 'description'));
+                
+                % get resource_list
+                key = this.getKeys(['oc_' center]);
+                for k = 1 : numel(key)
+                    if isempty(regexp(key{k}, '(description)|(.*_latency)', 'once'))
+                        if strcmp(key{k}, 'iono_center')
+                            % get resource_list
+                            iono_center = this.getData(['oc_' center], 'iono_center');
+                            key_iono = this.getKeys(['ic_' iono_center]);
+                            for i = 1 : numel(key_iono)
+                                if isempty(regexp(key_iono{i}, '(description)|(.*_latency)', 'once'))
+                                    resource = this.resourceTreeToString(['ic_' iono_center], key_iono{i});
+                                    descr = sprintf('%s%s', descr, resource);
+                                end
+                            end
+                        else
+                            descr = sprintf('%s%s', descr, this.resourceTreeToString(['oc_' center], key{k}));
+                        end
+                    end
+                end
             end
         end
         
@@ -322,7 +348,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             % Get the orbit type availability
             %
             % SYNTAX
-            %   [flag_frub] = this.getOrbitType(center)            
+            %   [flag_frub] = this.getOrbitType(center)
             flag_frub(1) = ~isempty(this.getData(['oc_' center], 'final'));
             flag_frub(2) = ~isempty(this.getData(['oc_' center], 'rapid'));
             flag_frub(3) = ~isempty(this.getData(['oc_' center], 'ultra'));
@@ -333,9 +359,9 @@ classdef Remote_Resource_Manager < Ini_Manager
             % Get the iono type availability
             %
             % SYNTAX
-            %   [flag_frub] = this.getIonoType(center)            
+            %   [flag_frub] = this.getIonoType(center)
             iono_center = this.getData(['oc_' center], 'iono_center');
-
+            
             if isempty(iono_center)
                 iono_center = 'default';
             end
@@ -361,7 +387,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             %
             % SYNTAX
             %   [tree_str] = this.resourceTreeToString(center, resource_type)
-            tmp = this.getData(['oc_' center], resource_type);
+            tmp = this.getData(center, resource_type);
             tree = this.parseLogicTree(tmp);
             if iscell(tree)
                 clear tmp
