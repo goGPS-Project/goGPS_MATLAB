@@ -507,9 +507,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
             if state.mapping_function_gradient == 1
-                cotan_term = zero2nan(Atmosphere.chenHerringGrad(zero2nan(this.sat.el(id_sync, :))));
+                if ~isempty(zwd)
+                    cotan_term = zero2nan(Atmosphere.chenHerringGrad(zero2nan(this.sat.el(id_sync, :))));
+                else
+                    cotan_term = zeros(size(ge));;
+                end
             elseif state.mapping_function_gradient == 2
-                cotan_term = zero2nan(Atmosphere.macmillanGrad(zero2nan(this.sat.el(id_sync, :))).*mfw);
+                if ~isempty(zwd)
+                    cotan_term = zero2nan(Atmosphere.macmillanGrad(zero2nan(this.sat.el(id_sync, :))).*mfw);
+                else
+                    cotan_term = zeros(size(ge));;
+                end
             end
             % Computing delays
             if any(mfh(:)) && any(mfw(:))

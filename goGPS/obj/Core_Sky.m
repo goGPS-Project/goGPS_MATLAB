@@ -1354,7 +1354,7 @@ classdef Core_Sky < handle
                 
                 % get end of header
                 eoh = strfind(txt,'*BIAS SVN_ PRN ');
-                eoh = find(lim(:,1) > eoh);
+                eoh = find(lim(:,1) > eoh(1));
                 
                 eoh = eoh(1) - 1;
                 head_line = txt(lim(eoh,1):lim(eoh,2));
