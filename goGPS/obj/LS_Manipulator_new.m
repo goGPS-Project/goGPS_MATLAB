@@ -1730,7 +1730,11 @@ classdef LS_Manipulator_new < handle
             B = Aw(~idx_reduce,:)*y;
             
             max_ep = max(this.ref_time_obs);
-            ref_time_obs = [this.ref_time_obs(~this.outlier_obs); this.time_pseudo.getNominalTime(this.rate_obs).getRefTime(this.time_min.getMatlabTime)];
+            if this.time_pseudo.length > 0
+                ref_time_obs = [this.ref_time_obs(~this.outlier_obs); this.time_pseudo.getNominalTime(this.rate_obs).getRefTime(this.time_min.getMatlabTime)];
+            else
+                ref_time_obs = [this.ref_time_obs(~this.outlier_obs);];
+            end
             step = 7200;
             time_par_red = time_par(idx_reduce,1);
             
@@ -1885,9 +1889,13 @@ classdef LS_Manipulator_new < handle
                         [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                         d = diag(D);
                         tol = max(size(N(idx_bias, idx_bias))) * sqrt(eps(norm(diag(D),inf)))*1e4;
-                        [~,idx_min] = min(diff(log10(d(d<tol))));
-                        last_valid = find(d < tol,1,'first') + idx_min -1;
-                        keep_id = 1:sum(idx_bias) <= last_valid;
+                        if sum(d < tol) > 5
+                            [~,idx_min] = min(diff(log10(d(d<tol))));
+                            last_valid = find(d < tol,1,'first') + idx_min -1;
+                            keep_id = 1:sum(idx_bias) <= last_valid;
+                        else
+                            keep_id = d > (tol/1e4);
+                        end
                         real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
                         clearvars U V D
                         pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';

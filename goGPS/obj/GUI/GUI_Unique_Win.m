@@ -103,8 +103,11 @@ classdef GUI_Unique_Win < handle
                 j_frame = j_win.fHG1Client;
             end
             drawnow
-            j_frame.getWindow.setAlwaysOnTop(1);
-            j_frame.getWindow.setAlwaysOnTop(0);
+            try
+                j_frame.getWindow.setAlwaysOnTop(1);
+                j_frame.getWindow.setAlwaysOnTop(0);
+            catch
+            end
         end
     end       
 end
