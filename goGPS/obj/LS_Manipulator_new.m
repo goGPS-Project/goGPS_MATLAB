@@ -2156,8 +2156,8 @@ classdef LS_Manipulator_new < handle
             % simple threshold on residual
             %
             % this.Snoop(this, ph_thr, pr_thr)
-            threshold = 2.5;
-            wfun = @(x)  1;
+            threshold = 3.5;
+            wfun = @(x)  0;
             this.weightOnResidualPh(wfun, threshold);
             this.weightOnResidualPr(wfun, threshold);
         end
@@ -2202,7 +2202,7 @@ classdef LS_Manipulator_new < handle
             end
             id_ph = this.phase_obs == 1  & ~isnan(this.res);
             ww = this.reweight_obs(id_ph)/sum(this.reweight_obs(id_ph))*sum(id_ph);
-            s0 = mean(abs(this.res(id_ph)).*ww);
+            s0 = mean(abs(this.res(id_ph)));
             res_n = this.res/s0;
             
             idx_rw = abs(res_n) > thr & id_ph;
@@ -2220,7 +2220,7 @@ classdef LS_Manipulator_new < handle
             end
             id_ph = this.phase_obs == 0 & ~isnan(this.res);
             ww = this.reweight_obs(id_ph)/sum(this.reweight_obs(id_ph))*sum(id_ph);
-            s0 = mean(abs(this.res(id_ph)).*ww);
+            s0 = mean(abs(this.res(id_ph)));
             res_n = this.res/s0;
             
             idx_rw = abs(res_n) > thr & id_ph;
