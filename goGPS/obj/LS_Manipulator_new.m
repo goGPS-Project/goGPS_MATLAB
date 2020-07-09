@@ -1244,7 +1244,7 @@ classdef LS_Manipulator_new < handle
                         idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
                     end
                     if length(u_wl_par) > 1
-                        if sum(this.param_class == this.PAR_IONO) > 0
+                        if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                         end
                     end

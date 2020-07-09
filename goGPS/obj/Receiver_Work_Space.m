@@ -8416,7 +8416,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if ~isempty(pco)
                                         % get los PCO component
                                         pco_delays = neu_los * pco; %(pco + [this.parent.ant_delta_en([2, 1]) this.parent.ant_delta_h]');
-                                        pcv_delays = (pco_delays - this.ant.getPCV(f_id, el, az)) * 1e-3;
+                                        if ~isempty(this.ant.pcv)
+                                            pcv_delays = (pco_delays - this.ant.getPCV(f_id, el, az)) * 1e-3;
+                                        else
+                                            pcv_delays = pco_delays* 1e-3;
+                                        end
                                         for o = find(obs_idx_f)'
                                             pcv_idx = nan2zero(this.obs(this.sat.avail_index(:, s), o)) ~= 0; % find which correction to apply
                                             o_idx = nan2zero(this.obs(:, o)) ~= 0; % find where apply corrections

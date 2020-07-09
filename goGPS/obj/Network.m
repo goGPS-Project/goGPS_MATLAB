@@ -766,7 +766,7 @@ classdef Network < handle
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
                 clk = this.clock(idx_res_av, i);
-                this.rec_list(i).work.dt(idx_pos) = clk(idx_is) ./ Core_Utils.V_LIGHT;
+                this.rec_list(i).work.dt(idx_pos) = this.rec_list(i).work.dt(idx_pos) + clk(idx_is) ./ Core_Utils.V_LIGHT;
                 if this.state.flag_ztd_net
                     ztd = this.ztd(idx_res_av, i);
                     this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);

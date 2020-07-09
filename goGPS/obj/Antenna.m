@@ -234,11 +234,12 @@ classdef Antenna < handle
                         n_az = 360 / this.dazi + 1;
                     end
                     n_lin = id_fstop(f) - id_pco(f) - 1;
+                    this.pco{f} = pco;
                     if n_lin ~= (n_az + 1)
                         % something bad happened
                         log.addWarning(sprintf('Antenna %s have non valid PCV/PCO', this.type))
                     else
-                        this.pco{f} = pco;
+                        
                         
                         n_zen = (this.zen2 - this.zen1) / this.dzen + 1; % Number of zenithal dependent values
                         % next line is NOAZI
