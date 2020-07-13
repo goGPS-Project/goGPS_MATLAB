@@ -9210,7 +9210,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % getting the observation set that is going to be used in
                 % setUPSA
 
-                if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
+                if sum(this.hasAPriori) ~= 0 %%% if there is an apriori information on the position                    
+                    s0 = iif(this.hasGoodApriori, 0.1, 5);
+                    this.xyz = Core.getReferenceFrame.getCoo(this.parent.getMarkerName4Ch,this.time.getCentralTime);                    
+                end
+                
+                if sum(this.hasAPriori) == 0 || isempty(this.xyz) %%% if no apriori information on the position
                     obs_set = Observation_Set();
                     if this.isMultiFreq() %% case multi frequency
                         for sys_c = sys_list
@@ -9225,9 +9230,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                     s0 = this.coarsePositioning(obs_set);
-                else
-                    s0 = iif(this.hasGoodApriori, 0.1, 5);
-                    this.xyz = Core.getReferenceFrame.getCoo(this.parent.getMarkerName4Ch,this.time.getCentralTime);
                 end
                 
                 if s0 > 0
