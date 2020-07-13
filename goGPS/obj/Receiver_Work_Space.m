@@ -10120,7 +10120,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 this.detectOutlierMarkCycleSlip();
                                 this.remShortArc(this.state.getMinArc(this.time.getRate));
                                 this.codeStaticPositioning(sys_list); % <== to be substituted with U2
-                                this.applyDtRec(this.dt);
+                                this.dt_ip = this.dt_ip + this.dt; % save init_positioning clock
+                                % smooth clock estimation
+                                this.smoothAndApplyDt(0, false, false,0);
                                 this.shiftToNominal;
                                 this.getSatCache([], true);
                                 if this.state.isCombineTrk
