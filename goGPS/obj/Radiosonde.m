@@ -2591,7 +2591,7 @@ classdef Radiosonde < handle
             raob_code = sort(unique(raob_code));
             clear rds;
             for i = 1 : numel(raob_code)
-                fprintf(" Checking %03d/%03d:\n", i, numel(raob_code));
+                fprintf(' Checking %03d/%03d:\n', i, numel(raob_code));
                 rds(i) = Radiosonde.fromList(raob_code{i}, GPS_Time.now.addIntSeconds(-86400), GPS_Time.now.addIntSeconds(-43200));
             end
             

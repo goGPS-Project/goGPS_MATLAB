@@ -5790,7 +5790,6 @@ classdef GNSS_Station < handle
                     idx_epoch = time_matlab > (fr(r).first_epoch.getEpoch(fl).getMatlabTime -rate +eps) & time_matlab < (fr(r).last_epoch.getEpoch(fl).getMatlabTime +rate -eps);
                     av_data(idx_epoch,r) = true;
                 end
-                r
             end
                 
             plot_data = zeros(size(av_data));
@@ -5804,9 +5803,14 @@ classdef GNSS_Station < handle
             %colormap(Cmap.get('RdBu'));
             colormap(Cmap.getColor(1:3,3, 'Pastel1'))
             caxis([0 3]); cb = colorbar;
-            cb.Ticks = [0.5 1.5 2.5]; cb.TickLabels = {'No data', 'No solution', 'ZWD Ok'}
-            yticks(1:size(zwd,2));
-            yticklabels([sta_list.getMarkerName4Ch]);
+            cb.Ticks = [0.5 1.5 2.5]; cb.TickLabels = {'No data', 'No solution', 'ZWD Ok'};
+            if verLessThan( 'MATLAB', '9.5' )
+                set(gca,'YTick',1:size(zwd,2));
+                set(gca,'YTickLabel',[sta_list.getMarkerName4Ch]);
+            else
+                yticks(1:size(zwd,2));
+                yticklabels([sta_list.getMarkerName4Ch]);
+            end
             setTimeTicks();
             title(sprintf('ZWD processing status\\fontsize{5} \n'));
             xlabel('Epochs');

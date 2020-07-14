@@ -374,12 +374,12 @@ function [ySplined, xSpline, s_weights] = spliner_v5(x,y,dxs)
     tau   = round(rem(x',dxs)/dxs*1e13)/1e13;  % 1e13 rounding necessary to avoid numerical problems
     idx   = floor((x')/dxs)+1; 
     A     = Core_Utils.cubicSpline(tau);
-    A_idx = [idx idx+1 idx+2 idx+3];
+    A_idx = [idx(:) idx(:)+1 idx(:)+2 idx(:)+3];
     n_par = max(A_idx(:,4));
     n_obs = numel(x);
     rows  = repmat((1:n_obs)',1,4);
     
-    A =  sparse(rows, A_idx, A, n_obs, n_par);
+    A = sparse(rows, A_idx, A, n_obs, n_par);
     
     idx_null = sum(A~=0) == 0;
     A(:,idx_null) = [];
