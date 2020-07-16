@@ -1,3 +1,4 @@
+
 %  CLASS LS_Manipulator_new
 % =========================================================================
 %
@@ -1258,7 +1259,7 @@ classdef LS_Manipulator_new < handle
                     wl_par = this.wl_id_par(idx_par);
                     oi_apr = this.obs_codes_id_par(idx_par);
                     u_wl_par = unique(wl_par);
-                    if sum(this.param_class == this.PAR_IONO) > 0& this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
+                    if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                         idx = 1:2;
                     else
                         idx = 1;

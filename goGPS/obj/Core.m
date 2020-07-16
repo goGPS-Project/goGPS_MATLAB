@@ -1034,7 +1034,7 @@ classdef Core < handle
             end
         end  
         
-        function initSkySession(this, time_lim)
+        function initSkySession(this, time_lim, flag_no_clock)
             % Init sky for this session
             %
             % INPUT
@@ -1045,8 +1045,11 @@ classdef Core < handle
             if isempty(this.sky)
                 this.sky = Core_Sky();
             end
+            if (nargin < 3)
+                flag_no_clock = [];
+            end
             if ~this.state.isNoResources()
-                this.sky.initSession(time_lim.first, time_lim.last, this.getState.getConstellationCollector);
+                this.sky.initSession(time_lim.first, time_lim.last, this.getState.getConstellationCollector, flag_no_clock);
             end
         end
         

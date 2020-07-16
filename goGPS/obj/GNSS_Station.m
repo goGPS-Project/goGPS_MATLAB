@@ -80,7 +80,7 @@ classdef GNSS_Station < handle
     end
 
     % ==================================================================================================================================================
-    %% METHODS INIT - CLEAN - RESET - REM - IMPORT - EXPORT
+    %% METHODS INIT - CLEAN - RESET - REM - IMPORT
     % ==================================================================================================================================================
     methods
         function this = GNSS_Station(flag_static)
@@ -559,7 +559,6 @@ classdef GNSS_Station < handle
             end
         end
         
-        
         function zhd_corr = getZenithDelayCorrection(this, time, coo, pressure)
             coo_gnss = this.getPos.getMedianPos();
             [pr_gnss, ~, ~, p_time, id_sync] = this.getPTH_mr();            
@@ -575,7 +574,6 @@ classdef GNSS_Station < handle
                 zhd_corr = Atmosphere.getZenithDelayCorrection(coo_gnss, pressure_gnss, coo, pressure);
             end
         end
-
     end
     % ==================================================================================================================================================    
     %% METHODS EXPORT
@@ -607,7 +605,7 @@ classdef GNSS_Station < handle
                     xyz = xyz(end,:);
                     rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 else %if strcmpi(mode,'work') % get from work
-                    xyz = sta_list(s).work.rec(1).work.getMedianPosXYZ();
+                    xyz = sta_list(s).work.getMedianPosXYZ();
                     rf.setCoo(upper(sta_list(s).getMarkerName4Ch), xyz, flag, [0 0 0], [0 0], GPS_Time([1970 1 1 0 0 0]), GPS_Time([2099 1 1 0 0 0]));
                 end
             end

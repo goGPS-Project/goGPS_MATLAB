@@ -470,7 +470,8 @@ classdef Residuals < Exportable
             end
             lim = this.time.first.getCopy;
             lim.append(this.time.last);
-            core.initSkySession(lim);
+            flag_no_clock = true;
+            core.initSkySession(lim, flag_no_clock);
             cc = core.getConstellationCollector;
             go_id = unique(cc.getIndex(this.obs_code(:,1), this.prn));
             sat_name = cc.getSatName(go_id);
@@ -594,6 +595,7 @@ classdef Residuals < Exportable
                 deg2rad = pi/180;
                 
                 cc = Core.getConstellationCollector();
+                log.addMarkedMessage(sprintf('Computing azimuth and elevation for "%s"', marker_name));
                 [az, el, ~, ~, go_id] = this.getAzimuthElevation();
                 sys_c_list = cc.getAvailableSys;
                 

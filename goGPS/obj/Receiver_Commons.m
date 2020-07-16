@@ -1566,6 +1566,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
     end
+    
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     

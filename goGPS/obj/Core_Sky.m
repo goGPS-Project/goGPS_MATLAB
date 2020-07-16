@@ -120,7 +120,7 @@ classdef Core_Sky < handle
             is_empty = isempty(this.coord);
         end
         
-        function initSession(this, start_date, stop_date, cc)
+        function initSession(this, start_date, stop_date, cc, flag_no_clock)
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
@@ -134,6 +134,10 @@ classdef Core_Sky < handle
                 this.cc = Core.getState.getConstellationCollector;
             else
                 this.cc = cc;
+            end
+            
+            if nargin <= 4 || isempty(flag_no_clock)
+                flag_no_clock = false;
             end
             
             flag_coo_loaded = ~isempty(this.getFirstEpochCoord) && this.getFirstEpochCoord <= start_date && this.getLastEpochCoord >= stop_date;
@@ -210,7 +214,7 @@ classdef Core_Sky < handle
                     this.importIono(f_name{1}, central_time);
                 end
                 
-                if not(clock_in_eph)
+                if not(clock_in_eph) && flag_no_clock
                     Core.getLogger.addMarkedMessage('Importing satellite clock files...');
                     for i = 1:length(clock_f_name)
                         [~,name,ext] = fileparts(clock_f_name{i});

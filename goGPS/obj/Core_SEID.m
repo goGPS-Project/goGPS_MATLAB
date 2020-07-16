@@ -860,7 +860,7 @@ classdef Core_SEID < handle
             id_bia = size(data_pr, 2);
             y0 = zeros(n_obs,1);
             sigma = zeros(n_obs,1);
-            low_cost_effects = 5; % Consider pseudoranges 10 times worse than expected
+            low_cost_effects = 5; % Consider pseudoranges 5 times worse than expected
             for r = 1 : size(data_pr, 2)
                 % pseudo-ranges - one bias per receiver
                 id_r = offset(~isnan(data_pr(:,r)));
