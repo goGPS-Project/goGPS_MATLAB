@@ -618,6 +618,170 @@ classdef GNSS_Station < handle
             log.addStatusOk('Export completed successfully');
         end
         
+        function exportAppendedCoo(sta_list, out_file_prefix)
+            % Export the current value of the coordinate to a text coordinate file
+            % One file per receiver, containing: time_stamp: 
+            %   X, Y, Z, 
+            %   Cxx, Cyy, Czz, Cxy, Cxz, Cyz (not yet implemented)
+            %   n_epochs, n_obs
+            %
+            % INPUT:
+            %   type    it can be ( "XYZ" | "ENU" | "Geodetic")
+            %
+            % SYNTAX:
+            % this.exportXYZ(this, type, <out_file_name>)
+            
+            % Remove empty receivers
+            type = 'XYZ';
+            flag_out = true;
+            
+            sta_list = sta_list(~sta_list.isEmpty_mr);
+            if ~isempty(sta_list)
+                log = Core.getLogger;
+                for rec = sta_list(:)'
+                    state = Core.getState();
+                    now_time = GPS_Time.now();
+                    if nargin < 2 || isempty(out_file_prefix)
+                        out_dir = state.getOutDir();
+                        out_file_prefix = strrep([state.getPrjName '_'], ' ', '_');
+                    end
+                    % Add the folder if not present
+                    if sum(out_file_prefix == filesep) == 0
+                        out_dir = state.getOutDir();
+                        out_file_prefix = fullfile(out_dir, out_file_prefix);
+                    end
+                    out_file_name = strrep([out_file_prefix rec.getMarkerName4Ch '.coo'], ' ', '_');
+                    
+                    log.addMarkedMessage(sprintf('Updating coordinates to %s', out_file_name));
+                    try
+                        if exist(out_file_name, 'file') == 2
+                            % Read and append
+                            [txt, lim] = Core_Utils.readTextFile(out_file_name, 3);
+                            if isempty(lim)
+                                vers_ok = false;
+                                timestamp = [];
+                            else
+                                % Verify the file version (it should match 1.0):
+                                id_ver = find(txt(lim(:,1) + 1) == 'F'); % +FileVersion
+                                vers_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.0', 'once')));
+                                
+                                % Data should be present
+                                timestamp = [];
+                                if vers_ok
+                                    data_start = find(txt(lim(:,1) + 9) == 't') + 1; % +DataStart
+                                    if isempty(data_start)
+                                        data_start = 0;
+                                        vers_ok = false;
+                                    else
+                                        id_data = lim(data_start:end,1);
+                                        % Read old timestamps
+                                        timestamp = datenum(txt(repmat(id_data, 1, 19) + repmat(0:18, numel(id_data), 1)), 'yyyy-mm-dd HH:MM:SS');
+                                    end
+                                else
+                                    data_start = 0;
+                                end
+                                
+                                % Check description field
+                                % use the old one for the file
+                                if vers_ok
+                                    id_descr = find(txt(lim(:,1) + 4) == 'c'); % + Description
+                                    if isempty(id_descr)
+                                        vers_ok = false;
+                                    else
+                                        str_tmp = sprintf('%s\n', txt(lim(id_descr,1):lim(id_descr,2))); % Keep the description of the old file
+                                    end
+                                end
+                            end
+                        else
+                            vers_ok = false; 
+                            timestamp = [];
+                        end
+                        
+                        fid = fopen(out_file_name, 'Wb');
+                        if not(vers_ok)
+                            str_tmp = sprintf('+Description    : XYZ Position file generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
+                        end
+                        str_tmp = sprintf('%s+LastChange     : %s\n', str_tmp, now_time.toString('dd-mmm-yyyy HH:MM'));
+                        str_tmp = sprintf('%s+Software       : goGPS\n', str_tmp);
+                        str_tmp = sprintf('%s+Version        : %s\n', str_tmp, Core.GO_GPS_VERSION);
+                        str_tmp = sprintf('%s+FileVersion    : 1.0\n', str_tmp);
+                        str_tmp = sprintf('%s+MonitoringPoint: %s\n', str_tmp, rec.getMarkerName4Ch);
+                        str_tmp = sprintf('%s+LongName       : %s\n', str_tmp, rec.getMarkerName);
+                        str_tmp = sprintf('%s+SensorType     : GNSS\n', str_tmp);
+                        str_tmp = sprintf('%s+SensorName     : GNSS\n', str_tmp);
+                        str_tmp = sprintf('%s+DataScale      : m\n', str_tmp);
+                        str_tmp = sprintf('%s+DataType       :\n', str_tmp);
+                        str_tmp = sprintf('%s -01            : X\n', str_tmp);
+                        str_tmp = sprintf('%s -02            : Y\n', str_tmp);
+                        str_tmp = sprintf('%s -03            : Z\n', str_tmp);
+                        str_tmp = sprintf('%s -04            : Cxx\n', str_tmp);
+                        str_tmp = sprintf('%s -05            : Cyy\n', str_tmp);
+                        str_tmp = sprintf('%s -06            : Czz\n', str_tmp);
+                        str_tmp = sprintf('%s -07            : Cxy\n', str_tmp);
+                        str_tmp = sprintf('%s -08            : Cxz\n', str_tmp);
+                        str_tmp = sprintf('%s -09            : Cyz\n', str_tmp);
+                        str_tmp = sprintf('%s -10            : nEpochs\n', str_tmp);
+                        str_tmp = sprintf('%s -11            : nObs\n', str_tmp);
+                        str_tmp = sprintf('%s+DataStart\n', str_tmp);
+                        fprintf(fid, str_tmp);
+     
+                        if flag_out && not(rec.isEmptyOut_mr)
+                            coo = rec.out.getPos;
+                            quality_info = rec.out.quality_info;
+                        else
+                            coo = rec.work.getPos;
+                            quality_info = rec.work.quality_info;
+                        end
+                        
+                        % Append New
+                        str_tmp = '';
+                        e = 1; % old epoch
+                        for i = 1 : coo.time.length
+                            cur_time = round(coo.time.getEpoch(i).getMatlabTime*86400)/86400;
+                            while e <= numel(timestamp) && (cur_time > timestamp(e))
+                                str_tmp = sprintf('%s%s\n', str_tmp, txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2)));
+                                e = e +1;
+                            end
+                            try
+                                time = coo.time.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS');
+                                xyz = coo.xyz(i,:);
+                                if isempty(coo.Cxx)
+                                    cov = zeros(3,3);
+                                else
+                                    cov = coo.Cxx(:,:,i);
+                                end
+                                str_tmp = sprintf('%s%s;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%d;%d\n', str_tmp, time, ...
+                                    xyz(1), xyz(2), xyz(3), ...
+                                    cov(1,1), cov(2,2), cov(3,3), cov(1,2), cov(1,3), cov(2,3), ...
+                                    quality_info.n_epochs(i), ...
+                                    quality_info.n_obs(i));
+                            catch ex
+                                % There is an inconsistency with the entry
+                                % could not add this epoch
+                                log.addWarning('There is a corrupted coordinate');
+                            end
+                            % Skip recomputed old epochs
+                            while e <= numel(timestamp) && (cur_time == timestamp(e))
+                                e = e +1;
+                            end
+                        end
+                        %  Insert old epochs not yet recomputed
+                        while e <= numel(timestamp)
+                            str_tmp = sprintf('%s%s\n', str_tmp, txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2)));
+                            e = e +1;
+                        end
+                        fprintf(fid, str_tmp);
+                        
+                        fclose(fid);
+                        Core.getLogger.addStatusOk(sprintf('Exporting completed successfully'));
+                    catch ex
+                        Core.getLogger.addError(sprintf('Exporting failed'));
+                        Core_Utils.printEx(ex);
+                    end
+                end
+            end
+        end
+        
         function exportPlainCoord(sta_list, type, out_file_name)
             % Export the current value of the coordinate to a text coordinate file
             %
@@ -639,7 +803,6 @@ classdef GNSS_Station < handle
             else % if upper(type(1)) == 'G' % Geodetic
                type = 'Geodetic';
             end
-            
             
             sta_list = sta_list(~sta_list.isEmpty_mr);
             if ~isempty(sta_list)

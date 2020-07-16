@@ -256,7 +256,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             rate = this.time.getRate;
         end
         
-        function coo = getPos(this)
+        function coo = getPos(this, flag_add_coo)
             % return the positions computed for the receiver
             % as Coordinates object
             %
@@ -266,14 +266,36 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % SYNTAX
             %   coo = this.getPos()
             
-            if ~isempty(this.xyz)
-                coo = Coordinates.fromXYZ(this.xyz);
-            elseif ~isempty(this.parent.work.xyz)
-                coo = Coordinates.fromXYZ(this.parent.work.xyz);
-            else
-                coo = Coordinates.fromXYZ([0 0 0]);
+            if nargin == 1 || isempty(flag_add_coo)
+                flag_add_coo = 0;
             end
             
+            if flag_add_coo == 0
+                if ~isempty(this.xyz)
+                    coo = Coordinates.fromXYZ(this.xyz);
+                elseif ~isempty(this.parent.work.xyz)
+                    coo = Coordinates.fromXYZ(this.parent.work.xyz);
+                else
+                    coo = Coordinates.fromXYZ([0 0 0]);
+                end
+                if coo.time.isEmpty
+                    coo.setTime(this.getPositionTime());
+                end
+            else
+                if ~isempty(this.add_coo)
+                    coo = this.add_coo(min(numel(this.add_coo), flag_add_coo)).coo;
+                    if coo.time.isEmpty
+                        coo.setTime(this.add_coo(min(numel(this.add_coo), flag_add_coo)).coo.time);
+                    end
+                else
+                    log.addWarning(sprintf('No additional coordinates are present into %s', this.parent.getMarkerName4Ch));
+                    coo = this.getPos();
+                    if coo.time.isEmpty
+                        coo.setTime(this.getPositionTime());
+                    end
+                end
+            end
+                        
         end
         
         function xyz = getPosXYZ(this)
