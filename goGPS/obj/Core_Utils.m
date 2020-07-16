@@ -1401,6 +1401,70 @@ classdef Core_Utils < handle
                 end
             end
         end
+        
+        %--------------------------------------------------------------------------
+        % FILE MANAGEMENT
+        %--------------------------------------------------------------------------
+        
+        function [txt, lim, has_cr] = readTextFile(file_path, min_line_len)
+            % Read a full file as txt
+            % 
+            % INPUT: 
+            %   file_path      full path to the text file
+            %   min_line_len   lines shorter than this value are not considered (default = 3)
+            %
+            % OUTPUT:
+            %   txt            full file as a string
+            %   lim            limits of the lines [character of start stop, line width]
+            %   has_cr         has carriage return character
+            %
+            % SYNTAX:
+            %  [txt, lim, has_cr] = Core_Utils.readTextFile(file_path, min_line_len)
+            
+            fid = fopen(file_path, 'rt');
+            if fid <= 0
+                Core.getLogger.addError(sprintf('"%s" cannot be read', file_name));
+                txt = [];
+                lim = [];
+                has_cr = false;
+            else
+                if nargin == 1
+                    min_line_len = 3;
+                end
+                txt = fread(fid,'*char')';
+                % try to see if carriage return is present in the file (Windows stupid standard)
+                % On Windows file lines ends with char(13) char(10)
+                % instead of just using char(10)
+                if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
+                    has_cr = true;  % The file has carriage return - I hate you Bill!
+                else
+                    has_cr = false;  % The file is UNIX standard
+                end
+                % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if (isempty(nl))
+                    lim = [];
+                else
+                    if nl(end) <  (numel(txt) - double(has_cr))
+                        nl = [nl; numel(txt)];
+                    end
+                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
+                    lim = [lim lim(:,2) - lim(:,1)];
+                    while lim(end,3) < min_line_len
+                        lim(end,:) = [];
+                    end
+                    
+                    % removing empty lines at end of file
+                    while (lim(end,1) - lim(end-1,1))  < 2
+                        lim(end,:) = [];
+                    end
+                end
+            end
+        end
+        
         %--------------------------------------------------------------------------
         % OTHER FUNCTIONS
         %--------------------------------------------------------------------------

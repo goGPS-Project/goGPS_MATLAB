@@ -3269,39 +3269,11 @@ classdef GNSS_Station < handle
                 Core.getLogger.addError(sprintf('"%s" not found', file_name));
                 crd_list = [];
             else
-                fid = fopen(file_name,'rt');
-                if fid <= 0
-                    Core.getLogger.addError(sprintf('"%s" cannot be read', file_name));
+                [txt, lim] = Core_Utils.readTextFile(file_name, 3);
+                
+                if isempty(txt)
                     crd_list = [];
                 else
-                    txt = fread(fid,'*char')';
-                    % try to see if carriage return is present in the file (Windows stupid standard)
-                    % On Windows file lines ends with char(13) char(10)
-                    % instead of just using char(10)
-                    if ~isempty(find(txt(1:min(1000,numel(txt))) == 13, 1, 'first'))
-                        has_cr = true;  % The file has carriage return - I hate you Bill!
-                    else
-                        has_cr = false;  % The file is UNIX standard
-                    end
-                    % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
-                    fclose(fid);
-                    
-                    % get new line separators
-                    nl = regexp(txt, '\n')';
-                    if nl(end) <  (numel(txt) - double(has_cr))
-                        nl = [nl; numel(txt)];
-                    end
-                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                    lim = [lim lim(:,2) - lim(:,1)];
-                    while lim(end,3) < 3
-                        lim(end,:) = [];
-                    end
-                    
-                    % removing empty lines at end of file
-                    while (lim(end,1) - lim(end-1,1))  < 2
-                        lim(end,:) = [];
-                    end
-                    
                     name_list = txt(repmat(lim(3:end,1),1,19) + repmat((0:18),size(lim,1)-2,1));
                     flag = txt(lim(3:end,1) + 61);
                     
