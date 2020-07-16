@@ -4739,7 +4739,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %    central_ss_time = this.getSessionCentralTime()
              [~, sss_lim] = this.getSessionLimits(this.getCurSession());
              central_ss_time = sss_lim.first();
-             central_ss_time.addSeconds((sss_lim.last - sss_lim.first)/2);
+             % Apply a 5 seconds rounding
+             central_ss_time.addSeconds((round((sss_lim.last - sss_lim.first)/5) * 5)/2);
         end
         
         function [buf_lft, buf_rgt] = getBuffer(this)
