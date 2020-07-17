@@ -10016,7 +10016,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     sys_list = cc.sys_c;
                 end
                 % Check that there are enough epoch to compute a solution
-                if true || this.checkMinAvailEpoch()
+                if  this.checkMinAvailEpoch()
                     this.setActiveSys(intersect(this.getActiveSys, Core.getCoreSky.getAvailableSys));
                     this.remBad();
                     
