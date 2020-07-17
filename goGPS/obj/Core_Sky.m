@@ -214,7 +214,7 @@ classdef Core_Sky < handle
                     this.importIono(f_name{1}, central_time);
                 end
                 
-                if not(clock_in_eph) && flag_no_clock
+                if not(clock_in_eph) && ~flag_no_clock
                     Core.getLogger.addMarkedMessage('Importing satellite clock files...');
                     for i = 1:length(clock_f_name)
                         [~,name,ext] = fileparts(clock_f_name{i});
