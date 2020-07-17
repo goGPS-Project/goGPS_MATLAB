@@ -121,7 +121,7 @@ if(nargin < 2);  opt = 1;Dm = eye(m); Dm(1,:)= -1; Dm(:,1) = []; end
 
 %In case Dm is absent, the default matrix is chosen
 if (nargin < 3)
-  disp('"The default differencing matrix Dm is chosen!"');
+  %disp('"The default differencing matrix Dm is chosen!"');
   Dm = eye(m); Dm(1,:)= -1; Dm(:,1) = [];
 end
 
