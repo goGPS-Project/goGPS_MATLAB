@@ -1193,16 +1193,19 @@ classdef GNSS_Station < handle
                     fprintf(fid,'[Locations]\n');
                     fprintf(fid,'Code,Name,X,Y,Z,EPSG\n');
                     for r = 1 : numel(sta_list)
-                        coo = Coordinates.fromXYZ(sta_list(r).out.xyz(1,:), sta_list(r).out.time_pos);
-                        [x,y,h_ellipse,zone] = coo.getENU();
+                        coo = sta_list(r).out.xyz(1,:);%Coordinates.fromXYZ(, sta_list(r).out.time_pos);
+                        %[x,y,h_ellipse,zone] = coo.getENU();
                         %                     ondu = coo.getOrthometricCorrection();
                         %                     h_ortho = h_ellipse - ondu;
-                        if zone(4) < 'N'
-                            hemi = '7';
-                        else
-                            hemi = '6';
-                        end
-                        fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,h_ellipse,['32' hemi zone(1:2)]);
+%                         if zone(4) < 'N'
+%                             hemi = '7';
+%                         else
+%                             hemi = '6';
+%                         end
+                        x = coo(:,1);
+                        y = coo(:,2);
+                        z = coo(:,3);
+                        fprintf(fid,'%s,%s,%0.4f,%0.4f,%0.4f,%s\n',sta_list(r).getMarkerName4Ch, sta_list(r).getMarkerName,x,y,z,'4326');
                     end
                     fprintf(fid,'\n');
                     
