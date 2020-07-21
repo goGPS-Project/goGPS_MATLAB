@@ -4566,7 +4566,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %    max_time = getMaxExecutionTimePar(this)
-            max_time = 7200;
+            max_time = 3600;
         end
 
         function updateOutPath(this, date, session)
