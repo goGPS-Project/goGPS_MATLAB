@@ -1998,56 +1998,69 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-                if ~found_ref
-                    id_ref = id_trg; % Use all the receiver as mean reference
-                end
-                [id_ref] = intersect(id_trg, id_ref);
-                if isempty(id_ref)
-                    log.addWarning('No reference have been found, using the mean of the receiver for the computation');
-                end
-                net = this.core.getNetwork(id_trg, rec);
-                net.reset();
-                flag_iono_reduce = false;
-                flag_clk_export = false;
-                flag_uncombined = false;
-                flag_free_network = false;
-                coo_rate = [];
-                fr_id = 1;
-                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
-                
-                if found
-                    coo_rate = rate;
-                end
-                for t = 1 : numel(tok)
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_CLK.par ')*$'], 'once'))
-                        flag_clk_export = true;
+                for i = numel(id_trg) : -1 : 1
+                    if isempty(rec(id_trg(i)).work) || ...
+                       rec(id_trg(i)).isEmptyWork_mr || ...
+                       not(rec(id_trg(i)).work.isPreProcessed)
+                       log.addWarning(sprintf('Excluding T%d, empty or not pre-processed', id_trg(i)));
                     end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_FREE_NET.par ')*$'], 'once'))
-                        flag_free_network = true;
-                    end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
-                        % use the original plane based interpolation
-                        flag_uncombined = true;
-                    end
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
-                        fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
-                        fr_id = str2num(tok{t}(fr_id+1));
-                    end
+                    id_trg(i) = [];
                 end
-                try
-                    %if flag_uncombined
-                    log.addMarkedMessage('Uncombined engine enabled');
-                    net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
-                    %else % the old network is deprecate
-                    %    net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
-                    %end
-                catch ex
-                    log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
-                    Core_Utils.printEx(ex);
-                end
-                for t = 1 : numel(tok)
-                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
-                        net.exportCrd();
+                if numel(id_trg) <= 1
+                    log.addError('A network adjustment cannot be completed with less than 2 receivers');
+                else
+                    
+                    if ~found_ref
+                        id_ref = id_trg; % Use all the receiver as mean reference
+                    end
+                    [id_ref] = intersect(id_trg, id_ref);
+                    if isempty(id_ref)
+                        log.addWarning('No reference have been found, using the mean of the receiver for the computation');
+                    end
+                    net = this.core.getNetwork(id_trg, rec);
+                    net.reset();
+                    flag_iono_reduce = false;
+                    flag_clk_export = false;
+                    flag_uncombined = false;
+                    flag_free_network = false;
+                    coo_rate = [];
+                    fr_id = 1;
+                    [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
+                    
+                    if found
+                        coo_rate = rate;
+                    end
+                    for t = 1 : numel(tok)
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_CLK.par ')*$'], 'once'))
+                            flag_clk_export = true;
+                        end
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_FREE_NET.par ')*$'], 'once'))
+                            flag_free_network = true;
+                        end
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
+                            % use the original plane based interpolation
+                            flag_uncombined = true;
+                        end
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once'))
+                            fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
+                            fr_id = str2num(tok{t}(fr_id+1));
+                        end
+                    end
+                    try
+                        %if flag_uncombined
+                        log.addMarkedMessage('Uncombined engine enabled');
+                        net.adjustNew(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, flag_free_network);
+                        %else % the old network is deprecate
+                        %    net.adjust(id_ref, coo_rate, flag_iono_reduce, flag_clk_export, fr_id, flag_free_network);
+                        %end
+                    catch ex
+                        log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
+                        Core_Utils.printEx(ex);
+                    end
+                    for t = 1 : numel(tok)
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
+                            net.exportCrd();
+                        end
                     end
                 end
             end
