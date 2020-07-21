@@ -196,6 +196,10 @@ classdef Core_Reference_Frame < handle
                         end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
                         epoch_gps = epoch.getGpsTime();
                         idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
+                        if not(any(idx_sta2))
+                            log = Core.getLogger;
+                            log.addMessage(log.indent('No valid a-priori coordinate found.'));
+                        end
                         idx_sta = idx_sta(idx_sta2);
                         if not(isempty(idx_sta))
                             idx_sta = idx_sta(1);
