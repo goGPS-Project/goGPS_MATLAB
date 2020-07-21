@@ -3063,7 +3063,7 @@ classdef LS_Manipulator_new < handle
                     else
                         [C_amb_amb, amb_float,idx_amb_est] = LS_Manipulator_new.getEstimableAmb(N_amb_amb, B_amb_amb);
 
-                        ambs = zeros(sum(idx_amb),1);
+                        ambs = zeros(length(idx_amb_est),1);
                         ambs(idx_amb_est) = amb_float;
                         clearvars N_amb_amb B_amb_amb
                         if size(C_amb_amb,1) > 2000 % fix by recievr matrix tto large
