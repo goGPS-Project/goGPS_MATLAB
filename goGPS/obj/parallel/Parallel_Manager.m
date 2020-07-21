@@ -506,7 +506,7 @@ classdef Parallel_Manager < Com_Interface
                     try
                         tmp = load(fullfile(this.getComDir, sss_file(s).name));
                     catch
-                        log.addWarning(sprintf('Fils %s seems corrupted', sss_file(s).name));
+                        log.addWarning(sprintf('File %s seems corrupted', sss_file(s).name));
                         not_corrupted = false;
                     end
                     if not_corrupted
@@ -515,7 +515,8 @@ classdef Parallel_Manager < Com_Interface
                         if isfield(tmp, 'rec') && (numel(tmp.rec) == n_rec) && isfield(tmp, 'atmo')
                             % Import atmosphere as computed by rec
                             core.setAtmosphere(tmp.atmo);
-                            log.addMessage(log.indent(sprintf('Importing session %d computed by worker %d', sss_id, w_id)));
+                            log.addMessage(log.indent(sprintf('%s - Importing session %d computed by worker %d', GPS_Time.now.toString('HH:MM:SS'), sss_id, w_id)));
+                            drawnow;
                             for r = 1 : n_rec
                                 if core.rec(r).isEmpty
                                     % The first time (computed session) import the entire object
@@ -919,7 +920,7 @@ classdef Parallel_Manager < Com_Interface
                 end
                 
                 active_jobs = active_jobs - n_job_done;
-                this.log.addMarkedMessage(sprintf('%d jobs completed', numel(completed_job)));
+                this.log.addMarkedMessage(sprintf('%d jobs completed @ %s', numel(completed_job), GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS')));
                 this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
             end
         end
