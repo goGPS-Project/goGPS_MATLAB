@@ -370,6 +370,43 @@ classdef Go_Slave < Com_Interface
                                         % Export work
                                         rec = core.rec(req_id);
                                         rec.out = []; % do not want to save out
+                                        
+                                        % Clear what is not needed
+                                        if not(core.state.flag_out_dt)
+                                            rec(req_id).work.dt = [];
+                                            rec(req_id).work.desync = [];
+                                            rec(req_id).work.dt_ip = [];
+                                            rec(req_id).work.dt_ph = [];
+                                            rec(req_id).work.dt_pr = [];
+                                        end
+                                        if not(core.state.flag_out_apr_tropo)
+                                            rec(req_id).work.apr_zhd = [];
+                                            rec(req_id).work.apr_zwd = [];
+                                        end
+                                        if not(core.state.flag_out_ztd)
+                                            rec(req_id).work.ztd = [];
+                                        end
+                                        if not(core.state.flag_out_zwd)
+                                            rec(req_id).work.zwd = [];
+                                        end
+                                        if not(core.state.flag_out_pwv)
+                                            rec(req_id).work.pwv = [];
+                                        end
+                                        if not(core.state.flag_out_tropo_g)
+                                            rec(req_id).work.tgn = [];
+                                            rec(req_id).work.tge = [];
+                                        end
+                                        if not(core.state.isResOut)
+                                            rec(req_id).work.sat.res = Residuals();
+                                        end
+                                        if not(core.state.flag_out_azel)
+                                            rec(req_id).work.sat.az = [];
+                                            rec(req_id).work.sat.el = [];
+                                        end
+                                        if not(core.state.flag_out_quality)
+                                            rec(req_id).work.sat.quality = [];
+                                        end
+                                        
                                         save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
                                     elseif this.isSessionWorker()
                                         % Export all the rec work spaces of the session
@@ -379,6 +416,42 @@ classdef Go_Slave < Com_Interface
                                             rec(r).out = []; % do not want to save out
                                             rec(r).clearHandles(); % do not want to save handles
                                             rec(r).work.clearHandles(); % do not want to save handles
+                                            
+                                            % Clear what is not needed
+                                            if not(core.state.flag_out_dt)
+                                                rec(r).work.dt = [];
+                                                rec(r).work.desync = [];
+                                                rec(r).work.dt_ip = [];
+                                                rec(r).work.dt_ph = [];
+                                                rec(r).work.dt_pr = [];
+                                            end
+                                            if not(core.state.flag_out_apr_tropo)
+                                                rec(r).work.apr_zhd = [];
+                                                rec(r).work.apr_zwd = [];
+                                            end
+                                            if not(core.state.flag_out_ztd)
+                                                rec(r).work.ztd = [];
+                                            end
+                                            if not(core.state.flag_out_zwd)
+                                                rec(r).work.zwd = [];
+                                            end
+                                            if not(core.state.flag_out_pwv)
+                                                rec(r).work.pwv = [];
+                                            end
+                                            if not(core.state.flag_out_tropo_g)
+                                                rec(r).work.tgn = [];
+                                                rec(r).work.tge = [];
+                                            end
+                                            if not(core.state.isResOut)
+                                                rec(r).work.sat.res = Residuals();
+                                            end
+                                            if not(core.state.flag_out_azel)
+                                                rec(r).work.sat.az = [];
+                                                rec(r).work.sat.el = [];
+                                            end
+                                            if not(core.state.flag_out_quality)
+                                                rec(r).work.sat.quality = [];
+                                            end
                                         end
                                         atmo = Core.getAtmosphere;
                                         save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec', 'atmo');
