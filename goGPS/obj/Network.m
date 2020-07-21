@@ -450,10 +450,15 @@ classdef Network < handle
 %                 idx_fix = ls.class_par == ls.PAR_AMB;
 %                 idx_fix(idx_fix) = abs(fracFNI(ls.x(idx_fix))) < 1e-9; % fixed ambiguoty
 %                 ls.removeEstParam(idx_fix);
-                ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
-                ls.solve(Core.getState.net_amb_fix_approach >1);                
+                ls.reweightHuber();
+                ls.solve(Core.getState.net_amb_fix_approach >1);
+                ls.simpleSnoop();
+               % ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+                ls.solve(Core.getState.net_amb_fix_approach >1); 
+
                 s0 = mean(abs(ls.res(ls.phase_obs > 0 & ~ls.outlier_obs)));
                 if s0 < 0.05
+                    this.log.addStatusOk(sprintf('Network adjustment completed with sigma0 = %.4f m ', s0));
                     % initialize array for results
                     this.initOutNew(ls);
                     this.addAdjValuesNew(ls);
