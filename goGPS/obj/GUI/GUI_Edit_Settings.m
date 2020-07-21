@@ -3025,8 +3025,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 
                 % Check if the cache is for the same set of folders
                 cur_unique_dir = unique(dir_path);
-                % If the number of files to check is > 370  and the number of folder to scan is less than 150 (scanning folders might be slow)
-                if (max_sss * n_rec > 370)  && (max_sss * n_rec / numel(cur_unique_dir)) > 20
+                % If the number of files to check is > 100  and the number of folder to scan is less than 150 (scanning folders might be slow)
+                if (max_sss * n_rec > 100)  && (max_sss * n_rec / numel(cur_unique_dir)) > 20
                     % back-up cache
                     old_unique_dir = iif(flag_force, cell(0), unique_dir);
                     old_dir_list = iif(flag_force, cell(0), dir_list);
