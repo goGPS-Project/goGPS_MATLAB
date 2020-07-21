@@ -419,7 +419,7 @@ classdef Core < handle
                 core.rf = rf;
             end
             if nargin == 1 && flag_reset
-            %    rf.reset();
+                rf.init();
             end
         end
         
