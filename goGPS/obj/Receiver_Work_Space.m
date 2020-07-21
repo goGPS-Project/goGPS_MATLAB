@@ -7227,28 +7227,31 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Upadte azimute elevation into.sat
             % SYNTAX
             %   this.updateAzimuthElevation(<sat>)
-            cc = Core.getState.getConstellationCollector;
-            if nargin < 2 || isempty(go_id)
-                go_id = unique(this.go_id);
-            end
-            if isempty(this.sat.avail_index)
-                this.updateAllAvailIndex();
-                % this.sat.avail_index = true(this.length, cc.getMaxNumSat);
-            end
-            
-            if isempty(this.sat.el)
-                this.sat.el = zeros(this.length, cc.getMaxNumSat);
-            end
-            if isempty(this.sat.az)
-                this.sat.az = zeros(this.length, cc.getMaxNumSat);
-            end
-            for i = go_id(:)'
-                if sum(this.go_id == i) > 0
-                    av_idx = this.sat.avail_index(:, i) ~= 0;
-                    [this.sat.az(av_idx, i), this.sat.el(av_idx, i)] = this.computeAzimuthElevation(i);
+            if this.isEmpty
+                Core.getLogger.addWarning('The receiver is empty!');
+            else
+                cc = Core.getState.getConstellationCollector;
+                if nargin < 2 || isempty(go_id)
+                    go_id = unique(this.go_id);
+                end
+                if isempty(this.sat.avail_index)
+                    this.updateAllAvailIndex();
+                    % this.sat.avail_index = true(this.length, cc.getMaxNumSat);
+                end
+                
+                if isempty(this.sat.el)
+                    this.sat.el = zeros(this.length, cc.getMaxNumSat);
+                end
+                if isempty(this.sat.az)
+                    this.sat.az = zeros(this.length, cc.getMaxNumSat);
+                end
+                for i = go_id(:)'
+                    if sum(this.go_id == i) > 0
+                        av_idx = this.sat.avail_index(:, i) ~= 0;
+                        [this.sat.az(av_idx, i), this.sat.el(av_idx, i)] = this.computeAzimuthElevation(i);
+                    end
                 end
             end
-            
         end
         
         function [mf, el_points] = computeEmpMF(this, el_points, show_fig)
