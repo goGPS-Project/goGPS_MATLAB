@@ -2003,13 +2003,12 @@ classdef Command_Interpreter < handle
                        rec(id_trg(i)).isEmptyWork_mr || ...
                        not(rec(id_trg(i)).work.isPreProcessed)
                        log.addWarning(sprintf('Excluding T%d, empty or not pre-processed', id_trg(i)));
+                       id_trg(i) = [];
                     end
-                    id_trg(i) = [];
                 end
                 if numel(id_trg) <= 1
                     log.addError('A network adjustment cannot be completed with less than 2 receivers');
                 else
-                    
                     if ~found_ref
                         id_ref = id_trg; % Use all the receiver as mean reference
                     end
