@@ -2884,7 +2884,11 @@ classdef Command_Interpreter < handle
                     end
                     flag_crd = flag_crd + 1;
                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_TXT.par ')*$'], 'once'))
-                    rec.exportAppendedCoo();
+                    if sss_lev == 0 % run on all the results (out)
+                        rec.exportAppendedCoo('out');
+                    else % run in single session mode (work)
+                        rec.exportAppendedCoo('work');
+                    end
                     flag_crd = flag_crd + 1;
                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_XYZ_TXT.par ')*$'], 'once'))
                     if ~isempty(id_trg)

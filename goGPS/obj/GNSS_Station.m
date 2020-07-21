@@ -618,7 +618,7 @@ classdef GNSS_Station < handle
             log.addStatusOk('Export completed successfully');
         end
         
-        function exportAppendedCoo(sta_list, out_file_prefix)
+        function exportAppendedCoo(sta_list, mode, out_file_prefix)
             % Export the current value of the coordinate to a text coordinate file
             % One file per receiver, containing: time_stamp: 
             %   X, Y, Z, 
@@ -626,14 +626,17 @@ classdef GNSS_Station < handle
             %   n_epochs, n_obs
             %
             % INPUT:
-            %   type    it can be ( "XYZ" | "ENU" | "Geodetic")
+            %   mode             it could be 'out' (dafault), 'work', ...(future modes)
+            %   out_file_prefix  prefix of the out file
             %
             % SYNTAX:
-            % this.exportXYZ(this, type, <out_file_name>)
+            %   this.exportAppendedCoo(this, <mode = 'out'>, <out_file_name>)
             
             % Remove empty receivers
-            type = 'XYZ';
-            flag_out = true;
+            if nargin < 2 || isempty(mode)
+                mode = 'out'; % use median out coordinates
+            end
+            flag_out = strcmpi(mode, 'out');
             
             sta_list = sta_list(~sta_list.isEmpty_mr);
             if ~isempty(sta_list)
@@ -641,7 +644,7 @@ classdef GNSS_Station < handle
                 for rec = sta_list(:)'
                     state = Core.getState();
                     now_time = GPS_Time.now();
-                    if nargin < 2 || isempty(out_file_prefix)
+                    if nargin < 3 || isempty(out_file_prefix)
                         out_dir = state.getOutDir();
                         out_file_prefix = strrep([state.getPrjName '_'], ' ', '_');
                     end
@@ -711,17 +714,20 @@ classdef GNSS_Station < handle
                         str_tmp = sprintf('%s+SensorName     : GNSS\n', str_tmp);
                         str_tmp = sprintf('%s+DataScale      : m\n', str_tmp);
                         str_tmp = sprintf('%s+DataType       :\n', str_tmp);
-                        str_tmp = sprintf('%s -01            : X\n', str_tmp);
-                        str_tmp = sprintf('%s -02            : Y\n', str_tmp);
-                        str_tmp = sprintf('%s -03            : Z\n', str_tmp);
-                        str_tmp = sprintf('%s -04            : Cxx\n', str_tmp);
-                        str_tmp = sprintf('%s -05            : Cyy\n', str_tmp);
-                        str_tmp = sprintf('%s -06            : Czz\n', str_tmp);
-                        str_tmp = sprintf('%s -07            : Cxy\n', str_tmp);
-                        str_tmp = sprintf('%s -08            : Cxz\n', str_tmp);
-                        str_tmp = sprintf('%s -09            : Cyz\n', str_tmp);
-                        str_tmp = sprintf('%s -10            : nEpochs\n', str_tmp);
-                        str_tmp = sprintf('%s -11            : nObs\n', str_tmp);
+                        str_tmp = sprintf('%s -00            : timeStamp\n', str_tmp);
+                        str_tmp = sprintf('%s -01            : exportTime\n', str_tmp);
+                        str_tmp = sprintf('%s -02            : x\n', str_tmp);
+                        str_tmp = sprintf('%s -03            : y\n', str_tmp);
+                        str_tmp = sprintf('%s -04            : z\n', str_tmp);
+                        str_tmp = sprintf('%s -05            : Cxx\n', str_tmp);
+                        str_tmp = sprintf('%s -06            : Cyy\n', str_tmp);
+                        str_tmp = sprintf('%s -07            : Czz\n', str_tmp);
+                        str_tmp = sprintf('%s -08            : Cxy\n', str_tmp);
+                        str_tmp = sprintf('%s -09            : Cxz\n', str_tmp);
+                        str_tmp = sprintf('%s -10            : Cyz\n', str_tmp);
+                        str_tmp = sprintf('%s -11            : nEpochs\n', str_tmp);
+                        str_tmp = sprintf('%s -12            : nObs\n', str_tmp);
+                        str_tmp = sprintf('%s -13            : fixingRatio\n', str_tmp);
                         str_tmp = sprintf('%s+DataStart\n', str_tmp);
                         fprintf(fid, str_tmp);
      
@@ -739,7 +745,8 @@ classdef GNSS_Station < handle
                         for i = 1 : coo.time.length
                             cur_time = round(coo.time.getEpoch(i).getMatlabTime*86400)/86400;
                             while e <= numel(timestamp) && (cur_time > timestamp(e))
-                                str_tmp = sprintf('%s%s\n', str_tmp, txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2)));
+                                old_line = txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2));
+                                str_tmp = sprintf('%s%s\n', str_tmp, old_line);
                                 e = e +1;
                             end
                             try
@@ -750,11 +757,12 @@ classdef GNSS_Station < handle
                                 else
                                     cov = coo.Cxx(:,:,i);
                                 end
-                                str_tmp = sprintf('%s%s;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%d;%d\n', str_tmp, time, ...
+                                str_tmp = sprintf('%s%s;%s;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%d;%d;%.2f\n', str_tmp, time, now_time.toString('yyyy-mm-dd HH:MM:SS'), ...
                                     xyz(1), xyz(2), xyz(3), ...
                                     cov(1,1), cov(2,2), cov(3,3), cov(1,2), cov(1,3), cov(2,3), ...
                                     quality_info.n_epochs(i), ...
-                                    quality_info.n_obs(i));
+                                    quality_info.n_obs(i), ...
+                                    quality_info.fixing_ratio(i));
                             catch ex
                                 % There is an inconsistency with the entry
                                 % could not add this epoch
@@ -767,11 +775,12 @@ classdef GNSS_Station < handle
                         end
                         %  Insert old epochs not yet recomputed
                         while e <= numel(timestamp)
-                            str_tmp = sprintf('%s%s\n', str_tmp, txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2)));
+                            old_line = txt(lim(data_start + (e-1),1):lim(data_start + (e-1),2));
+                            str_tmp = sprintf('%s%s\n', str_tmp, old_line);
                             e = e +1;
                         end
                         fprintf(fid, str_tmp);
-                        
+                        fprintf(fid, '+DataEnd\n');
                         fclose(fid);
                         Core.getLogger.addStatusOk(sprintf('Exporting completed successfully'));
                     catch ex
