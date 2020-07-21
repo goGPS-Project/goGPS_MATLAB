@@ -4201,6 +4201,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 else
                     XR = this.xyz;
                 end
+                if isempty(XR)
+                    XR = [0 0 0];
+                end
                 XS_loc = XS_loc - XR;
             else
                 cc = Core.getState.getConstellationCollector;
