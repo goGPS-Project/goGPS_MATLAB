@@ -225,7 +225,7 @@ classdef Tropo_Mat_Reader
                 plot(time_utc(tropo_std .* 1e2 <= 0.6), tropo_opt(tropo_std .* 1e2 <= 0.6) .* 1e2, '-k', 'LineWidth', 2); % plot only "good" prediction values
                 if nargin < 3 || isempty(color)
                     caxis = [0 12];
-                    colorbar('Location', 'south');
+                    colorbar('Location', 'southOutside');
                 end
                 
                 axis tight
