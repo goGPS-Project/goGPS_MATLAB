@@ -661,22 +661,27 @@ classdef GNSS_Station < handle
                             % Read and append
                             [txt, lim] = Core_Utils.readTextFile(out_file_name, 3);
                             if isempty(lim)
-                                vers_ok = false;
+                                file_ok = false;
                                 timestamp = [];
                             else
                                 % Verify the file version (it should match 1.0):
                                 id_ver = find(txt(lim(:,1) + 1) == 'F'); % +FileVersion
-                                vers_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.0', 'once')));
+                                file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.0', 'once')));
                                 
                                 % Data should be present
                                 timestamp = [];
-                                if vers_ok
-                                    data_start = find(txt(lim(:,1) + 9) == 't') + 1; % +DataStart
+                                if file_ok
+                                    id_len_ok = find(lim(:,3)+1 >= 9);
+                                    data_start = id_len_ok(find(txt(lim(id_len_ok,1) + 9) == 't') + 1); % +DataStart
+                                    id_len_ok = find(lim(:,3)+1 >= 8);
+                                    data_stop = id_len_ok(find(txt(lim(id_len_ok,1) + 7) == 'd') -1); % +DataStop
+                                    if isempty(data_stop)
+                                        data_stop = size(lim, 1);
+                                    end
                                     if isempty(data_start)
-                                        data_start = 0;
-                                        vers_ok = false;
+                                        file_ok = false;
                                     else
-                                        id_data = lim(data_start:end,1);
+                                        id_data = lim(data_start:data_stop,1);
                                         % Read old timestamps
                                         timestamp = datenum(txt(repmat(id_data, 1, 19) + repmat(0:18, numel(id_data), 1)), 'yyyy-mm-dd HH:MM:SS');
                                     end
@@ -686,22 +691,31 @@ classdef GNSS_Station < handle
                                 
                                 % Check description field
                                 % use the old one for the file
-                                if vers_ok
+                                if file_ok
                                     id_descr = find(txt(lim(:,1) + 4) == 'c'); % + Description
                                     if isempty(id_descr)
-                                        vers_ok = false;
+                                        file_ok = false;
                                     else
                                         str_tmp = sprintf('%s\n', txt(lim(id_descr,1):lim(id_descr,2))); % Keep the description of the old file
                                     end
                                 end
                             end
                         else
-                            vers_ok = false; 
+                            file_ok = false; 
                             timestamp = [];
                         end
                         
+                        if flag_out && not(rec.isEmptyOut_mr)
+                            coo = rec.out.getPos;
+                            quality_info = rec.out.quality_info;
+                        else
+                            coo = rec.work.getPos;
+                            quality_info = rec.work.quality_info;
+                        end
+                        
+                        
                         fid = fopen(out_file_name, 'Wb');
-                        if not(vers_ok)
+                        if not(file_ok)
                             str_tmp = sprintf('+Description    : XYZ Position file generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
                         end
                         str_tmp = sprintf('%s+LastChange     : %s\n', str_tmp, now_time.toString('dd-mmm-yyyy HH:MM'));
@@ -731,14 +745,6 @@ classdef GNSS_Station < handle
                         str_tmp = sprintf('%s+DataStart\n', str_tmp);
                         fprintf(fid, str_tmp);
      
-                        if flag_out && not(rec.isEmptyOut_mr)
-                            coo = rec.out.getPos;
-                            quality_info = rec.out.quality_info;
-                        else
-                            coo = rec.work.getPos;
-                            quality_info = rec.work.quality_info;
-                        end
-                        
                         % Append New
                         str_tmp = '';
                         e = 1; % old epoch
