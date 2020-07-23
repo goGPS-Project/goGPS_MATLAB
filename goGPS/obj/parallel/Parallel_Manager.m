@@ -853,7 +853,10 @@ classdef Parallel_Manager < Com_Interface
                                         % try to read it again
                                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
                                     end
-                                    s0 = tmp.rec.work.sat.res.getStd();
+                                    s0 = tmp.rec(1).work.quality_info.s0;
+                                    if isempty(s0)
+                                        s0 = tmp.rec(1).work.quality_info.s0_ip;
+                                    end
                                     if s0 * 1e2 > 2
                                         this.log.addWarning(sprintf('s0 = %.3f of the residuals for parallel job %d (session %d)', s0, job_id, tmp.rec.state.getCurSession()));
                                     else
