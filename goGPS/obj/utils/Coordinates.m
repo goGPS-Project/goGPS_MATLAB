@@ -1338,6 +1338,168 @@ classdef Coordinates < Exportable & handle
             
             fh = coo_list.showPositionENU();
         end
+        
+        function bslCompare(coo_list_0, coo_list_1, id_ref, spline_base, outlier_thr, y_lim)
+            % Compare two sets of receivers coordinates (e.g. coming from two different execution)
+            %
+            % INPUT
+            %   coo_list_0           first set of GNSS receivers or coordinates
+            %   coo_list_1           second set of GNSS receivers or coordinates
+            %   id_ref               id of the reference receiver
+            %                        DEFAULT: last receiver
+            %   spline_base          spline base in days (for removing splines)
+            %                        DEFAULT: 365/4
+            %   outlier_threshold    threshold on the baseline difference for the
+            %                        spline and STD computation [mm]
+            %                        DEFAULT: 2 mm
+            %   y_lim                3 x 2 ylimits
+            %
+            % SINTAX
+            %   Coordinates.bslCompare(rec_list_0, rec_list_1, id_ref, spline_base, outlier_thr)
+            %
+            % EXAMPLE
+            %   Coordinates.bslCompare(nomp.core.rec, core.rec, 7, 365/4, 2);
+            
+            if nargin < 3 || isempty(id_ref)
+                id_ref = numel(coo_list_0); % set to the last;
+            end
+            if nargin < 4 || isempty(spline_base)
+                spline_base = 365/4;
+            end
+            % Set outlier treshold (on baseline differrence);
+            if nargin < 5 || isempty(outlier_thr)
+                outlier_thr = 2;
+            end
+            
+            if isa(coo_list_0, 'Coordinates')
+                coo_ref0 = coo_list_0(id_ref);
+            else
+                coo_ref0 = coo_list_0(id_ref).getPos;
+            end
+            if isa(coo_list_1, 'Coordinates')
+                coo_ref1 = coo_list_1(id_ref);
+            else
+                coo_ref1 = coo_list_1(id_ref).getPos;
+            end
+            if nargin < 6 || isempty(y_lim)
+                y_lim = [-5 5; -10 10; -10 10];
+            elseif spline_base == 0
+                spline_base = -1;
+            end
+            
+            Core.getLogger.addMonoMessage('\nProcessing gain - solution 0 vs 1\n----------------------------------------');
+
+            for r = setdiff(1 : numel(coo_list_1), id_ref)
+                if isa(coo_list_0, 'Coordinates')
+                    coo0 = coo_list_0(r);
+                else
+                    coo0 = coo_list_0(r).getPos;
+                end
+                if isa(coo_list_1, 'Coordinates')
+                    coo1 = coo_list_1(r);
+                else
+                    coo1 = coo_list_1(r).getPos;
+                end
+                
+                % Extract the baselines
+                [t_comm, idx1, idx2] = intersect(round(coo_ref0.time.getRefTime(coo0.time.first.getMatlabTime)),round(coo0.time.getRefTime(coo0.time.first.getMatlabTime)));
+                t0 = coo0.time.first.getMatlabTime + t_comm/86400;
+                enu_diff0 = Coordinates.cart2local(median(coo_ref0.xyz,1,'omitnan'),coo0.xyz(idx2,:) - coo_ref0.xyz(idx1,:) )*1e3;
+                id_ok = not(any(isnan(enu_diff0), 2)); % discard NaN
+                t0 = t0(id_ok);
+                enu_diff0 = enu_diff0(id_ok,:);
+                
+                [t_comm, idx1, idx2] = intersect(round(coo_ref1.time.getRefTime(coo1.time.first.getMatlabTime)),round(coo1.time.getRefTime(coo1.time.first.getMatlabTime)));
+                t1 = coo1.time.first.getMatlabTime + t_comm/86400;
+                enu_diff1 = Coordinates.cart2local(median(coo_ref1.xyz,1,'omitnan'),coo1.xyz(idx2,:) - coo_ref1.xyz(idx1,:) )*1e3;
+                id_ok = not(any(isnan(enu_diff1), 2)); % discard NaN
+                t1 = t1(id_ok);
+                enu_diff1 = enu_diff1(id_ok,:);
+                
+                % Sync the baselines
+                [t_comm, idx0, idx1] = intersect(round(t0*86400)/86400,round(t1*86400)/86400, 'stable');
+                enu_diff = enu_diff0(idx0,:) - enu_diff1(idx1,:);
+                id_ok = abs(enu_diff - median(enu_diff, 'omitnan')) < outlier_thr;
+                
+                fh = figure; Core_UI.beautifyFig(fh, 'dark'); drawnow
+                % Plot the baseline difference ----------------------------------------
+                subplot(3,1,1);
+                plotSep(t_comm, enu_diff, '.-', 'MarkerSize', 15, 'LineWidth', 2);
+                for c = 1 : 3
+                    std_enu(:,c) = std(enu_diff(id_ok(:,c), c), 'omitnan');
+                end
+                legend(sprintf('East (%.2f mm)', std_enu(1)), sprintf('North (%.2f mm)', std_enu(2)), sprintf('Up (%.2f mm)', std_enu(3)), 'location', 'EastOutside');
+                ylim(y_lim(1,:));
+                xlim(minMax(t_comm));
+                setTimeTicks();
+                ax(1) = gca;
+                ylabel(sprintf('Baseline\ndifference'));
+                grid minor
+                title(sprintf('Baseline %d - %d\\fontsize{5} \n', r, id_ref), 'FontSize', 16);
+                
+                
+                % Plot the baseline (filtered by spline) of the solution with no MP ---
+                subplot(3,1,2);
+                tmp = enu_diff0(idx0,:) - median(enu_diff0(idx0,:), 'omitnan');
+                
+                splined = zeros(size(tmp));
+                if spline_base > 0
+                    for c = 1 : 3
+                        ttmp = t_comm(id_ok(:,c));
+                        [filtered, ~, ~, splined(:,c)] = splinerMat(ttmp, tmp(id_ok(:,c),c), spline_base, 1e-8, t_comm);
+                    end
+                end
+                tmp = tmp - splined; % remove splines
+                plotSep(t_comm, tmp, '.-', 'MarkerSize', 15, 'LineWidth', 2);
+                
+                for c = 1 : 3
+                    std_enu0(:,c) = std(tmp(id_ok(:,c), c), 'omitnan');
+                end
+                %plotSep(t_comm, splined, '.-', 'MarkerSize', 1, 'LineWidth', 1, 'Color', 'k');
+                legend(sprintf('East (%.2f mm)', std_enu0(1)), sprintf('North (%.2f mm)', std_enu0(2)), sprintf('Up (%.2f mm)', std_enu0(3)), 'location', 'EastOutside');
+                if spline_base ~= 0
+                    ylim(y_lim(2,:));
+                end
+                xlim(minMax(t_comm));
+                setTimeTicks();
+                ax(2) = gca;
+                ylabel(sprintf('Baseline 0\n(reduced)'));
+                grid minor
+                
+                % Plot the baseline (filtered by spline) of the solution with MP ------
+                subplot(3,1,3);
+                tmp = enu_diff1(idx1,:) - median(enu_diff1(idx1,:), 'omitnan');
+                
+                splined = zeros(size(tmp));
+                if spline_base > 0
+                    for c = 1 : 3
+                        ttmp = t_comm(id_ok(:,c));
+                        [filtered, ~, ~, splined(:,c)] = splinerMat(ttmp, tmp(id_ok(:,c),c), spline_base, 1e-8, t_comm);
+                    end
+                end
+                
+                tmp = tmp - splined; % remove splines
+                plotSep(t_comm, tmp, '.-', 'MarkerSize', 15, 'LineWidth', 2);
+                
+                for c = 1 : 3
+                    std_enu1(:,c) = std(tmp(id_ok(:,c), c), 'omitnan');
+                end
+                legend(sprintf('East (%.2f mm)', std_enu1(1)), sprintf('North (%.2f mm)', std_enu1(2)), sprintf('Up (%.2f mm)', std_enu1(3)), 'location', 'EastOutside');
+                if spline_base ~= 0
+                    ylim(y_lim(3,:));
+                end
+                xlim(minMax(t_comm));
+                setTimeTicks();
+                ax(3) = gca;
+                ylabel(sprintf('Baseline 1\n(reduced)'));
+                grid minor
+                
+                Core_UI.beautifyFig(fh, 'dark');
+                linkaxes(ax, 'x');
+                
+                Core.getLogger.addMonoMessage(sprintf('Baseline %d - %d) %5.2f %% %5.2f %% %5.2f %%', r, id_ref, (100*((std_enu0 - std_enu1) ./ std_enu0))));
+            end
+        end
     end
     
     % =========================================================================
