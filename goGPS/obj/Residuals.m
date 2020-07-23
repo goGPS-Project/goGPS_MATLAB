@@ -245,12 +245,17 @@ classdef Residuals < Exportable
             this.obs_code(lid_ko, :) = [];
         end
         
-        function cutEpochs(this, new_lim)
+        function cutEpochs(this, new_lim, end_lim)
             % Get the residual only in the time span given
             %
             % SYNTAX
             %   this.cutEpochs(new_limits)
+            %   this.cutEpochs(lim_start, lim_stop)
             
+            if nargin == 3
+                new_lim = new_lim.getCopy;
+                new_lim.append(end_lim);
+            end
             time_res = this.time.getNominalTime();
             sss_start = find(time_res.getMatlabTime >= round(new_lim.first.getMatlabTime * 86400 * time_res.getRate) / (86400 * time_res.getRate), 1, 'first');
             sss_stop = find(time_res.getMatlabTime > round(new_lim.last.getMatlabTime * 86400 * time_res.getRate) / (86400 * time_res.getRate), 1, 'first');
