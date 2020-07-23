@@ -61,6 +61,7 @@ classdef Coordinates < Exportable & handle
     end
     
     properties (SetAccess = public, GetAccess = public) % set permission have been changed from private to public (Giulio)
+        name = '';                  % Name of the point (not yet used extensively)
         time = GPS_Time             % Position time
         xyz = []                    % Coordinates are stored in meters in as cartesian XYZ ECEF
         precision = 0.0001          % 3D limit [m] to check the equivalence among coordinates
@@ -452,7 +453,7 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     %    STATIC CONSTRUCTOR
     % =========================================================================
-    methods (Access = 'public', Static)        
+    methods (Access = 'public', Static)
         function this = fromXYZ(xyz, y, z, time)
             % Set the Coordinates from XYZ coordinates
             %
@@ -521,7 +522,76 @@ classdef Coordinates < Exportable & handle
             z = (N * (1 - GPS_SS.ELL_E.^2) + h_ellips) .* sin(lat);
 
             this = Coordinates.fromXYZ(x, y, z, time);
-        end                    
+        end
+    
+        function this = importCoo(file_name)
+            % Importing from a coo file XYZ and timestamp to a Coordinate
+            % object
+            this = Coordinates;
+            if exist(file_name, 'file') == 2
+                % Read and append
+                [txt, lim] = Core_Utils.readTextFile(file_name, 3);
+                if isempty(lim)
+                    f = false;
+                    timestamp = [];
+                else
+                    % Verify the file version (it should match 1.0):
+                    id_ver = find(txt(lim(:,1) + 1) == 'F'); % +FileVersion
+                    file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.0', 'once')));
+                    
+                    % Point Name
+                    timestamp = [];
+                    if file_ok
+                        id_line = find(txt(lim(:,1) + 1) == 'M'); % +MonitoringPoint
+                        if isempty(id_line)
+                            file_ok = false;
+                        else
+                            this.name = regexp(txt(lim(id_line, 1):lim(id_line, 2)), '(?<=MonitoringPoint[ ]*: ).*', 'match', 'once');
+                        end
+                    end
+                    
+                    % Data column (at the moment set here manually)
+                    data_col = [2, 3, 4] + 1; % x, y, z
+                    
+                    % Data should be present
+                    timestamp = [];
+                    if file_ok
+                        id_len_ok = find(lim(:,3)+1 >= 9);
+                        data_start = id_len_ok(find(txt(lim(id_len_ok,1) + 9) == 't') + 1); % +DataStart
+                        id_len_ok = find(lim(:,3)+1 >= 8);
+                        data_stop = id_len_ok(find(txt(lim(id_len_ok,1) + 7) == 'd') -1); % +DataStop
+                        if isempty(data_stop)
+                            data_stop = size(lim, 1);
+                        end
+                        if isempty(data_start)
+                            file_ok = false;
+                        else
+                            id_data = lim(data_start:data_stop,1);
+                            % Read old timestamps
+                            timestamp = datenum(txt(repmat(id_data, 1, 19) + repmat(0:18, numel(id_data), 1)), 'yyyy-mm-dd HH:MM:SS');
+                        end
+                    end
+                    
+                    % Import XYZ and time
+                    if file_ok
+                        this.xyz = nan(data_stop - data_start + 1, 3);
+                        for l = 0 : (data_stop - data_start)
+                            data_line = strsplit(txt(lim(data_start + l, 1) : lim(data_start + l, 2)), ';');
+                            this.xyz(l + 1, 1) = str2double(data_line{data_col(1)});
+                            this.xyz(l + 1, 2) = str2double(data_line{data_col(2)});
+                            this.xyz(l + 1, 3) = str2double(data_line{data_col(3)});
+                        end
+                        this.time = GPS_Time(timestamp);
+                    end
+                    
+                    % Check description field
+                    % use the old one for the file
+                end
+            else
+                log = Core.getLogger();
+                log.addError(sprintf('%s cannot be imported', file_name));
+            end
+        end
     end
     
     % =========================================================================
@@ -543,13 +613,17 @@ classdef Coordinates < Exportable & handle
             % SYNTAX 
             %   this.showCoordinatesENU(coo_list);
             
-            str_title{1} = sprintf('Position stability ENU [mm]\nSTD (detrended)');
             str_title{2} = sprintf('STD (detrended)');
             str_title{3} = sprintf('STD (detrended)');
             log = Core.getLogger();
             fh = figure('Visible', 'off'); Core_UI.beautifyFig(fh);
             for i = 1 : numel(coo_list)
                 pos = coo_list(i);
+                if not(isempty(pos.name))
+                    str_title{1} = sprintf('%s\nPosition stability ENU [mm]\nSTD (detrended)', pos.name);
+                else
+                    str_title{1} = sprintf('Position stability ENU [mm]\nSTD (detrended)');
+                end
                 if ~pos.isEmpty
                     
                     if nargin == 1
@@ -915,7 +989,7 @@ classdef Coordinates < Exportable & handle
     %    OPERATIONS
     % =========================================================================
     
-    methods (Access = 'public')                        
+    methods (Access = 'public')
         function res = eq(coo1, coo2)
             %%% DESCRIPTION: check if two coordinates are equal
             d = sqrt(sum((coo1.xyz - coo2.xyz).^2, 2));
@@ -1291,5 +1365,4 @@ classdef Coordinates < Exportable & handle
             toc
         end
     end
-    
 end
