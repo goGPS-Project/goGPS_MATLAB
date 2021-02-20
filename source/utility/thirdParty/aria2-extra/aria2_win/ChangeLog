@@ -1,0 +1,358 @@
+commit 6ddd23cce01e8cdd1d12d066492ed9c3918a2e01 (HEAD, tag: release-1.34.0, origin/master, origin/HEAD, master)
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-15
+
+    Update NEWS
+
+commit 4596d2c7a3772aebdb839ca19ba959566775bafc
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-15
+
+    Bump up version number to 1.34.0
+
+commit 9bdc6eb34ca5929a1e5de8975d919f3ac9f1592a
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-15
+
+    clang-format
+
+commit 6995edbf08e18e0578e58cc1ea312cd2dacdff47
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-15
+
+    Update AUTHORS
+
+commit 0ddf6fc925888b776f56767ca65e5c4c2f7a0b34
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-14
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-14
+
+    android: Update third-party libraries
+
+commit 479e4e8aee22a23cb6765aaaffead3542ec8b8c9
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-05-14
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-05-14
+
+    mingw: Update third-party libraries
+
+commit 431fcde29a5361adc916f2bd095c1f337663af19
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-02-12
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-02-12
+
+    BufferedFile: Flush content on close
+
+commit 307d8e779eeac0c3f18ad99dec9371731eb31f68
+Merge: d791d0b6 86dfc97a
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-19
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2018-01-19
+
+    Merge pull request #1113 from ITriskTI/patch-1
+    
+    Update aria2c.rst
+
+commit d791d0b6c3c086a8523f727d9d7aab550688a599
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-18
+
+    Fix doc
+
+commit 86dfc97a5292de048e64b7d5c4e1c2ba37e15872
+Author:     ITriskTI <ITriskTI@gmail.com>
+AuthorDate: 2018-01-17
+Commit:     ITriskTI <ITriskTI@gmail.com>
+CommitDate: 2018-01-17
+
+    Update aria2c.rst
+
+commit d6a6b3b28aefb6499c1eb13f0cc5d42f9d0eed3f
+Merge: 52bf5a60 aaed7814
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-08
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2018-01-08
+
+    Merge pull request #1107 from aria2/wintls-error
+    
+    wintls: Don't log writeData error in closing state
+
+commit 52bf5a6097d70e60e66b2be18064355521aaf242
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-04
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-08
+
+    Update travis
+
+commit aaed78147c7b184ef32618dc1108f6606f940d64
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-08
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-08
+
+    wintls: Don't log writeData error in closing state
+
+commit 6abbf247d2022f2ff66f99f07711c5184baf43d8
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-08
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-08
+
+    Fix misleading SSL/TLS backend explanation
+
+commit a06d521aa7ef9329f53d06b2b47a94aba33e9308
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-04
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-04
+
+    travis: Use newer xcode
+
+commit 4bd6b68d59a5ef9add2c79f8cefb15d520bfce49
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2018-01-04
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2018-01-04
+
+    WinTLS: Check return value
+
+commit c882ae3d9caf1a0f01e195d0fff49607e034cc18
+Merge: 795a0474 cc5469c0
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-12-02
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-12-02
+
+    Merge pull request #1079 from aria2/mingw-fix-remote-time-dst
+    
+    mingw: Use SetFileTime to avoid DST adjustment
+
+commit cc5469c0478a261f4d39c9fbbd7e70432f4e48d0
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-29
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-29
+
+    mingw: Use SetFileTime to avoid DST adjustment
+
+commit 795a0474df35c56307151cca5787cb8ae2df06e5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-23
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-23
+
+    clang-format-5.0
+
+commit 20a7c43f2da248bb17f1338d00d663157dce2156
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-23
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-23
+
+    Update .clang-format using clang-format-5.0
+
+commit a005f294482d7764c7d4cb3683b015247787f922
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-16
+
+    mingw: Fix compile error
+
+commit 5e7976af893c036d3fe0d184ea925c2a54068ba3
+Merge: 45756ddd eef212d7
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-08
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-08
+
+    Merge pull request #1065 from kwkam/unknown-stat
+    
+    UnknownLengthPieceStorage: Completed Length
+
+commit 45756ddd2bf1135c16c51035772ce5423a8296f9
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-08
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-08
+
+    android: Update third-party libraries
+
+commit 983e222c62085483bfcf910c4886669d00873a7f
+Merge: 3c6a70c5 dd60bba5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-08
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-08
+
+    Merge pull request #1064 from kwkam/syntax
+    
+    replace some lines with make_unique
+
+commit eef212d72ae5511a36b7f6bc90cdff93ecd374aa
+Author:     kwkam <kwkam@users.noreply.github.com>
+AuthorDate: 2017-11-08
+Commit:     kwkam <kwkam@users.noreply.github.com>
+CommitDate: 2017-11-08
+
+    UnknownLengthPieceStorage: return piece length
+    
+    show something in console status when downloading items
+    with unknown content length
+
+commit dd60bba5adce136582626a8fb200fef7d630e241
+Author:     kwkam <kwkam@users.noreply.github.com>
+AuthorDate: 2017-11-08
+Commit:     kwkam <kwkam@users.noreply.github.com>
+CommitDate: 2017-11-08
+
+    replace some lines with make_unique
+
+commit 3c6a70c566e19354fa8c6dbe6374471666cce72d
+Merge: 8f5eaa4b 3aed9cb5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-06
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-06
+
+    Merge pull request #1061 from aria2/fix-win-select
+    
+    mingw: Fix high CPU usage in BitTorrent downloads
+
+commit 3aed9cb533840717595e62b212e1817c91c019da
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-05
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-11-06
+
+    mingw: Fix high CPU usage in BitTorrent downloads
+    
+    This commit fixes high CPU usage in BitTorrent downloads.  Only mingw
+    build is affected by this bug.
+    
+    Thank you kwkam for identifying the cause of the issue, and helping
+    debugging this patch.
+
+commit 8f5eaa4bbb751f396b4e653a8c3a7effa8a233df
+Merge: 16f458c9 89be2fc6
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-05
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-05
+
+    Merge pull request #1059 from kwkam/patch-3
+    
+    replace some lines with make_shared
+
+commit 16f458c9a4dcd2c7e8c476a2f71cbcaddd370a38
+Merge: f198cd4a a45390c8
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-05
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-05
+
+    Merge pull request #1058 from kwkam/patch-2
+    
+    WinConsoleFile: fix colour properly
+
+commit f198cd4ad1cbbd542050726ba5fd95ec6b073fab
+Merge: aafa3688 5c6bcfd2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-05
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-05
+
+    Merge pull request #1057 from kwkam/patch-1
+    
+    util: also detect xdg_* env variables on windows
+
+commit 89be2fc649d6a50a62bcac79d2199e958be5ff26
+Author:     kwkam <kwkam@users.noreply.github.com>
+AuthorDate: 2017-11-05
+Commit:     kwkam <kwkam@users.noreply.github.com>
+CommitDate: 2017-11-05
+
+    replace some lines with make_shared
+
+commit a45390c80bf3510a3eac384a286c44b5d9af8af1
+Author:     kwkam <kwkam@users.noreply.github.com>
+AuthorDate: 2017-11-05
+Commit:     kwkam <kwkam@users.noreply.github.com>
+CommitDate: 2017-11-05
+
+    WinConsoleFile: fix colour properly
+
+commit 5c6bcfd2adf84189d1e504ac602c0377d7852637
+Author:     kwkam <kwkam@users.noreply.github.com>
+AuthorDate: 2017-11-04
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-04
+
+    util: also detect xdg_* env variables on windows
+    
+    so if people like to keep FHS they could define XDG_* for it
+
+commit aafa368885fb6b725e5e19b0b20f08a4cf4caa8b
+Merge: 99294425 07754e36
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-01
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-01
+
+    Merge pull request #1038 from nicolov/patch-1
+    
+    Retry on HTTP 502
+
+commit 992944257cd97bbe6f544cb43e4566aec5fa10ea
+Author:     Nils Maier <maierman@web.de>
+AuthorDate: 2017-11-01
+Commit:     Nils Maier <maierman@web.de>
+CommitDate: 2017-11-01
+
+    MacOS: Allocate once (apfs compat)
+
+commit d508e41198c9b106c8e358bd3148e1b3209a1b18
+Merge: 450b4f46 85b102a2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-11-01
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-11-01
+
+    Merge pull request #1053 from aria2/fix-libaria2-signal-handler
+    
+    Fix bug that signal handler does not work with libaria2
+
+commit 85b102a2a014a51d6c0c2d587defcd8366ca1595
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2017-10-31
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2017-10-31
+
+    Fix bug that signal handler does not work with libaria2
+    
+    This commit fixes the bug that signal handler does not work with
+    libaria2 when aria2::RUN_ONCE is passed to aria2::run().
+
+commit 07754e36e6614ce53fa919e27763710e9f354c8c
+Author:     nicolov <nicolov@users.noreply.github.com>
+AuthorDate: 2017-10-22
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2017-10-22
+
+    Retry on HTTP 502

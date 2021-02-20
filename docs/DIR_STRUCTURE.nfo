@@ -1,0 +1,70 @@
+               ___ ___ ___
+     __ _ ___ / __| _ | __|
+    / _` / _ \ (_ |  _|__ \
+    \__, \___/\___|_| |___/
+    |___/                    v 1.0
+
+¸¸¸.--.¸¸.- DATA DIRECTORY -.¸¸.--.¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸
+
+goGPS_MATLAB
+    │
+    ├─ DOCS                            // Collection of some files useful for the development of goGPS
+    │
+    ├─ goGPS                           // Main folder containing the goGPS code
+    │   ├─ last_settings.ini           // Store the latest setting in use
+    │   ├  ...
+    │   └  ...
+    │
+    ├─ ICONS                           // Icon set for the log window
+    │
+    └─ DATA
+        │
+        ├─ Antenna
+        │   ├─ ATX                     // ANTEX file
+        │   └─ MP                      // Multipath maps
+        │
+        ├─ Satellite
+        │   ├─ CLK                     // clk files
+        │   ├─ EPH                     // Ephemeris files (e.g. igs SP3 files)
+        │   ├─ CRX                     // CRX files storing Satellite problems
+        │   ├─ ATM                     // Atmospheric error grids / models
+        │   ├─ SBAS                    // Downloaded SBAS data
+        │   │   └─ EMS                 // EMS files from the EGNOS Message Server, via Internet
+        │   └─ DCB                     // Differential code biases
+        │
+        ├─ Reference
+        │   ├─ Geoid                   // Geoids for orthometric correction
+        │   └─ DTM                     // DTM for reference altitude
+        │
+        ├─ Station
+        │   ├─ station_info.ini        // Info of the station
+        │   ├─ network_info.ini        // Info of the network (FTP info)
+        │   ├─ < MET >                 // Meteorological data files
+        │   ├─ < CRD >                 // Permanent station positions
+        │   ├─ < SNX >                 // Sinex files, global solutions
+        │   └─ < Ocean >               // Computed ocean loading
+        │
+        └─ Project
+            └─ TestName                // Storing a project
+                ├─ Config
+                │   └─ config.ini      // config file of the project
+                │                      // (storing ALL the goGPS parameters)
+                │
+                ├─ RINEX               // All the RINEX files of the project
+                │   └─ < Year >        // Year corresponding to GPS time
+                │       └─ DOY         // DOY corresponding to GPS time
+                │
+                ├─ < Ref_path >        // <opt> reference paths
+                │
+                ├─ < Antenna >         // <opt> use the global dir if not present
+                │   ├─ < ATX >         // <opt> use the global dir if not present
+                │   │   └─ < custom >  // <opt> put custom .ATX here
+                │   └─ <MP>           // Multipath maps
+                │
+                ├─ < Stations >        // <opt> use the global dir if not present
+                │   ├─ < CRD >         // <opt> use the global dir if not present
+                │   ├─ < MET >         // <opt> Meteorological data files
+                │   └─ < Ocean >       // <opt> use the global dir if not present
+                │
+                └ Out
+    ¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸¸

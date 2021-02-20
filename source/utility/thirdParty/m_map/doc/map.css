@@ -1,0 +1,209 @@
+/* CSS file for m_map documentation
+    - R. Pawlowicz   30/Nov/2017     */
+    
+    /* First, some formatting for the regular text */
+    
+body {
+margin: 0px;
+background-color: white;  
+}
+
+p {
+font-family:  Verdana, Arial, Helvetica, sans-serif;
+font-size: small;
+color: black;;
+}
+h1 {
+	color: #990000;
+	font-family:   Arial Black, Helvetica, sans-serif;
+font-size: 300%;
+	font-weight: bolder;
+}
+h2 {
+	font-size: 180%;
+	color: #990000;
+	font-family: Arial Black, Helvetica, sans-serif;
+}
+h3 {
+	font-size: large;
+	color: #990000;
+	font-family: Arial Black, Helvetica, sans-serif;
+}
+h4 {
+	font-size: medium;
+	color: #990000;
+	font-family: Arial Black, Helvetica, sans-serif;
+	font-weight: bold;
+}
+li {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: small;
+	line-height: 18px;
+}
+pre {
+  font-family: "lucida console","courier new", courier, monospace;
+   font-size: small;
+ font-weight: normal;
+ color:  darkviolet;
+}
+code {
+font-family: "lucida console","courier new", courier, monospace;
+   font-size: small;
+ font-weight: normal;;
+ color: darkviolet;
+}
+
+hr {
+ width: 90%;
+ align: center;
+}
+
+img {
+display: block;
+margin: auto;
+}
+
+
+/*  This formats the page with
+      
+               header
+       left_col   right_col
+               footer
+ */
+
+.header {
+    background-color: tan; /*#F1F1F1;*/
+    text-align: center;
+    padding: 10px;
+}
+.row {
+	display: block;
+    margin: auto;  
+    max-width: 910px;  /* Need this to enable centering */
+    
+}
+/* Create  unequal columns that float next to each other */
+.column {
+  /*  float: left; */
+}
+
+/* Left  column */
+.column.left {
+    max-width: 150px;
+    padding-left: : 0px;
+    padding-right: 0px;
+    padding-top: 0px;
+    background-color: tan;
+    height: 100%;
+    float: left;
+    position: fixed;
+    border: 2px solid grey;
+  }
+
+/* Right column */
+.column.right {
+    max-width: 747px;
+    margin-left: 155px; 
+    padding-left: 8px;  /* Padding moves it past right column */
+    padding-right: 8px;
+    float: none;      /* This lets the page size shrink (left will leave the size fixed)*/
+    overflow: hidden;
+    background-color: #FFFFFB;
+    border: 2px solid grey;
+  }
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Responsive layout - makes the   columns stack on top of each other instead of next to each other */
+@media (max-width: 500px) {
+    .column {
+        width: 100%;
+    }
+}
+
+.footer {
+    background-color: tan;;
+    text-align: center;
+    padding: 10px;
+}
+
+
+/* These handle the vertical navigation bar in the left column
+  for class=menu I don't want list markers */
+ul.menu {
+	list-style-type: none;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding:  6px;
+   }
+ul.menu li{
+	text-align: center;
+	border-left:  1px solid black;
+	border-right: 1px solid black;
+   border-top:  1px solid black;
+margin-right: -1px;
+overflow: hidden;
+ 
+}
+ul.menu li:last-child{
+	text-align: center;
+    border-bottom: 1px solid black;
+}
+/* The links are then a solid colour...*/
+ul.menu  a {
+	display: block;
+   background-color: moccasin;	
+   text-decoration: none;
+   padding: 0px 6px 0px 6px;
+
+}
+/* ...which changes when we hover over them */
+ul.menu a:hover{
+	   background-color: maroon;;
+	    color: white;
+	    text-decoration: none;
+}
+	 
+ol.menu a:hover{
+	   background-color: maroon;;
+	    color: white;
+	    text-decoration: none;
+}
+
+img.menu{
+display: block;
+margin: auto;
+margin-top: 5px;
+width: 90%;
+}
+p.menu{
+text-align: center;;
+padding: 6px;
+margin-left: 0px;
+font-size: x-small;
+}
+
+
+/* Now the image gallery  - this is for the hot-linked images to fade 
+   during mouse-over*/
+ 
+	/* Clickable figure opacity  (make it class "click" requred)*/
+img.click:hover {
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+}
+
+/* This is for the image in the left sidebar */
+
+img.menu:hover {
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+}
+
+
+	
