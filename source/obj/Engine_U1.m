@@ -119,9 +119,7 @@ classdef Engine_U1 < Exportable
         
         is_tropo_decorrel % are tropo paramter decorrelated enough
         is_coo_decorrel % are coo paramter decorrelated enough
-        
-        ant_mp_est = false;  % estimate antenna multipath
-        
+                
         dist_matr = [];
         distance_regularization = [];
         
@@ -590,7 +588,7 @@ classdef Engine_U1 < Exportable
                 tropo_rate(2) = 0;
             end
             tropo_v_g = false && obs_set.hasPhase(); 
-            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g)+ 16*double(this.ant_mp_est) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -607,7 +605,11 @@ classdef Engine_U1 < Exportable
             
             % Getting mapping faction values
             if tropo || tropo_g
-                [~, mfw] = rec.getSlantMF(id_sync_out);
+                if tropo_g
+                    [~, mfw, grad_term] = rec.getSlantMF(id_sync_out);
+                else
+                    [~, mfw] = rec.getSlantMF(id_sync_out);
+                end
                 mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
@@ -615,7 +617,6 @@ classdef Engine_U1 < Exportable
             
             if ~isempty(tropo_rate) && sum(abs(tropo_rate)) ~= 0
                 if isempty(this.tropo_time_start)
-                    
                     delta_tropo_time_sart = 0;
                 else
                     delta_tropo_time_sart = round((obs_set.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
@@ -670,6 +671,9 @@ classdef Engine_U1 < Exportable
                 if tropo || tropo_g
                     az_stream = obs_set.az(id_ok_stream, s) / 180 * pi;
                     mfw_stream = mfw(id_ok_stream, obs_set.go_id(s)); % A simpler value could be 1./sin(el_stream);
+                    if tropo_g
+                        grad_stream = grad_term(id_ok_stream, obs_set.go_id(s)); % serialize
+                    end
                 end
                 xs_loc_stream = permute(xs_loc(id_ok_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
@@ -766,29 +770,25 @@ classdef Engine_U1 < Exportable
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     %cotan_term = cot(el_stream) .* mfw_stream;
-                    if state.mapping_function_gradient == 1
-                        cotan_term = Atmosphere.chenHerringGrad(el_stream);
-                    elseif state.mapping_function_gradient == 2
-                        cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
-                    end
+                    % The cotan term is computed in grad_term
                     
                     if isempty(tropo_rate) || tropo_rate(2) == 0
                         prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % north gradient
+                        A(lines_stream, prog_p_col) = cos(az_stream) .* grad_stream; % north gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                         prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
+                        A(lines_stream, prog_p_col) = sin(az_stream) .* grad_stream; % east gradient
                         A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + 2*n_tropo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                     else
                         spline_v = Core_Utils.spline(tropo_g_dt(id_ok_stream),order_tropo_g);
                         for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
-                            A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term .*spline_v(:,o); % north gradient spline
+                            A(lines_stream, prog_p_col) = cos(az_stream) .* grad_stream .*spline_v(:,o); % north gradient spline
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_iob + n_apc + n_amb + tropo_g_idx(id_ok_stream) + o-1;
                         end
                         for o = 1 : (order_tropo_g + 1)
                             prog_p_col = prog_p_col + 1;
-                            A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient spline
+                            A(lines_stream, prog_p_col) = sin(az_stream) .* grad_stream.*spline_v(:,o); % east gradient spline
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
                         end
                     end
@@ -797,15 +797,7 @@ classdef Engine_U1 < Exportable
                 if tropo_v_g
                        prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = mfw_stream*rec.h_ellips;
-                        A_idx(lines_stream, prog_p_col) =n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
-                end
-                if this.ant_mp_est
-                    prog_p_col = prog_p_col + 1;
-                    n_el = 7;
-                    n_az = 28;
-                    [idx, val] = Core_Utils.hemisphereCubicSpline(n_az,n_el,az_stream,el_stream);
-                    A(lines_stream, prog_p_col+(0:16)) = sin(az_stream) .* cotan_term.*spline_v(:,o); % east gradient
-                    A_idx(lines_stream, prog_p_col+(0:16)) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
+                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 end
                 obs_count = obs_count + n_obs_stream;
             end

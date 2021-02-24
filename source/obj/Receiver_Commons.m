@@ -550,8 +550,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 time = time{1};
             end
         end
-                
-        function [mfh, mfw, cotan_term] = getSlantMFGen(this, id_sync)
+           
+        function [mfh, mfw, grad_term] = getSlantMFGen(this, id_sync)
             % Get Mapping function for the satellite slant
             %
             % OUTPUT
@@ -562,7 +562,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   [mfh, mfw] = this.getSlantMF()            
             
             n_sat = this.parent.getMaxSat;
-            if nargin == 1
+            if nargin == 1 || isempty(id_sync)
                 try
                     id_sync = this.id_sync;
                 catch
@@ -572,7 +572,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if n_sat == 0
                 mfh = [];
                 mfw = [];
-                cotan_term = [];
+                grad_term = [];
             else
                 if this.length > 0
                     atmo = Core.getAtmosphere();
@@ -582,7 +582,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     h_ortho = median(h_ortho);
                     if ~isempty(this)
                         if this.state.mapping_function == Prj_Settings.MF_NIEL
-                            [mfh, mfw] = atmo.niell(this.time, lat./180*pi, zero2nan(this.sat.el)./180*pi,h_ellipse);
+                            [mfh, mfw] = atmo.niell(this.time, lat./180*pi, zero2nan(this.sat.el)./180*pi, h_ellipse);
                         elseif this.state.mapping_function == Prj_Settings.MF_VMF1
                             [mfh, mfw] = atmo.vmf_grd(this.time, lat./180*pi, lon./180*pi, (this.sat.el)./180*pi, h_ellipse,1);
                         elseif this.state.mapping_function == Prj_Settings.MF_VMF3_1
@@ -600,12 +600,18 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         
                         if nargout > 2
                             if this.state.mapping_function_gradient == 1
-                                cotan_term = Atmosphere.chenHerringGrad(zero2nan(this.sat.el)./180*pi);
+                                grad_term = Atmosphere.chenHerringGrad(zero2nan(this.sat.el)./180*pi);
                             elseif this.state.mapping_function_gradient == 2
-                                [cotan_term] = Atmosphere.macmillanGrad(zero2nan(this.sat.el)./180*pi);
+                                grad_term = Atmosphere.macmillanGrad(zero2nan(this.sat.el)./180*pi);
+                                % To be used with Hydrostatic mapping function and temperature fixed to 15 Celsius
+                                % from Herring 1992 Modeling atmospheric delays in the analysis of space geodetic data (page 171, eq 8)
+                                [mfh_grad] = atmo.herring(lat./180*pi, (this.sat.el)./180*pi, h_ellipse, 15);
+                                grad_term = grad_term .* mfh_grad;
+                            else
+                                grad_term = [];
                             end
-                            if ~isempty(id_sync)
-                                cotan_term = cotan_term(id_sync, :);
+                            if ~isempty(id_sync) && ~isempty(grad_term)
+                                grad_term = grad_term(id_sync, :);
                             end
                         end
                     end
@@ -628,11 +634,14 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             apr_zhd = single(this.getAprZhd);
             cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
             sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-            state = Core.getCurrentSettings;
           
             [gn ,ge] = this.getGradient();
             if ~isempty(this.tzer)
-                [mfh, mfw, cotan_term] = this.getSlantMF();
+                if any(ge(:)) || ~isempty(this.tzer)
+                    [mfh, mfw, grad_term] = this.getSlantMF();
+                else
+                    [mfh, mfw] = this.getSlantMF();
+                end
             else
                 if ~isempty(zwd)
                     [mfh, mfw] = this.getSlantMF();
@@ -640,21 +649,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     mfh = [];
                     mfw = [];
                 end
-            end
-            
-            if state.mapping_function_gradient == 1
-                if ~isempty(zwd)
-                    cotan_term = zero2nan(Atmosphere.chenHerringGrad(zero2nan(this.sat.el(id_sync, :))));
-                else
-                    cotan_term = zeros(size(ge));;
-                end
-            elseif state.mapping_function_gradient == 2
-                if ~isempty(zwd)
-                    cotan_term = zero2nan(Atmosphere.macmillanGrad(zero2nan(this.sat.el(id_sync, :))).*mfw);
-                else
-                    cotan_term = zeros(size(ge));
-                end
-            end
+            end            
             
             if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
@@ -672,7 +667,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             if any(mfh(:)) && any(mfw(:))
                 if any(ge(:))
                     for g = go_id
-                        slant_wd(id_sync, g) = mfw(:,g) .* zwd + gn .* cotan_term(:,g) .* cosaz(:,g) + ge .* cotan_term(:,g) .* sinaz(:,g);
+                        slant_wd(id_sync, g) = mfw(:,g) .* zwd + gn .* grad_term(:,g) .* cosaz(:,g) + ge .* grad_term(:,g) .* sinaz(:,g);
                         slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
                     end
                 else
@@ -695,20 +690,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
                     end
                     for i = 4 : Prj_Settings.getNumZerTropoCoef
-                        slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*cotan_term.*zer_val(:,:,i));
+                        slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*grad_term.*zer_val(:,:,i));
                     end
                 end
             end
         end
-        
+                
         function [slant_td] = getSlantTD_AzEl(this, time, az , el )
             % Get the slant total delay
             %
             % SYNTAX
             %   [slant_td, go_id] = this.getSlantTD();
-            
-          
-            
             slant_td = zeros(size(az)); % Slant Total Delay
             
             zwd = interp1(this.getTime.getMatlabTime,this.getZwd,time.getMatlabTime);
@@ -716,9 +708,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             [gn ,ge] = this.getGradient();
             gn = interp1(this.getTime.getMatlabTime,gn,time.getMatlabTime);
             ge = interp1(this.getTime.getMatlabTime,ge,time.getMatlabTime);
-             [mfh, mfw] = this.getSlantMF();
-
-
+            if any(ge(:))
+                [mfh, mfw, grad_term] = this.getSlantMF();
+            else
+                [mfh, mfw] = this.getSlantMF();
+            end
+            
             cosaz = zero2nan(cosd(az));
             sinaz = zero2nan(sind(az));
             state = Core.getCurrentSettings();
@@ -732,16 +727,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             elseif this.state.mapping_function == 1
                 [mfh, mfw] = atmo.gmf(time, this.lat./180*pi, this.lon./180*pi, this.h_ortho, el./180*pi);
             end
-            if state.mapping_function_gradient == 1
-                cotan_term = zero2nan(Atmosphere.chenHerringGrad(zero2nan(el)));
-            elseif state.mapping_function_gradient == 2
-                cotan_term = zero2nan(Atmosphere.macmillanGrad(zero2nan(el)).*mfw);
+            
+            if any(ge(:))
+                slant_td = mfw .* zwd + gn .* grad_term .* cosaz + ge .* grad_term .* sinaz;
+            else
+                slant_td = mfw .* zwd;
             end
-            
-            
-            slant_td = mfw .* zwd + gn .* cotan_term .* cosaz + ge .* cotan_term .* sinaz;
             slant_td = mfh .* apr_zhd + slant_td;
-            
         end
         
         function ztd = getZtd(this)

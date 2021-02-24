@@ -291,12 +291,16 @@ classdef Engine_U2 < handle
             [~, obs_wl_id] = ismember(round(obs_set.wl*1e7), round(this.unique_wl*1e7));
             
             
-            mfw_on =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V | param_selection == this.PAR_TROPO_Z) > 0;
+            tropo =  sum(param_selection == this.PAR_TROPO | param_selection == this.PAR_TROPO_E | param_selection == this.PAR_TROPO_N | param_selection == this.PAR_TROPO_V | param_selection == this.PAR_TROPO_Z) > 0;
+            tropo_g =  par_tropo_n || par_tropo_e || par_tropo_z;
             % get the mapping function for tropo
-            if mfw_on
+            if tropo
                 id_sync_out = obs_set.getTimeIdx(rec.time); %obs_set.getTimeIdx(rec.time.first, rec.getRate);
-                [~, mfw] = rec.getSlantMF(id_sync_out);
-                % mfw(mfw  > 60 ) = nan;
+                if tropo_g
+                    [~, mfw, grad_term] = rec.getSlantMF(id_sync_out);
+                else
+                    [~, mfw] = rec.getSlantMF(id_sync_out);
+                end                % mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
@@ -335,11 +339,13 @@ classdef Engine_U2 < handle
                     s_go_id   = obs_set.go_id(s);
                     s_s_id    = obs_code_id(s);
                     wl_id     = obs_wl_id(s);
-                    if mfw_on
+                    if tropo
                         mfw_stream = mfw(id_ok_stream, s_go_id);
+                        if tropo_g
+                            grad_stream = grad_term(id_ok_stream, s_go_id); % serialize
+                        end
                     end
                     this.unique_sat_goid = unique([this.unique_sat_goid  s_go_id]);
-                    
                     
                     xs_loc_stream = permute(xs_loc(id_ok_stream, s, :), [1, 3, 2]);
                     los_stream = rowNormalize(xs_loc_stream);
@@ -440,16 +446,11 @@ classdef Engine_U2 < handle
                     end
                     % ----------- ZTD gradients ------------------
                     if par_tropo_n || par_tropo_e
-                        if state.mapping_function_gradient == 1
-                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
-                        elseif state.mapping_function_gradient == 2
-                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
-                        end
                         if par_tropo_e
-                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* cotan_term; % east gradient  /1000
+                            A(lines_stream, par_tropo_e_lid) = sin(az_stream) .* grad_stream; % east gradient  /1000
                         end
                         if par_tropo_n
-                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* cotan_term; % north gradient  /1000
+                            A(lines_stream, par_tropo_n_lid) = cos(az_stream) .* grad_stream; % north gradient  /1000
                         end
                     end
                     if par_tropo_v
@@ -459,13 +460,8 @@ classdef Engine_U2 < handle
                         n_pol = sum(par_tropo_z_lid)+3;
                         degree = ceil(-3/2 + sqrt(9/4 + 2*(n_pol -1)));
                         rho_stream = (pi/2 - el_stream)/(pi/2);
-                        if state.mapping_function_gradient == 1
-                            cotan_term = Atmosphere.chenHerringGrad(el_stream);
-                        elseif state.mapping_function_gradient == 2
-                            cotan_term = Atmosphere.macmillanGrad(el_stream).*mfw_stream;
-                        end
                         zern = Core_Utils.getAllZernike(degree, az_stream, rho_stream);
-                        A(lines_stream, par_tropo_z_lid) = repmat(cotan_term,1,n_pol-3).*zern(:,4:end);
+                        A(lines_stream, par_tropo_z_lid) = repmat(grad_stream,1,n_pol-3).*zern(:,4:end);
                     end
                     % ----------- Ionosphere delay --------------------
                     if par_iono

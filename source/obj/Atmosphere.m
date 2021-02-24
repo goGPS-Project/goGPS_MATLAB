@@ -1014,7 +1014,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -1124,7 +1124,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1243,7 +1243,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ï¿½C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1875,13 +1875,41 @@ classdef Atmosphere < handle
             end
         end               
         
+        function [gmfh, gmfw] = herring(this, lat, el, h_el, temperature)
+            % angles in radians!!
+            % height in meters
+            % temperature in celsius
+            %
+            % code based on:
+            %    [3] Herring 1992 Modeling atmospheric delays in the analysis of space geodetic data (eq 8, 9)
+            %
+            % SYNTAX
+            %   [gmfh, gmfw] = herring(this, lat, el, h_el)
+            
+            ah = (1.2320 + 0.0139 * cos(lat) - 0.0209 * h_el/1000 + 0.00215 * (temperature - 10)) * 1e-3;
+            bh = (3.1612 - 0.1600 * cos(lat) - 0.0331 * h_el/1000 + 0.00206 * (temperature - 10)) * 1e-3;
+            ch = (71.244 - 4.2930 * cos(lat) - 0.0149 * h_el/1000 - 0.00210 * (temperature - 10)) * 1e-3;
+            
+            n_sat = size(el,2);
+           
+            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,n_sat),repmat(bh,1,n_sat),repmat(ch,1,n_sat),zero2nan(el));
+            
+            if nargout == 2
+                aw = (0.583 + 0.011 * cos(lat) - 0.052 * h_el/1000 + 0.0014 * (temperature - 10)) * 1e-3;
+                bw = (1.402 - 0.102 * cos(lat) - 0.101 * h_el/1000 + 0.0020 * (temperature - 10)) * 1e-3;
+                cw = (45.85 - 1.910 * cos(lat) - 1.290 * h_el/1000 + 0.0150 * (temperature - 10)) * 1e-3;
+                
+                [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,n_sat),repmat(bw,1,n_sat),repmat(cw,1,n_sat),zero2nan(el));
+            end
+        end
+        
         function [gmfh, gmfw] = niell(this, time, lat, el, h_ell)
             %angles in radians!!
             %code based on:
             %    [3] Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
             %
             % SYNTAX
-            %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
+            %   [gmfh, gmfw] = niel(this, gps_time, lat, lon, zd)
             T0 = 28  - (lat<0)*365.25/2;
             lat = abs(lat);
             lat_p = [ 15 30 45 60 75]/180*pi;
@@ -2023,7 +2051,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45ï¿½ lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
@@ -2451,7 +2479,9 @@ classdef Atmosphere < handle
         end
         
         function [cotan_term] = macmillanGrad(el)
-            % formual from macmillan
+            % Formula from macmillan(1995 or 1997 Atmospheric gradients and the VLBI terrestrial and celestial reference frames)
+            % To be used with Hydrostatic mapping function and temperature fixed to 15 degree 
+            % from Herring 1992 Modeling atmospheric delays in the analysis of space geodetic data
             %
             % INPUT:
             %  el  elevation [rad]
@@ -2465,7 +2495,7 @@ classdef Atmosphere < handle
         end
         
         function [cotan_term] = chenHerringGrad(el)
-            % forumal from chen and herring
+            % forumal from chen and herring (1997 Effects of atmospheric azimuthal asymmetry on the analysis of space geodetic data)
             % coefficient from chao
             %
             % INPUT:
