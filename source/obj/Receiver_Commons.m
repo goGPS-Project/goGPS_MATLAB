@@ -637,20 +637,20 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
           
             [gn ,ge] = this.getGradient();
             if ~isempty(this.tzer)
-                if any(ge(:)) || ~isempty(this.tzer)
-                    [mfh, mfw, grad_term] = this.getSlantMF();
-                else
-                    [mfh, mfw] = this.getSlantMF();
-                end
+                [mfh, mfw, grad_term] = this.getSlantMF();
             else
                 if ~isempty(zwd)
-                    [mfh, mfw] = this.getSlantMF();
+                    if any(ge(:))
+                        [mfh, mfw, grad_term] = this.getSlantMF();
+                    else
+                        [mfh, mfw] = this.getSlantMF();
+                    end
                 else
                     mfh = [];
                     mfw = [];
                 end
-            end            
-            
+            end
+
             if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 try
