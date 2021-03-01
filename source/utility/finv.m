@@ -14,7 +14,7 @@ function inv = finv (x, m, n)
 %
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2011 Kurt Hornik
-% Copyright (C) 2012-2014 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:       KH <Kurt.Hornik@wu-wien.ac.at>
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

@@ -22,7 +22,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 %    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  Partially based on RINEXE.M (EASY suite) by Kai Borre

@@ -15,7 +15,7 @@ function cdf = normcdf (x, m, s)
 %
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2011 Kurt Hornik
-% Copyright (C) 2012-2014 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:       TT <Teresa.Twaroch@ci.tuwien.ac.at>
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

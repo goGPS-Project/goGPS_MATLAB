@@ -13,7 +13,7 @@ function rcm = getMeridianRadiusCurvature(lat_rad)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 % Adapted from Octave
 %  Written by: Giulio Tagliaferro
 %  Contributors:     

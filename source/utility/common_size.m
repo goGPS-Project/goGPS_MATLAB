@@ -24,7 +24,7 @@ function [errorcode, varargout] = common_size (varargin)
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2007 Kurt Hornik
 % Copyright (C) 2008 Dynare Team
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 % Adapted from Octave
 %  Written by:       KH <Kurt.Hornik@wu-wien.ac.at>
 %  Contributors:     Andrea Gatti ...

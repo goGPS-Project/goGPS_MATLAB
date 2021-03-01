@@ -32,7 +32,7 @@ function [y_splined, x_spline, s_weights, y_splined_ext] = splinerMat(x, y, dxs,
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 (GReD srl) Andrea Gatti, Giulio Tagliaferro, Mirko Reguzzoni
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
