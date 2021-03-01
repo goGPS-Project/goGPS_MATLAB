@@ -23,7 +23,7 @@ function dist = sphericalDistance(latd_a, lond_a, latd_b, lond_b)
     %    |___/                    v 0.5.1 beta 3
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+    %  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
     %  Written by: Andrea Gatti
     %  Contributors:     ...
     %  A list of all the historical goGPS contributors is in CREDITS.nfo

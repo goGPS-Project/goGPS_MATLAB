@@ -19,7 +19,7 @@
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 (GReD srl) Giulio Tagliaferro, Andrea Gatti, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
 %  Written by:                    Andrea Gatti, Giulio Tagliaferro
 %  On the basis of the work of:   Andrea Nardo (on the LAMBDA approach), 
 %  Contributors:                  Eugenio Realini and Hendy F. Suhandri

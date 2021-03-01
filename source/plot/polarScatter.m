@@ -21,7 +21,7 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
 %  Written by:       Mirko Reguzzoni
 %  Contributors:     Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

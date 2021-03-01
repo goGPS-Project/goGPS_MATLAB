@@ -24,7 +24,7 @@ function rgb_img = exportAsImage(file_name, data, cmap, min_max, x0, y0, x1, y1)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

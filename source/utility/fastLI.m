@@ -29,7 +29,7 @@ function y_pred = fastLI(y_obs, x_pred)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
 %  Author of the previous implementation: Dmitry Pelinovsky
 %  Available online at: http://dmpeli.mcmaster.ca/Matlab/Math4Q3/Lecture2-1/LagrangeInter.m
 %  Written by:       Andrea Gatti

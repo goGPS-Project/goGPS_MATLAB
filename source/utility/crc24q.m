@@ -20,7 +20,7 @@ function [parity] = crc24q(msg)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2019 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
 %  Written by:
 %  Contributors:     ...
 % ('rtcm3torinex.c', by Dirk Stoecker, BKG Ntrip Client (BNC) Version 1.6.1
