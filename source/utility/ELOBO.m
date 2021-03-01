@@ -34,7 +34,7 @@ function [x_k, s02_k, v_k, Cxx_k, N_inv] = ELOBO(A, Q, y0, b, N_inv, v, x, s02, 
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:       Stefano Caldera
 %  Contributors:     Stefano Caldera, Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

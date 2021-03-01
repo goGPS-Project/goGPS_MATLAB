@@ -22,7 +22,7 @@ function [Ek, n] = ecc_anomaly(time, Eph)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  Partially based on SATPOS.M (EASY suite) by Kai Borre

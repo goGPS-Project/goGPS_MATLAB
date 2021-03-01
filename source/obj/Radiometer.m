@@ -8,7 +8,7 @@ classdef Radiometer < handle
     %    |___/                    v 0.5.1 beta 3
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2021 (GReD srl) Andrea Gatti, Alice Bonfiglio, Stefano Barindelli
+    %  Copyright (C) 2021 2021 Geomatics Research & Development srl (GReD)
     %  Written by:       Andrea Gatti, Alice Bonfiglio
     %  Contributors:     Andrea Gatti, Alice Bonfiglio
     %  A list of all the historical goGPS contributors is in CREDITS.nfo

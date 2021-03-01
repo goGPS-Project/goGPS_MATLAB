@@ -22,7 +22,7 @@ function [week, sow] = time2weektow(time)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

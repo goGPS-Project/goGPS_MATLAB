@@ -36,7 +36,7 @@ function [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GRed)
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:       Stefano Caldera 22.05.2014
 %  Contributors:     Stefano Caldera,
 %                    Andrea Gatti 08.12.2016 ( speedup improvements )
