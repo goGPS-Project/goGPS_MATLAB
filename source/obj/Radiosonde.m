@@ -19,7 +19,7 @@ classdef Radiosonde < handle
     %     __ _ ___ / __| _ | __|
     %    / _` / _ \ (_ |  _|__ \
     %    \__, \___/\___|_| |___/
-    %    |___/                    v 0.5.1 beta 3
+    %    |___/                    v 1.0RC1
     %
     %--------------------------------------------------------------------------
     %  Copyright (C) 2021 Geomatics Research & Development srl (GReD)

@@ -15,7 +15,7 @@
 %    |___/                    v 1.0RC1
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 (GReD srl) Giulio Tagliaferro
+%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
