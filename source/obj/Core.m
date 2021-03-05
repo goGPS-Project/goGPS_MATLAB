@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0b9';
+        GO_GPS_VERSION = '1.0 RC1';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
