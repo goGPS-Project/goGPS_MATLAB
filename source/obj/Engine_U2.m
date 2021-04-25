@@ -1928,10 +1928,11 @@ classdef Engine_U2 < handle
                     if flag_fix
                         if svd_strat
                             % svd startegy
-                            % reduce all other paramter than ambiguoties
+                            % reduce all other parameter than ambiguities
                             
                             idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB | c_p == this.PAR_SAT_EBFR | c_p == this.PAR_REC_EBFR;
                             c_p2 = c_p(~idx_bias);
+                            flag_idx = false;
                             if any(idx_bias)
                                 [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
                                 d = diag(D);
@@ -1944,13 +1945,20 @@ classdef Engine_U2 < handle
                                 else
                                     keep_id = d > (tol/1e4);
                                 end
-                                real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetryin reducing
-                                clearvars U V D
-                                pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
-                                clearvars real_space d
-                                BB = N(~idx_bias ,idx_bias)*pinvB;
-                                N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
-                                B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                                if any(keep_id)
+                                    flag_idx = true;
+                                    real_space = (U(:, keep_id) + V(:, keep_id)) / 2; % prevent asimmetry in reducing
+                                    clearvars U V D
+                                    pinvB = real_space * spdiags(1./d(keep_id),0,sum(keep_id),sum(keep_id)) * real_space';
+                                    clearvars real_space d
+                                    
+                                    BB = N(~idx_bias ,idx_bias)*pinvB;
+                                    N_ap_ap = N(~idx_bias, ~idx_bias) - BB*N(idx_bias, ~idx_bias);
+                                    B_ap_ap = B(~idx_bias) -  BB*B(idx_bias);
+                                else
+                                    N_ap_ap = N(~idx_bias, ~idx_bias);
+                                    B_ap_ap = B(~idx_bias);
+                                end
                             else
                                 N_ap_ap = N;
                                 B_ap_ap = B;
@@ -2005,7 +2013,7 @@ classdef Engine_U2 < handle
                                 end
                                 phys_par_amb(idx_amb) = ambs;
                                 x_reduced(~idx_bias) = phys_par_amb;
-                                if any(idx_bias)
+                                if flag_idx
                                     B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*phys_par_amb';
                                     x_reduced(idx_bias) = pinvB*B(idx_bias);
                                 end
