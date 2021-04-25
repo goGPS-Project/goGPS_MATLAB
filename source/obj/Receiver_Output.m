@@ -730,10 +730,10 @@ classdef Receiver_Output < Receiver_Commons
                         [is_ph] = rec_work.sat.res.isPhase();
                         [is_combined] = rec_work.sat.res.isCombined();
                         if ~state.isResPrOut
-                            res.remEntry(~is_ph);
+                            res.remEntry(~is_ph & ~is_combined);
                         end
                         if ~state.isResPhOut
-                            res.remEntry(is_ph);
+                            res.remEntry(is_ph & ~is_combined);
                         end
                         if ~state.isResCoOut
                             res.remEntry(is_combined);
@@ -742,7 +742,6 @@ classdef Receiver_Output < Receiver_Commons
                         res.cutEpochs(lim);
                         this.sat.res.injest(res);
                     end
-                    
                     
                     %%% single results
                     if isempty(this.time_pos)

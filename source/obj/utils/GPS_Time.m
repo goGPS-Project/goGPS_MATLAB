@@ -566,13 +566,17 @@ classdef GPS_Time < Exportable & handle
             this.leap_seconds = time.leap_seconds;
         end
         
-        function copy = getCopy(this)
+        function copy = getCopy(gps_list)
             % Get a copy of this
             %
             % SYNTAX
-            %   copy = getCopy(this)
-            copy = GPS_Time();
-            copy.copyFrom(this);
+            %   copy = getCopy(gps_list)
+            
+            n_times = max(size(gps_list));
+            copy(n_times) = GPS_Time();
+            for t = 1 : n_times
+                copy(t).copyFrom(gps_list(t));
+            end
         end
         
         function id_sort = sort(this)
@@ -1274,7 +1278,7 @@ classdef GPS_Time < Exportable & handle
                             time_ref_f = 0;
                         end
                         time_diff = double(int64(this.unix_time) - int64(time_ref)) + this.unix_time_f - time_ref_f;
-                        time_ref = (time_ref / 86400 + 719529.0) + time_ref_f / 86400;
+                        time_ref = (double(time_ref) / 86400 + 719529.0) + time_ref_f / 86400;
                     case 2 % I'm in REF TIME
                         if (nargin == 2)
                             % optional change of reference
@@ -1588,6 +1592,38 @@ classdef GPS_Time < Exportable & handle
                 % edit of the 7th of October 2019
                 new_obj = GPS_Time();
                 new_obj.time_type = this.time_type;
+            end
+        end
+        
+        function [time_head, id_ok] = head(gps_list, n_seconds)
+            % Get time head
+            %
+            % SYNTAX
+            %   [time_head, id_ok] = this.head(n_seconds)
+            n_time = size(gps_list(:),1);
+            time_head(n_time) = GPS_Time;
+            for t = 1 : n_time
+                time_lim = gps_list(t).first.getCopy;
+                rate = gps_list(t).getRate;
+                time_lim.addIntSeconds(round(n_seconds / rate) * rate + rate/2);
+                id_ok = gps_list(t) <= time_lim;
+                time_head(t) = gps_list(t).getEpoch(id_ok);
+            end
+        end
+        
+        function [time_tail, id_ok] = tail(gps_list, n_seconds)
+            % Get time tail
+            %
+            % SYNTAX
+            %   [time_tail, id_ok] = this.tail(n_seconds)
+            n_time = size(gps_list(:),1);
+            time_tail(n_time) = GPS_Time;
+            for t = 1 : n_time
+                time_lim = gps_list(t).last.getCopy;
+                rate = gps_list(t).getRate;
+                time_lim.addIntSeconds(-round(n_seconds / rate) * rate + rate/2);
+                id_ok = gps_list(t) >= time_lim;
+                time_tail(t) = gps_list(t).getEpoch(id_ok);
             end
         end
         
@@ -2326,3 +2362,4 @@ classdef GPS_Time < Exportable & handle
     end
     
 end
+

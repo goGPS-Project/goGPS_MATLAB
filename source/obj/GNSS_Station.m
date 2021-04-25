@@ -1145,6 +1145,29 @@ classdef GNSS_Station < handle
             end
         end
 
+        function coo = getCoo(sta_list, type)
+            % return the Coordinates object of the receiver
+            %
+            % INPUT
+            %   type    "work" | "out"
+            %           default: "out"
+            %
+            % SYNTAX 
+            %   coo = sta_list.getCoo(<type = 'out'>)
+            
+            if nargin == 1 ||isempty(type)
+                type = 'out';
+            end
+            
+            if type(1) == 'w'
+                work = [sta_list.work];
+                coo = [work.coo];
+            else
+                out = [sta_list.out];
+                coo = [out.coo];
+            end
+        end
+        
         function marker_name = getMarkerName(this)
             % Get the Marker name as specified in the RINEX file
             %

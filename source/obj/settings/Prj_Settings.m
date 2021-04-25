@@ -1253,7 +1253,6 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 if isempty(this.abs_snr_thr) % compatibility mode
                     this.abs_snr_thr = state.getData('snr_thr');
                 end
-                this.abs_snr_thr = state.getData('abs_snr_thr');
                 this.scaled_snr_thr = state.getData('scaled_snr_thr');
                 this.min_arc = state.getData('min_arc');
 
@@ -1620,6 +1619,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.min_p_epoch = state.min_p_epoch;
                 this.min_n_sat = state.min_n_sat;
                 this.cut_off = state.cut_off;
+                this.abs_snr_thr = state.abs_snr_thr;
                 this.scaled_snr_thr = state.scaled_snr_thr;
                 this.min_arc = state.min_arc;
 
@@ -3483,12 +3483,12 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
             
             % Data filtering
-            this.min_p_epoch = 30;
+            this.min_p_epoch = 5;
             this.min_n_sat = 2;
             this.cut_off = 7;
-            this.abs_snr_thr = 6;
-            this.scaled_snr_thr = 28;
-            this.min_arc = 300;
+            this.abs_snr_thr = 22;
+            this.scaled_snr_thr = 0;
+            this.min_arc = 330;
             this.pp_max_code_err_thr = 50;
             this.max_code_err_thr = 10;
             this.max_phase_err_thr = 0.10;
@@ -3509,9 +3509,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % Corrections
             this.flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
             this.flag_solid_earth = 1;
-            this.flag_pole_tide = 0;
-            this.flag_phase_wind = 0;
-            this.flag_shapiro = 0;
+            this.flag_pole_tide = 1;
+            this.flag_phase_wind = 1;
+            this.flag_shapiro = 1;
             this.flag_ocean_load = 0;
             this.flag_atm_load = 0;
             this.flag_hoi = 0;
@@ -3529,6 +3529,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.iono_management = 1;       % iono-free
             this.iono_model = 3;            % use IONEX external model for reductions
 
+            this.flag_ztd_net = true;
+            this.flag_grad_net = true;
+            
             this.flag_free_net_tropo = 0;
             
             this.zd_model = this.ZDM_SAAST;                      % Use Saastamoinen for a-priori
@@ -3564,6 +3567,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             
             this.flag_free_net_tropo = 0;
 
+            this.flag_ztd_net = true;
+            this.flag_grad_net = true;
+            
             this.flag_out_pwv = 0;
             this.flag_out_zwd = 0;
             this.flag_out_ztd = 0;

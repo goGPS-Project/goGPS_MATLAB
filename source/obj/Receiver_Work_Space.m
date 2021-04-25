@@ -6897,7 +6897,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   sat_cache = getSatCache()
-            if numel(go_id) > 1 || isempty(this.sat_cache) || (nargin == 3 && force_update)
+            if numel(go_id) > 1 || isempty(this.sat_cache) || not(any(this.sat_cache.range(:))) || (nargin == 3 && force_update)
                 % dirty cache
                 if ~isempty(go_id)
                     all_go_id = go_id;

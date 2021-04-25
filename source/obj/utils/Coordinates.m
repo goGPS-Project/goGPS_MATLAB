@@ -2032,7 +2032,7 @@ classdef Coordinates < Exportable & handle
                             coo_list(c).xyz(idc, :) = coo_list(c).xyz(idc, :) + xyz_corr(idr, :);
                             % Covariance propagation with missing cross covariance term
                             
-                            if max(idr) <= size(coo_list(new_ref_id).Cxx,3)
+                            if max(idc) <= size(coo_list(new_ref_id).Cxx,3)
                                 vcv_ref = coo_list(new_ref_id).Cxx(:, :, idr);
                             else
                                 vcv_ref = [];

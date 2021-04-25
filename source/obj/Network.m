@@ -145,7 +145,7 @@ classdef Network < handle
                     if sum(idx_x) > 0
                         x_coo = ls.x(idx_x);
                         [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                        idx_save = x_coo_time1 - int_lim.first > -5e-2 & x_coo_time2 - int_lim.last < 5e-2;
+                        idx_save = x_coo_time1 - int_lim.first > -ls.obs_rate & x_coo_time2 - int_lim.last < ls.obs_rate;
                         idx_x(idx_x) = idx_save;
                     end
                     
@@ -153,7 +153,7 @@ classdef Network < handle
                     if sum(idx_y) > 0
                         y_coo = ls.x(idx_y);
                         [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
-                        idx_save = y_coo_time1 - int_lim.first > -5e-2 & y_coo_time2 - int_lim.last < 5e-2;
+                        idx_save = y_coo_time1 - int_lim.first > -ls.obs_rate & y_coo_time2 - int_lim.last < ls.obs_rate;
                         idx_y(idx_y) = idx_save;                  
                     end
                     
@@ -161,7 +161,7 @@ classdef Network < handle
                     if sum(idx_z) > 0
                         z_coo = ls.x(idx_z);
                         [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
-                        idx_save = z_coo_time1 - int_lim.first > -5e-2 & z_coo_time2 - int_lim.last < 5e-2;
+                        idx_save = z_coo_time1 - int_lim.first > -ls.obs_rate & z_coo_time2 - int_lim.last < ls.obs_rate;
                         idx_z(idx_z) = idx_save;
                     end
                 else
@@ -192,7 +192,7 @@ classdef Network < handle
                 idx_x = ls.class_par == ls.PAR_REC_X;
                 if sum(idx_x) > 0                    
                     [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
-                    idx_x = x_coo_time1 - int_lim.first > -5e-2 & x_coo_time2 - int_lim.last < 5e-2;
+                    idx_x = x_coo_time1 - int_lim.first > -ls.obs_rate & x_coo_time2 - int_lim.last < ls.obs_rate;
                 else
                     idx_x = [];
                 end
@@ -415,36 +415,38 @@ classdef Network < handle
                 idx_obs = ls.receiver_obs == i & ~ls.outlier_obs;
                 if sum(ls.param_class == ls.PAR_REC_X | ls.param_class == ls.PAR_REC_Y  | ls.param_class == ls.PAR_REC_Z )>0
                     idx_rec = find(this.rec_coo == i);
-                    this.rec_list(i).work.xyz = mean(this.coo(idx_rec,:),1);
-                    % generate a coordinates object and add it to receiver
-                    n_coo = size(this.coo(idx_rec,:),1);
-                    coo = Coordinates.fromXYZ(this.coo(idx_rec,:));
-                    coo.Cxx = zeros(3,3,length(idx_rec));
-                    for j = 1 : length(idx_rec)
-                        idx_coo = [idx_rec(j) size(this.coo,1)+idx_rec(j) 2*size(this.coo,1)+idx_rec(j)];
-                        coo.Cxx(:,:,j) = this.coo_vcv(idx_coo,idx_coo);
+                    if any(mean(this.coo(idx_rec,:),1)) % there is a coordinate
+                        this.rec_list(i).work.xyz = mean(this.coo(idx_rec,:),1);
+                        % generate a coordinates object and add it to receiver
+                        n_coo = size(this.coo(idx_rec,:),1);
+                        coo = Coordinates.fromXYZ(this.coo(idx_rec,:));
+                        coo.Cxx = zeros(3,3,length(idx_rec));
+                        for j = 1 : length(idx_rec)
+                            idx_coo = [idx_rec(j) size(this.coo,1)+idx_rec(j) 2*size(this.coo,1)+idx_rec(j)];
+                            coo.Cxx(:,:,j) = this.coo_vcv(idx_coo,idx_coo);
+                        end
+                        rate = state.getRateNet;
+                        if rate == 0
+                            rate = state.getSessionDuration;
+                        end
+                        coo.time = this.time_coo.getEpoch(idx_rec);
+                        coo.time.addIntSeconds(round(rate/2));
+                        coo.time = coo.time.getNominalTime(rate);
+                        coo.time.addIntSeconds(-round(rate/2));
+                        coo.setRate(rate);
+                        coo.info.obs_used = ones(n_coo,1) .* this.obs_id_coo(idx_rec);
+                        coo.info.n_epo = ones(n_coo,1) .* length(unique(ls.time_par(ls.rec_par == i & ~ls.out_par)));
+                        coo.info.n_obs = ones(n_coo,1) .* sum(idx_obs);
+                        s0_ip = this.rec_list(i).work.quality_info.s0_ip;
+                        coo.info.s0_ip= ones(n_coo,1) .* s0_ip;
+                        coo.info.s0 = ones(n_coo,1) .* s0;
+                        coo.info.flag = zeros(n_coo,1);
+                        coo.info.coo_type = char(ones(n_coo, 1, 'uint8')) * iif(i == this.id_ref, 'F', 'G');
+                        coo.info.master_name = categorical({this.rec_list(this.id_ref).marker_name});
+                        coo.info.fixing_ratio = ones(n_coo,1) .* ls.fix_ratio;
+                        coo.info.rate = ones(n_coo,1) .* ls.obs_rate;
+                        this.rec_list(i).work.coo = coo;
                     end
-                    rate = state.getRateNet;
-                    if rate == 0
-                        rate = state.getSessionDuration;
-                    end
-                    coo.time = this.time_coo.getEpoch(idx_rec);
-                    coo.time.addIntSeconds(round(rate/2));
-                    coo.time = coo.time.getNominalTime(rate);
-                    coo.time.addIntSeconds(-round(rate/2));
-                    coo.setRate(rate);
-                    coo.info.obs_used = ones(n_coo,1) .* this.obs_id_coo(idx_rec);
-                    coo.info.n_epo = ones(n_coo,1) .* length(unique(ls.time_par(ls.rec_par == i & ~ls.out_par)));
-                    coo.info.n_obs = ones(n_coo,1) .* sum(idx_obs);
-                    s0_ip = this.rec_list(i).work.quality_info.s0_ip;
-                    coo.info.s0_ip= ones(n_coo,1) .* s0_ip;
-                    coo.info.s0 = ones(n_coo,1) .* s0;
-                    coo.info.flag = zeros(n_coo,1);
-                    coo.info.coo_type = char(ones(n_coo, 1, 'uint8')) * iif(i == this.id_ref, 'F', 'G');
-                    coo.info.master_name = categorical({this.rec_list(this.id_ref).marker_name});
-                    coo.info.fixing_ratio = ones(n_coo,1) .* ls.fix_ratio;
-                    coo.info.rate = ones(n_coo,1) .* ls.obs_rate;
-                    this.rec_list(i).work.coo = coo;
                 end
                 idx_res_av = ~isnan(this.clock(:, i));
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
@@ -516,6 +518,9 @@ classdef Network < handle
                 this.rec_list(i).work.sat.res.import(3, res_time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], Coordinates.fromXYZ(this.rec_list(i).work.getMedianPosXYZ, this.common_time.getCentralTime));
 
             end
+            
+            %this.pushBackEphemeris(ls);
+            %this.pushBackIono(ls);
         end
         
         function exportCrd(this, file_prefix)

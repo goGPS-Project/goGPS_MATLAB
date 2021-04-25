@@ -355,7 +355,7 @@ classdef Residuals < Exportable
             % SYNTAX:
             %    [is_co] = this.isCombined()
             if size(this.obs_code,2) > 4
-                is_co = this.obs_code(:,5) == ' ';
+                is_co = this.obs_code(:,5) ~= ' ';
             else
                 is_co = false(size( this.obs_code,1),1);
             end

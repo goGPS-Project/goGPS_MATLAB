@@ -1341,8 +1341,8 @@ classdef Command_Interpreter < handle
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
                                         for c = 1 : numel(cmd_list_loop)
-                                            % substitute ÿ with the current session
-                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ÿ', num2str(s));
+                                            % substitute ï¿½ with the current session
+                                            cmd_list_loop{c} = strrep(cmd_list_loop{c},'ï¿½', num2str(s));
                                         end
                                         this.exec(core, cmd_list_loop, level(id_list(1)), sss_level(sid + 1));
                                         
@@ -1550,7 +1550,7 @@ classdef Command_Interpreter < handle
                 if p > numel(full_tok)
                     full_tok{p} = tok{t};
                 else
-                    full_tok{p} = [full_tok{p} tok{t}];
+                    full_tok{p} = [full_tok{p} ' ' tok{t}];
                 end
                 full_tok{p} = strrep(full_tok{p}, '^', '''');                
             end
