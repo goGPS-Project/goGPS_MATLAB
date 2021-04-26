@@ -67,7 +67,7 @@ classdef Parallel_Manager < Com_Interface
     
     properties (GetAccess = private, SetAccess = private)
         worker_id = {}; % list of active workers
-        timeout = 25; % additional wait time for fast remote answers
+        timeout = 30; % additional wait time for fast remote answers
     end
     
     %% METHOD CREATOR
