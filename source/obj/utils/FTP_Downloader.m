@@ -141,6 +141,8 @@ classdef FTP_Downloader < handle
                 sf = struct(this.ftp_server);
                 warning('on')
                 sf.jobject.enterLocalPassiveMode();
+                sf.jobject.setConnectTimeout(15);
+                sf.jobject.setDataTimeout(30);
             catch
                 this.ftp_server = [];
                 this.log.addWarning(['Could not connect to: ' this.addr]);
@@ -169,7 +171,7 @@ classdef FTP_Downloader < handle
                     files = dir(this.ftp_server, folder);
                     this.f_name_pool{end+1} = {folder , files};
                     idx = length(this.f_name_pool);
-                catch
+                catch ex
                     try
                         this.reconnect();
                         files = dir(this.ftp_server, folder);
