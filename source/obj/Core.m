@@ -461,7 +461,7 @@ classdef Core < handle
                 rf.init();
             end
             if isempty(rf.xyz)
-                rf.init(core.state.getCrdFile);
+                rf.init(core.getState.getCrdFile);
             end
         end
         

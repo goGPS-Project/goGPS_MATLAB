@@ -1928,7 +1928,7 @@ classdef Engine_U2 < handle
                     if flag_fix
                         if svd_strat
                             % svd startegy
-                            % reduce all other parameter than ambiguities
+                            % reduce all other parameters, than ambiguities
                             
                             idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB | c_p == this.PAR_SAT_EBFR | c_p == this.PAR_REC_EBFR;
                             c_p2 = c_p(~idx_bias);
