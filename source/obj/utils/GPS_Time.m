@@ -52,7 +52,6 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-
 classdef GPS_Time < Exportable & handle
     
     properties (Constant, GetAccess = public)
@@ -1126,33 +1125,38 @@ classdef GPS_Time < Exportable & handle
             %          and it will stop  with the receiver with the first last epoch
             time_ok = false(n_time, 1);
             for i = 1 : n_time
-                time_ok = not(time_list(i).isEmpty);
+                time_ok(i) = not(time_list(i).isEmpty);
             end
-            time_zero = round(time_list(find(time_ok, 1, 'first')).first.getMatlabTime() * 24)/24; % get the reference time at the beginning of one day
-
-            % Get all the common epochs
-            t = [];
-            for i = 1 : n_time
-                rec_rate = min(5, time_list(i).getRate);
-                t = [t; round(time_list(i).getRefTime(time_zero) / rec_rate) * rec_rate];
-            end
-            t = unique(t);
-
-            % If rate is specified use it
-            if nargin > 1
-                t = intersect(t, (t(1) : rate : t(end) + rate)');
-            end
-
-            % Create reference time
-            sync_time = GPS_Time(time_zero, t);
-            id_sync = nan(sync_time.length(), n_time);
-
-            % Get intersected times
-            for i = 1 : n_time
-                if  not(time_list(i).isEmpty)
+            if not(any(time_ok))
+                sync_time = GPS_Time();
+                id_sync = [];
+            else
+                time_zero = round(time_list(find(time_ok, 1, 'first')).first.getMatlabTime() * 24)/24; % get the reference time at the beginning of one day
+                
+                % Get all the common epochs
+                t = [];
+                for i = 1 : n_time
                     rec_rate = min(5, time_list(i).getRate);
-                    [~, id1, id2] = intersect(t, round(time_list(i).getRefTime(time_zero) / rec_rate) * rec_rate);
-                    id_sync(id1, i) = id2;
+                    t = [t; round(time_list(i).getRefTime(time_zero) / rec_rate) * rec_rate];
+                end
+                t = unique(t);
+                
+                % If rate is specified use it
+                if nargin > 1
+                    t = intersect(t, (t(1) : rate : t(end) + rate)');
+                end
+                
+                % Create reference time
+                sync_time = GPS_Time(time_zero, t);
+                id_sync = nan(sync_time.length(), n_time);
+                
+                % Get intersected times
+                for i = 1 : n_time
+                    if  not(time_list(i).isEmpty)
+                        rec_rate = min(5, time_list(i).getRate);
+                        [~, id1, id2] = intersect(t, round(time_list(i).getRefTime(time_zero) / rec_rate) * rec_rate);
+                        id_sync(id1, i) = id2;
+                    end
                 end
             end
         end
