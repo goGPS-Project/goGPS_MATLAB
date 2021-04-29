@@ -140,9 +140,11 @@ classdef FTP_Downloader < handle
                 warning('off')
                 sf = struct(this.ftp_server);
                 warning('on')
-                sf.jobject.enterLocalPassiveMode();
-                sf.jobject.setConnectTimeout(15);
-                sf.jobject.setDataTimeout(30);
+                if isfield(sf, 'jobject')
+                    sf.jobject.enterLocalPassiveMode();
+                    sf.jobject.setConnectTimeout(15);
+                    sf.jobject.setDataTimeout(30);
+                end
             catch
                 this.ftp_server = [];
                 this.log.addWarning(['Could not connect to: ' this.addr]);
