@@ -1338,7 +1338,12 @@ classdef Core_Sky < handle
         
         function importBiases(this,fname)
             if not(isempty(fname))
-                this.importSinexBias(fname{1});
+                [~,fname_no_path] = fileparts(fname{1});
+                if instr(fname_no_path(1:3),'CAS')
+                    this.importSinexDCB(fname{1});
+                else
+                    this.importSinexBias(fname{1});
+                end
             end
         end
         
@@ -1436,6 +1441,178 @@ classdef Core_Sky < handle
                     Core.getLogger.addWarning(sprintf('Satellites %s not found in the bias file', str(3 : end)));
                 else
                     Core.getLogger.addWarning(sprintf('Satellites %s not found in the bias file', str(3 : end)));
+                end
+            end
+        end
+        
+        function importSinexDCB(this,file_name)
+            %DESCRIPTION: import dcb in sinex format
+            % IMPORTANT WARNING: considering only daily dcb, some
+            % assumpotion on the structure of the file are maded, based on
+            % CAS MGEX DCB files
+            
+            if this.isEmpty()
+                Core.getLogger.addWarning('Sky object is empty, no orbits are loaded\nSkipping DCB import');
+            else
+                if isempty(file_name)
+                    Core.getLogger.addWarning('No dcb file found');
+                    return
+                end
+                fid = fopen(file_name,'rt');
+                if fid == -1
+                    Core.getLogger.addWarning(sprintf('Core_Sky: File %s not found', file_name));
+                    return
+                end
+                Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', file_name)));
+                txt = fread(fid,'*char')';
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % get end of header
+                eoh = strfind(txt,'*BIAS SVN_ PRN ');
+                eoh = find(lim(:,1) > eoh);
+                
+                eoh = eoh(1) - 1;
+                head_line = txt(lim(eoh,1):lim(eoh,2));
+                svn_idx = strfind(head_line,'PRN') - 1;
+                c1_idx = strfind(head_line,'OBS1') -1 ;
+                c2_idx = strfind(head_line,'OBS2') -1 ;
+                val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
+                std_idx = strfind(head_line,'_STD_DEV___') - 1;
+                % removing header lines from lim
+                lim(1:eoh, :) = [];
+                
+                % removing last two lines (check if it is a standard) from lim
+                lim((end-1):end, :) = [];
+                
+                % removing non satellites related lines from lim
+                sta_lin = txt(lim(:,1)+13) > 57 | txt(lim(:,1)+13) < 48; % Satellites have numeric PRNs
+                lim(sta_lin,:) = [];
+                
+                % TODO -> remove dcb of epoch different from the current one
+                % find dcb names presents
+                fl = lim(:,1);
+                
+                tmp = [txt(fl+svn_idx)' txt(fl+svn_idx+1)' txt(fl+svn_idx+2)' txt(fl+c1_idx)' txt(fl+c1_idx+1)' txt(fl+c1_idx+2)' txt(fl+c2_idx)' txt(fl+c2_idx+1)' txt(fl+c2_idx+2)'];
+                idx = repmat(fl+val_idx,1,20) + repmat([0:19],length(fl),1);
+                dcb = sscanf(txt(idx)','%f');
+                idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
+                dcb_std = sscanf(txt(idx)','%f');
+                % between C2C C2W the std are 0 -> unestimated
+                % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
+                bad_ant_id = []; % list of missing antennas in the DCB file
+                dcb_std(dcb_std == 0) = mean(dcb_std(dcb_std ~= 0));
+                ref_dcb_name_old = '';
+                bad_sat_str = '';
+                for s = 1 : this.cc.getNumSat()
+                    sys = this.cc.system(s);
+                    prn = this.cc.prn(s);
+                    ant_id = this.cc.getAntennaId(s);
+                    sat_idx = this.prnName2Num(tmp(:,1:3)) == this.prnName2Num(ant_id);
+                    if sum(sat_idx) == 0
+                        bad_ant_id = [bad_ant_id; ant_id];
+                    else
+                        sat_dcb_name = tmp(sat_idx,4:end);
+                        sat_dcb = dcb(sat_idx);
+                        sat_dcb_std = dcb_std(sat_idx);
+                        ref_dcb_name = this.cc.getRefDCB(s);
+                        %check if there is the reference dcb in the one
+                        %provided by the external source
+                        
+                        
+                        % Set up the desing matrix
+                        sys_gd = this.group_delays_flags(this.group_delays_flags(:,1) == sys,2:4);
+                        n_dcb = size(sat_dcb_name,1);
+                        A = zeros(n_dcb,size(sys_gd,1));
+                        for d = 1 : n_dcb
+                            idx1 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,1:3));
+                            A(d,idx1) =  1;
+                            idx2 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,4:6));
+                            A(d,idx2) = -1;
+                        end
+                        % find not present gd
+                        connected = sum(abs(A)) > 0;
+                        A = A(:,connected);
+                        W = diag(1./sat_dcb_std.^2);
+                        % set the refernce iono-free combination to zero using lagrange multiplier
+                        
+                        if sum(sum(sat_dcb_name == repmat(ref_dcb_name,n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat([ref_dcb_name(4:6) ref_dcb_name(1:3)],n_dcb,1),2) == 6) > 0
+                            
+                            iono_free = this.cc.getSys(sys).getIonoFree();
+                            if sys == 'E' && (size(A,2)-1) > rank(A) % special case galaile Q and X tracking are not connected
+                                const = zeros(2,size(A,2));
+                                ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                                const(1,ref_col1) = iono_free.alpha1;
+                                ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                                const(1,ref_col2) = - iono_free.alpha2;
+                                ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num('C1X');
+                                const(2,ref_col1) = iono_free.alpha1;
+                                ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num('C5X');
+                                const(2,ref_col2) = - iono_free.alpha2;
+                                N = [ A'*W*A  const'; const zeros(2)];
+                                gd = N \ ([A'* W * sat_dcb; zeros(2,1)]);
+                                gd(end-1:end) = []; %taking off lagrange multiplier
+                            else
+                                const = zeros(1,size(A,2));
+                                ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                                const(ref_col1) = iono_free.alpha1;
+                                ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                                const(ref_col2) = - iono_free.alpha2;
+                                N = [ A'*W*A  const'; const 0];
+                                gd = N \ ([A'* W * sat_dcb; 0]);
+                                gd(end) = []; %taking off lagrange multiplier
+                            end
+                        else
+                            % Save sat DCB problem string
+                            if isempty(bad_sat_str)
+                                bad_sat_str = sprintf(' - %s for %c%d', ref_dcb_name, sys, prn);
+                            elseif strcmp(ref_dcb_name, ref_dcb_name_old)
+                                bad_sat_str = sprintf('%s, %c%d', bad_sat_str, sys, prn);
+                            else
+                                bad_sat_str = sprintf('%s\n%s for %c%d', bad_sat_str, ref_dcb_name, sys, prn);
+                            end
+                            ref_dcb_name_old = ref_dcb_name;
+                            
+                            % deal with the problem (by hiding warnings)
+                            const = zeros(2,size(A,2));
+                            ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                            const(1,ref_col1) = 1;
+                            ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                            const(2,ref_col2) =1;
+                            N = [ A'*W*A  const'; const zeros(2)];
+                            warning('off'); % Sometimes the system could be singular
+                            gd = N \ ([A'* W * sat_dcb; zeros(2,1)]);
+                            warning('on');
+                            gd(end-1:end) = []; % t aking off lagrange multiplier
+                        end
+                        if sum(isnan(gd)) > 0 || sum(abs(gd) == Inf) > 0
+                            Core.getLogger.addWarning('Invalid set of DCB ignoring them')
+                        else
+                            dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
+                            this.group_delays(prn, dcb_col) = - gd * Core_Utils.V_LIGHT * 1e-9;
+                        end
+                    end
+                end
+                if ~isempty(bad_sat_str)
+                    Core.getLogger.addWarning(sprintf('One or more DCB are missing in "%s":\n%s\nthe bias will be eliminated only using iono-free combination', File_Name_Processor.getFileName(file_name), bad_sat_str));
+                end
+                if ~isempty(bad_ant_id)
+                    str = sprintf(', %c%c%c', bad_ant_id');
+                    if size(bad_ant_id, 1) > 1
+                        Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    else
+                        Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
+                    end
                 end
             end
         end
