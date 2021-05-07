@@ -4134,7 +4134,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             [~, name,ext] = fileparts(filename);
             % CGIM is iono breadcast
-            if strcmpi(ext,'.sp3') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.rnx') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') ...
+                    || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  ...
+                    || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) ...
+                    || (strcmpi(ext,'.RNX') &&  strcmpi(name((end-1):end),'MN')) %#ok<STREMP>
                 dir_path = this.getNavEphDir();
             elseif ~isempty(regexpi(ext,'.erp*'))
                 dir_path = this.getErpDir();
@@ -5038,8 +5041,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) %#ok<STREMP>
-                %if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono')) %#ok<STREMP>
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.rnx') || ~isempty(regexpi(ext,'.EPH*')) || strcmp(ext,'.pre') || strcmpi(ext,'.${YY}p') ...
+                    || ((strcmpi(ext,'.${YY}[n|N]') || ~isempty(regexpi(ext,'\.\d\d[n|N]'))) && isempty(strfind(name, 'CGIM')))  ...
+                    || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\d[p|P]')) || ~isempty(regexp(ext,'\.\d\d[l|L]', 'once')) ...
+                    || (strcmpi(ext,'.RNX') &&  strcmpi(name((end-1):end),'MN')) %#ok<STREMP>
                 this.setNavEphFile(filename);
             elseif ~isempty(regexpi(ext,'.erp*'))
                 this.setErpFile(filename);
@@ -5108,7 +5113,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.resetNavNames()
             this.setNavEphFile('');
             this.setNavClkFile('');
-            this.setErpPath('');
+            this.setErpFile('');
             this.setBiasFile('');
         end
         
@@ -5389,7 +5394,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
             
-            if flag_reset || ~strcmp(this.preferred_eph{1}, flag_name{find(flag, 1, 'first')})
+            if flag_reset || ~any(flag) || ~strcmp(this.preferred_eph{1}, flag_name{find(flag, 1, 'first')})
+                if ~any(flag)
+                    flag = true(5,1);
+                end
                 Core.getCoreSky(true); % Reset Core_Sky
                 fw = File_Wizard;
                 this.resetNavNames();

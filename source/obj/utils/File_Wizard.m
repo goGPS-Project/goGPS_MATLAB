@@ -212,12 +212,16 @@ classdef File_Wizard < handle
                         dso.addIntSeconds(+step_s);
                         [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                         file_name_lst = flipud(file_name_lst);
-                        status = true;
+
                         f_status_lst = file_tree{4};
                         f_ext_lst = file_tree{5};
                         
-                        [f_status_lst, aria_err_code] = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
-                        
+                        if ~isempty(file_name_lst) && (any(strfind(file_name_lst{1}, 'garner')) || any(strfind(file_name_lst{1}, 'cddis')))
+                            % It seems like aria does not work with graner FTP, it does not download all the file requested, some fails
+                            aria_err_code = true; % switch to matlab FTP download
+                        else
+                            [f_status_lst, aria_err_code] = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
+                        end
                         for i = 1 : length(file_name_lst)
                             if isempty(f_status_lst) || ~f_status_lst(i) && aria_err_code % do this only if aria fails
                                 file_name = file_name_lst{i};
@@ -233,19 +237,31 @@ classdef File_Wizard < handle
                                 if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port, user, passwd);
                                     if ~this.nrt
-                                        status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                        %status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                        status = this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir) && status;
                                     else
                                         status = this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir) && status;
                                     end
-                                else
+                                    f_status_lst(i) = status;
+                                elseif instr(port,'80')
                                     if ~this.nrt
-                                        status = status && Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd);
+                                        %status = status && Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd);
+                                        status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd) && status;
                                     else
                                         status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd) && status;
                                     end
+                                    f_status_lst(i) = status;
+                                elseif  instr(port,'443')
+                                    if ~this.nrt
+                                        %status = status && Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd,true);
+                                        status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd,true) && status;
+                                    else
+                                        status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd,true) && status;
+                                    end
+                                    f_status_lst(i) = status;
                                 end
                             else
-                                status = all(f_status_lst);                                
+                                status = all(f_status_lst(1 : i));
                             end
                         end
                         if ~aria_err_code && ~status
@@ -367,6 +383,8 @@ classdef File_Wizard < handle
                                             if instr(port,'21')
                                                 idx = this.getServerIdx(s_ip, port, user, passwd);
                                                 [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
+                                            elseif instr(port,'443')
+                                                [stat, ext] = Core_Utils.checkHttpTxtRes(['https://' s_ip file_name]);
                                             else
                                                 [stat, ext] = Core_Utils.checkHttpTxtRes([s_ip file_name]);
                                             end
@@ -610,13 +628,13 @@ classdef File_Wizard < handle
                         break
                     end
                 end
-            end
-            
-            if status
-                err_code = 0;
-                log.addStatusOk('Vienna Mapping Function files are present ^_^');
-            else
-                log.addWarning('Not all vmf files founds');
+                
+                if status
+                    err_code = 0;
+                    log.addStatusOk('Vienna Mapping Function files are present ^_^');
+                else
+                    log.addWarning('Not all vmf files founds');
+                end
             end
             
         end
@@ -731,7 +749,7 @@ classdef File_Wizard < handle
             if status
                 err_code = 0;
                 if isempty(list_preferred)
-                    og.addStatusOk('No iono files requested, nothing to do!')
+                    log.addStatusOk('No iono files requested, nothing to do!')
                 else
                     log.addStatusOk('Ionosphere resource files are present ^_^')
                 end
@@ -891,9 +909,8 @@ classdef File_Wizard < handle
             % Pointer to the global settings:
             state = Core.getCurrentSettings();
             
-            %AIUB FTP server IP address
-            % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch
-            igs_ip = 'ftp.igs.org';           
+            % IGS http address
+            igs_ip = 'files.igs.org';
             
             %download directory
             down_dir = state.atx_dir;
@@ -907,64 +924,36 @@ classdef File_Wizard < handle
                         
             % target file
             rem_file = 'igs14.atx';
+            local_file = state.getAtxFile;
             
             log.addMessage(log.indent(sprintf(['FTP connection to the IGS server (ftp://' igs_ip ').\nIGS ftp might be slow and the ATX file is approximately 18MB. Please wait...'])));
             %if not(exist([down_dir, '/', s2]) == 2)
             try
                 % move the old antex file
                 move_success = false;
-                if exist(fullfile(down_dir, rem_file), 'file') == 2
-                    [move_success, message] = movefile(fullfile(down_dir, rem_file), fullfile(down_dir, [rem_file '.old']), 'f');
+                if exist(fullfile(local_file), 'file') == 2
+                    [move_success, message] = movefile(local_file, [local_file '.old'], 'f');
                     if ~move_success
                         log.addError(message);
                     end
                 end
-                try % ARIA2C download
-                    clear file_name_lst f_ext_lst;
-                    file_lst{1} = ['ftp://' igs_ip rem_path '/' rem_file];
-                    f_ext_lst{1} = '';
-                    f_status_lst = false;
-                    f_status_lst = Core_Utils.aria2cDownloadUncompress(file_lst, f_ext_lst, f_status_lst, [], down_dir);
-                    %https_link = 'https://files.igs.org:80/pub/station/general/igs14.atx'; 
-                    % you should add "--check-certificate=false" to aria, IGS website have a broken certificate *_*
-                    %f_status_lst = Core_Utils.aria2cDownloadUncompress({http_link}, f_ext_lst, f_status_lst, [], down_dir);
-                catch ex
-                    % connect to the CRX server
-                    try
-                        ftp_server = ftp(igs_ip);
-                        cd(ftp_server, '/');
-                        cd(ftp_server, rem_path);
-                    catch
-                        log.addError('Connection failed.');
-                        return
-                    end
-                    % fprintf(ex.message)
-                    mget(ftp_server,rem_file, down_dir);
-                    f_status_lst = true;
-                    try
-                        close(ftp_server);
-                    catch
-                    end
+                file_lst = ['http://' igs_ip rem_path '/' rem_file];
+                % Download ATX from IGS server
+                try
+                    f_status_lst = ~isempty(websave(local_file, file_lst));
+                catch
+                    log.addError('Connection failed.');
+                    return
                 end
                 if ~f_status_lst
                     throw(MException('Verify ATX download', 'download error'));
                 end
-                % rename the downloaded file as the expected name
-                [move_success, message] = movefile(fullfile(down_dir, rem_file), fullfile(down_dir, state.atx_name));
-                if ~move_success
-                    err_code = 2;
-                    log.addError(message);
-                end
             catch ex
                 % If the FTP is still open (and have been used)
-                try
-                    close(ftp_server);
-                catch
-                end
                 log.addWarning(sprintf('ATX file have not been updated due to connection problems: %s', ex.message))
-                if exist(fullfile(down_dir, [upper(rem_file), '.old']), 'file') == 2
+                if exist([local_file '.old'], 'file') == 2
                     if move_success
-                        [move_success, message] = movefile(fullfile(down_dir, [rem_file '.old']), fullfile(down_dir, rem_file));
+                        [move_success, message] = movefile([local_file '.old'], local_file);
                         if ~move_success
                             err_code = 2;
                             log.addError(message);
@@ -975,12 +964,7 @@ classdef File_Wizard < handle
                     err_code = 1;
                 end
             end
-            log.addMessage(log.indent(sprintf(['Downloaded ATX file: ' rem_file '\n'])));
-            
-            try
-                close(ftp_server);
-            catch
-            end
+            log.addMessage(log.indent(sprintf('Downloaded ATX file: "%s"\n', local_file)));
             log.addStatusOk('ATX files are present ^_^')
         end
     end

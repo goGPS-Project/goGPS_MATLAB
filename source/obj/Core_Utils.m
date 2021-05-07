@@ -2215,7 +2215,7 @@ classdef Core_Utils < handle
                     file_name = strrep(file_name,['?{' server '}'],'');
                     [s_ip, port, user,passwd] = rm.getServerIp(server);
                     switch port
-                        case '21'
+                        case {'21', '443'} 
                             fnl{i} = ['ftp://' s_ip ':' port file_name fel{i}];
                             if ~isempty(user) & ~isempty(passwd)
                                 credentials = sprintf('--ftp-user=%s  --ftp-passw=%s',user,passwd);
@@ -2247,7 +2247,7 @@ classdef Core_Utils < handle
             % if I have at least one file to download
             if numel(odl) > 0
                 i = 0;
-                file_name = fullfile('.', 'reserved', 'tmpAriaDownload.lst');
+                file_name = fullfile('.', 'reserved', sprintf('tmpAriaDownload_%s.lst', datestr(now, 'yyyymmddHHMMSSFFF')));
                 if (exist(['.' filesep 'reserved' filesep], 'dir') == 0)
                     mkdir(['.' filesep 'reserved']);
                 end
@@ -2279,11 +2279,18 @@ classdef Core_Utils < handle
                                     log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
                                     log.addMessage(log.indent(sprintf('%s', str)));
                                     try
+                                        if any(strfind(str, 'ftp://garner')) || any(strfind(str, 'ftp://nfs.kasi'))
+                                            str_parallel = '1';
+                                        elseif any(strfind(str, 'ftp://gssc.esa')) 
+                                            str_parallel = '2';
+                                        else
+                                            str_parallel = '20';
+                                        end
                                         if ispc()
-                                            dos(sprintf('"%s" %s -j 2 -c -i %s -d %s >nul 2>&1', aria2c_path, credentials, file_name, old_od)); % suppress output
+                                            dos(sprintf('"%s" %s -j %s -c -i %s -d %s >nul 2>&1', aria2c_path, credentials, str_parallel, file_name, old_od)); % suppress output
                                             %dos(sprintf('"%s" %s -j 2 -c -i %s -d %s', aria2c_path, credentials, file_name, old_od)); % do not suppress output
                                         else
-                                            dos(sprintf('%s %s -j 2 -c -i %s -d %s &> /dev/null', aria2c_path, credentials, file_name, old_od));  % suppress output
+                                            dos(sprintf('%s %s -j %s -c -i %s -d %s &> /dev/null', aria2c_path, credentials, str_parallel, file_name, old_od));  % suppress output
                                             %dos(sprintf('%s %s -j 2 -c -i %s -d %s ', aria2c_path, credentials, file_name, old_od));  % do not suppress output
                                         end
                                     catch
@@ -2350,11 +2357,15 @@ classdef Core_Utils < handle
             
         end
         
-        function [status] = downloadHttpTxtResUncompress(filename, out_dir,user,passwd)
-             if nargin < 3
+        function [status] = downloadHttpTxtResUncompress(filename, out_dir, user, passwd, https_flag)
+            if nargin < 3
                 user = '';
                 passwd = '';
             end
+            if nargin < 5
+                https_flag = false;
+            end
+            
             log = Core.getLogger();
             fnp = File_Name_Processor();
             try
@@ -2371,18 +2382,43 @@ classdef Core_Utils < handle
                 if ~isempty(out_dir) && ~exist(out_dir, 'dir')
                     mkdir(out_dir);
                 end
+                   
+                if any(strfind(remote_location, 'cddis'))
+                    % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
+                    % I need to force the extension
+                    filename = [filename '.Z'];
+                    compressed_name = filename;
+                end
                 try
-                    txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename],options);
+                    if ~https_flag
+                        txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
+                    else
+                        txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
+                    end
                 catch ex
+                    if any(strfind(remote_location, 'cddis'))
+                        % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
+                        % Remove Z extension
+                        filename = filename(1:end-2);
+                        compressed_name = '';
+                    end
                     if instr(ex.message, '404')
                         try
                             compressed_name = [filename, '.gz'];
-                            txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name],options);
+                            if ~https_flag
+                                txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                            else
+                                txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                            end
                         catch ex
                             if instr(ex.message, '404')
                                 try
                                     compressed_name = [filename, '.Z'];
-                                    txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name],options);
+                                    if ~https_flag
+                                        txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                    else
+                                        txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                                    end
                                 catch
                                     status = false;
                                 end
@@ -2394,7 +2430,7 @@ classdef Core_Utils < handle
                     end
                 end
                 if status
-                    status = false; %#ok<NASGU>
+                    status = false;
                     if ~isempty(compressed_name)
                         compressed_name = fnp.checkPath(fullfile(out_dir, compressed_name));
                         if (isunix())
@@ -2423,36 +2459,40 @@ classdef Core_Utils < handle
         function [status, ext] = checkHttpTxtRes(filename)
             ext = '';
             if isunix()
-                if ismac()
-                    % Sometimes mac users does not have wget'
-                    rem_check_cmd = 'curl --head ';
+                if any(strfind(filename, 'cddis'))
+                    status = true; % To check cddis you need credentials, so here it is not implemented
                 else
-                    % curl seems to have some problems with matlb libraries
-                    % under some Linux installations, switching to wget --spyder
-                    rem_check_cmd = 'wget --spider ';
-                end
-                
-                [resp, txt] = system([rem_check_cmd filename]);
-                if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
-                    status = true;
-                else
-                    [resp, txt] = system([rem_check_cmd filename '.gz']);
+                    if ismac()
+                        % Sometimes mac users does not have wget'
+                        rem_check_cmd = 'curl --head ';
+                    else
+                        % curl seems to have some problems with matlb libraries
+                        % under some Linux installations, switching to wget --spyder
+                        rem_check_cmd = 'wget --spider --no-hsts --no-check-certificate ';
+                    end
+                    
+                    [resp, txt] = system([rem_check_cmd filename]);
                     if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
-                        ext = '.gz';
                         status = true;
                     else
-                        [resp, txt] = system([rem_check_cmd filename '.Z']);
+                        [resp, txt] = system([rem_check_cmd filename '.gz']);
                         if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
-                            ext = '.Z';
+                            ext = '.gz';
                             status = true;
                         else
-                            status = false;
+                            [resp, txt] = system([rem_check_cmd filename '.Z']);
+                            if ~isempty(strfind(txt,' 200 OK')) || ~isempty(strfind(txt,' 302 Found')) || ~isempty(strfind(txt,' 302 Moved Temporarily')) %#ok<STREMP>
+                                ext = '.Z';
+                                status = true;
+                            else
+                                status = false;
+                            end
                         end
                     end
                 end
             else
                 log = Logger.getInstance;
-                log.addWarning('HTTP check is implemeted only for Unix systems')
+                log.addWarning('HTTP check is implemented only for Unix systems')
                 status = true; % !!! to be implemented
             end
         end
