@@ -1338,9 +1338,12 @@ classdef Core_Sky < handle
         
         function importBiases(this,fname)
             if not(isempty(fname))
-                [~,fname_no_path] = fileparts(fname{1});
+                [file_dir,fname_no_path,ext] = fileparts(fname{1});
                 if instr(fname_no_path(1:3),'CAS')
                     this.importSinexDCB(fname{1});
+                elseif strcmpi(fname_no_path(1:4),'P1P2') || strcmpi(fname_no_path(1:4),'P1C1')
+                    this.importCodeDCB([file_dir '/' fname_no_path(1:2) 'P2' fname_no_path(5:end) ext]);
+                    this.importCodeDCB(fname{1});
                 else
                     this.importSinexBias(fname{1});
                 end
@@ -1613,6 +1616,63 @@ classdef Core_Sky < handle
                     else
                         Core.getLogger.addWarning(sprintf('Satellites %s not found in the DCB file', str(3 : end)));
                     end
+                end
+            end
+        end
+        
+        function importCodeDCB(this,fname)
+            % improtant load the p1p2 dcb first
+            p1p2 = false;
+            p1c1 = false;
+            cc = Core.getConstellationCollector;
+            [~,fname_no_path] = fileparts(fname);
+            if strcmpi(fname_no_path(1:4),'P1P2')
+                p1p2 = true;
+            elseif strcmpi(fname_no_path(1:4),'P1C1')
+                p1c1 = true;
+            end
+            go_id = [];
+            dcb = [];
+            sys_c = [];
+            fid = fopen(fname);
+            tline = fgetl(fid);
+            i = 1;
+            while ischar(tline)
+                if length(tline) > 2
+                    if i > 7
+                        if tline(2) == ' '
+                            break
+                        end
+                        antid = tline(1:3);
+                        if sum(cc.sys_c == antid(1)) > 0
+                            go_id_tmp = cc.getIndex(antid(1), str2num(antid(2:3)));
+                            go_id = [go_id; go_id_tmp];
+                            dcb_tmp = sscanf(tline(29:35),'%f')/1e9*Core_Utils.V_LIGHT;
+                            dcb = [dcb; dcb_tmp];
+                            sys_c = [sys_c; antid(1)];
+                        end
+                    end
+                end
+                tline = fgetl(fid);
+                i = i + 1;
+            end
+            fclose(fid);
+            for i = 1:length(dcb)
+                if p1p2
+                    if sys_c(i) == 'G'
+                        idx1 = find(strLineMatch(this.group_delays_flags,'GC1W'));
+                        idx2 = find(strLineMatch(this.group_delays_flags,'GC2W'));
+                    elseif sys_c(i) == 'R'
+                        idx1 = find(strLineMatch(this.group_delays_flags,'RC1P'));
+                        idx2 = find(strLineMatch(this.group_delays_flags,'RC2P'));
+                    end
+                    this.group_delays(go_id(i),[idx1 idx2]) = [-dcb(i)/2 +dcb(i)/2];
+                elseif p1c1
+                    if sys_c(i) == 'G'
+                        idx1 = find(strLineMatch(this.group_delays_flags,'GC1W'));
+                        idx2 = find(strLineMatch(this.group_delays_flags,'GC1C'));
+                    end
+                    this.group_delays(go_id(i),idx2) = this.group_delays(go_id(i),idx1) - dcb(i);
                 end
             end
         end

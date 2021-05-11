@@ -4145,7 +4145,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 dir_path = this.getNavClkDir();
             elseif strcmpi(ext,'.CRX')
                 dir_path = '';
-            elseif strcmpi(ext,'.BIA') || strcmpi(ext,'.BSX')
+            elseif strcmpi(ext,'.BIA') || strcmpi(ext,'.BSX') || strcmpi(ext,'.DCB')
                 dir_path = this.getBiasDir();
             elseif ~isempty(regexp(ext,'\.\d\d[i|I]', 'once')) || ~isempty(regexp(ext,'\.\d\d[n|N]', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}n') || strcmpi(name(1:4),'IFCz') || strcmpi(name(1:4),'SFCz')
                 dir_path = this.getIonoDir();
@@ -5048,7 +5048,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.setNavEphFile(filename);
             elseif ~isempty(regexpi(ext,'.erp*'))
                 this.setErpFile(filename);
-            elseif strcmpi(ext,'.BIA') ||  strcmpi(ext,'.BSX')
+            elseif strcmpi(ext,'.BIA') ||  strcmpi(ext,'.BSX') ||  strcmpi(ext,'.DCB')
                 this.setBiasFile(filename);
             elseif instr(lower(ext),'.clk')
                 this.setNavClkFile(filename);
