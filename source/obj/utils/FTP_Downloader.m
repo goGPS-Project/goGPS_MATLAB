@@ -189,7 +189,7 @@ classdef FTP_Downloader < handle
             folder_s = this.f_name_pool{idx};
             files = folder_s{2};
             for i = 1 : length(files)
-                if ~isempty(strfind(files(i).name, f_name))
+                if strcmp(files(i).name, f_name) || any(strfind(files(i).name, [f_name, '.']))
                     [~, ~, ext_s] = fileparts(files(i).name); 
                     [~, ~, ext] = fileparts(f_name);
                     % If the file on the server is compressed return the extension of the compression
