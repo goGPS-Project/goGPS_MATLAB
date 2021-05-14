@@ -807,7 +807,7 @@ classdef Engine_U2 < handle
                                     if parametriz(1) == ls_parametrization.CONST
                                         ep_pgr_id = 1;
                                         n_prg_id = 1;
-                                        time_par_tmp = [min(this.ref_time_obs(obs_lid))  max(this.ref_time_obs(obs_lid))];
+                                        time_par_tmp = [min(this.ref_time_obs)  max(this.ref_time_obs)];
                                     elseif parametriz(1) == ls_parametrization.EP_WISE
                                         ep_id = time_obs(obs_lid);
                                         u_e_tmp = unique(ep_id);
