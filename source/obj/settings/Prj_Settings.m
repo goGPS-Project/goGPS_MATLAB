@@ -141,6 +141,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         SELECTED_ORBIT_CENTER= {'default'}
         SELECTED_IONO_CENTER= {'default'}
         PREFERRED_IONO = {'final', 'rapid', 'predicted1', 'predicted2', 'broadcast'}
+        SELECTED_BIAS_CENTER= {'default'}
         
         PREFERRED_VMF_RES = {'1x1', '2.5x2', '5x5'}
         PREFERRED_VMF_SOURCE = {'operational', 'era-interim', 'forecast'}
@@ -719,6 +720,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         preferred_iono = Prj_Settings.PREFERRED_IONO;
         selected_orbit_center = Prj_Settings.SELECTED_ORBIT_CENTER;
         selected_iono_center = Prj_Settings.SELECTED_IONO_CENTER;
+        selected_bias_center = Prj_Settings.SELECTED_BIAS_CENTER;
 
         preferred_vmf_res = Prj_Settings.PREFERRED_VMF_RES;         % kind of orbits to prefer
         preferred_vmf_source = Prj_Settings.PREFERRED_VMF_SOURCE;
@@ -1204,6 +1206,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.preferred_iono = state.getData('preferred_iono');
                 this.selected_orbit_center = state.getData('selected_orbit_center');
                 this.selected_iono_center = state.getData('selected_iono_center');
+                this.selected_bias_center = state.getData('selected_bias_center');
                 
                 this.preferred_vmf_res = state.getData('preferred_vmf_res');
                 this.preferred_vmf_source = state.getData('preferred_vmf_source');
@@ -1215,6 +1218,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                  if isempty(this.selected_iono_center)
                     %                                try                                                                the old name:
                     this.selected_iono_center = 'default';
+                 end
+                if isempty(this.selected_bias_center)
+                    %                                try                                                                the old name:
+                    this.selected_bias_center = 'default';
                 end
                 % SATELLITES
                 this.eph_dir    = fnp.getFullDirPath(state.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(fnp.checkPath(this.(upper('eph_dir')), this.prj_home), this.prj_home));
@@ -1583,6 +1590,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.preferred_iono = state.preferred_iono;
                 this.selected_orbit_center = state.selected_orbit_center;
                 this.selected_iono_center = state.selected_iono_center;
+                this.selected_bias_center = state.selected_bias_center;
                 
                 this.preferred_vmf_res = state.preferred_vmf_res;
                 this.preferred_vmf_source = state.preferred_vmf_source;
@@ -1890,6 +1898,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
             str = [str sprintf(' Selected orbital center:                          %s\n', strCell2Str(this.selected_orbit_center))];
             str = [str sprintf(' Selected ionosphere center:                       %s\n', strCell2Str(this.selected_iono_center))];
+            str = [str sprintf(' Selected bias center:                             %s\n', strCell2Str(this.selected_bias_center))];
             str = [str sprintf(' Selected VMF resolution:                          %s\n', strCell2Str(this.preferred_vmf_res))];
             str = [str sprintf(' Selected VMF source:                              %s\n\n', strCell2Str(this.preferred_vmf_source))];
             
@@ -2266,6 +2275,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('SELECTED computational center (e.g. default, igs_glo, igs_gps, code, code_mgex, gfz, jaxa', str_cell);
             str_cell = Ini_Manager.toIniString('selected_orbit_center', this.selected_orbit_center, str_cell);
             str_cell = Ini_Manager.toIniString('selected_iono_center', this.selected_iono_center, str_cell);
+            str_cell = Ini_Manager.toIniString('selected_bias_center', this.selected_bias_center, str_cell);
             
             str_cell = Ini_Manager.toIniStringComment('Preferred VMF resolution,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_VMF_RES)), str_cell);
@@ -3141,6 +3151,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkCellStringField('preferred_iono', EMPTY_IS_VALID);
             this.checkCellStringField('selected_orbit_center', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('selected_iono_center', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('selected_bias_center', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_vmf_res', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_vmf_source', EMPTY_IS_NOT_VALID);
 
@@ -4005,6 +4016,17 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
         end
         
+        function remote_center = getRemoteBiasCenter(this)
+            % Get selected remote ionosphere center
+            %
+            % SYNTAX
+            %   remote_center = getRemoteCenter(this)
+            remote_center = this.selected_bias_center;
+            if iscell(remote_center)
+                remote_center = remote_center{1};
+            end
+        end
+        
         function list_preferred = getPreferredEph(this, center_name)
             % get preferred ephemeris
             %
@@ -4831,7 +4853,32 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             
             this.selected_iono_center = center_name;
-        end        
+        end  
+        
+        function center_name = getCurBiasCenter(this)
+            % Get the current bias center
+            %
+            % SYNTAX
+            %   center_name = this.getCurIonoCenter();
+            center_name = this.selected_bias_center;
+            if ~iscell(center_name)
+                center_name = {center_name};
+            end
+        end
+        
+        function setCurBiasCenter(this, center_name)
+            % Set the current bias center
+            %
+            % SYNTAX
+            %   this.setCurIonoCenter(center_name);
+            
+            % Check validity
+            if ischar(center_name)
+                center_name = {center_name};
+            end
+            
+            this.selected_bias_center = center_name;
+        end  
         
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)

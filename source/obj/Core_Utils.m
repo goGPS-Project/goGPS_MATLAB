@@ -2384,49 +2384,61 @@ classdef Core_Utils < handle
                 end
                    
                 if any(strfind(remote_location, 'cddis'))
-                    % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
+                    % cddis download data even if the compression estension is not specified, but with the wrong extension name!
                     % I need to force the extension
-                    filename = [filename '.Z'];
-                    compressed_name = filename;
-                end
-                try
-                    if ~https_flag
-                        txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
+%                     options = matlab.net.http.HTTPOptions;
+%                     cred = matlab.net.http.Credentials('Username',user,'Password',passwd);
+%                     options.Credentials = cred;
+                    if isempty(strfind(filename,'_DCB.BSX'))
+                        filename = [filename '.Z'];
+                        compressed_name = filename;
                     else
-                        txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
+                        filename = [filename '.gz'];
+                        compressed_name = filename;
                     end
-                catch ex
-                    if any(strfind(remote_location, 'cddis'))
-                        % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
-                        % Remove Z extension
-                        filename = filename(1:end-2);
-                        compressed_name = '';
-                    end
-                    if instr(ex.message, '404')
-                        try
-                            compressed_name = [filename, '.gz'];
-                            if ~https_flag
-                                txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                            else
-                                txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
-                            end
-                        catch ex
-                            if instr(ex.message, '404')
-                                try
-                                    compressed_name = [filename, '.Z'];
-                                    if ~https_flag
-                                        txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                                    else
-                                        txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                    cmd = sprintf('wget --ciphers DEFAULT@SECLEVEL=1 --user %s --password %s  --no-check-certificate --auth-no-challenge %s -P %s',user,passwd, ['https://' remote_location '/' filename],out_dir);
+                    status = system(cmd);
+                    status = status == 0;
+                else
+                    try
+                        if ~https_flag
+                            txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
+                        else
+                            txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
+                        end
+                    catch ex
+                        if any(strfind(remote_location, 'cddis'))
+                            % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
+                            % Remove Z extension
+                            filename = filename(1:end-2);
+                            compressed_name = '';
+                        end
+                        if instr(ex.message, '404')
+                            try
+                                compressed_name = [filename, '.gz'];
+                                if ~https_flag
+                                    txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                else
+                                    txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                                end
+                            catch ex
+                                if instr(ex.message, '404')
+                                    try
+                                        compressed_name = [filename, '.Z'];
+                                        if ~https_flag
+                                            txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                        else
+                                            txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                                        end
+                                    catch
+                                        status = false;
                                     end
-                                catch
-                                    status = false;
                                 end
                             end
+                        elseif instr(ex.message, '401')
+                            status = false;
+                            log.addError('Unauthorized, please add credentials to credentials.txt');
                         end
-                    elseif instr(ex.message, '401')
-                        status = false;
-                        log.addError('Unauthorized, please add credentials to credentials.txt');
                     end
                 end
                 if status
@@ -3154,13 +3166,7 @@ classdef Core_Utils < handle
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
-            state.setMPDir('antenna/MP');
-            if ~exist(state.getMPDir, 'dir')
-                try
-                    mkdir(state.getMPDir);
-                catch ex
-                end
-            end
+
                 
             crd_file = state.getCrdFile;
             if ~exist(crd_file, 'file')

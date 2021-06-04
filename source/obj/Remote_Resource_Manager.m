@@ -220,6 +220,8 @@ classdef Remote_Resource_Manager < Ini_Manager
             
             if numel(resource_name) > 5 && strcmp(resource_name(1:5), 'iono_')
                 str = this.getData(['ic_' center_name], resource_name);
+            elseif strcmp(resource_name, 'bias')
+                str = this.getData(['bc_' center_name], resource_name);
             else
                 str = this.getData(['oc_' center_name], resource_name);
             end
@@ -237,6 +239,8 @@ classdef Remote_Resource_Manager < Ini_Manager
                 file_structure = this.parseLogicTree(str);
                 if numel(resource_name) > 5 && strcmp(resource_name(1:5), 'iono_')
                     latency = 0; % unkown latency (at the moment it is not present)
+                elseif strcmp(resource_name, 'bias')
+                    latency = this.getData(['bc_' center_name], [resource_name '_latency']);
                 else
                     latency = this.getData(['oc_' center_name], [resource_name '_latency']);
                 end
@@ -260,6 +264,8 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
             if type == 1
                 tmp = this.getData('IONO_CENTER', 'available');
+            elseif type == 2
+                tmp = this.getData('BIAS_CENTER', 'available');
             else
                 tmp = this.getData('ORBIT_CENTER', 'available');
             end
@@ -289,6 +295,8 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
             if type == 1
                 tmp = this.getData('IONO_CENTER', 'available');
+            elseif type == 2
+                tmp = this.getData('BIAS_CENTER', 'available');
             else
                 tmp = this.getData('ORBIT_CENTER', 'available');
             end
@@ -296,7 +304,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             center = cell(n_center, 1);
             center_ss = cell(n_center, 1);
             for c = 1 : n_center
-                if type == 1
+                if type == 1 || type == 2
                     center{c} = tmp{c};
                 else
                     center{c} = regexp(tmp{c}, '(?<=@).*', 'match', 'once');
@@ -306,6 +314,8 @@ classdef Remote_Resource_Manager < Ini_Manager
                 else
                     if type == 1
                         center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                    elseif type == 2
+                        center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
                     else
                         center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
                     end

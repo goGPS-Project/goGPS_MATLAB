@@ -60,6 +60,7 @@ classdef File_Name_Processor < handle
         GPS_YYDOY = '${YYDOY}';
         GPS_YYYY = '${YYYY}';
         GPS_DOY = '${DOY}';
+        GPS_FIRST_DOY_TRIMESTER = '${DOYT}';
         GPS_SESSION = '${S}';
         GPS_MM = '${MM}';
         GPS_DD = '${DD}';
@@ -102,6 +103,7 @@ classdef File_Name_Processor < handle
             if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{Y|(DOY)', 'once'))
                 [year, doy] = date.getDOY();
                 file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
+                file_name_out = strrep(file_name_out, this.GPS_FIRST_DOY_TRIMESTER, sprintf('%03d', GPS_Time.doy2fdoytr(doy,year)));
                 file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
                 file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
                 file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
@@ -157,6 +159,8 @@ classdef File_Name_Processor < handle
                 step_sec = 24 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_WEEK))
                 step_sec = 24 * 3600 * 7;
+            elseif ~isempty(strfind(file_name, this.GPS_FIRST_DOY_TRIMESTER))
+                step_sec = 24 * 3600 * 91;
             elseif ~isempty(strfind(file_name, this.GPS_YYYY)) || ~isempty(strfind(file_name, this.GPS_YY))
                 step_sec = 24 * 3600 * 365;
             end

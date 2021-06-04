@@ -1339,7 +1339,7 @@ classdef Core_Sky < handle
         function importBiases(this,fname)
             if not(isempty(fname))
                 [file_dir,fname_no_path,ext] = fileparts(fname{1});
-                if instr(fname_no_path(1:3),'CAS')
+                if instr(fname_no_path(end-2 :end),'DCB')
                     this.importSinexDCB(fname{1});
                 elseif strcmpi(fname_no_path(1:4),'P1P2') || strcmpi(fname_no_path(1:4),'P1C1')
                     this.importCodeDCB([file_dir '/' fname_no_path(1:2) 'P2' fname_no_path(5:end) ext]);
@@ -1492,6 +1492,8 @@ classdef Core_Sky < handle
                 c2_idx = strfind(head_line,'OBS2') -1 ;
                 val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
                 std_idx = strfind(head_line,'_STD_DEV___') - 1;
+                time_start_idx = strfind(head_line,'BIAS_START____') - 1;
+                time_end_idx = strfind(head_line,'BIAS_END______') - 1;
                 % removing header lines from lim
                 lim(1:eoh, :) = [];
                 
@@ -1511,6 +1513,23 @@ classdef Core_Sky < handle
                 dcb = sscanf(txt(idx)','%f');
                 idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
                 dcb_std = sscanf(txt(idx)','%f');
+                [tt] = Core.getState.getSessionLimits;
+                central_time = tt.getEpoch(1);
+                central_time.addSeconds((tt.getEpoch(2) - tt.getEpoch(1))/2);
+                year = sscanf([txt(fl+time_start_idx)' txt(fl+time_start_idx+1)' txt(fl+time_start_idx+2)' txt(fl+time_start_idx+3)' repmat(' ',length(fl),1)]','%f ');
+                doy = sscanf([txt(fl+time_start_idx+5)' txt(fl+time_start_idx+6)' txt(fl+time_start_idx+7)'  repmat(' ',length(fl),1)]','%f ');
+                sod = sscanf([txt(fl+time_start_idx+9)' txt(fl+time_start_idx+10)' txt(fl+time_start_idx+11)' txt(fl+time_start_idx+12)' txt(fl+time_start_idx+13)' repmat(' ',length(fl),1)]','%f ');
+                date_start = GPS_Time.fromDoySod(year,doy,sod);
+                year = sscanf([txt(fl+time_end_idx)' txt(fl+time_end_idx+1)' txt(fl+time_end_idx+2)' txt(fl+time_end_idx+3)' repmat(' ',length(fl),1)]','%f ');
+                year(year< 1) = 2099;
+                doy = sscanf([txt(fl+time_end_idx+5)' txt(fl+time_end_idx+6)' txt(fl+time_end_idx+7)'  repmat(' ',length(fl),1)]','%f ');
+                sod = sscanf([txt(fl+time_end_idx+9)' txt(fl+time_end_idx+10)' txt(fl+time_end_idx+11)' txt(fl+time_end_idx+12)' txt(fl+time_end_idx+13)' repmat(' ',length(fl),1)]','%f ');
+                date_stop= GPS_Time.fromDoySod(year,doy,sod);
+                idx_keep = (date_start - central_time) < 1 &  (date_stop - central_time) > 1;
+                
+                tmp = tmp(idx_keep,:);
+                dcb = dcb(idx_keep,:);
+                dcb_std = dcb_std(idx_keep,:);
                 % between C2C C2W the std are 0 -> unestimated
                 % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
                 bad_ant_id = []; % list of missing antennas in the DCB file
@@ -1672,7 +1691,7 @@ classdef Core_Sky < handle
                         idx1 = find(strLineMatch(this.group_delays_flags,'GC1W'));
                         idx2 = find(strLineMatch(this.group_delays_flags,'GC1C'));
                     end
-                    this.group_delays(go_id(i),idx2) = this.group_delays(go_id(i),idx1) - dcb(i);
+                    this.group_delays(go_id(i),idx2) = this.group_delays(go_id(i),idx1) + dcb(i);
                 end
             end
         end

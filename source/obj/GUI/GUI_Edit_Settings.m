@@ -214,7 +214,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'ToolBar', 'none', ...
                     'NumberTitle', 'off', ...
                     'Renderer', 'opengl', ...
-                    'Position', [0 0 1040, 640]);
+                    'Position', [0 0 1140, 670]);
                 win.UserData.name = this.WIN_NAME;
                 % Center the window on the right of the logger
                 try
@@ -1960,7 +1960,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.ripref{5} = Core_UI.insertCheckBoxLight(box_v1pref, 'Broadcast', 'iono5', @this.onResourcesPrefChange);
             this.ripref{5}.TooltipString = 'Klobuchar ionospheric parameters';
             box_v1pref.Widths = [250 -1 -1 -1 -1 -1];
-                 
+            [tmp, this.rpop_up{end+1}] = Core_UI.insertPopUpLight(tab_bv, 'Bias Center', r_man.getCenterListExtended(2), 'selected_bias_center', @this.onResourcesPopUpChange, [200 -1]);
+          
             % vmf source
             box_v2pref = uix.HBox( 'Parent', tab_bv, ...
                 'Spacing', 5, ...
@@ -1984,7 +1985,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Resource tree
             bottom_box = uix.VBox( 'Parent', tab_bv, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            tab_bv.Heights = [15 2 18 22 18 22 18 18 -1];
+            tab_bv.Heights = [15 2 18 22 18 22 18 22 18 -1];
             
             rr_box = uix.VBox( 'Parent', bottom_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -2449,6 +2450,14 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 
                 % read current center
                 [center_list, center_ss] = r_man.getCenterList(1);
+                state.setProperty(caller.UserData, center_list{caller.Value});
+            elseif strcmp(caller.UserData, 'selected_bias_center')
+                % Particular case selected_center is in GUI with full description of the center
+                % Use caller.Value and r_man.getCenterList();
+                r_man = Remote_Resource_Manager.getInstance();
+                
+                % read current center
+                [center_list, center_ss] = r_man.getCenterList(2);
                 state.setProperty(caller.UserData, center_list{caller.Value});
             else
                 state.setProperty(caller.UserData, caller.String(caller.Value));

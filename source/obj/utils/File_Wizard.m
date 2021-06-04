@@ -650,8 +650,9 @@ classdef File_Wizard < handle
             %   date_stop = ending GPS_Time
             %
             % OUTPUT:
-            
-            status = this.conjureResource('bias', date_start, date_stop);
+            state = Core.getState();
+            bias_center = state.getRemoteBiasCenter();
+            status = this.conjureResource('bias', date_start, date_stop, bias_center);
             err_code = ~status;
         end
         

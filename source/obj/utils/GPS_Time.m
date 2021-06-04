@@ -2362,6 +2362,45 @@ classdef GPS_Time < Exportable & handle
             toc
         end
         
+        function doyt = doy2fdoytr(doy,year)
+            % get first doy of trimester whose doy is in
+            if GPS_Time.isleap(year)
+                if doy < 92
+                    doyt = 1;
+                elseif doy < 183
+                    doyt = 92;
+                elseif doy < 275
+                    doyt = 183;
+                else
+                    doyt = 275;
+                end
+            else
+                if doy < 91
+                    doyt = 1;
+                elseif doy < 182
+                    doyt = 91;
+                elseif doy < 274
+                    doyt = 182;
+                else
+                    doyt = 274;
+                end
+            end
+        end
+        
+        function [leap] = isleap(year)
+            % is the year leap
+            if mod(year, 4) == 0
+                leap = true;
+                if mod(year, 100) == 0
+                    leap = false;
+                    if mod(year, 400)==0
+                        leap = true;
+                    end
+                end
+            else
+                leap = false;
+            end
+        end
 
     end
     
