@@ -1568,7 +1568,7 @@ classdef Core_Sky < handle
                         W = diag(1./sat_dcb_std.^2);
                         % set the refernce iono-free combination to zero using lagrange multiplier
                         
-                        if sum(sum(sat_dcb_name == repmat(ref_dcb_name,n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat([ref_dcb_name(4:6) ref_dcb_name(1:3)],n_dcb,1),2) == 6) > 0
+                        if true %sum(sum(sat_dcb_name == repmat(ref_dcb_name,n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat([ref_dcb_name(4:6) ref_dcb_name(1:3)],n_dcb,1),2) == 6) > 0
                             
                             iono_free = this.cc.getSys(sys).getIonoFree();
                             if sys == 'E' && (size(A,2)-1) > rank(A) % special case galaile Q and X tracking are not connected
