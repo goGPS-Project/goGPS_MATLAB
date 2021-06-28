@@ -258,7 +258,7 @@ classdef FTP_Downloader < handle
                                     system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
                                 else
                                     try
-                                        [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o '  out_dir ]); %#ok<ASGLU>
+                                        [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
                                         if (status == 0)
                                             status = true;
                                             delete([fpath{1}]);
