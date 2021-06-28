@@ -2451,7 +2451,7 @@ classdef Core_Utils < handle
                             system(['gzip -d -f ' compressed_name '&> /dev/null &']);
                         else
                             try
-                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  compressed_name ' -o'  out_dir ]); %#ok<ASGLU>
+                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  compressed_name ' -o '  out_dir ]); %#ok<ASGLU>
                                 if (status == 0)
                                     status = true;
                                 end
