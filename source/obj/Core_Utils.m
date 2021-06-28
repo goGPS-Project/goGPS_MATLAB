@@ -2196,7 +2196,8 @@ classdef Core_Utils < handle
             
             if ~exist(aria2c_path, 'file')
                 Core.getLogger.addError('aria2c is not working, is it installed?');
-                f_status_lst = [];
+                f_status_lst = false(size(file_name_lst));
+                aria_err_code = 1;
                 return
             end
 
@@ -2294,6 +2295,7 @@ classdef Core_Utils < handle
                                             %dos(sprintf('%s %s -j 2 -c -i %s -d %s ', aria2c_path, credentials, file_name, old_od));  % do not suppress output
                                         end
                                     catch
+                                        f_status_lst = false(size(file_name_lst));
                                         aria_err_code = 1;
                                         log.addError('aria2c is not working, is it installed?');
                                     end
