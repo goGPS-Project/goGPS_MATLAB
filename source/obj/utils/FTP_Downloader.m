@@ -257,8 +257,10 @@ classdef FTP_Downloader < handle
                                 if (isunix())
                                     system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
                                 else
-                                    try
-                                        [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
+                                    try                                        
+                                        [goGPS_path] = which('goGPS');
+                                        [goGPS_dir] = fileparts(goGPS_path);
+                                        [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' fpath{1} '" -o"'  out_dir '"']); %#ok<ASGLU>
                                         if (status == 0)
                                             status = true;
                                             delete([fpath{1}]);
@@ -397,7 +399,9 @@ classdef FTP_Downloader < handle
                                                     compressed = false;
                                                 else
                                                     try
-                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
+                                                        [goGPS_path] = which('goGPS');
+                                                        [goGPS_dir] = fileparts(goGPS_path);
+                                                        [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
                                                         delete([local_dir filesep file_name]);
                                                     catch
                                                         this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));

@@ -2337,8 +2337,10 @@ classdef Core_Utils < handle
                         if (isunix())
                             system(['gzip -d -f ' ffp{i} fel{i} '&> /dev/null']);
                         else
-                            try
-                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  ffp{i} fel{i} ' -o'  odl{i} ]); %#ok<ASGLU>
+                            try                                        
+                                [goGPS_path] = which('goGPS');
+                                [goGPS_dir] = fileparts(goGPS_path);
+                                [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "'   ffp{i} fel{i} '" -o"'  odl{i} '"']); %#ok<ASGLU>
                                 if (status == 0)
                                     status = true;
                                 end
@@ -2450,8 +2452,10 @@ classdef Core_Utils < handle
                         if (isunix())
                             system(['gzip -d -f ' compressed_name '&> /dev/null &']);
                         else
-                            try
-                                [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  compressed_name ' -o'  out_dir ]); %#ok<ASGLU>
+                            try                                        
+                                [goGPS_path] = which('goGPS');
+                                [goGPS_dir] = fileparts(goGPS_path);
+                                [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "'   compressed_name '" -o"'  out_dir '"']); %#ok<ASGLU>
                                 if (status == 0)
                                     status = true;
                                 end
