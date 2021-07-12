@@ -2499,7 +2499,7 @@ classdef Core_Sky < handle
             % DESCRIPTION: Compute sun and moon psitions at the time
             % desidered time
             
-            global iephem km ephname inutate psicor epscor ob2000
+            global jplephem_iephem jplephem_km jplephem_ephname jplephem_inutate jplephem_psicor jplephem_epscor jplephem_ob2000
             %time = GPS_Time((p_time(1))/86400+GPS_Time.GPS_ZERO);
             if nargin < 3
                 moon = true;
@@ -2509,7 +2509,7 @@ classdef Core_Sky < handle
             
             sun_id = 11; moon_id = 10; earth_id = 3;
             
-            readleap; iephem = 1; ephname = 'de436.bin'; km = 1; inutate = 1; ob2000 = 0.0d0;
+            readleap; jplephem_iephem = 1; jplephem_ephname = 'de436.bin'; jplephem_km = 1; jplephem_inutate = 1; jplephem_ob2000 = 0.0d0;
             
             tmatrix = j2000_icrs(1);
             
@@ -2521,10 +2521,10 @@ classdef Core_Sky < handle
             go_dir = Core.getLocalStorageDir();
             
             %if the binary JPL ephemeris file is not available, try to copy from reference, or generate it
-            if (exist(fullfile(go_dir, ephname),'file') ~= 2)
+            if (exist(fullfile(go_dir, jplephem_ephname),'file') ~= 2)
                 success = 0;
-                if (exist(fullfile('..', 'data', 'reference', 'JPL', ephname),'file') == 2)
-                    success = copyfile(fullfile('..', 'data', 'reference', 'JPL', ephname), fullfile(go_dir, ephname), 'f');
+                if (exist(fullfile('..', 'data', 'reference', 'JPL', jplephem_ephname),'file') == 2)
+                    success = copyfile(fullfile('..', 'data', 'reference', 'JPL', jplephem_ephname), fullfile(go_dir, jplephem_ephname), 'f');
                 end
                 if ~success
                     fprintf('Warning: file "de436.bin" not found in at %s\n         ... generating a new "de436.bin" file\n',fullfile(go_dir, 'de436.bin'));
@@ -2544,9 +2544,9 @@ classdef Core_Sky < handle
             jd_tdb = time.getJDTDB; % UTC to TDB
             
             % precise celestial pole (disabled)
-            %[psicor, epscor] = celpol(jd_tdb, 1, 0.0d0, 0.0d0);
-            psicor = 0;
-            epscor = 0;
+            %[jplephem_psicor, jplephem_epscor] = celpol(jd_tdb, 1, 0.0d0, 0.0d0);
+            jplephem_psicor = 0;
+            jplephem_epscor = 0;
             
             for e = 1 : time.length()
                 % compute the Sun position (ICRS coordinates)

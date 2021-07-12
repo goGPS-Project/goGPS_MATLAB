@@ -42,9 +42,10 @@ function rrd = jplephem (et, ntarg, ncent)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global cval ss au emrat ncon ipt np nv twot pc vc
+global jplephem_cval jplephem_ss jplephem_au jplephem_emrat jplephem_ncon jplephem_ipt jplephem_np jplephem_nv ...
+    jplephem_twot jplephem_pc jplephem_vc
 
-global iephem ephname bary pvsun nrl fid lpt
+global jplephem_iephem jplephem_ephname jplephem_bary jplephem_pvsun jplephem_nrl jplephem_fid jplephem_lpt
 
 rrd = zeros(6, 1);
 
@@ -60,62 +61,62 @@ et2(2) = 0;
 
 % first entry?
 
-if (iephem == 1)
+if (jplephem_iephem == 1)
 
-    pvsun = zeros(6, 1);
+    jplephem_pvsun = zeros(6, 1);
 
     % read header file data
 
     go_dir = Core.getLocalStorageDir();
-    fid = fopen(fullfile(go_dir, ephname), 'r');
+    jplephem_fid = fopen(fullfile(go_dir, jplephem_ephname), 'r');
 
-    ttl = fread(fid, 252);
+    ttl = fread(jplephem_fid, 252);
 
-    cnam = fread(fid, 2400);
+    cnam = fread(jplephem_fid, 2400);
 
-    ss = fread(fid, 3, 'double');
+    jplephem_ss = fread(jplephem_fid, 3, 'double');
 
-    ncon = fread(fid, 1, 'int');
+    jplephem_ncon = fread(jplephem_fid, 1, 'int');
 
     % astronomical unit
 
-    au = fread(fid, 1, 'double');
+    jplephem_au = fread(jplephem_fid, 1, 'double');
 
     % earth-moon ratio
 
-    emrat = fread(fid, 1, 'double');
+    jplephem_emrat = fread(jplephem_fid, 1, 'double');
 
-    ipt = fread(fid, [3 12], 'int');
+    jplephem_ipt = fread(jplephem_fid, [3 12], 'int');
 
-    numde = fread(fid, 1, 'int');
+    numde = fread(jplephem_fid, 1, 'int');
 
-    lpt = fread(fid, 3, 'int');
+    jplephem_lpt = fread(jplephem_fid, 3, 'int');
 
     % move to next record
 
-    status = fseek(fid, 8144, 'bof');
+    status = fseek(jplephem_fid, 8144, 'bof');
 
     % read "constant" values
 
-    cval = fread(fid, 400, 'double');
+    jplephem_cval = fread(jplephem_fid, 400, 'double');
 
     % initialization
 
-    nrl = 0;
+    jplephem_nrl = 0;
 
-    bary = 0;
+    jplephem_bary = 0;
 
-    pc(1) = 1;
-    pc(2) = 0;
+    jplephem_pc(1) = 1;
+    jplephem_pc(2) = 0;
 
-    vc(2) = 1;
+    jplephem_vc(2) = 1;
 
-    np = 2;
-    nv = 3;
+    jplephem_np = 2;
+    jplephem_nv = 3;
 
-    twot = 0;
+    jplephem_twot = 0;
 
-    iephem = 0;
+    jplephem_iephem = 0;
 end
 
 if (ntarg == ncent)
@@ -130,7 +131,7 @@ end
 
 if (ntarg == 14)
 
-    if (ipt(2, 12) > 0)
+    if (jplephem_ipt(2, 12) > 0)
 
         list(11) = 2;
 
@@ -155,7 +156,7 @@ end
 
 if (ntarg == 15)
 
-    if (lpt(2) > 0)
+    if (jplephem_lpt(2) > 0)
 
         list(12) = 2;
 
@@ -181,9 +182,9 @@ end
 
 % force barycentric output by function 'state'
 
-bsave = bary;
+bsave = jplephem_bary;
 
-bary = 1;
+jplephem_bary = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % set up proper entries in 'list' array for state call
@@ -223,7 +224,7 @@ end
 
 if (ntarg == 11 || ncent == 11)
     for i = 1:1:6
-        pv(i, 11) = pvsun(i);
+        pv(i, 11) = jplephem_pvsun(i);
     end
 end
 
@@ -246,7 +247,7 @@ if (ntarg * ncent == 30 && ntarg + ncent == 13)
 else
     if (list(3) == 2)
         for i = 1:1:6
-            pv(i, 3) = pv(i, 3) - pv(i, 10) / (1 + emrat);
+            pv(i, 3) = pv(i, 3) - pv(i, 10) / (1 + jplephem_emrat);
         end
     end
 
@@ -261,7 +262,7 @@ for i = 1:1:6
     rrd(i) = pv(i, ntarg) - pv(i, ncent);
 end
 
-bary = bsave;
+jplephem_bary = bsave;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -350,18 +351,18 @@ function [pv, nut] = state(et2, list)
 %         default value = 0 (km determines time unit
 %         for nutations and librations. angle unit is always radians.)
 
-%   bary  logical flag defining output center.
+%   jplephem_bary  logical flag defining output center.
 %         only the 9 planets are affected.
-%         bary = 1 => center is solar-system barycenter
+%         jplephem_bary = 1 => center is solar-system barycenter
 %              = 0 => center is sun
 %         default value = 0
 
-%   pvsun 6-word array containing the barycentric position and
+%   jplephem_pvsun 6-word array containing the jplephem_barycentric position and
 %         velocity of the sun
 
-global ss au ipt lpt
+global jplephem_ss jplephem_au jplephem_ipt jplephem_lpt
 
-global nrl fid km bary pvsun coef
+global jplephem_nrl jplephem_fid jplephem_km jplephem_bary jplephem_pvsun jplephem_coef
 
 nut = zeros(4, 1);
 
@@ -401,7 +402,7 @@ pjd(1) = pjd(1) + pjd(3);
 % error return for epoch out of range
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (pjd(1) + pjd(4) < ss(1) || pjd(1) + pjd(4) > ss(2))
+if (pjd(1) + pjd(4) < jplephem_ss(1) || pjd(1) + pjd(4) > jplephem_ss(2))
     fprintf('\n\n error in state - epoch out of range \n');
 
     return;
@@ -411,41 +412,41 @@ end
 % calculate record number and relative time in interval
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-nr = fix((pjd(1) - ss(1)) / ss(3)) + 2;
+nr = fix((pjd(1) - jplephem_ss(1)) / jplephem_ss(3)) + 2;
 
-if (pjd(1) == ss(2))
+if (pjd(1) == jplephem_ss(2))
     nr = nr - 1;
 end
 
-t(1) = ((pjd(1) - ((nr-2) * ss(3) + ss(1))) + pjd(4)) / ss(3);
+t(1) = ((pjd(1) - ((nr-2) * jplephem_ss(3) + jplephem_ss(1))) + pjd(4)) / jplephem_ss(3);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % read correct record if not in core
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (nr ~= nrl)
-    nrl = nr;
+if (nr ~= jplephem_nrl)
+    jplephem_nrl = nr;
 
-    status = fseek(fid, nr * 8144, 'bof');
+    status = fseek(jplephem_fid, nr * 8144, 'bof');
 
-    coef = fread(fid, 1018, 'double');
+    jplephem_coef = fread(jplephem_fid, 1018, 'double');
 end
 
-if (km == 1)
-    t(2) = ss(3) * 86400;
+if (jplephem_km == 1)
+    t(2) = jplephem_ss(3) * 86400;
     aufac = 1;
 else
-    t(2) = ss(3);
-    aufac = 1 / au;
+    t(2) = jplephem_ss(3);
+    aufac = 1 / jplephem_au;
 end
 
 % interpolate barycentric state vector of sun
 
 tmpv = zeros(3, 2);
 
-ibuf = ipt(1, 11);
-ncf = ipt(2, 11);
-na = ipt(3, 11);
+ibuf = jplephem_ipt(1, 11);
+ncf = jplephem_ipt(2, 11);
+na = jplephem_ipt(3, 11);
 
 tmpv = interp(ibuf, t, ncf, 3, na, 2);
 
@@ -454,7 +455,7 @@ k = 0;
 for j = 1:1:2
     for i = 1:1:3
         k = k + 1;
-        pvsun(k) = tmpv(i, j) * aufac;
+        jplephem_pvsun(k) = tmpv(i, j) * aufac;
     end
 end
 
@@ -469,9 +470,9 @@ tempv = zeros(6, 1);
 for i = 1:1:10
     if (list(i) ~= 0)
 
-        ibuf = ipt(1, i);
-        ncf = ipt(2, i);
-        na = ipt(3, i);
+        ibuf = jplephem_ipt(1, i);
+        ncf = jplephem_ipt(2, i);
+        na = jplephem_ipt(3, i);
 
         tmpv = interp(ibuf, t, ncf, 3, na, list(i));
 
@@ -485,8 +486,8 @@ for i = 1:1:10
         end
 
         for j = 1:1:6
-            if (i <= 9 && bary == 0)
-                pv(j, i) = tempv(j) * aufac - pvsun(j);
+            if (i <= 9 && jplephem_bary == 0)
+                pv(j, i) = tempv(j) * aufac - jplephem_pvsun(j);
             else
                 pv(j, i) = tempv(j) * aufac;
             end
@@ -498,11 +499,11 @@ end
 % do nutations if requested (and if on file)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (list(11) > 0 && ipt(2, 12) > 0)
+if (list(11) > 0 && jplephem_ipt(2, 12) > 0)
 
-    ibuf = ipt(1, 12);
-    ncf = ipt(2, 12);
-    na = ipt(3, 12);
+    ibuf = jplephem_ipt(1, 12);
+    ncf = jplephem_ipt(2, 12);
+    na = jplephem_ipt(3, 12);
 
     nut = interp(ibuf, t, ncf, 2, na, list(11));
 end
@@ -511,8 +512,8 @@ end
 % get librations if requested (and if on file)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (list(12) > 0 && lpt(2) > 0)
-    tmpv = interp(lpt(1), t, lpt(2), 3, lpt(3), list(12));
+if (list(12) > 0 && jplephem_lpt(2) > 0)
+    tmpv = interp(jplephem_lpt(1), t, jplephem_lpt(2), 3, jplephem_lpt(3), list(12));
 
     for i = 1:1:3
         pv(i, 11) = tmpv(i, 1);
@@ -554,7 +555,7 @@ function pv = interp(ibuf, t, ncf, ncm, na, ifl)
 %   pv    interpolated quantities requested.  dimension
 %         expected is pv(ncm, ifl)
 
-global coef np nv twot pc vc
+global jplephem_coef jplephem_np jplephem_nv jplephem_twot jplephem_pc jplephem_vc
 
 pv = zeros(6, 12);
 
@@ -581,26 +582,26 @@ tc = 2 * (mod(temp, 1) + dt1) - 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check to see whether chebyshev time has changed,
 % and compute new polynomial values if it has.
-% (the element pc(2) is the value of t1(tc) and hence
+% (the element jplephem_pc(2) is the value of t1(tc) and hence
 % contains the value of tc on the previous call)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (tc ~= pc(2))
-    np = 2;
-    nv = 3;
-    pc(2) = tc;
-    twot = tc + tc;
+if (tc ~= jplephem_pc(2))
+    jplephem_np = 2;
+    jplephem_nv = 3;
+    jplephem_pc(2) = tc;
+    jplephem_twot = tc + tc;
 end
 
 % be sure that at least 'ncf' polynomials have been evaluated
-% and are stored in the array 'pc'.
+% and are stored in the array 'jplephem_pc'.
 
-if (np < ncf)
-    for i = np + 1:1:ncf
-        pc(i) = twot * pc(i - 1) - pc(i - 2);
+if (jplephem_np < ncf)
+    for i = jplephem_np + 1:1:ncf
+        jplephem_pc(i) = jplephem_twot * jplephem_pc(i - 1) - jplephem_pc(i - 2);
     end
 
-    np = ncf;
+    jplephem_np = ncf;
 end
 
 bcoef = ncf * na * ncm;
@@ -610,7 +611,7 @@ cbody = zeros(bcoef, 1);
 n = ibuf;
 
 for m = 1:1:bcoef
-    cbody(m) = coef(n);
+    cbody(m) = jplephem_coef(n);
     n = n + 1;
 end
 
@@ -635,7 +636,7 @@ for i = 1:1:ncm
     pv(i, 1) = 0;
 
     for j = ncf:-1:1
-        pv(i, 1) = pv(i, 1) + pc(j) * cbuf(j, i, ll);
+        pv(i, 1) = pv(i, 1) + jplephem_pc(j) * cbuf(j, i, ll);
     end
 end
 
@@ -648,14 +649,14 @@ end
 
 vfac = (dna + dna) / t(2);
 
-vc(3) = twot + twot;
+jplephem_vc(3) = jplephem_twot + jplephem_twot;
 
-if (nv < ncf)
-    for i = nv + 1:1:ncf
-        vc(i) = twot * vc(i - 1) + pc(i - 1) + pc(i - 1) - vc(i - 2);
+if (jplephem_nv < ncf)
+    for i = jplephem_nv + 1:1:ncf
+        jplephem_vc(i) = jplephem_twot * jplephem_vc(i - 1) + jplephem_pc(i - 1) + jplephem_pc(i - 1) - jplephem_vc(i - 2);
     end
 
-    nv = ncf;
+    jplephem_nv = ncf;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -666,7 +667,7 @@ for i = 1:1:ncm
     pv(i, 2) = 0;
 
     for j = ncf:-1:2
-        pv(i, 2) = pv(i, 2) + vc(j) * cbuf(j, i, ll);
+        pv(i, 2) = pv(i, 2) + jplephem_vc(j) * cbuf(j, i, ll);
     end
 
     pv(i, 2) = pv(i, 2) * vfac;
