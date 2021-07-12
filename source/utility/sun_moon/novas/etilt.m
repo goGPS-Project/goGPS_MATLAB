@@ -21,7 +21,7 @@ function [oblm, oblt, eqeq, dpsi, deps] = etilt (tjd)
 
 %%%%%%%%%%%%%%%%%%%%%%%
 
-global psicor epscor
+global jplephem_psicor jplephem_epscor
 
 seccon = 180.0d0 * 3600.0d0 / pi;
 
@@ -72,9 +72,9 @@ else
 
 end
 
-delpsi = psi_novas + psicor;
+delpsi = psi_novas + jplephem_psicor;
 
-deleps = eps + epscor;
+deleps = eps + jplephem_epscor;
 
 % compute mean obliquity of the ecliptic in arcseconds
 

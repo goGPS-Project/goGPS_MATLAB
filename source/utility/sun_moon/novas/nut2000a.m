@@ -24,9 +24,9 @@ function [dpsi, deps] = nut2000a (date1, date2)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global inutate nals napl icpl cls
+global jplephem_inutate nals napl icpl cls
 
-if (inutate == 1)
+if (jplephem_inutate == 1)
 
     % read data files
 
@@ -50,7 +50,7 @@ if (inutate == 1)
 
     % reset flag
 
-    inutate = 0;
+    jplephem_inutate = 0;
 
 end
 

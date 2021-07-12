@@ -28,13 +28,13 @@ function pos2 = eqec (tjd, icoord, pos1)
 % except for the input to this case, all vectors are assumed to
 % be with respect to a dynamical system.
 
-% important: initialize tlast and ob2000 in main script
+% important: initialize tlast and jplephem_ob2000 in main script
 
 % ported from NOVAS 3.0
 
 %%%%%%%%%%%%%%%%%%%%%%%
 
-global tlast ob2000
+global tlast jplephem_ob2000
 
 radcon = pi / 180.0d0;
 
@@ -56,13 +56,13 @@ if (tjd == 0.0d0)
 
     % get mean obliquity at j2000.0 if necessary
 
-    if (ob2000 == 0.0d0)
+    if (jplephem_ob2000 == 0.0d0)
 
-        [ob2000, x, x, x, x] = etilt (t0);
+        [jplephem_ob2000, x, x, x, x] = etilt (t0);
 
     end
 
-    obl = ob2000 * radcon;
+    obl = jplephem_ob2000 * radcon;
 
 else
 
