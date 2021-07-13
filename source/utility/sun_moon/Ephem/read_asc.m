@@ -50,11 +50,13 @@ if error > 0
     if m.isKey(url)
         scan = m(url);
     else
-        log.addMessage(log.indent(sprintf('Reading %s...', ['./reserved/JPL/' fn])));
+        [goGPS_path] = which('goGPS');
+        [goGPS_dir] = fileparts(goGPS_path);
+        log.addMessage(log.indent(sprintf('Reading %s...', [goGPS_dir '/reserved/JPL/' fn])));
         % If someone needs to run goGPS from offline for the first time
         % it can download ftp://ssd.jpl.nasa.gov/pub/eph/planets/ascii/de436/ascp01950.436 
         % and ascp02050.436, and put them into "./reserved/JPL/"
-        fid = fopen(['./reserved/JPL/' fn], 'r'); 
+        fid = fopen([goGPS_dir '/reserved/JPL/' fn], 'r'); 
         if fid > 0            
             EPHFILE = fread(fid, '*char')';
             status = 1;

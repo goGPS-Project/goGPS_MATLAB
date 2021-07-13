@@ -2523,8 +2523,11 @@ classdef Core_Sky < handle
             %if the binary JPL ephemeris file is not available, try to copy from reference, or generate it
             if (exist(fullfile(go_dir, jplephem_ephname),'file') ~= 2)
                 success = 0;
-                if (exist(fullfile('..', 'data', 'reference', 'JPL', jplephem_ephname),'file') == 2)
-                    success = copyfile(fullfile('..', 'data', 'reference', 'JPL', jplephem_ephname), fullfile(go_dir, jplephem_ephname), 'f');
+                [goGPS_path] = which('goGPS');
+                [goGPS_dir] = fileparts(goGPS_path);
+                jpleph_fname = fullfile(goGPS_dir,'..', 'data', 'reference', 'JPL', jplephem_ephname);
+                if (exist(jpleph_fname,'file') == 2)
+                    success = copyfile(jpleph_fname, fullfile(go_dir, jplephem_ephname), 'f');
                 end
                 if ~success
                     fprintf('Warning: file "de436.bin" not found in at %s\n         ... generating a new "de436.bin" file\n',fullfile(go_dir, 'de436.bin'));
