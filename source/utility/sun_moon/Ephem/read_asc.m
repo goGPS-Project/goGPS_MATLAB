@@ -52,11 +52,11 @@ if error > 0
     else
         [goGPS_path] = which('goGPS');
         [goGPS_dir] = fileparts(goGPS_path);
-        log.addMessage(log.indent(sprintf('Reading %s...', [goGPS_dir '/reserved/JPL/' fn])));
+        log.addMessage(log.indent(sprintf('Reading %s...', fullfile(goGPS_dir, 'reserved', 'JPL', fn))));
         % If someone needs to run goGPS from offline for the first time
         % it can download ftp://ssd.jpl.nasa.gov/pub/eph/planets/ascii/de436/ascp01950.436 
         % and ascp02050.436, and put them into "./reserved/JPL/"
-        fid = fopen([goGPS_dir '/reserved/JPL/' fn], 'r'); 
+        fid = fopen(fullfile(goGPS_dir, 'reserved', 'JPL', fn), 'r'); 
         if fid > 0            
             EPHFILE = fread(fid, '*char')';
             status = 1;
@@ -75,6 +75,7 @@ if error > 0
                 if dontSave == false
                     m(url) = scan;
                 end
+                error = 0;
             end
         else
             error('Whitout %s sun and moon ephemerides cannot be computed', url);
