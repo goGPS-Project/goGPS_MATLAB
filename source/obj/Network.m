@@ -208,6 +208,11 @@ classdef Network < handle
                     this.rec_list(i).work.tgn(:) = 0;
                 end
                 % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
+                if ls.ls_parametrization.tropo(2) == LS_Parametrization.ALL_REC
+                    idx_rec_trp = true(size(ls.rec_par));
+                else
+                    idx_rec_trp = ls.rec_par == i;
+                end
                 idx_rec = ls.rec_par == i;
                 idx_clk = ls.class_par == Engine_U2.PAR_REC_CLK & idx_rec;
                 clk = ls.x(idx_clk);
@@ -222,7 +227,7 @@ classdef Network < handle
                         elseif state.tparam_ztd_net == 3
                             spline_order = 3;
                         end
-                        idx_trp = ls.class_par == Engine_U2.PAR_TROPO & idx_rec;
+                        idx_trp = ls.class_par == Engine_U2.PAR_TROPO & idx_rec_trp;
                         if sum(idx_trp) > 0
                             tropo = ls.x(idx_trp);
                             tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp).minimum, state.rate_ztd_net)/ state.rate_ztd_net;
@@ -236,14 +241,18 @@ classdef Network < handle
                             this.ztd(valid_ep,i) = nan2zero(this.ztd(valid_ep,i))  + ztd;
                         end
                     else
-                        idx_trp = ls.class_par == Engine_U2.PAR_TROPO & idx_rec;
+                        idx_trp = ls.class_par == Engine_U2.PAR_TROPO & idx_rec_trp;
                         tropo = ls.x(idx_trp);
                         time_tropo = ls.time_par(idx_trp);
                         [~,idx_time_tropo] = ismember(time_tropo, this.common_time.getNominalTime(ls.obs_rate).getRefTime(ls.time_min.getMatlabTime));
                         this.ztd(idx_time_tropo,i) = nan2zero(this.clock(idx_time_tropo,i)) + tropo;
                     end
                 end
-                
+                 if ls.ls_parametrization.tropo_n(2) == LS_Parametrization.ALL_REC
+                    idx_rec_trp = true(size(ls.rec_par));
+                else
+                    idx_rec_trp = ls.rec_par == i;
+                end
                 if state.flag_grad_net
                     if state.tparam_grad_net > 1
                            if state.tparam_grad_net == 2
@@ -251,10 +260,10 @@ classdef Network < handle
                             elseif state.tparam_grad_net == 3
                                 spline_order = 3;
                             end 
-                        idx_trp_n = ls.class_par == Engine_U2.PAR_TROPO_E & idx_rec;
+                        idx_trp_n = ls.class_par == Engine_U2.PAR_TROPO_E & idx_rec_trp;
                         if sum(idx_trp_n) > 0
                         tropo_n = ls.x(idx_trp_n);
-                        idx_trp_e = ls.class_par == Engine_U2.PAR_TROPO_N & idx_rec;
+                        idx_trp_e = ls.class_par == Engine_U2.PAR_TROPO_N & idx_rec_trp;
                         
                         tropo_e = ls.x(idx_trp_e);
                         tropo_dt = rem(this.common_time.getNominalTime(ls.obs_rate) - ls.getTimePar(idx_trp_n).minimum, state.rate_grad_net)/ state.rate_grad_net;
@@ -269,13 +278,13 @@ classdef Network < handle
                         this.ztd_ge(valid_ep,i) = nan2zero(this.ztd_ge(valid_ep,i))  + tropo_e;
                         end
                     else
-                        idx_tropo_n = ls.class_par == Engine_U2.PAR_TROPO_N & idx_rec;
+                        idx_tropo_n = ls.class_par == Engine_U2.PAR_TROPO_N & idx_rec_trp;
                         tropo_n = ls.x(idx_tropo_n);
                         time_tropo_n = ls.time_par(idx_tropo_n);
                         [~,idx_time_tropo_n] = ismember(time_tropo_n, this.common_time.getNominalTime(ls.obs_rate).getRefTime(ls.time_min.getMatlabTime));
                         this.ztd_gn(idx_time_tropo_n,i) = nan2zero(this.clock(idx_time_tropo_n,i)) + tropo_n;
                         
-                        idx_tropo_e = ls.class_par == Engine_U2.PAR_TROPO_E & idx_rec;
+                        idx_tropo_e = ls.class_par == Engine_U2.PAR_TROPO_E & idx_rec_trp;
                         tropo_e = ls.x(idx_tropo_e);
                         time_tropo_e = ls.time_par(idx_tropo_e);
                         [~,idx_time_tropo_e] = ismember(time_tropo_e, this.common_time.getNominalTime(ls.obs_rate).getRefTime(ls.time_min.getMatlabTime));
