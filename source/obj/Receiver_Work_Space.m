@@ -1556,6 +1556,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             log = Core.getLogger;
             log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
             cc = Core.getConstellationCollector;
+            state =  Core.getCurrentSettings;
             [CRX, found] = load_crx(this.state.crx_dir, this.time, cc);
             if found
                 for s = 1 : size(CRX,1)
@@ -1667,11 +1668,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             if pm_clock > 0
                 log.addWarning(sprintf('%.2f %% of the epochs of these orbits have missing clocks', pm_clock));
             end
-            
-            % remove moon midnight or shadow crossing epoch
-            eclipsed = cs.checkEclipseManouver(this.time);
-            for i = 1: size(eclipsed,2)
-                this.obs(this.go_id == i,eclipsed(:,i)~=0) = 0;
+            if state.isRemEclips()
+                % remove moon midnight or shadow crossing epoch
+                eclipsed = cs.checkEclipseManouver(this.time);
+                for i = 1: size(eclipsed,2)
+                    this.obs(this.go_id == i,eclipsed(:,i)~=0) = 0;
+                end
             end
             % check empty lines
             this.remEmptyObs();

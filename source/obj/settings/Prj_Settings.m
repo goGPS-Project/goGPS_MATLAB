@@ -192,7 +192,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         PP_MAX_CODE_ERR_THR = 50;                       % Threshold on the maximum residual of code observations [m] (pre-processing)
         MAX_CODE_ERR_THR = 10;                          % Threshold on the maximum residual of code observations [m]
         MAX_PHASE_ERR_THR = 0.10;                       % Threshold on the maximum residual of phase observations [m]
-
+        REMOVE_ECLIPSING_SATELLITES = true;                    % Remove obseravtions for satellites that are eclispsing
+        
+        
         % PROCESSING PARAMETERS
         FLAG_REPAIR = false;                            % Flag for enabling cycle slip repair
         FLAG_COMBINE_TRK = true;                        % Flag for enabling tracking combination
@@ -845,6 +847,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         max_code_err_thr = Prj_Settings.MAX_CODE_ERR_THR;
         % Threshold on the maximum residual of phase observations [m]
         max_phase_err_thr = Prj_Settings.MAX_PHASE_ERR_THR;
+        % Remove eclispisn satellites
+        remove_eclipsing_satellites = Prj_Settings.REMOVE_ECLIPSING_SATELLITES;
+        
+    
 
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS
@@ -1269,14 +1275,29 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.max_code_err_thr = state.getData('max_code_err_thr');
+                this.remove_eclipsing_satellites = state.getData('remove_eclipsing_satellites');
+                
                 % for legacy reasons
                 if isempty(this.max_code_err_thr)
                     this.max_phase_err_thr = state.getData('pp_max_phase_err_thr');
                 end
+                if isempty(this.remove_eclipsing_satellites)
+                    this.remove_eclipsing_satellites = state.getData('remove_eclipsing_satellites');
+                end
+                
+                % for legacy reasons
+                if isempty(this.remove_eclipsing_satellites)
+                    this.remove_eclipsing_satellites = state.getData('remove_eclipsing_satellites');
+                end
+                
                 % for legacy reasons
                 if isempty(this.max_phase_err_thr)
                     this.max_phase_err_thr = state.getData('pp_max_phase_err_thr');
                 end
+                if isempty(this.remove_eclipsing_satellites)
+                    this.remove_eclipsing_satellites = state.getData('remove_eclipsing_satellites');
+                end
+                
 
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.getData('flag_repair');
@@ -1636,6 +1657,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.pp_max_code_err_thr = state.pp_max_code_err_thr;
                 this.max_code_err_thr = state.max_code_err_thr;
                 this.max_phase_err_thr = state.max_phase_err_thr;
+                this.remove_eclipsing_satellites = state.remove_eclipsing_satellites;
+                
 
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.flag_repair;   
@@ -1946,7 +1969,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', this.pp_spp_thr)];
             str = [str sprintf(' Threshold on max prepro residual of code obs [m]: %g\n', this.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on max residual of code obs [m]:        %g\n', this.max_code_err_thr)];
-            str = [str sprintf(' Threshold on max residual of phase obs [m]:       %g\n\n', this.max_phase_err_thr)];
+            str = [str sprintf(' Threshold on max residual of phase obs [m]:       %g\n', this.max_phase_err_thr)];
+            str = [str sprintf(' Remove eclised/eclipsing satellites:       %g\n\n', this.remove_eclipsing_satellites)];
+            
+            
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
@@ -2489,6 +2515,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('max_code_err_thr', this.max_code_err_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of phase obs [m]', str_cell);
             str_cell = Ini_Manager.toIniString('max_phase_err_thr', this.max_phase_err_thr, str_cell);
+            str_cell = Ini_Manager.toIniString('remove_eclipsing_satellites', this.remove_eclipsing_satellites, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % PROCESSING PARAMETERS
@@ -3405,6 +3432,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.pp_max_code_err_thr = 50;
             this.max_code_err_thr = 10;
             this.max_phase_err_thr = 0.10;
+            this.remove_eclipsing_satellites = true;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -3503,6 +3531,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.pp_max_code_err_thr = 50;
             this.max_code_err_thr = 10;
             this.max_phase_err_thr = 0.10;
+            this.remove_eclipsing_satellites = true;
             
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -3627,7 +3656,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('max_phase_err_thr',[0.001 1e50]);
-
+            this.checkLogicalField('remove_eclipsing_satellites');
+            
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_repair');
             this.checkLogicalField('flag_combine_trk');
@@ -5751,6 +5781,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   err_thr = this.getMaxPhaseErrThr()
             err_thr = this.max_phase_err_thr;
+        end
+        
+        function remove_eclipsing_satellites = isRemEclips(this)
+            % getter of removing eclispsing satellite flag
+            %
+            % SYNTAX
+            %   err_thr = this.isRemEclips()
+            remove_eclipsing_satellites = this.remove_eclipsing_satellites;
         end
         
         function reweight_mode = getReweightPPP(this)

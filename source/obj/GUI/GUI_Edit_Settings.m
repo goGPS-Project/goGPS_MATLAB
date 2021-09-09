@@ -739,7 +739,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
-            err_box_g.Heights = (Core_UI.LINE_HEIGHT * ones(1,2));
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(err_box_g, 'Remove obseravtions from eclipsing or eclipsed satellites', 'remove_eclipsing_satellites', @this.onCheckBoxChange, color_bg);
+            err_box_g.Heights = (Core_UI.LINE_HEIGHT * ones(1,3));
                                                             
             this.uip.tab_pre_proc = tab;
         end
