@@ -208,8 +208,10 @@ classdef File_Wizard < handle
                         step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                         dsa = this.date_start.getCopy();
                         dso = this.date_stop.getCopy();
-                        dsa.addIntSeconds(-step_s);
-                        dso.addIntSeconds(+step_s);
+                        if not(abs(this.fnp.getStepSec(f_path) -7862400) < 1e-3)
+                            dsa.addIntSeconds(-step_s);
+                            dso.addIntSeconds(+step_s);
+                        end
                         [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                         file_name_lst = flipud(file_name_lst);
 
@@ -280,8 +282,10 @@ classdef File_Wizard < handle
                             step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                             dsa = this.date_start.getCopy();
                             dso = this.date_stop.getCopy();
-                            dsa.addIntSeconds(-step_s);
-                            dso.addIntSeconds(+step_s);
+                            if not(abs(this.fnp.getStepSec(f_path) -7862400) < 1e-3)
+                                dsa.addIntSeconds(-step_s);
+                                dso.addIntSeconds(+step_s);
+                            end
                             file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source));
                             %file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                             % Manage ultra rapid resources (they overlap 18 hours in the future
@@ -340,8 +344,10 @@ classdef File_Wizard < handle
                                 step_s = min(3*3600, this.fnp.getStepSec(f_path)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                                 dsa = this.date_start.getCopy();
                                 dso = this.date_stop.getCopy();
-                                dsa.addIntSeconds(-step_s);
-                                dso.addIntSeconds(+step_s);
+                                if not(abs(this.fnp.getStepSec(f_path) -7862400) < 1e-3)
+                                    dsa.addIntSeconds(-step_s);
+                                    dso.addIntSeconds(+step_s);
+                                end
                                 file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source));
                                 %file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                                 % Manage ultra rapid resources (they overlap 18 hours in the future

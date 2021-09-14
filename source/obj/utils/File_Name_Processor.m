@@ -192,7 +192,11 @@ classdef File_Name_Processor < handle
             if (step_sec > 0)
                 file_name_lst = {};
                 date_list = date_start.getCopy();
-                date0 = GPS_Time((floor(((date_start.getNominalTime(0.5).getMatlabTime() - GPS_Time.GPS_ZERO) * 86400) / step_sec) * step_sec) / 86400 + GPS_Time.GPS_ZERO);
+                if not(abs(step_sec - (24 * 3600 * 91)) < 1e-3)
+                    date0 = GPS_Time((floor(((date_start.getNominalTime(0.5).getMatlabTime() - GPS_Time.GPS_ZERO) * 86400) / step_sec) * step_sec) / 86400 + GPS_Time.GPS_ZERO);
+                else
+                    date0 = date_start.getCopy();
+                end
                 date0 = date0.getNominalTime(60);
                 date1 = date_stop.getNominalTime(1);
                 
