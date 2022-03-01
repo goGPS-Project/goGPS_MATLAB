@@ -3064,7 +3064,7 @@ classdef Command_Interpreter < handle
             log = Core.getLogger;
             for t = 1 : numel(tok)
                 if tok{t}(1) == '"' || tok{t}(1) == '''' % this is the message
-                    log.addMessage(sprintf("%s"', strrep(tok{t}(2:end-1), this.SUB_KEY, ' ')));
+                    log.addMessage(sprintf('"%s"', strrep(tok{t}(2:end-1), this.SUB_KEY, ' ')));
                 end
             end
         end
