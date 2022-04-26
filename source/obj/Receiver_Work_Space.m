@@ -5299,8 +5299,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_set.cycle_slip = cs';
             obs_set.sigma  = zeros(size(obs_set.wl));
             rec_set = Receiver_Settings();
+            if flag(1) ~= 'S'
             for i = 1 : size(obs_set.obs_code,1)
                 obs_set.sigma(i) = rec_set.getStd(obs_set.obs_code(i,1),obs_set.obs_code(i,2:end));
+            end
             end
         end
         
@@ -10102,7 +10104,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             [~, id_best] = sort(sum(~isnan(zero2nan(obs_set.obs)),2), 'descend');
             ep_coarse = sort(id_best(ep_coarse));
             while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) && sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
-                ep_coarse = [ep_coarse ep_coarse(end)+1];
+                ep_coarse = [ep_coarse(:)' ep_coarse(end)+1];
                 ep_coarse = min(ep_coarse,this.time.length);
             end
             this.initAvailIndex(ep_coarse);

@@ -78,9 +78,10 @@ classdef Engine_U2 < handle
         PAR_REC_CLK_PR = 26;
         PAR_SAT_CLK_PH = 27;
         PAR_SAT_CLK_PR = 28;
+        PAR_GEOM = 29;
         
         
-        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR'};
+        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR', 'PAR_GEOM'};
     end
     
     properties
@@ -253,6 +254,9 @@ classdef Engine_U2 < handle
             
             par_sat_clk_ph_lid = param_selection == this.PAR_SAT_CLK_PH;
             par_sat_clk_ph = sum(par_sat_clk_ph_lid) > 0;
+            
+            par_geom_lid = param_selection == this.PAR_GEOM;
+            par_geom = sum(par_geom_lid) > 0;
             
             % ---- add the receiver to the receivers
             if Core_Utils.findAinB(rec.parent.getMarkerName,this.unique_rec_name) == 0
@@ -471,6 +475,10 @@ classdef Engine_U2 < handle
                         else
                             A(lines_stream, par_iono_lid) =  iono_const*(obs_set.wl(s)/Core_Utils.V_LIGHT).^2; %obs_set.wl(s)^2/iono_const;
                         end
+                    end
+                    % ------------ Geometry Parameter ------------
+                    if par_geom
+                        A(lines_stream, par_geom_lid) =  1;
                     end
                     obs_count = obs_count + n_obs_stream;
                 end

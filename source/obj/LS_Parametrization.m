@@ -115,9 +115,9 @@ classdef LS_Parametrization < handle
         tropo_v = [LS_Parametrization.CONST      LS_Parametrization.ALL_REC  LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
 
-              
+        
         iono =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-             
+        geom =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         ant_mp =  [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.SING_FREQ];
         
         % options to keep track of spline rate, rule based distinction,
@@ -149,6 +149,7 @@ classdef LS_Parametrization < handle
         sat_clk_ph_opt;
         ant_mp_opt;
         iono_opt;
+        geom_opt;
         tropo_s_opt= struct('spline_rate',900);
         tropo_z_opt= struct('spline_rate',1800);
 
@@ -392,6 +393,9 @@ classdef LS_Parametrization < handle
                 case Engine_U2.PAR_SAT_EBFR
                     parametriz = this.sat_ebfr;
                     option = this.sat_ebfr_opt;
+                case Engine_U2.PAR_GEOM
+                    parametriz = this.geom;
+                    option = this.geom_opt;
             end
             
             if nargin > 2 && parametriz(4) == this.RULE % if an obseravtion code is specified give the paramterization for thata specific obsservation code
