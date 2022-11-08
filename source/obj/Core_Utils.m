@@ -376,22 +376,101 @@ classdef Core_Utils < handle
                 val = valu.*(1-slat) + vald.*slat;
                 
             else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+                 % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
                 % interpolate along lon
-                valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
-                valau = permute(data(ilat   , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat   , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
-                valad = permute(data(ilat+1 , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat+1 , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                
-                %interpolate along lat
-                valb = valbd.*(1-slat) + valbu.*slat;
-                vala = valad.*(1-slat) + valau.*slat;
-                
-                %interpolate along time
+                % before up
+                % after up
+                % before down
+                % after down
+                it = it*ones(size(ilat));
+                idx1 = sub2ind([nlat nlon nt], ilat, ilons(:,1), it);
+                idx2 = sub2ind([nlat nlon nt], ilat, ilone(:,1), it);
+                valbu = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat   , ilons(:,1) , min(it+1,size(data,3)));
+                idx2 = sub2ind([nlat nlon nt], ilat   , ilone(:,1) , min(it+1,size(data,3)));
+                valau = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , it);
+                idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , it);
+                valbd = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , min(it+1,size(data,3)));
+                idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , min(it+1,size(data,3)));
+                valad = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+
+                % interpolate along lat
+                % before
+                % after
+                valb = valbu(:).*(1-slat) + valbd(:).*slat;
+                vala = valau(:).*(1-slat) + valad(:).*slat;
+
+                % interpolate along time
                 val = valb.*(1-st) + vala.*st;
             end
             
         end
         
+        function val = linInterpRotLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
+            % Interpolate values froma data on a geographical grid with multiple epoch
+            % data structure:
+            %        first dimension : dlat (+) south pole -> north pole
+            %        second dimension : dlon (+) west -> east
+            %        third dimension : dr (+) time usual direction
+            %        NOTE: dlat, dlon,dt do not have to be positive
+            %
+            % Differently to linInterpLatLonTime it consider that the map rotates with the Earth motion
+            % This function is created ad hoc for ionospheric interpolation
+            %
+            % INPUT:
+            %      data - the data to be interpolate
+            %      fist_lat - value of first lat value (max lat)
+            %      dlat - px size lat
+            %      first_lon - value of first lon value
+            %      dlon - px size lon
+            %      first_t - value of first time
+            %      dt - px size time
+            %      lat - lat at what we want to interpolate
+            %      lon - lon at what we ant to interpolate
+            %      gps_time - time at what we want to interpolate
+            % NOTES 1 - all lat values should have same unit of measure
+            %       2 - all lon values should have same unit of measure
+            %       3 - all time values should have same unit of measure
+            %       4 - the method will interpolate first in the dimesnion with less time
+            % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
+            [nlat , nlon, nt] = size(data);
+            n_in_lat = length(lat);
+            n_in_lon = length(lon);
+            n_in_t = length(t);
+            assert(n_in_lat == n_in_lon);
+            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdxRot(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t);
+            
+            % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+            % interpolate along lon 
+            % before up
+            % after up
+            % before down
+            % after down
+            it = it*ones(size(ilat));            
+            idx1 = sub2ind([nlat nlon nt], ilat, ilons(:,1), it);
+            idx2 = sub2ind([nlat nlon nt], ilat, ilone(:,1), it);
+            valbu = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat   , ilons(:,2) , min(it+1,size(data,3)));
+            idx2 = sub2ind([nlat nlon nt], ilat   , ilone(:,2) , min(it+1,size(data,3)));
+            valau = permute(data(idx1).*(1-slon(:,2)) + data(idx2).*slon(:,2),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , it);
+            idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , it);
+            valbd = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,2) , min(it+1,size(data,3)));
+            idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,2) , min(it+1,size(data,3)));
+            valad = permute(data(idx1).*(1-slon(:,2)) + data(idx2).*slon(:,2),[3 1 2]);
+
+            % interpolate along lat
+            % before
+            % after
+            valb = valbu(:).*(1-slat) + valbd(:).*slat;
+            vala = valau(:).*(1-slat) + valad(:).*slat;
+
+            % interpolate along time
+            val = valb.*(1-st) + vala.*st;            
+        end
         
         function [val] = cubicSpline(t)
             % Compute matrix entry for cubic spline
@@ -2838,6 +2917,48 @@ classdef Core_Utils < handle
             ilone = ilons +1;
             ilone(ilone > nlon) = 1;
             slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
+        end
+
+        function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdxRot(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
+            % get  interpolating index
+            [nlat , nlon, nt] = size(data);
+            
+            if isa(t, 'GPS_Time')
+                t = t.getGpsTime;
+            end  
+            if isa(first_t, 'GPS_Time')
+                first_t = first_t.getGpsTime;
+            end  
+            % find indexes and interpolating length
+            % time
+            it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
+            st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
+            st = serialize(st);
+            
+            % lat
+            ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
+            slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
+            
+            % Correct for Earth rotation 
+            rot.rate = 360 * (dt/86400);    % degree per time step (dt)
+            rot.prev = + rot.rate * st;     % move East (ahead in time) the past map
+            rot.next = - rot.rate * (1-st);  % move West (back in time) the future map
+
+            % Previous map lon
+            lon(lon < (first_lon - rot.prev)) = lon(lon < (first_lon - rot.prev)) + nlon * dlon; %% to account for earth circularity            
+            
+            ilons(:,1) = max(min(floor((lon - (first_lon - rot.prev))/ dlon)+1,nlon),1);
+            ilone(:,1) = ilons(:,1) + 1;
+            ilone(ilone(:,1) > nlon,1) = mod(ilone(ilone(:,1) > nlon,1)+1, nlon)-1;
+            slon(:,1) = max(min(lon - (first_lon - rot.prev)- (ilons(:,1)-1)*dlon, dlon), 0) / dlon;
+
+            % Next map lon
+            lon(lon < (first_lon - rot.next)) = lon(lon < (first_lon - rot.next)) + nlon * dlon; %% to account for earth circularity            
+            
+            ilons(:,2) = max(min(floor((lon - (first_lon - rot.next))/ dlon)+1,nlon),1);
+            ilone(:,2) = ilons(:,2) + 1;
+            ilone(ilone(:,2) > nlon,2) = mod(ilone(ilone(:,2) > nlon,2)+1, nlon)-1;
+            slon(:,2) = max(min(lon - (first_lon - rot.next)- (ilons(:,2)-1)*dlon, dlon), 0) / dlon;
         end
         
         function response = permutedEqual(str1, str2)

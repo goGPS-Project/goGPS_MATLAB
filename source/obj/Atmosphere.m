@@ -332,25 +332,57 @@ classdef Atmosphere < handle
                 this.importVMFCoeffFile(fname{i});
             end
             h_fname = state.getVMFHeightFileName();
-            fid = fopen(h_fname, 'rt');
-            if strcmpi(state.vmf_res,'2.5x2')
-                fgetl(fid); %skip one line header
-                formatSpec = [repmat([repmat(' %f',1,10) '\n'],1,14) repmat(' %f',1,5)];
-                h_data = cell2mat(textscan(fid,formatSpec,91));
-                h_data(:,end) = [];
-            elseif strcmpi(state.vmf_res,'5x5')
-                formatSpec = '%f';
-                h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
-                h_data = reshape(h_data,72,36)';
-            elseif strcmpi(state.vmf_res,'1x1')
-                formatSpec = '%f';
-                h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
-                h_data = reshape(h_data,360,180)';
+            try
+                fid = fopen(h_fname, 'rt');
+                if strcmpi(state.vmf_res,'2.5x2')
+                    try
+                        fgetl(fid); %skip one line header
+                    catch ex
+                        Core_Utils.printEx(ex);
+                    end
+                    formatSpec = [repmat([repmat(' %f',1,10) '\n'],1,14) repmat(' %f',1,5)];
+                    h_data = cell2mat(textscan(fid,formatSpec,91));
+                    h_data(:,end) = [];
+                elseif strcmpi(state.vmf_res,'5x5')
+                    formatSpec = '%f';
+                    h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
+                    h_data = reshape(h_data,72,36)';
+                elseif strcmpi(state.vmf_res,'1x1')
+                    formatSpec = '%f';
+                    h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
+                    h_data = reshape(h_data,360,180)';
+                end
+            catch ex
+                Core.getLogger.addError(sprintf('Error reading "%s"', h_fname));
+                Core_Utils.printEx(ex);
+                % keyboard
             end
-                
+
             this.vmf_coeff.ell_height = h_data;
             fclose(fid);
         end
+
+        function resetVMF(this)
+             state = Core.getState;
+             state.vmf_name = '';
+             this.vmf_coeff = struct( ...
+                 'ell_height', [], ... %ellipsoidal height for the vmf values
+                 'ah',         [], ...    % alpha coefficient dry
+                 'aw',         [], ...    % alpha coefficent wet
+                 'zhd',        [], ...    % zhd
+                 'zwd',        [], ...    % zwd
+                 'first_lat',  [], ...    % first latitude
+                 'first_lon',  [], ...    % first longitude
+                 'd_lat',      [], ...    % lat spacing
+                 'd_lon',      [], ...    % lon_spacing
+                 'n_lat',      [], ...    % num lat
+                 'n_lon',      [], ...    % num lon
+                 'first_time', [], ...    % times [time] of the maps
+                 'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                 'dt',         [], ...    % time spacing
+                 'n_t',        [] ...   % num of epocvhs
+             );
+         end
         
         function importTidalAtmLoadHarmonics(this)
             % importing Tidal Atm and loading Harmonics
@@ -521,13 +553,13 @@ classdef Atmosphere < handle
                         n_lon = 360;
                         d_lat = -1;
                         d_lon = 1;
-                        first_lat = 0.5;
+                        first_lat = 89.5;
                         first_lon = 0.5;
                     elseif strcmpi(state.vmf_res,'2.5x2')
                         n_lat = 91;
                         n_lon = 144;
-                        d_lat = -1;
-                        d_lon = 1;
+                        d_lat = -2;
+                        d_lon = 2.5;
                         first_lat = 90;
                         first_lon = 0.0;
                     elseif strcmpi(state.vmf_res,'5x5')
@@ -535,10 +567,15 @@ classdef Atmosphere < handle
                         n_lon = 72;
                         d_lat = -5;
                         d_lon = 5;
-                        first_lat = 2.5;
+                        first_lat = 87.5;
                         first_lon = 2.5;
                     end
                     data = sscanf(txt(lim(eoh + 1, 1) : lim(end,2)), '%f ');
+                    if numel(data) < n_lon * n_lat * 6
+                        % VMF file is corrupted
+                        Core.getLogger.addError(sprintf('"%s" is corrupted, consider deleting it', ffile_name));
+                        data = [data; nan(n_lon * n_lat * 6 - numel(data), 1)];
+                    end
                     ah =  reshape(data(3:6:end), n_lon, n_lat)';
                     aw =  reshape(data(4:6:end), n_lon, n_lat)';
                     zhd = reshape(data(5:6:end), n_lon, n_lat)';
@@ -952,7 +989,7 @@ classdef Atmosphere < handle
             if isempty(this.ionex) || isempty(this.ionex.data)
                 tec = 0;
             else
-                tec = Core_Utils.linInterpLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon,gps_time);
+                tec = Core_Utils.linInterpRotLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon, gps_time);
             end
         end
         
@@ -995,9 +1032,10 @@ classdef Atmosphere < handle
         end
         
         function foi_delay = getFOIdelayCoeff(this,lat,lon, az,el,h,time)
-            % get first horder ionosphere delay
+            % get first order ionosphere delay
             gps_time = time.getGpsTime();
             foi_delay = zeros(size(el));
+            % For each epoch
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
                 if length(idx_sat) > 0
@@ -1208,7 +1246,7 @@ classdef Atmosphere < handle
             ZHD_R = saast_dry(pres, t_h, lat);
             ZWD_R = saast_wet(temp, this.STD_HUMI, t_h);
             
-            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (90-el)*pi/180);
+            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (el)*pi/180);
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
@@ -1250,7 +1288,7 @@ classdef Atmosphere < handle
             ZHD_R = saast_dry(P, t_h, lat);
             ZWD_R = saast_wet(T, H, t_h);
             
-            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (90-el)*pi/180);
+            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (el)*pi/180);
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
@@ -1535,7 +1573,7 @@ classdef Atmosphere < handle
             % lat: ellipsoidal latitude in radians
             % lon: longitude in radians
             % hgt: orthometric height in m
-            % zd:   zenith distance in radians
+            % el: elevation in radians
             %
             % output data
             % -----------
@@ -1551,7 +1589,7 @@ classdef Atmosphere < handle
             % this is taken from Niell (1996) to be consistent
             %
             % SYNTAX
-            %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
+            %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, el)
             doy = time.getMJD()  - 44239 + 1;
             
             pi = 3.14159265359d0;
@@ -1972,7 +2010,7 @@ classdef Atmosphere < handle
         % IONO
         %-----------------------------------------------------------
         function [iono_mf] = getIonoMF(this, lat_rad, h_ortho, el_rad, rcm)
-            % Get the pierce point
+            % Get the iono mapping function
             % INPUT:
             %   lat_rad             latitude of the receiver           [rad]
             %   h_ortho             orthometric height of the receiver [m]
@@ -2011,7 +2049,7 @@ classdef Atmosphere < handle
                 ./ (sine + (a ./ (sine + (b ./ (sine + c) ))));
         end
         
-        function [ht_corr] = hydrostaticMFHeigthCorrection(h_ell,el)
+        function [ht_corr] = hydrostaticMFHeigthCorrection(h_ell, el)
             % coorect the hysdrostatic mapping functions for the height
             % formulas and paramaters taken from :
             %   Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
@@ -2024,7 +2062,7 @@ classdef Atmosphere < handle
             c_ht = 1.14d-3;
             h_ell_km     = h_ell/1000;   % convert height to km
             % eq (6)
-            ht_corr_coef = 1 ./ sin(zero2nan(el))   -    Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
+            ht_corr_coef = 1 ./ sin(zero2nan(el)) - Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
             % eq (7)
             ht_corr      = ht_corr_coef * h_ell_km;
         end
@@ -2395,7 +2433,8 @@ classdef Atmosphere < handle
             lat_pp = asin(sin(lat_rad) * cos(psi_pp) + cos(lat_rad) * sin(psi_pp) .* cos(az_rad));
             
             % longitude of the ionosphere piercing point
-            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad)      > tan((pi/2) - lat_rad))) | ...
+            % RTCA/DO-229C, Minimum operational performance standards for global positioning system/wide area augmentation system airborne equipment, RTCA inc, November 28, 2001
+            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad) > tan((pi/2) - lat_rad))) | ...
                 ((lat_pp < -70*pi/180) & (tan(psi_pp).*cos(az_rad + pi) > tan((pi/2) + lat_rad)));
             
             lon_pp = zeros(size(az_rad));
