@@ -79,9 +79,10 @@ classdef Engine_U2 < handle
         PAR_SAT_CLK_PH = 27;
         PAR_SAT_CLK_PR = 28;
         PAR_GEOM = 29;
+        PAR_SS_PR_EB = 30; % satellite specific pseudorange bias 
         
         
-        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR', 'PAR_GEOM'};
+        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR', 'PAR_GEOM', 'PAR_SS_PR_EB'};
     end
     
     properties
@@ -108,6 +109,7 @@ classdef Engine_U2 < handle
         phase_obs % logical to tell if obs are phase or code
         wl_id_obs % id of the wavelength
         outlier_obs % is obs an outlier?
+        snr_obs % snr of observations
         
         A_pseudo
         A_idx_pseudo
@@ -215,6 +217,9 @@ classdef Engine_U2 < handle
             
             par_amb_lid = param_selection == this.PAR_AMB;
             par_amb = sum(par_amb_lid) > 0;
+
+            par_ss_pr_eb_lid = param_selection == this.PAR_SS_PR_EB;
+            par_ss_pr_eb = sum(par_ss_pr_eb_lid) > 0;
             
             par_rec_clk_lid = param_selection == this.PAR_REC_CLK;
             par_rec_clk = sum(par_rec_clk_lid) > 0;
@@ -313,7 +318,7 @@ classdef Engine_U2 < handle
             
             %initialize the matrices
             A = zeros(n_obs, n_par);
-            [obs,satellite_obs, azimuth_obs, elevation_obs, variance_obs, wl_obs] = deal(zeros(n_obs, 1));
+            [obs,satellite_obs, azimuth_obs, elevation_obs, variance_obs, wl_obs, snr_obs] = deal(zeros(n_obs, 1));
             [ obs_codes_id_obs,  wl_obs] = deal(zeros(n_obs, 1,'uint8'));
             [ satellite_obs] = deal(zeros(n_obs, 1,'uint16'));
             
@@ -361,6 +366,7 @@ classdef Engine_U2 < handle
                     variance_obs(lines_stream) =  obs_set.sigma(s)^2;
                     azimuth_obs(lines_stream) =  obs_set.az(id_ok_stream,s);
                     elevation_obs(lines_stream) =  obs_set.el(id_ok_stream,s);
+                    snr_obs(lines_stream) =  obs_set.snr(id_ok_stream,s);
                     obs_codes_id_obs(lines_stream) = s_s_id;
                     phase_obs(lines_stream) = phase_s(s);
                     wl_obs(lines_stream) = wl_id;
@@ -426,6 +432,10 @@ classdef Engine_U2 < handle
                     if par_amb && phase_s(s)
                         A(lines_stream, par_amb_lid) = obs_set.wl(s);
                     end
+                    % ----------- Satellite specific pseudorange bias ----
+                    if par_ss_pr_eb && phase_s(s)
+                        A(lines_stream, par_ss_pr_eb_lid) = 1;
+                    end
                     % ----------- Clock ------------------
                     if par_rec_clk
                         A(lines_stream, par_rec_clk_lid) = 1;
@@ -488,6 +498,7 @@ classdef Engine_U2 < handle
             this.satellite_obs = [this.satellite_obs; satellite_obs];
             this.azimuth_obs = [this.azimuth_obs; azimuth_obs];
             this.elevation_obs = [this.elevation_obs; elevation_obs];
+            this.snr_obs = [this.snr_obs; snr_obs];
             this.obs_codes_id_obs = [this.obs_codes_id_obs; obs_codes_id_obs];
             this.variance_obs = [this.variance_obs; variance_obs];
             this.phase_obs = [this.phase_obs; phase_obs];
@@ -1219,6 +1230,7 @@ classdef Engine_U2 < handle
                 idx_sat_ebfr = find(this.class_par == this.PAR_SAT_EBFR);
                 for s = this.unique_sat_goid
                     idx_par = idx_sat_ebfr(this.sat_par(idx_sat_ebfr) == s);
+                    if ~isempty(idx_par)
                     wl_par = this.wl_id_par(idx_par);
                     u_wl_par = unique(wl_par);
                     if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
@@ -1228,6 +1240,7 @@ classdef Engine_U2 < handle
                         if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                         end
+                    end
                     end
                 end
                 
@@ -1493,6 +1506,20 @@ classdef Engine_U2 < handle
             this.remPar(idx);
         end
         
+        function remObs(this,idx)
+            this.A(idx,:) = [];
+            this.obs(idx) = [];
+            this.time_obs.remEpoch(idx);
+            this.satellite_obs(idx) = [];
+            this.receiver_obs(idx) = [];
+            this.azimuth_obs(idx) = [];
+            this.elevation_obs(idx) = [];
+            this.snr_obs(idx) = [];
+            this.variance_obs(idx) = [];
+            this.obs_codes_id_obs(idx) = [];
+            this.phase_obs(idx) = [];
+            this.wl_id_obs(idx) = [];
+        end
         
         function remPar(this,idx)
             % remove paramter form the system

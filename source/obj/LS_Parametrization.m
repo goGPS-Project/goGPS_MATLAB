@@ -99,6 +99,7 @@ classdef LS_Parametrization < handle
         sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
+        ss_pr_eb  = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
         rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
@@ -137,6 +138,7 @@ classdef LS_Parametrization < handle
         rec_eb_opt_lin = struct('rule',1);
 
         amb_opt;
+        ss_pr_eb_opt;
         rec_clk_opt;
         tropo_opt;
         tropo_n_opt;
@@ -396,6 +398,9 @@ classdef LS_Parametrization < handle
                 case Engine_U2.PAR_GEOM
                     parametriz = this.geom;
                     option = this.geom_opt;
+                case Engine_U2.PAR_SS_PR_EB
+                    parametriz = this.ss_pr_eb;
+                    option = this.ss_pr_eb_opt;
             end
             
             if nargin > 2 && parametriz(4) == this.RULE % if an obseravtion code is specified give the paramterization for thata specific obsservation code
