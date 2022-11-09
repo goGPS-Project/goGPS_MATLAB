@@ -361,29 +361,29 @@ classdef Atmosphere < handle
             this.vmf_coeff.ell_height = h_data;
             fclose(fid);
         end
-
-        function resetVMF(this)
-             state = Core.getState;
-             state.vmf_name = '';
-             this.vmf_coeff = struct( ...
-                 'ell_height', [], ... %ellipsoidal height for the vmf values
-                 'ah',         [], ...    % alpha coefficient dry
-                 'aw',         [], ...    % alpha coefficent wet
-                 'zhd',        [], ...    % zhd
-                 'zwd',        [], ...    % zwd
-                 'first_lat',  [], ...    % first latitude
-                 'first_lon',  [], ...    % first longitude
-                 'd_lat',      [], ...    % lat spacing
-                 'd_lon',      [], ...    % lon_spacing
-                 'n_lat',      [], ...    % num lat
-                 'n_lon',      [], ...    % num lon
-                 'first_time', [], ...    % times [time] of the maps
-                 'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
-                 'dt',         [], ...    % time spacing
-                 'n_t',        [] ...   % num of epocvhs
-             );
-         end
         
+        function resetVMF(this)
+            state = Core.getState;
+            state.vmf_name = '';
+            this.vmf_coeff = struct( ...
+                'ell_height', [], ... %ellipsoidal height for the vmf values
+                'ah',         [], ...    % alpha coefficient dry
+                'aw',         [], ...    % alpha coefficent wet
+                'zhd',        [], ...    % zhd
+                'zwd',        [], ...    % zwd
+                'first_lat',  [], ...    % first latitude
+                'first_lon',  [], ...    % first longitude
+                'd_lat',      [], ...    % lat spacing
+                'd_lon',      [], ...    % lon_spacing
+                'n_lat',      [], ...    % num lat
+                'n_lon',      [], ...    % num lon
+                'first_time', [], ...    % times [time] of the maps
+                'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                'dt',         [], ...    % time spacing
+                'n_t',        [] ...   % num of epocvhs
+            );
+        end
+
         function importTidalAtmLoadHarmonics(this)
             % importing Tidal Atm and loading Harmonics
             %
@@ -967,9 +967,6 @@ classdef Atmosphere < handle
                 
                 %interpolate along time
                 zwd =  squeeze(valb).*(1-st) + squeeze(vala).*st;
-                
-                
-                
             end
         end
         
@@ -1052,7 +1049,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knofel, A. Rulke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -1162,7 +1159,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
+            % undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1281,7 +1278,7 @@ classdef Atmosphere < handle
                 if isnan(H)
                     H = this.STD_HUMI;
                 end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standards GPT values \n - %.1f degC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
             end
             
             t_h = h;
@@ -1573,7 +1570,7 @@ classdef Atmosphere < handle
             % lat: ellipsoidal latitude in radians
             % lon: longitude in radians
             % hgt: orthometric height in m
-            % el: elevation in radians
+            % el:   zenith distance in radians
             %
             % output data
             % -----------
@@ -2062,7 +2059,7 @@ classdef Atmosphere < handle
             c_ht = 1.14d-3;
             h_ell_km     = h_ell/1000;   % convert height to km
             % eq (6)
-            ht_corr_coef = 1 ./ sin(zero2nan(el)) - Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
+            ht_corr_coef = 1 ./ sin(zero2nan(el))- Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
             % eq (7)
             ht_corr      = ht_corr_coef * h_ell_km;
         end
@@ -2089,7 +2086,7 @@ classdef Atmosphere < handle
             doy = time.getMJD()  - 44239 + 1;
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45deg lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
@@ -2313,9 +2310,118 @@ classdef Atmosphere < handle
             zhd_corr = zhd2 - zhd1;
         end
 
+        function [pwv] = zwd2pwv(zwd, temperature)
+            % Convert ZWD to PWV according to Bevis formula
+            %
+            % INPUT
+            %   zwd             Zenith Wet Delay
+            %   temperature     temperature at the station deg Celsius
+            % SYNTAX 
+            %   pwv = Atmosphere.zwd2pwv(zwd, temperature)
+            degCtoK = 273.15;
+            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+            Tm = (temperature + degCtoK)*0.72 + 70.2;
+
+            % Askne and Nordius formula (from Bevis et al., 1994)
+            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+
+            % precipitable Water Vapor
+            pwv = zwd ./ Q;
+        end
+        
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
+
+        function ionex = readIonex(file_name)
+            ionex = struct( ...
+            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [], ...    % num of epocvhs
+            'height',     []  ...    % heigh of the layer
+            );
+
+            % import IONEX file
+            % if the files data overlaps or touch the present data in the object the new data are appended to the old one, otherwise the old data re-discarded
+            %
+            % SYNTAX
+            %   importIonex(this, file_name)
+            fnp = File_Name_Processor();
+            log = Core.getLogger;
+            if ~exist(file_name, 'file') == -1
+                log.addWarning(sprintf('File IONEX %s not found', file_name));
+                return
+            else
+                log.addMessage(log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
+                [txt, lim] = Core_Utils.readTextFile(file_name);
+
+                % read header
+                for l = 1:size(lim,1)
+                    line = txt(lim(l,1):lim(l,2));
+                    if instr(line,'END OF HEADER')
+                        break
+                    elseif instr(line,'EPOCH OF FIRST MAP')
+                        first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                    elseif instr(line,'EPOCH OF LAST MAP')
+                        last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                    elseif instr(line,'INTERVAL')
+                        interval = sscanf(line(1:60),'%f')';
+                    elseif instr(line,'HGT1 / HGT2 / DHGT')
+                        height = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'LAT1 / LAT2 / DLAT')
+                        lats = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'LON1 / LON2 / DLON')
+                        lons = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'EXPONENT')
+                        exponent = sscanf(line(1:60),'%f')';
+                    end
+                end
+
+                lim(1:l,:) = [];
+                txt(1:(lim(1,1)-1)) = [];
+                lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
+                n_lat = round((lats(2)-lats(1))/lats(3))+1;
+                n_lon = round((lons(2)-lons(1))/lons(3))+1;
+                n_line_1_lat = ceil(n_lon*5 / 80);
+
+                nt = round((last_epoch - first_epoch) / interval);
+                lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
+                st_l  = lim(lines, 1);
+                cols = [0:(n_lon*5+n_line_1_lat-2)];
+                idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
+                idx(:,81:81:length(cols))   = [];
+                idx(:,366:end) = []; %% trial and error fix bug fix
+                vals = txt(serialize(idx'));
+                vals = reshape(vals,5,length(vals)/5);
+                nums = sscanf(vals,'%f');
+                data = permute(reshape(nums,n_lon,n_lat,nt),[2,1,3])*10^(exponent);
+                if mod(lons(1), 360) == mod(lons(2),360)
+                    data(:,end,:) = [];
+                    n_lon = n_lon -1;
+                end
+                ionex.first_time = first_epoch;
+                ionex.first_time_double = first_epoch.getGpsTime();
+                ionex.d_t = interval;
+                ionex.n_t =  nt;
+                ionex.first_lat= lats(1);
+                ionex.d_lat = lats(3);
+                ionex.n_lat = n_lat ;
+                ionex.first_lon= lons(1);
+                ionex.d_lon = lons(3);
+                ionex.n_lon = n_lon;
+                ionex.height = height;
+                ionex.data = data;
+            end
+        end
+
         function [delay] = klobucharModel(lat, lon, az, el, sow, ionoparams)
             % SYNTAX
             %   [delay] = Atmosphere. klobuchar_model(lat, lon, az, el, sow, ionoparams)
@@ -2454,7 +2560,7 @@ classdef Atmosphere < handle
                     -cos(az_rad).*cos(el_rad) ...
                     -sin(el_rad)];
                 % go to global system
-                k = local2globalVel2(k', lon_rad,lat_rad)';
+                k = local2globalVel2(k', lon_rad, lat_rad)';
             end
             
             lat_pp = reshape(lat_pp, input_size(1), input_size(2));
