@@ -2905,8 +2905,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                                             end
                                             id_jmp2 = ce -cs_bf +1; % id of the jmp in phase combination
                                             dgf = diff(gf);
-                                            if (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || ...
-                                                    abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
+                                            if ~isempty(mwb) && ( (abs(dgf(id_jmp2-1)) < 0.15*wl_jmp) || ...
+                                                    abs(mean(mwb(1:id_jmp2-1),'omitnan') - mean(mwb(id_jmp2:end),'omitnan')) < 0.15*(wl_n_jmp * wl_jmp)/(wl_n_jmp - wl_jmp) )% if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
                                                 this.sat.cycle_slip_ph_by_ph(ce,id_1) = false;% remove cycle slip
                                             end
                                         end
@@ -3453,9 +3453,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % GALILEO L1 -> L1A
                         idx = this.findObservableByFlag('L1 ','E');
                         this.obs_code(idx,:) = repmat('L1A',length(idx),1);
-                        % BEIDOU 1 -> 2
-                        idx = this.findObservableByFlag('?1?','C'); %some times band 2 rinex 3 is incorrectly written as band 1
-                        this.obs_code(idx,2) = '2';
+                        % BEIDOU  -> 2
+                        %idx = this.findObservableByFlag('?2P','C'); %some times band 2 rinex 3 is incorrectly written as band 1
+                        %this.obs_code(idx,2) = '1';
                         % other flags to be investiagated
                         
                         log.addMessage(log.indent(sprintf('Parsing completed in %.2f seconds', toc(t0))));
@@ -3800,7 +3800,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         l = l + l_offset;
                     end
                 end
-                if ~isempty(strfind(this.rin_obs_code.C, '1'))
+                if false && ~isempty(strfind(this.rin_obs_code.C, '1'))
                     this.rin_obs_code.C(this.rin_obs_code.C == '1') = '2';
                     this.log.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
                 end
@@ -6097,7 +6097,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 obs_id = this.findObservableByFlag(flag);
             end
+            
             obs = zero2nan(this.obs(obs_id,:));
+
             if nargout > 2
                 if nargin > 3
                     idx_snr = this.findObservableByFlag(['S' flag(2:end)], sys_c, prn);
@@ -9321,7 +9323,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.applyShDelay();
             this.applyOceanLoading();
             this.applyHOI();
-            this.applyAtmload();
+            this.applyAtmLoad();
         end
         
         
@@ -12409,7 +12411,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [o_codes, id_sync_o] = getCommonObsCode(sta_list)
-            % get comm onservation codes (only phase and pseudoranges)
+            % get common observations codes (only phase and pseudoranges)
             % considering satellites
             %
             % SYNTAX:
@@ -12426,8 +12428,29 @@ classdef Receiver_Work_Space < Receiver_Commons
                 [~,idx] = ismember(o_num, o_codes);
                 id_sync_o(idx,r) = 1:length(idx);
             end
-            o_codes = [Core_Utils.num2Code3Char(floor(o_codes/1000)) reshape(sprintf('%03d',rem(o_codes,1000)),3,numel(o_codes))'];
             
+            o_codes = [Core_Utils.num2Code3Char(floor(o_codes/1000)) reshape(sprintf('%03d',rem(o_codes,1000)),3,numel(o_codes))'];
+        end
+        
+        function [o_codes, id_sync_o] = getCommonFreqSat(sta_list)
+            % get common frequencies (disregarding trackings)
+            % considering satellites
+            %
+            % SYNTAX:
+            %   [o_codes, id_sync_o] = Receiver_Work_Space.getCommonFreqSat(sta_list) 
+            o_codes = [];
+            for r = 1 : length(sta_list)
+                idx_obs = sta_list(r).work.obs_code(:,1) == 'L' | sta_list(r).work.obs_code(:,1) == 'C';
+                o_codes = unique([o_codes; uint64(Core_Utils.code2Char2Num(sta_list(r).work.obs_code(idx_obs, 1:2)))*1000 + uint64(sta_list(r).work.go_id(idx_obs))]);
+            end
+            id_sync_o = nan(numel(o_codes), numel(sta_list));
+            for r = 1 : length(sta_list)
+                idx_obs = sta_list(r).work.obs_code(:,1) == 'L' | sta_list(r).work.obs_code(:,1) == 'C';
+                o_num = uint64(Core_Utils.code2Char2Num(sta_list(r).work.obs_code(idx_obs, 1:2)))*1000 + uint64(sta_list(r).work.go_id(idx_obs));
+                [~,idx] = ismember(o_num, o_codes);
+                id_sync_o(idx,r) = 1:length(idx);
+            end
+            o_codes = [Core_Utils.num2Code2Char(floor(o_codes/1000)) reshape(sprintf('%03d',rem(o_codes,1000)),3,numel(o_codes))'];
         end
         
         
