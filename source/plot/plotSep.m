@@ -22,7 +22,7 @@
 %    |___/                    v 1.0 beta 5
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -64,7 +64,7 @@ function lh = plotSep(t, data, varargin)
                     % I want the data to be columnwise
                     data = data';
                 end
-                t = 1 : size(data, 1);
+                t = (1 : size(data, 1))';
             else
                 if size(data, 1) == 1
                     % I want the data to be columnwise

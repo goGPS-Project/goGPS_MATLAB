@@ -1,7 +1,7 @@
-function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
-% Similar to polarImagesc but for maps
+function h = polarScatter(az, decl, color, plot_bg)
+% Equivalent of polar scatter but with support for older Matlab versions
 % SYNTAX:
-%    polarImagesc(az, decl, color, <flag_plot_bg>)
+%    polarPatch(az, decl, color)
 %
 % INPUT
 %   az      azimuth      [rad]
@@ -10,13 +10,6 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
 %
 % OUTPUT
 %   h       handle to the scattered points
-%
-% SYNTAX
-%    h = polarImagesc(az_grid, decl_grid, data, plot_bg)
-%    h = polarImagesc(data)
-%
-% SEE ALSO
-%   polarScatter
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -27,8 +20,8 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
-%  Written by:       Andrea Gatti
-%  Contributors:     ...
+%  Written by:       Mirko Reguzzoni
+%  Contributors:     Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -46,34 +39,12 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-    if nargin == 1
-        data = az_grid;
-        
-        az_grid = linspace(0, 2*pi, size(data,2));
-        decl_grid = linspace(0, pi/2, size(data,1));
-    end
-    
-    %%% INTERNAL PARAMETER
+
+%%% INTERNAL PARAMETER
     scale = 1;
     %%%
 
-    decl_n = decl_grid/(pi/2)*scale;
-    x = repmat(sin(az_grid(:)'), numel(decl_n), 1) .* repmat(decl_n(:), 1, numel(az_grid));
-    y = repmat(cos(az_grid(:)'), numel(decl_n), 1) .* repmat(decl_n(:), 1, numel(az_grid));
-    %scatter(x(data~=0),y(data~=0),20,data(data~=0),'filled')
-    
-    dataInterp = scatteredInterpolant(x(:), y(:), double(data(:)), 'linear' );
-    x = -1 : 0.0025 : 1;
-    y = x;
-    [x_mg, y_mg] = meshgrid(x, y);
-    polar_data = nan(numel(x), numel(y));
-    id_ok = hypot(x_mg, y_mg) < 1;
-    polar_data(id_ok) = dataInterp(x_mg(id_ok), y_mg(id_ok));
-    h = imagesc(x, y, polar_data);
-    h.AlphaData = id_ok; 
-    h.AlphaData(isnan(polar_data)) = 0; 
-    set(gca,'Ydir','normal');
-    
+    decl_n = decl/(pi/2)*scale;
     is_hold = ishold();
     if nargin < 4
         plot_bg = ~is_hold;
@@ -88,7 +59,7 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
             x = cos(az_l).*d;
             y = sin(az_l).*d;
             plot(x,y,'color',[0.6 0.6 0.6]);
-            text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold');            
+            text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);            
         end
         %plot meridian
         az_step = 30/180 *pi;
@@ -99,7 +70,7 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
             y = sin(a).*decl_l;
             plot(x,y,'color',[0.6 0.6 0.6]);
             if abs(a-2*pi) > 0.0001
-                text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold');
+                text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);
             end
         end
         axis equal
@@ -107,9 +78,12 @@ function h = polarImagesc(az_grid, decl_grid, data, plot_bg)
         % ylim([-2 2])
         axis off
         set(gcf,'color','w');
-        if ~is_hold
-            hold off
-        end
         xlim([-1.15 1.15]); ylim([-1.15 1.15]);
+    end
+    x = sin(az) .* decl_n;
+    y = cos(az) .* decl_n;
+    h = patch(x,y,color);
+    if ~is_hold
+        hold off
     end
 end

@@ -18,10 +18,10 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Mirko Reguzzoni
 %  Contributors:     Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -47,13 +47,6 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
     %%%
 
     decl_n = decl/(pi/2)*scale;
-    x = sin(az) .* decl_n;
-    y = cos(az) .* decl_n;
-    if nargin > 4 && strcmp(flag,'filled')
-        h = scatter(x,y,point_size,color,'filled');
-    else
-        h = scatter(x,y,point_size,color);
-    end
     is_hold = ishold();
     if nargin < 6
         plot_bg = ~is_hold;
@@ -68,6 +61,8 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
             x = cos(az_l).*d;
             y = sin(az_l).*d;
             plot(x,y,'color',[0.6 0.6 0.6]);
+        end
+        for d = decl_s
             text(cos(80/180*pi)*d,sin(80/180*pi)*d,sprintf('%d',round(d*90)),'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);            
         end
         %plot meridian
@@ -78,6 +73,8 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
             x = cos(a).*decl_l;
             y = sin(a).*decl_l;
             plot(x,y,'color',[0.6 0.6 0.6]);
+        end
+        for a = az_s
             if abs(a-2*pi) > 0.0001
                 text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center', 'FontWeight', 'bold', 'FontSize', 13);
             end
@@ -87,9 +84,17 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
         % ylim([-2 2])
         axis off
         set(gcf,'color','w');
-        if ~is_hold
-            hold off
-        end
         xlim([-1.15 1.15]); ylim([-1.15 1.15]);
+    end
+    x = sin(az) .* decl_n;
+    y = cos(az) .* decl_n;
+
+    if nargin > 4 && strcmp(flag,'filled')
+        h = scatter(x,y,point_size,color,'filled');
+    else
+        h = scatter(x,y,point_size,color);
+    end
+    if ~is_hold
+        hold off
     end
 end
