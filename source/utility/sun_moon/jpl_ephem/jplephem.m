@@ -403,8 +403,7 @@ pjd(1) = pjd(1) + pjd(3);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (pjd(1) + pjd(4) < jplephem_ss(1) || pjd(1) + pjd(4) > jplephem_ss(2))
-    fprintf('\n\n error in state - epoch out of range \n');
-
+    fprintf('\n\n error in state - epoch out of range error in jplephem\n');
     return;
 end
 

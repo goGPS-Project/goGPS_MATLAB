@@ -3,10 +3,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by: Giulio Tagliaferro
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -61,21 +61,26 @@ elseif isempty(strfind(lower(ext),lower('eph'))) || isempty(strfind(lower(ext),l
         else
             % get new line separators
             nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            if lim(end,3) < 3
-                lim(end,:) = [];
-            end
-            % find time line
-            idx_epoch = find(txt(lim(:,1)) == '*');
-            txt = txt(lim(idx_epoch):end);
-            if ~isempty(idx_epoch)
-                time = GPS_Time([str2num(txt(4:7)) str2num(txt(9:10)) str2num(txt(12:13)) str2num(txt(15:16)) str2num(txt(18:19)) str2num(txt(21:31))]);
+            if isempty(nl)
+                Core.getLogger.addError(sprintf('File "%s" is corrupted, deleting it', filename));
+                delete(filename);
             else
-                time = [];
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                % find time line
+                idx_epoch = find(txt(lim(:,1)) == '*');
+                txt = txt(lim(idx_epoch):end);
+                if ~isempty(idx_epoch)
+                    time = GPS_Time([str2num(txt(4:7)) str2num(txt(9:10)) str2num(txt(12:13)) str2num(txt(15:16)) str2num(txt(18:19)) str2num(txt(21:31))]);
+                else
+                    time = [];
+                end
             end
         end
     else

@@ -73,21 +73,32 @@ obj.data{histIndex}.yaxis = ['y' num2str(ysource)];
 
 %-------------------------------------------------------------------------%
 
-%-hist type-%
-obj.data{histIndex}.type = 'histogram';
+%-bar type-%
+obj.data{histIndex}.type = 'bar';
 
 %-------------------------------------------------------------------------%
 
-%-HIST XAXIS-%
-obj.data{histIndex}.histfunc= 'count';
-
-%-------------------------------------------------------------------------%
-
-orientation = histogramOrientation(hist_data);
+if isfield(hist_data, 'Orientation')
+  %-Matlab 2014+ histogram() function-%
+  orientation = hist_data.Orientation;
+else
+  %-Matlab <2014 hist() function-%
+  orientation = histogramOrientation(hist_data);
+end
 
 switch orientation
-    case 'v'
+    case {'vertical', 'horizontal'}
+
+        %-------------------------------------------------------------------------%
+        %-hist y data-%
         
+        obj.data{histIndex}.x = hist_data.BinEdges(1:end-1) + 0.5*diff(hist_data.BinEdges);
+        obj.data{histIndex}.width = diff(hist_data.BinEdges);%[hist_data.BinEdges(2:end), hist_data.Data(end)];
+        obj.data{histIndex}.y = double(hist_data.Values);
+        
+        %-------------------------------------------------------------------------%
+
+    case 'v'
         %-hist x data-%
         xdata = mean(hist_data.XData(2:3,:));
         
@@ -115,6 +126,11 @@ switch orientation
        
         %-------------------------------------------------------------------------%
         
+        %-layout bargap-%
+        obj.layout.bargap = (hist_data.XData(3,1)-hist_data.XData(2,2))/(hist_data.XData(3,1)-hist_data.XData(2,1));
+        
+        %-------------------------------------------------------------------------%
+        
         
     case 'h'
         
@@ -122,8 +138,7 @@ switch orientation
         ydata = mean(hist_data.YData(2:3,:));
         
         %-------------------------------------------------------------------------%
-        
-        %-hist y data-%
+
         ylength = 0;
         for d = 1:length(ydata)
             obj.data{histIndex}.y(ylength + 1: ylength + hist_data.XData(2,d)) = repmat(ydata(d),1,hist_data.XData(2,d));
@@ -144,6 +159,11 @@ switch orientation
         obj.data{histIndex}.ybins = ybins; 
        
         %-------------------------------------------------------------------------%
+        
+        %-layout bargap-%
+        obj.layout.bargap = (hist_data.XData(3,1)-hist_data.XData(2,2))/(hist_data.XData(3,1)-hist_data.XData(2,1));
+        
+        %-------------------------------------------------------------------------%
              
 end
 
@@ -159,11 +179,6 @@ obj.layout.barmode = 'group';
 
 %-------------------------------------------------------------------------%
 
-%-layout bargap-%
-obj.layout.bargap = (hist_data.XData(3,1)-hist_data.XData(2,2))/(hist_data.XData(3,1)-hist_data.XData(2,1));
-
-%-------------------------------------------------------------------------%
-
 %-hist line width-%
 obj.data{histIndex}.marker.line.width = hist_data.LineWidth;
 
@@ -171,13 +186,20 @@ obj.data{histIndex}.marker.line.width = hist_data.LineWidth;
 
 %-hist opacity-%
 if ~ischar(hist_data.FaceAlpha)
-    obj.data{histIndex}.opacity = hist_data.FaceAlpha;
+    obj.data{histIndex}.opacity = hist_data.FaceAlpha * 1.25;
 end
 
 %-------------------------------------------------------------------------%
 
-%-hist marker-%
+%-marker data-%
 obj.data{histIndex}.marker = extractPatchFace(hist_data);
+
+%-------------------------------------------------------------------------%
+
+%-change color when multiple histograms same axes-%
+if min([xsource, ysource]) == 1
+    obj.data{histIndex}.marker = rmfield(obj.data{histIndex}.marker, 'color');
+end
 
 %-------------------------------------------------------------------------%
 

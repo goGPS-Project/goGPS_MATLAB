@@ -15,21 +15,23 @@
 %   triPlot(x, y, ang, modulus, <max_size>, <marker_scale>);
 %
 % DISCLAMER
-%   Set axis ratio BEFOR using triPlot
+%   Set axis ratio BEFORE using triPlot
 %
 % EXAMPLE
-%   ang = 0:25:720;
-%   x = (1 : numel(ang));
-%   y = ones(1, numel(point_x)); 
-%   modulus = ang;
-%   max_size = 1;
-%   marker_scale = max_size / max(modulus);
-% 
-%   figure;
-%   triPlot(x, -2 * y, -90*1+0*ang, modulus, max_size, marker_scale);
-%   triPlot(x, 0 * y, ang, fliplr(modulus), max_size, marker_scale);
-%   triPlot(x, 2 * y, 90*1+0*ang, modulus, max_size, marker_scale);
-%   axis equal
+%     ang = 0:25:720;
+%     x = (1 : numel(ang));
+%     y = ones(1, numel(x)); 
+%     modulus = ang;
+%     max_size = 16;
+%     marker_scale = 1;
+%     
+%     figure; plot(nan, nan, '.'); hold on;
+%     axis equal
+%     ylim([-5 5]);
+%     xlim([0 30]);
+%     triPlot(x, -2 * y, -90*1+0*ang, modulus, max_size, marker_scale);
+%     triPlot(x, 0 * y, ang, fliplr(modulus), max_size, marker_scale);
+%     triPlot(x, 2 * y, 90*1+0*ang, modulus, max_size, marker_scale);
 %
 
 %--------------------------------------------------------------------------
@@ -40,7 +42,7 @@
 %    |___/                    v 1.0 beta 5
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -62,7 +64,7 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-function triPlot(x, y, ang, modulus, max_size, marker_scale)
+function ht = triPlot(x, y, ang, modulus, max_size, marker_scale)
     if nargin < 5
         max_size = 1;
     end
@@ -81,13 +83,20 @@ function triPlot(x, y, ang, modulus, max_size, marker_scale)
     min_size = max_size * 0.6;
         
     % Normalize point scale
-    scale_factor = double(max(min_size, min(max_size, (modulus .* marker_scale))));
+    ax = gca;
+    ax.Units = 'points';
+    try
+        ax.PlotBox;
+    catch
+        cb = colorbar; drawnow; ax.PlotBox; delete(cb); % force PlotBox property creation
+    end
+    scale_x = diff(xlim) / ax.PlotBox(3); % points to X-axis coordinates
+    scale_y = diff(ylim) / ax.PlotBox(4); % points to Y-axis coordinates
+        
+    scale_factor = double(max(min_size, min(max_size, modulus))) .* marker_scale * scale_y;
     ang = -ang;
     
-    % Define arrow
-    ax = gca;
-    
-    plot_scale_factor = ax.PlotBoxAspectRatio(2) * diff(xlim) / diff(ylim);
+    % Define arrow    
     
     x_tri = [-0.6 0 0.6 0];
     y_tri = [-sqrt(1 - x_tri(1)^2) 1 -sqrt(1 - x_tri(3)^2) -0.5];
@@ -109,7 +118,7 @@ function triPlot(x, y, ang, modulus, max_size, marker_scale)
         % Rescale vertexes if the ratio of the axis is not ok
         offset = repmat([x(i) y(i) mean(ht.Vertices(:,3))], numel(x_tri), 1);
         vrtx = ht.Vertices - offset; % translate to center of axis
-        vrtx(:, 1) = vrtx(:, 1) .* plot_scale_factor;   % scale
+        vrtx(:, 1) = vrtx(:, 1) .* scale_x/scale_y;   % scale
         ht.Vertices = vrtx + offset; % translate back
     end
 end

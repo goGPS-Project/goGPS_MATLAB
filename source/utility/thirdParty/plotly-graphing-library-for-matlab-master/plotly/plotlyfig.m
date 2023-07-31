@@ -4,6 +4,7 @@ classdef plotlyfig < handle
     properties
         data; % data of the plot
         layout;  % layout of the plot
+        frames;  % for animations
         url; % url response of making post request
         error; % error response of making post request
         warning; % warning response of making post request
@@ -31,21 +32,12 @@ classdef plotlyfig < handle
         
         %----CONSTRUCTOR---%
         function obj = plotlyfig(varargin)
-            
+
             %-Core-%
             obj.data = {};
             obj.layout = struct();
+            obj.frames = {};
             obj.url = '';
-            
-            %-UserData-%
-            try
-                [obj.UserData.Username,...
-                    obj.UserData.ApiKey,...
-                    obj.UserData.PlotlyDomain] = signin;
-            catch
-                errkey = 'plotlyfigConstructor:notSignedIn';
-                error(errkey, plotlymsg(errkey));
-            end
             
             obj.UserData.Verbose = true;
             
@@ -56,18 +48,49 @@ classdef plotlyfig < handle
             obj.PlotOptions.WorldReadable = true;
             obj.PlotOptions.ShowURL = true;
             obj.PlotOptions.OpenURL = true;
-            obj.PlotOptions.Strip = true;
+            obj.PlotOptions.Strip = false;
+            obj.PlotOptions.WriteFile = true;
             obj.PlotOptions.Visible = 'on';
-            obj.PlotOptions.TriangulatePatch = false; 
+            obj.PlotOptions.TriangulatePatch = false;
+            obj.PlotOptions.StripMargins = false;
+            obj.PlotOptions.TreatAs = {'_'};
+            obj.PlotOptions.Image3D = false;
+            obj.PlotOptions.ContourProjection = false;
+            obj.PlotOptions.AxisEqual = false;
+            obj.PlotOptions.AspectRatio = [];
+            obj.PlotOptions.CameraEye = [];
+            obj.PlotOptions.is_headmap_axis = false;
+            obj.PlotOptions.FrameDuration = 1;      % in ms.
+            obj.PlotOptions.FrameTransitionDuration = 0;      % in ms.
+            obj.PlotOptions.geoRenderType = 'geo';
+            obj.PlotOptions.DomainFactor = [1 1 1 1];
             
             % offline options
-            obj.PlotOptions.Offline = false;
+            obj.PlotOptions.Offline = true;
             obj.PlotOptions.ShowLinkText = true; 
             obj.PlotOptions.LinkText = obj.get_link_text; 
             obj.PlotOptions.IncludePlotlyjs = true;
+            obj.PlotOptions.SaveFolder = pwd;
+            
+            %-UserData-%
+            try
+                [obj.UserData.Username,...
+                    obj.UserData.ApiKey,...
+                    obj.UserData.PlotlyDomain] = signin;
+            catch
+                idx=find(cellfun(@(x) strcmpi(x,'offline'), varargin))+1;
+                if (nargin>1 && ~isempty(idx) && varargin{idx}) || (obj.PlotOptions.Offline)
+                    obj.UserData.Username = 'offlineUser';
+                    obj.UserData.ApiKey = '';
+                    obj.UserData.PlotlyDomain = 'https://plot.ly';
+                else
+                    errkey = 'plotlyfigConstructor:notSignedIn';
+                    error(errkey, plotlymsg(errkey));
+                end
+            end
             
             %-PlotlyDefaults-%
-            obj.PlotlyDefaults.MinTitleMargin = 80;
+            obj.PlotlyDefaults.MinTitleMargin = 10;
             obj.PlotlyDefaults.TitleHeight = 0.01;
             obj.PlotlyDefaults.TitleFontSizeIncrease = 40; 
             obj.PlotlyDefaults.FigureIncreaseFactor = 1.5;
@@ -80,6 +103,9 @@ classdef plotlyfig < handle
             obj.PlotlyDefaults.Bargap = 0;
             obj.PlotlyDefaults.CaptionMarginIncreaseFactor = 1.2; 
             obj.PlotlyDefaults.MinCaptionMargin = 80;
+            obj.PlotlyDefaults.IsLight = false;
+            obj.PlotlyDefaults.isGeoaxis = false;
+            obj.PlotlyDefaults.isTernary = false;
             
             %-State-%
             obj.State.Figure = [];
@@ -110,6 +136,8 @@ classdef plotlyfig < handle
             % initialize autoupdate key
             updatekey = false;
             
+            noFig = false;
+            
             % parse inputs
             switch nargin
                 
@@ -135,6 +163,16 @@ classdef plotlyfig < handle
                             updatekey = true;
                             parseinit = 2;
                         end
+                    elseif iscell(varargin{1}) && isstruct(varargin{2})
+                        obj.data = varargin{1}{:};
+                        structargs = varargin{2};
+                        ff=fieldnames(structargs);
+                        for i=1:length(ff)
+                            varargin{2*i-1}=ff{i};
+                            varargin{2*i}=structargs.(ff{i});
+                        end
+                        noFig=true;
+                        parseinit = 1;
                     else
                         parseinit = 1;
                     end
@@ -146,11 +184,14 @@ classdef plotlyfig < handle
                     end
                     
                     % parse property/values
-                    for a = parseinit:2:nargin
+                    for a = parseinit:2:length(varargin)
                         if(strcmpi(varargin{a},'filename'))
                             obj.PlotOptions.FileName = varargin{a+1};
                             % overwrite if filename provided
                             obj.PlotOptions.FileOpt = 'overwrite';
+                        end
+                        if(strcmpi(varargin{a},'savefolder'))
+                            obj.PlotOptions.SaveFolder = varargin{a+1};
                         end
                         if(strcmpi(varargin{a},'fileopt'))
                             obj.PlotOptions.FileOpt = varargin{a+1};
@@ -166,6 +207,9 @@ classdef plotlyfig < handle
                         end
                         if(strcmpi(varargin{a},'strip'))
                             obj.PlotOptions.Strip = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'writeFile'))
+                            obj.PlotOptions.WriteFile = varargin{a+1};
                         end
                         if(strcmpi(varargin{a},'visible'))
                             obj.PlotOptions.Visible = varargin{a+1};
@@ -188,35 +232,84 @@ classdef plotlyfig < handle
                         if(strcmpi(varargin{a},'data'))
                             obj.data = varargin{a+1};
                         end
+                        if(strcmpi(varargin{a},'StripMargins'))
+                            obj.PlotOptions.StripMargins = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'TriangulatePatch'))
+                            obj.PlotOptions.TriangulatePatch = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'TreatAs'))
+                            if ~iscell(varargin{a+1})
+                                obj.PlotOptions.TreatAs = {varargin{a+1}};
+                            else
+                                obj.PlotOptions.TreatAs = varargin{a+1};
+                            end
+                        end
+                        if(strcmpi(varargin{a},'AxisEqual'))
+                            obj.PlotOptions.AxisEqual = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'AspectRatio'))
+                            obj.PlotOptions.AspectRatio = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'CameraEye'))
+                            obj.PlotOptions.CameraEye = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'Quality'))
+                            obj.PlotOptions.Quality = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'Zmin'))
+                            obj.PlotOptions.Zmin = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'FrameDuration'))
+                            if varargin{a+1} > 0
+                                obj.PlotOptions.FrameDuration = varargin{a+1};
+                            end
+                        end
+                        if(strcmpi(varargin{a},'FrameTransitionDuration'))
+                            if varargin{a+1} >= 0
+                                obj.PlotOptions.FrameTransitionDuration = varargin{a+1};
+                            end
+                        end
+                        if(strcmpi(varargin{a},'geoRenderType'))
+                            obj.PlotOptions.geoRenderType = varargin{a+1};
+                        end
+                        if(strcmpi(varargin{a},'DomainFactor'))
+                            len = length(varargin{a+1});
+                            obj.PlotOptions.DomainFactor(1:len) = varargin{a+1};
+                        end
                     end
             end
             
-            % create figure/axes if empty
-            if isempty(fig_han)
-                fig_han = figure;
-                axes;
+            if ~noFig
+                % create figure/axes if empty
+                if isempty(fig_han)
+                    fig_han = figure;
+                    axes;
+                end
+
+                % plotly figure default style
+                set(fig_han,'Name',obj.PlotOptions.FileName,'Color',[1 1 1],'NumberTitle','off', 'Visible', obj.PlotOptions.Visible);
+
+                % figure state
+                obj.State.Figure.Handle = fig_han;
             end
-            
-            % plotly figure default style
-            set(fig_han,'Name',obj.PlotOptions.FileName,'Color',[1 1 1],'NumberTitle','off', 'Visible', obj.PlotOptions.Visible);
-            
-            % figure state
-            obj.State.Figure.Handle = fig_han;
             
             % update
             if updatekey
                 obj.update;
             end
             
-            % add figure listeners
-            addlistener(obj.State.Figure.Handle,'Visible','PostSet',@(src,event)updateFigureVisible(obj,src,event));
-            addlistener(obj.State.Figure.Handle,'Name','PostSet',@(src,event)updateFigureName(obj,src,event));
-            
-            % add plot options listeners
-            addlistener(obj,'PlotOptions','PostSet',@(src,event)updatePlotOptions(obj,src,event));
-            
-            % add user data listeners
-            addlistener(obj,'UserData','PostSet',@(src,event)updateUserData(obj,src,event));
+            if ~noFig
+                % add figure listeners
+                addlistener(obj.State.Figure.Handle,'Visible','PostSet',@(src,event)updateFigureVisible(obj,src,event));
+                addlistener(obj.State.Figure.Handle,'Name','PostSet',@(src,event)updateFigureName(obj,src,event));
+
+                % add plot options listeners
+                addlistener(obj,'PlotOptions','PostSet',@(src,event)updatePlotOptions(obj,src,event));
+
+                % add user data listeners
+                addlistener(obj,'UserData','PostSet',@(src,event)updateUserData(obj,src,event));
+            end
         end
         
         %-------------------------USER METHODS----------------------------%
@@ -261,6 +354,13 @@ classdef plotlyfig < handle
             
             % strip the style keys from data
             for d = 1:length(obj.data)
+                if ( ...
+                        strcmpi(obj.data{d}.type, 'scatter') || ...
+                        strcmpi(obj.data{d}.type, 'contour') || ...
+                        strcmpi(obj.data{d}.type, 'bar') ...
+                    )
+                    return
+                end
                 obj.data{d} = obj.stripkeys(obj.data{d}, obj.data{d}.type, 'style');
             end
             
@@ -293,7 +393,11 @@ classdef plotlyfig < handle
             
             % validate data fields
             for d = 1:length(obj.data)
-                obj.stripkeys(obj.data{d}, obj.data{d}.type, {'style','plot_info'});
+                try
+                    obj.stripkeys(obj.data{d}, obj.data{d}.type, {'style','plot_info'});
+                catch
+                    % TODO
+                end
             end
             
             % validate layout fields
@@ -413,6 +517,14 @@ classdef plotlyfig < handle
                 obj.strip;
             end
             
+            % strip margins
+            if obj.PlotOptions.StripMargins
+                obj.layout.margin.l = 0;
+                obj.layout.margin.r = 0;
+                obj.layout.margin.b = 0;
+                obj.layout.margin.t = 0;
+            end
+            
             % validate keys
             validate(obj);
             
@@ -421,38 +533,46 @@ classdef plotlyfig < handle
             
             % handle title (for feed)
             if obj.PlotOptions.CleanFeedTitle
-                cleanFeedTitle(obj);
+                try
+                    cleanFeedTitle(obj);
+                catch
+                    % TODO to the future
+                end
             end
                 
-            %args
+            %get args
             args.filename = obj.PlotOptions.FileName;
             args.fileopt = obj.PlotOptions.FileOpt;
             args.world_readable = obj.PlotOptions.WorldReadable;
+            args.offline = obj.PlotOptions.Offline;
             
             %layout
             args.layout = obj.layout;
             
-            %send to plotly
-            if ~obj.PlotOptions.Offline
-                response = plotly(obj.data, args);
-            
-                %update response
-                obj.url = response.url;
-                obj.error = response.error;
-                obj.warning = response.warning;
-                obj.message = response.message;
+            if obj.PlotOptions.WriteFile
                 
-                %open url in browser
-                if obj.PlotOptions.OpenURL
-                    web(response.url, '-browser');
-                end
-            else
-                obj.url = plotlyoffline(obj);   
-                if obj.PlotOptions.OpenURL
-                    web(obj.url, '-browser');
-                end
-            end 
-           
+                %send to plotly
+                if ~obj.PlotOptions.Offline
+                    
+                    response = plotly(obj.data, args);
+
+                    %update response
+                    obj.url = response.url;
+                    obj.error = response.error;
+                    obj.warning = response.warning;
+                    obj.message = response.message;
+
+                    %open url in browser
+                    if obj.PlotOptions.OpenURL
+                        web(response.url, '-browser');
+                    end
+                else
+                    obj.url = plotlyoffline(obj);
+                    if obj.PlotOptions.OpenURL
+                        web(obj.url, '-browser');
+                    end
+                end 
+            end           
         end
         
         %-----------------------FIGURE CONVERSION-------------------------%
@@ -466,14 +586,57 @@ classdef plotlyfig < handle
             obj.State.Figure.NumLegends = 0;
             obj.State.Figure.NumColorbars = 0;
             obj.State.Figure.NumTexts = 0;
+
+            % check if there is tiledlayout
+            try
+                tiledLayoutStruct = get(obj.State.Figure.Handle.Children);
+                isTiledLayout = strcmp(tiledLayoutStruct.Type, 'tiledlayout');
+            catch
+                isTiledLayout = false;
+            end
             
             % find axes of figure
-            ax = findobj(obj.State.Figure.Handle,'Type','axes','-and',{'Tag','','-or','Tag','PlotMatrixBigAx','-or','Tag','PlotMatrixScatterAx'});
+            ax = findobj(obj.State.Figure.Handle,'Type','axes','-and',{'Tag','','-or','Tag','PlotMatrixBigAx','-or','Tag','PlotMatrixScatterAx', '-or','Tag','PlotMatrixHistAx'});
+
+            if isempty(ax)
+                try
+                    ax = get(obj.State.Figure.Handle,'Children');
+                catch
+                    ax = gca;
+                end
+            end
+            
+            %---------- checking the overlaping of the graphs ----------%
+            temp_ax = ax; deleted_idx = 0;
+            for i = 1:length(ax)
+                for j = i:length(ax)
+                    try
+                        if ((mean(eq(ax(i).Position, ax(j).Position)) == 1) && (i~=j) && strcmp(ax(i).Children.Type, 'histogram'))
+                            temp_plots = findobj(temp_ax(i),'-not','Type','Text','-not','Type','axes','-depth',1);
+                            if isprop(temp_plots, 'FaceAlpha')
+                                update_opac(i) = true;
+                            else
+                                update_opac(i) = false;
+                            end
+                            temp_ax(i).YTick = temp_ax(j- deleted_idx).YTick;
+                            temp_ax(i).XTick = temp_ax(j- deleted_idx).XTick;
+                            temp_ax(j - deleted_idx) = []; 
+                            deleted_idx = deleted_idx + 1;
+                        end
+                    catch
+                        % TODO: error with ax(i).Children.Type. isfield is no enogh
+                    end
+                end
+            end
+            ax = temp_ax;
+            %---------- checking the overlaping of the graphs ----------%
+            
+            % update number of axes
             obj.State.Figure.NumAxes = length(ax);
             
             % update number of annotations (one title per axis)
             obj.State.Figure.NumTexts = length(ax);
-            
+
             % find children of figure axes
             for a = 1:length(ax)
                 
@@ -484,26 +647,76 @@ classdef plotlyfig < handle
                 obj.State.Axis(a).Handle = ax(axrev);
                 
                 % add title
-                obj.State.Text(a).Handle = get(ax(axrev),'Title');
-                obj.State.Text(a).AssociatedAxis = handle(ax(axrev));
-                obj.State.Text(a).Title = true;
+                try
+                    obj.State.Text(a).Handle = get(ax(axrev),'Title');
+                    obj.State.Text(a).AssociatedAxis = handle(ax(axrev));
+                    obj.State.Text(a).Title = true;
+                catch
+                    % TODO
+                end
                 
                 % find plots of figure
                 plots = findobj(ax(axrev),'-not','Type','Text','-not','Type','axes','-depth',1);
                 
+                % get number of nbars for pie3
+                if ismember('pie3', lower(obj.PlotOptions.TreatAs))
+                    obj.PlotOptions.nbars{a} = 0;
+                    for i = 1:length(plots)
+                        if ismember('surface', lower(obj.PlotOptions.TreatAs))
+                            obj.PlotOptions.nbars{a} = obj.PlotOptions.nbars{a} + 1;
+                        end
+                    end
+                end
+                
                 % add baseline objects
                 baselines = findobj(ax(axrev),'-property','BaseLine');
-                
+
+                % check is current axes have multiple y-axes
+                try 
+                    obj.PlotlyDefaults.isMultipleYAxes(axrev) = length(ax(axrev).YAxis) == 2;
+                catch
+                    obj.PlotlyDefaults.isMultipleYAxes(axrev) = false;
+                end
+
+                % update structures for each plot in current axes
                 for np = 1:length(plots)
                     
                     % reverse plots
                     nprev = length(plots) - np + 1;
-                    
+
                     % update the plot fields
-                    obj.State.Figure.NumPlots = obj.State.Figure.NumPlots + 1;
-                    obj.State.Plot(obj.State.Figure.NumPlots).Handle = handle(plots(nprev));
-                    obj.State.Plot(obj.State.Figure.NumPlots).AssociatedAxis = handle(ax(axrev));
-                    obj.State.Plot(obj.State.Figure.NumPlots).Class = getGraphClass(plots(nprev));
+                    plotClass = lower(getGraphClass(plots(nprev)));
+
+                    if ~ismember(plotClass, {'light', 'polaraxes'})
+                        obj.State.Figure.NumPlots = obj.State.Figure.NumPlots + 1;
+                        obj.State.Plot(obj.State.Figure.NumPlots).Handle = handle(plots(nprev));
+                        obj.State.Plot(obj.State.Figure.NumPlots).AssociatedAxis = handle(ax(axrev));
+                        obj.State.Plot(obj.State.Figure.NumPlots).Class = getGraphClass(plots(nprev));
+                    else
+                        obj.PlotlyDefaults.IsLight = true;
+                    end
+                end
+
+                % this works for pareto
+                if length(plots) == 0
+
+                    try
+                        isPareto = length(ax) >= 2 & obj.State.Figure.NumPlots >= 2;
+                        isBar = strcmpi(lower(obj.State.Plot(obj.State.Figure.NumPlots).Class), 'line');
+                        isLine = strcmpi(lower(obj.State.Plot(obj.State.Figure.NumPlots-1).Class), 'bar');
+                        isPareto = isPareto & isBar & isLine;
+                    catch
+                        isPareto = false;
+                    end
+
+                    if isPareto
+                        obj.State.Plot(obj.State.Figure.NumPlots).AssociatedAxis = handle(ax(axrev));
+                    else
+                        obj.State.Figure.NumPlots = obj.State.Figure.NumPlots + 1;
+                        obj.State.Plot(obj.State.Figure.NumPlots).Handle = {};
+                        obj.State.Plot(obj.State.Figure.NumPlots).AssociatedAxis = handle(ax(axrev));
+                        obj.State.Plot(obj.State.Figure.NumPlots).Class = 'nothing';
+                    end
                 end
                 
                 % find text of figure
@@ -519,7 +732,7 @@ classdef plotlyfig < handle
                 obj.State.Figure.NumTexts = obj.State.Figure.NumTexts + length(texts);
                 
             end
-            
+
             % find legends of figure
             if isHG2
                 legs = findobj(obj.State.Figure.Handle,'Type','Legend');
@@ -565,6 +778,8 @@ classdef plotlyfig < handle
             
             % reset dataget(obj.State.Figure.Handle,'Children')
             obj.data = {};
+            obj.PlotOptions.nPlots = obj.State.Figure.NumPlots;
+            obj.PlotlyDefaults.anIndex = obj.State.Figure.NumTexts;
             
             % reset layout
             obj.layout = struct();
@@ -574,7 +789,18 @@ classdef plotlyfig < handle
             
             % update axes
             for n = 1:obj.State.Figure.NumAxes
-                updateAxis(obj,n);
+                try
+                    if ~obj.PlotlyDefaults.isMultipleYAxes(n)
+                        updateAxis(obj,n);
+
+                    else
+                        for yax = 1:2
+                            updateAxisMultipleYAxes(obj,n,yax);
+                        end
+                    end
+                catch
+                    % TODO 
+                end
             end
             
             % update plots
@@ -584,17 +810,53 @@ classdef plotlyfig < handle
             
             % update annotations
             for n = 1:obj.State.Figure.NumTexts
-                updateAnnotation(obj,n);
+                try
+                    if obj.PlotOptions.is_headmap_axis
+                        updateHeatmapAnnotation(obj,n);
+                        obj.PlotOptions.CleanFeedTitle = false;
+
+                    elseif obj.PlotlyDefaults.isGeoaxis
+                        % TODO
+
+                    else
+                        if ~obj.PlotlyDefaults.isTernary
+                            updateAnnotation(obj,n);
+
+                            if obj.State.Figure.NumAxes == 1
+                                obj.PlotOptions.CleanFeedTitle = false;
+                            end
+                        end
+                    end
+                catch
+                    % TODO
+                end
+            end
+
+            % update tiled layout annotations
+            if isTiledLayout
+                updateTiledLayoutAnnotation(obj, tiledLayoutStruct);
             end
             
             % update legends
-            for n = 1:obj.State.Figure.NumLegends
-                updateLegend(obj,n);
+            if obj.State.Figure.NumLegends < 2
+                for n = 1:obj.State.Figure.NumLegends
+                    if ~strcmpi(obj.PlotOptions.TreatAs, 'pie3')
+                        updateLegend(obj,n);
+                    end
+                end
+
+            else
+                updateLegendMultipleAxes(obj,1);
             end
             
             % update colorbars
             for n = 1:obj.State.Figure.NumColorbars
-                updateColorbar(obj,n);
+                if ~obj.PlotlyDefaults.isTernary
+                    updateColorbar(obj,n);
+
+                else
+                    updateTernaryColorbar(obj,n);
+                end
             end
             
         end
@@ -632,12 +894,6 @@ classdef plotlyfig < handle
         
         %----UPDATE PLOT OPTIONS----%
         function obj = updatePlotOptions(obj,src,event)
-            if iscell(obj.PlotOptions.FileName)
-                for i = 1 : numel(obj.PlotOptions.FileName)
-                    obj.PlotOptions.FileName{i} = [obj.PlotOptions.FileName{i} ' - '];
-                end
-                obj.PlotOptions.FileName = cell2mat(obj.PlotOptions.FileName');
-            end
             set(obj.State.Figure.Handle, 'Name', obj.PlotOptions.FileName, 'Visible', obj.PlotOptions.Visible);
         end
         
@@ -819,11 +1075,12 @@ classdef plotlyfig < handle
     methods (Access=private)
         %----STRIP THE FIELDS OF A SPECIFIED KEY-----%
         function stripped = stripkeys(obj, fields, fieldname, key)
-            
+
             %plorlt reference
             pr = obj.PlotlyReference;
             
             % initialize output
+            % fields
             stripped = fields;
             
             % get fieldnames
@@ -831,7 +1088,7 @@ classdef plotlyfig < handle
             fnmod = fn;
             
             try
-                for d = 1:length(fn);
+                for d = 1:length(fn)
                     
                     % clean up axis keys
                     if any(strfind(fn{d},'xaxis')) || any(strfind(fn{d},'yaxis'))
@@ -888,7 +1145,19 @@ classdef plotlyfig < handle
             catch exception
                 if obj.UserData.Verbose
                     % catch 3D output until integrated into graphref
-                    if ~(strcmpi(fieldname,'surface') || strcmpi(fieldname,'scatter3d'))
+                    if ~( ...
+                            strcmpi(fieldname,'surface') || strcmpi(fieldname,'scatter3d') ...
+                        ||  strcmpi(fieldname,'mesh3d') || strcmpi(fieldname,'bar') ...
+                        ||  strcmpi(fieldname,'scatterpolar') || strcmpi(fieldname,'barpolar') ...
+                        ||  strcmpi(fieldname,'scene') ||  strcmpi(fieldname,'layout') ...
+                        ||  strcmpi(fieldname,'heatmap') ||  strcmpi(fieldname,'xaxis') ...
+                        ||  strcmpi(fieldname,'yaxis') ||  strcmpi(fieldname,'cone')...
+                        ||  strcmpi(fieldname,'legend') ||  strcmpi(fieldname,'histogram')...
+                        ||  strcmpi(fieldname,'scatter') ||  strcmpi(fieldname,'line')...
+                        ||  strcmpi(fieldname,'scattergeo') ||  strcmpi(fieldname,'scattermapbox')...
+                        ||  strcmpi(fieldname,'scatterternary') ||  strcmpi(fieldname,'colorbar')...
+                        ||  strcmpi(fieldname,'contours')...
+                        )
                         fprintf(['\nWhoops! ' exception.message(1:end-1) ' in ' fieldname '\n\n']);
                     end
                 end 
@@ -896,10 +1165,14 @@ classdef plotlyfig < handle
         end
 
         function link_text = get_link_text(obj)
-           plotly_domain = obj.UserData.PlotlyDomain; 
-           link_domain = strrep(plotly_domain, 'https://', ''); 
-           link_domain = strrep(link_domain, 'http://', ''); 
-           link_text = ['Export to ' link_domain]; 
+            if obj.PlotOptions.Offline
+                plotly_domain = 'https://plot.ly';
+            else
+                plotly_domain = obj.UserData.PlotlyDomain;
+            end
+            link_domain = strrep(plotly_domain, 'https://', ''); 
+            link_domain = strrep(link_domain, 'http://', ''); 
+            link_text = ['Export to ' link_domain]; 
         end   
     end
 end

@@ -32,10 +32,10 @@ function N = getOrthometricCorr(phi, lam, geoid, method)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, Daniele Sampietro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

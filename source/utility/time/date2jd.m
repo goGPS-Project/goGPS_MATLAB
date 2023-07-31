@@ -18,10 +18,10 @@ function [jd, mjd] = date2jd(date)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -51,7 +51,7 @@ hour  = date(:,4);
 min   = date(:,5);
 sec   = date(:,6);
 
-pos = find(month <= 2);
+pos = (month <= 2);
 year(pos)  = year(pos) - 1;
 month(pos) = month(pos) + 12;
 

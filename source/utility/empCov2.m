@@ -14,10 +14,10 @@ function [emp_cov, dist] = empCov2(x_obs, y_obs, data_obs, n_classes)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -50,11 +50,11 @@ function [emp_cov, dist] = empCov2(x_obs, y_obs, data_obs, n_classes)
 
     emp_cov = zeros(max(classes(:)), size(data_obs,2));
     for i = 1 : size(data_obs,2)
-        corr = (data_obs(:,i)-mean(data_obs(:,i))) * (data_obs(:,i)-mean(data_obs(:,i)))';
+        corr = (data_obs(:,i)-mean(data_obs(:,i), 'omitnan')) * (data_obs(:,i)-mean(data_obs(:,i), 'omitnan'))';
         for c = 1 : max(classes)
-            emp_cov(c, i) = mean(corr(serialize(triu(classes)==c)));
+            emp_cov(c, i) = mean(corr(serialize(triu(classes)==c)), 'omitnan');
         end
     end
-    emp_cov = mean(emp_cov, 2);
+    emp_cov = mean(emp_cov, 2, 'omitnan');
     dist = (0 : (n_classes - 1))' * max(d_obs(:))/n_classes;
 end

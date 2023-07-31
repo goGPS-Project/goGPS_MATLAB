@@ -20,10 +20,10 @@ function [EAST, NORTH, utm_zone] = geod2plan(lat, lon)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  Other Contributors: Laboratorio di Geomatica, Polo Regionale di Como,

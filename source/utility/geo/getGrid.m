@@ -19,7 +19,7 @@ function [phi_grid, lambda_grid] = getGrid(step, phi_min, phi_max, lambda_min, l
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2011 Andrea Gatti
@@ -45,7 +45,7 @@ function [phi_grid, lambda_grid] = getGrid(step, phi_min, phi_max, lambda_min, l
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    if nargin ==1
+    if nargin == 1
         phi_min = -90;
         phi_max = 90;
         lambda_min = -180;

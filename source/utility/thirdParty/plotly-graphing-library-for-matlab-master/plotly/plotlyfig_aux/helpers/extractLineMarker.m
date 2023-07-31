@@ -6,12 +6,6 @@ function marker = extractLineMarker(line_data)
 
 %-------------------------------------------------------------------------%
 
-%-AXIS STRUCTURE-%
-axis_data = get(ancestor(line_data.Parent,'axes'));
-
-%-FIGURE STRUCTURE-%
-figure_data = get(ancestor(line_data.Parent,'figure'));
-
 %-INITIALIZE OUTPUT-%
 marker = struct(); 
 
@@ -19,6 +13,10 @@ marker = struct();
 
 %-MARKER SIZE-%
 marker.size = line_data.MarkerSize;
+
+if length(marker.size) == 1
+    marker.size = 0.6*marker.size;
+end
 
 %-------------------------------------------------------------------------%
 
@@ -55,7 +53,9 @@ if ~strcmp(line_data.Marker,'none')
     end
     
     marker.symbol = marksymbol;
-    
+    if isfield(line_data, 'MarkerIndices')
+        marker.maxdisplayed=length(line_data.MarkerIndices)+1;
+    end
 end
 
 %-------------------------------------------------------------------------%
@@ -85,13 +85,7 @@ if filledMarker
             case 'none'
                 markercolor = 'rgba(0,0,0,0)';
             case 'auto'
-                if ~strcmp(axis_data.Color,'none')
-                    col = 255*axis_data.Color;
-                    markercolor = ['rgb(' num2str(col(1)) ',' num2str(col(2)) ',' num2str(col(3)) ')'];
-                else
-                    col = 255*figure_data.Color;
-                    markercolor = ['rgb(' num2str(col(1)) ',' num2str(col(2)) ',' num2str(col(3)) ')'];
-                end
+                markercolor = 'rgba(0, 0.4470, 0.7410,1)';
         end
     end
     

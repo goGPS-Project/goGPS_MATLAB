@@ -1,4 +1,3 @@
-function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 % SYNTAX
 %    [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 %
@@ -12,10 +11,10 @@ function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -37,6 +36,8 @@ function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
+
+function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 
 if (nargin == 2)
     if numel(conv_x_pixels) > 2

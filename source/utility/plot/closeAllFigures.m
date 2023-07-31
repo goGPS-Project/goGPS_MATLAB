@@ -21,10 +21,10 @@ function closeAllFigures(fig_handle)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -47,11 +47,13 @@ function closeAllFigures(fig_handle)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
     if (nargin == 1)
-        set(fig_handle,'WindowStyle','docked');
+        delete(fig_handle);
     else
         all_fh = findall(0,'Type','figure');
         for fid = 1:length(all_fh)
-            if numel(all_fh(fid).DockControls) ~= 3
+            if (islogical(all_fh(fid).DockControls) && (all_fh(fid).DockControls == true)) || ...
+               (ischar(all_fh(fid).DockControls) && (all_fh(fid).DockControls(2) == 'n')) || ...
+               (isnumeric(all_fh(fid).DockControls) && (numel(all_fh(fid).DockControls) >= 2))
                 delete(all_fh(fid));
             end
         end

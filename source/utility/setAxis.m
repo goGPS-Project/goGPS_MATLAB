@@ -14,10 +14,10 @@ function ax = setAxis(fh, axis_id)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by: Giulio Tagliaferro
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -39,14 +39,27 @@ function ax = setAxis(fh, axis_id)
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-
+    if nargin == 0
+        fh = gcf;
+        axis_id = 1;
+    elseif nargin == 1
+        axis_id = 1;
+    end
+    
     if not(isa(fh, 'matlab.ui.Figure'))
         axis_id = fh;
         fh = gcf;
     end
     set(0, 'CurrentFigure', fh);
+    ax_list = fh.Children;
+    % filter Axes
+    id_ax = false(numel(ax_list),1);
+    for a = 1:numel(ax_list)
+        id_ax(a) = isa(ax_list(a), 'matlab.graphics.axis.Axes');
+    end
+    ax_list = ax_list(id_ax);
     try
-        ax = fh.Children(max(1, end + 1 - axis_id));
+        ax = ax_list(max(1, end + 1 - axis_id));
         subplot(ax);
     catch
         ax = axes();

@@ -14,10 +14,10 @@ function versionChanger(new_version_str, base_dir)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -49,7 +49,7 @@ sourceCleaner(base_dir);
 
 fprintf('\nChanging version\n');
 if (nargin == 0)
-    new_version_str = Core.GO_GPS_VERSION;
+    new_version_str = Core.APP_VERSION;
 end
 [~, list] = dos(['find ' base_dir ' -name \*.m']);
 list = textscan(list,'%s','Delimiter','\n','whitespace','');

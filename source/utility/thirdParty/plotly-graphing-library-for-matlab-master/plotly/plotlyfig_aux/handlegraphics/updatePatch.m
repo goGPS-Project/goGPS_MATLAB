@@ -135,11 +135,7 @@ if ~strcmp(obj.data{patchIndex}.type, 'mesh3d')
     %---------------------------------------------------------------------%
 
     %-patch name-%
-    if ~isempty(patch_data.DisplayName);
-        obj.data{patchIndex}.name = patch_data.DisplayName;
-    else
-        obj.data{patchIndex}.name = patch_data.DisplayName;
-    end
+    obj.data{patchIndex}.name = patch_data.DisplayName;
 
     %---------------------------------------------------------------------%
 
@@ -179,7 +175,7 @@ if ~strcmp(obj.data{patchIndex}.type, 'mesh3d')
     %-patch fillcolor-%
     fill = extractPatchFace(patch_data);
 
-    if strcmp(obj.data{patchIndex}.type,'scatter');
+    if strcmp(obj.data{patchIndex}.type,'scatter')
         obj.data{patchIndex}.fillcolor = fill.color; 
     else
         obj.data{patchIndex}.surfacecolor = fill.color;
@@ -188,7 +184,7 @@ if ~strcmp(obj.data{patchIndex}.type, 'mesh3d')
     %---------------------------------------------------------------------%
 
     %-surfaceaxis-%
-    if strcmp(obj.data{patchIndex}.type,'scatter3d');
+    if strcmp(obj.data{patchIndex}.type,'scatter3d')
         minstd = min([std(patch_data.XData) std(patch_data.YData) std(patch_data.ZData)]);
         ind = find([std(patch_data.XData) std(patch_data.YData) std(patch_data.ZData)] == minstd)-1;
         obj.data{patchIndex}.surfaceaxis = ind; 
@@ -234,6 +230,7 @@ switch legInfo.IconDisplayStyle
         showleg = false;
 end
 
+showleg = showleg & ~isempty(obj.data{patchIndex}.name);
 obj.data{patchIndex}.showlegend = showleg;
 
 %-------------------------------------------------------------------------%

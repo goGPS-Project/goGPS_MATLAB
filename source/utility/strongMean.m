@@ -1,4 +1,4 @@
-function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
+function [smean sstd] = strongMean(data, thr_perc, thr_perc_global, n_sigma)
 % Returns the mean per column with a certaint percentile of values in data
 % The code uses only the data filtered by the requested percentile to estimate 
 % an std column by column
@@ -22,10 +22,10 @@ function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -47,6 +47,7 @@ function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
+    sstd = nan;
     if nargin < 2
         thr_perc = 1;
     end
@@ -82,8 +83,18 @@ function smean = strongMean(data, thr_perc, thr_perc_global, n_sigma)
             id_ok = abs(sensor(:, c)) < n_sigma * std(sensor(id_ok, c), 'omitnan');
             if any(id_ok)
                 smean(c) = mean(data(id_ok, c), 'omitnan');
+                if nargout == 2
+                    sstd(c) = std(data(id_ok, c), 'omitnan');
+                end
             else
-                smean(c) = median(data(:, c), 'omitnan');
+                try
+                    smean(c) = robAdj(data(:, c), 'omitnan');
+                catch
+                    smean(c) = median(data(:, c), 'omitnan');                    
+                end
+                if nargout == 2
+                    sstd(c) = std(data(:, c), 'omitnan');
+                end
             end
         end
     end

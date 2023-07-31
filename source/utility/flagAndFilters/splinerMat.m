@@ -29,10 +29,10 @@ function [y_splined, x_spline, s_weights, y_splined_ext] = splinerMat(x, y, dxs,
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -68,7 +68,7 @@ function [y_splined, x_spline, s_weights, y_splined_ext] = splinerMat(x, y, dxs,
     end
     
     x(inan) = [];
-    y(inan) = [];
+    y(inan,:) = [];
     
     [x, id] = sort(x);
     y = y(id,:);
@@ -100,7 +100,9 @@ function [y_splined, x_spline, s_weights, y_splined_ext] = splinerMat(x, y, dxs,
             if (length(mask) > 2)
                 mask = mask | [mask(2:end); 0] | [0; mask(1:end-1)];
             end
-            s_weights = interp1(x_spline(~mask),s_weights(~mask),x_spline);
+            if any(mask)
+                s_weights = interp1(x_spline(~mask),s_weights(~mask),x_spline);
+            end
             if (size(x_ext,1)==1)
                 x_ext = x_ext';
             end
@@ -376,7 +378,7 @@ function [y_splined, x_spline, s_weights] = spliner_v5(x, y, dxs)
     x = x - x0;
     
     % compute the number of splines needed for the interpolation
-    n_splines = ceil(x_span/dxs) + 3;
+    n_splines = ceil((x_span+eps(x_span))/dxs) + 3;
 
     % compute spline centers
     x_spline = zeros(n_splines,1);
@@ -387,7 +389,6 @@ function [y_splined, x_spline, s_weights] = spliner_v5(x, y, dxs)
     
     % init A matrix
     A = zeros(nObs, 4);
-    A_idx = zeros(nObs, 4);
     
     tau   = round(rem(x',dxs)/dxs*1e13)/1e13;  % 1e13 rounding necessary to avoid numerical problems
     idx   = floor((x')/dxs)+1; 

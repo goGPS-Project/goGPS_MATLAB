@@ -1,13 +1,17 @@
 function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, n_sigma_jmp, range)
-% Return outliers in a relatively constant time series
+% getOutliers identifies and removes outliers in a relatively constant time series
 %
 % INPUT
-%   x             flag array (as logical)
-%   sigma         points with forced splits (as logical) (default auto)
-%   win_size      size of the moving window (default 7)
-%   n_sigma_win   n_sigma thr to consider the moving window as affected by outliers (default 2)
-%   n_sigma_jmp   n_sigma to detect a jmp (outlier) (default 4)
-%   range         min max acceptable values (default auto)
+%   data          - data array
+%   sigma         - standard deviation level
+%   win_size      - size of the moving window for outlier detection
+%   n_sigma_win   - sigma threshold to consider the moving window as affected by outliers
+%   n_sigma_jmp   - sigma threshold to detect an outlier
+%   range         - minimum and maximum acceptable values for the data
+%
+% OUTPUT
+%   lid_ko        - indices of detected outliers
+%   clean_data    - data array with outliers removed
 %
 % SYNTAX
 %   [id_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, n_sigma_jmp, range)
@@ -19,10 +23,10 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -48,7 +52,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
     % Compute thresholds - empirical but it works (outliers should be less than 75% percent)
     if nargin < 2 || isempty(sigma)
         thr_perc = 0.75;
-        tmp = diff(x_orig);
+        tmp = diff(data);
         tmp(abs(tmp) > 3 * perc(noNaN(abs(tmp)), thr_perc)) = nan;
         sigma = std(tmp, 'omitnan');
         sigma(isnan(sigma)) = median(sigma, 'omitnan');
@@ -58,15 +62,22 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
         win_size = 7;                % window size for outlier detection
     end
     if nargin < 4 || isempty(n_sigma_win)
-        n_sigma_win = 3;
+        n_sigma_win = 2;
     end
     if nargin < 5 || isempty(n_sigma_jmp)
         n_sigma_jmp = 4;
     end
     mu_win = 3 * win_size;
-    
-    clean_data = data(:,1);
-    
+        
+    % Keep jumps bigger than 1 meters
+    big_jumps = diff(movmedian(data(:,1), 31, 'omitnan'));
+    big_jumps(abs(big_jumps) < 1e3) = 0;
+    big_jumps = [0; cumsum(big_jumps)];
+    clean_data = data(:,1) - big_jumps;    
+    big_jumps = big_jumps + median(clean_data, 'omitnan');
+    clean_data = clean_data - median(clean_data, 'omitnan');
+    %clean_data = data(:,1);    
+     
     % Initialization
     
     % Determine maximum acceptable value range
@@ -84,6 +95,8 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
     end
     lid_ko = (clean_data < -1e4 | clean_data > 1e+4) | (lid_ko & (clean_data < range(1) | clean_data > range(2))); % if it is around the normal range 80% of data it's ok
     clean_data(lid_ko) = tmp(lid_ko);
+    clean_data = clean_data + big_jumps;
+
 
     % Detection of outliers from formal sigma (usually underestimated)
     lid_ko = lid_ko | isnan(clean_data(:,1));
@@ -101,7 +114,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
     tmp_win_size = min(numel(clean_data), win_size);
     std_ko = movstd(clean_data, tmp_win_size, 'Endpoints', 'discard');
     std_ko(isnan(std_ko)) = 1e10;
-    std_ko = std_ko > sigma_ok;
+    std_ko = std_ko > sigma_ok/1.5;
     std_ko = [std_ko; repmat(std_ko(end), tmp_win_size - 1, 1)];
     % Start outlier detection
     for k = 1:2
@@ -110,7 +123,10 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
                 % Check for outliers ------------------------------------------
                 if std_ko(i)
                     win = clean_data(i : min(length(clean_data), i -1 + win_size)); % window in the future
-                    while (std(win, 'omitnan') > sigma_ok) % if future obs are unstable shrink the window
+                    if sum(not(isnan((win)))) > 4
+                        win = win - (1:numel(win))' * median(diff(clean_data(i : min(length(clean_data), i -1 + 2*win_size))), 'omitnan'); % reduce for trend
+                    end
+                    while (std(win, 'omitnan') > sigma_ok) || any(abs(diff(win)) > sigma_ok) % if future obs are unstable shrink the window
                         win(end) = [];
                     end
                     
@@ -118,6 +134,9 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
                     if sum(not(isnan(win))) < 5
                         % check the current epoch with a window in the past
                         win = clean_data(max(1, i - win_size + 1) : i);
+                        if sum(not(isnan((win)))) > 4
+                            win = win - (1:numel(win))' * median(diff(clean_data(max(1, i - 2*win_size + 1) : i)), 'omitnan'); % reduce for trend
+                        end
                         if any(isnan(win))
                             mu = median(clean_data(max(1, i - mu_win + 1):(i-1)), 'omitnan');
                             if not(any(mu))
@@ -139,6 +158,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
         end
     end
     clean_data(lid_ko) = nan;
+    %clean_data = clean_data + big_jumps; % restore jumps
     %fprintf('%d outliers found\n', sum(id_ko))
     %figure; plot(clean_data, 'o');
 end

@@ -91,10 +91,28 @@ end
 %-------------------------------------------------------------------------%
 
 %-text-%
-obj.layout.annotations{anIndex}.text = parseString(text_data.String,text_data.Interpreter);
-if obj.State.Text(anIndex).Title && isempty(text_data.String)
-    obj.layout.annotations{anIndex}.text = '<b></b>'; %empty string annotation
+if obj.State.Text(anIndex).Title
+    obj.layout.annotations{anIndex}.text = parseString(text_data.String,text_data.Interpreter);
+    if isempty(text_data.String) 
+        obj.layout.annotations{anIndex}.text = '<b></b>'; %empty string annotation
+    end
+else
+    if ~strcmpi(obj.PlotOptions.TreatAs, 'pie3')
+        obj.layout.annotations{anIndex}.text = parseString(text_data.String,text_data.Interpreter);
+    else
+        obj.layout.annotations{anIndex}.text = '<b></b>'; 
+    end
 end
+
+%-optional code flow-%
+% if ~strcmpi(obj.PlotOptions.TreatAs, 'pie3')
+%     obj.layout.annotations{anIndex}.text = parseString(text_data.String,text_data.Interpreter);
+%     if obj.State.Text(anIndex).Title && isempty(text_data.String) 
+%         obj.layout.annotations{anIndex}.text = '<b></b>'; %empty string annotation
+%     end
+% else
+%     obj.layout.annotations{anIndex}.text = '<b></b>'; 
+% end
 
 %-------------------------------------------------------------------------%
 
@@ -136,14 +154,7 @@ obj.layout.annotations{anIndex}.font.size = text_data.FontSize;
 switch text_data.FontWeight
     case {'bold','demi'}
         %-bold text-%
-        if iscell(obj.layout.annotations{anIndex}.text)
-            for i = 1 : (numel(obj.layout.annotations{anIndex}.text) - 1)
-                obj.layout.annotations{anIndex}.text{i} = [obj.layout.annotations{anIndex}.text{i} ' - '];
-            end
-            obj.layout.annotations{anIndex}.text = ['<b>' cell2mat(obj.layout.annotations{anIndex}.text') '</b>'];
-        else
-            obj.layout.annotations{anIndex}.text = ['<b>' obj.layout.annotations{anIndex}.text '</b>'];
-        end        
+        obj.layout.annotations{anIndex}.text = ['<b>' obj.layout.annotations{anIndex}.text '</b>'];
     otherwise
 end
 

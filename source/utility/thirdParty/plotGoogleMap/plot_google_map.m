@@ -118,10 +118,10 @@ function varargout = plot_google_map(varargin)
 % Version 1.1 - 25/08/2011
 
 persistent apiKey useTemp
-if isnumeric(apiKey)
+if isnumeric(apiKey) || isempty(apiKey)
     % first run, check if API key file exists
     if exist('api_key.mat','file')
-        load api_key
+        load api_key;
     else
         apiKey = '';
     end

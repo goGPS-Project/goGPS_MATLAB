@@ -33,10 +33,10 @@ function [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Stefano Caldera 22.05.2014
 %  Contributors:     Stefano Caldera,
 %                    Andrea Gatti 08.12.2016 ( speedup improvements )

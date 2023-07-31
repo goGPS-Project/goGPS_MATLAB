@@ -21,10 +21,10 @@ function [download_successful, compressed] = download_nav(filename, nav_path)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -72,6 +72,9 @@ if not(exist(down_dir, 'dir'))
     mkdir(down_dir);
 end
 
+[~, file_name, file_ext] = fileparts(filename); 
+filename = [file_name file_ext];
+
 %identify requested file type
 if (strcmp(filename(1:4),'brdc'))
     %url = igs_url;
@@ -81,26 +84,21 @@ if (strcmp(filename(1:4),'brdc'))
     url = igs_mirror;
     name = 'BKG IGS mirror';
     path = '/IGS/BRDC/';
-    subdir = '/brdc/';
-elseif (strcmp(filename(1:4),'brdm'))
-    url = igs_url;
-    name = 'IGS';
-    path = '/pub/gps/data/campaign/mgex/daily/rinex3/';
-    subdir = '/brdm/';
+    subdir = sprintf('/%s/', filename(5:7));
 elseif (strcmp(filename(1:4),'CGIM'))
     url = aiub_url;
     name = 'AIUB';
     path = '/aiub/CODE/';
     subdir = '';
 else
-    error('Only "brdc", "brdm" (IGS) and "CGIM" (AIUB) files are supported.');
+    error('Only "brdc", "CGIM" (AIUB) files are supported.');
 end
 
 fprintf(['FTP connection to the ' name ' server (ftp://' url '). Please wait...'])
 
 %connect to the server
 try
-    ftp_server = ftp(url, 'anonymous', 'info@gogps-project.org');
+    ftp_server = ftp(url, 'anonymous', 'info@g-red.eu');
     warning('off')
     sf = struct(ftp_server);
     warning('on')

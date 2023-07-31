@@ -13,10 +13,10 @@ function fileRep(base_dir, expression, replace, filter)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -60,22 +60,27 @@ else
     end
 end
 tic
-for i = 1 : length(list)
+for i = 1 : length(list)    
     file_name = list{i};
     fid = fopen(file_name, 'r');
-    txt = fread(fid,'*char')';
-    fclose(fid);
-    %occurencies = regexp(txt, expression, 'once');
-    %clean_txt = regexprep(txt, expression, replace);
-    occurencies = strfind(txt, expression);
-    clean_txt = strrep(txt, expression, replace);
-    
-    if not(isempty(clean_txt)) && ~isempty(occurencies)
-        fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
-        fid = fopen(file_name, 'w');
-        fwrite(fid, clean_txt);
+    try
+        txt = fread(fid,'*char')';
         fclose(fid);
-        fprintf(' -> changed\n');
+        %occurencies = regexp(txt, expression, 'once');
+        %clean_txt = regexprep(txt, expression, replace);
+        occurencies = strfind(txt, expression);
+        clean_txt = strrep(txt, expression, replace);
+        
+        if not(isempty(clean_txt)) && ~isempty(occurencies)
+            fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
+            fid = fopen(file_name, 'w');
+            fwrite(fid, clean_txt);
+            fclose(fid);
+            fprintf(' -> changed\n');
+        end
+    catch ex
+        Core_Utils.printEx(ex);
+        fprintf('"%s" cannot be open!\n', file_name);
     end
 end
 toc;

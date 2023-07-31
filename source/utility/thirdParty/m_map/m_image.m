@@ -38,6 +38,7 @@ if isempty(MAP_PROJECTION)
 end
 
 N=[1000 999];  % Default size of grid
+N = size(C);
 
 
 k=1;

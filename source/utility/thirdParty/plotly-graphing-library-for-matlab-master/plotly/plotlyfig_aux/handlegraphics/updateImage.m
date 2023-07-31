@@ -64,8 +64,11 @@ obj.data{imageIndex}.type = 'heatmap';
 %-------------------------------------------------------------------------%
 
 %-image x-%
+x = image_data.XData;
+cdata = image_data.CData;
+
 if (size(image_data.XData,2) == 2)
-    obj.data{imageIndex}.x = image_data.XData(1):image_data.XData(2);
+    obj.data{imageIndex}.x = linspace(x(1), x(2), size(cdata,2));
 else
     obj.data{imageIndex}.x = image_data.XData;
 end
@@ -73,26 +76,39 @@ end
 %-------------------------------------------------------------------------%
 
 %-image y-%
+y = image_data.YData;
+
 if (size(image_data.YData,2) == 2)
-    obj.data{imageIndex}.y = image_data.YData(1):image_data.YData(2);
+    obj.data{imageIndex}.y = linspace(y(1), y(2), size(cdata,1));
 else
-    obj.data{imageIndex}.y = image_data.YData;
+    obj.data{imageIndex}.y = y;
 end
 
 %-------------------------------------------------------------------------%
 
 %-image z-%
-if(size(image_data.CData,3) > 1)
-    % TODO: ALLOW FOR TRUE COLOUR SPECS.
-    obj.data{imageIndex}.z = image_data.CData(:,:,1);
+isrgbimg = (size(image_data.CData,3) > 1);
+
+if isrgbimg
+    [IND,colormap] = rgb2ind(cdata, 256);
+    obj.data{imageIndex}.z = IND;
 else
-    obj.data{imageIndex}.z = image_data.CData;
+    obj.data{imageIndex}.z = cdata;
 end
 
 %-------------------------------------------------------------------------%
 
 %-image name-%
-obj.data{imageIndex}.name = image_data.DisplayName;
+try
+    obj.data{imageIndex}.name = image_data.DisplayName;
+catch
+    obj.data{imageIndex}.name = '';
+end
+
+%-------------------------------------------------------------------------%
+
+%-set the opacity-%
+obj.data{imageIndex}.opacity = image_data.AlphaData;
 
 %-------------------------------------------------------------------------%
 
@@ -117,34 +133,47 @@ obj.data{imageIndex}.zmin = axis_data.CLim(1);
 %-------------------------------------------------------------------------%
 
 %-image zmax-%
-obj.data{imageIndex}.zmax = axis_data.CLim(2);
+if ~strcmpi(image_data.CDataMapping, 'direct')
+    obj.data{imageIndex}.zmax = axis_data.CLim(2);
+else
+    obj.data{imageIndex}.zmax = 255;
+end
 
 %-------------------------------------------------------------------------%
 
 %-COLORSCALE (ASSUMES IMAGE CDATAMAP IS 'SCALED')-%
 
 %-image colorscale-%
-colormap = figure_data.Colormap;
 
-for c = 1:length(colormap)
+if ~isrgbimg
+    colormap = figure_data.Colormap;
+end
+
+len = length(colormap) - 1;
+
+for c = 1:size(colormap, 1)
     col =  255*(colormap(c,:));
-    obj.data{imageIndex}.colorscale{c} = {(c-1)/length(colormap), ['rgb(' num2str(col(1)) ',' num2str(col(2)) ',' num2str(col(3)) ')']};
+    obj.data{imageIndex}.colorscale{c} = {(c-1)/len, ['rgb(' num2str(col(1)) ',' num2str(col(2)) ',' num2str(col(3)) ')']};
 end
 
 %-------------------------------------------------------------------------%
 
 %-image showlegend-%
-leg = get(image_data.Annotation);
-legInfo = get(leg.LegendInformation);
+try
+    leg = get(image_data.Annotation);
+    legInfo = get(leg.LegendInformation);
 
-switch legInfo.IconDisplayStyle
-    case 'on'
-        showleg = true;
-    case 'off'
-        showleg = false;
+    switch legInfo.IconDisplayStyle
+        case 'on'
+            showleg = true;
+        case 'off'
+            showleg = false;
+    end
+
+    obj.data{imageIndex}.showlegend = showleg;
+catch
+    %TODO to future
 end
-
-obj.data{imageIndex}.showlegend = showleg;
 
 %-------------------------------------------------------------------------%
 

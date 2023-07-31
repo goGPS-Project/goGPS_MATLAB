@@ -9,12 +9,12 @@ function pdf = betapdf (x, a, b)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2011 Kurt Hornik
 % Copyright (C) 2010 Christos Dimitrakakis
-% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+% Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 % Adapted from Octave
 %  Written by:       KH <Kurt.Hornik@wu-wien.ac.at>
 %                    CD <christos.dimitrakakis@gmail.com>

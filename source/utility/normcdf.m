@@ -11,11 +11,11 @@ function cdf = normcdf (x, m, s)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2011 Kurt Hornik
-% Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+% Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       TT <Teresa.Twaroch@ci.tuwien.ac.at>
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
